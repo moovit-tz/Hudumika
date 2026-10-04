@@ -2,12 +2,13 @@ import React from 'react';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
-import { useSupportMetrics, PeriodSwitcher, KpiCard, SHdr } from './SupportOverviewShared.js';
+import { Banner } from '../components/ui/alert.js';
+import { useSupportMetrics, PeriodSwitcher, SupportMetricCard, SHdr } from './SupportOverviewShared.js';
 import './SupportOverview.css';
 
 export const SupportAnalytics: React.FC = () => {
   const isFullLayout = useFullLayout();
-  const { period, setPeriod, tickets, loading, metrics } = useSupportMetrics();
+  const { period, setPeriod, tickets, loading, metrics, ticketsError, metricsError } = useSupportMetrics();
 
   /* By category — derived from real ticket categories, not a fixed fake list */
   const byCat = Array.from(new Set(tickets.map(t => t.category || 'Uncategorized')))
@@ -43,13 +44,19 @@ export const SupportAnalytics: React.FC = () => {
           actions={<div className="sov-actions"><PeriodSwitcher period={period} setPeriod={setPeriod} /></div>}
         />
 
+        {(ticketsError || metricsError) && (
+          <Banner variant="error" title="Analytics data is incomplete">
+            {[ticketsError, metricsError].filter(Boolean).join(' ')}
+          </Banner>
+        )}
+
         <div className="sov-kpi-row">
-          <KpiCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '—'} iconBg="var(--teal-l)"  color="var(--teal)"   sub={`${npsTotal} responses`} />
-          <KpiCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : '—'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
-          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '—'}  iconBg="var(--blue-l)"  color="var(--blue)"   sub="Target: &lt;2h" />
-          <KpiCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : '—'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: &lt;8h" />
-          <KpiCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : '—'}         iconBg="var(--green-l)" color="var(--green)" />
-          <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '—'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
+          <SupportMetricCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '—'} iconBg="var(--teal-l)"  color="var(--teal)"   sub={`${npsTotal} responses`} />
+          <SupportMetricCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : '—'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
+          <SupportMetricCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '—'}  iconBg="var(--blue-l)"  color="var(--blue)"   sub="Target: &lt;2h" />
+          <SupportMetricCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : '—'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: &lt;8h" />
+          <SupportMetricCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : '—'}         iconBg="var(--green-l)" color="var(--green)" />
+          <SupportMetricCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '—'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
         </div>
 
         <div className="sov-charts-row sov-charts-row--3">

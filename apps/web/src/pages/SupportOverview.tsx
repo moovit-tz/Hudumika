@@ -8,7 +8,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
-import { useSupportMetrics, PeriodSwitcher, KpiCard, SHdr, StatRow } from './SupportOverviewShared.js';
+import { useSupportMetrics, PeriodSwitcher, SHdr, StatRow } from './SupportOverviewShared.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import './SupportOverview.css';
 
 /**
@@ -91,13 +92,13 @@ export const SupportOverview: React.FC = () => {
           }
         />
 
-        <div className="sov-kpi-row">
-          <KpiCard icon="clipboard"   label="Total Cases"  value={String(total)}    iconBg="var(--blue-l)"  color="var(--blue)"   sub={`${period} period`} />
-          <KpiCard icon="alertCircle" label="Open"         value={String(open)}     iconBg="var(--red-l)"   color="var(--red)"    sub={`${urgent} urgent`} />
-          <KpiCard icon="clock"       label="In Progress"  value={String(inProg)}   iconBg="var(--gold-l)"  color="var(--gold)"   sub="Being worked on" />
-          <KpiCard icon="checkCircle" label="Resolved"     value={String(resolved)} iconBg="var(--green-l)" color="var(--green)" />
-          <KpiCard icon="x"           label="Closed"       value={String(closed)}   iconBg="var(--bg)"      color="var(--ink2)"   sub={`${resRate}% resolution rate`} />
-        </div>
+        <MetricsRow cards={[
+          { title: 'Total cases', value: String(total), icon: 'clipboard', barHighlight: 'var(--blue)', comparisonLabel: `${period} reporting period`, bars: dayBars, emphasis: 'primary' },
+          { title: 'Open', value: String(open), icon: 'alertCircle', barHighlight: 'var(--red)', sub1Label: 'URGENT', sub1Value: String(urgent) },
+          { title: 'In progress', value: String(inProg), icon: 'clock', barHighlight: 'var(--gold)', sub1Label: 'SHARE OF CASES', sub1Value: `${pct(inProg)}%` },
+          { title: 'Resolved', value: String(resolved), icon: 'checkCircle', barHighlight: 'var(--green)', sub1Label: 'SHARE OF CASES', sub1Value: `${pct(resolved)}%` },
+          { title: 'Closed', value: String(closed), icon: 'x', sub1Label: 'RESOLUTION RATE', sub1Value: `${resRate}%`, emphasis: 'subtle' },
+        ]} />
 
         <div className="sov-charts-row sov-charts-row--2">
           <div className="sov-card">
@@ -145,14 +146,13 @@ export const SupportOverview: React.FC = () => {
         </div>
 
         {/* ── Satisfaction / quality — formerly a separate Analytics page ── */}
-        <div className="sov-kpi-row">
-          <KpiCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '—'} iconBg="var(--teal-l)"  color="var(--teal)"   sub={`${npsTotal} responses`} />
-          <KpiCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : '—'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
-          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '—'}  iconBg="var(--blue-l)"  color="var(--blue)"   sub="Target: <2h" />
-          <KpiCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : '—'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: <8h" />
-          <KpiCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : '—'}         iconBg="var(--green-l)" color="var(--green)" />
-          <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '—'}      iconBg="var(--red-l)"   color="var(--red)"    sub="Reopened / escalated" />
-        </div>
+        <MetricsRow cards={[
+          { title: 'NPS score', value: metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '—', icon: 'zap', loading: metricsLoading, sub1Label: 'RESPONSES', sub1Value: String(npsTotal), emphasis: 'primary' },
+          { title: 'CSAT score', value: metrics ? `${metrics.csat}/5` : '—', icon: 'smile', barHighlight: 'var(--green)', loading: metricsLoading, sub1Label: 'MEASURE', sub1Value: 'Customer satisfaction' },
+          { title: 'Average first reply', value: metrics ? `${metrics.firstReply}h` : '—', icon: 'clock', barHighlight: 'var(--blue)', loading: metricsLoading, progress: metrics ? Math.min(100, (2 / Math.max(metrics.firstReply, 0.01)) * 100) : undefined, progressLabel: 'Against <2h target' },
+          { title: 'Average solve time', value: metrics ? `${metrics.resolution}h` : '—', icon: 'timer', barHighlight: 'var(--gold)', loading: metricsLoading, progress: metrics ? Math.min(100, (8 / Math.max(metrics.resolution, 0.01)) * 100) : undefined, progressLabel: 'Against <8h target' },
+          { title: 'SLA compliance', value: metrics ? `${metrics.sla}%` : '—', icon: 'tasks', barHighlight: 'var(--green)', loading: metricsLoading, progress: metrics?.sla, progressLabel: 'Compliance rate' },
+        ]} />
 
         {/* These are the same numbers registered in the platform Metric
             Registry (bliss.sla_compliance, bliss.csat, ...) — one link out

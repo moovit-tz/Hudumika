@@ -9,6 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 
 interface TerminalLog {
   id: string;
@@ -573,58 +574,49 @@ export function ComplyLicenseAutomation() {
       )}
 
       {/* TAUSI LOGIN DIALOG MODAL (tausi-login-dialog) */}
-      {isTausiLoginDialogOpen && (
-        <div className="onsite-modal-overlay tausi-login-dialog-overlay" onClick={() => setIsTausiLoginDialogOpen(false)}>
-          <div className="onsite-modal-box tausi-login-dialog" style={{ maxWidth: '940px', width: '92vw', height: '85vh', maxHeight: '720px' }} onClick={(e) => e.stopPropagation()}>
+      <Dialog open={isTausiLoginDialogOpen} onOpenChange={setIsTausiLoginDialogOpen}>
+          <DialogContent size="xl" className="tausi-login-dialog overflow-hidden p-0">
             {/* Modal Header */}
-            <div className="onsite-modal-header" style={{ background: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}>
+            <DialogHeader className="flex-row items-center justify-between" style={{ background: 'var(--ink)', borderColor: 'var(--border)', color: 'var(--white)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Icon name="lock" size={18} style={{ color: '#10b981' }} />
-                <h3 className="onsite-modal-title" style={{ color: '#f8fafc', fontSize: '1.05rem' }}>
+                <Icon name="lock" size={18} style={{ color: 'var(--green)' }} />
+                <DialogTitle className="onsite-modal-title" style={{ color: 'var(--white)', fontSize: '1.05rem' }}>
                   Tausi (TAMISEMI) Portal Login &amp; Extraction
-                </h3>
+                </DialogTitle>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
+                <Button
                   type="button"
-                  className="comply-btn-primary comply-btn-sm"
+                  size="sm"
                   onClick={handleCaptureInAppBrowser}
                   disabled={uploading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   <span style={uploading ? { display: 'inline-flex', animation: 'ds-spin 1s linear infinite' } : { display: 'inline-flex' }}>
                     <Icon name={uploading ? 'refresh' : 'zap'} size={13} />
                   </span>
                   <span>{uploading ? 'Capturing...' : 'Capture & Sync'}</span>
-                </button>
-                <button
-                  onClick={() => setIsTausiLoginDialogOpen(false)}
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94a3b8' }}
-                >
-                  <Icon name="close" size={18} />
-                </button>
+                </Button>
               </div>
-            </div>
+            </DialogHeader>
 
             {/* Modal Subheader */}
-            <div style={{ background: '#0f172a', padding: '0.5rem 1rem', borderBottom: '1px solid #334155', fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--ink)', padding: '0.5rem 1rem', borderBottom: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontFamily: 'monospace' }}>URL: {tausiUrl}</span>
-              <span style={{ color: '#38bdf8', fontWeight: 600, cursor: 'pointer' }} onClick={openNativeTausi}>
+              <Button type="button" variant="link" size="sm" onClick={openNativeTausi}>
                 Open in new tab ↗
-              </span>
+              </Button>
             </div>
 
             {/* Modal Body: Embedded Interactive Tausi IFrame */}
-            <div style={{ flex: 1, position: 'relative', width: '100%', height: '100%', background: '#ffffff' }}>
+            <DialogBody className="p-0">
               <iframe
                 src={tausiUrl}
                 title="Tausi Portal Login Dialog"
                 style={{ width: '100%', height: '100%', border: 'none' }}
               />
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogBody>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -96,7 +96,7 @@ export function PettiExchange() {
         crumbs={['Petti', 'Activities', 'Exchange Money']}
         titlePlain="FX"
         titleEm="exchange"
-        subtitle="Real-time currency converter and exchange rate calculations across your multi-currency vaults."
+        subtitle="Convert balances between currencies using the current reference rates."
       />
 
       {/* Summary Metrics */}
@@ -211,7 +211,7 @@ export function PettiExchange() {
           <div className="petti-card">
             <h4 style={{ margin: '0 0 10px 0', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Treasury FX Mechanics</h4>
             <p style={{ margin: '0 0 12px 0', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
-              Inter-wallet capital transfers operate in real-time between vaults sharing the <strong>same currency</strong>. When you select differing currencies, Petti accesses the centralized FX Rates feed to compute exact conversion equivalencies.
+              Transfers between wallets with the <strong>same currency</strong> post immediately. For different currencies, Petti uses the configured FX rate to calculate the converted amount.
             </p>
             <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>Central FX Engine</div>

@@ -268,9 +268,8 @@ export const ApiKeysPage: React.FC = () => {
             </div>
 
             <p className="api-card-desc">
-              Unlock the full potential of your application with our API, a secure gateway
-              facilitating seamless integration, empowering developers to create innovative and
-              dynamic experiences effortlessly.
+              Use the API to connect your application to Hudumika services and
+              build workflows around your operational data.
             </p>
           </div>
 
@@ -419,8 +418,7 @@ export const ApiKeysPage: React.FC = () => {
               <span className="api-card-title">Webhooks</span>
             </div>
             <p className="api-card-desc" style={{ marginBottom: 16 }}>
-              Set up Webhooks to trigger actions on external services in real-time. Stay informed on
-              updates and changes to ensure seamless integration.
+              Set up webhooks to notify external services when records or statuses change.
             </p>
 
             <div className="api-webhook-form">

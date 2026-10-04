@@ -64,7 +64,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics' },
   seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics' },
   inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics' },
-  hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics' },
+  hudubi:       { desc: 'Reports, dashboards, board KPIs, and business forecasts', category: 'Analytics' },
   petti:        { desc: 'Tenant petty-cash wallets — deposits, request/approve/disburse withdrawals', category: 'Finance' },
   sign:         { desc: 'Secure electronic document signatures, approvals & audit-chained events', category: 'Productivity' },
   sms:          { desc: 'Bulk & transactional SMS — quick send, groups, templates, scheduled campaigns', category: 'Communication' },

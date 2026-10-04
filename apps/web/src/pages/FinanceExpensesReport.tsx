@@ -7,6 +7,8 @@ import { apiFetch } from '../lib/api.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
@@ -27,16 +29,6 @@ const CATS: Record<string, { label: string; color: string }> = {
 };
 const PAGE_SIZE = 15;
 
-const pagerBtn = (disabled: boolean): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: 'var(--ds-btn-py-sm) 12px',
-  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
-  border: '1px solid var(--border)', borderRadius: 'var(--r)',
-  background: 'var(--white)', color: 'var(--ink2)',
-  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  opacity: disabled ? 0.45 : 1,
-});
 
 function catLabel(cat: string) { return CATS[cat]?.label ?? cat; }
 function catColor(cat: string) { return CATS[cat]?.color ?? 'var(--ink3)'; }
@@ -164,9 +156,9 @@ export const FinanceExpensesReport: React.FC = () => {
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <Button type="button" onClick={exportCsv} variant="outline" size="sm">
               <Icon name="download" size={13} /> Export
-            </button>
+            </Button>
           </div>
         }
       />
@@ -248,7 +240,7 @@ export const FinanceExpensesReport: React.FC = () => {
                 <tr key={x.e.id} style={{ borderBottom: i < pagedExpenses.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{x.e.name}</td>
                   <td style={{ padding: '10px 16px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: catColor(x.e.category), background: catColor(x.e.category) + '1a', borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{catLabel(x.e.category)}</span>
+                    <Badge variant="gray">{catLabel(x.e.category)}</Badge>
                   </td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(x.e.amount)}</td>
@@ -264,25 +256,27 @@ export const FinanceExpensesReport: React.FC = () => {
                 Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   disabled={currentPage <= 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
-                  style={pagerBtn(currentPage <= 1)}
                 >
                   <Icon name="chevronLeft" size={13} /> Previous
-                </button>
+                </Button>
                 <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
                   Page {currentPage} of {pageCount}
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   disabled={currentPage >= pageCount}
                   onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                  style={pagerBtn(currentPage >= pageCount)}
                 >
                   Next <Icon name="chevronRight" size={13} />
-                </button>
+                </Button>
               </div>
             </div>
           )}

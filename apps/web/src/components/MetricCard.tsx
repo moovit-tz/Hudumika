@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon, IconName } from './Icon.js';
 import { FeaturedIcon } from './ui/featured-icon.js';
+import { Tip } from './ui/tooltip.js';
 
 /* ── Deterministic sparkline data generator ── */
 // spark() is gone. It produced a 15-point curve from sin(seed) and was
@@ -32,7 +33,7 @@ export function AreaSparkline({
   const W = 120, H = 44, py = 4, px = 2;
   const max = Math.max(...data, 0.01);
   const pts: [number, number][] = data.map((v, i) => [
-    px + (i / (data.length - 1)) * (W - px * 2),
+    px + (data.length === 1 ? 0.5 : i / (data.length - 1)) * (W - px * 2),
     py + (1 - v / max) * (H - py * 2),
   ]);
   const linePath = smoothLinePath(pts);
@@ -41,7 +42,7 @@ export function AreaSparkline({
   const gradId = `sg-${id}`;
 
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="mc-sparkline-svg">
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="mc-sparkline-svg" aria-hidden="true">
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.28" />
@@ -81,11 +82,12 @@ export function MiniBar({
 
 /* ── Trend pill badge ── */
 export function Trend({ val, invert = false }: { val: number; invert?: boolean }) {
-  const up = invert ? val < 0 : val >= 0;
+  const directionUp = val >= 0;
+  const favorable = invert ? val <= 0 : val >= 0;
   return (
-    <span className="mc-trend" data-up={String(up)}>
-      <Icon name={up ? 'arrowUp' : 'arrowDown'} size={10} strokeWidth={2.5}
-        color={up ? 'var(--green)' : 'var(--red)'} duotone={false} />
+    <span className="mc-trend" data-sentiment={favorable ? 'positive' : 'negative'}>
+      <Icon name={directionUp ? 'arrowUp' : 'arrowDown'} size={10} strokeWidth={2.5}
+        color={favorable ? 'var(--green)' : 'var(--red)'} duotone={false} />
       {Math.abs(val).toFixed(1)}%
     </span>
   );
@@ -111,10 +113,31 @@ export interface MetricCardProps {
   barColor?: string;
   barHighlight?: string;
   invertTrend?: boolean;
+  /** Plain-language anchor for the delta, e.g. "vs previous 30 days". */
+  comparisonLabel?: string;
+  /** Optional data-freshness note, e.g. "Updated 2 minutes ago". */
+  updatedLabel?: string;
+  /** Optional benchmark progress, normalized from 0–100. */
+  progress?: number;
+  progressLabel?: string;
+  /** Distinguishes "no observations yet" from a measured value of zero. */
+  empty?: boolean;
+  emptyMessage?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
+  /** Reserve primary emphasis for the one or two metrics that answer the page's main question. */
+  emphasis?: 'default' | 'primary' | 'subtle';
   icon?: IconName;
   /** Optional action for the header's "more" button. Omit to leave it non-interactive. */
   onMenuClick?: () => void;
   menuTitle?: string;
+  /** Makes the summary a discoverable drill-down control. */
+  onClick?: () => void;
+  /** Holds the card footprint while its query resolves. */
+  loading?: boolean;
+  /** An honest in-card failure state; pass onRetry to expose recovery. */
+  error?: string;
+  onRetry?: () => void;
 }
 
 const COLOR_ICON: Record<string, { icon: IconName }> = {
@@ -144,7 +167,9 @@ export function MetricCard({
   sub1Label = 'THIS MONTH', sub1Value,
   sub2Label = 'THIS WEEK',  sub2Value,
   bars, barColor, barHighlight, invertTrend = false,
-  icon, onMenuClick, menuTitle,
+  comparisonLabel, updatedLabel, progress, progressLabel,
+  empty = false, emptyMessage = 'No data for this period', emptyActionLabel, onEmptyAction,
+  emphasis = 'default', icon, onMenuClick, menuTitle, onClick, loading = false, error, onRetry,
 }: MetricCardProps) {
   const sparkId = React.useRef(`mc${++_sparkId}`).current;
   const color    = barHighlight ?? 'var(--teal)';
@@ -154,8 +179,19 @@ export function MetricCard({
   const hasBars  = !!bars && bars.length > 0;
   const chipClass = variant === 'brand' ? 'is-primary' : variant === 'info' ? 'is-info' : variant === 'success' ? 'is-success' : variant === 'warning' ? 'is-warning' : 'is-danger';
 
+  const interactiveProps = onClick ? {
+    role: 'button', tabIndex: 0,
+    onClick,
+    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onClick();
+      }
+    },
+  } : {};
+
   return (
-    <div className="mc-card">
+    <div className="mc-card" data-interactive={onClick ? 'true' : undefined} data-emphasis={emphasis} aria-busy={loading || undefined} {...interactiveProps}>
       <div className="mc-head">
         <div className="mc-head-left">
           <span className={`icon-chip ${chipClass}`}>
@@ -164,40 +200,63 @@ export function MetricCard({
           <span className="mc-title">{title}</span>
         </div>
         <div className="mc-head-right" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {typeof trend === 'number' && trend !== 0 && <Trend val={trend} invert={invertTrend} />}
           {onMenuClick && (
-            <button type="button" className="mc-refresh-btn" onClick={onMenuClick} title={menuTitle ?? 'Refresh'}>
-              <Icon name="refresh" size={13} strokeWidth={1.75} duotone={false} />
-            </button>
+            <Tip label={menuTitle ?? 'Refresh'}>
+              <button type="button" className="mc-refresh-btn" aria-label={menuTitle ?? 'Refresh'} onClick={(event) => { event.stopPropagation(); onMenuClick(); }}>
+                <Icon name="refresh" size={13} strokeWidth={1.75} duotone={false} />
+              </button>
+            </Tip>
           )}
         </div>
       </div>
 
-      <div className="mc-value-row">
-        <span className="mc-value">{value}</span>
-      </div>
+      {loading ? (
+        <div className="mc-state" aria-label={`Loading ${title}`}>
+          <span className="mc-skeleton mc-skeleton-value" />
+          <span className="mc-skeleton mc-skeleton-meta" />
+        </div>
+      ) : error ? (
+        <div className="mc-state mc-error" role="status">
+          <span>{error}</span>
+          {onRetry && <button type="button" onClick={(event) => { event.stopPropagation(); onRetry(); }}>Try again</button>}
+        </div>
+      ) : empty ? (
+        <div className="mc-state mc-empty" role="status">
+          <span>{emptyMessage}</span>
+          {emptyActionLabel && onEmptyAction && <button type="button" onClick={(event) => { event.stopPropagation(); onEmptyAction(); }}>{emptyActionLabel}</button>}
+        </div>
+      ) : (
+        <>
+          <div className="mc-value-row">
+            <span className="mc-value">{value}</span>
+          </div>
 
-      {(sub1Value || sub2Value) && (
-        <div className="mc-sub-row">
-          {sub1Value && (
-            <div>
-              <div className="mc-sub-label">{sub1Label}</div>
-              <div className="mc-sub-value">{sub1Value}</div>
+          {(typeof trend === 'number' && trend !== 0 || comparisonLabel) && (
+            <div className="mc-comparison">
+              {typeof trend === 'number' && trend !== 0 && <Trend val={trend} invert={invertTrend} />}
+              {comparisonLabel && <span className="mc-comparison-label">{comparisonLabel}</span>}
             </div>
           )}
-          {sub2Value && (
-            <div>
-              <div className="mc-sub-label">{sub2Label}</div>
-              <div className="mc-sub-value">{sub2Value}</div>
+
+          {typeof progress === 'number' && (
+            <div className="mc-progress">
+              <div className="mc-progress-meta"><span>{progressLabel ?? 'Target progress'}</span><strong>{Math.round(Math.max(0, Math.min(100, progress)))}%</strong></div>
+              <div className="mc-progress-track" role="progressbar" aria-label={progressLabel ?? `${title} target progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.max(0, Math.min(100, progress)))}>
+                <span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+              </div>
             </div>
           )}
-        </div>
-      )}
 
-      {hasBars && (
-        <div className="mc-spark-wrap">
-          <AreaSparkline data={bars!} color={color} id={sparkId} />
-        </div>
+          {(sub1Value || sub2Value) && (
+            <div className="mc-sub-row">
+              {sub1Value && <div><div className="mc-sub-label">{sub1Label}</div><div className="mc-sub-value">{sub1Value}</div></div>}
+              {sub2Value && <div><div className="mc-sub-label">{sub2Label}</div><div className="mc-sub-value">{sub2Value}</div></div>}
+            </div>
+          )}
+
+          {hasBars && <div className="mc-spark-wrap"><AreaSparkline data={bars!} color={color} id={sparkId} /></div>}
+          {updatedLabel && <div className="mc-updated">{updatedLabel}</div>}
+        </>
       )}
     </div>
   );

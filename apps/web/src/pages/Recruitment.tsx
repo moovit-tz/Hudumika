@@ -5,6 +5,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -983,7 +985,7 @@ function RequisitionsTab({ staff }: { staff: { id: string; name: string }[] }) {
 
 // -- pipeline tab ------------------------------------------------------
 
-const PAGE_SIZE = 10;
+const APPLICATIONS_PAGE_SIZE = 10;
 
 function PipelineTab() {
   const [openings, setOpenings] = useState<Opening[]>([]);
@@ -1000,25 +1002,43 @@ function PipelineTab() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [applicationsError, setApplicationsError] = useState<string | null>(null);
 
   useEffect(() => { apiFetch('/v1/hr/staff').then(d => { if (Array.isArray(d)) setStaff(d); }).catch(() => {}); }, []);
   useEffect(() => { apiFetch('/v1/hr/recruitment/interviews/upcoming').then(d => { if (Array.isArray(d)) setUpcoming(d); }).catch(() => {}); }, []);
 
   const loadOpenings = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const r = await apiFetch('/v1/hr/recruitment/openings');
       const list: Opening[] = Array.isArray(r) ? r : [];
       setOpenings(list);
       setSelId(prev => (prev && list.some(o => o.id === prev)) ? prev : (list[0]?.id ?? null));
-    } catch { setOpenings([]); }
+    } catch (error: any) {
+      setOpenings([]);
+      setLoadError(error?.message || 'Could not load recruitment activity.');
+    }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { loadOpenings(); }, [loadOpenings]);
 
   const loadApplications = useCallback(async (id: string) => {
-    try { setApplications(await apiFetch(`/v1/hr/recruitment/openings/${id}/applications`) ?? []); } catch { setApplications([]); }
+    setApplicationsLoading(true);
+    setApplicationsError(null);
+    try { setApplications(await apiFetch(`/v1/hr/recruitment/openings/${id}/applications`) ?? []); }
+    catch (error: any) {
+      setApplications([]);
+      setApplicationsError(error?.message || 'Could not load applications for this opening.');
+    } finally { setApplicationsLoading(false); }
   }, []);
-  useEffect(() => { setPage(1); if (selId) loadApplications(selId); else setApplications([]); }, [selId, loadApplications]);
+  useEffect(() => {
+    setPage(1);
+    if (selId) loadApplications(selId);
+    else { setApplications([]); setApplicationsError(null); }
+  }, [selId, loadApplications]);
 
   const refreshUpcoming = useCallback(() => {
     apiFetch('/v1/hr/recruitment/interviews/upcoming').then(d => { if (Array.isArray(d)) setUpcoming(d); }).catch(() => {});
@@ -1027,8 +1047,8 @@ function PipelineTab() {
   const selectedOpening = openings.find(o => o.id === selId) || null;
 
   const filteredApplications = applications.filter(a => !search || a.candidate_name.toLowerCase().includes(search.toLowerCase()));
-  const pageCount = Math.max(1, Math.ceil(filteredApplications.length / PAGE_SIZE));
-  const pageApplications = filteredApplications.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(filteredApplications.length / APPLICATIONS_PAGE_SIZE));
+  const pageApplications = filteredApplications.slice((page - 1) * APPLICATIONS_PAGE_SIZE, page * APPLICATIONS_PAGE_SIZE);
 
   const totals = useMemo(() => {
     const totalApplications = openings.reduce((s, o) => s + (o.candidate_count || 0), 0);
@@ -1090,15 +1110,6 @@ function PipelineTab() {
     setStage(a, 'REJECTED');
   }
 
-  const KPIS = [
-    { label: 'Job Openings', value: totals.openings, icon: 'package', variant: 'brand' as const },
-    { label: 'Applications', value: totals.applications, icon: 'fileText', variant: 'info' as const },
-    { label: 'Screening', value: totals.screening, icon: 'users', variant: 'info' as const },
-    { label: 'In Interview', value: totals.interview, icon: 'video', variant: 'brand' as const },
-    { label: 'Rejected', value: totals.rejected, icon: 'x', variant: 'error' as const },
-    { label: 'Hired', value: totals.hired, icon: 'checkCircle', variant: 'success' as const },
-  ];
-
   return (
     <div>
       {showJob && <CreateJobModal onClose={() => setShowJob(false)} onCreated={id => { loadOpenings(); setSelId(id); }} />}
@@ -1123,19 +1134,14 @@ function PipelineTab() {
         <CandidateProfileModal candidateId={profileFor.candidate_id} candidateName={profileFor.candidate_name} onClose={() => setProfileFor(null)} />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
-        {KPIS.map(k => (
-          <SectionCard key={k.label}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <FeaturedIcon variant={k.variant} size="sm"><Icon name={k.icon as any} size={16} /></FeaturedIcon>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{k.value.toLocaleString()}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{k.label}</div>
-              </div>
-            </div>
-          </SectionCard>
-        ))}
-      </div>
+      <MetricsRow cards={[
+        { title: 'Job openings', value: totals.openings.toLocaleString(), icon: 'package', emphasis: 'primary', loading, error: loadError || undefined, onRetry: loadOpenings },
+        { title: 'Applications', value: totals.applications.toLocaleString(), icon: 'fileText', loading, error: loadError || undefined, onRetry: loadOpenings },
+        { title: 'Screening', value: totals.screening.toLocaleString(), icon: 'users', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'In interview', value: totals.interview.toLocaleString(), icon: 'video', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'Rejected', value: totals.rejected.toLocaleString(), icon: 'x', emphasis: 'subtle', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'Hired', value: totals.hired.toLocaleString(), icon: 'checkCircle', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+      ]} />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <Button onClick={() => setShowJob(true)}><Icon name="plus" size={15} /> Create job directly</Button>
@@ -1211,21 +1217,20 @@ function PipelineTab() {
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
             Applications{selectedOpening ? ` — ${selectedOpening.title}` : ''}
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
-            <div style={{ position: 'relative', width: 220 }}>
-              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <Input
-                type="text" placeholder="Search candidates…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{ paddingLeft: 30 }}
-              />
-            </div>
+          <SearchToolbar
+            search={search}
+            onSearch={value => { setSearch(value); setPage(1); }}
+            placeholder="Search candidates"
+            actions={<>
             <Button variant="outline" size="sm" disabled={filteredApplications.length === 0} onClick={() => downloadApplicationsCsv(filteredApplications, openings, selectedOpening?.title || '')}>
               <Icon name="download" size={14} /> Export CSV
             </Button>
             <Button size="sm" disabled={!selectedOpening} onClick={() => setShowCand(true)}>
               <Icon name="plus" size={14} /> Add candidate
             </Button>
-          </div>
+            </>}
+            style={{ flex: '1 1 420px', maxWidth: 620 }}
+          />
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -1318,7 +1323,7 @@ function PipelineTab() {
 
         {filteredApplications.length > 0 && (
           <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink3)' }}>
-            <span>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredApplications.length)} of {filteredApplications.length}</span>
+            <span>Showing {(page - 1) * APPLICATIONS_PAGE_SIZE + 1}–{Math.min(page * APPLICATIONS_PAGE_SIZE, filteredApplications.length)} of {filteredApplications.length}</span>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
               <span>Page {page} of {pageCount}</span>

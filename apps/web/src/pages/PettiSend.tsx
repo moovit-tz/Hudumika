@@ -207,7 +207,7 @@ export function PettiSend() {
         {/* Transfer Visualizer Flow */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="petti-card">
-            <h4 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Real-Time Transfer Flow</h4>
+            <h4 style={{ margin: '0 0 16px 0', fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Transfer steps</h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* Source Card */}
@@ -273,7 +273,7 @@ export function PettiSend() {
                       <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{new Date(t.created_at).toLocaleString()}</td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{fw?.name || 'Source'}</td>
                       <td style={{ fontWeight: 700, color: 'var(--teal)' }}>{tw?.name || 'Destination'}</td>
-                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--navy)' }}>
+                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--ink)' }}>
                         {Number(t.amount).toLocaleString()} {fw?.currency || ''}
                       </td>
                       <td style={{ color: 'var(--ink3)' }}>{t.note || '—'}</td>

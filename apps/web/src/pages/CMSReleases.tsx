@@ -206,7 +206,7 @@ export function CMSReleases() {
               </p>
               <button
                 onClick={() => setCreateModalOpen(true)}
-                style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--teal)', color: '#fff', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
               >
                 Create Release
               </button>
@@ -377,7 +377,7 @@ export function CMSReleases() {
                       {selectedRelease.status !== 'published' && (
                         <button
                           onClick={() => handleRemoveItem(it.id)}
-                          style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4 }}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
                           title="Remove from release"
                         >
                           <Icon name="x" size={14} />
@@ -414,9 +414,9 @@ export function CMSReleases() {
                 style={{
                   padding: '9px 12px',
                   borderRadius: 8,
-                  background: '#fff1f2',
-                  border: '1px solid #fee2e2',
-                  color: '#dc2626',
+                  background: 'var(--red-l)',
+                  border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))',
+                  color: 'var(--red)',
                   cursor: 'pointer',
                 }}
                 title="Delete release"
@@ -487,7 +487,7 @@ export function CMSReleases() {
               </button>
               <button
                 onClick={handleCreateRelease}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 Create Release
               </button>
@@ -586,7 +586,7 @@ export function CMSReleases() {
               </button>
               <button
                 onClick={handleAddItem}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 Add to Bundle
               </button>

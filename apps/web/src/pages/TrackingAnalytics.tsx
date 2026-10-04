@@ -7,6 +7,9 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { PageLoading } from '../components/ui/spinner.js';
+import { Button } from '../components/ui/button.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
@@ -59,9 +62,7 @@ function UpgradeEmptyState({ feature }: { feature: string }) {
         <Icon name="lock" size={28} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>{feature} is an Enterprise feature</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 6 }}>Upgrade your plan to unlock this tool.</div>
-        <a href="/subscription" style={{ display: 'inline-block', marginTop: 16, padding: '9px 18px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
-          View plans
-        </a>
+        <Button asChild className="mt-4"><a href="/subscription">View plans</a></Button>
       </div>
     </div>
   );
@@ -79,7 +80,7 @@ export const TrackingAnalytics: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Loading analytics…</div>;
+  if (loading) return <PageLoading label="Loading fleet analytics…" />;
   if (locked || !data) return <UpgradeEmptyState feature="Fleet Analytics" />;
 
   const breakdownData = {
@@ -134,7 +135,14 @@ export const TrackingAnalytics: React.FC = () => {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
+      <MetricsRow cards={[
+        { title: 'Fleet health', value: String(data.fleet_health_score), comparisonLabel: 'Composite score out of 100', progress: data.fleet_health_score, progressLabel: 'Fleet health score', barHighlight: data.fleet_health_score >= 80 ? 'var(--green)' : data.fleet_health_score >= 60 ? 'var(--gold)' : 'var(--red)' },
+        { title: 'On-time trips', value: data.on_time_trip_pct != null ? `${data.on_time_trip_pct}%` : '—', comparisonLabel: data.on_time_trip_pct != null ? 'Completed on schedule' : 'No completed-trip timing data', barHighlight: 'var(--teal)' },
+        { title: 'Documents expiring', value: String(data.documents_expiring_30d), comparisonLabel: 'Due within 30 days', barHighlight: data.documents_expiring_30d > 0 ? 'var(--gold)' : 'var(--green)' },
+        { title: 'Overdue service', value: String(data.overdue_service_count), comparisonLabel: 'Vehicles past service due date', barHighlight: data.overdue_service_count > 0 ? 'var(--red)' : 'var(--green)' },
+      ]} />
+
+      <div className="mb-5 grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <SectionCard title="Fleet Health Score">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <HealthGauge score={data.fleet_health_score} />
@@ -145,15 +153,9 @@ export const TrackingAnalytics: React.FC = () => {
             <Doughnut data={breakdownData} options={{ plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }, cutout: '60%' }} />
           </div>
         </SectionCard>
-        <SectionCard>
-          <div style={statBlock}>On-time trips</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.on_time_trip_pct != null ? `${data.on_time_trip_pct}%` : '—'}</div>
-          <div style={{ ...statBlock, marginTop: 16 }}>Docs expiring (30d)</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)' }}>{data.documents_expiring_30d}</div>
-        </SectionCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="mb-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <SectionCard title="Health Score by Vehicle">
           <div style={{ height: 230 }}>
             <Line data={trendData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }} />
@@ -180,7 +182,7 @@ export const TrackingAnalytics: React.FC = () => {
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>Costs, compliance &amp; work orders across the fleet</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="mb-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-3">
         <SectionCard title="Vehicle Status">
           {vehicleStatusItems.map(it => (
             <div key={it.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
@@ -214,14 +216,9 @@ export const TrackingAnalytics: React.FC = () => {
           </div>
         </SectionCard>
 
-        <SectionCard>
-          <div style={statBlock}>Overdue Service Items</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: data.overdue_service_count > 0 ? 'var(--red)' : 'var(--ink)' }}>{data.overdue_service_count}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Vehicles past their next-due service date</div>
-        </SectionCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="mb-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-3">
         <SectionCard title="Issues by Status">
           {Object.entries(data.issues_summary.by_status).map(([status, count]) => (
             <div key={status} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
@@ -246,7 +243,7 @@ export const TrackingAnalytics: React.FC = () => {
         </SectionCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+      <div className="mb-3.5 grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <SectionCard title="Total Costs">
           <div style={{ height: 190 }}>
             {data.total_cost_by_month.length > 0
@@ -263,7 +260,7 @@ export const TrackingAnalytics: React.FC = () => {
         </SectionCard>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <SectionCard title="Cost Per Km">
           <div style={{ height: 190 }}>
             {data.cost_per_km_by_month.length > 0

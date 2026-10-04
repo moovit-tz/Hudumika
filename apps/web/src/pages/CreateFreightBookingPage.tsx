@@ -6,6 +6,10 @@ import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Button } from '../components/ui/button.js';
+import { Banner } from '../components/ui/alert.js';
 
 interface Customer { id: string; name: string; }
 
@@ -23,6 +27,7 @@ export function CreateFreightBookingPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customersError, setCustomersError] = useState<string | null>(null);
   const [form, setForm] = useState({
     customer_id: '', mode: 'FCL_20', origin_port: '', destination_port: '',
     cargo_desc: '', quantity: '1', requested_ship_date: '',
@@ -35,7 +40,7 @@ export function CreateFreightBookingPage() {
     apiFetch('/v1/customers').then(res => {
       const list = Array.isArray(res) ? res : res.data || [];
       setCustomers(list);
-    }).catch(() => {});
+    }).catch(() => setCustomersError('Could not load customers. Refresh before creating the booking.'));
   }, []);
 
   async function submit() {
@@ -64,6 +69,7 @@ export function CreateFreightBookingPage() {
 
       <div style={{ maxWidth: 720 }}>
       <SectionCard>
+        {customersError && <Banner variant="error" onDismiss={() => setCustomersError(null)}>{customersError}</Banner>}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Customer *</label>
@@ -78,15 +84,15 @@ export function CreateFreightBookingPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Origin port *</label>
-            <input className="input-field" value={form.origin_port} onChange={e => setForm(p => ({ ...p, origin_port: e.target.value }))} placeholder="e.g. Shanghai" />
+            <Input value={form.origin_port} onChange={e => setForm(p => ({ ...p, origin_port: e.target.value }))} placeholder="e.g. Shanghai" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Destination port *</label>
-            <input className="input-field" value={form.destination_port} onChange={e => setForm(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" />
+            <Input value={form.destination_port} onChange={e => setForm(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Quantity</label>
-            <input className="input-field" type="number" min="1" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} />
+            <Input type="number" min="1" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Requested ship date</label>
@@ -95,10 +101,10 @@ export function CreateFreightBookingPage() {
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Cargo description</label>
-          <textarea className="input-field" rows={3} value={form.cargo_desc} onChange={e => setForm(p => ({ ...p, cargo_desc: e.target.value }))} style={{ resize: 'vertical', width: '100%' }} />
+          <Textarea rows={3} value={form.cargo_desc} onChange={e => setForm(p => ({ ...p, cargo_desc: e.target.value }))} />
         </div>
-        {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
-        <button type="button" className="btn btn-primary" onClick={submit} disabled={saving}>{saving ? 'Creating…' : 'Create Booking Request'}</button>
+        {error && <Banner variant="error" onDismiss={() => setError(null)}>{error}</Banner>}
+        <Button type="button" onClick={submit} disabled={saving || !!customersError}>{saving ? 'Creating…' : 'Create booking request'}</Button>
       </SectionCard>
       </div>
     </div>

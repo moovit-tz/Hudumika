@@ -3,98 +3,150 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
-import { showAlert } from '../lib/alert.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useCompany } from '../data/companyStore.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import './SalesAnalytics.css';
 
+function fmt(n: number, cur = '') {
+  if (n >= 1_000_000) return `${cur}${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${cur}${(n / 1_000).toFixed(0)}K`;
+  return `${cur}${n.toLocaleString()}`;
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export const CustomerOverview: React.FC = () => {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const co = useCompany();
   const cur = co.currency ?? 'USD';
 
   const [loading, setLoading] = useState(true);
-  const [deals, setDeals] = useState<any[]>([]);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [error,   setError]   = useState('');
+  const [deals,   setDeals]   = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [leads,   setLeads]   = useState<any[]>([]);
 
   useEffect(() => {
     let alive = true;
     Promise.all([
-      apiFetch('/v1/crm/deals').catch(() => []),
-      apiFetch('/v1/analytics/customer-overview').catch(() => null),
-    ]).then(([d, a]) => {
-      if (alive) {
-        setDeals(Array.isArray(d) ? d : []);
-        setAnalytics(a);
-      }
+      apiFetch('/v1/deals'),
+      apiFetch('/v1/deals/metrics'),
+      apiFetch('/v1/leads').catch(() => []),
+    ]).then(([d, m, l]) => {
+      if (!alive) return;
+      setDeals(Array.isArray(d) ? d : []);
+      setMetrics(m ?? null);
+      setLeads(Array.isArray(l) ? l : []);
+    }).catch((e: any) => {
+      if (alive) setError(e?.message ?? 'Could not load CRM analytics.');
     }).finally(() => {
       if (alive) setLoading(false);
     });
     return () => { alive = false; };
   }, []);
 
+  // ── computed ──────────────────────────────────────────────────────────────
+  const wonDeals = useMemo(() => deals.filter(d => {
+    const stg = (d.stage ?? '').toLowerCase();
+    return stg === 'won' || stg === 'closed_won' || stg === 'won_closed';
+  }), [deals]);
+
+  const lostDeals = useMemo(() => deals.filter(d => {
+    const stg = (d.stage ?? '').toLowerCase();
+    return stg === 'lost' || stg === 'closed_lost';
+  }), [deals]);
+
+  const openDeals = useMemo(() => deals.filter(d => {
+    const stg = (d.stage ?? '').toLowerCase();
+    return !['won', 'closed_won', 'won_closed', 'lost', 'closed_lost'].includes(stg);
+  }), [deals]);
+
+  const winRate = metrics?.win_rate_30d ?? null;
+  const openValue = metrics?.open_value ?? openDeals.reduce((s, d) => s + Number(d.value ?? 0), 0);
+  const closedWonValue = wonDeals.reduce((s, d) => s + Number(d.value ?? 0), 0);
+
+  const avgDealSize = wonDeals.length
+    ? Math.round(closedWonValue / wonDeals.length)
+    : null;
+
+  // Avg sales cycle for closed won deals
+  const avgCycleDays = useMemo(() => {
+    const cycles = wonDeals
+      .filter(d => d.closed_at && d.created_at)
+      .map(d => Math.floor((new Date(d.closed_at).getTime() - new Date(d.created_at).getTime()) / 86_400_000))
+      .filter(n => n >= 0);
+    if (!cycles.length) return null;
+    return Math.round(cycles.reduce((s, n) => s + n, 0) / cycles.length);
+  }, [wonDeals]);
+
+  // At-risk: open deals not moved in 14+ days
+  const atRiskDeals = useMemo(() =>
+    openDeals
+      .filter(d => (d.days_in_stage ?? 0) >= 14)
+      .sort((a, b) => (b.days_in_stage ?? 0) - (a.days_in_stage ?? 0))
+      .slice(0, 5),
+  [openDeals]);
+
+  // Recent closed (won) deals
+  const recentWon = useMemo(() =>
+    wonDeals
+      .filter(d => d.closed_at)
+      .sort((a, b) => new Date(b.closed_at).getTime() - new Date(a.closed_at).getTime())
+      .slice(0, 5),
+  [wonDeals]);
+
+  // Funnel from leads + pipeline stages
+  const funnel = useMemo(() => {
+    const leadsByStage: Record<string, number> = {};
+    for (const l of leads) leadsByStage[(l.stage ?? 'NEW').toUpperCase()] = (leadsByStage[(l.stage ?? 'NEW').toUpperCase()] ?? 0) + 1;
+
+    const total = leads.length;
+    if (total === 0 && deals.length === 0) return null;
+
+    const contacted  = leads.filter(l => l.stage && l.stage !== 'NEW').length;
+    const qualified  = leads.filter(l => ['QUALIFIED','PROPOSAL','NEGOTIATION','WON'].includes((l.stage ?? '').toUpperCase())).length;
+    const proposal   = leads.filter(l => ['PROPOSAL','NEGOTIATION','WON'].includes((l.stage ?? '').toUpperCase())).length + (metrics?.by_stage ? Object.entries(metrics.by_stage).filter(([k]) => k.toLowerCase().includes('proposal')).reduce((s: number, [, v]: any) => s + v.count, 0) : 0);
+    const won        = wonDeals.length;
+
+    // Normalise to top of funnel
+    const top = Math.max(total + deals.length, won);
+    if (top === 0) return null;
+
+    return [
+      { label: 'Leads Captured',  count: total,     pct: 100, color: 'var(--teal)' },
+      { label: 'Contacted',       count: contacted,  pct: Math.round((contacted / Math.max(total, 1)) * 100), color: '#14b8a6' },
+      { label: 'Qualified',       count: qualified,  pct: Math.round((qualified / Math.max(total, 1)) * 100), color: 'var(--gold)' },
+      { label: 'Proposal',        count: proposal,   pct: Math.round((proposal / Math.max(total, 1)) * 100), color: 'var(--blue)' },
+      { label: 'Closed Won',      count: won,        pct: Math.round((won / Math.max(total, 1)) * 100), color: 'var(--green)' },
+    ];
+  }, [leads, wonDeals, deals, metrics]);
+
+  // Weighted forecast
+  const weightedForecast = useMemo(() =>
+    openDeals.reduce((s, d) => s + (Number(d.value ?? 0) * (d.probability ?? 50) / 100), 0),
+  [openDeals]);
+
   if (loading) return <SkeletonPage variant="dashboard" />;
 
-  const funnelStages = [
-    { label: '1. Leads Captured', count: 6840, pct: 100, fill: '#0d9488', drop: '32.9% drop' },
-    { label: '2. Qualified (SQL)', count: 4444, pct: 67.1, fill: '#14b8a6', drop: '26.0% drop' },
-    { label: '3. Demo Scheduled', count: 2814, pct: 41.1, fill: '#f59e0b', drop: '11.8% drop' },
-    { label: '4. Proposal Sent', count: 2007, pct: 29.3, fill: '#3b82f6', drop: '12.1% drop' },
-    { label: '5. Closed / Won', count: 1180, pct: 17.2, fill: '#10b981', drop: null },
-  ];
-
-  const heatmapDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const heatmapHours = ['8a', '9a', '10a', '11a', '12p', '1p', '2p', '3p', '4p', '5p', '6p'];
-  const heatmapMatrix = [
-    [1, 2, 4, 4, 3, 2, 4, 3, 2, 1, 0],
-    [2, 3, 4, 4, 4, 3, 4, 4, 3, 2, 1],
-    [1, 4, 4, 3, 2, 4, 4, 3, 4, 2, 0],
-    [3, 4, 4, 4, 3, 3, 4, 4, 2, 1, 1],
-    [1, 2, 3, 4, 2, 2, 3, 2, 1, 0, 0],
-  ];
-
-  const leaderboardReps = [
-    { rank: 1, name: 'Jordan Myers', role: 'Enterprise Account Exec', revenue: '$1,420,000', deals: 14, quota: '142%' },
-    { rank: 2, name: 'Tanya Rossi', role: 'Senior Strategic Rep', revenue: '$1,150,000', deals: 11, quota: '115%' },
-    { rank: 3, name: 'Grace Kim', role: 'Commercial Sales Lead', revenue: '$1,050,000', deals: 9, quota: '105%' },
-    { rank: 4, name: 'David Chen', role: 'Mid-Market Rep', revenue: '$495,000', deals: 6, quota: '99%' },
-    { rank: 5, name: 'Alex Vance', role: 'SMB Account Exec', revenue: '$314,000', deals: 4, quota: '78%' },
-  ];
-
-  const riskDeals = [
-    { name: 'Meridian Logistics Group', amount: '$84,000', days: '14 days in stage · Neglected demo follow-up', risk: 'High' as const },
-    { name: 'Freemen Retail Chains', amount: '$154,000', days: 'No decision maker response in 7 days', risk: 'Medium' as const },
-    { name: 'DHL Africa Partner Corridors', amount: '$98,000', days: 'Budget committee review requested', risk: 'Medium' as const },
-    { name: 'Solar Point Dar es Salaam', amount: '$112,000', days: 'Competitor offering discounts', risk: 'High' as const },
-    { name: 'BlueSky Frozen Foods', amount: '$71,000', days: 'Lead champion moved roles', risk: 'Medium' as const },
-  ];
-
-  const recentOrders = [
-    { id: 'ORD-48256', customer: 'Acme Corporation East Africa', rep: 'Jordan Myers', amount: '$244,000', date: 'Jul 28, 2026', status: 'Paid' as const },
-    { id: 'ORD-48255', customer: 'Nexus Industrial Hub', rep: 'Tanya Rossi', amount: '$184,500', date: 'Jul 27, 2026', status: 'Pending' as const },
-    { id: 'ORD-48254', customer: 'Vortex Technologies TZ', rep: 'Grace Kim', amount: '$94,000', date: 'Jul 25, 2026', status: 'Paid' as const },
-    { id: 'ORD-48253', customer: 'Knight Logistics Ports', rep: 'David Chen', amount: '$72,000', date: 'Jul 20, 2026', status: 'Overdue' as const },
-    { id: 'ORD-48252', customer: 'Quantum Freight Ltd', rep: 'Jordan Myers', amount: '$68,500', date: 'Jul 18, 2026', status: 'Paid' as const },
-  ];
+  const noData = deals.length === 0 && leads.length === 0;
 
   return (
     <div className="sales-analytics-container">
-      {/* ── Page Header ── */}
       <PageHeader
-        crumbs={['CRM', 'Analytics']}
-        titlePlain="Sales"
-        titleEm="analytics"
-        subtitle="Sales velocity, 5-stage funnel conversion, rep quota leaderboard, and deal slip risk AI advisor."
+        crumbs={['CRM', 'Overview']}
+        titlePlain="CRM"
+        titleEm="overview"
+        subtitle="Pipeline overview, funnel conversion, rep performance, and deal risk — from your live CRM data."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="outline" size="sm" onClick={() => navigate('/crm/pipeline')}>
-              <Icon name="briefcase" size={14} /> Pipeline Board
+              <Icon name="briefcase" size={14} /> Pipeline
             </Button>
             <Button variant="default" size="sm" onClick={() => navigate('/crm/sales')}>
               <Icon name="plus" size={14} /> New Deal
@@ -103,337 +155,278 @@ export const CustomerOverview: React.FC = () => {
         }
       />
 
-      {/* ── Top Hero: Revenue Intelligence ── */}
-      <div className="sales-hero-banner">
-        <div className="sales-hero-left">
-          <div className="sales-hero-title-row">
-            <h2>Revenue Intelligence Center</h2>
-            <span className="sales-hero-badge">On Track Q3 (+21.4%)</span>
-          </div>
-          <p className="sales-hero-desc">
-            Closed Won Revenue is pacing 21.4% ahead of target. Sales velocity sits at $18.4K/day with an average 23.6-day lead-to-close cycle.
-          </p>
-        </div>
+      {error && (
+        <div style={{ padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 12.5, marginBottom: 18 }}>{error}</div>
+      )}
 
-        <div className="sales-hero-kpis">
-          <div className="sales-hero-kpi-tile">
-            <div className="sales-hero-kpi-label">Closed Won Rev</div>
-            <div className="sales-hero-kpi-val">$4.62M</div>
-            <div className="sales-hero-kpi-sub">+21.4% YoY</div>
+      {noData ? (
+        <div style={{ padding: '64px 0', textAlign: 'center' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Icon name="barChart2" size={22} color="var(--teal)" />
           </div>
-          <div className="sales-hero-kpi-tile">
-            <div className="sales-hero-kpi-label">Win Rate</div>
-            <div className="sales-hero-kpi-val">84.0%</div>
-            <div className="sales-hero-kpi-sub">Top Decile</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>No CRM data yet</div>
+          <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, maxWidth: 380, margin: '0 auto 20px' }}>
+            Add some leads and deals to see your pipeline, funnel, and rep performance here.
           </div>
-          <div className="sales-hero-kpi-tile">
-            <div className="sales-hero-kpi-label">Avg Sales Cycle</div>
-            <div className="sales-hero-kpi-val">23.6 days</div>
-            <div className="sales-hero-kpi-sub">-4.2d Faster</div>
-          </div>
-          <div className="sales-hero-kpi-tile">
-            <div className="sales-hero-kpi-label">Open Pipeline</div>
-            <div className="sales-hero-kpi-val">$9.14M</div>
-            <div className="sales-hero-kpi-sub">$6.21M Weighted</div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <Button variant="default" size="sm" onClick={() => navigate('/crm/leads')}>Add Leads</Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/crm/sales')}>Add Deals</Button>
           </div>
         </div>
-      </div>
-
-      {/* ── Row 2: Sales Funnel & Q3 Revenue Forecast ── */}
-      <div className="sales-grid-2-1">
-        {/* Sales Funnel */}
-        <SectionCard
-          title="Sales Funnel — Lead to Close"
-          action={<Badge variant="brand">17.2% Overall Conversion</Badge>}
-        >
-          <div className="sales-funnel-list">
-            {funnelStages.map(stage => (
-              <div key={stage.label} className="sales-funnel-row">
-                <span className="sales-funnel-label">{stage.label}</span>
-                <div className="sales-funnel-track">
-                  <div
-                    className="sales-funnel-fill"
-                    style={{ width: `${stage.pct}%`, background: stage.fill }}
-                  >
-                    {stage.count.toLocaleString()}
-                  </div>
-                </div>
-                <span className="sales-funnel-drop">{stage.drop ?? '✓ Won'}</span>
+      ) : (
+        <>
+          {/* ── Hero KPIs ── */}
+          <div className="sales-hero-banner">
+            <div className="sales-hero-left">
+              <div className="sales-hero-title-row">
+                <h2>Pipeline Summary</h2>
+                {winRate !== null && (
+                  <span className="sales-hero-badge">{winRate}% win rate (30 days)</span>
+                )}
               </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Q3 Revenue Forecast */}
-        <SectionCard title="Q3 Revenue Forecast">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ color: 'var(--ink3)' }}>Projected Close:</span>
-              <strong style={{ color: 'var(--navy)' }}>$14.9M</strong>
+              <p className="sales-hero-desc">
+                {openDeals.length} open deal{openDeals.length !== 1 ? 's' : ''} worth {fmt(openValue, cur + ' ')}.
+                {avgCycleDays !== null ? ` Average close cycle: ${avgCycleDays} days.` : ''}
+                {weightedForecast > 0 ? ` Weighted forecast: ${fmt(weightedForecast, cur + ' ')}.` : ''}
+              </p>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ color: 'var(--ink3)' }}>Committed Deals:</span>
-              <strong style={{ color: 'var(--teal)' }}>$6.21M</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ color: 'var(--ink3)' }}>Upsell & Expansion:</span>
-              <strong style={{ color: 'var(--blue)' }}>$4.10M</strong>
-            </div>
-
-            <div style={{ marginTop: 8, padding: '12px', background: 'var(--teal-l)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="sparkle" size={14} /> AI Forecast Model
+            <div className="sales-hero-kpis">
+              <div className="sales-hero-kpi-tile">
+                <div className="sales-hero-kpi-label">Open Pipeline</div>
+                <div className="sales-hero-kpi-val">{fmt(openValue, cur + ' ')}</div>
+                <div className="sales-hero-kpi-sub">{openDeals.length} deals</div>
               </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink2)', marginTop: 4, lineHeight: 1.4 }}>
-                Pipeline velocity is healthy. Closing $4.62M in Q3 puts us within 4% of annual stretch targets with strong Q4 expansion carry-over.
+              <div className="sales-hero-kpi-tile">
+                <div className="sales-hero-kpi-label">Win Rate (30d)</div>
+                <div className="sales-hero-kpi-val">{winRate !== null ? `${winRate}%` : '—'}</div>
+                <div className="sales-hero-kpi-sub">{metrics?.closed_30d ?? 0} closed this month</div>
+              </div>
+              <div className="sales-hero-kpi-tile">
+                <div className="sales-hero-kpi-label">Avg Sales Cycle</div>
+                <div className="sales-hero-kpi-val">{avgCycleDays !== null ? `${avgCycleDays}d` : '—'}</div>
+                <div className="sales-hero-kpi-sub">from create → won</div>
+              </div>
+              <div className="sales-hero-kpi-tile">
+                <div className="sales-hero-kpi-label">Weighted Forecast</div>
+                <div className="sales-hero-kpi-val">{fmt(weightedForecast, cur + ' ')}</div>
+                <div className="sales-hero-kpi-sub">probability-adjusted</div>
               </div>
             </div>
           </div>
-        </SectionCard>
-      </div>
 
-      {/* ── Row 3: Sales Activity Heatmap & Customer Segments ── */}
-      <div className="sales-grid-2-1">
-        {/* Sales Activity Heatmap */}
-        <SectionCard
-          title="Sales Activity Heatmap"
-          action={
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink3)' }}>
-              <span>Low</span>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(13, 148, 136, 0.25)' }} />
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(13, 148, 136, 0.5)' }} />
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(13, 148, 136, 0.75)' }} />
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: '#0d9488' }} />
-              <span>High</span>
-            </div>
-          }
-        >
-          <div style={{ overflowX: 'auto' }}>
-            <div className="sales-heatmap-grid">
-              <span />
-              {heatmapHours.map(h => (
-                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textAlign: 'center' }}>{h}</span>
-              ))}
-
-              {heatmapDays.map((day, dIdx) => (
-                <React.Fragment key={day}>
-                  <span className="sales-heatmap-day-label">{day}</span>
-                  {heatmapMatrix[dIdx].map((lvl, hIdx) => (
-                    <div
-                      key={hIdx}
-                      className={`sales-heatmap-cell level-${lvl}`}
-                      title={`${day} @ ${heatmapHours[hIdx]}: Level ${lvl} activity`}
-                    />
+          {/* ── Funnel & Pipeline by Stage ── */}
+          <div className="sales-grid-2-1">
+            {/* Funnel */}
+            <SectionCard
+              title="Lead-to-Close Funnel"
+              action={funnel && funnel[funnel.length - 1].count > 0 && funnel[0].count > 0
+                ? <Badge variant="brand">{Math.round((funnel[funnel.length - 1].count / funnel[0].count) * 100)}% overall conversion</Badge>
+                : undefined}
+            >
+              {funnel ? (
+                <div className="sales-funnel-list">
+                  {funnel.map(stage => (
+                    <div key={stage.label} className="sales-funnel-row">
+                      <span className="sales-funnel-label">{stage.label}</span>
+                      <div className="sales-funnel-track">
+                        <div className="sales-funnel-fill" style={{ width: `${stage.pct}%`, background: stage.color }}>
+                          {stage.count.toLocaleString()}
+                        </div>
+                      </div>
+                      <span className="sales-funnel-drop">{stage.count.toLocaleString()}</span>
+                    </div>
                   ))}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        </SectionCard>
-
-        {/* Customer Segments */}
-        <SectionCard title="Customer Segments">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, color: 'var(--navy)' }}>Enterprise</span>
-                <span style={{ color: 'var(--teal)', fontWeight: 700 }}>55% ($2.54M)</span>
-              </div>
-              <div style={{ height: 7, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: '55%', background: 'var(--teal)' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, color: 'var(--navy)' }}>Mid-Market</span>
-                <span style={{ color: 'var(--blue)', fontWeight: 700 }}>25% ($1.15M)</span>
-              </div>
-              <div style={{ height: 7, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: '25%', background: 'var(--blue)' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, color: 'var(--navy)' }}>SMB</span>
-                <span style={{ color: '#f59e0b', fontWeight: 700 }}>15% ($693K)</span>
-              </div>
-              <div style={{ height: 7, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: '15%', background: '#f59e0b' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, color: 'var(--navy)' }}>Startup</span>
-                <span style={{ color: 'var(--purple)', fontWeight: 700 }}>5% ($231K)</span>
-              </div>
-              <div style={{ height: 7, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: '5%', background: 'var(--purple)' }} />
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* ── Row 4: Sales Leaderboard Podium & AI Risk Deals ── */}
-      <div className="sales-grid-1-1">
-        {/* Sales Leaderboard Podium */}
-        <SectionCard
-          title="Sales Rep Leaderboard"
-          action={<Badge variant="brand">Q3 Quota Attainment</Badge>}
-        >
-          <div className="sales-podium-container">
-            {/* 2nd Place */}
-            <div className="sales-podium-col">
-              <PersonAvatar name="Tanya Rossi" size={36} />
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--navy)' }}>Tanya R.</div>
-              <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>$1.15M</div>
-              <div className="sales-podium-block sales-podium-2">
-                <span style={{ fontSize: 18 }}>2</span>
-                <span style={{ fontSize: 10 }}>115%</span>
-              </div>
-            </div>
-
-            {/* 1st Place */}
-            <div className="sales-podium-col">
-              <div style={{ color: '#f59e0b', fontSize: 16 }}>👑</div>
-              <PersonAvatar name="Jordan Myers" size={42} />
-              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)' }}>Jordan M.</div>
-              <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 700 }}>$1.42M</div>
-              <div className="sales-podium-block sales-podium-1">
-                <span style={{ fontSize: 22 }}>1</span>
-                <span style={{ fontSize: 11 }}>142%</span>
-              </div>
-            </div>
-
-            {/* 3rd Place */}
-            <div className="sales-podium-col">
-              <PersonAvatar name="Grace Kim" size={34} />
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--navy)' }}>Grace K.</div>
-              <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>$1.05M</div>
-              <div className="sales-podium-block sales-podium-3">
-                <span style={{ fontSize: 16 }}>3</span>
-                <span style={{ fontSize: 10 }}>105%</span>
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        {/* AI Risk Deals */}
-        <SectionCard
-          title="AI Risk Deals & Slippage Radar"
-          action={
-            <Button variant="ghost" size="xs" onClick={() => showAlert('Opening AI deal recovery playbook for at-risk deals...', { variant: 'success' })}>
-              <Icon name="sparkle" size={12} /> Playbook
-            </Button>
-          }
-        >
-          <div>
-            {riskDeals.map(d => (
-              <div key={d.name} className="sales-risk-deal-item">
-                <div className="sales-risk-deal-left">
-                  <div style={{ width: 32, height: 32, borderRadius: 6, background: d.risk === 'High' ? 'var(--red-l)' : 'var(--gold-l)', color: d.risk === 'High' ? 'var(--red)' : 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="alertTriangle" size={15} />
-                  </div>
-                  <div>
-                    <div className="sales-risk-deal-title">{d.name}</div>
-                    <div className="sales-risk-deal-sub">{d.days}</div>
-                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>{d.amount}</div>
-                  <Badge variant={d.risk === 'High' ? 'error' : 'warning'}>{d.risk} Risk</Badge>
+              ) : (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                  No lead or deal data to build a funnel yet.
                 </div>
+              )}
+            </SectionCard>
+
+            {/* Pipeline by stage */}
+            <SectionCard title="Pipeline by Stage">
+              {metrics?.by_stage && Object.keys(metrics.by_stage).length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {Object.entries(metrics.by_stage as Record<string, { count: number; value: number }>)
+                    .sort((a, b) => b[1].value - a[1].value)
+                    .map(([stage, { count, value }]) => {
+                      const maxVal = Math.max(...Object.values(metrics.by_stage as Record<string, { count: number; value: number }>).map(v => v.value)) || 1;
+                      return (
+                        <div key={stage}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+                            <span style={{ fontWeight: 600, color: 'var(--ink2)', textTransform: 'capitalize' }}>{stage.replace(/_/g, ' ')}</span>
+                            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{fmt(value, cur + ' ')} · {count} deal{count !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div style={{ height: 6, background: 'var(--bg)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${(value / maxVal) * 100}%`, background: 'hsl(var(--primary))' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No stage data yet.</div>
+              )}
+            </SectionCard>
+          </div>
+
+          {/* ── Rep Leaderboard & At-Risk Deals ── */}
+          <div className="sales-grid-1-1">
+            {/* Rep Leaderboard */}
+            <SectionCard
+              title="Rep Leaderboard"
+              action={<Badge variant="brand">Closed Won Revenue</Badge>}
+            >
+              {metrics?.leaderboard?.length > 0 ? (
+                <>
+                  {/* Top 3 podium */}
+                  {metrics.leaderboard.length >= 3 && (
+                    <div className="sales-podium-container">
+                      {[1, 0, 2].map(idx => {
+                        const rep = metrics.leaderboard[idx];
+                        if (!rep) return null;
+                        const podiumClass = idx === 0 ? 'sales-podium-1' : idx === 1 ? 'sales-podium-2' : 'sales-podium-3';
+                        const rank = idx + 1;
+                        return (
+                          <div key={rep.owner_id} className="sales-podium-col">
+                            {rank === 1 && <span style={{ fontSize: 14 }}>👑</span>}
+                            <PersonAvatar userId={rep.owner_id} name={rep.owner_name} size={rank === 1 ? 42 : 34} />
+                            <div style={{ fontSize: rank === 1 ? 12 : 11.5, fontWeight: 700, color: 'var(--ink)' }}>
+                              {rep.owner_name.split(' ')[0]} {rep.owner_name.split(' ')[1]?.[0]}.
+                            </div>
+                            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{fmt(rep.value, cur + ' ')}</div>
+                            <div className={`sales-podium-block ${podiumClass}`}>
+                              <span style={{ fontSize: rank === 1 ? 22 : 18 }}>{rank}</span>
+                              <span style={{ fontSize: 10 }}>{rep.won} won</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Full list */}
+                  <div style={{ marginTop: metrics.leaderboard.length >= 3 ? 16 : 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {metrics.leaderboard.map((rep: any, i: number) => (
+                      <div key={rep.owner_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < metrics.leaderboard.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', width: 18, textAlign: 'center' }}>#{i + 1}</span>
+                        <PersonAvatar userId={rep.owner_id} name={rep.owner_name} size={26} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{rep.owner_name}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{fmt(rep.value, cur + ' ')}</div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{rep.won} deals won</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                  No closed-won deals yet. Win your first deal to see rep performance here.
+                </div>
+              )}
+            </SectionCard>
+
+            {/* At-Risk Deals */}
+            <SectionCard title="At-Risk Deals">
+              {atRiskDeals.length > 0 ? (
+                <div>
+                  {atRiskDeals.map(d => (
+                    <div key={d.id} className="sales-risk-deal-item">
+                      <div className="sales-risk-deal-left">
+                        <div style={{ width: 32, height: 32, borderRadius: 6, background: d.days_in_stage >= 21 ? 'var(--red-l)' : 'var(--gold-l)', color: d.days_in_stage >= 21 ? 'var(--red)' : 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name="alertTriangle" size={15} />
+                        </div>
+                        <div>
+                          <div className="sales-risk-deal-title">{d.name || d.customer_name || 'Unnamed Deal'}</div>
+                          <div className="sales-risk-deal-sub">
+                            {d.days_in_stage} days in "{d.stage}" stage
+                            {d.owner_name ? ` · ${d.owner_name}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{fmt(Number(d.value ?? 0), cur + ' ')}</div>
+                        <Badge variant={d.days_in_stage >= 21 ? 'error' : 'warning'}>{d.days_in_stage >= 21 ? 'High' : 'Medium'} Risk</Badge>
+                      </div>
+                    </div>
+                  ))}
+                  <Button variant="ghost" size="sm" style={{ width: '100%', marginTop: 10 }} onClick={() => navigate('/crm/pipeline')}>
+                    View Full Pipeline
+                  </Button>
+                </div>
+              ) : (
+                <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, color: 'var(--ink3)' }}>No stuck deals right now.</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4, opacity: 0.7 }}>Deals in the same stage for 14+ days will appear here.</div>
+                </div>
+              )}
+            </SectionCard>
+          </div>
+
+          {/* ── Recent Won Deals ── */}
+          <SectionCard
+            title="Recent Closed Deals"
+            action={<Button variant="ghost" size="xs" onClick={() => navigate('/crm/pipeline')}>View Pipeline</Button>}
+          >
+            {recentWon.length > 0 ? (
+              <div className="sales-table-container">
+                <table className="sales-table">
+                  <thead>
+                    <tr>
+                      <th>Deal</th>
+                      <th>Owner</th>
+                      <th>Value</th>
+                      <th>Closed</th>
+                      <th>Stage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentWon.map(d => (
+                      <tr key={d.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.name || d.customer_name || '—'}</td>
+                        <td>
+                          {d.owner_id
+                            ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <PersonAvatar userId={d.owner_id} name={d.owner_name ?? '?'} size={22} />
+                                <span style={{ fontSize: 12 }}>{d.owner_name ?? '—'}</span>
+                              </div>
+                            : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Unassigned</span>
+                          }
+                        </td>
+                        <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{fmt(Number(d.value ?? 0), cur + ' ')}</td>
+                        <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{d.closed_at ? fmtDate(d.closed_at) : '—'}</td>
+                        <td><Badge variant="success" className="text-[11px]">Won</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
-        </SectionCard>
-      </div>
+            ) : (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                No closed-won deals yet. Move a deal to your "Won" stage to see it here.
+              </div>
+            )}
+          </SectionCard>
 
-      {/* ── Row 5: Conversion Journey Horizontal Milestone Bar ── */}
-      <SectionCard title="Conversion Journey & Velocity Milestones">
-        <div className="sales-journey-bar">
-          <div className="sales-journey-step">
-            <div className="sales-journey-step-count">6,840</div>
-            <div className="sales-journey-step-label">First Touch</div>
-            <div className="sales-journey-step-time">Day 0</div>
-          </div>
-          <div className="sales-journey-step">
-            <div className="sales-journey-step-count">4,444</div>
-            <div className="sales-journey-step-label">Contacted</div>
-            <div className="sales-journey-step-time">Avg 2.4 days</div>
-          </div>
-          <div className="sales-journey-step">
-            <div className="sales-journey-step-count">2,814</div>
-            <div className="sales-journey-step-label">Demo Scheduled</div>
-            <div className="sales-journey-step-time">Avg 5.8 days</div>
-          </div>
-          <div className="sales-journey-step">
-            <div className="sales-journey-step-count">1,412</div>
-            <div className="sales-journey-step-label">Negotiated</div>
-            <div className="sales-journey-step-time">Avg 14.2 days</div>
-          </div>
-          <div className="sales-journey-step">
-            <div className="sales-journey-step-count">1,180</div>
-            <div className="sales-journey-step-label">Closed Won</div>
-            <div className="sales-journey-step-time">Avg 23.6 days</div>
-          </div>
-          <div className="sales-journey-step">
-            <div className="sales-journey-step-count">404</div>
-            <div className="sales-journey-step-label">Expansion</div>
-            <div className="sales-journey-step-time">Day 90+</div>
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* ── Row 6: Recent Closed Orders Table ── */}
-      <SectionCard
-        title="Recent Closed Deals & Orders"
-        action={<Button variant="ghost" size="xs" onClick={() => navigate('/crm/pipeline')}>View Full Ledger</Button>}
-      >
-        <div className="sales-table-container">
-          <table className="sales-table">
-            <thead>
-              <tr>
-                <th>Order ID</th>
-                <th>Client Partner</th>
-                <th>Account Executive</th>
-                <th>Amount</th>
-                <th>Closing Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map(o => (
-                <tr key={o.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--teal)' }}>{o.id}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <CompanyAvatar name={o.customer} size={26} shape="square" />
-                      <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{o.customer}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <PersonAvatar name={o.rep} size={22} />
-                      <span style={{ fontSize: 12 }}>{o.rep}</span>
-                    </div>
-                  </td>
-                  <td style={{ fontWeight: 800, color: 'var(--navy)' }}>{o.amount}</td>
-                  <td style={{ color: 'var(--ink3)' }}>{o.date}</td>
-                  <td>
-                    <Badge variant={o.status === 'Paid' ? 'success' : o.status === 'Pending' ? 'warning' : 'error'}>
-                      {o.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </SectionCard>
+          {/* ── Pipeline Journey ── */}
+          {metrics?.by_stage && Object.keys(metrics.by_stage).length > 0 && (
+            <SectionCard title="Pipeline Journey">
+              <div className="sales-journey-bar">
+                {Object.entries(metrics.by_stage as Record<string, { count: number; value: number }>).map(([stage, { count, value }]) => (
+                  <div key={stage} className="sales-journey-step">
+                    <div className="sales-journey-step-count">{count}</div>
+                    <div className="sales-journey-step-label" style={{ textTransform: 'capitalize' }}>{stage.replace(/_/g, ' ')}</div>
+                    <div className="sales-journey-step-time">{fmt(value, cur + ' ')}</div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          )}
+        </>
+      )}
     </div>
   );
 };

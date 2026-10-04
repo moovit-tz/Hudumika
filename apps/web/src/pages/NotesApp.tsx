@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -1426,7 +1426,7 @@ const DrawingCanvasModal: React.FC<{ onClose: () => void; onSave: (dataUrl: stri
   return (
     <div className="notes-drawing-modal" onClick={onClose}>
       <div className="notes-drawing-card" onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>Handwritten Canvas Sketch</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Handwritten Canvas Sketch</div>
 
         <canvas
           ref={canvasRef}

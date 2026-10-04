@@ -139,7 +139,7 @@ export const SupportTeam: React.FC = () => {
           crumbs={['Bliss', 'Team Performance']}
           titlePlain="Team"
           titleEm="performance"
-          subtitle="Real-time per-agent case load, resolution velocity, SLA compliance and customer satisfaction scores."
+          subtitle="Review each agent's workload, resolution time, SLA performance, and customer ratings."
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <PeriodSwitcher period={period} setPeriod={setPeriod} />
@@ -211,7 +211,7 @@ export const SupportTeam: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ position: 'relative' }}>
                 <PersonAvatar name={topChampion.name} userId={topChampion.id} size={48} />
-                <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--gold)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--gold)', color: 'hsl(var(--gold-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="award" size={12} />
                 </div>
               </div>

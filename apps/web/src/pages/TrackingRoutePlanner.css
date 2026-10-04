@@ -35,7 +35,7 @@
   box-shadow: var(--elev);
   transition: all 0.2s;
 }
-.rp-mc-btn:hover { background: #fff; transform: translateY(-2px); }
+.rp-mc-btn:hover { background: var(--white); transform: translateY(-2px); }
 
 .rp-layers-menu {
   position: absolute;
@@ -143,7 +143,7 @@
   font-weight: 700;
   padding: var(--badge-py-sm) var(--badge-px-sm);
   background: rgba(79,70,229,0.12);
-  color: #6366f1;
+  color: var(--purple);
   border-radius: 6px;
   text-transform: uppercase;
 }
@@ -187,7 +187,7 @@
 }
 
 .rp-info-block svg {
-  color: #3b82f6; /* Blue icon */
+  color: var(--blue);
 }
 
 /* Optimization Segment */
@@ -226,8 +226,8 @@
   padding: 12px;
   border: none;
   border-radius: 8px;
-  background: #2563eb; /* Bold blue button */
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-family: var(--font);
   font-size: 14px;
   font-weight: 700;
@@ -245,7 +245,7 @@
 }
 
 .rp-btn-generate:disabled {
-  background: #94a3b8;
+  background: var(--border);
   cursor: not-allowed;
 }
 
@@ -298,7 +298,7 @@
 
 .rp-tab.active {
   background: rgba(79,70,229,0.12);
-  color: #6366f1;
+  color: var(--purple);
 }
 
 /* ── Timeline ── */
@@ -333,26 +333,26 @@
   height: 24px;
   border-radius: 50%;
   background: var(--white);
-  border: 2px solid #2563eb;
+  border: 2px solid var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--blue);
   flex-shrink: 0;
 }
 
 .rp-timeline-marker.start {
-  background: #059669;
-  border-color: #059669;
-  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--white);
 }
 
 .rp-timeline-marker.end {
-  background: #ea580c;
-  border-color: #ea580c;
-  color: #fff;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--white);
 }
 
 .rp-timeline-content {
@@ -370,7 +370,7 @@
   justify-content: space-between;
   font-size: 11px;
   font-weight: 600;
-  color: #2563eb;
+  color: var(--blue);
   margin-bottom: 8px;
 }
 
@@ -460,7 +460,7 @@
 
 .rp-widget-bar-fill {
   height: 100%;
-  background: #2563eb;
+  background: var(--blue);
   border-radius: 4px;
 }
 

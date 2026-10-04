@@ -8,7 +8,9 @@ import { AdvancedCalcResultPanel } from '../components/AdvancedCalcResultPanel.j
 import { CustomerLeadPicker } from '../components/CustomerLeadPicker.js';
 import type { PickerItem } from '../components/EntityPicker.js';
 import { HsCodeField } from '../components/HsCodeField.js';
-import { WizardShell, WizardStepCaption, WizardNavRow, Field, wizInputStyle } from '../components/CalcWizardShell.js';
+import { WizardShell, WizardStepCaption, WizardNavRow, Field } from '../components/CalcWizardShell.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 import type { WizardStepItem } from '../components/CalcWizardShell.js';
 import { apiFetch } from '../lib/api.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -140,7 +142,7 @@ export const AirCalculatorPage: React.FC = () => {
                     source="Air Freight Calculator"
                   />
                 </Field>
-                <Field label="Shipment Ref"><input className="input-field" value={shipmentRef} onChange={e => setShipmentRef(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Shipment Ref"><Input value={shipmentRef} onChange={e => setShipmentRef(e.target.value)} /></Field>
               </div>
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} />
             </SectionCard>
@@ -159,11 +161,11 @@ export const AirCalculatorPage: React.FC = () => {
                   </Select>
                 </Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <Field label="Weight (KG) *"><input className="input-field" type="number" value={weightKg} onChange={e => setWeightKg(e.target.value)} style={wizInputStyle} /></Field>
-                  <Field label="Number of AWBs"><input className="input-field" type="number" value={numAwbs} onChange={e => setNumAwbs(e.target.value)} style={wizInputStyle} /></Field>
+                  <Field label="Weight (KG) *"><Input type="number" value={weightKg} onChange={e => setWeightKg(e.target.value)} /></Field>
+                  <Field label="Number of AWBs"><Input type="number" value={numAwbs} onChange={e => setNumAwbs(e.target.value)} /></Field>
                 </div>
-                <Field label="Total Units" hint="For per-unit cost"><input className="input-field" type="number" value={numUnits} onChange={e => setNumUnits(e.target.value)} style={wizInputStyle} /></Field>
-                <Field label="Transportation (TZS)" hint="Airport → warehouse, default 0"><input className="input-field" type="number" value={transportationTzs} onChange={e => setTransportationTzs(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Total Units" hint="For per-unit cost"><Input type="number" value={numUnits} onChange={e => setNumUnits(e.target.value)} /></Field>
+                <Field label="Transportation (TZS)" hint="Airport → warehouse, default 0"><Input type="number" value={transportationTzs} onChange={e => setTransportationTzs(e.target.value)} /></Field>
               </div>
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} error={stepError} />
             </SectionCard>
@@ -178,12 +180,12 @@ export const AirCalculatorPage: React.FC = () => {
                 <Field label="HS Code *">
                   <HsCodeField value={hsCode} onChange={setHsCode} onPick={r => { if (!description) setDescription(r.description); }} placeholder="e.g. 0602.20.00 or 'plant seedlings'" required />
                 </Field>
-                <Field label="Description"><input className="input-field" value={description} onChange={e => setDescription(e.target.value)} placeholder="Product description" style={wizInputStyle} /></Field>
+                <Field label="Description"><Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Product description" /></Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <Field label={`FOB Value (${currency}) *`}><input className="input-field" type="number" value={fob} onChange={e => setFob(e.target.value)} style={wizInputStyle} /></Field>
-                  <Field label="Air Freight" hint="0 if prepaid"><input className="input-field" type="number" value={freight} onChange={e => setFreight(e.target.value)} style={wizInputStyle} /></Field>
+                  <Field label={`FOB Value (${currency}) *`}><Input type="number" value={fob} onChange={e => setFob(e.target.value)} /></Field>
+                  <Field label="Air Freight" hint="0 if prepaid"><Input type="number" value={freight} onChange={e => setFreight(e.target.value)} /></Field>
                 </div>
-                <Field label="Insurance" hint="Blank = auto 1% of CFR"><input className="input-field" type="number" value={insurance} onChange={e => setInsurance(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Insurance" hint="Blank = auto 1% of CFR"><Input type="number" value={insurance} onChange={e => setInsurance(e.target.value)} /></Field>
               </div>
               {error && <Banner variant="error" className="mt-4">{error}</Banner>}
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} error={stepError} busy={loading} onContinue={continueFromCargo} continueLabel="Calculate" />
@@ -201,10 +203,9 @@ export const AirCalculatorPage: React.FC = () => {
               onNewCalculation={newCalculation}
             />
             <div style={{ marginTop: 16 }}>
-              <button type="button" onClick={() => setStep(3)}
-                style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Button type="button" variant="outline" onClick={() => setStep(3)}>
                 <Icon name="arrowLeft" size={14} /> Back
-              </button>
+              </Button>
             </div>
           </>
         )}

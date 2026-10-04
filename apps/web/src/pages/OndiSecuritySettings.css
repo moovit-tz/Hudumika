@@ -159,8 +159,8 @@
 }
 
 .oss-nav-pill.active {
-  background: var(--teal);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-weight: 600;
 }
 

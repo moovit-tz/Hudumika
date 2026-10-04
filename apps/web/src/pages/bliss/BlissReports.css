@@ -27,7 +27,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r, 8px);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--elev-sm);
 }
 
 @media (min-width: 768px) {
@@ -103,12 +103,12 @@
   flex-shrink: 0;
 }
 
-.bliss-chip-icon.is-primary { background: var(--teal-l, #f0fdfa); color: var(--teal, #0f766e); }
-.bliss-chip-icon.is-success { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.bliss-chip-icon.is-warning { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-.bliss-chip-icon.is-danger  { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
-.bliss-chip-icon.is-info    { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; }
-.bliss-chip-icon.is-purple  { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.bliss-chip-icon.is-primary { background: var(--teal-l); color: var(--teal); }
+.bliss-chip-icon.is-success { background: var(--green-l); color: var(--green); }
+.bliss-chip-icon.is-warning { background: var(--gold-l); color: var(--gold); }
+.bliss-chip-icon.is-danger  { background: var(--red-l); color: var(--red); }
+.bliss-chip-icon.is-info    { background: var(--blue-l); color: var(--blue); }
+.bliss-chip-icon.is-purple  { background: var(--purple-l); color: var(--purple); }
 
 .bliss-kpi-val {
   font-size: 22px;
@@ -135,7 +135,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r, 8px);
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--elev-sm);
 }
 
 .bliss-podium-wrap {
@@ -179,8 +179,8 @@
 .bliss-podium-col--1 .bliss-podium-avatar {
   width: 70px;
   height: 70px;
-  border: 3px solid #f59e0b;
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.35);
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--gold) 35%, transparent);
 }
 
 .bliss-podium-crown {
@@ -188,15 +188,15 @@
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #f59e0b;
-  color: #fff;
+  background: var(--gold);
+  color: hsl(var(--gold-foreground));
   border-radius: 50%;
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--gold) 40%, transparent);
 }
 
 .bliss-podium-name {
@@ -219,7 +219,7 @@
   align-items: flex-start;
   justify-content: center;
   padding-top: 8px;
-  color: #fff;
+  color: hsl(var(--primary-foreground));
   font-weight: 900;
   font-size: 18px;
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3);
@@ -233,17 +233,20 @@
 
 .bliss-podium-pillar--1 {
   height: 100px;
-  background: linear-gradient(180deg, #f59e0b, #d97706);
+  background: linear-gradient(180deg, var(--gold), color-mix(in srgb, var(--gold) 72%, #000));
+  color: hsl(var(--gold-foreground));
 }
 
 .bliss-podium-pillar--2 {
   height: 72px;
-  background: linear-gradient(180deg, #0ea5e9, #0284c7);
+  background: linear-gradient(180deg, var(--blue), color-mix(in srgb, var(--blue) 72%, #000));
+  color: hsl(var(--blue-foreground));
 }
 
 .bliss-podium-pillar--3 {
   height: 54px;
-  background: linear-gradient(180deg, #7c3aed, #6d28d9);
+  background: linear-gradient(180deg, var(--purple), color-mix(in srgb, var(--purple) 72%, #000));
+  color: hsl(var(--purple-foreground));
 }
 
 /* ── Progress Meters & Bars ── */
@@ -335,7 +338,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--elev-sm);
 }
 
 /* ── Report Tables ── */
@@ -378,21 +381,4 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-/* ── Badges Soft ── */
-.bliss-badge-soft {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.bliss-badge-soft.success { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.bliss-badge-soft.warning { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-.bliss-badge-soft.danger  { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
-.bliss-badge-soft.info    { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; }
-.bliss-badge-soft.teal    { background: var(--teal-l, #f0fdfa); color: var(--teal, #0f766e); }
-.bliss-badge-soft.neutral { background: var(--bg); color: var(--ink3); border: 1px solid var(--border); }
+/* Badges are now rendered by ui/badge.tsx — no local soft-badge rules needed. */

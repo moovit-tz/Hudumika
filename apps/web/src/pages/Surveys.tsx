@@ -14,6 +14,8 @@ import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 /**
  * Employee surveys — pulse checks, engagement, exit/onboarding feedback.
@@ -40,18 +42,23 @@ export function Surveys() {
   const canManage = !!user && MGMT_ROLES.includes(user.role);
   const [surveys, setSurveys] = useState<SurveyInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [answering, setAnswering] = useState<SurveyInstance | null>(null);
   const [results, setResults] = useState<any | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     apiFetch('/v1/hr/surveys')
       .then((r: any) => setSurveys(Array.isArray(r) ? r : (r?.data ?? [])))
-      .catch(() => setSurveys([]))
+      .catch(() => { setSurveys([]); setLoadError('Could not load employee surveys.'); })
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => { load(); }, [load]);
+  const openSurveys = surveys.filter(survey => survey.status === 'OPEN').length;
+  const responses = surveys.reduce((total, survey) => total + survey.response_count, 0);
+  const responded = surveys.filter(survey => survey.already_responded).length;
 
   async function closeSurvey(s: SurveyInstance) {
     const ok = await showConfirm(`Close "${s.title}"? No one will be able to respond after this.`,
@@ -83,8 +90,21 @@ export function Surveys() {
         actions={canManage ? <Button onClick={() => setShowNew(true)}><Icon name="plus" size={15} /> New survey</Button> : undefined}
       />
 
+      <MetricsRow cards={[
+        { title: 'Open surveys', value: String(openSurveys), icon: 'clipboardList', loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
+        { title: 'Responses collected', value: String(responses), icon: 'users', loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'Surveys completed by you', value: String(responded), icon: 'checkCircle', loading, error: loadError ?? undefined, onRetry: load },
+      ]} />
+
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading surveys…</div>
+        <SectionLoading label="Loading surveys…" />
+      ) : loadError ? (
+        <SectionCard>
+          <div style={{ padding: 24, textAlign: 'center' }}>
+            <div style={{ color: 'var(--red)', marginBottom: 12 }}>{loadError}</div>
+            <Button variant="outline" size="sm" onClick={load}>Try again</Button>
+          </div>
+        </SectionCard>
       ) : surveys.length === 0 ? (
         <SectionCard>
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>
@@ -181,7 +201,7 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+      <DialogContent size="md" className="gap-0 overflow-y-auto">
       <form onSubmit={submit}>
         <DialogTitle style={{ fontSize: 16, marginBottom: 18 }}>New survey</DialogTitle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -223,10 +243,9 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
                       <SelectItem value="choice">Choice</SelectItem>
                     </SelectContent>
                   </Select>
-                  <button type="button" onClick={() => setQuestions(prev => prev.filter((_, idx) => idx !== i))}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Remove question ${i + 1}`} onClick={() => setQuestions(prev => prev.filter((_, idx) => idx !== i))}>
                     <Icon name="x" size={15} />
-                  </button>
+                  </Button>
                 </div>
               ))}
               {questions.some(q => q.type === 'choice') && questions.map((q, i) => q.type === 'choice' ? (
@@ -238,10 +257,9 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
                 />
               ) : null)}
             </div>
-            <button type="button" onClick={() => setQuestions(prev => [...prev, { text: '', type: 'rating' }])}
-              style={{ marginTop: 8, background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', padding: 0 }}>
-              + Add question
-            </button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setQuestions(prev => [...prev, { text: '', type: 'rating' }])} className="mt-2">
+              <Icon name="plus" size={14} /> Add question
+            </Button>
           </div>
 
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
@@ -279,7 +297,7 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+      <DialogContent size="md" className="gap-0 overflow-y-auto">
       <form onSubmit={submit}>
         <DialogTitle style={{ fontSize: 16, marginBottom: 4 }}>{survey.title}</DialogTitle>
         {survey.is_anonymous && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Your response is anonymous — nothing links it back to your account.</div>}
@@ -290,13 +308,7 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
               {q.type === 'rating' ? (
                 <div style={{ display: 'flex', gap: 6 }}>
                   {[1, 2, 3, 4, 5].map(n => (
-                    <button key={n} type="button" onClick={() => setAnswers(a => ({ ...a, [i]: String(n) }))}
-                      style={{
-                        width: 36, height: 36, borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
-                        background: answers[i] === String(n) ? 'hsl(var(--primary))' : 'var(--bg)',
-                        color: answers[i] === String(n) ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
-                        fontWeight: 700, fontSize: 13,
-                      }}>{n}</button>
+                    <Button key={n} type="button" size="icon" variant={answers[i] === String(n) ? 'default' : 'outline'} aria-label={`Rating ${n}`} onClick={() => setAnswers(a => ({ ...a, [i]: String(n) }))}>{n}</Button>
                   ))}
                 </div>
               ) : q.type === 'choice' ? (
@@ -326,7 +338,7 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
 function ResultsModal({ results, onClose }: { results: any; onClose: () => void }) {
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-130 max-h-[88vh] overflow-y-auto gap-0">
+      <DialogContent size="md" className="gap-0 overflow-y-auto">
         <DialogTitle style={{ fontSize: 16, marginBottom: 4 }}>{results.title}</DialogTitle>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>
           {results.response_count} response{results.response_count === 1 ? '' : 's'}

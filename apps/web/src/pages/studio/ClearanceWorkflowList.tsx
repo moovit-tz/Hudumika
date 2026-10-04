@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
@@ -412,7 +412,7 @@ export function ClearanceWorkflowList() {
               <tbody>
                 {FREIGHT_MODES.map(fm => (
                   <tr key={fm}>
-                    <td style={{ fontWeight: 700, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Icon name={FREIGHT_MODE_ICON[fm]} size={14} color="var(--ink3)" /> {fm}
                       </span>
@@ -455,7 +455,7 @@ export function ClearanceWorkflowList() {
           {/* Default workflow selector */}
           {workflows.length > 0 && (
             <div style={{ marginTop: 20, padding: '14px 18px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)' }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="star" size={14} color="var(--gold)" duotone /> Default Fallback Workflow
               </div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>

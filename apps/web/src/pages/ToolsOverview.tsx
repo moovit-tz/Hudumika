@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { Button } from '../components/ui/button.js';
+import { Banner } from '../components/ui/alert.js';
 
 interface ToolsMetrics {
   hr: {
@@ -21,63 +24,17 @@ interface ToolsMetrics {
   fetched_at: string;
 }
 
-const FALLBACK: ToolsMetrics = {
-  hr:      { total_staff: 8, active_staff: 6, on_leave: 1, pending_leaves: 2, today_present: 5, today_absent: 1 },
-  files:   { total: 142, this_month: 18 },
-  chat:    { total_messages: 384, this_month: 47 },
-  support: { total_notifications: 23, unread: 4 },
-  fetched_at: new Date().toISOString(),
+const EMPTY_METRICS: ToolsMetrics = {
+  hr: { total_staff: 0, active_staff: 0, on_leave: 0, pending_leaves: 0, today_present: 0, today_absent: 0 },
+  files: { total: 0, this_month: 0 },
+  chat: { total_messages: 0, this_month: 0 },
+  support: { total_notifications: 0, unread: 0 },
+  fetched_at: '',
 };
-
-function SparkBars({ data, color }: { data: number[]; color: string }) {
-  const max = Math.max(...data, 1);
-  const bw = 14, gap = 4, h = 56;
-  const totalW = data.length * (bw + gap) - gap;
-  return (
-    <svg width={totalW} height={h}
-      style={{ position: 'absolute', bottom: 0, right: 12, opacity: 0.18, pointerEvents: 'none' }}>
-      {data.map((v, i) => {
-        const bh = Math.max(3, (v / max) * h);
-        return <rect key={i} x={i * (bw + gap)} y={h - bh} width={bw} height={bh} rx={3} fill={color} />;
-      })}
-    </svg>
-  );
-}
-
-function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barColor, to }: {
-  icon: string; iconBg: string; iconColor: string;
-  value: string | number; label: string; sub: string; subUp: boolean;
-  bars?: number[]; barColor: string; to?: string;
-}) {
-  const Wrapper = (to ? Link : 'div') as any;
-  return (
-    <Wrapper {...(to ? { to } : {})} style={{
-      flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
-      background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-      padding: '18px 18px 14px', cursor: to ? 'pointer' : 'default',
-      textDecoration: 'none', color: 'inherit', boxSizing: 'border-box',
-    }}>
-      {bars && bars.length > 1 && <SparkBars data={bars} color={barColor} />}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, position: 'relative' }}>
-        <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: iconBg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={icon as IconName} size={20} color={iconColor} />
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1.1 }}>{value}</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, whiteSpace: 'nowrap' }}>{label}</div>
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, position: 'relative', fontSize: 11, color: subUp ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-        <Icon name={subUp ? 'trendingUp' : 'trendingDown'} size={12} color={subUp ? 'var(--green)' : 'var(--red)'} />
-        {sub}
-      </div>
-    </Wrapper>
-  );
-}
 
 function StatusCard({ label, value, pct, color, icon }: { label: string; value: string; pct: number; color: string; icon: string }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+    <div style={{ minWidth: 0, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <Icon name={icon as IconName} size={14} color={color} />
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
@@ -171,18 +128,24 @@ function SettingsNavItem({ icon, label, sub, to }: { icon: IconName; label: stri
 // Same problem, same fix: no series, no chart.
 
 export const ToolsOverview: React.FC = () => {
-  const [metrics, setMetrics] = useState<ToolsMetrics>(FALLBACK);
+  const navigate = useNavigate();
+  const [metrics, setMetrics] = useState<ToolsMetrics>(EMPTY_METRICS);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const res = await apiFetch('/v1/hr/tools-overview');
       if (res && typeof res === 'object' && 'hr' in res) {
         setMetrics(res as ToolsMetrics);
         setLastUpdated(new Date());
       }
-    } catch { /* keep fallback */ }
+    } catch (error: any) {
+      setLoadError(error?.message || 'Could not load the tools overview.');
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -195,8 +158,8 @@ export const ToolsOverview: React.FC = () => {
   const { hr, files, chat, support } = metrics;
   const attendanceRate  = hr.active_staff > 0 ? Math.round((hr.today_present / hr.active_staff) * 100) : 0;
   const staffActivePct  = hr.total_staff  > 0 ? Math.round((hr.active_staff  / hr.total_staff)  * 100) : 0;
-  const docsPct         = Math.min(Math.round((files.this_month / Math.max(files.total * 0.15, 1)) * 100), 100);
-  const chatPct         = Math.min(Math.round((chat.this_month / Math.max(chat.total_messages * 0.15, 1)) * 100), 100);
+  const docsPct         = files.total > 0 ? Math.round((files.this_month / files.total) * 100) : 0;
+  const chatPct         = chat.total_messages > 0 ? Math.round((chat.this_month / chat.total_messages) * 100) : 0;
   const readRate        = support.total_notifications > 0
     ? Math.round(((support.total_notifications - support.unread) / support.total_notifications) * 100)
     : 100;
@@ -213,50 +176,25 @@ export const ToolsOverview: React.FC = () => {
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
               Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
-            <button type="button" className="btn btn-secondary" onClick={load} disabled={loading}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <Button type="button" variant="outline" size="sm" onClick={load} disabled={loading}>
               <Icon name="refresh" size={13} />
               {loading ? 'Refreshing…' : 'Refresh'}
-            </button>
+            </Button>
           </div>
         }
       />
 
-      {/* ── Row 1: KPI Cards ── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
-        <KpiCard
-          icon="users" iconBg="var(--teal-l)" iconColor="var(--teal)"
-          value={hr.total_staff} label="Total Staff"
-          sub={`${hr.active_staff} active, ${hr.on_leave} on leave`}
-          subUp={hr.active_staff >= hr.total_staff * 0.7}barColor="var(--teal)"
-          to="/nexushr/employees"
-        />
-        <KpiCard
-          icon="check" iconBg="var(--green-l)" iconColor="var(--green)"
-          value={hr.today_present} label="Present Today"
-          sub={`${attendanceRate}% attendance rate`}
-          subUp={attendanceRate >= 70}barColor="var(--green)"
-          to="/nexushr/attendance"
-        />
-        <KpiCard
-          icon="calendar" iconBg="var(--gold-l)" iconColor="var(--gold)"
-          value={hr.pending_leaves} label="Pending Leave Requests"
-          sub={`${hr.on_leave} currently on leave`}
-          subUp={hr.pending_leaves === 0}barColor="var(--gold)"
-          to="/nexushr/leaves"
-        />
-        <KpiCard
-          icon="bell"
-          iconBg={support.unread > 0 ? 'var(--red-l)' : 'var(--green-l)'}
-          iconColor={support.unread > 0 ? 'var(--red)' : 'var(--green)'}
-          value={support.unread} label="Unread Notifications"
-          sub={`${support.total_notifications} total in system`}
-          subUp={support.unread === 0}barColor={support.unread > 0 ? 'var(--red)' : 'var(--green)'}
-        />
-      </div>
+      {loadError && <Banner variant="error" title="Overview unavailable" action={<Button variant="outline" size="sm" onClick={load}>Try again</Button>}>{loadError}</Banner>}
+
+      <MetricsRow cards={[
+        { title: 'Total staff', value: hr.total_staff.toLocaleString(), icon: 'users', emphasis: 'primary', sub1Label: 'ACTIVE', sub1Value: hr.active_staff.toLocaleString(), sub2Label: 'ON LEAVE', sub2Value: hr.on_leave.toLocaleString(), loading, error: loadError || undefined, onRetry: load, onClick: () => navigate('/nexushr/employees') },
+        { title: 'Present today', value: hr.today_present.toLocaleString(), icon: 'check', progress: attendanceRate, progressLabel: `${attendanceRate}% of active staff`, loading, error: loadError || undefined, onRetry: load, onClick: () => navigate('/nexushr/attendance') },
+        { title: 'Pending leave requests', value: hr.pending_leaves.toLocaleString(), icon: 'calendar', sub1Label: 'CURRENTLY AWAY', sub1Value: hr.on_leave.toLocaleString(), loading, error: loadError || undefined, onRetry: load, onClick: () => navigate('/nexushr/leaves') },
+        { title: 'Unread notifications', value: support.unread.toLocaleString(), icon: 'bell', emphasis: support.unread > 0 ? 'primary' : 'default', sub1Label: 'TOTAL', sub1Value: support.total_notifications.toLocaleString(), loading, error: loadError || undefined, onRetry: load },
+      ]} />
 
       {/* ── Row 2: Status Cards ── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
         <StatusCard
           label="Attendance Rate" value={`${attendanceRate}%`}
           pct={attendanceRate} color="var(--teal)" icon="clock"
@@ -279,7 +217,7 @@ export const ToolsOverview: React.FC = () => {
       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
         Module Summaries
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 16 }}>
 
         {/* HRM Dashboard */}
         <ModuleSummaryCard
@@ -332,12 +270,12 @@ export const ToolsOverview: React.FC = () => {
         >
           <StatGrid stats={[
             { label: 'Total Messages', value: chat.total_messages.toLocaleString(), sub: 'All time',           color: 'var(--blue)' },
-            { label: 'This Month',     value: chat.this_month,                      sub: `${chatPct}% of avg` },
+            { label: 'This Month',     value: chat.this_month,                      sub: `${chatPct}% of all messages` },
             { label: 'Files Shared',   value: files.total,                          sub: 'Via file manager'   },
             { label: 'Activity',       value: chatPct >= 80 ? 'High' : chatPct >= 40 ? 'Medium' : 'Low',
-              sub: 'vs. monthly avg',  color: chatPct >= 80 ? 'var(--green)' : chatPct >= 40 ? 'var(--gold)' : 'var(--red)' },
+              sub: 'Share sent this month', color: chatPct >= 80 ? 'var(--green)' : chatPct >= 40 ? 'var(--gold)' : 'var(--red)' },
           ]} />
-          <ProgressFooter label="Monthly Message Volume" value={`${chatPct}% of avg`} pct={chatPct} color="var(--blue)" />
+          <ProgressFooter label="Share Sent This Month" value={`${chatPct}%`} pct={chatPct} color="var(--blue)" />
         </ModuleSummaryCard>
 
         {/* Settings */}
@@ -354,7 +292,7 @@ export const ToolsOverview: React.FC = () => {
           </div>
           <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>All systems operational</span>
+            <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>Workspace metrics connected</span>
           </div>
         </ModuleSummaryCard>
 

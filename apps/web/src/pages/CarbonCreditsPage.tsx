@@ -157,7 +157,7 @@ export const CarbonCreditsPage: React.FC = () => {
 
           <div style={{ background: 'var(--white)', padding: 24, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: '#f1f5f9', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="cloudRain" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>TOTAL CO₂ EMISSIONS</span>

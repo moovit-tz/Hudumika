@@ -156,12 +156,12 @@
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
   font-weight: 600;
-  color: #5eead4;
+  color: var(--teal);
   margin-left: 5px;
 }
 
 .profile-cover-title .ph-dot {
-  color: #5eead4;
+  color: var(--teal);
 }
 
 .profile-cover-subtitle {

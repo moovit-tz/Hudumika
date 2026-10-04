@@ -315,7 +315,7 @@
 
 .r6-step-badge.check {
   background: var(--green);
-  color: #ffffff;
+  color: hsl(var(--green-foreground));
 }
 
 .r6-step-badge.active-num {
@@ -551,7 +551,7 @@
 
 .r6-cal-header {
   background: var(--gold);
-  color: #ffffff;
+  color: hsl(var(--gold-foreground));
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -766,7 +766,7 @@
 
 .r6-send-btn {
   background: var(--blue);
-  color: #ffffff;
+  color: hsl(var(--blue-foreground));
   border: none;
   border-radius: 9999px;
   padding: 8px 24px;

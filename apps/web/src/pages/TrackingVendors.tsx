@@ -6,6 +6,8 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vendor {
   id: string; name: string; vendor_type: string; phone: string | null;
@@ -13,7 +15,6 @@ interface Vendor {
 }
 
 const VENDOR_TYPES = ['WORKSHOP', 'FUEL_STATION', 'PARTS_SUPPLIER', 'INSURANCE', 'OTHER'];
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function AddVendorModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
@@ -43,7 +44,7 @@ function AddVendorModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
       <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a vendor</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} /></div>
           <div>
             <label style={labelStyle}>Type</label>
             <Select value={vendorType} onValueChange={setVendorType}>
@@ -54,16 +55,14 @@ function AddVendorModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             </Select>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Phone</label><input value={phone} onChange={e => setPhone(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Email</label><input value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Email</label><Input value={email} onChange={e => setEmail(e.target.value)} /></div>
           </div>
-          <div><label style={labelStyle}>Address</label><input value={address} onChange={e => setAddress(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Address</label><Input value={address} onChange={e => setAddress(e.target.value)} /></div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Add vendor'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Add vendor'}</Button>
           </div>
         </form>
       </DialogContent>

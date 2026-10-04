@@ -11,6 +11,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Banner } from '../components/ui/alert.js';
+import { Slider } from '../components/ui/slider.js';
 
 interface LeadDup { id: string; company: string; contact_name: string; value: number; created_at: string }
 interface CustomerDup { id: string; name: string; email?: string; created_at: string }
@@ -76,11 +77,14 @@ export function CrmDuplicates() {
   const [customerGroups, setCustomerGroups] = useState<{ customers: CustomerDup[] }[] | null>(null);
   const [loadErrors, setLoadErrors] = useState<string[]>([]);
   const [mergingId, setMergingId] = useState<string | null>(null);
+  const [threshold, setThreshold] = useState(50); // 1–100, divided by 100 for API
+  const [bulkMerging, setBulkMerging] = useState(false);
 
   const load = useCallback(() => {
-    apiFetch('/v1/leads/duplicates').then(data => { setLeadGroups(data); setLoadErrors(e => e.filter(x => x !== 'lead duplicates')); }).catch(() => { setLeadGroups([]); setLoadErrors(e => e.includes('lead duplicates') ? e : [...e, 'lead duplicates']); });
-    apiFetch('/v1/customers/duplicates').then(data => { setCustomerGroups(data); setLoadErrors(e => e.filter(x => x !== 'customer duplicates')); }).catch(() => { setCustomerGroups([]); setLoadErrors(e => e.includes('customer duplicates') ? e : [...e, 'customer duplicates']); });
-  }, []);
+    const t = threshold / 100;
+    apiFetch(`/v1/leads/duplicates?threshold=${t}`).then(data => { setLeadGroups(data); setLoadErrors(e => e.filter(x => x !== 'lead duplicates')); }).catch(() => { setLeadGroups([]); setLoadErrors(e => e.includes('lead duplicates') ? e : [...e, 'lead duplicates']); });
+    apiFetch(`/v1/customers/duplicates?threshold=${t}`).then(data => { setCustomerGroups(data); setLoadErrors(e => e.filter(x => x !== 'customer duplicates')); }).catch(() => { setCustomerGroups([]); setLoadErrors(e => e.includes('customer duplicates') ? e : [...e, 'customer duplicates']); });
+  }, [threshold]);
   useEffect(() => { load(); }, [load]);
 
   async function mergeLeads(primaryId: string, duplicateIds: string[]) {
@@ -103,6 +107,32 @@ export function CrmDuplicates() {
     } catch (err: any) { showAlert(err.message || 'Merge failed'); } finally { setMergingId(null); }
   }
 
+  async function mergeAll() {
+    const groups = tab === 'leads' ? leadGroups : customerGroups;
+    if (!groups || groups.length === 0) return;
+    const confirmed = await showConfirm(
+      `Auto-merge all ${groups.length} group(s)? The oldest record in each group is kept as the primary. This cannot be undone.`,
+      { confirmLabel: 'Merge All' },
+    );
+    if (!confirmed) return;
+    setBulkMerging(true);
+    try {
+      for (const group of groups) {
+        const items = tab === 'leads' ? (group as any).leads : (group as any).customers;
+        const sorted = [...items].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const primaryId = sorted[0].id;
+        const duplicateIds = sorted.slice(1).map((x: any) => x.id);
+        const endpoint = tab === 'leads' ? '/v1/leads/merge' : '/v1/customers/merge';
+        await apiFetch(endpoint, { method: 'POST', body: JSON.stringify({ primary_id: primaryId, duplicate_ids: duplicateIds }) });
+      }
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'Bulk merge failed');
+    } finally {
+      setBulkMerging(false);
+    }
+  }
+
   const activeGroups = tab === 'leads' ? leadGroups : customerGroups;
 
   return (
@@ -113,6 +143,38 @@ export function CrmDuplicates() {
         titleEm="duplicates"
         subtitle="Review likely matches and select the authoritative record before merging customer data."
       />
+
+      {/* Threshold tuning */}
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-8">
+          <div className="flex-1">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-foreground">Match threshold</span>
+              <span className="mono text-xs font-bold text-foreground">{threshold}%</span>
+            </div>
+            <Slider
+              min={20} max={90} step={5}
+              value={[threshold]}
+              onValueChange={([v]) => setThreshold(v)}
+              className="w-full"
+            />
+            <div className="mt-1.5 flex justify-between text-[10px] text-muted-foreground">
+              <span>More matches (looser)</span>
+              <span>Fewer matches (stricter)</span>
+            </div>
+          </div>
+          {activeGroups !== null && activeGroups.length > 0 && (
+            <Button
+              variant="outline" size="sm" className="shrink-0 gap-2"
+              disabled={bulkMerging}
+              onClick={mergeAll}
+            >
+              <GitMerge className="h-4 w-4" />
+              {bulkMerging ? 'Merging…' : `Merge all ${activeGroups.length} group${activeGroups.length === 1 ? '' : 's'}`}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {loadErrors.length > 0 && <Banner variant="error" title="Duplicate records could not be checked">Unavailable: {loadErrors.join(', ')}. Refresh and try again.</Banner>}
 

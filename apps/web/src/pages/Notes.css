@@ -1,8 +1,8 @@
 /* ── Google Keep (Hudumika Notes) CSS Design System ─────────────── */
 
 [data-notes] {
-  --keep-amber: #fbbc04;
-  --keep-amber-dark: #d97706;
+  --keep-amber: var(--gold);
+  --keep-amber-dark: var(--gold);
   font-family: var(--font);
 }
 
@@ -53,7 +53,7 @@
 }
 
 .notes-icon-btn.active {
-  background: rgba(251, 188, 4, 0.2);
+  background: var(--gold-l);
   color: var(--keep-amber-dark);
 }
 
@@ -82,7 +82,7 @@
   max-width: 600px;
   width: 100%;
   margin: 0 auto 12px auto;
-  background: var(--card-bg, #fff);
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.06);
@@ -153,8 +153,8 @@
 }
 
 .notes-done-btn {
-  background: var(--navy);
-  color: #fff;
+  background: var(--nav-header-bg);
+  color: var(--white);
   border: none;
   padding: 6px 20px;
   border-radius: 6px;
@@ -325,16 +325,16 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 12px;
-  background: #feefc3;
-  color: #614a19;
+  background: var(--gold-l);
+  color: var(--gold);
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
 [data-theme="dark"] .note-badge-reminder {
-  background: #41331c;
-  color: #e8eaed;
+  background: var(--gold-l);
+  color: var(--ink);
 }
 
 .note-badge-reminder-snooze {
@@ -407,7 +407,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   padding: 8px;
-  background: var(--card-bg, #fff);
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
@@ -446,7 +446,7 @@
 }
 
 .notes-drawing-card {
-  background: var(--card-bg, #fff);
+  background: var(--white);
   border-radius: 16px;
   width: 90%;
   max-width: 720px;
@@ -473,7 +473,7 @@
   height: 380px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--white);
   cursor: crosshair;
 }
 
@@ -500,7 +500,7 @@
 }
 
 .pen-color-btn.active {
-  border-color: #000;
+  border-color: var(--ink);
   transform: scale(1.15);
 }
 

@@ -697,7 +697,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>Enterprise Edition</span>
               </div>
               <h1 style={{ margin: '4px 0 0', fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-                {appViewMode === 'command_center' && 'Executive Project Command Center'}
+                {appViewMode === 'command_center' && 'Project Portfolio Overview'}
                 {appViewMode === 'portfolios' && 'Strategic Portfolios & Programs'}
                 {appViewMode === 'resources' && 'Heavy Machinery & Resource Fleet'}
                 {appViewMode === 'projects_list' && 'Enterprise Projects Directory'}
@@ -734,7 +734,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 gap: 6,
               }}
             >
-              <Icon name="activity" size={15} /> Command Center
+              <Icon name="activity" size={15} /> Portfolio Overview
             </button>
             <button
               type="button"
@@ -1060,7 +1060,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             marginBottom: 10,
           }}
         >
-          <Icon name="arrowLeft" size={13} /> Return to Projects & Command Center
+          <Icon name="arrowLeft" size={13} /> Return to Projects
         </button>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>

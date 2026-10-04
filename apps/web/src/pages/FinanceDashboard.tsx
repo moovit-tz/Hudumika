@@ -527,7 +527,7 @@ export const FinanceDashboard: React.FC = () => {
                 {recentTransactions.map(t => (
                   <tr key={t.id}>
                     <td style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--ink3)' }}>{t.id}</td>
-                    <td style={{ fontWeight: 700, color: 'var(--navy)' }}>{t.name}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{t.name}</td>
                     <td style={{ color: 'var(--ink2)', fontSize: 12 }}>{t.desc}</td>
                     <td style={{ color: 'var(--ink3)' }}>{t.date}</td>
                     <td

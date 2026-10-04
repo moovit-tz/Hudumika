@@ -1,4 +1,4 @@
-// ─── MeetingLobby.tsx — pre-join device check & lobby ──────
+﻿// ─── MeetingLobby.tsx — pre-join device check & lobby ──────
 import React, { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
@@ -105,7 +105,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
         {/* Title Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 20, gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>{title}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{title}</div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>Check your audio &amp; camera preview before joining the room</div>
           </div>
           <Badge variant="success">

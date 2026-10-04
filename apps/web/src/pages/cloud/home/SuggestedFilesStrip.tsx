@@ -71,7 +71,7 @@ function SuggestedFileCard({ item, onOpen, menuHandlers }: { item: CloudFile; on
       </div>
 
       {/* Document Thumbnail Body Frame */}
-      <div style={{ height: 120, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', overflow: 'hidden', background: '#f8fafc' }}>
+      <div style={{ height: 120, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', overflow: 'hidden', background: 'var(--card-sunken)' }}>
         <DocThumbnail type={item.type} name={item.name} url={thumbUrl} />
       </div>
 

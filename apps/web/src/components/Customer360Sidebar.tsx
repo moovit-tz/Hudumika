@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
@@ -188,7 +188,7 @@ export function Customer360Sidebar({
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink3)', gap: 12 }}>
         <Icon name="user" size={40} strokeWidth={1.25} />
         <p style={{ fontSize: 13, textAlign: 'center', padding: '0 20px', lineHeight: 1.5 }}>
-          Select a conversation to view customer intelligence
+          Select a conversation to view customer details
         </p>
       </div>
     );
@@ -292,7 +292,7 @@ export function Customer360Sidebar({
                 <Switch checked={aiCopilotActive} onCheckedChange={c => setAiCopilotActive(c === true)} />
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                {aiCopilotActive ? 'AI Copilot Chat auto-suggests replies & drafts.' : 'Auto-reply disabled for this contact.'}
+                {aiCopilotActive ? 'Reply suggestions are available for this conversation.' : 'Reply suggestions are off for this contact.'}
               </div>
             </div>
 
@@ -454,7 +454,7 @@ export function Customer360Sidebar({
                 {invoices.map((inv) => (
                   <div key={inv.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>{inv.invoice_number}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{inv.invoice_number}</div>
                       <span style={{ fontSize: 9, fontWeight: 700, color: INV_STATUS_COLORS[inv.status] || '#64748b', background: `${INV_STATUS_COLORS[inv.status]}20`, padding: '2px 7px', borderRadius: 8 }}>{inv.status}</span>
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 800, color: inv.status === 'Overdue' ? '#ef4444' : 'var(--teal)', marginBottom: 2 }}>
@@ -485,7 +485,7 @@ export function Customer360Sidebar({
                       onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--teal)')}
                       onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>{s.ref_number}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{s.ref_number}</span>
                         <span style={{ fontSize: 9, fontWeight: 700, color: STAGE_COLORS[s.stage] || '#64748b', background: `${STAGE_COLORS[s.stage]}20`, padding: '2px 7px', borderRadius: 8 }}>{s.stage}</span>
                       </div>
                       {s.goods_desc && <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.goods_desc}</div>}
@@ -552,7 +552,7 @@ export function Customer360Sidebar({
             ) : (
               <div style={{ textAlign: 'center', padding: '32px 0' }}>
                 <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Icon name="sparkle" size={36} color="var(--teal)" strokeWidth={1.25} /></div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Generate an AI-powered reply suggestion based on this conversation</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Draft a reply based on this conversation</div>
                 <button type="button" onClick={fetchAI}
                   style={{ padding: 'var(--ds-btn-py) 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   Generate Suggestion

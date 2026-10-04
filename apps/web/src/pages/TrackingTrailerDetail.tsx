@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { BackButton } from '../components/ui/BackButton.js';
@@ -108,7 +109,7 @@ export const TrackingTrailerDetail: React.FC = () => {
               </select>
               <input placeholder="Document number" value={docNumber} onChange={e => setDocNumber(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5, flex: 1, minWidth: 120 }} />
               <input type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5 }} />
-              <button type="submit" className="btn btn-primary btn-sm">Save</button>
+              <Button type="submit" size="sm">Save</Button>
             </form>
           )}
           {documents.length === 0 ? (

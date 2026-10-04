@@ -5,13 +5,13 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 const VEHICLE_TYPES = ['TRUCK', 'VAN', 'MOTORBIKE', 'OTHER'];
 const FUEL_TYPES = ['DIESEL', 'PETROL', 'ELECTRIC', 'HYBRID'];
 const OWNERSHIP_TYPES = ['OWNED', 'LEASED', 'RENTED'];
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24 };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 const sectionStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6, marginBottom: -2 };
 
@@ -78,9 +78,9 @@ export const TrackingVehicleNew: React.FC = () => {
       <SectionCard>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={sectionStyle}>Basics</div>
-        <div><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Truck 07" style={inputStyle} /></div>
+        <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Truck 07" /></div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Plate number</label><input value={plate} onChange={e => setPlate(e.target.value)} placeholder="e.g. T123ABC" style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Plate number</label><Input value={plate} onChange={e => setPlate(e.target.value)} placeholder="e.g. T123ABC" /></div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Type</label>
             <Select value={type} onValueChange={setType}>
@@ -101,29 +101,29 @@ export const TrackingVehicleNew: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Fleet group</label><input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="e.g. Dar Regional" style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Fleet group</label><Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="e.g. Dar Regional" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Driver name</label><input value={driverName} onChange={e => setDriverName(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Driver phone</label><input value={driverPhone} onChange={e => setDriverPhone(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Driver name</label><Input value={driverName} onChange={e => setDriverName(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Driver phone</label><Input value={driverPhone} onChange={e => setDriverPhone(e.target.value)} /></div>
         </div>
         <div>
           <label style={labelStyle}>Device ID</label>
-          <input required value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="GPS/GPRS device identifier" style={inputStyle} />
+          <Input required value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="GPS/GPRS device identifier" />
         </div>
 
         <div style={sectionStyle}>Vehicle details</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>VIN</label><input title="VIN" value={vin} onChange={e => setVin(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Year</label><input title="Year" type="number" value={year} onChange={e => setYear(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>VIN</label><Input title="VIN" value={vin} onChange={e => setVin(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Year</label><Input title="Year" type="number" value={year} onChange={e => setYear(e.target.value)} /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Make</label><input title="Make" value={make} onChange={e => setMake(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Model</label><input title="Model" value={model} onChange={e => setModel(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Make</label><Input title="Make" value={make} onChange={e => setMake(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Model</label><Input title="Model" value={model} onChange={e => setModel(e.target.value)} /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Trim</label><input title="Trim" value={trim} onChange={e => setTrim(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Color</label><input title="Color" value={color} onChange={e => setColor(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Trim</label><Input title="Trim" value={trim} onChange={e => setTrim(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Color</label><Input title="Color" value={color} onChange={e => setColor(e.target.value)} /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
@@ -135,15 +135,13 @@ export const TrackingVehicleNew: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Mileage (km)</label><input title="Mileage (km)" type="number" value={mileageKm} onChange={e => setMileageKm(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Mileage (km)</label><Input title="Mileage (km)" type="number" value={mileageKm} onChange={e => setMileageKm(e.target.value)} /></div>
         </div>
 
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-          <Link to="/tracking/vehicles" style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
-          <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving ? 'Saving…' : 'Register vehicle'}
-          </button>
+          <Button type="button" variant="outline" asChild><Link to="/tracking/vehicles">Cancel</Link></Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Register vehicle'}</Button>
         </div>
       </form>
       </SectionCard>

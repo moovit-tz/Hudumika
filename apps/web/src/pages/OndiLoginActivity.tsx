@@ -26,7 +26,7 @@ export const OndiLoginActivity: React.FC = () => {
         crumbs={['Ondi', 'Login Activity']}
         titlePlain="Login"
         titleEm="activity"
-        subtitle="Real-time log of authentication attempts across all accounts in this tenant."
+        subtitle="Review recent sign-in attempts across accounts in this workspace."
       />
 
       {/* KPI Bar */}

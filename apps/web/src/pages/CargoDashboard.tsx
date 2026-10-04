@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
@@ -8,6 +8,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 interface Summary {
   shipments: number;
@@ -87,12 +88,17 @@ export function CargoDashboard() {
   const [demurrage, setDemurrage] = useState<DemurrageAnalysis | null>(null);
   const [demurrageEnabled, setDemurrageEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadDashboard = useCallback(() => {
     (async () => {
       setLoading(true);
+      setSummaryError(null);
       const [s, c, l, r] = await Promise.all([
-        apiFetch('/v1/cargotracker/dashboard/summary').catch(() => null),
+        apiFetch('/v1/cargotracker/dashboard/summary').catch(() => {
+          setSummaryError('Could not load the cargo summary.');
+          return null;
+        }),
         apiFetch('/v1/cargotracker/dashboard/carrier-analysis').catch(() => []),
         apiFetch('/v1/cargotracker/dashboard/lane-analysis').catch(() => []),
         apiFetch('/v1/cargotracker/dashboard/regional-analysis').catch(() => []),
@@ -111,12 +117,21 @@ export function CargoDashboard() {
     })();
   }, []);
 
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
 
   const maxLaneShipments = Math.max(1, ...lanes.map(l => l.shipments));
   const maxRegionShipments = Math.max(1, ...regions.map(r => r.shipments));
   const maxCarrierCost = Math.max(1, ...Object.values(demurrage?.by_carrier ?? {}).map(v => v.cost));
+  const carrierColumns: TableColumn<CarrierRow>[] = [
+    { key: 'carrier', header: 'Carrier', accessor: 'carrier', sortable: true },
+    { key: 'shipments', header: 'Shipments', accessor: 'shipments', sortable: true, width: 120 },
+    { key: 'onTime', header: 'On-time', render: row => <ReliabilityBadge pct={row.on_time_pct} />, width: 160 },
+    { key: 'deviation', header: 'Avg deviation', render: row => row.avg_deviation_days === null ? '—' : <span style={{ color: row.avg_deviation_days > 0 ? 'var(--red)' : 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{row.avg_deviation_days > 0 ? '+' : ''}{row.avg_deviation_days}d</span>, width: 150 },
+    { key: 'transit', header: 'Avg transit', render: row => row.avg_transit_days === null ? '—' : `${row.avg_transit_days}d`, width: 140 },
+  ];
 
   if (loading) {
     return <SectionLoading label="Loading dashboard…" />;
@@ -138,62 +153,54 @@ export function CargoDashboard() {
 
       <MetricsRow cards={[
         {
-          title: 'Shipments Tracked',
-          value: String(summary?.shipments ?? 0),
+          title: 'Shipments tracked',
+          value: summary ? String(summary.shipments) : '—',
           barHighlight: 'var(--blue)',
           icon: 'map',
+          error: summaryError ?? undefined,
+          onRetry: loadDashboard,
         },
         {
           title: 'Containers',
-          value: String(summary?.containers ?? 0),
+          value: summary ? String(summary.containers) : '—',
           barHighlight: 'var(--teal)',
           icon: 'package',
+          error: summaryError ?? undefined,
+          onRetry: loadDashboard,
         },
         {
-          title: 'Delayed Shipments',
-          value: String(summary?.delayed_shipments ?? 0),
+          title: 'Delayed shipments',
+          value: summary ? String(summary.delayed_shipments) : '—',
           invertTrend: true, barHighlight: 'var(--red)',
           icon: 'alertTriangle',
+          error: summaryError ?? undefined,
+          onRetry: loadDashboard,
         },
         {
           title: 'Shipments at POD',
-          value: String(summary?.shipments_at_pod ?? 0),
+          value: summary ? String(summary.shipments_at_pod) : '—',
           barHighlight: 'var(--green)',
           icon: 'checkCircle',
+          error: summaryError ?? undefined,
+          onRetry: loadDashboard,
         },
       ]} />
 
       {/* Carrier reliability */}
       <SectionCard title="Carrier Analysis">
         <div style={panelSubStyle}>On-time %, ETA deviation and transit time, computed from your own tracked shipments</div>
-        {carriers.length === 0 ? (
-          <EmptyPanel icon="ship" title="No carrier data yet" sub="Save a few tracked shipments to see reliability by carrier." />
-        ) : (
-          <div className="rtbl-wrap">
-            <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Carrier', 'Shipments', 'On-time', 'Avg Deviation', 'Avg Transit'].map(h => (
-                    <th key={h} style={{ padding: '10px 20px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {carriers.map(c => (
-                  <tr key={c.carrier} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 20px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.carrier}</td>
-                    <td style={{ padding: '12px 20px', fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{c.shipments}</td>
-                    <td style={{ padding: '12px 20px' }}><ReliabilityBadge pct={c.on_time_pct} /></td>
-                    <td style={{ padding: '12px 20px', fontSize: 13, fontVariantNumeric: 'tabular-nums', color: c.avg_deviation_days && c.avg_deviation_days > 0 ? 'var(--red)' : 'var(--ink2)' }}>
-                      {c.avg_deviation_days === null ? '—' : `${c.avg_deviation_days > 0 ? '+' : ''}${c.avg_deviation_days}d`}
-                    </td>
-                    <td style={{ padding: '12px 20px', fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{c.avg_transit_days === null ? '—' : `${c.avg_transit_days}d`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          columns={carrierColumns}
+          rows={carriers}
+          idKey="carrier"
+          compact
+          defaultSortKey="shipments"
+          defaultSortDir="desc"
+          empty={carriers.length === 0}
+          emptyIcon="ship"
+          emptyTitle="No carrier data yet"
+          emptyMessage="Save a few tracked shipments to see reliability by carrier."
+        />
       </SectionCard>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>

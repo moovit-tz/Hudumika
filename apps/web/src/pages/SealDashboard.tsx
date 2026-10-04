@@ -514,7 +514,7 @@ export function SealDashboard() {
                     marginTop: 6,
                     background: 'var(--white)',
                     border: '1px solid var(--border)',
-                    borderRadius: 10,
+                    borderRadius: 'var(--r)',
                     boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
                     zIndex: 50,
                     minWidth: 200,
@@ -529,9 +529,9 @@ export function SealDashboard() {
                         padding: '8px 12px',
                         fontSize: 13,
                         fontWeight: selectedWarehouse === w ? 700 : 500,
-                        color: selectedWarehouse === w ? 'var(--teal, #0d9488)' : 'var(--ink)',
+                        color: selectedWarehouse === w ? 'var(--teal)' : 'var(--ink)',
                         background: selectedWarehouse === w ? 'var(--teal-l)' : 'transparent',
-                        borderRadius: 6,
+                        borderRadius: 'var(--r-sm)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -571,7 +571,7 @@ export function SealDashboard() {
                   marginTop: 6,
                   background: 'var(--white)',
                   border: '1px solid var(--border)',
-                  borderRadius: 10,
+                  borderRadius: 'var(--r)',
                   boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
                   zIndex: 50,
                   minWidth: 180,
@@ -588,7 +588,7 @@ export function SealDashboard() {
                       fontWeight: dateRangeText === d ? 700 : 500,
                       color: dateRangeText === d ? 'var(--teal)' : 'var(--ink)',
                       background: dateRangeText === d ? 'var(--teal-l)' : 'transparent',
-                      borderRadius: 6,
+                      borderRadius: 'var(--r-sm)',
                       cursor: 'pointer',
                     }}
                   >
@@ -625,7 +625,7 @@ export function SealDashboard() {
             className="sid-btn-primary"
             onClick={() => setShowAddModal(true)}
           >
-            <Icon name="plus" size={14} color="#ffffff" />
+            <Icon name="plus" size={14} color="currentColor" />
             <span>Add Item</span>
           </button>
         </div>
@@ -654,8 +654,8 @@ export function SealDashboard() {
                 <AreaChart data={STOCK_TREND_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="sealStockAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--teal, #0d9488)" stopOpacity={0.28} />
-                      <stop offset="95%" stopColor="var(--teal, #0d9488)" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="var(--teal)" stopOpacity={0.28} />
+                      <stop offset="95%" stopColor="var(--teal)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -670,7 +670,7 @@ export function SealDashboard() {
                     contentStyle={{
                       background: 'var(--white)',
                       border: '1px solid var(--border)',
-                      borderRadius: 8,
+                      borderRadius: 'var(--r-sm)',
                       boxShadow: 'var(--elev-sm)',
                       fontSize: 12,
                       fontWeight: 600,
@@ -680,12 +680,12 @@ export function SealDashboard() {
                   <Area
                     type="monotone"
                     dataKey="units"
-                    stroke="var(--teal, #0d9488)"
+                    stroke="var(--teal)"
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#sealStockAreaGrad)"
-                    dot={{ r: 4, fill: 'var(--teal, #0d9488)', stroke: 'var(--white)', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: 'var(--teal, #0d9488)' }}
+                    dot={{ r: 4, fill: 'var(--teal)', stroke: 'var(--white)', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: 'var(--teal)' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -738,7 +738,7 @@ export function SealDashboard() {
                     cy="21"
                     r="15.915"
                     fill="transparent"
-                    stroke="var(--bg, #e2e8f0)"
+                    stroke="var(--bg)"
                     strokeWidth="4"
                   />
                   <circle
@@ -746,7 +746,7 @@ export function SealDashboard() {
                     cy="21"
                     r="15.915"
                     fill="transparent"
-                    stroke="var(--teal, #0d9488)"
+                    stroke="var(--teal)"
                     strokeWidth="4"
                     strokeDasharray="60 40"
                     strokeDashoffset="25"
@@ -926,7 +926,7 @@ export function SealDashboard() {
                     </td>
                     <td style={{ fontWeight: 600 }}>{item.qty}</td>
                     <td style={{ color: 'var(--ink3)' }}>{item.reserved}</td>
-                    <td style={{ fontWeight: 700, color: item.available === 0 ? '#e11d48' : 'var(--ink)' }}>
+                    <td style={{ fontWeight: 700, color: item.available === 0 ? 'var(--red)' : 'var(--ink)' }}>
                       {item.available}
                     </td>
                     <td style={{ color: 'var(--ink3)' }}>{item.reorderLevel}</td>
@@ -954,7 +954,7 @@ export function SealDashboard() {
                             marginTop: 2,
                             background: 'var(--white)',
                             border: '1px solid var(--border)',
-                            borderRadius: 8,
+                            borderRadius: 'var(--r-sm)',
                             boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
                             zIndex: 60,
                             minWidth: 160,
@@ -969,7 +969,7 @@ export function SealDashboard() {
                               setAdjustQty(0);
                               setActiveActionMenuId(null);
                             }}
-                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 6 }}
+                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                           >
@@ -980,7 +980,7 @@ export function SealDashboard() {
                               showAlert(`Barcode printed for ${item.sku}`, { variant: 'success' });
                               setActiveActionMenuId(null);
                             }}
-                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 6 }}
+                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
                             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                           >
@@ -992,7 +992,7 @@ export function SealDashboard() {
                               showAlert(`Deleted ${item.name}`, { variant: 'warning' });
                               setActiveActionMenuId(null);
                             }}
-                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: '#e11d48', cursor: 'pointer', borderRadius: 6 }}
+                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--red)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
                             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(225,29,72,0.1)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                           >
@@ -1156,7 +1156,7 @@ export function SealDashboard() {
               <div
                 style={{
                   border: '2px dashed var(--border2)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--r)',
                   padding: '32px 20px',
                   textAlign: 'center',
                   background: 'var(--bg)',
@@ -1204,7 +1204,7 @@ export function SealDashboard() {
               </button>
             </div>
             <div className="sid-modal-body">
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--bg)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>CURRENT ON HAND</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{adjustingItem.qty} units</div>

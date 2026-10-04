@@ -4,11 +4,13 @@ import { apiFetch } from '../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Button } from '../components/ui/button.js';
 
 const TRAILER_TYPES = ['FLATBED', 'CONTAINER_CHASSIS', 'TANKER', 'REEFER', 'LOWBED', 'CURTAIN_SIDE', 'OTHER'];
 const OWNERSHIP_TYPES = ['OWNED', 'LEASED', 'RENTED', 'SUBCONTRACTED'];
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 const sectionStyle: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6, marginBottom: -2 };
 
@@ -67,9 +69,9 @@ export const TrackingTrailerNew: React.FC = () => {
       <SectionCard>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={sectionStyle}>Basics</div>
-          <div><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Trailer 04" style={inputStyle} /></div>
+          <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Trailer 04" /></div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Registration number</label><input value={registration} onChange={e => setRegistration(e.target.value)} placeholder="e.g. T-778-TRL" style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Registration number</label><Input value={registration} onChange={e => setRegistration(e.target.value)} placeholder="e.g. T-778-TRL" /></div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Trailer type</label>
               <Select value={trailerType} onValueChange={setTrailerType}>
@@ -81,10 +83,10 @@ export const TrackingTrailerNew: React.FC = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>VIN / chassis number</label><input value={vin} onChange={e => setVin(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Axles</label><input type="number" min="1" max="12" value={axles} onChange={e => setAxles(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>VIN / chassis number</label><Input value={vin} onChange={e => setVin(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Axles</label><Input type="number" min="1" max="12" value={axles} onChange={e => setAxles(e.target.value)} /></div>
           </div>
-          <div><label style={labelStyle}>Capacity (kg)</label><input type="number" min="0" value={capacityKg} onChange={e => setCapacityKg(e.target.value)} placeholder="e.g. 30000" style={inputStyle} /></div>
+          <div><label style={labelStyle}>Capacity (kg)</label><Input type="number" min="0" value={capacityKg} onChange={e => setCapacityKg(e.target.value)} placeholder="e.g. 30000" /></div>
 
           <div style={sectionStyle}>Ownership</div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -111,13 +113,12 @@ export const TrackingTrailerNew: React.FC = () => {
             )}
           </div>
 
-          <div><label style={labelStyle}>Notes</label><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' as const }} /></div>
+          <div><label style={labelStyle}>Notes</label><Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="resize-y" /></div>
 
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
-          <button type="submit" disabled={saving || !name}
-            style={{ marginTop: 8, padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, cursor: 'pointer', fontSize: 13.5, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box' as const, lineHeight: 1.25 }}>
+          <Button type="submit" disabled={saving || !name} style={{ marginTop: 8 }}>
             {saving ? 'Saving…' : 'Register trailer'}
-          </button>
+          </Button>
         </form>
       </SectionCard>
     </div>

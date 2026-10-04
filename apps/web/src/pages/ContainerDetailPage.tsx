@@ -192,7 +192,7 @@ export const ContainerDetailView: React.FC<{
   };
 
   if (loading) {
-    return <PageLoading label="Loading container intelligence…" />;
+    return <PageLoading label="Loading container details…" />;
   }
 
   if (!container) {
@@ -218,7 +218,7 @@ export const ContainerDetailView: React.FC<{
       <PageHeader
         crumbs={['Cargo Tracker', 'Containers', container.container_number]}
         titlePlain={container.container_number}
-        titleEm="Intelligence"
+        titleEm="details"
         subtitle={`${container.size_type} · ISO: ${container.iso_code} · Carrier Signature: ${palette.carrier}`}
         actions={
           <div className="flex items-center gap-2 flex-wrap">

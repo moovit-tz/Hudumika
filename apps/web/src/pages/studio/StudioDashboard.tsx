@@ -106,7 +106,7 @@ export function StudioDashboard() {
               </span>
             </div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'inherit' }}>
-              Automation &amp; Event Command Center
+              Automations and event workflows
             </h1>
             <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'inherit', opacity: 0.8, lineHeight: 1.5 }}>
               One central canvas for every automation across your workspace — configure triggers, multi-step actions, and live execution monitors.
@@ -251,7 +251,7 @@ export function StudioDashboard() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Icon name="clock" size={17} color="var(--teal)" />
-              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Recent Execution Runs</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Recent Execution Runs</span>
             </div>
 
             {/* Filter buttons */}
@@ -336,7 +336,7 @@ export function StudioDashboard() {
           <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="barChart2" size={16} color="var(--purple)" />
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Outcomes • Last 30 Days</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Outcomes • Last 30 Days</span>
             </div>
             <div style={{ padding: '16px 20px' }}>
               {statuses.length === 0 ? (
@@ -365,7 +365,7 @@ export function StudioDashboard() {
           <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="grid" size={16} color="var(--blue)" />
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Automations By Workspace App</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Automations By Workspace App</span>
             </div>
             <div style={{ padding: '12px 14px' }}>
               {stats.byApp.map(a => (
@@ -392,7 +392,7 @@ export function StudioDashboard() {
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="layers" size={16} color="var(--teal)" />
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>Clearance Stage Workflows</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Clearance Stage Workflows</span>
               </div>
             </div>
             <div style={{ padding: '14px 18px', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>

@@ -70,7 +70,7 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
           </div>
 
           {/* Document Preview Body Frame */}
-          <div style={{ height: 130, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', overflow: 'hidden', background: '#f8fafc', position: 'relative' }}>
+          <div style={{ height: 130, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', overflow: 'hidden', background: 'var(--card-sunken)', position: 'relative' }}>
             <DocThumbnail type={item.type} name={item.name} url={thumbUrl} />
             {item.starred && <Icon name="star" size={14} color="var(--gold)" style={{ position: 'absolute', top: 8, right: 8, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }} />}
           </div>
@@ -90,4 +90,3 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
     </ContextMenu>
   );
 }
-

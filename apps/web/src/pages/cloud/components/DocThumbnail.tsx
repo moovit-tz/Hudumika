@@ -35,7 +35,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
   if (isSheet) {
     return (
       <div style={{ width: '100%', height: '100%', background: '#f8fafc', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 8 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: 'var(--green)', padding: '4px 6px', borderRadius: 4, color: '#fff', fontWeight: 700 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: 'var(--green)', padding: '4px 6px', borderRadius: 4, color: 'hsl(var(--green-foreground))', fontWeight: 700 }}>
           <span>QTY</span><span>ITEM</span><span>PRICE</span><span>TOTAL</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: '#fff', padding: '3px 6px', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>

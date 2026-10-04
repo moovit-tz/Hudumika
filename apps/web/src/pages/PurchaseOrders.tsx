@@ -21,6 +21,7 @@ import { Tip } from '../components/ui/tooltip.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -838,47 +839,12 @@ export const PurchaseOrders: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 
                 {/* Search field */}
-                <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 260, position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder="Search by purchase order number..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && setAppliedSearch(searchQuery)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 100px 8px 12px',
-                      borderRadius: 'var(--r)',
-                      border: '1px solid var(--border)',
-                      fontSize: 13,
-                      background: 'var(--bg)',
-                      color: 'var(--ink)',
-                      outline: 'none',
-                      transition: 'border-color 0.15s ease'
-                    }}
-                    onFocus={e => e.currentTarget.style.borderColor = 'var(--blue)'}
-                    onBlur={e => e.currentTarget.style.borderColor = 'var(--border)'}
-                  />
-                  <button
-                    onClick={() => setAppliedSearch(searchQuery)}
-                    style={{
-                      position: 'absolute',
-                      right: 4,
-                      top: 4,
-                      bottom: 4,
-                      padding: '0 12px',
-                      background: 'hsl(var(--primary))',
-                      border: 'none',
-                      borderRadius: 'var(--r)',
-                      color: 'hsl(var(--primary-foreground))',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Search
-                  </button>
-                </div>
+                <SearchToolbar
+                  search={searchQuery}
+                  onSearch={value => { setSearchQuery(value); setAppliedSearch(value); setCurrentPage(1); }}
+                  placeholder="Search by purchase order number"
+                  style={{ flex: '1 1 320px', minWidth: 260 }}
+                />
 
                 {/* View toggles and filters */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -7,6 +7,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 
 export const FinanceAgedPayables: React.FC = () => {
   const co = useCompany();
@@ -31,13 +32,14 @@ export const FinanceAgedPayables: React.FC = () => {
   const overdue = totals.days_1_30 + totals.days_31_60 + totals.days_61_90 + totals.days_90_plus;
   const asOf = report?.as_of ?? '';
 
-  function urgencyBadge(row: AgedRow) {
-    if (row.days_90_plus > 0) return { label: 'Urgent',   color: 'var(--red)',   bg: 'var(--red-l)' };
-    if (row.days_61_90 > 0)   return { label: 'Overdue',  color: 'var(--red)',   bg: 'var(--red-l)' };
-    if (row.days_31_60 > 0)   return { label: 'Late',     color: 'var(--gold)',      bg: 'var(--gold-l)' };
-    if (row.days_1_30 > 0)    return { label: 'Due Soon', color: 'var(--gold)',      bg: 'var(--gold-l)' };
-    if (row.current > 0)      return { label: 'Current',  color: 'var(--green)', bg: 'var(--green-l)' };
-    return                           { label: 'Cleared', color: 'var(--ink3)', bg: 'var(--bg)' };
+  type BadgeVariant = 'error' | 'warning' | 'success' | 'gray';
+  function urgencyBadge(row: AgedRow): { label: string; variant: BadgeVariant } {
+    if (row.days_90_plus > 0) return { label: 'Urgent',   variant: 'error' };
+    if (row.days_61_90 > 0)   return { label: 'Overdue',  variant: 'error' };
+    if (row.days_31_60 > 0)   return { label: 'Late',     variant: 'warning' };
+    if (row.days_1_30 > 0)    return { label: 'Due Soon', variant: 'warning' };
+    if (row.current > 0)      return { label: 'Current',  variant: 'success' };
+    return                           { label: 'Cleared',  variant: 'gray' };
   }
 
   function exportCsv() {
@@ -150,7 +152,7 @@ export const FinanceAgedPayables: React.FC = () => {
                       <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(s.total)}</td>
                       <td style={{ padding: '10px 16px' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{badge.label}</span>
+                        <Badge variant={badge.variant}>{badge.label}</Badge>
                       </td>
                     </tr>
                   );

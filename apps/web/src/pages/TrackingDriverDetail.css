@@ -695,8 +695,8 @@
 }
 
 [data-theme="dark"] .dd-lifecycle-step.active .step-num {
-  background: var(--teal);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   border-color: var(--teal);
   box-shadow: 0 0 14px rgba(13, 148, 136, 0.6);
 }
@@ -708,8 +708,8 @@
 
 [data-theme="dark"] .dd-alert-icon {
   background: var(--white);
-  border-color: #eab308;
-  color: #eab308;
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 [data-theme="dark"] .dd-card {
@@ -737,7 +737,7 @@
 
 [data-theme="dark"] .dd-condition-pill {
   background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+  color: var(--green);
   border-color: rgba(16, 185, 129, 0.35);
 }
 
@@ -756,13 +756,13 @@
 
 [data-theme="dark"] .dd-route-status.transit {
   background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa;
+  color: var(--blue);
   border-color: rgba(96, 165, 250, 0.4);
 }
 
 [data-theme="dark"] .dd-route-status.completed {
   background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  color: var(--green);
   border-color: rgba(16, 185, 129, 0.35);
 }
 
@@ -794,7 +794,7 @@
 
 [data-theme="dark"] .dd-doc-status.verified {
   background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  color: var(--green);
   border-color: rgba(16, 185, 129, 0.35);
 }
 
@@ -827,4 +827,3 @@
   background: var(--white);
   border-color: var(--teal);
 }
-

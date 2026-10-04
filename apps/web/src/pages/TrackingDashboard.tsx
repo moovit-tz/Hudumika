@@ -165,13 +165,10 @@ export const TrackingDashboard: React.FC = () => {
   const [copilotMessages, setCopilotMessages] = useState<Array<{ role: 'ai' | 'user'; text: string; time: string }>>([
     {
       role: 'ai',
-      text: 'Hello! I am your Hudumika Logistics AI Copilot. I have live telemetry across your fleet and active corridors. How can I optimize your operations today?',
+      text: 'I can help you review delayed trips, vehicle availability, warehouse capacity, and maintenance needs. What would you like to check?',
       time: 'Just now',
     },
   ]);
-
-  // AI Optimization Applied state
-  const [routeOptimized, setRouteOptimized] = useState(false);
 
   // Active Corridor Map Filter
   const [mapMode, setMapMode] = useState<'ALL' | 'ROAD' | 'SEA' | 'AIR'>('ALL');
@@ -210,6 +207,14 @@ export const TrackingDashboard: React.FC = () => {
       costs_30d: { fuel: 0, maintenance: 0, total: 0, per_vehicle: 0 },
     };
   }, [summary]);
+
+  const onTimePct = activeSummary.on_time_pct_today;
+  const fleetUtilPct = activeSummary.vehicles.total > 0
+    ? Math.round(((activeSummary.vehicles.moving + activeSummary.vehicles.stopped) / activeSummary.vehicles.total) * 100)
+    : null;
+  const completionPct = activeSummary.trips_today > 0
+    ? Math.round((activeSummary.trips_completed_today / activeSummary.trips_today) * 100)
+    : null;
 
   // Operational ledger derived from real trips API data
   const allShipments: ShipmentItem[] = useMemo(() => {
@@ -289,7 +294,7 @@ export const TrackingDashboard: React.FC = () => {
       } else if (lower.includes('maintenance') || lower.includes('fleet')) {
         aiReply = `Fleet Health: ${activeSummary.vehicles.in_maintenance} vehicle(s) are currently in scheduled maintenance. Review expiring documents (${activeSummary.expiring_documents} due within 30 days) and pending reminders (${activeSummary.pending_reminders}) before the next dispatch cycle.`;
       } else {
-        aiReply = `Understood. Analyzing network parameters for "${textToSend}". Optimization applied across dispatch queues and driver schedules. Projected fleet savings: $420 and 1.8 hours.`;
+        aiReply = `I could not match that question to a verified dashboard measure. Try asking about delayed trips, active vehicles, maintenance, or warehouse capacity.`;
       }
       setCopilotMessages(prev => [...prev, { role: 'ai', text: aiReply, time: 'Just now' }]);
     }, 600);
@@ -321,27 +326,27 @@ export const TrackingDashboard: React.FC = () => {
       <PageHeader
         crumbs={['HuduFreight', 'Operations']}
         titlePlain="Logistics & Fleet"
-        titleEm="command"
-        subtitle="Live multi-corridor intelligence, real-time fleet telematics, dispatch queue, and warehouse capacity."
+        titleEm="overview"
+        subtitle="Review active trips, vehicle status, dispatch work, and warehouse capacity."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCopilotOpen(true)}
+              className="logistics-copilot-trigger"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <span className="logistics-design-icon logistics-design-icon--brand">
                 <Icon name="sparkle" size={14} />
               </span>
-              <span>AI Copilot</span>
-              <Badge variant="brand" style={{ fontSize: 10, padding: '1px 6px' }}>Live</Badge>
+              <span>Ask Hudumika</span>
             </Button>
             <Button
               variant="default"
               size="sm"
               onClick={() => navigate('/tracking/shipments')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' }}
             >
               <Icon name="plus" size={14} />
               <span>New Dispatch</span>
@@ -393,7 +398,7 @@ export const TrackingDashboard: React.FC = () => {
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'var(--green)', opacity: 0.75, animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' }} />
               <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', width: 8, height: 8, background: 'var(--green)' }} />
             </span>
-            <span>Live telemetry · updated 4s ago</span>
+            <span>Vehicle data updated 4 seconds ago</span>
           </div>
         </div>
       </div>
@@ -411,7 +416,7 @@ export const TrackingDashboard: React.FC = () => {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.8)' }}>
-                      Global SLA Score
+                      Today's delivery performance
                     </span>
                     <span style={{
                       display: 'inline-flex',
@@ -420,16 +425,16 @@ export const TrackingDashboard: React.FC = () => {
                       fontSize: 10,
                       fontWeight: 700,
                       padding: '2px 8px',
-                      borderRadius: 12,
+                      borderRadius: 'var(--badge-radius)',
                       background: 'rgba(255,255,255,0.18)',
                       color: '#ffffff',
                     }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                      Optimal
+                      {activeSummary.trips_today > 0 ? 'Updated today' : 'No trips today'}
                     </span>
                   </div>
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: '#ffffff', margin: 0, fontFamily: 'var(--font)' }}>
-                    Operations Health Index
+                    On-time deliveries
                   </h3>
                 </div>
 
@@ -443,56 +448,48 @@ export const TrackingDashboard: React.FC = () => {
                         cy="50"
                         r="42"
                         fill="none"
-                        stroke="#10b981"
+                        stroke="var(--green)"
                         strokeWidth="8"
                         strokeDasharray={264}
-                        strokeDashoffset={264 * (1 - 0.98)}
+                        strokeDashoffset={264 * (1 - Math.min(100, Math.max(0, onTimePct ?? 0)) / 100)}
                         strokeLinecap="round"
                       />
                     </svg>
                     <div className="logistics-gauge-inner">
-                      <span style={{ fontSize: 32, fontWeight: 800, color: '#ffffff', lineHeight: 1 }}>98%</span>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginTop: 4 }}>Health Index</span>
+                      <span style={{ fontSize: 32, fontWeight: 800, color: '#ffffff', lineHeight: 1 }}>{onTimePct == null ? '—' : `${Math.round(onTimePct)}%`}</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', marginTop: 4 }}>On time today</span>
                     </div>
                   </div>
                   <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.85)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Icon name="sparkle" size={13} color="#10b981" />
-                    <span>All corridors operating within SLA tolerance</span>
+                    <Icon name="truck" size={13} color="var(--green)" />
+                    <span>{activeSummary.trips_completed_today} of {activeSummary.trips_today} trips completed today</span>
                   </div>
                 </div>
 
                 {/* SLA Metric Bars */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid rgba(255,255,255,0.14)', paddingTop: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5 }}>
-                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>On-Time</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
-                      <div style={{ width: '96.4%', height: '100%', borderRadius: 3, background: '#10b981' }} />
+                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>On time</span>
+                    <div style={{ flex: 1, height: 6, borderRadius: 'var(--badge-radius)', background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                      <div style={{ width: `${onTimePct ?? 0}%`, height: '100%', borderRadius: 'var(--badge-radius)', background: 'var(--green)' }} />
                     </div>
-                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>96.4%</span>
+                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>{onTimePct == null ? '—' : `${Math.round(onTimePct)}%`}</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5 }}>
-                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Fleet Util.</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
-                      <div style={{ width: '88%', height: '100%', borderRadius: 3, background: '#ffffff' }} />
+                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Fleet active</span>
+                    <div style={{ flex: 1, height: 6, borderRadius: 'var(--badge-radius)', background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                      <div style={{ width: `${fleetUtilPct ?? 0}%`, height: '100%', borderRadius: 'var(--badge-radius)', background: '#ffffff' }} />
                     </div>
-                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>88%</span>
+                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>{fleetUtilPct == null ? '—' : `${fleetUtilPct}%`}</span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5 }}>
-                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Warehouse</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
-                      <div style={{ width: '76%', height: '100%', borderRadius: 3, background: '#f59e0b' }} />
+                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Completed</span>
+                    <div style={{ flex: 1, height: 6, borderRadius: 'var(--badge-radius)', background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+                      <div style={{ width: `${completionPct ?? 0}%`, height: '100%', borderRadius: 'var(--badge-radius)', background: 'var(--gold)' }} />
                     </div>
-                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>76%</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5 }}>
-                    <span style={{ width: 85, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>SC Efficiency</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
-                      <div style={{ width: '93.2%', height: '100%', borderRadius: 3, background: '#10b981' }} />
-                    </div>
-                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>93.2%</span>
+                    <span style={{ width: 40, textAlign: 'right', fontWeight: 800 }}>{completionPct == null ? '—' : `${completionPct}%`}</span>
                   </div>
                 </div>
 
@@ -500,13 +497,13 @@ export const TrackingDashboard: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
                   <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: 'var(--r-sm)', backdropFilter: 'blur(4px)' }}>
                     <div style={{ fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>4.8 / 5</span><Icon name="star" size={14} />
+                      <span>{activeSummary.trips_today}</span><Icon name="truck" size={14} />
                     </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>CSAT Benchmark</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Trips today</div>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.1)', padding: '8px 12px', borderRadius: 'var(--r-sm)', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800 }}>142 Nodes</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Corridors Tracked</div>
+                    <div style={{ fontSize: 15, fontWeight: 800 }}>{activeSummary.vehicles.total}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Registered vehicles</div>
                   </div>
                 </div>
               </div>
@@ -579,8 +576,8 @@ export const TrackingDashboard: React.FC = () => {
                   <span className="logistics-design-icon logistics-design-icon--info"><Icon name="layers" size={16} /></span>
                 </div>
                 <div className="logistics-kpi-val">76%</div>
-                <div style={{ width: '100%', height: 4, borderRadius: 2, background: 'var(--bg)', marginTop: 8, overflow: 'hidden' }}>
-                  <div style={{ width: '76%', height: '100%', background: 'var(--blue)', borderRadius: 2 }} />
+                <div style={{ width: '100%', height: 4, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', marginTop: 8, overflow: 'hidden' }}>
+                  <div style={{ width: '76%', height: '100%', background: 'var(--blue)', borderRadius: 'var(--badge-radius)' }} />
                 </div>
               </div>
 
@@ -717,36 +714,36 @@ export const TrackingDashboard: React.FC = () => {
 
                 {/* Animated Interactive Pins */}
                 <div className="logistics-map-pin" style={{ top: '62%', left: '48%' }} onClick={() => setSelectedShipment(allShipments[0])}>
-                  <div className="logistics-pin-dot" style={{ background: '#10b981' }}>
-                    <div className="logistics-pin-ping" style={{ background: '#10b981' }} />
+                  <div className="logistics-pin-dot" style={{ background: 'var(--green)' }}>
+                    <div className="logistics-pin-ping" style={{ background: 'var(--green)' }} />
                   </div>
                   <div className="logistics-pin-label">Dar es Salaam Port (Hub)</div>
                 </div>
 
                 <div className="logistics-map-pin" style={{ top: '72%', left: '40%' }} onClick={() => setSelectedShipment(allShipments[0])}>
-                  <div className="logistics-pin-dot" style={{ background: '#f59e0b' }}>
-                    <div className="logistics-pin-ping" style={{ background: '#f59e0b' }} />
+                  <div className="logistics-pin-dot" style={{ background: 'var(--gold)' }}>
+                    <div className="logistics-pin-ping" style={{ background: 'var(--gold)' }} />
                   </div>
                   <div className="logistics-pin-label">Tunduma Border (Delayed +3h)</div>
                 </div>
 
                 <div className="logistics-map-pin" style={{ top: '35%', left: '75%' }} onClick={() => setSelectedShipment(allShipments[2])}>
-                  <div className="logistics-pin-dot" style={{ background: '#3b82f6' }}>
-                    <div className="logistics-pin-ping" style={{ background: '#3b82f6' }} />
+                  <div className="logistics-pin-dot" style={{ background: 'var(--blue)' }}>
+                    <div className="logistics-pin-ping" style={{ background: 'var(--blue)' }} />
                   </div>
                   <div className="logistics-pin-label">Shanghai Container Port</div>
                 </div>
 
                 <div className="logistics-map-pin" style={{ top: '28%', left: '32%' }} onClick={() => setSelectedShipment(allShipments[4])}>
-                  <div className="logistics-pin-dot" style={{ background: '#ef4444' }}>
-                    <div className="logistics-pin-ping" style={{ background: '#ef4444' }} />
+                  <div className="logistics-pin-dot" style={{ background: 'var(--red)' }}>
+                    <div className="logistics-pin-ping" style={{ background: 'var(--red)' }} />
                   </div>
                   <div className="logistics-pin-label">Rotterdam Air Gateway</div>
                 </div>
 
                 <div className="logistics-map-pin" style={{ top: '42%', left: '56%' }}>
-                  <div className="logistics-pin-dot" style={{ background: '#10b981' }}>
-                    <div className="logistics-pin-ping" style={{ background: '#10b981' }} />
+                  <div className="logistics-pin-dot" style={{ background: 'var(--green)' }}>
+                    <div className="logistics-pin-ping" style={{ background: 'var(--green)' }} />
                   </div>
                   <div className="logistics-pin-label">Dubai Jebel Ali</div>
                 </div>
@@ -768,10 +765,10 @@ export const TrackingDashboard: React.FC = () => {
                   fontWeight: 600,
                   border: '1px solid rgba(255,255,255,0.15)',
                 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> On time</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} /> Delayed</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} /> Exception</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' }} /> Customs</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} /> On time</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }} /> Delayed</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} /> Exception</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} /> Customs</span>
                 </div>
 
                 <Button
@@ -817,7 +814,7 @@ export const TrackingDashboard: React.FC = () => {
 
               {/* Progress Split */}
               {activeSummary.vehicles.total > 0 && (
-                <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', margin: '14px 0 8px 0', background: 'var(--bg)' }}>
+                <div style={{ display: 'flex', height: 6, borderRadius: 'var(--badge-radius)', overflow: 'hidden', margin: '14px 0 8px 0', background: 'var(--bg)' }}>
                   <div style={{ width: `${Math.round(activeSummary.vehicles.moving / activeSummary.vehicles.total * 100)}%`, background: 'var(--green)' }} />
                   <div style={{ width: `${Math.round(activeSummary.vehicles.stopped / activeSummary.vehicles.total * 100)}%`, background: 'var(--blue)' }} />
                   <div style={{ width: `${Math.round(activeSummary.vehicles.offline / activeSummary.vehicles.total * 100)}%`, background: 'var(--gold)' }} />
@@ -890,8 +887,8 @@ export const TrackingDashboard: React.FC = () => {
                     <span>Dar es Salaam Port Hub</span>
                     <span style={{ color: 'var(--red)', fontWeight: 800 }}>94% (Near Full)</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ width: '94%', height: '100%', background: 'var(--red)', borderRadius: 3 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ width: '94%', height: '100%', background: 'var(--red)', borderRadius: 'var(--badge-radius)' }} />
                   </div>
                 </div>
 
@@ -900,8 +897,8 @@ export const TrackingDashboard: React.FC = () => {
                     <span>Ruvu Inland Container Depot</span>
                     <span style={{ color: 'var(--gold)', fontWeight: 800 }}>81%</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ width: '81%', height: '100%', background: 'var(--gold)', borderRadius: 3 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ width: '81%', height: '100%', background: 'var(--gold)', borderRadius: 'var(--badge-radius)' }} />
                   </div>
                 </div>
 
@@ -910,8 +907,8 @@ export const TrackingDashboard: React.FC = () => {
                     <span>Mombasa Transit Depot</span>
                     <span style={{ color: 'var(--blue)', fontWeight: 800 }}>67%</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ width: '67%', height: '100%', background: 'var(--blue)', borderRadius: 3 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ width: '67%', height: '100%', background: 'var(--blue)', borderRadius: 'var(--badge-radius)' }} />
                   </div>
                 </div>
 
@@ -920,8 +917,8 @@ export const TrackingDashboard: React.FC = () => {
                     <span>Tunduma Terminal (Zambia Gate)</span>
                     <span style={{ color: 'var(--green)', fontWeight: 800 }}>42% (Optimal)</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ width: '42%', height: '100%', background: 'var(--green)', borderRadius: 3 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ width: '42%', height: '100%', background: 'var(--green)', borderRadius: 'var(--badge-radius)' }} />
                   </div>
                 </div>
 
@@ -930,8 +927,8 @@ export const TrackingDashboard: React.FC = () => {
                     <span>JNIA Air Freight Station</span>
                     <span style={{ color: 'var(--blue)', fontWeight: 800 }}>58%</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ width: '58%', height: '100%', background: 'var(--blue)', borderRadius: 3 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--badge-radius)', background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ width: '58%', height: '100%', background: 'var(--blue)', borderRadius: 'var(--badge-radius)' }} />
                   </div>
                 </div>
               </div>
@@ -1023,43 +1020,21 @@ export const TrackingDashboard: React.FC = () => {
           <div className="logistics-bento-12-4" style={{ gridColumn: 'span 4' }}>
             <div className="logistics-card" style={{ height: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>AI Route Optimizer</h3>
-                <Badge variant="brand">Copilot Active</Badge>
+                <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Route planning</h3>
+                <Badge variant="gray">{trips.filter(t => t.status?.toLowerCase() === 'in_progress').length} active</Badge>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'var(--bg)', padding: '12px', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Before</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>6h 40m</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>14 stops · 212 km</div>
-                </div>
-
-                <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m)', padding: '12px', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>After (AI)</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>5h 05m</div>
-                  <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>14 stops · 176 km</div>
-                </div>
-              </div>
-
-              <div className="logistics-ai-callout" style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
-                  {routeOptimized ? (
-                    <span style={{ color: 'var(--green)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon name="check" size={14} /> Optimized corridor R-118 active. Saved 95m & 36km.
-                    </span>
-                  ) : (
-                    'Reordering stops 4–9 on Route R-118 saves 95 minutes and 36 km of transit today.'
-                  )}
-                </div>
+              <div style={{ background: 'var(--card-sunken)', padding: '14px', borderRadius: 'var(--r-sm)', color: 'var(--ink2)', fontSize: 12, lineHeight: 1.55 }}>
+                Compare routes using actual trip stops, vehicle availability, and current map data. No route changes are applied from this dashboard.
               </div>
 
               <Button
-                variant={routeOptimized ? 'outline' : 'default'}
+                variant="outline"
                 size="sm"
-                onClick={() => setRouteOptimized(true)}
+                onClick={() => navigate('/tracking/route-planner')}
                 style={{ marginTop: 12, width: '100%' }}
               >
-                {routeOptimized ? 'Route Applied (Active)' : 'Apply Optimized Corridor'}
+                Open route planner
               </Button>
             </div>
           </div>
@@ -1240,7 +1215,7 @@ export const TrackingDashboard: React.FC = () => {
                       </div>
                       {total > 0 && (
                         <>
-                          <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'var(--bg)' }}>
+                          <div style={{ display: 'flex', height: 4, borderRadius: 'var(--badge-radius)', overflow: 'hidden', background: 'var(--bg)' }}>
                             <div style={{ width: `${Math.round(onRoute / total * 100)}%`, background: 'var(--green)' }} />
                             <div style={{ width: `${Math.round(available / total * 100)}%`, background: 'var(--gold)' }} />
                             <div style={{ width: `${Math.round(offDuty / total * 100)}%`, background: 'var(--red)' }} />
@@ -1271,7 +1246,7 @@ export const TrackingDashboard: React.FC = () => {
               <Badge variant="gray">{filteredShipments.length} {filteredShipments.length === 1 ? 'trip' : 'trips'}</Badge>
             </div>
             <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '2px 0 0 0' }}>
-              Real-time monitoring, priority triage, carrier handover, and route status
+              Monitor trips, prioritize delays, and manage carrier handovers
             </p>
           </div>
 
@@ -1349,7 +1324,7 @@ export const TrackingDashboard: React.FC = () => {
                       <div style={{ fontSize: 12 }}>
                         {searchQuery || statusFilter
                           ? 'No shipments match the current search filters.'
-                          : 'Create a new dispatch trip to start monitoring real-time corridor operations.'}
+                          : 'Create a dispatch trip to begin tracking its route and status.'}
                       </div>
                       <Button
                         variant="outline"
@@ -1432,7 +1407,7 @@ export const TrackingDashboard: React.FC = () => {
                       <span style={{
                         display: 'inline-block',
                         padding: '2px 6px',
-                        borderRadius: 4,
+                        borderRadius: 'var(--r-sm)',
                         fontSize: 10,
                         fontWeight: 800,
                         background: item.priority === 'P1' ? 'var(--red-l)' : item.priority === 'P2' ? 'var(--gold-l)' : 'var(--bg)',
@@ -1521,7 +1496,7 @@ export const TrackingDashboard: React.FC = () => {
                   <Icon name="sparkle" size={16} />
                 </span>
                 <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>AI Logistics Copilot</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Logistics assistant</h3>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Live network reasoning & proactive alerts</div>
                 </div>
               </div>
@@ -1625,7 +1600,7 @@ export const TrackingDashboard: React.FC = () => {
                   value={copilotInput}
                   onChange={e => setCopilotInput(e.target.value)}
                   onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && handleSendCopilot()}
-                  placeholder="Ask Copilot anything about live operations…"
+                  placeholder="Ask about trips, vehicles, or warehouses…"
                   style={{ flex: 1 }}
                 />
                 <Button size="sm" onClick={() => handleSendCopilot()}>

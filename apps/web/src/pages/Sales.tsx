@@ -349,7 +349,7 @@ function DetailPanel({
             </div>
             <div style={{ display: 'flex', gap: 24, borderTop: '2px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
               <span style={{ fontSize: 14, fontWeight: 700 }}>Total</span>
-              <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{fmt(quote.total_amount, quote.currency)}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{fmt(quote.total_amount, quote.currency)}</span>
             </div>
           </div>
 
@@ -676,7 +676,7 @@ function QuoteModal({
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, marginTop: 12, paddingRight: 4 }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Subtotal: <span style={{ fontFamily: 'var(--font)', fontWeight: 600, color: 'var(--ink)' }}>{fmt(subtotal, form.currency)}</span></div>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Tax: <span style={{ fontFamily: 'var(--font)', fontWeight: 600, color: 'var(--ink)' }}>{fmt(totalTax, form.currency)}</span></div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', borderTop: '2px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)', paddingTop: 6, marginTop: 4 }}>
                 Total: <span style={{ fontFamily: 'var(--font)' }}>{fmt(grandTotal, form.currency)}</span>
               </div>
             </div>
@@ -789,8 +789,8 @@ export const Sales: React.FC = () => {
       {/* Header */}
       <div className="sales-page-header">
         <PageHeader
-          crumbs={['CRM', 'Sales pipeline']}
-          titlePlain="Sales"
+          crumbs={['CRM', 'Quotes']}
+          titlePlain="Quotation"
           titleEm="pipeline"
           subtitle="Track quotations from draft to conversion."
           actions={
@@ -813,8 +813,8 @@ export const Sales: React.FC = () => {
           {
             title: 'Converted',
             value: loading ? '—' : String(byStage('CONVERTED').length),
-            sub1Label: 'THIS MONTH', sub1Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.4)),
-            sub2Label: 'THIS WEEK',  sub2Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.1)), barHighlight: 'var(--green)',
+            sub1Label: 'PENDING',  sub1Value: loading ? '—' : String(byStage('PENDING').length),
+            sub2Label: 'REJECTED', sub2Value: loading ? '—' : String(byStage('REJECTED').length), barHighlight: 'var(--green)',
           },
           {
             title: 'Pipeline Value',

@@ -7,7 +7,6 @@ import { Icon } from '../../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
-import { Input } from '../../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
@@ -20,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../componen
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showPrompt } from '../../lib/prompt.js';
+import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 // Same real-canvas PDF render Cloud's Lightbox and the envelope editor both
 // use — this page used to show only a filename chip, with no way to
 // actually see the document without downloading it first.
@@ -471,29 +471,24 @@ export function SignInbox({ view }: { view: ViewKey }) {
             </Tabs>
           </div>
 
-          <div className="sign-inbox-tools">
-            <div className="sign-inbox-search">
-              <Icon name="search" size={14} aria-hidden="true" />
-              <Input
-                type="search"
-                placeholder="Search envelopes…"
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                aria-label="Search envelopes"
-              />
-            </div>
-            <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
-          <div className="sign-view-toggle">
-            {(['list', 'grid'] as const).map(m => (
-              <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
-                <button type="button" onClick={() => setViewMode(m)}
-                  className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
-                  <Icon name={m} size={15} />
-                </button>
-              </Tip>
-            ))}
-          </div>
-        </div>
+          <SearchToolbar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search envelopes"
+            className="sign-inbox-tools"
+            actions={<>
+              <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
+              <div className="sign-view-toggle">
+                {(['list', 'grid'] as const).map(m => (
+                  <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
+                    <button type="button" onClick={() => setViewMode(m)} className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
+                      <Icon name={m} size={15} />
+                    </button>
+                  </Tip>
+                ))}
+              </div>
+            </>}
+          />
       </div>
 
       {/* Bulk-select action bar — Void/Remind many envelopes from one
@@ -1769,26 +1764,19 @@ export function SignAllDocuments() {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 16, flexWrap: 'wrap' }}>
-        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)} variant="segmented">
-          <TabsList>
-            {(['all', 'draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(s => (
-              <TabsTrigger key={s} value={s} style={{ textTransform: 'capitalize' }}>{s}</TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
-          <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
-          <div style={{ position: 'relative', width: 260 }}>
-            <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
-            <input
-              type="search" placeholder="Search by title or owner…" value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-        </div>
-      </div>
+      <SearchToolbar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search by title or owner"
+        style={{ marginBottom: 16 }}
+        quickFilter={{
+          label: 'Status', allLabel: 'All statuses', value: statusFilter === 'all' ? null : statusFilter,
+          onChange: value => setStatusFilter((value || 'all') as typeof statusFilter),
+          options: (['draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(status => ({ value: status, label: status.charAt(0).toUpperCase() + status.slice(1) })),
+          columns: 2,
+        }}
+        actions={<PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />}
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
         {loading ? (

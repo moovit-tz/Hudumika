@@ -227,7 +227,7 @@ export function PettiDashboard() {
         crumbs={['Petti', 'Overview']}
         titlePlain="Treasury"
         titleEm="overview"
-        subtitle="Multi-currency digital wallets, automated petty cash disbursements, and real-time capital liquidity."
+        subtitle="Manage petty cash wallets, disbursements, and available balances across currencies."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="outline" size="sm" onClick={() => { setDepositWalletId(activeWallets[0]?.id || ''); setDepositModalOpen(true); }}>

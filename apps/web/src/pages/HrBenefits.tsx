@@ -135,7 +135,7 @@ export function HrBenefits() {
                         <Button size="sm" disabled={busy === p.id} onClick={() => enroll(p.id)}>Enroll</Button>
                       )}
                       {canManage && (
-                        <button type="button" onClick={() => deletePlan(p)} style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, cursor: 'pointer' }}>Retire</button>
+                        <Button variant="ghost" size="sm" onClick={() => deletePlan(p)} style={{ color: 'var(--red)', marginLeft: 4 }}>Retire</Button>
                       )}
                     </div>
                   </div>

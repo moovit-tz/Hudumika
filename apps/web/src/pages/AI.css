@@ -100,7 +100,7 @@
 }
 
 .aia-container.test-mode .aia-canvas-wrapper {
-  box-shadow: inset 0 0 0 2px #f59e0b;
+  box-shadow: inset 0 0 0 2px var(--gold);
 }
 
 /* ── Header toggle switch ─────────────────────────────────────────── */
@@ -160,7 +160,7 @@
   padding: 8px 10px;
   font-size: 13px;
   font-family: var(--font);
-  background: #f7f8f9;
+  background: var(--card-sunken);
   outline: none;
 }
 .aia-ai-textarea:focus {
@@ -182,7 +182,7 @@
   align-items: center;
   gap: 6px;
   background: var(--gold-l);
-  border: 1px solid #f59e0b;
+  border: 1px solid var(--gold);
   color: var(--gold);
   font-size: 12px;
   font-weight: 600;
@@ -485,7 +485,7 @@
   margin-top: 12px;
   padding: 10px 12px;
   background: var(--green-l);
-  border: 1px solid #10b981;
+  border: 1px solid var(--green);
   color: var(--green);
   border-radius: 8px;
   font-size: 12.5px;

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Badge } from '../components/ui/badge.js';
 import { SectionCard } from '../components/SectionCard.js';
 
 interface Vehicle {
@@ -140,9 +141,7 @@ export const TrackingDevices: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)', fontFamily: 'var(--font)' }}>{v.device_id}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{recordedAt ? new Date(recordedAt).toLocaleString() : 'Never'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: stale ? 'var(--red-l)' : 'var(--green-l)', color: stale ? 'var(--red)' : 'var(--green)' }}>
-                      {stale ? 'Stale' : 'Live'}
-                    </span>
+                    <Badge variant={stale ? 'error' : 'success'}>{stale ? 'Stale' : 'Live'}</Badge>
                   </td>
                 </tr>
               );

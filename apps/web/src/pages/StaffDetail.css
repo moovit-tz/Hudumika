@@ -62,7 +62,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--green);
-  color: #ffffff;
+  color: hsl(var(--green-foreground));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,8 +77,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--teal);
-  color: #ffffff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   display: flex;
   align-items: center;
   justify-content: center;

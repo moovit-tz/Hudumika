@@ -2043,7 +2043,7 @@
   flex-shrink: 0;
 }
 
-.oscar-spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
+.oscar-spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: var(--white); }
 
 @keyframes oscarSpin {
   to { transform: rotate(360deg); }
@@ -2233,8 +2233,8 @@
 }
 
 .oscar-tab-pill--active {
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-weight: 600;
 }
 
@@ -2260,9 +2260,9 @@
 .oscar-tab-box:last-child  { border-right: 1px solid var(--border); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
 
 .oscar-tab-box--active {
-  background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-weight: 600;
 }
 
@@ -2332,8 +2332,8 @@
 }
 
 .oscar-fab-primary {
-  background: var(--teal);
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .oscar-fab-primary:hover { filter: brightness(0.88); transform: scale(1.06); }
@@ -2474,7 +2474,7 @@
   top: 0px;
   width: 5px;
   height: 9px;
-  border: 2px solid #fff;
+  border: 2px solid var(--white);
   border-top: none;
   border-left: none;
   transform: rotate(45deg);
@@ -2495,7 +2495,7 @@
 
 .oscar-radio:checked {
   border-color: var(--teal);
-  background: #fff;
+  background: var(--white);
 }
 
 .oscar-radio:checked::after {
@@ -2527,7 +2527,7 @@
   height: 18px;
   border-radius: 50%;
   background: var(--teal);
-  border: 2px solid #fff;
+  border: 2px solid var(--white);
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   cursor: pointer;
   transition: transform 0.15s ease;

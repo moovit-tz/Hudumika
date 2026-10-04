@@ -6,6 +6,8 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DateTimePicker } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string form
@@ -28,9 +30,7 @@ type JobType = 'CLEARANCE_LINKED' | 'TRANSPORT_ONLY';
 
 const STEPS = ['Shipment Type', 'Details', 'Vehicle & Cargo', 'Review'] as const;
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24 };
 
 function StepHeader({ step }: { step: number }) {
   return (
@@ -162,14 +162,14 @@ export const TrackingShipmentNew: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div onClick={() => chooseJobType('CLEARANCE_LINKED')}
             role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseJobType('CLEARANCE_LINKED'); } }}
-            style={{ ...cardStyle, cursor: 'pointer', borderColor: jobType === 'CLEARANCE_LINKED' ? 'var(--teal)' : 'var(--border)' }}>
+            style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', padding: 20, cursor: 'pointer', borderColor: jobType === 'CLEARANCE_LINKED' ? 'var(--teal)' : 'var(--border)' }}>
             <Icon name="shield" size={22} color="var(--teal)" />
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: '10px 0 4px' }}>Linked to ClearOS Shipment</div>
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.5 }}>This cargo has an existing customs clearance case. Search and attach it, and its details carry over automatically.</div>
           </div>
           <div onClick={() => chooseJobType('TRANSPORT_ONLY')}
             role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseJobType('TRANSPORT_ONLY'); } }}
-            style={{ ...cardStyle, cursor: 'pointer', borderColor: jobType === 'TRANSPORT_ONLY' ? 'var(--teal)' : 'var(--border)' }}>
+            style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', padding: 20, cursor: 'pointer', borderColor: jobType === 'TRANSPORT_ONLY' ? 'var(--teal)' : 'var(--border)' }}>
             <Icon name="truck" size={22} color="var(--teal)" />
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: '10px 0 4px' }}>Transport Only</div>
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.5 }}>No customs clearance involved — a local haul or delivery. Enter the route and cargo directly.</div>
@@ -180,7 +180,7 @@ export const TrackingShipmentNew: React.FC = () => {
       {step === 2 && jobType === 'CLEARANCE_LINKED' && (
         <SectionCard>
           <div style={labelStyle}>Search ClearOS shipments</div>
-          <input value={shipmentSearch} onChange={e => setShipmentSearch(e.target.value)} placeholder="Reference #, goods description, B/L, AWB…" style={inputStyle} />
+          <Input value={shipmentSearch} onChange={e => setShipmentSearch(e.target.value)} placeholder="Reference #, goods description, B/L, AWB…" />
           {clearosAvailable === false && (
             <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--gold)' }}>ClearOS isn't enabled for this account — switch to "Transport Only" on the previous step instead.</div>
           )}
@@ -213,10 +213,10 @@ export const TrackingShipmentNew: React.FC = () => {
             />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Origin</label><input required value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Dar es Salaam" style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Destination</label><input required value={destination} onChange={e => setDestination(e.target.value)} placeholder="e.g. Arusha" style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Origin</label><Input required value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Dar es Salaam" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Destination</label><Input required value={destination} onChange={e => setDestination(e.target.value)} placeholder="e.g. Arusha" /></div>
           </div>
-          <div><label style={labelStyle}>Cargo description</label><input value={cargoDesc} onChange={e => setCargoDesc(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Cargo description</label><Input value={cargoDesc} onChange={e => setCargoDesc(e.target.value)} /></div>
         </div>
         </SectionCard>
       )}
@@ -256,12 +256,12 @@ export const TrackingShipmentNew: React.FC = () => {
           </div>
           <div style={sectionDivider} />
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo type</label><input value={cargoType} onChange={e => setCargoType(e.target.value)} placeholder="e.g. Perishable" style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo weight (kg)</label><input title="Cargo weight" type="number" value={cargoWeightKg} onChange={e => setCargoWeightKg(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo type</label><Input value={cargoType} onChange={e => setCargoType(e.target.value)} placeholder="e.g. Perishable" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo weight (kg)</label><Input title="Cargo weight" type="number" value={cargoWeightKg} onChange={e => setCargoWeightKg(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo temp (°C)</label><input title="Cargo temp" type="number" value={cargoTempC} onChange={e => setCargoTempC(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Load capacity (%)</label><input title="Load capacity" type="number" value={loadCapacityPct} onChange={e => setLoadCapacityPct(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo temp (°C)</label><Input title="Cargo temp" type="number" value={cargoTempC} onChange={e => setCargoTempC(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Load capacity (%)</label><Input title="Load capacity" type="number" value={loadCapacityPct} onChange={e => setLoadCapacityPct(e.target.value)} /></div>
           </div>
         </div>
         </SectionCard>
@@ -297,21 +297,17 @@ export const TrackingShipmentNew: React.FC = () => {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
-        <button type="button" disabled={step === 1} onClick={() => setStep(s => s - 1)}
-          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, cursor: step === 1 ? 'default' : 'pointer', opacity: step === 1 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          Back
-        </button>
+        <Button type="button" variant="outline" disabled={step === 1} onClick={() => setStep(s => s - 1)}>Back</Button>
         {step < 4 ? (
-          <button type="button" disabled={step === 1 ? !jobType : step === 2 ? !canAdvanceFromStep2() : !vehicleId}
-            onClick={() => setStep(s => s + 1)}
-            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (step === 1 && !jobType) || (step === 2 && !canAdvanceFromStep2()) || (step === 3 && !vehicleId) ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Button type="button"
+            disabled={step === 1 ? !jobType : step === 2 ? !canAdvanceFromStep2() : !vehicleId}
+            onClick={() => setStep(s => s + 1)}>
             Continue
-          </button>
+          </Button>
         ) : (
-          <button type="button" disabled={saving} onClick={submit}
-            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Button type="button" disabled={saving} onClick={submit}>
             {saving ? 'Creating…' : 'Create Shipment'}
-          </button>
+          </Button>
         )}
       </div>
     </div>

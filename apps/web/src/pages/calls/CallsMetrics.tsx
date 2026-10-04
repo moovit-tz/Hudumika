@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
+import { MetricsRow } from '../../components/MetricCard.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -40,21 +41,6 @@ function cssVar(name: string, fallback: string) {
   if (typeof window === 'undefined') return fallback;
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fallback;
-}
-
-function StatCard({ label, value, icon, color = 'var(--teal)', sub }: { label: string; value: string; icon: string; color?: string; sub?: string }) {
-  return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18, display: 'flex', alignItems: 'center', gap: 14, boxShadow: 'var(--elev)' }}>
-      <div style={{ width: 44, height: 44, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon name={icon as any} size={20} color={color} />
-      </div>
-      <div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{value}</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color, fontWeight: 700, marginTop: 2 }}>{sub}</div>}
-      </div>
-    </div>
-  );
 }
 
 /** Real /v1/calls/metrics data only — no fabricated call logs, no CSAT/MOS
@@ -121,13 +107,13 @@ export function CallsMetrics() {
               API — shown honestly as "your activity", not padded out with
               tenant-wide figures the endpoint never actually returned. */}
           <SectionCard title="Your Call & Meeting Activity">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-              <StatCard label="Your Calls" value={String(personal?.calls ?? 0)} icon="phone" color="var(--green)" />
-              <StatCard label="Missed" value={String(personal?.callsMissed ?? 0)} icon="alertCircle" color="var(--red)" />
-              <StatCard label="Call Time" value={fmtHrs(personal?.callSeconds ?? 0)} icon="clock" color="var(--blue)" />
-              <StatCard label="Meetings Joined" value={String(personal?.meetingsJoined ?? 0)} icon="camera" color={purpleColor} />
-              <StatCard label="Meeting Time" value={fmtHrs(personal?.meetingSeconds ?? 0)} icon="video" color={purpleColor} />
-            </div>
+            <MetricsRow cards={[
+              { title: 'Your calls', value: String(personal?.calls ?? 0), icon: 'phone', barHighlight: 'var(--green)', comparisonLabel: `${days}-day period`, emphasis: 'primary' },
+              { title: 'Missed', value: String(personal?.callsMissed ?? 0), icon: 'alertCircle', barHighlight: 'var(--red)', sub1Label: 'SHARE OF CALLS', sub1Value: personal?.calls ? `${Math.round(((personal.callsMissed ?? 0) / personal.calls) * 100)}%` : '—' },
+              { title: 'Call time', value: fmtHrs(personal?.callSeconds ?? 0), icon: 'clock', barHighlight: 'var(--blue)' },
+              { title: 'Meetings joined', value: String(personal?.meetingsJoined ?? 0), icon: 'camera', barHighlight: 'var(--purple)' },
+              { title: 'Meeting time', value: fmtHrs(personal?.meetingSeconds ?? 0), icon: 'video', barHighlight: 'var(--purple)', emphasis: 'subtle' },
+            ]} />
             <div style={{ marginTop: 14, fontSize: 12, color: 'var(--ink3)' }}>
               Tenant-wide trends and leaderboards are visible to managers and admins.
             </div>
@@ -136,12 +122,12 @@ export function CallsMetrics() {
       ) : (
         <>
           {/* Top Executive KPI Metrics — all real, from GET /v1/calls/metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-            <StatCard label="Support Voice Calls" value={String(tenant.calls)} icon="phone" color="var(--green)" sub={answeredPct != null ? `${answeredPct}% Answered` : undefined} />
-            <StatCard label="Video Meetings" value={String(tenant.meetings)} icon="camera" color={purpleColor} />
-            <StatCard label="Avg Call Duration" value={tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : '—'} icon="clock" color="var(--blue)" />
-            <StatCard label="Missed / Declined" value={String(tenant.callsMissed)} icon="alertCircle" color="var(--red)" sub={tenant.calls > 0 ? `${Math.round((tenant.callsMissed / tenant.calls) * 100)}% of calls` : undefined} />
-          </div>
+          <MetricsRow cards={[
+            { title: 'Support voice calls', value: String(tenant.calls), icon: 'phone', barHighlight: 'var(--green)', comparisonLabel: `${days}-day period`, sub1Label: 'ANSWERED', sub1Value: answeredPct != null ? `${answeredPct}%` : '—', bars: tenant.dailyTrend.map(d => d.calls), emphasis: 'primary' },
+            { title: 'Video meetings', value: String(tenant.meetings), icon: 'camera', barHighlight: 'var(--purple)', bars: tenant.dailyTrend.map(d => d.meetings) },
+            { title: 'Average call duration', value: tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : '—', icon: 'clock', barHighlight: 'var(--blue)' },
+            { title: 'Missed / declined', value: String(tenant.callsMissed), icon: 'alertCircle', barHighlight: 'var(--red)', sub1Label: 'SHARE OF CALLS', sub1Value: tenant.calls > 0 ? `${Math.round((tenant.callsMissed / tenant.calls) * 100)}%` : '—' },
+          ]} />
 
           {/* Daily Volume Trend Chart */}
           <SectionCard title={`Daily Volume Trends — Voice Calls vs Video Meetings (${days} Days)`}>

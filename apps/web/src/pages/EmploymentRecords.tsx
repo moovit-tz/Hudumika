@@ -11,6 +11,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { COUNTRIES } from '@hudumika/types';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { PageLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 /**
  * Employment records — the contractual side of NexusHR.
@@ -115,7 +118,7 @@ export function EmploymentRecords() {
     finally { setBusy(''); }
   }
 
-  if (loading) return <div style={{ padding: 30, color: 'var(--ink3)' }}>Loading employment records…</div>;
+  if (loading) return <PageLoading label="Loading employment records…" />;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -127,28 +130,16 @@ export function EmploymentRecords() {
       />
 
       {error && (
-        <div style={{ padding: '10px 13px', borderRadius: 'var(--r)', background: 'var(--red-l)', border: '1px solid var(--red-l)',
-                      color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
+        <Banner variant="error" onDismiss={() => setError('')} action={<Button variant="outline" size="sm" onClick={load}>Try again</Button>}>{error}</Banner>
       )}
 
       {/* Counts of the real states, not a completion score. */}
-      <div className="mc-row">
-        {[
-          // Two of these used to count the second person model and read 0
-          // forever; a third read a summary key the API no longer sends, so it
-          // showed 0 whatever the truth was. These are the states that exist now.
-          ['People', summary?.logins ?? 0, 'var(--ink)'],
-          ['With a contract', summary?.withContract ?? 0, 'var(--ink)'],
-          ['With pay on file', summary?.withPay ?? 0, 'var(--ink)'],
-          ['Nothing on file', summary?.withNeither ?? 0,
-            (summary?.withNeither ?? 0) > 0 ? 'var(--gold)' : 'var(--ink)'],
-        ].map(([l, v, colour]) => (
-          <div key={String(l)} className="mc-card">
-            <div style={label}>{l}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: colour as string, marginTop: 3 }}>{v as number}</div>
-          </div>
-        ))}
-      </div>
+      <MetricsRow cards={[
+        { title: 'People', value: String(summary?.logins ?? 0), icon: 'users', emphasis: 'primary' },
+        { title: 'With a contract', value: String(summary?.withContract ?? 0), icon: 'fileText', barHighlight: 'var(--green)' },
+        { title: 'With pay on file', value: String(summary?.withPay ?? 0), icon: 'wallet', barHighlight: 'var(--blue)' },
+        { title: 'Nothing on file', value: String(summary?.withNeither ?? 0), icon: 'alertTriangle', barHighlight: (summary?.withNeither ?? 0) > 0 ? 'var(--gold)' : 'var(--green)' },
+      ]} />
 
       {/* A legal entity must exist before any employment can: the FK is NOT NULL
           with RESTRICT. Say so rather than letting the create fail. */}

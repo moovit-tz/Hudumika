@@ -9,11 +9,13 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Geofence { id: string; name: string; zone_type: string; center_lat: number; center_lon: number; radius_km: number; active: boolean }
 
 const DEFAULT_CENTER: [number, number] = [-6.7924, 39.2083];
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function ClickToSetCenter({ onPick }: { onPick: (pos: [number, number]) => void }) {
@@ -57,7 +59,7 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         </div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} /></div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Zone type</label>
               <Select value={zoneType} onValueChange={setZoneType}>
@@ -70,14 +72,12 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
                 </SelectContent>
               </Select>
             </div>
-            <div style={{ width: 120 }}><label style={labelStyle}>Radius (km)</label><input type="number" step="0.1" value={radiusKm} onChange={e => setRadiusKm(e.target.value)} style={inputStyle} /></div>
+            <div style={{ width: 120 }}><label style={labelStyle}>Radius (km)</label><Input type="number" step="0.1" value={radiusKm} onChange={e => setRadiusKm(e.target.value)} /></div>
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving || !name} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Create geofence'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving || !name}>{saving ? 'Saving…' : 'Create geofence'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -125,10 +125,9 @@ export const TrackingGeofences: React.FC = () => {
             subtitle="Zones checked against live vehicle positions"
           />
         </div>
-        <button type="button" onClick={() => setShowAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Button type="button" onClick={() => setShowAdd(true)}>
           <Icon name="mapPin" size={15} /> Create geofence
-        </button>
+        </Button>
       </div>
 
       <div style={{ height: 320, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 20 }}>
@@ -156,7 +155,7 @@ export const TrackingGeofences: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{g.zone_type.replace('_', ' ')}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{g.radius_km} km</td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: g.active ? 'var(--green-l)' : 'var(--bg)', color: g.active ? 'var(--green)' : 'var(--ink3)' }}>{g.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                  <Badge variant={g.active ? 'success' : 'gray'}>{g.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   <button type="button" onClick={() => remove(g.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>

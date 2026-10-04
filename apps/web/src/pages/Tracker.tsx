@@ -760,7 +760,7 @@ export const Tracker: React.FC = () => {
 
       {/* ── Header ── */}
       <PageHeader
-        crumbs={['Cargo Tracker', 'Intelligence']}
+        crumbs={['Cargo Tracker', 'Container details']}
         titlePlain="Cargo & Container"
         titleEm="Tracker"
         subtitle="Track containers, ocean bills of lading & air waybills · inspect 3D specifications, survey records, CSC certifications and milestone timelines."
@@ -1046,7 +1046,7 @@ export const Tracker: React.FC = () => {
               number={containerModel.container_number}
               providedContainer={containerModel}
             />
-          ) : <SectionLoading label="Loading container intelligence…" />}
+          ) : <SectionLoading label="Loading container details…" />}
         </div>
       )}
 

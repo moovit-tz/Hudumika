@@ -397,7 +397,7 @@ export function PettiTransactions() {
             </DialogHeader>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
-              <div style={{ padding: '18px', background: 'var(--navy)', color: '#fff', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
+              <div style={{ padding: '18px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
                   {TYPE_LABEL[selectedTx.type] || selectedTx.type} Amount
                 </div>

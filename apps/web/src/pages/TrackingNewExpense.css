@@ -70,8 +70,8 @@
   padding: var(--ds-btn-py) 20px;
   border-radius: 8px;
   border: none;
-  background: #6225e6; /* The purple from Movex design */
-  color: #fff;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -138,7 +138,7 @@
 }
 
 .exp-input:focus, .exp-select:focus, .exp-textarea:focus {
-  border-color: #6225e6;
+  border-color: hsl(var(--primary));
 }
 
 .exp-textarea {
@@ -188,8 +188,8 @@
 }
 
 .exp-radio-input:checked {
-  background: #6225e6;
-  border-color: #6225e6;
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
 }
 
 .exp-radio-input:checked::after {
@@ -296,7 +296,7 @@
 }
 
 .exp-btn-text {
-  color: #6225e6;
+  color: var(--teal);
   font-size: 13px;
   font-weight: 600;
   background: none;

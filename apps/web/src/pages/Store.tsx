@@ -4,6 +4,8 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
+import { Button } from '../components/ui/button.js';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { StoreEmailTemplatesManager } from './StoreEmailTemplatesManager.js';
@@ -493,23 +495,17 @@ export const Store: React.FC = () => {
       </div>
 
       {/* ── App Detail Modal ── */}
-      {selectedApp && (
-        <div
-          className="store-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedApp.name}
-          onClick={() => setSelectedApp(null)}
-        >
-          <div className="store-detail-modal" onClick={e => e.stopPropagation()}>
+      <Dialog open={!!selectedApp && !showConsent} onOpenChange={open => { if (!open && !showConsent) setSelectedApp(null); }}>
+        <DialogContent size="xl" className="store-detail-modal overflow-hidden p-0">
+          {selectedApp && <>
             {/* Header */}
-            <div className="store-detail-header">
+            <DialogHeader className="store-detail-header flex-row items-center justify-between">
               <div className="store-detail-app-info">
                 <div className="store-detail-app-icon">
                   {selectedApp.iconUrl ? <img src={selectedApp.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 'var(--r)', objectFit: 'cover' }} /> : (APP_ICONS[selectedApp.id] || <Icon name="package" size={48} color="var(--blue)" />)}
                 </div>
                 <div>
-                  <h3 className="store-detail-name">{selectedApp.name}</h3>
+                  <DialogTitle className="store-detail-name">{selectedApp.name}</DialogTitle>
                   <div className="store-detail-dev">By {selectedApp.developer_name || selectedApp.developer}</div>
                   <div className="store-detail-meta">
                     <span className="store-detail-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>{selectedApp.rating} <Icon name="star" size={12} duotone color="var(--gold)" /></span>
@@ -522,19 +518,16 @@ export const Store: React.FC = () => {
               </div>
               <div className="store-detail-actions">
                 {installedApps.includes(selectedApp.id) ? (
-                  <button type="button" className="store-uninstall-btn" onClick={() => handleInstallClick(selectedApp)}>
+                  <Button type="button" variant="outline" onClick={() => handleInstallClick(selectedApp)}>
                     Uninstall
-                  </button>
+                  </Button>
                 ) : (
-                  <button type="button" className="store-install-btn" onClick={() => handleInstallClick(selectedApp)}>
+                  <Button type="button" onClick={() => handleInstallClick(selectedApp)}>
                     Install Add-on
-                  </button>
+                  </Button>
                 )}
-                <button type="button" className="store-close-btn" title="Close" onClick={() => setSelectedApp(null)}>
-                  <Icon name="x" size={20} />
-                </button>
               </div>
-            </div>
+            </DialogHeader>
 
             {/* Tabs — the shared segmented ds-tabs */}
             <Tabs value={activeDetailTab} onValueChange={(v) => setActiveDetailTab(v as any)} variant="segmented">
@@ -548,7 +541,7 @@ export const Store: React.FC = () => {
             </Tabs>
 
             {/* Tab content */}
-            <div className="store-detail-body">
+            <DialogBody className="store-detail-body">
 
               {activeDetailTab === 'overview' && (
                 <div>
@@ -627,15 +620,16 @@ export const Store: React.FC = () => {
                 </div>
               )}
 
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogBody>
+          </>}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Consent dialog ── */}
-      {showConsent && selectedApp && (
-        <div className="store-consent-overlay">
-          <div className="store-consent-dialog">
+      <Dialog open={showConsent && !!selectedApp} onOpenChange={open => { if (!open) setShowConsent(false); }}>
+        <DialogContent size="md" className="store-consent-dialog">
+          {selectedApp && <>
+            <DialogBody>
             <div className="store-consent-brand">
               <span className="store-consent-brand-name">Hudumika</span>
               <span className="store-consent-arrow">→</span>
@@ -643,7 +637,7 @@ export const Store: React.FC = () => {
                 {selectedApp.iconUrl ? <img src={selectedApp.iconUrl} alt="icon" style={{ width: 48, height: 48, borderRadius: 'var(--r)', objectFit: 'cover' }} /> : (APP_ICONS[selectedApp.id] || <Icon name="package" size={48} color="var(--blue)" />)}
               </div>
             </div>
-            <h3 className="store-consent-title">Grant Permissions</h3>
+            <DialogTitle className="store-consent-title">Grant Permissions</DialogTitle>
             <p className="store-consent-desc">
               <strong>{selectedApp.name}</strong> wants to access your Hudumika account. This will allow the integration to function.
             </p>
@@ -655,17 +649,14 @@ export const Store: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="store-consent-actions">
-              <button type="button" className="btn btn-secondary store-consent-cancel-btn" onClick={() => setShowConsent(false)}>
-                Cancel
-              </button>
-              <button type="button" className="store-consent-allow-btn" onClick={confirmInstall}>
-                Allow & Install
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowConsent(false)}>Cancel</Button>
+              <Button type="button" onClick={confirmInstall}>Allow & Install</Button>
+            </DialogFooter>
+          </>}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Toast ── */}
       {toast && (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -107,7 +107,7 @@ export function CMSWebhooks() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px', maxWidth: 680 }}>
         <div className="card" style={{ padding: '18px 20px', marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Add a webhook</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Add a webhook</div>
           <input className="input-field" placeholder="https://example.com/hooks/hudumika" value={form.url}
             onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
           <div>
@@ -126,7 +126,7 @@ export function CMSWebhooks() {
 
         {revealedSecret && (
           <div className="card" style={{ padding: '14px 18px', marginBottom: 18, border: '1px solid var(--gold)', background: 'var(--gold-l)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--navy)' }}>Signing secret — shown once</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Signing secret — shown once</div>
             <div style={{ fontSize: 11.5, color: 'var(--ink2)' }}>Store this now; it won't be shown again. Use it to verify the <code>X-Hudumika-Signature</code> header (HMAC-SHA256 of the raw request body).</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <code style={{ flex: 1, fontSize: 11.5, padding: '6px 10px', background: 'var(--white)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', overflow: 'auto', whiteSpace: 'nowrap' }}>{revealedSecret.secret}</code>

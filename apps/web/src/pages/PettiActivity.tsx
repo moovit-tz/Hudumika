@@ -147,7 +147,7 @@ export function PettiActivity() {
                       <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDateTime(r.at)}</td>
                       <td><Badge variant={ACTION_VARIANT[r.action] || 'gray'}>{ACTION_LABEL[r.action] || r.action}</Badge></td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{walletsById[r.walletId]?.name || '—'}</td>
-                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--navy)' }}>
+                      <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--ink)' }}>
                         {r.amount.toLocaleString()} {walletsById[r.walletId]?.currency || ''}
                       </td>
                       <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{r.actorId ? (staffById[r.actorId] || '—') : 'System Engine'}</td>

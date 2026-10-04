@@ -14,6 +14,7 @@ import type { ActionKind, StatusKind } from '../components/flow/FlowNodes.js';
 import { Popover, PopoverContent, PopoverAnchor } from '../components/ui/popover.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { Switch } from '../components/ui/switch.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -353,11 +354,9 @@ export function AIAutomations() {
             New page <Icon name="plus" size={12} style={{ marginLeft: 4 }} />
           </button>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }} onClick={() => setTestMode(t => !t)}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }}>
             Testing mode:
-            <div className={`aia-toggle ${testMode ? 'on' : ''}`}>
-              <div className="aia-toggle-knob" />
-            </div>
+            <Switch checked={testMode} onCheckedChange={setTestMode} aria-label="Testing mode" />
           </label>
         </div>
       }
@@ -366,8 +365,6 @@ export function AIAutomations() {
       {/* ── Toolbar ── */}
       <div className="aia-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <button className="btn btn-secondary btn-sm" style={{ width: 'var(--ctl-h-sm)', padding: 0, justifyContent: 'center' }} title="Share"><Icon name="send" size={16} /></button>
-          <button className="btn btn-secondary btn-sm" style={{ width: 'var(--ctl-h-sm)', padding: 0, justifyContent: 'center' }} title="Settings"><Icon name="settings" size={16} /></button>
           <button className="aia-btn-try-ai" onClick={() => setAiOpen(o => !o)}>
             <Icon name="sparkle" size={14} /> Try AI
           </button>

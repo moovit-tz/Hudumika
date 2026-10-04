@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowDown, ArrowRight, ArrowUp, Gauge, Plus, Search,
-  SlidersHorizontal, Sparkles, Target, Trash2, Zap,
+  Sparkles, Target, Trash2,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.js';
@@ -47,14 +47,21 @@ export function CrmLeadScoring() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<RuleFilter>('all');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/crm/lead-scoring/fields').then(setFields).catch(() => setFields({}));
   }, []);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setRules(null);
-    apiFetch('/v1/crm/lead-scoring/rules').then(setRules).catch(() => setRules([]));
+    setLoadError(null);
+    try {
+      setRules(await apiFetch('/v1/crm/lead-scoring/rules'));
+    } catch (error: any) {
+      setRules([]);
+      setLoadError(error?.message || 'Could not load lead-scoring rules.');
+    }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -151,12 +158,12 @@ export function CrmLeadScoring() {
         )}
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric icon={SlidersHorizontal} label="Total rules" value={rules ? metrics.total : '—'} variant="brand" />
-        <Metric icon={Zap} label="Active rules" value={rules ? metrics.active : '—'} variant="info" />
-        <Metric icon={ArrowUp} label="Positive signals" value={rules ? metrics.positive : '—'} variant="success" />
-        <Metric icon={ArrowDown} label="Negative signals" value={rules ? metrics.negative : '—'} variant="error" />
-      </div>
+      <MetricsRow cards={[
+        { title: 'Total rules', value: metrics.total.toLocaleString(), icon: 'sliders', emphasis: 'primary', loading: rules === null, error: loadError || undefined, onRetry: load },
+        { title: 'Active rules', value: metrics.active.toLocaleString(), icon: 'zap', loading: rules === null, error: loadError || undefined, onRetry: load },
+        { title: 'Positive signals', value: metrics.positive.toLocaleString(), icon: 'arrowUp', loading: rules === null, error: loadError || undefined, onRetry: load },
+        { title: 'Negative signals', value: metrics.negative.toLocaleString(), icon: 'arrowDown', emphasis: 'subtle', loading: rules === null, error: loadError || undefined, onRetry: load },
+      ]} />
 
       <Card>
         <CardHeader className="gap-4 border-b border-border p-5 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
@@ -339,23 +346,6 @@ export function CrmLeadScoring() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function Metric({ icon: Icon, label, value, variant }: {
-  icon: LucideIcon;
-  label: string;
-  value: number | string;
-  variant: 'brand' | 'info' | 'success' | 'error';
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
-      <FeaturedIcon variant={variant} size="md" shape="square"><Icon className="h-5 w-5" /></FeaturedIcon>
-      <div className="min-w-0">
-        <div className="text-2xl font-extrabold text-foreground">{value}</div>
-        <div className="mt-0.5 truncate text-xs font-medium text-muted-foreground">{label}</div>
-      </div>
     </div>
   );
 }

@@ -191,7 +191,7 @@ export function HuduBIKpiCenter() {
         crumbs={['HuduBI', 'KPI Center']}
         titlePlain="KPI"
         titleEm="dashboard"
-        subtitle="Set organizational objectives, live thresholds, and monitor real-time health across all departments."
+        subtitle="Set objectives and thresholds, then review performance across departments."
         actions={
           canManage ? (
             <button

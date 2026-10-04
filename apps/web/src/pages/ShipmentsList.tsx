@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, ArcElement,
@@ -312,26 +313,25 @@ export const ShipmentsList: React.FC = () => {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', gap: 6 }}>
         {(['month','quarter','year'] as const).map(p => (
-          <button key={p} type="button" onClick={() => setPeriod(p)}
-            className={period === p ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}>
+          <Button key={p} type="button" size="sm" variant={period === p ? 'default' : 'outline'} onClick={() => setPeriod(p)}>
             {p === 'month' ? 'Month' : p === 'quarter' ? 'Quarter' : 'Year'}
-          </button>
+          </Button>
         ))}
-        <button type="button" className="btn btn-secondary btn-sm" onClick={load}>?</button>
+        <Button type="button" size="sm" variant="outline" onClick={load}>?</Button>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => exportCSV(shipments)} title="Export CSV / Excel">
+        <Button type="button" size="sm" variant="outline" onClick={() => exportCSV(shipments)} title="Export CSV / Excel">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, verticalAlign: 'middle' }}>
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           Excel
-        </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => exportPDF(shipments)} title="Export PDF">
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => exportPDF(shipments)} title="Export PDF">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4, verticalAlign: 'middle' }}>
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
           </svg>
           PDF
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -675,9 +675,7 @@ export const ShipmentsList: React.FC = () => {
           <Panel
             title="At-Risk Shipments"
             action={
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 'var(--badge-radius)' }}>
-                {atRisk.length} flagged
-              </span>
+              <Badge variant="error">{atRisk.length} flagged</Badge>
             }
           >
             {atRisk.length === 0 ? (

@@ -29,6 +29,8 @@ import { DriveFilePicker, type DriveFile } from '../components/DriveFilePicker.j
 import { RichTextEditor } from '../components/RichTextEditor.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { EmailMessageViewer } from '../components/EmailMessageViewer.js';
+import { EmailContextDrawer } from '../components/EmailContextDrawer.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -449,6 +451,8 @@ export const EmailApp: React.FC = () => {
   const [filterByLabel, setFilterByLabel] = useState<Label | null>(null);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleValue, setRescheduleValue] = useState('');
+  const [contextDrawerOpen, setContextDrawerOpen] = useState(false);
+  const folderCacheRef = useRef<Record<string, { items: Email[]; total: number }>>({});
 
   // Folder/label counts live in EmailShell. Any optimistic mailbox change
   // schedules a server recount; the shell also polls as a recovery path for
@@ -467,6 +471,13 @@ export const EmailApp: React.FC = () => {
     setFilterByLabel(null);
     setSearch('');
     setSelected(new Set());
+    setContextDrawerOpen(false);
+    // Instant optimistic render from folder cache if available
+    const cached = folderCacheRef.current[folderFromPath];
+    if (cached) {
+      setEmails(cached.items);
+      setEmailsTotal(cached.total);
+    }
   }, [folderFromPath]);
 
   // Arriving from EmailShell's "Labels" sidebar section (/email?label=Name)
@@ -823,8 +834,9 @@ export const EmailApp: React.FC = () => {
       // an accepted tradeoff, not a bug, since the fix this addresses is
       // fetch cost, not filter/pagination composition).
       const data = res?.items;
-      setEmailsTotal(Number(res?.total ?? 0));
-      setEmails(Array.isArray(data) ? data.map((e: any) => ({
+      const total = Number(res?.total ?? 0);
+      setEmailsTotal(total);
+      const mapped: Email[] = Array.isArray(data) ? data.map((e: any) => ({
         id: String(e.id),
         folder: (e.folder ?? activeFolder) as Folder,
         from: e.from ?? { name: 'Unknown', email: '' },
@@ -849,7 +861,11 @@ export const EmailApp: React.FC = () => {
         deliveryStatus: e.deliveryStatus ?? null,
         scheduledAt: e.scheduledAt ? new Date(e.scheduledAt) : null,
         sendError: e.sendError ?? null,
-      })) : []);
+      })) : [];
+      setEmails(mapped);
+      if (!searchDebounced && !advancedSearch && !filterByLabel && page === 0) {
+        folderCacheRef.current[activeFolder] = { items: mapped, total };
+      }
     } catch (err: any) {
       if (err?.name === 'AbortError') return;
       // Search-as-you-type must never interrupt the mailbox with a modal.
@@ -872,6 +888,17 @@ export const EmailApp: React.FC = () => {
   useEffect(() => {
     const id = setInterval(loadEmails, 30000);
     return () => clearInterval(id);
+  }, [loadEmails]);
+
+  // Real-time synchronization events
+  useEffect(() => {
+    const handleReload = () => loadEmails();
+    window.addEventListener('hudumika:email-reload', handleReload);
+    window.addEventListener('hudumika:new-email-received', handleReload);
+    return () => {
+      window.removeEventListener('hudumika:email-reload', handleReload);
+      window.removeEventListener('hudumika:new-email-received', handleReload);
+    };
   }, [loadEmails]);
 
   // ── Derived list ──────────────────────────────────────────────────────────────
@@ -1216,6 +1243,66 @@ export const EmailApp: React.FC = () => {
     navigate(path);
     // State reset is handled by the useEffect on folderFromPath
   }
+
+  // ── Keyboard Shortcuts (Gmail power-user navigation) ────────────────────────
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const activeTag = document.activeElement?.tagName?.toLowerCase();
+      const isEditable = (document.activeElement as HTMLElement)?.isContentEditable;
+      if (activeTag === 'input' || activeTag === 'textarea' || isEditable) return;
+
+      if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        openComposeRef.current();
+      } else if (e.key === 'Escape') {
+        if (contextDrawerOpen) setContextDrawerOpen(false);
+        else if (selectedId) setSelectedId(null);
+      } else if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>('.em-search-input');
+        searchInput?.focus();
+      } else if (selectedId) {
+        const curIdx = pageEmails.findIndex(m => m.id === selectedId);
+        if (e.key === 'j' || e.key === 'ArrowDown') {
+          if (curIdx >= 0 && curIdx < pageEmails.length - 1) {
+            e.preventDefault();
+            selectEmail(pageEmails[curIdx + 1].id);
+          }
+        } else if (e.key === 'k' || e.key === 'ArrowUp') {
+          if (curIdx > 0) {
+            e.preventDefault();
+            selectEmail(pageEmails[curIdx - 1].id);
+          }
+        } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          openReply('reply');
+        } else if (e.key === 'a' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          openReply('replyAll');
+        } else if (e.key === 'e' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          moveToFolder(selectedId, 'archive');
+        } else if ((e.key === '#' || e.key === 'Delete') && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          moveToFolder(selectedId, 'trash');
+        } else if (e.key === 's' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          toggleStar(selectedId, e as any);
+        } else if (e.key === 'u' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          markUnread(selectedId);
+        }
+      } else if (pageEmails.length > 0) {
+        if (e.key === 'j' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          selectEmail(pageEmails[0].id);
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, pageEmails, contextDrawerOpen]);
 
   // ── Conversation (merged, cross-folder thread) view ─────────────────────────
 
@@ -2155,7 +2242,8 @@ export const EmailApp: React.FC = () => {
 
         {/* Area 4: Email detail */}
         {selectedEmail && (!isMobile || selectedId) ? (
-          <div className="em-detail">
+          <>
+            <div className="em-detail">
             <div className="em-detail-toolbar">
               <Tip label="Back">
                 <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setSelectedId(null)}>
@@ -2236,6 +2324,15 @@ export const EmailApp: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               <div style={{ flex: 1 }} />
+              <button
+                type="button"
+                className={`em-icon-btn em-icon-btn--ghost${contextDrawerOpen ? ' em-icon-btn--active' : ''}`}
+                onClick={() => setContextDrawerOpen(v => !v)}
+                title="Contact & CRM Intelligence"
+              >
+                <Icon name="user" size={14} color="var(--teal)" />
+                Contact Info
+              </button>
               <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
                 {aiLoading ? <Icon name="refresh" size={14} color="var(--teal)" /> : <Icon name="zap" size={14} color="var(--teal)" />}
                 AI Summary
@@ -2403,7 +2500,16 @@ export const EmailApp: React.FC = () => {
               </div>
 
               <div className="em-divider" />
-              <div className="em-detail-body-text">{selectedEmail.body}</div>
+              <EmailMessageViewer
+                body={selectedEmail.body}
+                subject={selectedEmail.subject}
+                date={selectedEmail.date}
+                from={selectedEmail.from}
+                to={selectedEmail.to}
+                attachments={selectedEmail.attachments}
+                onNavigate={navigate}
+                onDownloadAttachment={(storageKey, filename) => downloadAttachment(selectedEmail.id, storageKey)}
+              />
 
               {selectedEmail.attachments.length > 0 && (
                 <div className="em-attach-list">
@@ -2478,6 +2584,16 @@ export const EmailApp: React.FC = () => {
               </div>
             )}
           </div>
+          {contextDrawerOpen && (
+            <EmailContextDrawer
+              sender={selectedEmail.from}
+              subject={selectedEmail.subject}
+              isOpen={contextDrawerOpen}
+              onClose={() => setContextDrawerOpen(false)}
+              onNavigate={navigate}
+            />
+          )}
+        </>
         ) : null}
 
       </div>{/* /em-body */}

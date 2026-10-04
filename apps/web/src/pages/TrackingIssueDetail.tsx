@@ -6,6 +6,7 @@ import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { BackButton } from '../components/ui/BackButton.js';
+import { Badge } from '../components/ui/badge.js';
 
 interface Issue {
   id: string; vehicle_id: string; title: string; description: string | null;
@@ -23,14 +24,13 @@ const rowStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-
 const labelStyle: React.CSSProperties = { color: 'var(--ink3)', flexShrink: 0 };
 const valueStyle: React.CSSProperties = { color: 'var(--ink)', fontWeight: 600, textAlign: 'right' };
 
-const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: 'var(--green)', bg: 'var(--green-l)' }, MEDIUM: { color: 'var(--gold)', bg: 'var(--gold-l)' },
-  HIGH: { color: 'var(--gold)', bg: 'var(--gold-l)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--red-l)' },
+const SEVERITY_VARIANT: Record<string, 'success' | 'warning' | 'error'> = {
+  LOW: 'success', MEDIUM: 'warning', HIGH: 'warning', CRITICAL: 'error',
 };
-const STATUS_CFG: Record<string, { color: string; bg: string; icon: IconName }> = {
-  OPEN: { color: 'var(--red)', bg: 'var(--red-l)', icon: 'alertTriangle' },
-  IN_PROGRESS: { color: 'var(--blue)', bg: 'var(--blue-l)', icon: 'clock' },
-  RESOLVED: { color: 'var(--green)', bg: 'var(--green-l)', icon: 'checkCircle' },
+const STATUS_CFG: Record<string, { variant: 'error' | 'info' | 'success'; icon: IconName }> = {
+  OPEN: { variant: 'error', icon: 'alertTriangle' },
+  IN_PROGRESS: { variant: 'info', icon: 'clock' },
+  RESOLVED: { variant: 'success', icon: 'checkCircle' },
 };
 
 function fdate(iso?: string | null) {
@@ -96,7 +96,7 @@ export const TrackingIssueDetail: React.FC = () => {
   if (!issue) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Issue not found.</div>;
 
   const sCfg = STATUS_CFG[issue.status] ?? STATUS_CFG.OPEN;
-  const pCfg = SEVERITY_CFG[issue.severity] ?? SEVERITY_CFG.MEDIUM;
+  const sevVariant = SEVERITY_VARIANT[issue.severity] ?? 'warning';
   const milesToResolve = issue.resolved_odometer_km != null && issue.odometer_km != null
     ? Math.max(0, Math.round((issue.resolved_odometer_km - issue.odometer_km) * 10) / 10) : null;
 
@@ -124,15 +124,15 @@ export const TrackingIssueDetail: React.FC = () => {
           <div style={rowStyle}><span style={labelStyle}>Issue #</span><span style={valueStyle}>{issue.id.slice(0, 8).toUpperCase()}</span></div>
           <div style={rowStyle}>
             <span style={labelStyle}>Status</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: sCfg.bg, color: sCfg.color }}>
-              <Icon name={sCfg.icon} size={11} color={sCfg.color} /> {issue.status.replace('_', ' ')}
-            </span>
+            <Badge variant={sCfg.variant} className="inline-flex items-center gap-1.5">
+              <Icon name={sCfg.icon} size={11} /> {issue.status.replace('_', ' ')}
+            </Badge>
           </div>
           <div style={rowStyle}>
             <span style={labelStyle}>Priority</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: pCfg.color }}>
-              <Icon name="barChart" size={13} color={pCfg.color} /> {issue.severity.charAt(0) + issue.severity.slice(1).toLowerCase()}
-            </span>
+            <Badge variant={sevVariant} className="inline-flex items-center gap-1.5">
+              <Icon name="barChart" size={11} /> {issue.severity.charAt(0) + issue.severity.slice(1).toLowerCase()}
+            </Badge>
           </div>
           <div style={rowStyle}><span style={labelStyle}>Summary</span><span style={valueStyle}>{issue.title}</span></div>
           {issue.description && (

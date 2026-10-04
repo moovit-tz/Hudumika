@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonLink } from '../components/PersonLink.js';
@@ -11,6 +10,10 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker } from '../components/ui/date-picker.js';
 import { fetchPeople, type Person } from '../lib/identity.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { Badge } from '../components/ui/badge.js';
 
 /**
  * Overtime — claiming it and deciding on it.
@@ -37,32 +40,15 @@ const KIND_LABEL: Record<string, string> = {
   NORMAL: 'Working day', REST_DAY: 'Rest day', PUBLIC_HOLIDAY: 'Public holiday',
 };
 
-const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
-  PENDING:   { bg: 'var(--gold-l)',  fg: 'var(--gold)'  },
-  APPROVED:  { bg: 'var(--green-l)', fg: 'var(--green)' },
-  REJECTED:  { bg: 'var(--red-l)',   fg: 'var(--red)'   },
-  CANCELLED: { bg: 'var(--bg)',      fg: 'var(--ink3)'  },
-};
-
-function Pill({ text, tone }: { text: string; tone?: { bg: string; fg: string } }) {
-  return (
-    <span style={{
-      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', whiteSpace: 'nowrap',
-      background: tone?.bg ?? 'var(--bg)', color: tone?.fg ?? 'var(--ink3)',
-    }}>{text}</span>
-  );
-}
-
-const cell: React.CSSProperties = { padding: '10px 14px', fontSize: 13, color: 'var(--ink2)', verticalAlign: 'middle' };
-const head: React.CSSProperties = {
-  padding: '10px 14px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)',
-  textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+const STATUS_BADGE: Record<string, 'warning' | 'success' | 'error' | 'gray'> = {
+  PENDING: 'warning', APPROVED: 'success', REJECTED: 'error', CANCELLED: 'gray',
 };
 
 export function OvertimePage() {
   const [rows, setRows] = useState<OvertimeRow[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [filter, setFilter] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -74,8 +60,10 @@ export function OvertimePage() {
   const [fReason, setFReason] = useState('');
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
     try { setRows(await apiFetch('/v1/hr/overtime') ?? []); }
-    catch { setRows([]); }
+    catch { setRows([]); setLoadError('Could not load overtime claims.'); }
     finally { setLoading(false); }
   }, []);
 
@@ -131,6 +119,16 @@ export function OvertimePage() {
   const approvedHours = rows.filter(r => r.status === 'APPROVED').reduce((t, r) => t + Number(r.hours), 0);
   const holidayHours = rows.filter(r => r.status === 'APPROVED' && r.kind !== 'NORMAL')
     .reduce((t, r) => t + Number(r.hours), 0);
+  const columns: TableColumn<OvertimeRow>[] = [
+    { key: 'employee', header: 'Employee', sortable: true, render: row => <PersonLink userId={row.user_id} name={row.employee_name} size={24} /> },
+    { key: 'date', header: 'Date', accessor: 'date', sortable: true },
+    { key: 'hours', header: 'Hours', align: 'right', render: row => Number(row.hours), sortable: true },
+    { key: 'day', header: 'Day', render: row => <Badge variant={row.kind === 'NORMAL' ? 'gray' : 'info'}>{KIND_LABEL[row.kind] ?? row.kind}</Badge> },
+    { key: 'rate', header: 'Rate', align: 'right', render: row => `${Number(row.rate_multiplier)}×` },
+    { key: 'reason', header: 'Reason', render: row => <span>{row.reason ?? '—'}{row.status === 'REJECTED' && row.decision_note && <small style={{ display: 'block', color: 'var(--red)', marginTop: 2 }}>{row.decision_note}</small>}</span>, hideAt: 'sm' },
+    { key: 'status', header: 'Status', render: row => <span><Badge variant={STATUS_BADGE[row.status]}>{row.status}</Badge>{row.paid_in_run_id && <small style={{ display: 'block', color: 'var(--ink3)', marginTop: 3 }}>Paid</small>}</span>, sortable: true },
+    { key: 'decision', header: 'Decision', align: 'right', width: 190, render: row => row.status === 'PENDING' ? <span style={{ display: 'inline-flex', gap: 6 }}><Button size="sm" variant="outline" disabled={busy === row.id} onClick={() => decide(row.id, 'APPROVED')}>Approve</Button><Button size="sm" variant="outline" disabled={busy === row.id} onClick={() => decide(row.id, 'REJECTED')}>Reject</Button></span> : <span style={{ color: 'var(--ink3)', fontSize: 12 }}>{row.approved_by_name ? `by ${row.approved_by_name}` : '—'}</span> },
+  ];
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -143,10 +141,7 @@ export function OvertimePage() {
       />
 
       {notice && (
-        <div style={{ margin: '0 0 14px', padding: '11px 14px', borderRadius: 'var(--r)', fontSize: 13,
-                      background: 'var(--green-l)', border: '1px solid var(--green)', color: 'var(--ink)' }}>
-          {notice}
-        </div>
+        <Banner variant="success" onDismiss={() => setNotice(null)}>{notice}</Banner>
       )}
       {error && (
         <div style={{ margin: '0 0 14px' }}><Banner variant="error">{error}</Banner></div>
@@ -182,15 +177,11 @@ export function OvertimePage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Hours</label>
-            <input value={fHours} onChange={e => setFHours(e.target.value)} type="number" step="0.5" min="0.5" max="12"
-              style={{ width: 90, padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                       fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' }} />
+            <Input value={fHours} onChange={e => setFHours(e.target.value)} type="number" step="0.5" min="0.5" max="12" className="w-24" />
           </div>
           <div style={{ flex: 1, minWidth: 180 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
-            <input value={fReason} onChange={e => setFReason(e.target.value)} placeholder="Why was the extra time needed?"
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                       fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' }} />
+            <Input value={fReason} onChange={e => setFReason(e.target.value)} placeholder="Why was the extra time needed?" />
           </div>
           <Button type="submit">Submit</Button>
           <Button type="button" variant="outline" onClick={() => { setShowNew(false); setError(null); }}>Cancel</Button>
@@ -203,21 +194,11 @@ export function OvertimePage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        {[
-          { label: 'Awaiting a decision', value: String(pending.length), tone: 'var(--gold)' },
-          { label: 'Approved hours', value: String(Math.round(approvedHours * 10) / 10), tone: 'var(--green)' },
-          { label: 'At double time', value: String(Math.round(holidayHours * 10) / 10), tone: 'var(--blue)' },
-        ].map(m => (
-          <div key={m.label} style={{
-            background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
-            padding: '12px 16px', minWidth: 150, borderLeft: `3px solid ${m.tone}`,
-          }}>
-            <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>{m.value}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{m.label}</div>
-          </div>
-        ))}
-      </div>
+      <MetricsRow cards={[
+        { title: 'Awaiting a decision', value: String(pending.length), icon: 'clock', barHighlight: 'var(--gold)', loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
+        { title: 'Approved hours', value: String(Math.round(approvedHours * 10) / 10), icon: 'checkCircle', barHighlight: 'var(--green)', loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'At double time', value: String(Math.round(holidayHours * 10) / 10), icon: 'calendar', barHighlight: 'var(--blue)', loading, error: loadError ?? undefined, onRetry: load },
+      ]} />
 
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList style={{ marginBottom: 14, display: 'inline-flex' }}>
@@ -227,75 +208,21 @@ export function OvertimePage() {
         </TabsList>
       </Tabs>
 
-      <SectionCard padded={false}>
-        {loading ? (
-          <SectionLoading />
-        ) : shown.length === 0 ? (
-          <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--ink3)' }}>
-            {filter ? `No ${filter.toLowerCase()} claims.` : 'No overtime has been claimed yet.'}
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr style={{ background: 'var(--bg)' }}>
-                <th style={head}>Employee</th><th style={head}>Date</th>
-                <th style={{ ...head, textAlign: 'right' }}>Hours</th>
-                <th style={head}>Day</th><th style={{ ...head, textAlign: 'right' }}>Rate</th>
-                <th style={head}>Reason</th><th style={head}>Status</th>
-                <th style={{ ...head, textAlign: 'right' }}>Decision</th>
-              </tr></thead>
-              <tbody>
-                {shown.map(r => (
-                  <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
-                    <td style={cell}>
-                      {/* Whose claim this is, and a way to go and look at them. */}
-                      <PersonLink userId={r.user_id} name={r.employee_name} size={24} />
-                    </td>
-                    <td style={{ ...cell, whiteSpace: 'nowrap' }}>{r.date}</td>
-                    <td style={{ ...cell, textAlign: 'right', fontWeight: 700, color: 'var(--ink)' }}>{Number(r.hours)}</td>
-                    <td style={cell}>
-                      {/* The rate is a consequence of this, so they sit together. */}
-                      <Pill text={KIND_LABEL[r.kind] ?? r.kind}
-                            tone={r.kind === 'NORMAL' ? undefined : { bg: 'var(--blue-l)', fg: 'var(--blue)' }} />
-                    </td>
-                    <td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      {Number(r.rate_multiplier)}&times;
-                    </td>
-                    <td style={{ ...cell, maxWidth: 260 }}>
-                      {r.reason ?? '—'}
-                      {r.status === 'REJECTED' && r.decision_note && (
-                        <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 2 }}>{r.decision_note}</div>
-                      )}
-                    </td>
-                    <td style={cell}>
-                      <Pill text={r.status} tone={STATUS_TONE[r.status]} />
-                      {r.paid_in_run_id && (
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>paid</div>
-                      )}
-                    </td>
-                    <td style={{ ...cell, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {r.status === 'PENDING' ? (
-                        <>
-                          <Button size="sm" variant="outline" disabled={busy === r.id}
-                                  onClick={() => decide(r.id, 'APPROVED')}>Approve</Button>{' '}
-                          <Button size="sm" variant="outline" disabled={busy === r.id}
-                                  onClick={() => decide(r.id, 'REJECTED')}>Reject</Button>
-                        </>
-                      ) : (
-                        // Once paid it cannot be changed, so no control is offered
-                        // rather than one that fails.
-                        <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                          {r.approved_by_name ? `by ${r.approved_by_name}` : '—'}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
+      <DataTable
+        columns={columns}
+        rows={shown}
+        loading={loading}
+        error={loadError ?? undefined}
+        onRetry={load}
+        empty={!loading && !loadError && !filter && rows.length === 0}
+        emptyIcon="clock"
+        emptyTitle="No overtime claims yet"
+        emptyMessage="Submitted overtime claims will appear here for review."
+        filteredEmpty={!loading && !loadError && !!filter && shown.length === 0}
+        filteredEmptyMessage={`No ${filter.toLowerCase()} claims.`}
+        defaultSortKey="date"
+        defaultSortDir="desc"
+      />
     </div>
   );
 }

@@ -6,12 +6,13 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Vendor { id: string; name: string }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24 };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 export const TrackingMaintenanceNew: React.FC = () => {
@@ -81,14 +82,14 @@ export const TrackingMaintenanceNew: React.FC = () => {
             />
           </div>
         </div>
-        <div><label style={labelStyle}>Service type</label><input required value={serviceType} onChange={e => setServiceType(e.target.value)} placeholder="e.g. Oil change" style={inputStyle} /></div>
+        <div><label style={labelStyle}>Service type</label><Input required value={serviceType} onChange={e => setServiceType(e.target.value)} placeholder="e.g. Oil change" /></div>
         <div>
           <label style={labelStyle}>Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} style={{ ...inputStyle, minHeight: 90, resize: 'vertical' }} />
+          <Textarea value={description} onChange={e => setDescription(e.target.value)} style={{ minHeight: 90 }} className="resize-y" />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><input type="number" value={cost} onChange={e => setCost(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><Input type="number" value={cost} onChange={e => setCost(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><Input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}><label style={labelStyle}>Service date (previous)</label><DatePicker date={parseDateOnly(serviceDate)} onChange={d => setServiceDate(toDateOnlyString(d))} /></div>
@@ -96,10 +97,8 @@ export const TrackingMaintenanceNew: React.FC = () => {
         </div>
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-          <Link to="/tracking/maintenance" style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
-          <button type="submit" disabled={saving || !vehicleId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving ? 'Saving…' : 'Log maintenance'}
-          </button>
+          <Button type="button" variant="outline" asChild><Link to="/tracking/maintenance">Cancel</Link></Button>
+          <Button type="submit" disabled={saving || !vehicleId}>{saving ? 'Saving…' : 'Log maintenance'}</Button>
         </div>
       </form>
       </SectionCard>

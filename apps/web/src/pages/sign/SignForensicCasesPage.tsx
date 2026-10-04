@@ -14,6 +14,7 @@ import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { showAlert } from '../../lib/alert.js';
@@ -601,45 +602,28 @@ function CaseDetailView({ id }: { id: string }) {
   return (
     <div className="sfc-page-root">
       {/* Lightbox Modal */}
-      {modalImage && (
-        <div className="sfc-modal-overlay" onClick={() => setModalImage(null)}>
-          <div className="sfc-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="sfc-modal-hdr">
+      <Dialog open={!!modalImage} onOpenChange={open => { if (!open) setModalImage(null); }}>
+        <DialogContent size="full" className="overflow-hidden p-0">
+          {modalImage && <>
+            <DialogHeader className="sfc-modal-hdr flex-row items-center justify-between">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="eye" size={16} style={{ color: 'var(--red)' }} />
-                <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{modalImage.filename}</span>
+                <DialogTitle style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{modalImage.filename}</DialogTitle>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 28 }}>
                 <a href={modalImage.src} target="_blank" rel="noreferrer" download={modalImage.filename}>
                   <Button variant="outline" size="sm">
                     <Icon name="download" size={13} /> Download
                   </Button>
                 </a>
-                <button
-                  type="button"
-                  onClick={() => setModalImage(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--ink3)',
-                    padding: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 'var(--r-sm)',
-                  }}
-                >
-                  <Icon name="x" size={18} />
-                </button>
               </div>
-            </div>
-            <div className="sfc-modal-body">
+            </DialogHeader>
+            <DialogBody className="sfc-modal-body p-0">
               <img src={modalImage.src} alt={modalImage.filename} className="sfc-modal-img" />
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogBody>
+          </>}
+        </DialogContent>
+      </Dialog>
 
       {/* Page Header */}
       <PageHeader

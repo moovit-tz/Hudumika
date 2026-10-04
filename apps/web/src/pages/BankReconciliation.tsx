@@ -333,7 +333,7 @@ export function BankReconciliation() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>{s.bank_name || 'Corporate Account'}</span>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{s.bank_name || 'Corporate Account'}</span>
                   <Badge variant={s.matched === s.total && s.total > 0 ? 'success' : 'warning'}>
                     {s.matched}/{s.total}
                   </Badge>
@@ -342,7 +342,7 @@ export function BankReconciliation() {
                   {new Date(s.statement_date_from).toLocaleDateString('en-GB')} –{' '}
                   {new Date(s.statement_date_to).toLocaleDateString('en-GB')}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginTop: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginTop: 6 }}>
                   {fmt(Number(s.closing_balance))}
                 </div>
               </div>
@@ -364,7 +364,7 @@ export function BankReconciliation() {
                 <div style={{ display: 'flex', gap: 10 }}>
                   <div style={{ padding: '10px 14px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                     <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase' }}>Statement Total</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{fmt(selected.closing_balance)}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{fmt(selected.closing_balance)}</div>
                   </div>
                   <div style={{ padding: '10px 14px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                     <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase' }}>Matched Volume</div>
@@ -406,7 +406,7 @@ export function BankReconciliation() {
                         <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: 'var(--ink2)' }}>
                           {new Date(l.txn_date).toLocaleDateString('en-GB')}
                         </td>
-                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--navy)' }}>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--ink)' }}>
                           {l.description || '—'}
                         </td>
                         <td
@@ -452,7 +452,7 @@ export function BankReconciliation() {
       {/* Import Modal */}
       <Dialog open={!readOnly && showImport} onOpenChange={o => { if (!o) setShowImport(false); }}>
         <DialogContent className="max-w-110 gap-0" style={{ padding: 24 }}>
-          <DialogTitle style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: 'var(--navy)' }}>Import Bank Statement</DialogTitle>
+          <DialogTitle style={{ fontWeight: 800, fontSize: 16, marginBottom: 6, color: 'var(--ink)' }}>Import Bank Statement</DialogTitle>
           <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
             Upload CSV or MT940 statement with Date, Description, and Debit/Credit columns.
           </div>
@@ -496,7 +496,7 @@ export function BankReconciliation() {
         <DialogContent className="max-w-120 gap-0" style={{ padding: 24, maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}>
           {pendingLine && (
             <>
-              <DialogTitle style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, color: 'var(--navy)' }}>
+              <DialogTitle style={{ fontWeight: 800, fontSize: 16, marginBottom: 4, color: 'var(--ink)' }}>
                 Match Statement Entry: "{pendingLine.description}"
               </DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>
@@ -534,13 +534,13 @@ export function BankReconciliation() {
                           }}
                         >
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{c.description}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.description}</div>
                             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
                               Entry #{c.entryNumber} · {new Date(c.date).toLocaleDateString('en-GB')}
                               {isExact && <Badge variant="success" className="ml-2">Exact Match</Badge>}
                             </div>
                           </div>
-                          <div style={{ fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13.5, color: 'var(--navy)' }}>
+                          <div style={{ fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13.5, color: 'var(--ink)' }}>
                             {fmt(c.amount)}
                           </div>
                         </button>

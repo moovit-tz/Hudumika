@@ -10,6 +10,8 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 import { getCompany } from '../data/companyStore.js';
 import {
   DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
@@ -34,7 +36,6 @@ function creditNoteTotal(cn: CreditNote): number {
 interface DraftLine { name: string; rate: string; qty: string; tax_pct: string }
 const emptyLine = (): DraftLine => ({ name: '', rate: '', qty: '1', tax_pct: '0' });
 
-const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
 
 const STATUS_VARIANT: Record<CreditNote['status'], 'gray' | 'success' | 'error'> = {
@@ -310,12 +311,12 @@ export function CreditNotes() {
             <div>
               <label style={lbl}>Customer</label>
               {invoiceId ? (
-                <input style={inp} value={clientName} onChange={e => setClientName(e.target.value)} disabled />
+                <Input value={clientName} onChange={e => setClientName(e.target.value)} disabled />
               ) : (
                 <EntityPicker label="" value={customerItem} onChange={setCustomerItem} search={searchCustomers} placeholder="Search customers…" />
               )}
             </div>
-            <div><label style={lbl}>Reason</label><input style={inp} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Returned goods, pricing error" /></div>
+            <div><label style={lbl}>Reason</label><Input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Returned goods, pricing error" /></div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 90px 32px', gap: 8, marginBottom: 6, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -323,18 +324,18 @@ export function CreditNotes() {
           </div>
           {lines.map((l, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 90px 32px', gap: 8, marginBottom: 8 }}>
-              <input style={inp} value={l.name} onChange={e => updateLine(i, { name: e.target.value })} placeholder="What is being credited" />
-              <input style={{ ...inp, textAlign: 'right' }} type="number" value={l.rate} onChange={e => updateLine(i, { rate: e.target.value })} placeholder="0.00" />
-              <input style={{ ...inp, textAlign: 'right' }} type="number" value={l.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
-              <input style={{ ...inp, textAlign: 'right' }} type="number" value={l.tax_pct} onChange={e => updateLine(i, { tax_pct: e.target.value })} />
+              <Input value={l.name} onChange={e => updateLine(i, { name: e.target.value })} placeholder="What is being credited" />
+              <Input className="text-right" type="number" value={l.rate} onChange={e => updateLine(i, { rate: e.target.value })} placeholder="0.00" />
+              <Input className="text-right" type="number" value={l.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
+              <Input className="text-right" type="number" value={l.tax_pct} onChange={e => updateLine(i, { tax_pct: e.target.value })} />
               <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 1} style={{ background: 'none', border: 'none', cursor: lines.length > 1 ? 'pointer' : 'not-allowed', opacity: lines.length > 1 ? 1 : 0.3, padding: 4 }}>
                 <Icon name="trash" size={14} color="var(--red)" />
               </button>
             </div>
           ))}
-          <button type="button" className="btn btn-secondary btn-sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Button type="button" variant="outline" size="sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16 }}>
             <Icon name="plus" size={12} /> Add line
-          </button>
+          </Button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>Total: <span style={{ color: 'var(--red)' }}>{fmt(total)}</span></div>

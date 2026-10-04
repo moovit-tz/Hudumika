@@ -2,7 +2,6 @@
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
-import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -10,7 +9,8 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 /**
  * Carrier buy-rate contract storage + rate shopping (ClearOS M7) —
@@ -48,6 +48,7 @@ export function CarrierContractsPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState({
     carrier_id: '', contract_reference: '', mode: 'FCL_40', origin_port: '', destination_port: '',
     buy_rate: '', currency: 'USD', transit_days: '', valid_from: '', valid_to: '', notes: '',
@@ -59,10 +60,15 @@ export function CarrierContractsPage() {
 
   function load() {
     setLoading(true);
+    setLoadError(null);
     Promise.all([
       apiFetch('/v1/freight-booking/rate-contracts'),
       apiFetch('/v1/freight-booking/carriers'),
-    ]).then(([c, cr]) => { setContracts(c); setCarriers(cr); }).catch(() => {}).finally(() => setLoading(false));
+    ]).then(([c, cr]) => { setContracts(c); setCarriers(cr); }).catch(() => {
+      setContracts([]);
+      setCarriers([]);
+      setLoadError('Could not load carrier contracts.');
+    }).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -112,6 +118,16 @@ export function CarrierContractsPage() {
     }
   }
 
+  const contractColumns: TableColumn<Contract>[] = [
+    { key: 'carrier', header: 'Carrier', sortable: true, render: contract => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><CompanyAvatar name={contract.carrier_name || 'Carrier'} size={26} shape="square" /><span>{contract.carrier_name || '—'}{contract.contract_reference && <small style={{ display: 'block', color: 'var(--ink3)', fontWeight: 400 }}>{contract.contract_reference}</small>}</span></span> },
+    { key: 'mode', header: 'Mode', sortable: true, render: contract => MODES.find(mode => mode.value === contract.mode)?.label || contract.mode },
+    { key: 'lane', header: 'Lane', render: contract => `${contract.origin_port} → ${contract.destination_port}` },
+    { key: 'rate', header: 'Buy rate', render: contract => <strong>{contract.currency} {Number(contract.buy_rate).toFixed(2)}</strong> },
+    { key: 'transit', header: 'Transit', render: contract => contract.transit_days != null ? `${contract.transit_days}d` : '—' },
+    { key: 'validity', header: 'Validity', render: contract => `${contract.valid_from ? new Date(contract.valid_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'} – ${contract.valid_to ? new Date(contract.valid_to).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}` },
+    { key: 'status', header: 'Status', render: contract => <Badge variant={contract.active ? 'success' : 'gray'}>{contract.active ? 'Active' : 'Inactive'}</Badge> },
+  ];
+
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
@@ -156,7 +172,7 @@ export function CarrierContractsPage() {
                   {shopResults.map((r, i) => (
                     <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 'var(--r)', background: i === 0 ? 'var(--teal-l)' : 'var(--bg)', border: i === 0 ? '1px solid var(--teal-m)' : '1px solid var(--border)' }}>
                       {i === 0 && <Badge variant="brand">Cheapest</Badge>}
-                      <PersonAvatar userId={r.carrier_id} kind="carriers" name={r.carrier_name ?? ''} size={22} style={{ borderRadius: 'var(--r-sm)'}} />
+                      <CompanyAvatar name={r.carrier_name || 'Carrier'} size={22} shape="square" />
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.carrier_name}</span>
                       <span style={{ fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: 700 }}>{r.currency} {Number(r.buy_rate).toFixed(2)}</span>
                       {r.transit_days != null && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.transit_days} days transit</span>}
@@ -223,41 +239,18 @@ export function CarrierContractsPage() {
         )}
 
         <SectionCard title="All contracts" padded={false} collapsible={false}>
-          {loading ? (
-            <SectionLoading />
-          ) : contracts.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No carrier contracts yet.</div>
-          ) : (
-            <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Carrier', 'Mode', 'Lane', 'Buy Rate', 'Transit', 'Validity', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {contracts.map(c => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                        <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 'var(--r-sm)'}} />
-                        <span>{c.carrier_name || '—'}{c.contract_reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{c.contract_reference}</div>}</span>
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>{c.currency} {Number(c.buy_rate).toFixed(2)}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{c.transit_days != null ? `${c.transit_days}d` : '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>
-                      {c.valid_from ? new Date(c.valid_from).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'} – {c.valid_to ? new Date(c.valid_to).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}><Badge variant={c.active ? 'success' : 'gray'}>{c.active ? 'active' : 'inactive'}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          )}
+          <DataTable
+            columns={contractColumns}
+            rows={contracts}
+            loading={loading}
+            error={loadError ?? undefined}
+            onRetry={load}
+            empty={!loading && !loadError && contracts.length === 0}
+            emptyIcon="fileText"
+            emptyTitle="No carrier contracts yet"
+            emptyMessage="Add a buy-side carrier contract to compare rates for a lane."
+            defaultSortKey="carrier"
+          />
         </SectionCard>
       </div>
     </div>

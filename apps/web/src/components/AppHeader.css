@@ -140,7 +140,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #059669;
+  background: var(--green);
   border: 1.5px solid var(--white);
 }
 
@@ -156,7 +156,7 @@
   border: 2px solid var(--white);
   font-size: var(--badge-fs-sm);
   font-weight: 700;
-  color: #fff;
+  color: hsl(var(--red-foreground));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -374,13 +374,9 @@
 .app-header-brand-name {
   font-size: 16px;
   font-weight: 800;
-  color: #1f1f1f;
+  color: var(--ink);
   letter-spacing: -0.5px;
   font-family: var(--font);
-}
-
-[data-theme="dark"] .app-header-brand-name {
-  color: #e3e3e3;
 }
 
 .app-header-brand-tag {
@@ -569,8 +565,8 @@
 }
 
 [data-theme="dark"] .app-header-user-action--signout:hover {
-  background: rgba(220, 38, 38, 0.18);
-  color: #f87171;
+  background: var(--red-l);
+  color: var(--red);
 }
 
 [data-theme="dark"] .app-header-lang-dropdown {
@@ -612,7 +608,7 @@
 }
 
 [data-theme="dark"] .app-header-search-modal-input {
-  color: #fff;
+  color: var(--foreground);
 }
 
 [data-theme="dark"] .app-header-search-modal-close {
@@ -622,7 +618,7 @@
 }
 
 [data-theme="dark"] .app-header-badge {
-  border-color: #111218;
+  border-color: var(--white);
 }
 
 [data-theme="dark"] .app-header-user-name {
@@ -1233,11 +1229,11 @@
 }
 
 [data-theme="dark"] .ah-menu-user-name {
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 [data-theme="dark"] .ah-menu-item-link {
-  color: #e2e8f0 !important;
+  color: var(--foreground) !important;
 }
 
 [data-theme="dark"] .ah-menu-item-link:hover,
@@ -1248,6 +1244,6 @@
 
 [data-theme="dark"] .ah-menu-item-logout:hover,
 [data-theme="dark"] .ah-menu-item-logout[data-highlighted] {
-  background: rgba(220, 38, 38, 0.15) !important;
-  color: #ef4444 !important;
+  background: var(--red-l) !important;
+  color: var(--red) !important;
 }

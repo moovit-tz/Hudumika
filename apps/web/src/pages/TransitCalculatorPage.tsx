@@ -8,7 +8,9 @@ import { AdvancedCalcResultPanel } from '../components/AdvancedCalcResultPanel.j
 import { CustomerLeadPicker } from '../components/CustomerLeadPicker.js';
 import type { PickerItem } from '../components/EntityPicker.js';
 import { HsCodeField } from '../components/HsCodeField.js';
-import { WizardShell, WizardStepCaption, WizardNavRow, Field, wizInputStyle } from '../components/CalcWizardShell.js';
+import { WizardShell, WizardStepCaption, WizardNavRow, Field } from '../components/CalcWizardShell.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 import type { WizardStepItem } from '../components/CalcWizardShell.js';
 import { apiFetch } from '../lib/api.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
@@ -159,7 +161,7 @@ export const TransitCalculatorPage: React.FC = () => {
                     source="Transit Calculator"
                   />
                 </Field>
-                <Field label="Shipment Ref"><input className="input-field" value={shipmentRef} onChange={e => setShipmentRef(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Shipment Ref"><Input value={shipmentRef} onChange={e => setShipmentRef(e.target.value)} /></Field>
               </div>
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} />
             </SectionCard>
@@ -190,14 +192,14 @@ export const TransitCalculatorPage: React.FC = () => {
                       <SelectContent><SelectItem value="20ft">20ft</SelectItem><SelectItem value="40ft">40ft</SelectItem></SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Containers"><input className="input-field" type="number" value={numContainers} onChange={e => setNumContainers(e.target.value)} style={wizInputStyle} /></Field>
+                  <Field label="Containers"><Input type="number" value={numContainers} onChange={e => setNumContainers(e.target.value)} /></Field>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <Field label="Distance override (km)"><input className="input-field" type="number" value={distanceOverride} onChange={e => setDistanceOverride(e.target.value)} style={wizInputStyle} /></Field>
-                  <Field label="Checkpoints override"><input className="input-field" type="number" value={checkpointsOverride} onChange={e => setCheckpointsOverride(e.target.value)} style={wizInputStyle} /></Field>
+                  <Field label="Distance override (km)"><Input type="number" value={distanceOverride} onChange={e => setDistanceOverride(e.target.value)} /></Field>
+                  <Field label="Checkpoints override"><Input type="number" value={checkpointsOverride} onChange={e => setCheckpointsOverride(e.target.value)} /></Field>
                 </div>
-                <Field label="Escort Fee (USD)" hint="Restricted/hazardous goods only"><input className="input-field" type="number" value={escortFee} onChange={e => setEscortFee(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Escort Fee (USD)" hint="Restricted/hazardous goods only"><Input type="number" value={escortFee} onChange={e => setEscortFee(e.target.value)} /></Field>
               </div>
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} error={stepError} />
             </SectionCard>
@@ -212,15 +214,15 @@ export const TransitCalculatorPage: React.FC = () => {
                 <Field label="HS Code" hint="Optional — record-keeping only, no duty applies">
                   <HsCodeField value={hsCode} onChange={setHsCode} onPick={r => { if (!description) setDescription(r.description); }} />
                 </Field>
-                <Field label="Description"><input className="input-field" value={description} onChange={e => setDescription(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Description"><Input value={description} onChange={e => setDescription(e.target.value)} /></Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <Field label="FOB Value (USD)"><input className="input-field" type="number" value={fob} onChange={e => setFob(e.target.value)} style={wizInputStyle} /></Field>
-                  <Field label="Freight (USD)"><input className="input-field" type="number" value={freight} onChange={e => setFreight(e.target.value)} style={wizInputStyle} /></Field>
+                  <Field label="FOB Value (USD)"><Input type="number" value={fob} onChange={e => setFob(e.target.value)} /></Field>
+                  <Field label="Freight (USD)"><Input type="number" value={freight} onChange={e => setFreight(e.target.value)} /></Field>
                 </div>
-                <Field label="Insurance (USD)"><input className="input-field" type="number" value={insurance} onChange={e => setInsurance(e.target.value)} style={wizInputStyle} /></Field>
+                <Field label="Insurance (USD)"><Input type="number" value={insurance} onChange={e => setInsurance(e.target.value)} /></Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <Field label="CBM" hint="If also LCL-handled"><input className="input-field" type="number" value={cbm} onChange={e => setCbm(e.target.value)} style={wizInputStyle} /></Field>
-                  <Field label="Bills of Lading"><input className="input-field" type="number" value={numBills} onChange={e => setNumBills(e.target.value)} style={wizInputStyle} /></Field>
+                  <Field label="CBM" hint="If also LCL-handled"><Input type="number" value={cbm} onChange={e => setCbm(e.target.value)} /></Field>
+                  <Field label="Bills of Lading"><Input type="number" value={numBills} onChange={e => setNumBills(e.target.value)} /></Field>
                 </div>
               </div>
               {error && (
@@ -241,10 +243,9 @@ export const TransitCalculatorPage: React.FC = () => {
               onNewCalculation={newCalculation}
             />
             <div style={{ marginTop: 16 }}>
-              <button type="button" onClick={() => setStep(3)}
-                style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Button type="button" variant="outline" onClick={() => setStep(3)}>
                 <Icon name="arrowLeft" size={14} /> Back
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -316,9 +317,9 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
   return (
     <SectionCard title="Route Reference Table" action={
       !adding && !editingId ? (
-        <button type="button" onClick={startAdd} className="btn btn-secondary btn-xs" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <Button type="button" variant="outline" size="sm" onClick={startAdd}>
           <Icon name="plus" size={12} /> Add Route
-        </button>
+        </Button>
       ) : undefined
     } padded={false} defaultOpen={false}>
       <div style={{ overflowX: 'auto' }}>

@@ -16,6 +16,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import './ProductsServices.css';
 
 // -- Types ---------------------------------------------------------------------
@@ -1164,55 +1165,24 @@ export const ProductsServices: React.FC = () => {
         {/* Filters Toolbar Card */}
         <div className="products-filter-card">
         <SectionCard>
-          <div className="products-filter-layout">
-          <div className="products-filter-controls">
-            {/* Category Dropdown */}
-            <Select value={catFilter} onValueChange={v => { setCatFilter(v as CatFilter); setPage(1); }}>
-              <SelectTrigger aria-label="Category" style={{ width: 'auto', minWidth: 160, height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Categories ({products.length})</SelectItem>
-                {CATEGORIES.map(c => {
-                  const count = products.filter(p => p.category === c).length;
-                  return (
-                    <SelectItem key={c} value={c}>
-                      {CAT_CFG[c].label} ({count})
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-
-            {/* Status Segmented Buttons */}
-            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-              {(['ALL', 'active', 'inactive'] as const).map(s => (
-                <button key={s} type="button" title={`Status: ${s}`} onClick={() => { setStatusFilter(s); setPage(1); }}
-                  style={{
-                    padding: '4px 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r, 6px)',
-                    cursor: 'pointer',
-                    background: statusFilter === s ? 'var(--white)' : 'transparent',
-                    color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)',
-                    boxShadow: statusFilter === s ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    height: 28, display: 'inline-flex', alignItems: 'center', lineHeight: 1
-                  }}>
-                  {s === 'ALL' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search Box */}
-          <div className="products-search">
-            <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-            <input type="text" title="Search services" placeholder="Search services…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-              style={{
-                width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)',
-                borderRadius: 'var(--r, 6px)', fontSize: 13, fontFamily: 'var(--font)',
-                background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box'
-              }} />
-          </div>
-          </div>
+          <SearchToolbar
+            search={search}
+            onSearch={value => { setSearch(value); setPage(1); }}
+            placeholder="Search products, services, codes, or categories"
+            quickFilters={[
+              {
+                label: 'Category', allLabel: `All Categories (${products.length})`, value: catFilter === 'ALL' ? null : catFilter,
+                onChange: value => { setCatFilter((value || 'ALL') as CatFilter); setPage(1); },
+                options: CATEGORIES.map(category => ({ value: category, label: `${CAT_CFG[category].label} (${products.filter(product => product.category === category).length})` })),
+                columns: 2,
+              },
+              {
+                label: 'Status', allLabel: 'All Status', value: statusFilter === 'ALL' ? null : statusFilter,
+                onChange: value => { setStatusFilter((value || 'ALL') as typeof statusFilter); setPage(1); },
+                options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }],
+              },
+            ]}
+          />
         </SectionCard>
         </div>
 

@@ -8,10 +8,10 @@
   --cos-column-bg: rgba(226, 232, 240, 0.55);
   --cos-column-border: rgba(203, 213, 225, 0.7);
   --cos-gradient-teal: linear-gradient(135deg, var(--teal) 0%, var(--teal-d) 100%);
-  --cos-gradient-blue: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  --cos-gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  --cos-gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  --cos-gradient-orange: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --cos-gradient-blue: linear-gradient(135deg, var(--blue) 0%, color-mix(in srgb, var(--blue) 80%, #000) 100%);
+  --cos-gradient-purple: linear-gradient(135deg, var(--purple) 0%, color-mix(in srgb, var(--purple) 75%, #000) 100%);
+  --cos-gradient-red: linear-gradient(135deg, var(--red) 0%, color-mix(in srgb, var(--red) 80%, #000) 100%);
+  --cos-gradient-orange: linear-gradient(135deg, var(--gold) 0%, color-mix(in srgb, var(--gold) 70%, #000) 100%);
   --cos-border-radius: var(--card-radius, 8px);
   --cos-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -81,8 +81,8 @@
 }
 
 [data-theme="dark"] [data-clearos] .cos-kanban-card {
-  background: #1b1f29;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--white);
+  border-color: var(--border);
   box-shadow: var(--elev-lg);
 }
 
@@ -169,7 +169,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--white);
   font-size: 9px;
   font-weight: 800;
   display: flex;

@@ -81,7 +81,7 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
       {/* Header */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{vendor.status.toUpperCase()}</span>
             <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{VENDOR_CATEGORY_LABEL[vendor.category]}</span>
@@ -373,7 +373,7 @@ export function FinanceVendors() {
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
 
   useEffect(() => {
-    apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load vendor expenses.'));
+    apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch(() => { /* expenses are supplementary vendor context; don't interrupt the page */ });
   }, []);
 
   const [search, setSearch]           = useState('');

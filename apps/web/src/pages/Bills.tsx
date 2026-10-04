@@ -92,7 +92,7 @@ const STATUS_CFG: Record<BillStatus, { label: string; color: string; bg: string 
 
 const CAT_CFG: Record<BillCat, { label: string; color: string }> = {
   FREIGHT:      { label: 'Freight',        color: 'var(--blue)'   },
-  CUSTOMS:      { label: 'Customs',        color: 'var(--navy)'   },
+  CUSTOMS:      { label: 'Customs',        color: 'var(--ink)'   },
   PORT:         { label: 'Port Charges',   color: 'var(--red)'    },
   TRANSPORT:    { label: 'Transport',      color: 'var(--gold)'   },
   WAREHOUSE:    { label: 'Warehouse',      color: 'var(--green)'  },
@@ -214,9 +214,11 @@ function StatusBadge({ status }: { status: BillStatus }) {
   );
 }
 
+const FREQ_VARIANT: Record<RecurFreq, 'error' | 'info' | 'brand' | 'success'> = {
+  WEEKLY: 'error', MONTHLY: 'info', QUARTERLY: 'brand', ANNUAL: 'success',
+};
 function FreqBadge({ freq }: { freq: RecurFreq }) {
-  const c = FREQ_CFG[freq];
-  return <span style={{ padding:'2px 9px', borderRadius: 'var(--r)', fontSize:11, fontWeight:700, background:c.bg, color:c.color }}>{c.label}</span>;
+  return <Badge variant={FREQ_VARIANT[freq]}>{FREQ_CFG[freq].label}</Badge>;
 }
 
 // ── Pay Modal ──────────────────────────────────────────────────────────────────
@@ -383,10 +385,10 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
       onCancel={onClose}
       actions={
         <>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}>
             <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -716,7 +718,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
               <span style={{ fontFamily:'var(--font)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
               <StatusBadge status={bill.status} />
-              {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'var(--purple)', background:'var(--purple-l)', padding:'2px 8px', borderRadius: 'var(--r)' }}>Recurring</span>}
+              {bill.recurring_id && <Badge variant="brand">Recurring</Badge>}
             </div>
             <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>

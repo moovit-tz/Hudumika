@@ -62,7 +62,7 @@ export function OnsiteActivity() {
         crumbs={['Onsite', 'Activity']}
         titlePlain="Infrastructure"
         titleEm="audit"
-        subtitle="Real-time record of domain, DNS, application, server, website and backup changes made in Onsite."
+        subtitle="Review changes to domains, DNS, applications, servers, websites, and backups."
       />
 
       {loading ? (

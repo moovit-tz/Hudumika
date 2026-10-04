@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Course {
   id: string; title: string; description: string | null; category: string | null;
@@ -34,7 +36,6 @@ interface Enrollment {
 const STATUS_VARIANT: Record<string, 'gray' | 'info' | 'warning' | 'success' | 'error'> = {
   ENROLLED: 'info', IN_PROGRESS: 'warning', COMPLETED: 'success', FAILED: 'error', CANCELLED: 'gray',
 };
-const inp: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 };
 const prettyStatus = (s: string) => s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -259,6 +260,14 @@ function ManageEnrollmentsTab() {
 
   const staffOptions: ComboboxOption[] = staff.map(s => ({ value: s.id, label: s.name }));
   const courseOptions: ComboboxOption[] = courses.map(c => ({ value: c.id, label: c.title }));
+  const enrollmentColumns: TableColumn<Enrollment>[] = [
+    { key: 'employee', header: 'Employee', sortable: true, render: enrollment => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><PersonAvatar userId={enrollment.user_id} name={enrollment.user_name} size={26} />{enrollment.user_name}</span> },
+    { key: 'course', header: 'Course', accessor: 'course_title', sortable: true },
+    { key: 'status', header: 'Status', render: enrollment => <Badge variant={STATUS_VARIANT[enrollment.status] || 'gray'}>{prettyStatus(enrollment.status)}</Badge>, sortable: true },
+    { key: 'score', header: 'Score', render: enrollment => enrollment.score ?? '—' },
+    { key: 'expiry', header: 'Certificate expiry', render: enrollment => fmtDate(enrollment.certificate_expiry_date) },
+    { key: 'actions', header: '', align: 'right', width: 250, render: enrollment => ['ENROLLED', 'IN_PROGRESS'].includes(enrollment.status) ? <div style={{ display: 'inline-flex', gap: 6 }}><Button size="sm" variant="outline" disabled={busyId === enrollment.id} onClick={() => markOutcome(enrollment.id, 'COMPLETED')}>Mark completed</Button><Button size="sm" variant="ghost" disabled={busyId === enrollment.id} onClick={() => markOutcome(enrollment.id, 'FAILED')}>Mark failed</Button></div> : null },
+  ];
 
   if (loading) return <SectionLoading />;
 
@@ -294,43 +303,15 @@ function ManageEnrollmentsTab() {
       </SectionCard>
 
       <SectionCard title="All enrollments" padded={false}>
-        {enrollments.length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No enrollments yet.</div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg)' }}>
-                  {['Employee', 'Course', 'Status', 'Score', 'Certificate expiry', ''].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: h === '' ? 'right' : 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {enrollments.map(e => {
-                  const busy = busyId === e.id;
-                  return (
-                    <tr key={e.id} style={{ borderTop: '1px solid var(--border)', opacity: busy ? 0.6 : 1 }}>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{e.user_name}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)' }}>{e.course_title}</td>
-                      <td style={{ padding: '12px 16px' }}><Badge variant={STATUS_VARIANT[e.status] || 'gray'}>{prettyStatus(e.status)}</Badge></td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)' }}>{e.score ?? '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)' }}>{fmtDate(e.certificate_expiry_date)}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        {['ENROLLED', 'IN_PROGRESS'].includes(e.status) && (
-                          <div style={{ display: 'inline-flex', gap: 6 }}>
-                            <Button size="sm" variant="outline" disabled={busy} onClick={() => markOutcome(e.id, 'COMPLETED')}>Mark completed</Button>
-                            <Button size="sm" variant="ghost" disabled={busy} onClick={() => markOutcome(e.id, 'FAILED')}>Mark failed</Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          columns={enrollmentColumns}
+          rows={enrollments}
+          empty={enrollments.length === 0}
+          emptyIcon="award"
+          emptyTitle="No enrollments yet"
+          emptyMessage="Enroll an employee in a course to begin tracking progress and certification status."
+          defaultSortKey="employee"
+        />
       </SectionCard>
     </div>
   );

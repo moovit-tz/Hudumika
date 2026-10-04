@@ -12,6 +12,8 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 /**
  * Onboarding/offboarding checklists — confirmed absent in the audit ("just
@@ -33,17 +35,12 @@ export function HrChecklists() {
         titleEm="checklists"
         subtitle="A checklist a person actually gets, generated automatically the moment they join or leave."
       />
-      <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid var(--border)' }}>
-        {(['active', 'templates'] as const).map(t => (
-          <button key={t} type="button" onClick={() => setTab(t)}
-            style={{
-              padding: '10px 16px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer',
-              color: tab === t ? 'var(--teal)' : 'var(--ink3)', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent',
-            }}>
-            {t === 'active' ? 'Active checklists' : 'Templates'}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={value => setTab(value as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="active">Active checklists</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+        </TabsList>
+      </Tabs>
       {tab === 'active' ? <ActiveChecklists /> : <Templates />}
     </div>
   );
@@ -54,59 +51,50 @@ const TYPE_BADGE: Record<ChecklistType, 'success' | 'warning'> = { onboarding: '
 function ActiveChecklists() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     const qs = typeFilter ? `?type=${typeFilter}` : '';
-    apiFetch(`/v1/hr/checklists${qs}`).then(r => setRows(Array.isArray(r) ? r : [])).catch(() => setRows([])).finally(() => setLoading(false));
+    apiFetch(`/v1/hr/checklists${qs}`).then(r => setRows(Array.isArray(r) ? r : [])).catch(() => {
+      setRows([]);
+      setLoadError('Could not load HR checklists.');
+    }).finally(() => setLoading(false));
   }, [typeFilter]);
   useEffect(() => { load(); }, [load]);
+
+  const columns: TableColumn<any>[] = [
+    { key: 'person', header: 'Person', sortable: true, render: row => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><PersonAvatar userId={row.employee_id} name={row.employee_name} size={26} />{row.employee_name}</span> },
+    { key: 'type', header: 'Type', sortable: true, render: row => <Badge variant={TYPE_BADGE[row.type as ChecklistType]}>{row.type}</Badge> },
+    { key: 'progress', header: 'Progress', render: row => `${row.done_items} / ${row.total_items}` },
+    { key: 'status', header: 'Status', sortable: true, render: row => <Badge variant={row.status === 'completed' ? 'success' : 'gray'}>{row.status.replace('_', ' ')}</Badge> },
+    { key: 'started', header: 'Started', sortable: true, render: row => new Date(row.created_at).toLocaleDateString() },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <SingleSelectFilter label="Type" value={typeFilter} onChange={setTypeFilter}
         options={[{ value: 'onboarding', label: 'Onboarding' }, { value: 'offboarding', label: 'Offboarding' }]} />
 
-      <SectionCard padded={false}>
-        {loading ? (
-          <SectionLoading />
-        ) : rows.length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>
-            No checklists yet — one is created automatically the next time someone joins or is deactivated, as long as a template exists for that type.
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-                  {['Person', 'Type', 'Progress', 'Status', 'Started', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setOpenId(r.id)}>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <PersonAvatar userId={r.employee_id} name={r.employee_name} size={26} />
-                        {r.employee_name}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 14px' }}><Badge variant={TYPE_BADGE[r.type as ChecklistType]}>{r.type}</Badge></td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{r.done_items} / {r.total_items}</td>
-                    <td style={{ padding: '12px 14px' }}><Badge variant={r.status === 'completed' ? 'success' : 'gray'}>{r.status.replace('_', ' ')}</Badge></td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{new Date(r.created_at).toLocaleDateString()}</td>
-                    <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--ink3)' }}><Icon name="chevronRight" size={15} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        loading={loading}
+        error={loadError ?? undefined}
+        onRetry={load}
+        empty={!loading && !loadError && !typeFilter && rows.length === 0}
+        emptyIcon="clipboardList"
+        emptyTitle="No checklists yet"
+        emptyMessage="A checklist is created automatically when someone joins or is deactivated and a template exists."
+        filteredEmpty={!loading && !loadError && !!typeFilter && rows.length === 0}
+        filteredEmptyMessage="No checklists match this type."
+        onRowClick={row => setOpenId(row.id)}
+        defaultSortKey="started"
+        defaultSortDir="desc"
+      />
 
       {openId && <ChecklistDetailModal id={openId} onClose={() => setOpenId(null)} onChanged={load} />}
     </div>
@@ -135,7 +123,7 @@ function ChecklistDetailModal({ id, onClose, onChanged }: { id: string; onClose:
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
-      <DialogContent className="w-120 max-w-[94vw] max-h-[88vh] overflow-y-auto">
+      <DialogContent size="md" className="overflow-y-auto">
         {!item ? (
           <SectionLoading />
         ) : (

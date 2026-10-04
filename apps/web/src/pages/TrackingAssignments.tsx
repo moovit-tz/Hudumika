@@ -8,6 +8,9 @@ import { DateTimePicker } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Button } from '../components/ui/button.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Textarea } from '../components/ui/textarea.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string-based
@@ -42,6 +45,7 @@ export const TrackingAssignments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [search, setSearch] = useState('');
 
   const fetchAssignments = async () => {
     try {
@@ -76,6 +80,14 @@ export const TrackingAssignments: React.FC = () => {
     d.setDate(d.getDate() - 1);
     setCurrentDate(d);
   };
+  const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 9);
+  const dayEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 16);
+  const filteredVehicles = vehicles.filter(vehicle => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    const drivers = assignments.filter(a => a.vehicle_id === vehicle.id).map(a => a.driver_name).join(' ');
+    return [vehicle.name, vehicle.plate_number ?? '', drivers].some(value => value.toLowerCase().includes(q));
+  });
 
   return (
     <div style={{ padding: '0 0 24px', background: 'var(--bg)', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -85,33 +97,15 @@ export const TrackingAssignments: React.FC = () => {
         titleEm="assignments"
         subtitle="Which driver is on which vehicle, and from when."
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>Vehicle Assignments</div>
-        <button onClick={() => setShowAddModal(true)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          Add Assignment
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink3)' }}>
-            <Icon name="search" size={14} /> Search
-          </div>
-          <button style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="filter" size={14} /> Filters
-          </button>
-        </div>
-        
+      <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <SearchToolbar className="w-full xl:max-w-xl" search={search} onSearch={setSearch} placeholder="Search vehicles, plates, or drivers…" actions={<Button size="sm" onClick={() => setShowAddModal(true)}>Add assignment</Button>} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={prevDay} aria-label="Previous day" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronLeft" size={16} /></button>
+            <Button type="button" variant="ghost" size="icon" onClick={prevDay} aria-label="Previous day"><Icon name="chevronLeft" size={16} /></Button>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', width: 140, textAlign: 'center' }}>{formatDate(currentDate)}</div>
-            <button onClick={nextDay} aria-label="Next day" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronRight" size={16} /></button>
+            <Button type="button" variant="ghost" size="icon" onClick={nextDay} aria-label="Next day"><Icon name="chevronRight" size={16} /></Button>
           </div>
-          <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--bg)', border: 'none', borderRight: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>Today</button>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--white)', border: 'none', fontSize: 12, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>Day <Icon name="chevronDown" size={10} /></button>
-          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Today</Button>
         </div>
       </div>
 
@@ -129,11 +123,15 @@ export const TrackingAssignments: React.FC = () => {
           {loading ? (
             <SectionLoading />
           ) : (
-            vehicles.map((v, i) => {
-              const vAssignments = assignments.filter(a => a.vehicle_id === v.id);
-              // Simple mock visualization logic
+            filteredVehicles.map((v) => {
+              const vAssignments = assignments.filter(a => {
+                if (a.vehicle_id !== v.id) return false;
+                const start = new Date(a.start_time);
+                const end = a.end_time ? new Date(a.end_time) : dayEnd;
+                return start < dayEnd && end > dayStart;
+              });
               return (
-                <div key={v.id} style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
+                <div key={v.id} style={{ display: 'flex', minHeight: Math.max(72, 16 + vAssignments.length * 48), borderBottom: '1px solid var(--border)' }}>
                   <div style={{ width: 250, padding: '16px', borderRight: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Icon name="truck" size={20} color="var(--ink3)" />
@@ -153,14 +151,19 @@ export const TrackingAssignments: React.FC = () => {
                       const colors = ['#e0e7ff', '#ecfdf5', '#fce7f3', '#fef3c7'];
                       const textColors = ['#3730a3', '#065f46', '#9d174d', '#92400e'];
                       const cIdx = j % colors.length;
+                      const start = Math.max(dayStart.getTime(), new Date(a.start_time).getTime());
+                      const end = Math.min(dayEnd.getTime(), a.end_time ? new Date(a.end_time).getTime() : dayEnd.getTime());
+                      const span = dayEnd.getTime() - dayStart.getTime();
+                      const left = ((start - dayStart.getTime()) / span) * 100;
+                      const width = Math.max(4, ((end - start) / span) * 100);
                       return (
-                        <div key={a.id} style={{ position: 'relative', zIndex: 1, marginLeft: 20 + (j*100), background: colors[cIdx], borderRadius: 'var(--r-sm)', padding: '8px 12px', minWidth: 200, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div key={a.id} style={{ position: 'absolute', zIndex: 1, left: `${left}%`, width: `${width}%`, top: 8 + j * 48, background: colors[cIdx], borderRadius: 'var(--r-sm)', padding: '8px 12px', minWidth: 90, display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: textColors[cIdx] }}>
                             <PersonAvatar userId={a.driver_id} kind="drivers" name={a.driver_name} size={18} />
                             {a.driver_name}
                           </div>
                           <div style={{ fontSize: 10, color: textColors[cIdx], opacity: 0.8 }}>
-                            {new Date(a.start_time).toLocaleDateString()} - {a.end_time ? new Date(a.end_time).toLocaleDateString() : 'Ongoing'}
+                            {new Date(a.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}–{a.end_time ? new Date(a.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'ongoing'}
                           </div>
                         </div>
                       );
@@ -170,6 +173,7 @@ export const TrackingAssignments: React.FC = () => {
               );
             })
           )}
+          {!loading && filteredVehicles.length === 0 && <div className="p-10 text-center text-sm text-muted-foreground">No vehicles match this search.</div>}
         </div>
       </div>
 
@@ -204,7 +208,6 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
     }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' };
   const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 };
 
   return (
@@ -212,7 +215,7 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
       <DialogContent hideClose className="max-w-100 gap-0" style={{ borderRadius: 'var(--r)', padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <DialogTitle style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Add Assignment</DialogTitle>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={20} /></button>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close"><Icon name="x" size={20} /></Button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -250,15 +253,15 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
           </div>
           <div>
             <label style={labelStyle}>Add a comment</label>
-            <textarea style={{...inputStyle, minHeight: 80}} placeholder="Type here" value={form.comment} onChange={e => setForm({...form, comment: e.target.value})} />
+            <Textarea className="min-h-20" placeholder="Type here" value={form.comment} onChange={e => setForm({...form, comment: e.target.value})} />
           </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-          <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button onClick={handleSave} disabled={saving || !form.vehicle_id || !form.driver_id || !form.start_time} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: (saving || !form.vehicle_id || !form.driver_id || !form.start_time) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={handleSave} disabled={saving || !form.vehicle_id || !form.driver_id || !form.start_time}>
             {saving ? 'Saving...' : 'Save Assignment'}
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

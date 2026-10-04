@@ -7,6 +7,9 @@ import { apiFetch } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 
 // ── Tanzania customs constants ────────────────────────────────────────────────
 
@@ -446,20 +449,18 @@ export const ShipmentTools: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             {hasResult && (
-              <button type="button" className="btn btn-secondary"
-                onClick={() => printReport(lcHs || ccHs, lcCif, lcQty, lcResult, ccResult, pResult, summary)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              <Button type="button" variant="outline"
+                onClick={() => printReport(lcHs || ccHs, lcCif, lcQty, lcResult, ccResult, pResult, summary)}>
                 <Icon name="download" size={14} />
                 Export PDF
-              </button>
+              </Button>
             )}
-            <button type="button" className="btn btn-primary"
+            <Button type="button"
               disabled={!hasResult || aiPending}
-              onClick={generateAiSummary}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              onClick={generateAiSummary}>
               <Icon name="zap" size={14} />
               {aiPending ? 'Generating…' : 'AI Summary'}
-            </button>
+            </Button>
           </div>
         }
       />
@@ -547,15 +548,15 @@ export const ShipmentTools: React.FC = () => {
                 ]
               ).map(({ label, r }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, background: r.required ? 'var(--red-l)' : 'var(--green-l)', color: r.required ? 'var(--red)' : 'var(--green)' }}>
-                    {r.required ? '!' : '✓'}
-                  </span>
+                  <FeaturedIcon variant={r.required ? 'error' : 'success'} size="sm" shape="circle">
+                    <Icon name={r.required ? 'alertTriangle' : 'check'} size={10} />
+                  </FeaturedIcon>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: r.required ? 'var(--red-l)' : 'var(--green-l)', color: r.required ? 'var(--red)' : 'var(--green)' }}>
+                      <Badge variant={r.required ? 'error' : 'success'}>
                         {r.required ? 'REQUIRED' : 'NOT REQUIRED'}
-                      </span>
+                      </Badge>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, lineHeight: 1.5 }}>{r.note}</div>
                   </div>
@@ -635,11 +636,10 @@ export const ShipmentTools: React.FC = () => {
             collapsible={false}
             action={
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button type="button" className="btn btn-secondary"
-                  onClick={() => printReport(lcHs || ccHs, lcCif, lcQty, lcResult, ccResult, pResult, summary)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <Button type="button" variant="outline" size="sm"
+                  onClick={() => printReport(lcHs || ccHs, lcCif, lcQty, lcResult, ccResult, pResult, summary)}>
                   <Icon name="download" size={13} /> Export PDF
-                </button>
+                </Button>
                 <button type="button" onClick={() => setSummary('')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
               </div>

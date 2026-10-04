@@ -16,7 +16,7 @@ export const BlissAICopilot: React.FC = () => {
         crumbs={['Bliss', 'AI Copilot']}
         titlePlain="AI"
         titleEm="copilot"
-        subtitle="Configure real-time conversation intent detection, sentiment scoring, and automated reply suggestions."
+        subtitle="Configure intent detection, sentiment scoring, and reply suggestions for support conversations."
         actions={
           <Button variant="default" size="sm">
             <Icon name="sparkle" size={14} /> Train AI on Knowledge Base
@@ -44,7 +44,7 @@ export const BlissAICopilot: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20 }}>
-        <SectionCard title="Live Copilot Conversation Inspector">
+        <SectionCard title="Conversation review">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ background: 'var(--bg)', padding: 16, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', marginBottom: 6 }}>

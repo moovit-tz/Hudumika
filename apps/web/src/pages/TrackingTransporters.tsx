@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { showAlert } from '../lib/alert.js';
@@ -10,8 +12,6 @@ interface Transporter {
   id: string; name: string; contact_name: string | null; phone: string | null; email: string | null;
   contract_ref: string | null; status: string;
 }
-
-const inputStyle: React.CSSProperties = { padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' };
 
 /**
  * A subcontracted transporter is now a first-class profile, distinct from
@@ -88,15 +88,12 @@ export const TrackingTransporters: React.FC = () => {
       {adding && (
         <SectionCard>
           <form onSubmit={submit} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Company name</label><input required value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, width: 200 }} /></div>
-            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Contact person</label><input value={contactName} onChange={e => setContactName(e.target.value)} style={{ ...inputStyle, width: 160 }} /></div>
-            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Phone</label><input value={phone} onChange={e => setPhone(e.target.value)} style={{ ...inputStyle, width: 140 }} /></div>
-            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ ...inputStyle, width: 180 }} /></div>
-            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Contract ref</label><input value={contractRef} onChange={e => setContractRef(e.target.value)} style={{ ...inputStyle, width: 140 }} /></div>
-            <button type="submit" disabled={saving || !name}
-              style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', opacity: saving ? 0.6 : 1 }}>
-              {saving ? 'Saving…' : 'Save'}
-            </button>
+            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Company name</label><Input required value={name} onChange={e => setName(e.target.value)} style={{ width: 200 }} /></div>
+            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Contact person</label><Input value={contactName} onChange={e => setContactName(e.target.value)} style={{ width: 160 }} /></div>
+            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} style={{ width: 140 }} /></div>
+            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Email</label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: 180 }} /></div>
+            <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Contract ref</label><Input value={contractRef} onChange={e => setContractRef(e.target.value)} style={{ width: 140 }} /></div>
+            <Button type="submit" size="sm" disabled={saving || !name}>{saving ? 'Saving…' : 'Save'}</Button>
           </form>
         </SectionCard>
       )}

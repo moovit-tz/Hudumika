@@ -328,7 +328,7 @@ export const ShipmentEdit: React.FC = () => {
       <div className="create-shipment-main">
         {isMobile && (
           <div className="create-shipment-header">
-            <Link to={`/clearos/clearance/${id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: '#fff', width: 'fit-content' }}>
+            <Link to={`/clearos/clearance/${id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', width: 'fit-content' }}>
               <Icon name="chevronLeft" size={14} /> Back
             </Link>
           </div>

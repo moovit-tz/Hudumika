@@ -7,6 +7,11 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 import { TAX_CODE_KIND_VARIANT, TAX_CODE_KIND_LABEL, type TaxCodeKind } from '../data/taxCodeData.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { Button } from '../components/ui/button.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { SectionCard } from '../components/SectionCard.js';
 
 /**
  * The VAT return.
@@ -67,10 +72,6 @@ interface VatReturn {
 const card: React.CSSProperties = {
   background: 'var(--white)', borderRadius: 'var(--r)',
   border: '1px solid var(--border)', overflow: 'hidden',
-};
-const th: React.CSSProperties = {
-  padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)',
-  textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
 };
 const td: React.CSSProperties = { padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' };
 const num: React.CSSProperties = { ...td, fontFamily: 'var(--font)', textAlign: 'right', color: 'var(--ink)' };
@@ -141,46 +142,17 @@ export const FinanceTaxReport: React.FC = () => {
   function BucketTable({ title, buckets, taxLabel }: { title: string; buckets: Bucket[]; taxLabel: string }) {
     const net = buckets.reduce((s, b) => s + b.net, 0);
     const tax = buckets.reduce((s, b) => s + b.tax, 0);
+    const columns: TableColumn<Bucket>[] = [
+      { key: 'treatment', header: 'Treatment', accessor: 'kind', sortable: true, render: bucket => bucket.kind === 'UNCLASSIFIED' ? <Badge variant="warning">No treatment recorded</Badge> : <Badge variant={TAX_CODE_KIND_VARIANT[bucket.kind]}>{TAX_CODE_KIND_LABEL[bucket.kind]}</Badge> },
+      { key: 'code', header: 'Code', accessor: 'code', sortable: true, render: bucket => bucket.code ?? '—' },
+      { key: 'net', header: 'Net', accessor: 'net', sortable: true, align: 'right', render: bucket => fmt(bucket.net) },
+      { key: 'tax', header: taxLabel, accessor: 'tax', sortable: true, align: 'right', render: bucket => <span className="font-semibold text-foreground">{fmt(bucket.tax)}</span> },
+      { key: 'lines', header: 'Lines', accessor: 'lines', sortable: true, align: 'right', hideAt: 'sm' },
+    ];
     return (
-      <div style={card}>
-        <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</span>
-        </div>
-        {buckets.length === 0 ? (
-          <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Nothing in this period.</div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
-              <thead><tr style={{ background: 'var(--bg)' }}>
-                {['Treatment', 'Code', 'Net', taxLabel, 'Lines'].map(h => (
-                  <th key={h} style={{ ...th, textAlign: h === 'Net' || h === taxLabel || h === 'Lines' ? 'right' : 'left' }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {buckets.map(b => (
-                  <tr key={`${b.kind}-${b.code}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={td}>
-                      {b.kind === 'UNCLASSIFIED'
-                        ? <Badge variant="warning">No treatment recorded</Badge>
-                        : <Badge variant={TAX_CODE_KIND_VARIANT[b.kind]}>{TAX_CODE_KIND_LABEL[b.kind]}</Badge>}
-                    </td>
-                    <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 11.5 }}>{b.code ?? '—'}</td>
-                    <td style={num}>{fmt(b.net)}</td>
-                    <td style={{ ...num, fontWeight: 700 }}>{fmt(b.tax)}</td>
-                    <td style={{ ...num, color: 'var(--ink3)' }}>{b.lines}</td>
-                  </tr>
-                ))}
-                <tr style={{ background: 'var(--bg)' }}>
-                  <td colSpan={2} style={{ ...td, fontWeight: 700, color: 'var(--ink)' }}>Total</td>
-                  <td style={{ ...num, fontWeight: 800 }}>{fmt(net)}</td>
-                  <td style={{ ...num, fontWeight: 800 }}>{fmt(tax)}</td>
-                  <td style={num} />
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <SectionCard padded={false} title={title} action={<span className="text-xs font-semibold text-muted-foreground">Net {fmt(net)} · Tax {fmt(tax)}</span>}>
+        <DataTable columns={columns} rows={buckets} empty={buckets.length === 0} emptyIcon="receipt" emptyTitle="Nothing in this period" emptyMessage="Tax treatments appear after documents are posted in the selected period." pageSize={12} />
+      </SectionCard>
     );
   }
 
@@ -197,24 +169,24 @@ export const FinanceTaxReport: React.FC = () => {
               <SelectTrigger aria-label="Period" style={{ width: 'auto', minHeight: 'var(--ctl-h-sm)', padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>{PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} disabled={!data} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!data}>
               <Icon name="download" size={13} /> Export
-            </button>
+            </Button>
             {/* The full working, for transcribing onto the local form. Built
                 server-side so the file carries the registration and the
                 exclusions, not just the figures on screen. */}
-            <button type="button" disabled={!data} className="btn btn-primary btn-sm" style={{ gap: 6 }}
+            <Button type="button" size="sm" disabled={!data}
               onClick={() => downloadSubmission()}>
-              <Icon name="fileText" size={13} color="#fff" /> Download for submission
-            </button>
+              <Icon name="fileText" size={13} /> Download for submission
+            </Button>
           </div>
         }
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Computing the return…</div>
+        <SectionLoading label="Computing the return…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error" title="VAT return unavailable">{error}</Banner>
       ) : !data ? null : (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -250,24 +222,11 @@ export const FinanceTaxReport: React.FC = () => {
             </div>
           )}
 
-          {/* The one figure the return exists to produce. */}
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Output tax on sales', value: fmt(data.outputTax), color: 'var(--ink)' },
-              { label: 'Input tax recoverable', value: fmt(data.inputTaxRecoverable), color: 'var(--ink)' },
-              {
-                label: payable ? 'Net payable to the authority' : 'Net repayable to you',
-                value: fmt(Math.abs(data.netPayable)),
-                color: payable ? 'var(--red)' : 'var(--green)',
-                strong: true,
-              },
-            ].map(s => (
-              <div key={s.label} style={{ ...card, flex: 1, minWidth: 200, padding: '16px 18px' }}>
-                <div style={{ fontSize: s.strong ? 24 : 20, fontWeight: 800, color: s.color, letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{s.value}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+          <MetricsRow cards={[
+            { title: 'Output tax on sales', value: fmt(data.outputTax), comparisonLabel: `${data.from} to ${data.to}`, barHighlight: 'var(--teal)' },
+            { title: 'Input tax recoverable', value: fmt(data.inputTaxRecoverable), comparisonLabel: `${data.recoveryRatePct.toFixed(2)}% recovery rate`, barHighlight: 'var(--blue)' },
+            { title: payable ? 'Net payable' : 'Net repayable', value: fmt(Math.abs(data.netPayable)), comparisonLabel: payable ? 'Due to the authority' : 'Repayable to this workspace', barHighlight: payable ? 'var(--red)' : 'var(--green)', emphasis: 'primary' },
+          ]} />
 
           {/* Gaps, stated rather than absorbed into a total. */}
           {(data.unclassified.salesLines > 0 || data.unclassified.purchaseLines > 0 ||

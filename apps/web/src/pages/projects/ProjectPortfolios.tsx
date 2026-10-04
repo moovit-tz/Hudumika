@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Combobox } from '../../components/ui/combobox.js';
 import type { ProjectPortfolio, ProjectProgram } from '@hudumika/types';
 
 interface ProjectPortfoliosProps {
@@ -466,18 +467,13 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Parent Portfolio
                   </label>
-                  <select
+                  <Combobox
                     value={programPortfolioId}
-                    onChange={(e) => setProgramPortfolioId(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
-                  >
-                    <option value="">No Portfolio (Independent)</option>
-                    {portfolios.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.code})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setProgramPortfolioId}
+                    options={[{ value: '', label: 'No Portfolio', sublabel: 'Independent program' }, ...portfolios.map(portfolio => ({ value: portfolio.id, label: portfolio.name, sublabel: portfolio.code }))]}
+                    placeholder="Select parent portfolio"
+                    searchPlaceholder="Search portfolios"
+                  />
                 </div>
 
                 <div>

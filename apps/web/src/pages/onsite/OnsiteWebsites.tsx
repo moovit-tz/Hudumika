@@ -9,6 +9,7 @@ import { PageHeader } from '../../components/PageHeader.js';
 import type { OnsiteWebsite, OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import './Onsite.css';
 
 const WEBSITE_TYPES: { value: string; label: string }[] = [
@@ -196,34 +197,12 @@ export function OnsiteWebsites() {
       </div>
 
       {/* Row 2: Search & Filter Toolbar in a Single Horizontal Row */}
-      <div className="onsite-domains-toolbar">
-        <div className="onsite-domains-search-box">
-          <Icon name="search" size={18} style={{ color: 'var(--ink3)' }} />
-          <input
-            type="text"
-            className="onsite-domains-search-input"
-            placeholder="Search by domain, CMS, or hosting plan..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}>
-              <Icon name="close" size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="onsite-domains-filter-group">
-          <button className="onsite-btn-outline" style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }} title="Filter tags">
-            <Icon name="tag" size={14} />
-            <span>Tags</span>
-          </button>
-          <button className="onsite-btn-outline" style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }} title="Starred sites">
-            <Icon name="star" size={14} />
-            <span>Starred</span>
-          </button>
-        </div>
-      </div>
+      <SearchToolbar
+        search={searchQuery}
+        onSearch={setSearchQuery}
+        placeholder="Search by website, domain, CMS, or hosting plan"
+        className="onsite-domains-toolbar"
+      />
 
       {/* Grouped Plan Cards */}
       {loading ? (

@@ -4,7 +4,6 @@ import { showAlert } from '../lib/alert.js';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { SectionCard } from '../components/SectionCard.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
@@ -14,6 +13,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 /**
  * Disciplinary / case management — confirmed entirely absent in the
@@ -41,22 +41,37 @@ export function CaseManagement() {
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [openCaseId, setOpenCaseId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(null);
     const qs = statusFilter ? `?status=${statusFilter}` : '';
     Promise.all([
-      apiFetch(`/v1/hr/cases${qs}`).catch(() => []),
-      apiFetch('/v1/hr/staff').catch(() => []),
+      apiFetch(`/v1/hr/cases${qs}`),
+      apiFetch('/v1/hr/staff'),
     ]).then(([c, s]) => {
       setCases(Array.isArray(c) ? c : []);
       setStaff(Array.isArray(s) ? s : (s?.data ?? []));
+    }).catch(() => {
+      setCases([]);
+      setStaff([]);
+      setLoadError('Could not load HR cases.');
     }).finally(() => setLoading(false));
   }, [statusFilter]);
   useEffect(() => { load(); }, [load]);
+
+  const columns: TableColumn<CaseRow>[] = [
+    { key: 'employee', header: 'Employee', sortable: true, render: row => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><PersonAvatar userId={row.employee_id} name={row.employee_name} size={26} />{row.employee_name}</span> },
+    { key: 'type', header: 'Type', sortable: true, render: row => CASE_TYPE_LABEL[row.case_type] ?? row.case_type },
+    { key: 'title', header: 'Title', accessor: 'title', sortable: true },
+    { key: 'severity', header: 'Severity', sortable: true, render: row => <Badge variant={SEVERITY_VARIANT[row.severity]}>{row.severity}</Badge> },
+    { key: 'status', header: 'Status', sortable: true, render: row => <Badge variant={STATUS_VARIANT[row.status]}>{row.status.replace('_', ' ')}</Badge> },
+    { key: 'opened', header: 'Opened', sortable: true, render: row => new Date(row.created_at).toLocaleDateString() },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -82,43 +97,22 @@ export function CaseManagement() {
         />
       </div>
 
-      <SectionCard padded={false}>
-        {loading ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>Loading cases…</div>
-        ) : cases.length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>No cases{statusFilter ? ' match this filter' : ' yet'}.</div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-                  {['Employee', 'Type', 'Title', 'Severity', 'Status', 'Opened', ''].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {cases.map(c => (
-                  <tr key={c.id} style={{ borderTop: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => setOpenCaseId(c.id)}>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <PersonAvatar userId={c.employee_id} name={c.employee_name} size={26} />
-                        {c.employee_name}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{CASE_TYPE_LABEL[c.case_type] ?? c.case_type}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)' }}>{c.title}</td>
-                    <td style={{ padding: '12px 14px' }}><Badge variant={SEVERITY_VARIANT[c.severity]}>{c.severity}</Badge></td>
-                    <td style={{ padding: '12px 14px' }}><Badge variant={STATUS_VARIANT[c.status]}>{c.status.replace('_', ' ')}</Badge></td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink3)' }}>{new Date(c.created_at).toLocaleDateString()}</td>
-                    <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--ink3)' }}><Icon name="chevronRight" size={15} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </SectionCard>
+      <DataTable
+        columns={columns}
+        rows={cases}
+        loading={loading}
+        error={loadError ?? undefined}
+        onRetry={load}
+        empty={!loading && !loadError && !statusFilter && cases.length === 0}
+        emptyIcon="briefcase"
+        emptyTitle="No cases yet"
+        emptyMessage="Warnings, grievances, and performance plans will appear here."
+        filteredEmpty={!loading && !loadError && !!statusFilter && cases.length === 0}
+        filteredEmptyMessage="No cases match this status."
+        onRowClick={row => setOpenCaseId(row.id)}
+        defaultSortKey="opened"
+        defaultSortDir="desc"
+      />
 
       {showNew && <NewCaseModal staff={staff} onClose={() => setShowNew(false)} onCreated={load} />}
       {openCaseId && <CaseDetailModal caseId={openCaseId} onClose={() => setOpenCaseId(null)} onChanged={load} />}

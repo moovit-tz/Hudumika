@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { MetricCard } from '../components/MetricCard.js';
 
 export type StatusKey   = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type PriorityKey = 'LOW'  | 'MEDIUM'      | 'HIGH'      | 'URGENT';
@@ -31,6 +32,8 @@ export function useSupportMetrics() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<any>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
 
   const buildTickets = useCallback((data: any[]): Ticket[] =>
     data.slice(0, 200).map((s: any): Ticket => ({
@@ -46,21 +49,23 @@ export function useSupportMetrics() {
     })), []);
 
   useEffect(() => {
+    setTicketsError(null);
     apiFetch('/v1/support/tickets')
       .then((r: any) => setTickets(buildTickets(r.data ?? r ?? [])))
-      .catch(() => {})
+      .catch((error: any) => setTicketsError(error?.message || 'Could not load support tickets.'))
       .finally(() => setLoading(false));
   }, [buildTickets]);
 
   useEffect(() => {
     setMetricsLoading(true);
+    setMetricsError(null);
     apiFetch(`/v1/support/metrics?period=${period}`)
       .then((r: any) => setMetrics(r))
-      .catch(() => {})
+      .catch((error: any) => setMetricsError(error?.message || 'Could not load support metrics.'))
       .finally(() => setMetricsLoading(false));
   }, [period]);
 
-  return { period, setPeriod, tickets, loading, metrics, metricsLoading };
+  return { period, setPeriod, tickets, loading, metrics, metricsLoading, ticketsError, metricsError };
 }
 
 export function PeriodSwitcher({ period, setPeriod }: { period: '7d' | '30d' | '90d'; setPeriod: (p: '7d' | '30d' | '90d') => void }) {
@@ -76,27 +81,12 @@ export function PeriodSwitcher({ period, setPeriod }: { period: '7d' | '30d' | '
   );
 }
 
-export function KpiCard({ icon, label, value, sub, color, iconBg, trend, trendUp }: {
+export function SupportMetricCard({ icon, label, value, sub, color, trend, trendUp }: {
   icon: IconName; label: string; value: string; sub?: string;
   color: string; iconBg: string; trend?: string; trendUp?: boolean;
 }) {
-  return (
-    <div className="sov-kpi">
-      <div className="sov-kpi-top">
-        <div className="sov-kpi-icon" style={{ background: iconBg }}>
-          <Icon name={icon} size={18} strokeWidth={1.75} style={{ color } as React.CSSProperties} />
-        </div>
-        {trend && (
-          <span className={`sov-kpi-trend${trendUp ? ' sov-kpi-trend--up' : ' sov-kpi-trend--down'}`}>
-            <Icon name={trendUp ? 'arrowUp' : 'arrowDown'} size={9} strokeWidth={2.5} />{trend}
-          </span>
-        )}
-      </div>
-      <div className="sov-kpi-value">{value}</div>
-      <div className="sov-kpi-label">{label}</div>
-      {sub && <div className="sov-kpi-sub">{sub}</div>}
-    </div>
-  );
+  const trendValue = trend ? Number.parseFloat(trend) * (trendUp === false ? -1 : 1) : undefined;
+  return <MetricCard title={label} value={value} icon={icon} barHighlight={color} trend={Number.isFinite(trendValue) ? trendValue : undefined} updatedLabel={sub} />;
 }
 
 export function SHdr({ title, action, to }: { title: string; action?: string; to?: string }) {

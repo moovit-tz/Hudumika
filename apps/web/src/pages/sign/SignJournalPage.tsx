@@ -9,8 +9,8 @@ import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import { Icon } from '../../components/Icon.js';
-import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
+import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 
@@ -183,26 +183,20 @@ export function SignJournalPage() {
       {/* Filter + Search toolbar */}
       <div style={{ marginBottom: 16 }}>
       <SectionCard>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-            <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
-            <Input
-              type="search" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search document title, certifier, roll number, code or notes…"
-              style={{ paddingLeft: 34 }}
-            />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger style={{ height: 38, fontSize: 13, width: 220 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Acts & Events</SelectItem>
-              <SelectItem value="certified">Notarial Certifications</SelectItem>
-              <SelectItem value="witnessed">Witnessed Signatures</SelectItem>
-              <SelectItem value="declared">Affidavit Declarations</SelectItem>
-              <SelectItem value="journal_correction">Corrections</SelectItem>
-            </SelectContent>
-          </Select>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search document title, certifier, roll number, code, or notes"
+          quickFilter={{
+            label: 'Event', allLabel: 'All Acts & Events', value: typeFilter === 'all' ? null : typeFilter,
+            onChange: value => setTypeFilter(value || 'all'),
+            options: [
+              { value: 'certified', label: 'Notarial Certifications' }, { value: 'witnessed', label: 'Witnessed Signatures' },
+              { value: 'declared', label: 'Affidavit Declarations' }, { value: 'journal_correction', label: 'Corrections' },
+            ],
+          }}
+          actions={<>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
             <span>Show</span>
             <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
               <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
@@ -211,12 +205,13 @@ export function SignJournalPage() {
               </SelectContent>
             </Select>
             <span>per page</span>
-          </div>
-          <Button variant="outline" size="sm" onClick={loadJournal} disabled={loading}>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadJournal} disabled={loading}>
             <Icon name="refresh" size={14} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
             Refresh
-          </Button>
-        </div>
+            </Button>
+          </>}
+        />
       </SectionCard>
       </div>
 

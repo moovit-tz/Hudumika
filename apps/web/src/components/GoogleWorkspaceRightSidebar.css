@@ -142,7 +142,7 @@
 
 [data-theme="dark"] .gws-rail-btn:hover {
   background: rgba(255,255,255,0.08);
-  color: #f8fafc;
+  color: var(--foreground);
 }
 
 .gws-rail-btn.active {
@@ -152,7 +152,7 @@
 
 [data-theme="dark"] .gws-rail-btn.active {
   background: rgba(13,148,136,0.22);
-  color: #2dd4bf;
+  color: var(--teal);
 }
 
 /* Badge overlay on rail buttons */
@@ -170,14 +170,14 @@
   font-size: 10.5px;
   font-weight: 700;
   line-height: 1;
-  color: #ffffff;
+  color: var(--white);
   border: 2px solid var(--card-bg, #ffffff);
   box-sizing: border-box;
 }
 
-.gws-badge-teal { background: #0d9488; }
-.gws-badge-blue { background: #0284c7; }
-.gws-badge-red { background: #ef4444; }
+.gws-badge-teal { background: var(--teal); }
+.gws-badge-blue { background: var(--blue); }
+.gws-badge-red { background: var(--red); }
 
 /* Teal Starred Button at bottom of rail */
 .gws-ai-btn {

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
@@ -49,6 +49,8 @@ export interface Lead {
   industry?: string;
   location?: string;
   website?: string;
+  territory_id?: string;
+  territory_name?: string;
 }
 
 /* ── Config ── */
@@ -63,6 +65,27 @@ export const STAGE_CFG: Record<string, { color: string; bg: string; label: strin
   WON:         { color: 'var(--green)',  bg: 'var(--green-l)',  label: 'Won'         },
   LOST:        { color: 'var(--red)',    bg: 'var(--red-l)',    label: 'Lost'        },
 };
+
+export interface LeadStageEntry {
+  id: string; label: string; color: string | null; position: number; is_won: boolean; is_lost: boolean;
+}
+interface LeadStagesCtxType {
+  stageList: LeadStageEntry[];
+  stageCfg: Record<string, { color: string; bg: string; label: string }>;
+  stageIds: string[];
+  wonIds: Set<string>;
+  lostIds: Set<string>;
+  isTerminal: (stage: string) => boolean;
+  wonStageId: string;
+  lostStageId: string;
+}
+const DEFAULT_CTX: LeadStagesCtxType = {
+  stageList: [], stageCfg: STAGE_CFG, stageIds: STAGES,
+  wonIds: new Set(['WON']), lostIds: new Set(['LOST']),
+  isTerminal: (s: string) => s === 'WON' || s === 'LOST',
+  wonStageId: 'WON', lostStageId: 'LOST',
+};
+export const LeadStagesContext = React.createContext<LeadStagesCtxType>(DEFAULT_CTX);
 
 export const PRIORITY_CFG: Record<string, { color: string; bg: string; label: string }> = {
   HIGH:   { color: 'var(--red)',   bg: 'var(--red-l)',   label: 'High'   },
@@ -126,7 +149,8 @@ export function LeadAv({ name, size = 32, leadId }: { name: string; size?: numbe
 }
 
 export function StageBadge({ stage }: { stage: string }) {
-  const c = STAGE_CFG[stage] || STAGE_CFG.NEW;
+  const { stageCfg } = React.useContext(LeadStagesContext);
+  const c = stageCfg[stage] || stageCfg.NEW || { color: 'var(--ink3)', bg: 'var(--bg)', label: stage };
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap', fontFamily: 'var(--font)', letterSpacing: '0.03em' }}>
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
@@ -223,6 +247,7 @@ const EMPTY_FORM: FormState = {
   company: '', contact_name: '', contact_email: '', contact_phone: '',
   source: 'Web Form', stage: 'NEW', value: 0, priority: 'MEDIUM',
   assigned_to: '', expected_close: '', notes: '', industry: '', location: '', website: '',
+  territory_id: '', territory_name: '',
 };
 
 /* ── CSV export ── */
@@ -256,15 +281,17 @@ function exportLeadsCSV(rows: Lead[]) {
    buttons underneath. Completed stages carry a check so progress reads at a
    glance without comparing colour saturation. */
 function StagePipeline({ current, onSelect, interactive }: { current: string; onSelect: (stage: string) => void; interactive: boolean }) {
-  const activeStages = STAGES.filter(s => s !== 'LOST');
+  const { stageIds, stageCfg, lostIds } = React.useContext(LeadStagesContext);
+  const activeStages = stageIds.filter(s => !lostIds.has(s));
   const active = activeStages.indexOf(current);
-  const isLost = current === 'LOST';
+  const isLost = lostIds.has(current);
+  const lostCfg = stageCfg[current] || stageCfg.LOST || { color: 'var(--red)', bg: 'var(--red-l)', label: 'Lost' };
 
   if (isLost) {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 'var(--badge-radius)', fontSize: 12.5, fontWeight: 700, background: STAGE_CFG.LOST.bg, color: STAGE_CFG.LOST.color, border: `1.5px solid ${STAGE_CFG.LOST.color}` }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 'var(--badge-radius)', fontSize: 12.5, fontWeight: 700, background: lostCfg.bg, color: lostCfg.color, border: `1.5px solid ${lostCfg.color}` }}>
         <Icon name="x" size={12} strokeWidth={3} />
-        Lost
+        {lostCfg.label}
       </div>
     );
   }
@@ -272,7 +299,7 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
   return (
     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 8 }}>
       {activeStages.map((s, i) => {
-        const cfg = STAGE_CFG[s];
+        const cfg = stageCfg[s] || { color: 'var(--ink3)', bg: 'var(--bg)', label: s };
         const done = i < active;
         const cur = i === active;
         const clickable = interactive && !cur;
@@ -328,7 +355,7 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
 export const Leads: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView]       = useState<'list' | 'profile'>('list');
   const [leads, setLeads]     = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,6 +366,45 @@ export const Leads: React.FC = () => {
   const [saving, setSaving]           = useState(false);
   const [notes, setNotes]             = useState('');
   const [noteSaving, setNoteSaving]   = useState(false);
+  const [leadTasks, setLeadTasks]     = useState<any[]>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDue, setNewTaskDue]   = useState('');
+  const [addingTask, setAddingTask]   = useState(false);
+
+  /* Live lead stages from /v1/crm/lead-stages — replaces static STAGES array */
+  const [liveStages, setLiveStages] = useState<LeadStageEntry[]>([]);
+  useEffect(() => {
+    let alive = true;
+    apiFetch('/v1/crm/lead-stages').then((rows: LeadStageEntry[]) => { if (alive) setLiveStages(rows || []); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const stagesCtx: LeadStagesCtxType = React.useMemo(() => {
+    if (liveStages.length === 0) return DEFAULT_CTX;
+    const cfg: Record<string, { color: string; bg: string; label: string }> = { ...STAGE_CFG };
+    const wonIds = new Set<string>(['WON']);
+    const lostIds = new Set<string>(['LOST']);
+    for (const s of liveStages) {
+      cfg[s.id] = {
+        color: s.color ?? 'var(--teal)',
+        bg: s.color ? s.color + '22' : 'var(--teal-l)',
+        label: s.label,
+      };
+      if (s.is_won) wonIds.add(s.id);
+      if (s.is_lost) lostIds.add(s.id);
+    }
+    const stageIds = liveStages.map(s => s.id);
+    return {
+      stageList: liveStages,
+      stageCfg: cfg,
+      stageIds,
+      wonIds,
+      lostIds,
+      isTerminal: (s: string) => wonIds.has(s) || lostIds.has(s),
+      wonStageId:  liveStages.find(s => s.is_won)?.id  ?? 'WON',
+      lostStageId: liveStages.find(s => s.is_lost)?.id ?? 'LOST',
+    };
+  }, [liveStages]);
 
   /* Real staff list for "Assigned To" — replaces the old hardcoded OFFICERS
      names with an actual account, same /v1/hr/staff endpoint Contacts' own
@@ -352,11 +418,20 @@ export const Leads: React.FC = () => {
 
   /* List filters */
   const [search,         setSearch]         = useState('');
-  const [filterStage,    setFilterStage]    = useState('');
-  const [filterSource,   setFilterSource]   = useState('');
-  const [filterPriority, setFilterPriority] = useState('');
+  const [filterStage,     setFilterStage]     = useState('');
+  const [filterSource,    setFilterSource]    = useState('');
+  const [filterPriority,  setFilterPriority]  = useState('');
+  const [filterTerritory, setFilterTerritory] = useState('');
+  const [territories,     setTerritories]     = useState<{ id: string; name: string }[]>([]);
   const [selectedIds,    setSelectedIds]    = useState<string[]>([]);
+  const [bulkAction,     setBulkAction]     = useState('');
+  const [bulkApplying,   setBulkApplying]   = useState(false);
   const [page,           setPage]           = useState(1);
+
+  /* Smart views */
+  const [savedViews,     setSavedViews]     = useState<{ id: string; name: string; count: number }[]>([]);
+  const [activeViewId,   setActiveViewId]   = useState<string | null>(null);
+  const [viewMatchIds,   setViewMatchIds]   = useState<Set<string> | null>(null);
 
   /* Add/Edit modal */
   const [showAdd, setShowAdd]   = useState(false);
@@ -396,16 +471,47 @@ export const Leads: React.FC = () => {
   useEffect(() => { loadLeads(); }, [loadLeads]);
 
   useEffect(() => {
+    apiFetch('/v1/crm/smart-views?entity_type=lead')
+      .then((res: any) => setSavedViews(Array.isArray(res) ? res : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    apiFetch('/v1/crm/territories')
+      .then((res: any) => setTerritories(Array.isArray(res) ? res.filter((t: any) => t.active !== false) : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!activeViewId) { setViewMatchIds(null); return; }
+    apiFetch(`/v1/crm/smart-views/${activeViewId}/results`)
+      .then((res: any) => {
+        const ids = Array.isArray(res) ? res.map((r: any) => r.id ?? r) : [];
+        setViewMatchIds(new Set(ids));
+      })
+      .catch(() => setViewMatchIds(null));
+  }, [activeViewId]);
+
+  useEffect(() => {
     if (selected) setNotes(selected.notes || '');
   }, [selected]);
+
+  useEffect(() => {
+    if (!selected || profileTab !== 'tasks') return;
+    apiFetch(`/v1/crm/tasks?subject_type=lead&subject_id=${selected.id}&done=all`)
+      .then((res: any) => setLeadTasks(Array.isArray(res) ? res : []))
+      .catch(() => {});
+  }, [selected, profileTab]);
 
   /* Filtering */
   const filtered = leads.filter(l => {
     const q = search.toLowerCase();
     if (q && !l.company.toLowerCase().includes(q) && !l.contact_name.toLowerCase().includes(q) && !(l.contact_email || '').toLowerCase().includes(q)) return false;
-    if (filterStage    && l.stage    !== filterStage)    return false;
-    if (filterSource   && l.source   !== filterSource)   return false;
-    if (filterPriority && l.priority !== filterPriority) return false;
+    if (filterStage     && l.stage        !== filterStage)     return false;
+    if (filterSource    && l.source       !== filterSource)    return false;
+    if (filterPriority  && l.priority     !== filterPriority)  return false;
+    if (filterTerritory && l.territory_id !== filterTerritory) return false;
+    if (viewMatchIds    && !viewMatchIds.has(l.id))            return false;
     return true;
   });
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -419,9 +525,10 @@ export const Leads: React.FC = () => {
   }
 
   /* Metrics */
-  const active   = leads.filter(l => !['WON', 'LOST'].includes(l.stage));
-  const wonL     = leads.filter(l => l.stage === 'WON');
-  const lostL    = leads.filter(l => l.stage === 'LOST');
+  const { isTerminal, wonIds, lostIds, stageIds, stageCfg: liveStageCfg, wonStageId, lostStageId } = stagesCtx;
+  const active   = leads.filter(l => !isTerminal(l.stage));
+  const wonL     = leads.filter(l => wonIds.has(l.stage));
+  const lostL    = leads.filter(l => lostIds.has(l.stage));
   const pipeline = active.reduce((s, l) => s + l.value, 0);
   const wonVal   = wonL.reduce((s, l) => s + l.value, 0);
   const closedN  = wonL.length + lostL.length;
@@ -433,11 +540,13 @@ export const Leads: React.FC = () => {
     setAddSaving(true);
     try {
       if (editingId) {
-        await apiFetch(`/v1/leads/${editingId}`, { method: 'PATCH', body: JSON.stringify({ ...addForm, value: Number(addForm.value) || 0 }) });
-        setLeads(p => p.map(l => l.id === editingId ? { ...l, ...addForm, value: Number(addForm.value) || 0 } : l));
-        if (selected?.id === editingId) setSelected(prev => prev ? { ...prev, ...addForm, value: Number(addForm.value) || 0 } : prev);
+        const patchBody = { ...addForm, value: Number(addForm.value) || 0, territory_id: addForm.territory_id || null };
+        await apiFetch(`/v1/leads/${editingId}`, { method: 'PATCH', body: JSON.stringify(patchBody) });
+        const localPatch = { ...patchBody, territory_id: patchBody.territory_id ?? undefined };
+        setLeads(p => p.map(l => l.id === editingId ? { ...l, ...localPatch } : l));
+        if (selected?.id === editingId) setSelected(prev => prev ? { ...prev, ...localPatch } : prev);
       } else {
-        const res = await apiFetch('/v1/leads', { method: 'POST', body: JSON.stringify({ ...addForm, value: Number(addForm.value) || 0, organization_party_id: linkedOrg?.id ?? null, contact_party_id: linkedPerson?.id ?? null }) });
+        const res = await apiFetch('/v1/leads', { method: 'POST', body: JSON.stringify({ ...addForm, value: Number(addForm.value) || 0, territory_id: addForm.territory_id || null, organization_party_id: linkedOrg?.id ?? null, contact_party_id: linkedPerson?.id ?? null }) });
         const newLead: Lead = res?.id ? res : { ...addForm, id: res?.id ?? Date.now().toString(), value: Number(addForm.value) || 0, created_at: new Date().toISOString().split('T')[0] };
         setLeads(p => [newLead, ...p]);
       }
@@ -447,12 +556,44 @@ export const Leads: React.FC = () => {
     } finally { setAddSaving(false); }
   }
 
+  async function handleBulkApply() {
+    if (!bulkAction || selectedIds.length === 0) return;
+    setBulkApplying(true);
+    try {
+      if (bulkAction === 'delete') {
+        if (!(await showConfirm(`Delete ${selectedIds.length} lead(s)? This cannot be undone.`, { confirmLabel: 'Delete' }))) {
+          setBulkApplying(false); return;
+        }
+        await Promise.all(selectedIds.map(id => apiFetch(`/v1/leads/${id}`, { method: 'DELETE' })));
+        setLeads(p => p.filter(l => !selectedIds.includes(l.id)));
+        if (selected && selectedIds.includes(selected.id)) closeProfile();
+      } else if (bulkAction === 'export') {
+        const toExport = leads.filter(l => selectedIds.includes(l.id));
+        const rows = [
+          ['Company', 'Contact', 'Email', 'Phone', 'Stage', 'Value', 'Priority', 'Source', 'Created'],
+          ...toExport.map(l => [l.company, l.contact_name, l.contact_email || '', l.contact_phone || '', l.stage, l.value, l.priority, l.source, l.created_at?.slice(0, 10) || '']),
+        ].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([rows], { type: 'text/csv' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'leads.csv'; a.click();
+      } else {
+        // Stage bulk-move
+        await Promise.all(selectedIds.map(id => apiFetch(`/v1/leads/${id}`, { method: 'PATCH', body: JSON.stringify({ stage: bulkAction }) })));
+        setLeads(p => p.map(l => selectedIds.includes(l.id) ? { ...l, stage: bulkAction } : l));
+        if (selected && selectedIds.includes(selected.id)) setSelected(prev => prev ? { ...prev, stage: bulkAction } : prev);
+      }
+      setSelectedIds([]);
+      setBulkAction('');
+    } catch (err: any) {
+      showAlert(err.message || 'Bulk action failed');
+    } finally { setBulkApplying(false); }
+  }
+
   async function handleDelete(id: string, name: string) {
     if (!(await showConfirm(`Delete "${name}"? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/leads/${id}`, { method: 'DELETE' });
       setLeads(p => p.filter(l => l.id !== id));
-      if (selected?.id === id) { setSelected(null); setView('list'); }
+      if (selected?.id === id) closeProfile();
     } catch (err: any) {
       showAlert(err.message || 'Failed to delete lead');
     }
@@ -558,6 +699,13 @@ export const Leads: React.FC = () => {
     setProfileTab('overview');
     setEditMode(false);
     setView('profile');
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('lead', lead.id); return n; }, { replace: true });
+  }
+
+  function closeProfile() {
+    setSelected(null);
+    setView('list');
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete('lead'); return n; }, { replace: true });
   }
 
   useEffect(() => {
@@ -587,11 +735,12 @@ export const Leads: React.FC = () => {
     const days     = daysInPipeline(sel.created_at);
 
     const PROF_TABS = [
-      { key: 'overview',  label: 'Overview',  icon: 'grid'      as IconName },
-      { key: 'contact',   label: 'Contact',   icon: 'user'      as IconName },
-      { key: 'activity',  label: 'Activity',  icon: 'activity'  as IconName },
-      { key: 'notes',     label: 'Notes',     icon: 'edit'      as IconName },
-      { key: 'documents', label: 'Documents', icon: 'folder'    as IconName },
+      { key: 'overview',  label: 'Overview',  icon: 'grid'         as IconName },
+      { key: 'contact',   label: 'Contact',   icon: 'user'         as IconName },
+      { key: 'tasks',     label: 'Tasks',     icon: 'checkCircle'  as IconName },
+      { key: 'activity',  label: 'Activity',  icon: 'activity'     as IconName },
+      { key: 'notes',     label: 'Notes',     icon: 'edit'         as IconName },
+      { key: 'documents', label: 'Documents', icon: 'folder'       as IconName },
     ];
 
     return (
@@ -601,7 +750,7 @@ export const Leads: React.FC = () => {
         <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ padding: '20px 28px 0' }}>
 
-            <button type="button" onClick={() => setView('list')}
+            <button type="button" onClick={closeProfile}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
@@ -613,7 +762,7 @@ export const Leads: React.FC = () => {
 
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-                  <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', margin: 0, letterSpacing: '-0.3px' }}>{sel.company}</h1>
+                  <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.3px' }}>{sel.company}</h1>
                   <StageBadge stage={sel.stage} />
                   <PriBadge priority={sel.priority} />
                   <ScoreBadge score={sel.score} />
@@ -639,7 +788,7 @@ export const Leads: React.FC = () => {
                   ].map((s, i, arr) => (
                     <React.Fragment key={s.label}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)', lineHeight: 1.1 }}>{s.value}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>{s.value}</div>
                         <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>{s.label}</div>
                       </div>
                       {i < arr.length - 1 && <div style={{ width: 1, background: 'var(--border)', alignSelf: 'stretch' }} />}
@@ -695,9 +844,9 @@ export const Leads: React.FC = () => {
               <div style={{ marginBottom: 20 }}>
               <SectionCard
                 title="Pipeline Stage"
-                action={!['WON', 'LOST'].includes(sel.stage) ? (
+                action={!isTerminal(sel.stage) ? (
                     <button type="button"
-                      onClick={() => updateStage('LOST')}
+                      onClick={() => updateStage(lostStageId)}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink3)', transition: 'color 0.12s, border-color 0.12s, background 0.12s' }}
                       onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.background = 'var(--red-l)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink3)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'none'; }}
@@ -708,7 +857,7 @@ export const Leads: React.FC = () => {
                 ) : undefined}
               >
                 <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
-                  <StagePipeline current={sel.stage} onSelect={updateStage} interactive={!['WON', 'LOST'].includes(sel.stage)} />
+                  <StagePipeline current={sel.stage} onSelect={updateStage} interactive={!isTerminal(sel.stage)} />
                 </div>
               </SectionCard>
               </div>
@@ -727,7 +876,7 @@ export const Leads: React.FC = () => {
                         <Icon name={kpi.icon} size={18} color={kpi.color} strokeWidth={1.75} />
                       </div>
                       <div>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy)', lineHeight: 1.2 }}>{kpi.value}</div>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2 }}>{kpi.value}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>{kpi.label}</div>
                       </div>
                     </div>
@@ -791,8 +940,8 @@ export const Leads: React.FC = () => {
                               { label: 'Convert to Deal',    icon: 'briefcase'  as IconName, action: convertToDeal },
                               { label: 'Edit Lead Details',  icon: 'edit'       as IconName, action: () => openEdit(sel) },
                               { label: 'Add Notes',          icon: 'fileText'   as IconName, action: () => setProfileTab('notes') },
-                              { label: 'Mark as Won',        icon: 'check'      as IconName, action: () => updateStage('WON') },
-                              { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage('LOST') },
+                              { label: 'Mark as Won',        icon: 'check'      as IconName, action: () => updateStage(wonStageId) },
+                              { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage(lostStageId) },
                             ]).map(action => (
                               <button key={action.label} type="button" onClick={action.action} style={qaStyle} {...hover}>
                                 <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
@@ -822,7 +971,7 @@ export const Leads: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
                       <LeadAv name={sel.contact_name} size={56} />
                       <div>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)' }}>{sel.contact_name}</div>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>{sel.contact_name}</div>
                         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 3 }}>{sel.company}</div>
                       </div>
                     </div>
@@ -890,6 +1039,68 @@ export const Leads: React.FC = () => {
           {/* Activity — real chronological history (calls, emails, meetings,
               stage changes), not a static notes field. Shared component,
               backed by crm_activities (migration 449). */}
+          {/* Tasks */}
+          {profileTab === 'tasks' && (
+            <div style={{ padding: '24px 28px' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>
+                Tasks <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>({leadTasks.filter(t => !t.done).length} open)</span>
+              </div>
+              {leadTasks.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                  {leadTasks.map(t => (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+                      <input type="checkbox" checked={t.done} style={{ marginTop: 3, cursor: 'pointer', accentColor: 'hsl(var(--primary))' }}
+                        onChange={async () => {
+                          const updated = { ...t, done: !t.done };
+                          setLeadTasks(prev => prev.map(x => x.id === t.id ? updated : x));
+                          await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify({ done: !t.done }) }).catch(() => {});
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, color: t.done ? 'var(--ink3)' : 'var(--ink)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.title}</div>
+                        {t.due_at && (
+                          <div style={{ fontSize: 11.5, marginTop: 2, color: new Date(t.due_at) < new Date() && !t.done ? 'var(--red)' : 'var(--ink3)' }}>
+                            {new Date(t.due_at) < new Date() && !t.done ? '⚠ Overdue · ' : ''}Due {new Date(t.due_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
+                      </div>
+                      <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, fontSize: 16, lineHeight: 1 }}
+                        onClick={async () => {
+                          setLeadTasks(prev => prev.filter(x => x.id !== t.id));
+                          await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'DELETE' }).catch(() => {});
+                        }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {leadTasks.filter(t => !t.done).length === 0 && leadTasks.length === 0 && (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                  <Icon name="checkCircle" size={24} strokeWidth={1.25} /><div style={{ marginTop: 8 }}>No tasks yet</div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <input className="input-field" placeholder="Add a task…" value={newTaskTitle}
+                  onChange={e => setNewTaskTitle(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <input type="date" className="input-field" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} style={{ width: 140 }} />
+                <button type="button" className="btn btn-primary btn-sm" disabled={!newTaskTitle.trim() || addingTask}
+                  onClick={async () => {
+                    if (!newTaskTitle.trim()) return;
+                    setAddingTask(true);
+                    try {
+                      const t = await apiFetch('/v1/crm/tasks', { method: 'POST', body: JSON.stringify({ subject_type: 'lead', subject_id: sel.id, title: newTaskTitle.trim(), due_at: newTaskDue || null }) });
+                      setLeadTasks(prev => [...prev, t]);
+                      setNewTaskTitle(''); setNewTaskDue('');
+                    } catch (err: any) { showAlert(err.message || 'Failed to add task'); }
+                    finally { setAddingTask(false); }
+                  }}>
+                  {addingTask ? '…' : 'Add'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {profileTab === 'activity' && (
             <div style={{ padding: '24px 28px' }}>
               <ActivityTimeline subjectType="lead" subjectId={sel.id} />
@@ -900,7 +1111,7 @@ export const Leads: React.FC = () => {
           {profileTab === 'notes' && (
             <div style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Internal Notes</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Internal Notes</span>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Only visible to your team</span>
               </div>
               <textarea className="prof-input" style={{ height: 220, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }}
@@ -921,7 +1132,7 @@ export const Leads: React.FC = () => {
           {profileTab === 'documents' && (
             <div style={{ padding: '24px 28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Documents</span>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)', opacity: fileUploading ? 0.7 : 1 }}>
                   <Icon name="upload" size={13} strokeWidth={2} />
                   {fileUploading ? 'Uploading…' : 'Upload File'}
@@ -978,7 +1189,7 @@ export const Leads: React.FC = () => {
           <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
             <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
-                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
+                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
                 <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
               </div>
               <form onSubmit={handleAdd}>
@@ -1022,7 +1233,7 @@ export const Leads: React.FC = () => {
                     <Select value={addForm.stage} onValueChange={v => setF('stage', v)}>
                       <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {STAGES.filter(s => s !== 'WON' && s !== 'LOST').map(s => <SelectItem key={s} value={s}>{STAGE_CFG[s].label}</SelectItem>)}
+                        {stageIds.filter(s => !isTerminal(s)).map(s => <SelectItem key={s} value={s}>{liveStageCfg[s]?.label || s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1047,6 +1258,18 @@ export const Leads: React.FC = () => {
                       searchPlaceholder="Search people…"
                     />
                   </div>
+                  {territories.length > 0 && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Territory</label>
+                      <Select value={addForm.territory_id || '__none__'} onValueChange={v => setF('territory_id', v === '__none__' ? '' : v)}>
+                        <SelectTrigger className="input-field"><SelectValue placeholder="No territory" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— No territory —</SelectItem>
+                          {territories.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
                     <textarea className="input-field" placeholder="Brief description of the opportunity…" rows={3}
@@ -1069,6 +1292,7 @@ export const Leads: React.FC = () => {
      LIST VIEW
   ══════════════════════ */
   return (
+    <LeadStagesContext.Provider value={stagesCtx}>
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['CRM', 'Leads']}
@@ -1101,7 +1325,7 @@ export const Leads: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
             <SingleSelectFilter
               label="Stage" allLabel="All Stages"
-              options={STAGES.map(s => ({ value: s, label: STAGE_CFG[s].label }))}
+              options={stageIds.map(s => ({ value: s, label: liveStageCfg[s]?.label || s }))}
               value={filterStage || null} onChange={v => { setFilterStage(v || ''); setPage(1); }}
             />
             <SingleSelectFilter
@@ -1114,8 +1338,29 @@ export const Leads: React.FC = () => {
               options={[{ value: 'HIGH', label: 'High' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'LOW', label: 'Low' }]}
               value={filterPriority || null} onChange={v => { setFilterPriority(v || ''); setPage(1); }}
             />
-            {(search || filterStage || filterSource || filterPriority) && (
-              <button type="button" onClick={() => { setSearch(''); setFilterStage(''); setFilterSource(''); setFilterPriority(''); setPage(1); }}
+            {territories.length > 0 && (
+              <SingleSelectFilter
+                label="Territory" allLabel="All Territories"
+                options={territories.map(t => ({ value: t.id, label: t.name }))}
+                value={filterTerritory || null} onChange={v => { setFilterTerritory(v || ''); setPage(1); }}
+              />
+            )}
+            {savedViews.length > 0 && (
+              <Select value={activeViewId || '__none__'} onValueChange={v => { setActiveViewId(v === '__none__' ? null : v); setPage(1); }}>
+                <SelectTrigger style={{ minWidth: 140, height: 'var(--ctl-h-sm)', fontSize: 12.5 }}>
+                  <SelectValue placeholder="Saved view" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">All leads</SelectItem>
+                  {savedViews.map(v => (
+                    <SelectItem key={v.id} value={v.id}>{v.name} ({v.count})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {(search || filterStage || filterSource || filterPriority || filterTerritory || activeViewId) && (
+              <button type="button" onClick={() => { setSearch(''); setFilterStage(''); setFilterSource(''); setFilterPriority(''); setFilterTerritory(''); setActiveViewId(null); setViewMatchIds(null); setPage(1); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: '0 2px' }}>
                 Clear
               </button>
@@ -1132,14 +1377,39 @@ export const Leads: React.FC = () => {
             </div>
           </div>
 
+          {/* Bulk-action bar — only when rows are selected */}
+          {selectedIds.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--teal-l)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{selectedIds.length} selected</span>
+              <Select value={bulkAction || '__none__'} onValueChange={v => setBulkAction(v === '__none__' ? '' : v)}>
+                <SelectTrigger style={{ width: 180, height: 'var(--ctl-h-sm)' }}>
+                  <SelectValue placeholder="Choose action…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Choose action…</SelectItem>
+                  {stageIds.map(s => <SelectItem key={s} value={s}>Move to {liveStageCfg[s]?.label || s}</SelectItem>)}
+                  <SelectItem value="export">Export CSV</SelectItem>
+                  <SelectItem value="delete">Delete</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button size="sm" disabled={!bulkAction || bulkApplying} onClick={handleBulkApply}>
+                {bulkApplying ? 'Applying…' : 'Apply'}
+              </Button>
+              <button type="button" onClick={() => { setSelectedIds([]); setBulkAction(''); }}
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>
+                Clear selection
+              </button>
+            </div>
+          )}
+
           {/* Stage chips */}
           <div style={{ display: 'flex', gap: 6, padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', flexWrap: 'wrap' }}>
             <button type="button" className={`fc${!filterStage ? ' on' : ''}`} onClick={() => { setFilterStage(''); setPage(1); }}>
               All ({leads.length})
             </button>
-            {STAGES.map(s => (
+            {stageIds.map(s => (
               <button key={s} type="button" className={`fc${filterStage === s ? ' on' : ''}`} onClick={() => { setFilterStage(filterStage === s ? '' : s); setPage(1); }}>
-                {STAGE_CFG[s].label} ({leads.filter(l => l.stage === s).length})
+                {liveStageCfg[s]?.label || s} ({leads.filter(l => l.stage === s).length})
               </button>
             ))}
           </div>
@@ -1261,7 +1531,7 @@ export const Leads: React.FC = () => {
           <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
               <div>
-                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
+                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
                 <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 0' }}>Fill in the prospect details below</p>
               </div>
               <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
@@ -1332,6 +1602,18 @@ export const Leads: React.FC = () => {
                     searchPlaceholder="Search people…"
                   />
                 </div>
+                {territories.length > 0 && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Territory</label>
+                    <Select value={addForm.territory_id || '__none__'} onValueChange={v => setF('territory_id', v === '__none__' ? '' : v)}>
+                      <SelectTrigger className="input-field"><SelectValue placeholder="No territory" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— No territory —</SelectItem>
+                        {territories.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
                   <textarea className="input-field" placeholder="Brief description of the opportunity…" rows={3}
@@ -1347,5 +1629,6 @@ export const Leads: React.FC = () => {
         </div>
       )}
     </div>
+    </LeadStagesContext.Provider>
   );
 };

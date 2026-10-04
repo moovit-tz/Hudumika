@@ -104,7 +104,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
   </div>
 
   <div class="footer">
-    <div>Hudumika ClearOS Container Intelligence · Document ID: ${container.container_number}-CERT</div>
+    <div>Hudumika ClearOS Container Report · Document ID: ${container.container_number}-CERT</div>
     <div>Official Digital Record &copy; ${new Date().getFullYear()}</div>
   </div>
 </body>

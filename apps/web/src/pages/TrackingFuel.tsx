@@ -5,6 +5,9 @@ import { Icon } from '../components/Icon.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { Button } from '../components/ui/button.js';
 
 interface FuelLog {
   id: string; vehicle_id: string; driver_id: string | null; liters: number;
@@ -31,6 +34,16 @@ export const TrackingFuel: React.FC = () => {
 
   const totalCost = logs.reduce((s, l) => s + (l.cost ?? 0), 0);
   const totalLiters = logs.reduce((s, l) => s + l.liters, 0);
+  const columns: TableColumn<FuelLog>[] = [
+    { key: 'vehicle', header: 'Vehicle', accessor: 'vehicle_name', sortable: true, render: log => <span className="font-semibold text-foreground">{log.vehicle_name ?? '—'}{log.vehicle_plate ? ` (${log.vehicle_plate})` : ''}</span> },
+    { key: 'driver', header: 'Driver', accessor: 'driver_name', sortable: true, render: log => log.driver_name ?? '—' },
+    { key: 'liters', header: 'Liters', accessor: 'liters', sortable: true, align: 'right', render: log => `${log.liters.toLocaleString()} L` },
+    { key: 'cost', header: 'Cost', accessor: 'cost', sortable: true, align: 'right', render: log => log.cost != null ? log.cost.toLocaleString() : '—' },
+    { key: 'odometer', header: 'Odometer', accessor: 'odometer_km', sortable: true, align: 'right', hideAt: 'sm', render: log => log.odometer_km != null ? `${log.odometer_km.toLocaleString()} km` : '—' },
+    { key: 'station', header: 'Station', accessor: 'station', sortable: true, hideAt: 'md', render: log => log.station || '—' },
+    { key: 'date', header: 'Date', accessor: 'logged_at', sortable: true, render: log => new Date(log.logged_at).toLocaleDateString() },
+    { key: 'action', header: '', align: 'right', width: 48, render: log => <Button type="button" variant="ghost" size="icon" aria-label={`Delete fuel entry for ${log.vehicle_name ?? 'vehicle'}`} onClick={() => remove(log.id)}><Icon name="trash" size={14} /></Button> },
+  ];
 
   return (
     <div style={{ padding: '0 0 24px'}}>
@@ -43,43 +56,18 @@ export const TrackingFuel: React.FC = () => {
             subtitle={<>{totalLiters.toFixed(1)} L logged · {totalCost.toLocaleString()} total cost</>}
           />
         </div>
-        <Link to="/tracking/fuel/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
-          <Icon name="plus" size={15} /> Log fuel entry
-        </Link>
+        <Button asChild><Link to="/tracking/fuel/new"><Icon name="plus" size={15} />Log fuel entry</Link></Button>
       </div>
 
-      <SectionCard>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-              {['Vehicle', 'Driver', 'Liters', 'Cost', 'Odometer', 'Station', 'Date', ''].map(h => (
-                <th key={h} style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && logs.map(l => (
-              <tr key={l.id} style={{ borderTop: '1px solid var(--border)' }}>
-                <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{l.vehicle_name ?? '—'}{l.vehicle_plate ? ` (${l.vehicle_plate})` : ''}</td>
-                <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.driver_name ?? '—'}</td>
-                <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.liters} L</td>
-                <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.cost != null ? l.cost.toLocaleString() : '—'}</td>
-                <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.odometer_km != null ? `${l.odometer_km} km` : '—'}</td>
-                <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.station || '—'}</td>
-                <td style={{ padding: '10px 14px', color: 'var(--ink3)', fontSize: 12 }}>{new Date(l.logged_at).toLocaleDateString()}</td>
-                <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                  <button type="button" onClick={() => remove(l.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
-                    <Icon name="close" size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!loading && logs.length === 0 && (
-          <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No fuel entries yet.</div>
-        )}
+      <MetricsRow cards={[
+        { title: 'Fuel entries', value: String(logs.length), comparisonLabel: 'Recorded transactions', barHighlight: 'var(--teal)', loading },
+        { title: 'Fuel volume', value: `${totalLiters.toLocaleString(undefined, { maximumFractionDigits: 1 })} L`, comparisonLabel: 'Total logged volume', barHighlight: 'var(--blue)', loading },
+        { title: 'Fuel cost', value: totalCost.toLocaleString(), comparisonLabel: 'Total recorded spend', barHighlight: 'var(--gold)', loading },
+        { title: 'Average cost / litre', value: totalLiters > 0 ? (totalCost / totalLiters).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—', comparisonLabel: totalLiters > 0 ? 'Cost ÷ litres' : 'Needs volume and cost data', barHighlight: 'var(--green)', loading },
+      ]} />
+
+      <SectionCard padded={false}>
+        <DataTable columns={columns} rows={logs} loading={loading} empty={!loading && logs.length === 0} emptyIcon="activity" emptyTitle="No fuel entries" emptyMessage="Fuel transactions appear here after the first entry is logged." defaultSortKey="date" defaultSortDir="desc" pageSize={15} />
       </SectionCard>
     </div>
   );

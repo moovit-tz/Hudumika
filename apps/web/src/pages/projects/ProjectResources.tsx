@@ -5,6 +5,8 @@ import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Combobox } from '../../components/ui/combobox.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import type {
   ProjectResource,
   ProjectResourceAllocation,
@@ -298,17 +300,19 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Asset Type *
                   </label>
-                  <select
+                  <Select
                     value={resType}
-                    onChange={(e: any) => setResType(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    onValueChange={value => setResType(value as ProjectResourceType)}
                   >
-                    <option value="heavy_machinery">Heavy Machinery</option>
-                    <option value="vehicle">Vehicle / Hauler</option>
-                    <option value="equipment">Specialized Equipment</option>
-                    <option value="facility">Plant / Facility</option>
-                    <option value="personnel">Specialist Personnel</option>
-                  </select>
+                    <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="heavy_machinery">Heavy Machinery</SelectItem>
+                      <SelectItem value="vehicle">Vehicle / Hauler</SelectItem>
+                      <SelectItem value="equipment">Specialized Equipment</SelectItem>
+                      <SelectItem value="facility">Plant / Facility</SelectItem>
+                      <SelectItem value="personnel">Specialist Personnel</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
@@ -421,19 +425,13 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                   Select Asset *
                 </label>
-                <select
-                  required
+                <Combobox
                   value={allocResourceId}
-                  onChange={(e) => setAllocResourceId(e.target.value)}
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                >
-                  <option value="">Select Machinery / Equipment</option>
-                  {resources.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} ({r.code || r.resource_type})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setAllocResourceId}
+                  options={resources.map(resource => ({ value: resource.id, label: resource.name, sublabel: resource.code || resource.resource_type }))}
+                  placeholder="Select machinery or equipment"
+                  searchPlaceholder="Search fleet assets"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

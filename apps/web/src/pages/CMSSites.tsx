@@ -319,9 +319,9 @@ export function CMSSites() {
                           padding: '6px 10px',
                           fontSize: 12,
                           borderRadius: 6,
-                          border: '1px solid #fee2e2',
-                          background: '#fff1f2',
-                          color: '#dc2626',
+                          border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))',
+                          background: 'var(--red-l)',
+                          color: 'var(--red)',
                           cursor: 'pointer',
                         }}
                       >

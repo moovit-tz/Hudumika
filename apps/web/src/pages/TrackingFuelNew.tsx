@@ -5,12 +5,12 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Driver { id: string; name: string }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24 };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 export const TrackingFuelNew: React.FC = () => {
@@ -78,19 +78,17 @@ export const TrackingFuelNew: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Liters</label><input required type="number" step="0.01" value={liters} onChange={e => setLiters(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><input type="number" value={cost} onChange={e => setCost(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Liters</label><Input required type="number" step="0.01" value={liters} onChange={e => setLiters(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><Input type="number" value={cost} onChange={e => setCost(e.target.value)} /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} style={inputStyle} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Station</label><input value={station} onChange={e => setStation(e.target.value)} style={inputStyle} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><Input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Station</label><Input value={station} onChange={e => setStation(e.target.value)} /></div>
         </div>
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-          <Link to="/tracking/fuel" style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
-          <button type="submit" disabled={saving || !vehicleId || !liters} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving ? 'Saving…' : 'Log fuel entry'}
-          </button>
+          <Button type="button" variant="outline" asChild><Link to="/tracking/fuel">Cancel</Link></Button>
+          <Button type="submit" disabled={saving || !vehicleId || !liters}>{saving ? 'Saving…' : 'Log fuel entry'}</Button>
         </div>
       </form>
       </SectionCard>

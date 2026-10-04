@@ -5,6 +5,8 @@ import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 
 interface Issue {
   id: string; vehicle_id: string; title: string; severity: string; status: string;
@@ -12,12 +14,11 @@ interface Issue {
   assigned_to_name: string | null; due_date: string | null; created_at: string;
 }
 
-const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: 'var(--green)', bg: 'var(--green-l)' }, MEDIUM: { color: 'var(--gold)', bg: 'var(--gold-l)' },
-  HIGH: { color: 'var(--gold)', bg: 'var(--gold-l)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--red-l)' },
+const SEVERITY_VARIANT: Record<string, 'success' | 'warning' | 'error'> = {
+  LOW: 'success', MEDIUM: 'warning', HIGH: 'warning', CRITICAL: 'error',
 };
-const STATUS_CFG: Record<string, { color: string; bg: string }> = {
-  OPEN: { color: 'var(--red)', bg: 'var(--red-l)' }, IN_PROGRESS: { color: 'var(--blue)', bg: 'var(--blue-l)' }, RESOLVED: { color: 'var(--green)', bg: 'var(--green-l)' },
+const STATUS_VARIANT: Record<string, 'error' | 'info' | 'success'> = {
+  OPEN: 'error', IN_PROGRESS: 'info', RESOLVED: 'success',
 };
 const STATUS_FILTERS = ['All', 'OPEN', 'IN_PROGRESS', 'RESOLVED'];
 
@@ -48,10 +49,9 @@ export const TrackingIssues: React.FC = () => {
             subtitle="Fleet-wide vehicle issue tracking"
           />
         </div>
-        <Link to="/tracking/issues/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', textDecoration: 'none' }}>
-          <Icon name="plus" size={15} /> Report Issue
-        </Link>
+        <Button asChild>
+          <Link to="/tracking/issues/new"><Icon name="plus" size={15} /> Report Issue</Link>
+        </Button>
       </div>
 
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} variant="segmented">
@@ -75,8 +75,8 @@ export const TrackingIssues: React.FC = () => {
           </thead>
           <tbody>
             {!loading && filtered.map(i => {
-              const pCfg = SEVERITY_CFG[i.severity] ?? SEVERITY_CFG.MEDIUM;
-              const sCfg = STATUS_CFG[i.status] ?? STATUS_CFG.OPEN;
+              const sevVariant = SEVERITY_VARIANT[i.severity] ?? 'warning';
+              const statVariant = STATUS_VARIANT[i.status] ?? 'error';
               return (
                 <tr key={i.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 600 }}>
@@ -88,10 +88,10 @@ export const TrackingIssues: React.FC = () => {
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{i.vehicle_name}{i.vehicle_plate ? ` (${i.vehicle_plate})` : ''}</td>
                   <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: pCfg.color }}>{i.severity}</span>
+                    <Badge variant={sevVariant}>{i.severity}</Badge>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: sCfg.bg, color: sCfg.color }}>{i.status.replace('_', ' ')}</span>
+                    <Badge variant={statVariant}>{i.status.replace('_', ' ')}</Badge>
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{i.assigned_to_name || '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(i.created_at).toLocaleDateString()}</td>

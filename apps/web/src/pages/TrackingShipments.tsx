@@ -7,6 +7,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { showAlert } from '../lib/alert.js';
 
 interface Trip {
@@ -34,12 +36,9 @@ const CROSSING_STATUS_COLOR: Record<string, string> = {
   PENDING: 'var(--ink3)', IN_PROGRESS: 'var(--gold)', CLEARED: 'var(--green)', DELAYED: 'var(--red)', REJECTED: 'var(--red)',
 };
 
-const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
-  PLANNED:     { bg: 'hsl(var(--muted))', fg: 'hsl(var(--muted-foreground))', dot: 'hsl(var(--muted-foreground))' },
-  IN_PROGRESS: { bg: 'var(--green-l)', fg: 'var(--green)', dot: 'var(--green)' },
-  COMPLETED:   { bg: 'var(--blue-l)', fg: 'var(--blue)', dot: 'var(--blue)' },
-  CANCELLED:   { bg: 'var(--red-l)', fg: 'var(--red)', dot: 'var(--red)' },
-  DELAYED:     { bg: 'var(--gold-l)', fg: 'var(--gold)', dot: 'var(--gold)' },
+const STATUS_VARIANT: Record<string, 'gray' | 'success' | 'info' | 'error' | 'warning'> = {
+  PLANNED: 'gray', IN_PROGRESS: 'success', COMPLETED: 'info',
+  CANCELLED: 'error', DELAYED: 'warning',
 };
 
 export const TrackingShipments: React.FC = () => {
@@ -183,7 +182,7 @@ export const TrackingShipments: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 'var(--r)', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
         {/* Filters */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -199,10 +198,10 @@ export const TrackingShipments: React.FC = () => {
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="download" size={14} /> Import
             </button>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Export <Icon name="upload" size={14} />
             </button>
           </div>
@@ -220,7 +219,7 @@ export const TrackingShipments: React.FC = () => {
           <tbody>
             {!loading && filteredShipments.map(s => {
               const displayStatus = s.status === 'PLANNED' ? 'Shipped' : s.status === 'IN_PROGRESS' ? 'In Transit' : s.status === 'COMPLETED' ? 'Delivered' : s.status;
-              const sc = STATUS_COLORS[s.status] || STATUS_COLORS['PLANNED'];
+              const statusVariant = STATUS_VARIANT[s.status] ?? 'gray';
               
               return (
                 <React.Fragment key={s.id}>
@@ -238,10 +237,10 @@ export const TrackingShipments: React.FC = () => {
                     </div>
                   </td>
                   <td style={{ padding: '16px 20px' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, background: sc.bg, color: sc.fg }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: sc.dot }} />
+                    <Badge variant={statusVariant} className="inline-flex items-center gap-1.5">
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
                       {displayStatus}
-                    </span>
+                    </Badge>
                   </td>
                   <td style={{ padding: '16px 20px', color: 'var(--ink2)', fontWeight: 500 }}>
                     {s.customer_id ? (
@@ -271,9 +270,9 @@ export const TrackingShipments: React.FC = () => {
                   </td>
                 </tr>
                 {expandedTrip === s.id && (
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                  <tr style={{ background: 'var(--card-sunken)', borderBottom: '1px solid var(--border)' }}>
                     <td colSpan={7} style={{ padding: '20px' }}>
-                      <div style={{ background: '#fff', padding: 20, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
+                      <div style={{ background: 'var(--white)', padding: 20, borderRadius: 'var(--r)', border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24 }}>
                         <div>
                           <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--ink)' }}>Trip Details</h3>
                           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '12px 0', fontSize: 13 }}>
@@ -315,21 +314,22 @@ export const TrackingShipments: React.FC = () => {
                                 </div>
                                 {alreadyBilled > 0 && <div style={{ color: 'var(--ink3)', fontSize: 12, marginBottom: 8 }}>{alreadyBilled} already invoiced</div>}
                                 {billError[s.id] && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>{billError[s.id]}</div>}
-                                <button
+                                <Button
+                                  type="button"
+                                  size="sm"
                                   disabled={unbilled.length === 0 || billing === s.id || (!s.customer_id && !s.shipment_ref)}
                                   onClick={() => billTripExpenses(s.id)}
-                                  className="btn btn-primary"
-                                  style={{ fontSize: 12.5, padding: '6px 14px', opacity: unbilled.length === 0 ? 0.5 : 1 }}
+                                  style={{ opacity: unbilled.length === 0 ? 0.5 : 1 }}
                                   title={!s.customer_id && !s.shipment_ref ? 'This trip has no customer to bill' : undefined}
                                 >
                                   {billing === s.id ? 'Billing…' : 'Bill to customer'}
-                                </button>
+                                </Button>
                               </div>
                             );
                           })()}
                         </div>
                       </div>
-                      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', marginTop: 16, padding: 20, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+                      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--white)', marginTop: 16, padding: 20, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                           <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>Border Crossings</h3>
                           <button type="button" onClick={() => setAddingCrossing(a => a === s.id ? null : s.id)}

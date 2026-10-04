@@ -27,7 +27,7 @@
   position: relative;
   border-radius: var(--r, 16px);
   padding: 22px 24px;
-  color: #ffffff;
+  color: var(--white);
   overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
   display: flex;
@@ -43,11 +43,11 @@
 }
 
 .cc-topo-red {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 45%, #9f1239 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--red) 110%, #000) 0%, var(--red) 45%, color-mix(in srgb, var(--red) 70%, #000) 100%);
 }
 
 .cc-topo-purple {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 45%, #3730a3 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--purple) 110%, #000) 0%, var(--purple) 45%, color-mix(in srgb, var(--purple) 70%, #000) 100%);
 }
 
 .cc-topo-svg-bg {
@@ -70,7 +70,7 @@
   background: rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  color: var(--white);
 }
 
 .cc-topo-val-main {
@@ -148,10 +148,10 @@
 
 /* ── Banner Card (Upgrade / Telephony CTA) ── */
 .cc-banner-card {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 45%, #c2410c 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 110%, #000) 0%, var(--gold) 45%, color-mix(in srgb, var(--gold) 70%, #000) 100%);
   border-radius: var(--r, 16px);
   padding: 24px 28px;
-  color: #ffffff;
+  color: var(--white);
   position: relative;
   overflow: hidden;
   box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.25);
@@ -172,7 +172,7 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
   font-size: 12px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--white);
 }
 
 .cc-banner-btn {
@@ -182,8 +182,8 @@
   gap: 8px;
   padding: 10px 20px;
   border-radius: 10px;
-  background: #ffffff;
-  color: #ea580c;
+  background: var(--white);
+  color: hsl(var(--primary));
   font-size: 13px;
   font-weight: 700;
   border: none;
@@ -195,7 +195,7 @@
 .cc-banner-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  background: #fffbf7;
+  background: var(--bg);
 }
 
 /* ── Timeframe Pills ── */

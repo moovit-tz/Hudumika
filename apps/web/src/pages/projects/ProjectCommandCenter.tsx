@@ -54,7 +54,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
     return (
       <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
         <div style={{ width: 32, height: 32, border: '3px solid var(--teal)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: 12 }} />
-        <p style={{ fontSize: 13.5, fontWeight: 600 }}>Loading Project OS Command Center...</p>
+        <p style={{ fontSize: 13.5, fontWeight: 600 }}>Loading project portfolio...</p>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
               Multi-Tenant Governance & Portfolio Operations
             </h2>
             <p style={{ margin: '6px 0 0', fontSize: 13, opacity: 0.85, maxWidth: 640 }}>
-              Real-time earned value indices, stage-gate signoffs, fleet telemetry, and automated procurement across all active capital programs.
+              Review project cost and schedule performance, approvals, fleet activity, and procurement across active programs.
             </p>
           </div>
 

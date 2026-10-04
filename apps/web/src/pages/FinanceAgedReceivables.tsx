@@ -7,6 +7,8 @@ import type { AgedReport, AgedRow } from '@hudumika/types';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 
 export const FinanceAgedReceivables: React.FC = () => {
   const co = useCompany();
@@ -53,13 +55,14 @@ export const FinanceAgedReceivables: React.FC = () => {
   const overdue = totals.days_1_30 + totals.days_31_60 + totals.days_61_90 + totals.days_90_plus;
   const asOf = report?.as_of ?? '';
 
-  function riskBadge(row: AgedRow) {
-    if (row.days_90_plus > 0) return { label: 'High Risk', color: 'var(--red)', bg: 'var(--red-l)' };
-    if (row.days_61_90 > 0)   return { label: 'At Risk',   color: 'var(--gold)',    bg: 'var(--gold-l)' };
-    if (row.days_31_60 > 0)   return { label: 'Overdue',   color: 'var(--red)', bg: 'var(--red-l)' };
-    if (row.days_1_30 > 0)    return { label: 'Due',       color: 'var(--gold)',    bg: 'var(--gold-l)' };
-    if (row.current > 0)      return { label: 'Current',   color: 'var(--green)', bg: 'var(--green-l)' };
-    return                           { label: 'Cleared',  color: 'var(--ink3)', bg: 'var(--bg)' };
+  type BadgeVariant = 'error' | 'warning' | 'success' | 'gray';
+  function riskBadge(row: AgedRow): { label: string; variant: BadgeVariant } {
+    if (row.days_90_plus > 0) return { label: 'High Risk', variant: 'error' };
+    if (row.days_61_90 > 0)   return { label: 'At Risk',   variant: 'warning' };
+    if (row.days_31_60 > 0)   return { label: 'Overdue',   variant: 'error' };
+    if (row.days_1_30 > 0)    return { label: 'Due',       variant: 'warning' };
+    if (row.current > 0)      return { label: 'Current',   variant: 'success' };
+    return                           { label: 'Cleared',   variant: 'gray' };
   }
 
   function exportCsv() {
@@ -82,9 +85,9 @@ export const FinanceAgedReceivables: React.FC = () => {
         titleEm="receivables"
         subtitle={`Outstanding customer balances by age${asOf ? ` — as of ${asOf}` : ''}`}
         actions={
-          <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+          <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
             <Icon name="download" size={13} /> Export
-          </button>
+          </Button>
         }
       />
 
@@ -173,7 +176,7 @@ export const FinanceAgedReceivables: React.FC = () => {
                       <td style={{ padding: '10px 16px', color: 'var(--purple)',       fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.days_90_plus)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 700, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(c.total)}</td>
                       <td style={{ padding: '10px 16px' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>{badge.label}</span>
+                        <Badge variant={badge.variant}>{badge.label}</Badge>
                       </td>
                       <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
                         {customerId && (

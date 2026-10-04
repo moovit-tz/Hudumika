@@ -1,6 +1,6 @@
 .esc-page {
-  padding: 20px;
-  background: var(--bg);
+  padding: 0;
+  background: transparent;
   height: 100%;
   overflow-y: auto;
   font-family: var(--font);

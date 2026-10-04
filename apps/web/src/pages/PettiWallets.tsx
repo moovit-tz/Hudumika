@@ -143,7 +143,7 @@ export function PettiWallets() {
         crumbs={['Petti', 'Wallets']}
         titlePlain="Petty Cash"
         titleEm="wallets"
-        subtitle="Manage multi-currency operational cash vaults, track real-time liquidity, and route department disbursements."
+        subtitle="Manage cash wallets, available balances, and department disbursements across currencies."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented">

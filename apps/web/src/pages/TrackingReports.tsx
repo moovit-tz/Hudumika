@@ -10,6 +10,10 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { Button } from '../components/ui/button.js';
+import { Banner } from '../components/ui/alert.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
 
@@ -17,6 +21,7 @@ interface Vehicle { id: string; name: string; plate_number: string | null }
 interface FuelLog { vehicle_id: string; liters: number; cost: number | null; logged_at: string }
 interface Trip { vehicle_id: string; status: string; origin: string | null; destination: string | null; scheduled_start: string | null }
 interface Maintenance { vehicle_id: string; service_type: string; cost: number | null; service_date: string }
+interface PreviewRow { id: string; primary: string; secondary: string }
 
 const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const REPORT_TYPES = [
@@ -113,6 +118,15 @@ export const TrackingReports: React.FC = () => {
   const totalFuelCost = fuel.reduce((s, f) => s + (f.cost ?? 0), 0);
   const totalMaintenanceCost = maintenance.reduce((s, m) => s + (m.cost ?? 0), 0);
   const completedTrips = trips.filter(t => t.status === 'COMPLETED').length;
+  const previewRows: PreviewRow[] = (preview?.vehicles ?? preview?.records ?? preview?.logs ?? preview?.trips ?? preview?.issues ?? []).slice(0, 15).map((row: any, index: number) => ({
+    id: row.id ?? `${reportType}-${index}`,
+    primary: row.name || row.vehicle_name || vehicleName(row.vehicle_id),
+    secondary: row.title || row.service_type || row.status || row.plate_number || '—',
+  }));
+  const previewColumns: TableColumn<PreviewRow>[] = [
+    { key: 'record', header: 'Record', accessor: 'primary', sortable: true, render: row => <span className="font-semibold text-foreground">{row.primary}</span> },
+    { key: 'detail', header: 'Detail', accessor: 'secondary', sortable: true },
+  ];
 
   async function loadPreview() {
     setLoadingPreview(true); setLocked(false);
@@ -154,61 +168,32 @@ export const TrackingReports: React.FC = () => {
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>To</div>
           <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} triggerClassName="w-[160px]" />
         </div>
-        <button type="button" onClick={loadPreview} disabled={loadingPreview}
-          style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Button type="button" variant="outline" onClick={loadPreview} disabled={loadingPreview}>
           {loadingPreview ? 'Loading…' : 'Preview'}
-        </button>
-        <button type="button" onClick={() => preview && generateReportPDF(reportType, from, to, preview, vehicleName)} disabled={!preview}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: preview ? 'pointer' : 'default', opacity: preview ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        </Button>
+        <Button type="button" onClick={() => preview && generateReportPDF(reportType, from, to, preview, vehicleName)} disabled={!preview}>
           <Icon name="download" size={14} /> Generate PDF
-        </button>
+        </Button>
       </div>
 
       {locked && (
-        <div style={{ ...cardStyle, marginBottom: 20, textAlign: 'center', padding: '30px 20px' }}>
-          <Icon name="lock" size={22} color="var(--ink3)" />
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 8 }}>Report generation requires the Advanced plan or higher</div>
-          <a href="/subscription" style={{ display: 'inline-block', marginTop: 10, fontSize: 13, color: 'var(--teal)', fontWeight: 600 }}>View plans</a>
-        </div>
+        <div className="mb-5"><Banner variant="warning" title="Advanced plan required">Report generation requires the Advanced plan or higher. <a href="/subscription" className="font-semibold underline">View plans</a></Banner></div>
       )}
 
       {preview && (
         <div style={{ marginBottom: 20 }}>
         <SectionCard title="Preview">
-          <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <tbody>
-              {(preview.vehicles ?? preview.records ?? preview.logs ?? preview.trips ?? preview.issues ?? []).slice(0, 15).map((row: any, i: number) => (
-                <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '6px 8px' }}>{row.name || row.vehicle_name || vehicleName(row.vehicle_id)}</td>
-                  <td style={{ padding: '6px 8px', color: 'var(--ink3)' }}>{row.title || row.service_type || row.status || row.plate_number || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
+          <DataTable columns={previewColumns} rows={previewRows} empty={previewRows.length === 0} emptyIcon="fileText" emptyTitle="No preview records" emptyMessage="No records matched the selected report and date range." pageSize={15} />
         </SectionCard>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Vehicles</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{vehicles.length}</div>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Completed trips</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{completedTrips}</div>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Total fuel cost</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{totalFuelCost.toLocaleString()}</div>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Total maintenance cost</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{totalMaintenanceCost.toLocaleString()}</div>
-        </div>
-      </div>
+      <MetricsRow cards={[
+        { title: 'Vehicles', value: String(vehicles.length), comparisonLabel: 'Fleet records', barHighlight: 'var(--teal)' },
+        { title: 'Completed trips', value: String(completedTrips), comparisonLabel: `${trips.length} total trips`, barHighlight: 'var(--green)' },
+        { title: 'Total fuel cost', value: totalFuelCost.toLocaleString(), comparisonLabel: `${fuel.length} fuel entries`, barHighlight: 'var(--gold)' },
+        { title: 'Maintenance cost', value: totalMaintenanceCost.toLocaleString(), comparisonLabel: `${maintenance.length} service records`, barHighlight: 'var(--blue)' },
+      ]} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <SectionCard title="Fuel cost by month">

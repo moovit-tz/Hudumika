@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import type {
   ProjectRisk,
   ProjectIssue,
@@ -518,32 +519,36 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Probability
                   </label>
-                  <select
+                  <Select
                     value={riskProb}
-                    onChange={(e: any) => setRiskProb(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    onValueChange={value => setRiskProb(value as typeof riskProb)}
                   >
-                    <option value="unlikely">Unlikely (10%)</option>
-                    <option value="possible">Possible (30%)</option>
-                    <option value="likely">Likely (60%)</option>
-                    <option value="almost_certain">Almost Certain (90%)</option>
-                  </select>
+                    <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unlikely">Unlikely (10%)</SelectItem>
+                      <SelectItem value="possible">Possible (30%)</SelectItem>
+                      <SelectItem value="likely">Likely (60%)</SelectItem>
+                      <SelectItem value="almost_certain">Almost Certain (90%)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Impact
                   </label>
-                  <select
+                  <Select
                     value={riskImpact}
-                    onChange={(e: any) => setRiskImpact(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    onValueChange={value => setRiskImpact(value as typeof riskImpact)}
                   >
-                    <option value="negligible">Negligible</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                    <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="negligible">Negligible</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -564,16 +569,18 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Response Strategy
                   </label>
-                  <select
+                  <Select
                     value={riskStrategy}
-                    onChange={(e: any) => setRiskStrategy(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    onValueChange={value => setRiskStrategy(value as typeof riskStrategy)}
                   >
-                    <option value="mitigate">Mitigate</option>
-                    <option value="avoid">Avoid</option>
-                    <option value="transfer">Transfer (Insurance/Contract)</option>
-                    <option value="accept">Accept</option>
-                  </select>
+                    <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mitigate">Mitigate</SelectItem>
+                      <SelectItem value="avoid">Avoid</SelectItem>
+                      <SelectItem value="transfer">Transfer (Insurance/Contract)</SelectItem>
+                      <SelectItem value="accept">Accept</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -634,16 +641,18 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Severity
                   </label>
-                  <select
+                  <Select
                     value={issueSeverity}
-                    onChange={(e: any) => setIssueSeverity(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    onValueChange={value => setIssueSeverity(value as typeof issueSeverity)}
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
-                  </select>
+                    <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">

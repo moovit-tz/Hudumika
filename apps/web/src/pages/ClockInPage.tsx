@@ -493,7 +493,7 @@ export function ClockInPage() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
               <Icon name="clock" size={14} color="var(--teal)" />
-              <span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--navy)' }}>
+              <span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>
                 {formatTimer(elapsedSeconds)}
               </span>
             </div>
@@ -512,19 +512,19 @@ export function ClockInPage() {
               );
             })()}
 
-            <button type="button" className="btn btn-secondary" onClick={handleExportCsv} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
               <Icon name="download" size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
-            </button>
+            </Button>
 
             {(!myApproval || myApproval.status === 'REJECTED') && (
-              <button type="button" className="btn btn-primary" onClick={handleSubmitForApproval} disabled={submittingSheet} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Button onClick={handleSubmitForApproval} disabled={submittingSheet}>
                 <Icon name="send" size={14} /> {submittingSheet ? 'Submitting…' : (myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval')}
-              </button>
+              </Button>
             )}
 
-            <button type="button" className="btn btn-secondary" onClick={() => setShowManualModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Button variant="outline" onClick={() => setShowManualModal(true)}>
               <Icon name="plus" size={14} /> Entry log
-            </button>
+            </Button>
           </div>
         }
       />
@@ -540,7 +540,7 @@ export function ClockInPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <PersonAvatar userId={user?.id} name={userProfile?.name || user?.name || 'User'} size={44} style={{ boxShadow: 'var(--elev-sm)' }} />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
               Welcome, {userProfile?.name || user?.name || 'there'}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
@@ -575,7 +575,7 @@ export function ClockInPage() {
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
                 <PersonAvatar userId={a.user_id} name={a.employee_name || 'Employee'} size={34} />
                 <div style={{ flex: 1, minWidth: 160 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{a.employee_name || 'Employee'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{a.employee_name || 'Employee'}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                     {new Date(a.period_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(a.period_end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
                     {' · '}{(a.total_worked_minutes / 60).toFixed(1)}h · {a.session_count} session{a.session_count === 1 ? '' : 's'}
@@ -670,7 +670,7 @@ export function ClockInPage() {
           <div>
             <div style={{ background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>Total hours (Until today)</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)' }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)' }}>
                 {formatHoursMins(workedMinutesTotal)}
               </div>
             </div>
@@ -730,7 +730,7 @@ export function ClockInPage() {
             <div key={row.dateIso} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               
               {/* Row Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                 <span>{row.dateLabel}</span>
                 <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600 }}>Duration: {row.durationHours}</span>
               </div>
@@ -741,7 +741,7 @@ export function ClockInPage() {
                 {/* Left Clock In Badge */}
                 <div style={{ width: 120, fontSize: 11, color: 'var(--ink3)', flexShrink: 0 }}>
                   <span style={{ color: 'var(--ink3)' }}>Clock-in</span>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>{row.clockInTime}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{row.clockInTime}</div>
                 </div>
 
                 {/* Center Timeline Segment Bar */}
@@ -770,7 +770,7 @@ export function ClockInPage() {
                 {/* Right Clock Out Badge */}
                 <div style={{ width: 80, fontSize: 11, color: 'var(--ink3)', textAlign: 'right', flexShrink: 0 }}>
                   <span style={{ color: 'var(--ink3)' }}>Clock-out</span>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>{row.clockOutTime}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{row.clockOutTime}</div>
                 </div>
 
               </div>
@@ -788,7 +788,7 @@ export function ClockInPage() {
           <DialogHeader><DialogTitle>Log Manual Time Entry</DialogTitle></DialogHeader>
           <form onSubmit={handleSaveManualEntry} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Date</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Date</label>
               <DatePicker
                 date={parseDateOnly(manualDate)}
                 onChange={d => setManualDate(toDateOnlyString(d))}
@@ -798,7 +798,7 @@ export function ClockInPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Clock In Time</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Clock In Time</label>
                 <Input
                   type="time"
                   value={manualClockIn}
@@ -807,7 +807,7 @@ export function ClockInPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Clock Out Time</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Clock Out Time</label>
                 <Input
                   type="time"
                   value={manualClockOut}
@@ -818,7 +818,7 @@ export function ClockInPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Break (Minutes)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Break (Minutes)</label>
               <Input
                 type="number"
                 value={manualBreakMins}
@@ -828,7 +828,7 @@ export function ClockInPage() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Project / Activity Name</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Project / Activity Name</label>
               <Input
                 type="text"
                 value={manualProject}
@@ -852,7 +852,7 @@ export function ClockInPage() {
         <DialogContent className="sm:max-w-100">
           <DialogHeader><DialogTitle>Reject timesheet</DialogTitle></DialogHeader>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', marginBottom: 4, display: 'block' }}>Reason (optional)</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Reason (optional)</label>
             <Textarea
               value={rejectNote}
               onChange={e => setRejectNote(e.target.value)}

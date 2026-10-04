@@ -7,6 +7,12 @@ import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -139,12 +145,6 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
     }
   }
 
-  const cell: React.CSSProperties = {
-    padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
-    fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)',
-    outline: 'none', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box',
-  };
-
   if (zeroKind) {
     return (
       <div className="card" style={{ maxWidth: 780, marginTop: 16, fontSize: 12.5, color: 'var(--ink3)' }}>
@@ -193,10 +193,10 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
                 <tbody>
                   {rows.map((r, i) => (
                     <tr key={i}>
-                      <td style={{ width: 110 }}><input style={cell} value={r.code}
+                      <td style={{ width: 110 }}><Input value={r.code}
                         onChange={e => update(i, { code: e.target.value.toUpperCase() })} /></td>
-                      <td><input style={cell} value={r.name} onChange={e => update(i, { name: e.target.value })} /></td>
-                      <td style={{ width: 90 }}><input style={cell} type="number" step="0.01" min="0" max="100"
+                      <td><Input value={r.name} onChange={e => update(i, { name: e.target.value })} /></td>
+                      <td style={{ width: 90 }}><Input type="number" step="0.01" min="0" max="100"
                         value={r.rate} onChange={e => update(i, { rate: Number(e.target.value) })} /></td>
                       <td style={{ width: 170 }}>
                         {/* The first component has nothing before it, so the
@@ -217,10 +217,9 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
                         {preview.lines[i]?.base.toFixed(2)}
                       </td>
                       <td style={{ width: 32 }}>
-                        <button type="button" title="Remove" onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+                        <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${r.name || r.code || `component ${i + 1}`}`} onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}>
                           <Icon name="x" size={14} />
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -230,22 +229,21 @@ function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
           )}
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button type="button" className="btn btn-secondary btn-sm"
+            <Button type="button" variant="outline" size="sm"
               onClick={() => setRows(rs => [...rs, { code: '', name: '', rate: 0, basis: 'NET', recoverable: true }])}>
               Add a component
-            </button>
+            </Button>
             {templates.map(t => (
-              <button key={t.label} type="button" className="btn btn-secondary btn-sm"
-                title={t.note}
-                onClick={() => setRows(t.components.map((c: any) => ({ ...c })))}>
-                Use {t.label}
-              </button>
+              <Tip key={t.label} label={t.note}>
+                <Button type="button" variant="outline" size="sm" onClick={() => setRows(t.components.map((c: any) => ({ ...c })))}>
+                  Use {t.label}
+                </Button>
+              </Tip>
             ))}
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving}
-              style={{ marginLeft: 'auto' }}
+            <Button type="button" size="sm" disabled={saving} className="ml-auto"
               onClick={persist}>
               {saving ? 'Saving…' : 'Save breakdown'}
-            </button>
+            </Button>
           </div>
 
           {rows.length > 0 && (
@@ -485,6 +483,8 @@ export function FinanceTaxCodes() {
   const [regState, setRegState] = useState<string>('unknown');
   const [regBusy, setRegBusy] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   /** Move the workspace to another country. Adds that country's codes; never
    *  re-rates or removes what is already there. */
@@ -565,11 +565,29 @@ export function FinanceTaxCodes() {
       onSaved={() => { setShowForm(false); setNotice({ kind: 'ok', text: 'Tax code saved.' }); }} />;
   }
 
-  const th: React.CSSProperties = {
-    padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700,
-    color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
-  };
-  const td: React.CSSProperties = { padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' };
+  const query = search.trim().toLowerCase();
+  const filteredCodes = codes.filter(code => {
+    const matchesQuery = !query || [code.code, code.name, code.jurisdiction, TAX_CODE_KIND_LABEL[code.kind]].some(value => value.toLowerCase().includes(query));
+    return matchesQuery && (!statusFilter || code.status === statusFilter);
+  });
+
+  const columns: TableColumn<TaxCode>[] = [
+    {
+      key: 'code', header: 'Code', accessor: 'code', sortable: true,
+      render: code => <div className="flex items-center gap-1.5"><span className="font-semibold text-foreground">{code.code}</span>{code.isDefault && <Badge variant="brand">Default</Badge>}</div>,
+    },
+    { key: 'name', header: 'Name', accessor: 'name', sortable: true, render: code => <span className="font-medium text-foreground">{code.name}</span> },
+    { key: 'treatment', header: 'Treatment', accessor: 'kind', sortable: true, render: code => <Badge variant={TAX_CODE_KIND_VARIANT[code.kind]}>{TAX_CODE_KIND_LABEL[code.kind]}</Badge> },
+    { key: 'rate', header: 'Rate', accessor: 'rate', sortable: true, align: 'right', render: code => `${code.rate}%` },
+    { key: 'scope', header: 'Used on', accessor: 'appliesTo', sortable: true, hideAt: 'sm', render: code => code.appliesTo === 'BOTH' ? 'Sales & purchases' : code.appliesTo === 'SALES' ? 'Sales' : 'Purchases' },
+    { key: 'recovery', header: 'Input tax', accessor: 'inputTaxRecoverable', sortable: true, hideAt: 'md', render: code => code.inputTaxRecoverable ? 'Recoverable' : 'Not recoverable' },
+    { key: 'jurisdiction', header: 'Jurisdiction', accessor: 'jurisdiction', sortable: true, hideAt: 'md' },
+    { key: 'status', header: 'Status', accessor: 'status', sortable: true, render: code => <Badge variant={code.status === 'active' ? 'success' : 'gray'}>{code.status}</Badge> },
+    {
+      key: 'actions', header: '', width: 48, align: 'right',
+      render: code => <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label={`Actions for ${code.code}`}><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => { setEditing(code); setShowForm(true); }}><Icon name="edit" size={15} />Edit tax code</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => remove(code)}><Icon name="trash" size={15} />Delete tax code</DropdownMenuItem></DropdownMenuContent></DropdownMenu>,
+    },
+  ];
 
   return (
     <div className="page-layout">
@@ -604,10 +622,9 @@ export function FinanceTaxCodes() {
       ]} />
 
       <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => { setEditing(null); setShowForm(true); }}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Tax Code
-        </button>
+        <Button type="button" onClick={() => { setEditing(null); setShowForm(true); }}>
+          <Icon name="plus" size={14} /> New tax code
+        </Button>
       </div>
 
       {notice && (
@@ -664,16 +681,14 @@ export function FinanceTaxCodes() {
               <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
                 {reg.status.registrationLabel ?? 'Registration number'}
               </label>
-              <input value={regNum} onChange={e => setRegNum(e.target.value)}
+              <Input value={regNum} onChange={e => setRegNum(e.target.value)}
                 placeholder={reg.status.registrationLabel ?? 'Number'}
-                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
-                         minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13,
-                         fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', minWidth: 200 }} />
+                className="min-w-50" />
             </div>
-            <button type="button" className="btn btn-secondary btn-sm"
+            <Button type="button" variant="outline" size="sm"
               disabled={regBusy || regState === 'unknown'} onClick={saveRegistration}>
               {regBusy ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           </div>
 
           {reg.status.advisory && (
@@ -726,57 +741,32 @@ export function FinanceTaxCodes() {
         </div>
       )}
 
+      <div className="mb-3">
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search codes, treatments, or jurisdictions…"
+          quickFilter={{
+            label: 'Status', value: statusFilter, onChange: setStatusFilter, allLabel: 'All statuses',
+            options: [{ value: 'active', label: 'Active' }, { value: 'archived', label: 'Archived' }],
+          }}
+        />
+      </div>
+
       <SectionCard padded={false}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
-              {['Code', 'Name', 'Treatment', 'Rate', 'Used on', 'Input tax', 'TRA', 'Jurisdiction', 'Status', ''].map(h => (
-                <th key={h} style={th}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {codes.length === 0 && (
-              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
-                No tax codes yet
-              </td></tr>
-            )}
-            {codes.map(c => (
-              <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
-                  {c.code}
-                  {c.isDefault && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--teal)' }}>DEFAULT</span>}
-                </td>
-                <td style={{ ...td, color: 'var(--ink)', fontWeight: 600 }}>{c.name}</td>
-                <td style={td}>
-                  <Badge variant={TAX_CODE_KIND_VARIANT[c.kind]}>{TAX_CODE_KIND_LABEL[c.kind]}</Badge>
-                </td>
-                <td style={{ ...td, fontFamily: 'var(--font)' }}>{c.rate}%</td>
-                <td style={td}>{c.appliesTo === 'BOTH' ? 'Sales & purchases' : c.appliesTo === 'SALES' ? 'Sales' : 'Purchases'}</td>
-                <td style={td}>{c.inputTaxRecoverable ? 'Recoverable' : 'Not recoverable'}</td>
-                <td style={td}>
-                  {c.traTaxCode === null
-                    ? <span style={{ color: 'var(--ink3)' }}>none</span>
-                    : c.traTaxCode}
-                </td>
-                <td style={td}>{c.jurisdiction}</td>
-                <td style={td}>
-                  <Badge variant={c.status === 'active' ? 'success' : 'gray'}>{c.status}</Badge>
-                </td>
-                <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
-                  <button type="button" title="Edit" onClick={() => { setEditing(c); setShowForm(true); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
-                    <Icon name="edit" size={14} />
-                  </button>
-                  <button type="button" title="Delete" onClick={() => remove(c)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}>
-                    <Icon name="trash" size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns}
+          rows={filteredCodes}
+          filteredEmpty={(!!query || !!statusFilter) && filteredCodes.length === 0}
+          empty={codes.length === 0}
+          emptyIcon="receipt"
+          emptyTitle="No tax codes"
+          emptyMessage="Create a treatment to classify tax correctly on sales and purchases."
+          emptyAction={{ label: 'New tax code', onClick: () => { setEditing(null); setShowForm(true); } }}
+          defaultSortKey="code"
+          defaultSortDir="asc"
+          pageSize={15}
+        />
       </SectionCard>
     </div>
   );

@@ -498,7 +498,7 @@ export const Chat: React.FC = () => {
                 <Icon name="messageSquare" size={13} style={{ marginRight: 8 }} />
                 <span style={{ flex: 1 }}>Unread</span>
                 {totalUnread > 0 && (
-                  <span style={{ fontSize: 9.5, background: 'var(--red)', color: '#ffffff', padding: '1px 5px', borderRadius: 'var(--r)', fontWeight: 800, marginRight: 4 }}>
+                  <span style={{ fontSize: 9.5, background: 'var(--red)', color: 'hsl(var(--red-foreground))', padding: '1px 5px', borderRadius: 'var(--r)', fontWeight: 800, marginRight: 4 }}>
                     {totalUnread}
                   </span>
                 )}

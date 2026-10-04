@@ -16,6 +16,9 @@ import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { QueryState } from '../components/ui/DataTable.js';
 
 interface Category { id: string; name: string; color: string }
 
@@ -61,36 +64,40 @@ export const FinanceExpenseCategories: React.FC = () => {
 
       <SectionCard
         title="Categories"
-        action={<button type="button" className="btn btn-primary btn-sm" onClick={() => setAdding(true)}>+ Add category</button>}
+        action={<Button type="button" size="sm" onClick={() => setAdding(true)}><Icon name="plus" size={14} />Add category</Button>}
       >
         {!loaded ? (
           <SectionLoading />
         ) : cats.length === 0 && !adding ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-            No custom categories yet — the built-in set (Port Charges, Customs Duty, Freight, …) already covers most expenses.
-          </div>
+          <QueryState
+            empty
+            emptyIcon="tag"
+            emptyTitle="No custom categories"
+            emptyMessage="The built-in categories already cover common expenses. Add one when your reporting needs a more specific classification."
+            emptyAction={{ label: 'Add category', onClick: () => setAdding(true) }}
+          ><span /></QueryState>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {cats.map(c => (
               <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px 7px 12px', borderRadius: 'var(--badge-radius)', border: '1px solid var(--border)', background: 'var(--white)' }}>
                 <span style={{ width: 9, height: 9, borderRadius: 99, background: c.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{c.name}</span>
-                <button type="button" title={`Remove ${c.name}`} disabled={saving}
+                <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${c.name}`} disabled={saving}
                   onClick={() => persist(cats.filter(x => x.id !== c.id))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
+                  className="min-h-6 w-6 text-muted-foreground">
                   <Icon name="x" size={12} />
-                </button>
+                </Button>
               </div>
             ))}
             {adding && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <ColorSwatchPicker value={newColor} onChange={setNewColor} />
-                <input className="input-field" placeholder="Category name" autoFocus value={newName}
+                <Input placeholder="Category name" autoFocus value={newName}
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') doAdd(); if (e.key === 'Escape') setAdding(false); }}
-                  style={{ width: 180 }} />
-                <button type="button" className="btn btn-primary btn-sm" onClick={doAdd}>Add</button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setAdding(false); setNewName(''); }}>Cancel</button>
+                  className="w-45" />
+                <Button type="button" size="sm" onClick={doAdd}>Add</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => { setAdding(false); setNewName(''); }}>Cancel</Button>
               </div>
             )}
           </div>

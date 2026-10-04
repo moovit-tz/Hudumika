@@ -6,10 +6,14 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
-import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { showAlert } from '../lib/alert.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 interface Carrier {
   id: string;
@@ -49,6 +53,7 @@ export function CarriersPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', mode: 'OCEAN', scac_or_iata: '', contact_name: '', contact_email: '', contact_phone: '' });
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -63,7 +68,11 @@ export function CarriersPage() {
 
   function load() {
     setLoading(true);
-    apiFetch('/v1/freight-booking/carriers').then(setCarriers).catch(() => {}).finally(() => setLoading(false));
+    setLoadError(null);
+    apiFetch('/v1/freight-booking/carriers').then(setCarriers).catch(() => {
+      setCarriers([]);
+      setLoadError('Could not load carriers.');
+    }).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -129,6 +138,24 @@ export function CarriersPage() {
     }
   }
 
+  const carrierColumns: TableColumn<Carrier>[] = [
+    {
+      key: 'name', header: 'Name', sortable: true,
+      render: carrier => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><CompanyAvatar name={carrier.name} size={26} shape="square" />{carrier.name}</span>,
+    },
+    { key: 'mode', header: 'Mode', render: carrier => MODES.find(mode => mode.value === carrier.mode)?.label || carrier.mode, sortable: true },
+    { key: 'code', header: 'Code', render: carrier => carrier.scac_or_iata || '—' },
+    { key: 'contact', header: 'Contact', render: carrier => carrier.contact_name || carrier.contact_email || '—' },
+    {
+      key: 'status', header: 'Status', width: 120,
+      render: carrier => (
+        <button type="button" onClick={() => toggleActive(carrier)} disabled={togglingId === carrier.id} aria-label={`${carrier.active ? 'Deactivate' : 'Activate'} ${carrier.name}`} style={{ background: 'none', border: 'none', padding: 0, cursor: togglingId === carrier.id ? 'wait' : 'pointer' }}>
+          <Badge variant={carrier.active ? 'success' : 'gray'}>{togglingId === carrier.id ? 'Updating…' : carrier.active ? 'Active' : 'Inactive'}</Badge>
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
       <PageHeader
@@ -138,12 +165,12 @@ export function CarriersPage() {
         subtitle="Shipping lines, airlines, road and rail carriers used for rate cards and bookings"
         actions={
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-secondary btn-lg" onClick={() => setShowDirectory(s => !s)}>
+            <Button type="button" variant="outline" onClick={() => setShowDirectory(s => !s)}>
               <Icon name="search" size={15} /> {showDirectory ? 'Hide directory' : 'Browse directory'}
-            </button>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => setShowForm(s => !s)}>
-              <Icon name={showForm ? 'x' : 'plus'} size={15} /> {showForm ? 'Cancel' : 'Add Carrier'}
-            </button>
+            </Button>
+            <Button type="button" onClick={() => setShowForm(s => !s)}>
+              <Icon name={showForm ? 'x' : 'plus'} size={15} /> {showForm ? 'Cancel' : 'Add carrier'}
+            </Button>
           </div>
         }
       />
@@ -154,29 +181,23 @@ export function CarriersPage() {
         <SectionCard title="Global carrier directory">
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 16 }}>119 real ocean, air, road & rail carriers — search and add with one click</div>
 
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 200 }}>
-              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                className="input-field"
-                value={dirQuery}
-                onChange={e => setDirQuery(e.target.value)}
-                placeholder="Search by name, SCAC/IATA code, or country…"
-                style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 34, height: 42 }}
-              />
-            </div>
-            <SingleSelectFilter
+          <SearchToolbar
+            search={dirQuery}
+            onSearch={setDirQuery}
+            placeholder="Search by name, SCAC/IATA code, or country"
+            actions={<SingleSelectFilter
               label="Mode"
               icon={<Icon name="filter" size={13} />}
               options={MODES}
               value={dirMode}
               onChange={setDirMode}
               allLabel="All modes"
-            />
-          </div>
+            />}
+            className="mb-4"
+          />
 
           {dirLoading ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Searching…</div>
+            <SectionLoading label="Searching carriers…" />
           ) : dirResults.length === 0 ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No carriers match your search.</div>
           ) : (
@@ -223,7 +244,7 @@ export function CarriersPage() {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={fieldLabel}>Name *</label>
-              <input className="input-field" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Maersk Line" />
+              <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Maersk Line" />
             </div>
             <div>
               <label style={fieldLabel}>Mode</label>
@@ -234,70 +255,39 @@ export function CarriersPage() {
             </div>
             <div>
               <label style={fieldLabel}>SCAC / IATA code</label>
-              <input className="input-field" value={form.scac_or_iata} onChange={e => setForm(p => ({ ...p, scac_or_iata: e.target.value }))} placeholder="e.g. MAEU" />
+              <Input value={form.scac_or_iata} onChange={e => setForm(p => ({ ...p, scac_or_iata: e.target.value }))} placeholder="e.g. MAEU" />
             </div>
             <div>
               <label style={fieldLabel}>Contact name</label>
-              <input className="input-field" value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} />
+              <Input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} />
             </div>
             <div>
               <label style={fieldLabel}>Contact email</label>
-              <input className="input-field" type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} />
+              <Input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} />
             </div>
             <div>
               <label style={fieldLabel}>Contact phone</label>
-              <input className="input-field" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} />
+              <Input value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-          <button type="button" className="btn btn-primary btn-lg" onClick={saveCarrier} disabled={saving}>{saving ? 'Saving…' : 'Save Carrier'}</button>
+          <Button type="button" onClick={saveCarrier} disabled={saving}>{saving ? 'Saving…' : 'Save carrier'}</Button>
         </SectionCard>
         </div>
       )}
 
-      <SectionCard padded={false}>
-        {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading carriers…</div>
-        ) : carriers.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No carriers yet — add one manually or browse the directory above.</div>
-        ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Name', 'Mode', 'Code', 'Contact', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {carriers.map(c => (
-                <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                      <PersonAvatar userId={c.id} kind="carriers" name={c.name} size={26} style={{ borderRadius: 'var(--r-sm)'}} />
-                      {c.name}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{c.scac_or_iata || '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.contact_name || c.contact_email || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <button
-                      type="button"
-                      onClick={() => toggleActive(c)}
-                      disabled={togglingId === c.id}
-                      title={c.active ? 'Click to deactivate' : 'Click to activate'}
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: togglingId === c.id ? 'wait' : 'pointer' }}
-                    >
-                      <Badge variant={c.active ? 'success' : 'gray'}>{togglingId === c.id ? 'Updating…' : c.active ? 'Active' : 'Inactive'}</Badge>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        )}
-      </SectionCard>
+      <DataTable
+        columns={carrierColumns}
+        rows={carriers}
+        loading={loading}
+        error={loadError ?? undefined}
+        onRetry={load}
+        empty={!loading && !loadError && carriers.length === 0}
+        emptyIcon="ship"
+        emptyTitle="No carriers yet"
+        emptyMessage="Add one manually or browse the global directory above."
+        defaultSortKey="name"
+      />
     </div>
   );
 }

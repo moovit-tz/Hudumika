@@ -304,7 +304,7 @@ export function CMSCollaborationDrawer({
                   <button
                     onClick={() => handlePostComment(c.id)}
                     disabled={submitting || !replyText.trim()}
-                    style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                   >
                     Send
                   </button>

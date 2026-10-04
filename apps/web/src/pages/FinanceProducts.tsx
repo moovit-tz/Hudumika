@@ -72,7 +72,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
               {product.status.toUpperCase()}
             </span>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.3 }}>{product.name}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{product.name}</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, fontFamily: 'var(--font)' }}>{product.code}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

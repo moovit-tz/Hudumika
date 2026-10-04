@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -121,9 +122,7 @@ export function FreightBookingsPage() {
         titleEm="bookings"
         subtitle="Request a rate, confirm the booking, and it becomes a real clearance case automatically"
         actions={
-          <Link to="/cargotracker/bookings/new" className="btn btn-primary">
-            <Icon name="plus" size={14} /> New Booking
-          </Link>
+          <Button asChild><Link to="/cargotracker/bookings/new"><Icon name="plus" size={14} /> New Booking</Link></Button>
         }
       />
 
@@ -194,7 +193,7 @@ export function FreightBookingsPage() {
                       </div>
                     </div>
                     {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => submitQuote(b)} disabled={busy}>{busy ? 'Saving…' : 'Save Quote'}</button>
+                    <Button type="button" size="sm" onClick={() => submitQuote(b)} disabled={busy}>{busy ? 'Saving…' : 'Save Quote'}</Button>
                   </div>
                 )}
 
@@ -228,7 +227,7 @@ export function FreightBookingsPage() {
                       </div>
                     </div>
                     {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => submitConfirm(b)} disabled={busy}>{busy ? 'Confirming…' : 'Confirm Booking → Create Shipment'}</button>
+                    <Button type="button" size="sm" onClick={() => submitConfirm(b)} disabled={busy}>{busy ? 'Confirming…' : 'Confirm Booking → Create Shipment'}</Button>
                   </div>
                 )}
               </div>

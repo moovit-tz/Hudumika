@@ -341,7 +341,7 @@
 }
 .ebb-action-btn:hover { background: rgba(0,0,0,0.18); opacity: 1; }
 .ebb-action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.ebb-action-btn--danger:hover { background: #dc2626; color: #fff; opacity: 1; }
+.ebb-action-btn--danger:hover { background: var(--red); color: #fff; opacity: 1; }
 
 .ebb-block-preview { pointer-events: none; }
 

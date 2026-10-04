@@ -104,7 +104,7 @@ export function CMSNavigation() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px', maxWidth: 640 }}>
         <div className="card" style={{ padding: '18px 20px', marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Add a menu item</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Add a menu item</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
             <input className="input-field" placeholder="Label — e.g. About" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
             <input className="input-field" placeholder="Target — e.g. /about, https://…" value={form.target} onChange={e => setForm(f => ({ ...f, target: e.target.value }))} />

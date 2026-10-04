@@ -11,6 +11,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { Banner } from '../components/ui/alert.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 
 /**
  * Company assets and who is holding them.
@@ -52,6 +55,7 @@ export function HrAssets() {
   const [busy, setBusy] = useState('');
   const [adding, setAdding] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     setError('');
@@ -81,6 +85,11 @@ export function HrAssets() {
     return Object.entries(m).sort((x, y) => y[1] - x[1]);
   }, [assets]);
   const prettyType = (t: string) => t.charAt(0) + t.slice(1).toLowerCase();
+  const filteredAssets = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return assets;
+    return assets.filter(asset => [asset.name, asset.type, asset.serial_number, asset.holder_name].some(value => value?.toLowerCase().includes(query)));
+  }, [assets, search]);
 
   if (loading) return <SkeletonPage variant="table" />;
 
@@ -99,22 +108,14 @@ export function HrAssets() {
       />
 
       {error && (
-        <div style={{ padding: '10px 13px', borderRadius: 'var(--r)', background: 'var(--red-l)',
-                      color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
+        <Banner variant="error" onDismiss={() => setError('')} action={<Button variant="outline" size="sm" onClick={load}>Try again</Button>}>{error}</Banner>
       )}
 
-      <div className="mc-row">
-        {([
-          ['Assets', assets.length, 'var(--ink)'],
-          ['Out with someone', out, 'var(--ink)'],
-          ['Available', assets.length - out, 'var(--ink)'],
-        ] as const).map(([l, v, colour]) => (
-          <div key={l} className="mc-card">
-            <div style={label}>{l}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: colour, marginTop: 3 }}>{v}</div>
-          </div>
-        ))}
-      </div>
+      <MetricsRow cards={[
+        { title: 'Company assets', value: String(assets.length), icon: 'package', emphasis: 'primary' },
+        { title: 'Out with someone', value: String(out), icon: 'users', barHighlight: 'var(--gold)' },
+        { title: 'Available', value: String(assets.length - out), icon: 'checkCircle', barHighlight: 'var(--green)' },
+      ]} />
 
       {byType.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 16px' }}>
@@ -128,17 +129,19 @@ export function HrAssets() {
         </div>
       )}
 
+      <SearchToolbar search={search} onSearch={setSearch} placeholder="Search by asset, serial number, type, or holder" className="mb-4" />
+
       {adding && <AssetPane busy={busy}
         onCreate={d => act('asset', () => apiFetch('/v1/hr/assets', { method: 'POST', body: JSON.stringify(d) }))} />}
 
-      {assets.length === 0 ? (
+      {filteredAssets.length === 0 ? (
         <div style={{ ...card, padding: 34, textAlign: 'center' }}>
           <FeaturedIcon variant="gray" size="lg" shape="circle"><Icon name="package" size={20} /></FeaturedIcon>
-          <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 10 }}>No assets recorded.</div>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 10 }}>{assets.length === 0 ? 'No assets recorded.' : 'No assets match this search.'}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {assets.map(a => (
+          {filteredAssets.map(a => (
             <div key={a.id} style={card}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px', flexWrap: 'wrap' }}>
                 <FeaturedIcon variant={a.out ? 'warning' : 'gray'} size="sm" shape="square">

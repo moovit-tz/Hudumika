@@ -71,7 +71,7 @@ export function CMSContentModelsList() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
         {creating && (
           <div className="card" style={{ padding: '20px 22px', marginBottom: 18, maxWidth: 520 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)', marginBottom: 14 }}>New content model</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 14 }}>New content model</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <FL label="Name (singular)">
                 <input className="input-field" value={form.name} placeholder="e.g. Product"

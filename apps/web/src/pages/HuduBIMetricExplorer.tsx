@@ -4,6 +4,9 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -110,7 +113,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
       {rules.length === 0 && !creating && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No alert rules on this metric yet.</div>}
       {rules.map(r => (
         <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: r.last_state === 'breach' ? 'var(--red)' : 'var(--green)', flexShrink: 0 }} title={r.last_state} />
+          <span aria-label={`Alert state: ${r.last_state}`} style={{ width: 7, height: 7, borderRadius: '50%', background: r.last_state === 'breach' ? 'var(--red)' : 'var(--green)', flexShrink: 0 }} />
           <span style={{ color: 'var(--ink)' }}>{r.comparator} {r.threshold}</span>
           <Badge variant={SEVERITY_VARIANT[r.severity]}>{r.severity}</Badge>
           {!r.enabled && <Badge variant="gray">Disabled</Badge>}
@@ -129,20 +132,17 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
       {canManage && (
         creating ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-            <select value={comparator} onChange={e => setComparator(e.target.value as 'below' | 'above')} className="input-field" style={{ width: 90, fontSize: 12, padding: '4px 6px' }}>
-              <option value="below">below</option>
-              <option value="above">above</option>
-            </select>
-            <input type="number" value={threshold} onChange={e => setThreshold(e.target.value)} placeholder="threshold" className="input-field" style={{ width: 90, fontSize: 12, padding: '4px 6px' }} />
-            <select value={severity} onChange={e => setSeverity(e.target.value as any)} className="input-field" style={{ width: 90, fontSize: 12, padding: '4px 6px' }}>
-              <option value="info">info</option>
-              <option value="warning">warning</option>
-              <option value="critical">critical</option>
-            </select>
-            <button type="button" disabled={saving || !threshold} onClick={submit} className="btn btn-primary btn-xs">
-              Save
-            </button>
-            <button type="button" onClick={() => setCreating(false)} style={{ fontSize: 11.5, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+            <Select value={comparator} onValueChange={value => setComparator(value as typeof comparator)}>
+              <SelectTrigger className="w-[100px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="below">Below</SelectItem><SelectItem value="above">Above</SelectItem></SelectContent>
+            </Select>
+            <Input type="number" value={threshold} onChange={e => setThreshold(e.target.value)} placeholder="Threshold" className="w-[110px] text-xs" />
+            <Select value={severity} onValueChange={value => setSeverity(value as typeof severity)}>
+              <SelectTrigger className="w-[110px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="info">Info</SelectItem><SelectItem value="warning">Warning</SelectItem><SelectItem value="critical">Critical</SelectItem></SelectContent>
+            </Select>
+            <Button type="button" size="sm" disabled={saving || !threshold} onClick={submit}>Save</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
           </div>
         ) : (
           <button type="button" onClick={() => setCreating(true)} style={{ fontSize: 11.5, color: 'var(--teal-d)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }}>

@@ -924,7 +924,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
       { key:'reject', label:'Reject', icon:'xCircle', variant:'destructive', hidden: quote.status!=='PENDING', onClick:()=>setShowReject(true) },
       { key:'convert', label:'Convert to Shipment', icon:'ship', loading: busy==='convert', loadingLabel:'Converting…',
         hidden: quote.status!=='APPROVED', onClick:()=>act('convert',onConvert),
-        style:{ background:'var(--navy)', color:'#fff', border:'none' } },
+        style:{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))', border:'none' } },
     ],
     [
       { key:'delete', label:'Delete Quotation', icon:'trash', variant:'destructive', loading: busy==='delete', loadingLabel:'Deleting…', onClick:()=>act('delete',onDelete) },

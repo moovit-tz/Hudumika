@@ -87,7 +87,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   ondi:     'Identity & Access',
   tracking:  'Vehicle & Fleet Tracking',
   cloud:     'File Storage',
-  ai:        'AI Intelligence',
+  ai:        'AI & Automation',
   workspace: 'Admin & Settings',
   admin:     'Super Admin Console',
   email:     'Hudumika Mail',

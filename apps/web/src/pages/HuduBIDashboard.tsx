@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -101,7 +101,7 @@ export function HuduBIDashboard() {
               <Icon name="layers" size={18} color="var(--teal)" />
             </div>
             <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
                 {data.dataLayer.totalRecords.toLocaleString()} records across {data.dataLayer.tables} core tables
               </div>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{data.period} · scoped to this workspace · every figure below is a live count or sum of these rows</div>

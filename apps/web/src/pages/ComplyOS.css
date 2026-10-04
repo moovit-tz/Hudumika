@@ -1,4 +1,4 @@
-﻿/* ── ComplyOS shared tokens & layout ── */
+/* ── ComplyOS shared tokens & layout ── */
 
 /* ComplyOS's own brand accent (--comply) tracks the app's configured color —
    WorkspaceApp.tsx already resolves branding.getAppColor('complyos') and
@@ -53,7 +53,7 @@
 .complyos-body {
   flex: 1;
   overflow-y: auto;
-  background: var(--bg);
+  background: transparent;
 }
 
 /* Mobile sidebar backdrop */
@@ -667,7 +667,7 @@
   justify-content: center;
   font-size: 18px;
   font-weight: 800;
-  color: #fff;
+  color: var(--white);
   flex-shrink: 0;
 }
 
@@ -1644,7 +1644,7 @@
   font-size: 10px;
   font-weight: 800;
   background: var(--gov);
-  color: #fff;
+  color: var(--white);
   border-radius: 99px;
   padding: 1px 5px;
   min-width: 16px;
@@ -1687,7 +1687,7 @@
 /* Status left-border colors */
 .wf-row--pending_review { border-left-color: var(--gov); }
 .wf-row--approved       { border-left-color: var(--comply); }
-.wf-row--submitted      { border-left-color: #d97706; }
+.wf-row--submitted      { border-left-color: var(--gold); }
 .wf-row--issued         { border-left-color: var(--comply); }
 .wf-row--failed         { border-left-color: var(--red); }
 .wf-row--cancelled      { border-left-color: var(--ink3); }
@@ -1833,7 +1833,7 @@
 }
 .wf-drawer-stripe--pending_review { background: var(--gov); }
 .wf-drawer-stripe--approved       { background: var(--comply); }
-.wf-drawer-stripe--submitted      { background: #d97706; }
+.wf-drawer-stripe--submitted      { background: var(--gold); }
 .wf-drawer-stripe--issued         { background: var(--comply); }
 .wf-drawer-stripe--failed         { background: var(--red); }
 .wf-drawer-stripe--cancelled      { background: var(--ink3); }
@@ -2059,7 +2059,7 @@
   min-height: 380px;
   width: 100%;
   border: none;
-  background: #ffffff;
+  background: var(--white);
 }
 
 @media (max-width: 1024px) {

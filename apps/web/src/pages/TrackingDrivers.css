@@ -268,9 +268,9 @@
 }
 
 .drv-status--on-route {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #93c5fd;
+  background: var(--blue-l);
+  color: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
 }
 
 .drv-status--off-duty {

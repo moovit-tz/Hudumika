@@ -8,6 +8,8 @@ import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { apiFetch } from '../lib/api.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import {
   printSharedReport, rateCardKeyFor, fetchRateCardDefaults, fetchSizeCardsForLots,
@@ -272,10 +274,9 @@ export const LandedCostHistoryPage: React.FC = () => {
         titleEm="history"
         subtitle="Every landed cost estimate this workspace has run — search it, reopen the report, or amend one into a new version."
         actions={
-          <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
-            onClick={() => navigate('/clearos/customs-tools')}>
-            <Icon name="calculator" size={14} color="#fff" /> New calculation
-          </button>
+          <Button type="button" onClick={() => navigate('/clearos/customs-tools')}>
+            <Icon name="calculator" size={14} /> New calculation
+          </Button>
         }
       />
 
@@ -290,12 +291,11 @@ export const LandedCostHistoryPage: React.FC = () => {
         <div className="lch-toolbar">
           <div style={{ position: 'relative' }}>
             <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              className="input-field"
+            <Input
               placeholder="Search description, HS code, customer, reference or destination…"
               value={q}
               onChange={e => { setQ(e.target.value); setOffset(0); }}
-              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, fontSize: 13 }}
+              style={{ paddingLeft: 38 }}
             />
           </div>
           <Select value={kind} onValueChange={v => { setKind(v as any); setOffset(0); }}>

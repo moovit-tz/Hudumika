@@ -15,7 +15,7 @@
 
 .onesite-pub-header { background: var(--lp-green); padding: 18px 24px; }
 .onesite-pub-header-inner { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.onesite-pub-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-weight: 800; font-size: 16px; }
+.onesite-pub-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--white); font-weight: 800; font-size: 16px; }
 .onesite-pub-brand img { height: 28px; width: 28px; object-fit: contain; border-radius: var(--onesite-radius, 6px); }
 .onesite-pub-tagline { color: rgba(255,255,255,0.65); font-size: var(--badge-fs); }
 
@@ -46,7 +46,7 @@
 .onesite-pub-blocks hr { border: none; border-top: 1px solid var(--lp-border); margin: 4px 0; }
 .onesite-pub-btn {
   display: inline-block; align-self: flex-start; padding: 10px 20px; border-radius: var(--onesite-radius, 8px);
-  background: var(--onesite-accent, var(--lp-green-acc)); color: #fff; font-weight: 600; font-size: 14px; text-decoration: none;
+  background: var(--onesite-accent, var(--lp-green-acc)); color: var(--white); font-weight: 600; font-size: 14px; text-decoration: none;
 }
 .onesite-pub-btn:hover { opacity: 0.9; }
 
@@ -56,14 +56,14 @@
 .block-preview-form-field { display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; color: var(--lp-ink2, #4a5a52); }
 .block-preview-form-field input, .block-preview-form-field textarea, .block-preview-form-field select {
   padding: 9px 12px; border: 1px solid var(--lp-border); border-radius: var(--onesite-radius, 8px);
-  font-size: 14px; font-family: inherit; color: var(--lp-ink); background: #fff;
+  font-size: 14px; font-family: inherit; color: var(--lp-ink); background: var(--white);
 }
 .block-preview-form-field input:disabled, .block-preview-form-field textarea:disabled, .block-preview-form-field select:disabled {
   background: var(--lp-paper); color: var(--lp-ink3); cursor: not-allowed;
 }
 .block-preview-form-label-note { font-size: 12px; color: var(--lp-ink3); margin: 0 0 2px; font-style: italic; }
-.block-preview-form-success { padding: 14px 16px; border-radius: var(--onesite-radius, 8px); background: var(--lp-green, #e9f6ed); color: #fff; font-weight: 600; }
-.block-preview-form-error { color: #c0392b; font-size: 13px; margin: 0; }
+.block-preview-form-success { padding: 14px 16px; border-radius: var(--onesite-radius, 8px); background: var(--lp-green, #e9f6ed); color: var(--white); font-weight: 600; }
+.block-preview-form-error { color: var(--red); font-size: 13px; margin: 0; }
 .block-preview-form-static { opacity: 0.65; }
 
 /* §35 — the admin's own static Variant-A preview of an experiment block. */
@@ -84,15 +84,15 @@
 .onesite-pub-comment-form h3 { font-size: 15px; font-weight: 700; color: var(--lp-ink); margin: 0; }
 .onesite-pub-comment-form input, .onesite-pub-comment-form textarea {
   font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--lp-border); border-radius: var(--onesite-radius, 8px);
-  color: var(--lp-ink); background: #fff; outline: none; box-sizing: border-box; resize: vertical;
+  color: var(--lp-ink); background: var(--white); outline: none; box-sizing: border-box; resize: vertical;
 }
 .onesite-pub-comment-form input:focus, .onesite-pub-comment-form textarea:focus { border-color: var(--onesite-accent, var(--lp-green-acc)); }
 .onesite-pub-comment-form button {
   align-self: flex-start; padding: 9px 20px; border: none; border-radius: var(--onesite-radius, 8px); cursor: pointer;
-  background: var(--onesite-accent, var(--lp-green-acc)); color: #fff; font-weight: 600; font-size: 14px;
+  background: var(--onesite-accent, var(--lp-green-acc)); color: var(--white); font-weight: 600; font-size: 14px;
 }
 .onesite-pub-comment-form button:disabled { opacity: 0.6; cursor: default; }
-.onesite-pub-comment-error { font-size: 13px; color: #b42318; }
+.onesite-pub-comment-error { font-size: 13px; color: var(--red); }
 .onesite-pub-comment-thanks { font-size: 14px; color: var(--lp-ink2, #4a5a52); }
 
 /* Navigation builder (§14) — a real, admin-configured header menu with a
@@ -100,10 +100,10 @@
 .onesite-pub-nav { display: flex; align-items: center; gap: 18px; }
 .onesite-pub-nav-item { position: relative; }
 .onesite-pub-nav-item > a { color: rgba(255,255,255,0.9); font-size: var(--badge-fs); text-decoration: none; font-weight: 600; }
-.onesite-pub-nav-item > a:hover { color: #fff; }
+.onesite-pub-nav-item > a:hover { color: var(--white); }
 .onesite-pub-nav-dropdown {
   display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; min-width: 160px;
-  background: #fff; border-radius: var(--onesite-radius, 8px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 6px; z-index: 20;
+  background: var(--white); border-radius: var(--onesite-radius, 8px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 6px; z-index: 20;
 }
 .onesite-pub-nav-item:hover .onesite-pub-nav-dropdown { display: flex; flex-direction: column; }
 .onesite-pub-nav-dropdown a { padding: 8px 10px; border-radius: var(--onesite-radius, 6px); color: var(--lp-ink); font-size: 13.5px; text-decoration: none; font-weight: 500; }
@@ -111,10 +111,10 @@
 
 /* Public search (§32) */
 .onesite-pub-search { display: flex; align-items: center; background: rgba(255,255,255,0.15); border-radius: var(--onesite-radius, 8px); padding: 2px 4px 2px 10px; }
-.onesite-pub-search input { background: none; border: none; outline: none; color: #fff; font-size: 13px; width: 120px; }
+.onesite-pub-search input { background: none; border: none; outline: none; color: var(--white); font-size: 13px; width: 120px; }
 .onesite-pub-search input::placeholder { color: rgba(255,255,255,0.65); }
 .onesite-pub-search button { background: none; border: none; color: rgba(255,255,255,0.85); cursor: pointer; display: flex; padding: 6px; }
-.onesite-pub-search button:hover { color: #fff; }
+.onesite-pub-search button:hover { color: var(--white); }
 
 /* Blog index + archive sidebar (§36) */
 .onesite-pub-blog-layout { display: flex; gap: 40px; align-items: flex-start; }

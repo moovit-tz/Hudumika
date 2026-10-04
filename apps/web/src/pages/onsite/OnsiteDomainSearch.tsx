@@ -68,7 +68,7 @@ export function OnsiteDomainSearch() {
       <div className="onsite-domain-search-hero">
         <h2>Search for a domain name</h2>
 
-        <form onSubmit={handleSearch} className="onsite-prompt-box" style={{ width: '100%', maxWidth: '640px', background: '#ffffff' }}>
+        <form onSubmit={handleSearch} className="onsite-prompt-box" style={{ width: '100%', maxWidth: '640px', background: 'var(--white)' }}>
           <Icon name="search" size={20} style={{ color: '#a1a1aa' }} />
           <input
             type="text"

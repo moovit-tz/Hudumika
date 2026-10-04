@@ -10,6 +10,9 @@ import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 /** Format a Date to "YYYY-MM-DDTHH:mm" in local time — same shape a native
  *  <input type="datetime-local"> value had, so the existing string form
@@ -31,9 +34,7 @@ interface OccupancyLocation {
 }
 interface OccupancyZone { zone: string; locations: OccupancyLocation[] }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' };
 
 function UpgradeEmptyState({ feature }: { feature: string }) {
   return (
@@ -75,18 +76,16 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a storage location</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Code</label><input required value={code} onChange={e => setCode(e.target.value)} placeholder="A-01" style={inputStyle} /></div>
-            <div style={{ flex: 2 }}><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Code</label><Input required value={code} onChange={e => setCode(e.target.value)} placeholder="A-01" /></div>
+            <div style={{ flex: 2 }}><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Zone</label><input value={zone} onChange={e => setZone(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Capacity (units)</label><input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Zone</label><Input value={zone} onChange={e => setZone(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Capacity (units)</label><Input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Add location'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Add location'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -128,7 +127,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Schedule a dock appointment</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Dock number</label><input required value={dockNumber} onChange={e => setDockNumber(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Dock number</label><Input required value={dockNumber} onChange={e => setDockNumber(e.target.value)} /></div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Type</label>
               <Select value={type} onValueChange={v => setType(v as any)}>
@@ -147,13 +146,11 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
               value={vehicleId} onChange={setVehicleId} placeholder="— None —"
             />
           </div>
-          <div><label style={labelStyle}>Reference</label><input value={reference} onChange={e => setReference(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Reference</label><Input value={reference} onChange={e => setReference(e.target.value)} /></div>
           <div><label style={labelStyle}>Scheduled at *</label><DateTimePicker date={scheduledAt ? new Date(scheduledAt) : undefined} onChange={d => setScheduledAt(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Schedule'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Schedule'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -250,9 +247,9 @@ export const TrackingWarehouse: React.FC = () => {
       {tab === 'locations' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-            <button type="button" onClick={() => setShowAddLocation(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <Button type="button" onClick={() => setShowAddLocation(true)}>
               <Icon name="plus" size={15} /> Add location
-            </button>
+            </Button>
           </div>
           <SectionCard>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -271,7 +268,7 @@ export const TrackingWarehouse: React.FC = () => {
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.zone || '—'}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.capacity_units ?? '—'}</td>
                     <td style={{ padding: '10px 14px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: l.active ? 'var(--green-l)' : 'var(--bg)', color: l.active ? 'var(--green)' : 'var(--ink3)' }}>{l.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                      <Badge variant={l.active ? 'success' : 'gray'}>{l.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                       <button type="button" onClick={() => removeLocation(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="close" size={14} /></button>
@@ -288,9 +285,9 @@ export const TrackingWarehouse: React.FC = () => {
       {tab === 'dock' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-            <button type="button" onClick={() => setShowAddAppointment(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <Button type="button" onClick={() => setShowAddAppointment(true)}>
               <Icon name="calendar" size={15} /> Schedule appointment
-            </button>
+            </Button>
           </div>
           <SectionCard>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -312,7 +309,7 @@ export const TrackingWarehouse: React.FC = () => {
                       <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{a.reference || '—'}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--ink3)', fontSize: 12 }}>{new Date(a.scheduled_at).toLocaleString()}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: '#f1f5f9', color: 'var(--ink2)' }}>{a.status.replace('_', ' ')}</span>
+                        <Badge variant="gray">{a.status.replace('_', ' ')}</Badge>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {a.status === 'SCHEDULED' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'check-in')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}>Check in</button>}
@@ -334,7 +331,7 @@ export const TrackingWarehouse: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {occupancyLoading && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading occupancy…</div>}
             {!occupancyLoading && occupancy?.length === 0 && (
-              <div style={{ ...cardStyle, padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active storage locations yet — add one under the Locations tab.</div>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active storage locations yet — add one under the Locations tab.</div>
             )}
             {!occupancyLoading && occupancy?.map(z => (
               <SectionCard key={z.zone} title={z.zone} action={
@@ -377,10 +374,9 @@ export const TrackingWarehouse: React.FC = () => {
                   : insightError}
               </div>
             )}
-            <button type="button" onClick={generateInsight} disabled={insightLoading}
-              style={{ width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <Button type="button" onClick={generateInsight} disabled={insightLoading} className="w-full">
               {insightLoading ? 'Generating…' : insight ? 'Regenerate' : 'Generate Insight'}
-            </button>
+            </Button>
           </SectionCard>
           </div>
         </div>

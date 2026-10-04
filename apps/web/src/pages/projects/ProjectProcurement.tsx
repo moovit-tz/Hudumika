@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Combobox } from '../../components/ui/combobox.js';
 import type {
   ProjectPurchaseRequest,
   ProjectRfq,
@@ -614,19 +615,13 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                   Matching Purchase Order *
                 </label>
-                <select
-                  required
+                <Combobox
                   value={grnPoId}
-                  onChange={(e) => setGrnPoId(e.target.value)}
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                >
-                  <option value="">Select PO</option>
-                  {purchaseOrders.map((po) => (
-                    <option key={po.id} value={po.id}>
-                      {po.po_number} — {po.supplier_name} ({formatCurrency(po.total_amount)})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setGrnPoId}
+                  options={purchaseOrders.map(po => ({ value: po.id, label: po.po_number, sublabel: `${po.supplier_name} · ${formatCurrency(po.total_amount)}` }))}
+                  placeholder="Select purchase order"
+                  searchPlaceholder="Search purchase orders"
+                />
               </div>
 
               <div>

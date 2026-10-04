@@ -185,7 +185,7 @@ function LedgerIntegrityAdminPanel() {
           <FeaturedIcon variant="warning" size="sm" shape="square">
             <Icon name="shield" size={15} strokeWidth={1.75} />
           </FeaturedIcon>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Ledger Integrity</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Ledger Integrity</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Button size="sm" variant="outline" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(open => !open)}>

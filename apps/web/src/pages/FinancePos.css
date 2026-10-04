@@ -35,25 +35,25 @@
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--white) !important;
+    color: var(--ink) !important;
     font-family: 'Courier New', Courier, monospace !important;
     font-size: 10px !important;
   }
-  .pos-receipt-head { text-align: center; padding: 4mm 0; border-bottom: 1px dashed #999 !important; }
-  .pos-receipt-head h2 { font-size: 13px; margin: 4px 0 2px; color: #000 !important; }
-  .pos-receipt-head p { font-size: 9px; color: #555 !important; margin: 2px 0 0; }
-  .pos-receipt-note { font-size: 9px !important; color: #444 !important; background: transparent !important; border: 0 !important; padding: 3px 0 !important; }
+  .pos-receipt-head { text-align: center; padding: 4mm 0; border-bottom: 1px dashed var(--border) !important; }
+  .pos-receipt-head h2 { font-size: 13px; margin: 4px 0 2px; color: var(--ink) !important; }
+  .pos-receipt-head p { font-size: 9px; color: var(--ink3) !important; margin: 2px 0 0; }
+  .pos-receipt-note { font-size: 9px !important; color: var(--ink2) !important; background: transparent !important; border: 0 !important; padding: 3px 0 !important; }
   .pos-receipt-lines { padding: 3mm 0; }
   .pos-receipt-lines > div { padding: 2px 0; font-size: 10px; }
-  .pos-receipt-lines small { font-size: 9px; color: #555 !important; }
-  .pos-receipt-subtotals { padding: 2mm 0; border-top: 1px dashed #999; }
-  .pos-receipt-subtotals > div { font-size: 9px; padding: 1px 0; color: #444 !important; }
-  .pos-receipt-total { font-size: 14px; padding: 3mm 0; border-top: 2px solid #000; border-bottom: 1px dashed #999; color: #000 !important; }
+  .pos-receipt-lines small { font-size: 9px; color: var(--ink3) !important; }
+  .pos-receipt-subtotals { padding: 2mm 0; border-top: 1px dashed var(--border); }
+  .pos-receipt-subtotals > div { font-size: 9px; padding: 1px 0; color: var(--ink2) !important; }
+  .pos-receipt-total { font-size: 14px; padding: 3mm 0; border-top: 2px solid var(--ink); border-bottom: 1px dashed var(--border); color: var(--ink) !important; }
   .pos-receipt-payments { padding: 3mm 0 0; }
-  .pos-receipt-payments-label { font-size: 8px; color: #555 !important; margin-bottom: 2px; }
-  .pos-receipt-payments > div { font-size: 10px; padding: 1px 0; color: #333 !important; }
-  .pos-receipt-change { font-weight: 700; color: #000 !important; border-top: 1px solid #ccc; padding-top: 2px; margin-top: 2px; }
+  .pos-receipt-payments-label { font-size: 8px; color: var(--ink3) !important; margin-bottom: 2px; }
+  .pos-receipt-payments > div { font-size: 10px; padding: 1px 0; color: var(--ink2) !important; }
+  .pos-receipt-change { font-weight: 700; color: var(--ink) !important; border-top: 1px solid var(--border); padding-top: 2px; margin-top: 2px; }
   .pos-refund-reason { background: transparent !important; border: 0 !important; font-size: 9px !important; padding: 2px 0 !important; }
   .pos-posting-error { display: none !important; }
 }

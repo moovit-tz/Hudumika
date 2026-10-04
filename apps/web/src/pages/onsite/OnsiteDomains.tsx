@@ -6,6 +6,8 @@ import { Icon } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
 import { Switch } from '../../components/ui/switch.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
+import { Button } from '../../components/ui/button.js';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import {
   Select,
@@ -669,24 +671,17 @@ export function OnsiteDomains() {
       )}
 
       {/* MODAL: ADD CUSTOM DOMAIN */}
-      {isAddModalOpen && (
-        <div className="onsite-modal-overlay" onClick={() => setIsAddModalOpen(false)}>
-          <div className="onsite-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="onsite-modal-header">
-              <h3 className="onsite-modal-title">
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+          <DialogContent size="md">
+            <DialogHeader>
+              <DialogTitle className="onsite-modal-title">
                 <Icon name="globe" size={20} style={{ color: 'var(--purple)' }} />
                 <span>Add Custom Domain</span>
-              </h3>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}
-              >
-                <Icon name="close" size={18} />
-              </button>
-            </div>
+              </DialogTitle>
+            </DialogHeader>
 
-            <form onSubmit={handleCreateDomain}>
-              <div className="onsite-modal-body">
+            <form onSubmit={handleCreateDomain} className="contents">
+              <DialogBody>
                 {addError && <Banner variant="error">{addError}</Banner>}
 
                 <div className="onsite-form-group">
@@ -725,12 +720,7 @@ export function OnsiteDomains() {
 
                 <div className="onsite-form-group">
                   <label className="onsite-switch-label" style={{ marginTop: '0.4rem' }}>
-                    <div
-                      className={newDomainAutoRenew ? 'onsite-switch-track on' : 'onsite-switch-track'}
-                      onClick={() => setNewDomainAutoRenew(!newDomainAutoRenew)}
-                    >
-                      <div className="onsite-switch-thumb" />
-                    </div>
+                    <Switch checked={newDomainAutoRenew} onCheckedChange={setNewDomainAutoRenew} />
                     <div>
                       <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>Enable Auto-Renewal Protection</span>
                       <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--ink3)' }}>
@@ -739,71 +729,43 @@ export function OnsiteDomains() {
                     </div>
                   </label>
                 </div>
-              </div>
+              </DialogBody>
 
-              <div className="onsite-modal-footer">
-                <button
-                  type="button"
-                  className="onsite-btn-outline"
-                  onClick={() => setIsAddModalOpen(false)}
-                >
-                  <span>Cancel</span>
-                </button>
-                <button
-                  type="submit"
-                  className="onsite-btn-purple"
-                  disabled={isSubmitting || !newDomainName.trim()}
-                >
-                  <span>{isSubmitting ? 'Registering...' : 'Add Domain'}</span>
-                </button>
-              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting || !newDomainName.trim()}>{isSubmitting ? 'Registering...' : 'Add Domain'}</Button>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: CONFIRM DELETE DOMAIN */}
-      {domainToDelete && (
-        <div className="onsite-modal-overlay" onClick={() => setDomainToDelete(null)}>
-          <div className="onsite-modal-box" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="onsite-modal-header">
-              <h3 className="onsite-modal-title" style={{ color: 'var(--red)' }}>
+      <Dialog open={!!domainToDelete} onOpenChange={open => { if (!open) setDomainToDelete(null); }}>
+        <DialogContent size="sm">
+          {domainToDelete && <>
+            <DialogHeader>
+              <DialogTitle className="onsite-modal-title" style={{ color: 'var(--red)' }}>
                 <Icon name="alertCircle" size={20} />
                 <span>Remove Domain</span>
-              </h3>
-              <button
-                onClick={() => setDomainToDelete(null)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}
-              >
-                <Icon name="close" size={18} />
-              </button>
-            </div>
+              </DialogTitle>
+            </DialogHeader>
 
-            <div className="onsite-modal-body">
+            <DialogBody>
               <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--ink)', lineHeight: 1.5 }}>
                 Are you sure you want to remove <strong>{domainToDelete.domain}</strong> from your workspace?
               </p>
               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--ink2)' }}>
                 This will delete connected DNS zone configurations and SSL routing associated with this domain.
               </p>
-            </div>
+            </DialogBody>
 
-            <div className="onsite-modal-footer">
-              <button className="onsite-btn-outline" onClick={() => setDomainToDelete(null)}>
-                <span>Cancel</span>
-              </button>
-              <button
-                className="onsite-btn-purple"
-                style={{ background: 'var(--red)', borderColor: 'var(--red)' }}
-                onClick={handleDeleteDomain}
-                disabled={isDeleting}
-              >
-                <span>{isDeleting ? 'Removing...' : 'Confirm Remove'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDomainToDelete(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDeleteDomain} disabled={isDeleting}>{isDeleting ? 'Removing...' : 'Confirm Remove'}</Button>
+            </DialogFooter>
+          </>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

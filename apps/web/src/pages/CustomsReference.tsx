@@ -13,6 +13,7 @@ import { Spinner } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
@@ -60,6 +61,7 @@ export const CustomsReference: React.FC = () => {
   const [tab, setTab] = useState<Tab>('icd');
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const [icd, setIcd] = useState<IcdOperator[]>([]);
   const [agents, setAgents] = useState<ClearingAgent[]>([]);
@@ -90,6 +92,7 @@ export const CustomsReference: React.FC = () => {
 
   const load = async (query: string, page = 0) => {
     setLoading(true);
+    setLoadError('');
     try {
       if (tab === 'icd') {
         const res = await apiFetch(`/v1/reference/icd-operators${query ? `?q=${encodeURIComponent(query)}` : ''}`);
@@ -118,6 +121,7 @@ export const CustomsReference: React.FC = () => {
       }
     } catch (err) {
       console.error('Reference lookup failed:', err);
+      setLoadError(err instanceof Error ? err.message : 'Could not load reference data.');
     } finally {
       setLoading(false);
     }
@@ -253,10 +257,9 @@ export const CustomsReference: React.FC = () => {
       />
 
       {!canEdit && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
-          <Icon name="lock" size={13} />
+        <Banner variant="info">
           This is shared reference data used by every tenant on the platform — only a platform super-admin can edit or re-upload it.
-        </div>
+        </Banner>
       )}
 
       {importResult && importResult.tab === tab && (
@@ -271,6 +274,9 @@ export const CustomsReference: React.FC = () => {
       {importError && (
         <Banner variant="error" onDismiss={() => setImportError('')}>{importError}</Banner>
       )}
+      {loadError && (
+        <Banner variant="error" onDismiss={() => setLoadError('')}>{loadError}</Banner>
+      )}
 
       {/* Tabs + search — one row, responsive */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -283,19 +289,13 @@ export const CustomsReference: React.FC = () => {
             ))}
           </TabsList>
         </Tabs>
-        <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 380, minWidth: 200 }}>
-          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-            <Icon name="search" size={13} color="var(--ink3)" />
-          </span>
-          <input
-            value={q}
-            onChange={e => onSearch(e.target.value)}
-            placeholder={tab === 'icd' ? 'Search operator, licence, address…' : tab === 'agents' ? 'Search agent name, licence, email…' : tab === 'tariff' ? 'Search clause, item, category…' : 'Search product…'}
-            style={{ width: '100%', height: 32, boxSizing: 'border-box', padding: '0 12px 0 30px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}
-          />
-        </div>
-        {tab === 'tariff' && (
-          <>
+        <SearchToolbar
+          search={q}
+          onSearch={onSearch}
+          placeholder={tab === 'icd' ? 'Search operator, licence, address…' : tab === 'agents' ? 'Search agent name, licence, email…' : tab === 'tariff' ? 'Search clause, item, category…' : 'Search product…'}
+          className="min-w-64 flex-1"
+          actions={tab === 'tariff' ? (
+            <>
             <Select value={tariffAuthority} onValueChange={setTariffAuthority}>
               <SelectTrigger className="h-8 text-xs" style={{ width: 170 }}><SelectValue placeholder="Authority" /></SelectTrigger>
               <SelectContent>
@@ -312,8 +312,9 @@ export const CustomsReference: React.FC = () => {
                 {tariffCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-          </>
-        )}
+            </>
+          ) : undefined}
+        />
         {loading && <Spinner size={16} />}
       </div>
 

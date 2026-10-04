@@ -3,9 +3,12 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 interface Carrier { id: string; name: string; active?: boolean; }
 interface RateCard {
@@ -35,17 +38,23 @@ export function FreightRateCardsPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState({ carrier_id: '', mode: 'FCL_20', origin_port: '', destination_port: '', cost_rate: '', sell_rate: '', currency: 'USD' });
 
   function load() {
     setLoading(true);
+    setLoadError(null);
     Promise.all([
       apiFetch('/v1/freight-booking/rate-cards'),
       // Unfiltered — an inactive carrier still needs to be distinguishable
       // from "no carrier exists at all" for the empty-state message below;
       // the picker itself filters to active ones.
       apiFetch('/v1/freight-booking/carriers'),
-    ]).then(([rc, c]) => { setCards(rc); setCarriers(c); }).catch(() => {}).finally(() => setLoading(false));
+    ]).then(([rc, c]) => { setCards(rc); setCarriers(c); }).catch(() => {
+      setCards([]);
+      setCarriers([]);
+      setLoadError('Could not load freight rate cards.');
+    }).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -73,6 +82,15 @@ export function FreightRateCardsPage() {
     }
   }
 
+  const columns: TableColumn<RateCard>[] = [
+    { key: 'carrier', header: 'Carrier', sortable: true, render: card => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><CompanyAvatar name={card.carrier_name || 'Carrier'} size={26} shape="square" />{card.carrier_name || '—'}</span> },
+    { key: 'mode', header: 'Mode', sortable: true, render: card => MODES.find(mode => mode.value === card.mode)?.label || card.mode },
+    { key: 'lane', header: 'Lane', render: card => `${card.origin_port} → ${card.destination_port}` },
+    { key: 'cost', header: 'Cost', render: card => `${card.currency} ${Number(card.cost_rate).toFixed(2)}` },
+    { key: 'sell', header: 'Sell', render: card => `${card.currency} ${Number(card.sell_rate).toFixed(2)}` },
+    { key: 'margin', header: 'Margin', render: card => <strong style={{ color: 'var(--teal)' }}>{card.currency} {(Number(card.sell_rate) - Number(card.cost_rate)).toFixed(2)}</strong> },
+  ];
+
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
@@ -81,9 +99,9 @@ export function FreightRateCardsPage() {
         titleEm="cards"
         subtitle="Carrier cost vs. customer sell rate by lane — the margin on every booking comes from here"
         actions={
-          <button type="button" className="btn btn-primary" onClick={() => setShowForm(s => !s)}>
-            <Icon name="plus" size={14} /> {showForm ? 'Cancel' : 'Add Rate Card'}
-          </button>
+          <Button type="button" onClick={() => setShowForm(s => !s)}>
+            <Icon name={showForm ? 'x' : 'plus'} size={14} /> {showForm ? 'Cancel' : 'Add rate card'}
+          </Button>
         }
       />
 
@@ -112,24 +130,24 @@ export function FreightRateCardsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
-              <input className="input-field" value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
+              <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Origin port *</label>
-              <input className="input-field" value={form.origin_port} onChange={e => setForm(p => ({ ...p, origin_port: e.target.value }))} placeholder="e.g. Shanghai" />
+              <Input value={form.origin_port} onChange={e => setForm(p => ({ ...p, origin_port: e.target.value }))} placeholder="e.g. Shanghai" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Destination port *</label>
-              <input className="input-field" value={form.destination_port} onChange={e => setForm(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" />
+              <Input value={form.destination_port} onChange={e => setForm(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" />
             </div>
             <div />
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Cost rate * <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(carrier charges you)</span></label>
-              <input className="input-field" type="number" min="0" value={form.cost_rate} onChange={e => setForm(p => ({ ...p, cost_rate: e.target.value }))} />
+              <Input type="number" min="0" value={form.cost_rate} onChange={e => setForm(p => ({ ...p, cost_rate: e.target.value }))} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Sell rate * <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(you charge customer)</span></label>
-              <input className="input-field" type="number" min="0" value={form.sell_rate} onChange={e => setForm(p => ({ ...p, sell_rate: e.target.value }))} />
+              <Input type="number" min="0" value={form.sell_rate} onChange={e => setForm(p => ({ ...p, sell_rate: e.target.value }))} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Margin</label>
@@ -139,45 +157,23 @@ export function FreightRateCardsPage() {
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-          <button type="button" className="btn btn-primary" onClick={saveCard} disabled={saving}>{saving ? 'Saving…' : 'Save Rate Card'}</button>
+          <Button type="button" onClick={saveCard} disabled={saving}>{saving ? 'Saving…' : 'Save rate card'}</Button>
         </SectionCard>
         </div>
       )}
 
-      <SectionCard padded={false}>
-        {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading rate cards…</div>
-        ) : cards.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No rate cards yet.</div>
-        ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Carrier', 'Mode', 'Lane', 'Cost', 'Sell', 'Margin'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {cards.map(c => (
-                <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                      <PersonAvatar userId={c.carrier_id} kind="carriers" name={c.carrier_name ?? ''} size={26} style={{ borderRadius: 'var(--r-sm)' }} />
-                      {c.carrier_name || '—'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{MODES.find(m => m.value === c.mode)?.label || c.mode}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{c.origin_port} → {c.destination_port}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{c.currency} {Number(c.cost_rate).toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.currency} {Number(c.sell_rate).toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--teal)' }}>{c.currency} {(Number(c.sell_rate) - Number(c.cost_rate)).toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        )}
-      </SectionCard>
+      <DataTable
+        columns={columns}
+        rows={cards}
+        loading={loading}
+        error={loadError ?? undefined}
+        onRetry={load}
+        empty={!loading && !loadError && cards.length === 0}
+        emptyIcon="dollarSign"
+        emptyTitle="No rate cards yet"
+        emptyMessage="Add a carrier lane and its buy and sell rates to start quoting consistently."
+        defaultSortKey="carrier"
+      />
     </div>
   );
 }

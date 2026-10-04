@@ -178,7 +178,7 @@ export const OndiPersonal: React.FC = () => {
         crumbs={['Ondi', 'Personal']}
         titlePlain="My"
         titleEm="identity"
-        subtitle="Your sovereign enterprise identity, real-time security posture, and verified trust score."
+        subtitle="Review your identity details, account security, and verification status."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <Link to="/ondi/personal/security">
@@ -530,7 +530,7 @@ export const OndiPersonal: React.FC = () => {
           {/* Historical Trend Footer */}
           <div className="op-trend-footer">
             <div className="op-trend-info">
-              {history.length >= 2 ? `${history.length} score snapshots logged.` : 'Real-time verified calculation.'}
+              {history.length >= 2 ? `${history.length} score snapshots logged.` : 'Calculated from your current verification records.'}
             </div>
             <Link to="/ondi/personal/trust" style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
               View History

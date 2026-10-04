@@ -1,12 +1,16 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
-import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { CashFlowReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { Button } from '../components/ui/button.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 const YEARS = ['2026', '2025', '2024'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -71,6 +75,15 @@ export const FinanceCashFlow: React.FC = () => {
     ];
   }, [totalIn, totalOut]);
 
+  const columns: TableColumn<MonthRow>[] = [
+    { key: 'month', header: 'Month', accessor: 'month', render: row => <span className="font-semibold text-foreground">{row.month} {year}</span> },
+    { key: 'open', header: 'Opening balance', accessor: 'open', sortable: true, align: 'right', hideAt: 'sm', render: row => fmtFull(row.open) },
+    { key: 'cashIn', header: 'Cash inflows', accessor: 'cashIn', sortable: true, align: 'right', render: row => <span className="font-semibold text-[var(--teal)]">{fmtFull(row.cashIn)}</span> },
+    { key: 'cashOut', header: 'Cash outflows', accessor: 'cashOut', sortable: true, align: 'right', render: row => <span className="font-semibold text-[var(--red)]">{fmtFull(row.cashOut)}</span> },
+    { key: 'net', header: 'Net change', accessor: 'net', sortable: true, align: 'right', render: row => <span className={row.net >= 0 ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>{row.net >= 0 ? '+' : ''}{fmtFull(row.net)}</span> },
+    { key: 'close', header: 'Closing balance', accessor: 'close', sortable: true, align: 'right', render: row => <span className="font-bold text-foreground">{fmtFull(row.close)}</span> },
+  ];
+
   function exportCsv() {
     const csvRows = [
       ['Month', 'Opening', 'Cash In', 'Cash Out', 'Net', 'Closing'],
@@ -100,71 +113,38 @@ export const FinanceCashFlow: React.FC = () => {
                 {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
               <Icon name="download" size={13} /> Export
-            </button>
+            </Button>
           </div>
         }
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading cash flow…</div>
+        <SectionLoading label="Loading cash flow…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error" title="Cash flow unavailable">{error}</Banner>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Summary */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total Cash In',  value: fmtM(totalIn),  color: 'var(--teal)',  bg: 'var(--teal-l)', icon: 'trendingUp'   },
-            { label: 'Total Cash Out', value: fmtM(totalOut), color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'trendingDown' },
-            { label: 'Net Cash Flow',  value: fmtM(totalNet), color: 'var(--green)', bg: 'var(--green-l)',       icon: 'activity'     },
-            { label: 'Closing Balance',value: fmtM(closing),  color: 'var(--blue)',  bg: 'var(--blue-l)',       icon: 'dollarSign'   },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={18} color={s.color} />
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <MetricsRow cards={[
+          { title: 'Total cash in', value: fmtM(totalIn), comparisonLabel: `${year} customer and other receipts`, barHighlight: 'var(--teal)' },
+          { title: 'Total cash out', value: fmtM(totalOut), comparisonLabel: `${year} supplier and operating payments`, barHighlight: 'var(--red)' },
+          { title: 'Net cash flow', value: fmtM(totalNet), comparisonLabel: 'Inflows less outflows', barHighlight: totalNet >= 0 ? 'var(--green)' : 'var(--red)' },
+          { title: 'Closing balance', value: fmtM(closing), comparisonLabel: `End of ${year}`, barHighlight: 'var(--blue)' },
+        ]} />
 
         {/* Cash Flow table */}
         <SectionCard padded={false} title={`Monthly Cash Flow — ${year}`}>
-          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg)' }}>
-                {['Month', 'Opening Balance', 'Cash Inflows', 'Cash Outflows', 'Net Change', 'Closing Balance'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={row.month} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600 }}>{row.month} {year}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--font)' }}>{fmtFull(row.open)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--font)' }}>{fmtFull(row.cashIn)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--font)' }}>{fmtFull(row.cashOut)}</td>
-                  <td style={{ padding: '10px 16px', color: row.net >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 700, fontFamily: 'var(--font)' }}>{row.net >= 0 ? '+' : ''}{fmtFull(row.net)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font)' }}>{fmtFull(row.close)}</td>
-                </tr>
-              ))}
-              <tr style={{ background: 'var(--bg)' }}>
-                <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total {year}</td>
-                <td style={{ padding: '10px 16px', borderTop: '2px solid var(--border)' }} />
-                <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalIn)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--red)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalOut)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--green)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{totalNet >= 0 ? '+' : ''}{fmtFull(totalNet)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 800, fontFamily: 'var(--font)', borderTop: '2px solid var(--border)' }}>{fmtFull(closing)}</td>
-              </tr>
-            </tbody>
-          </table></div>
+          <DataTable
+            columns={columns}
+            rows={rows}
+            empty={rows.length === 0}
+            emptyIcon="activity"
+            emptyTitle={`No cash flow activity for ${year}`}
+            emptyMessage="Monthly movements appear after cash transactions are posted."
+            pageSize={12}
+          />
         </SectionCard>
 
         {/* Breakdown note */}

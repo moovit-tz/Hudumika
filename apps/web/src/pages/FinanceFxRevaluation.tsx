@@ -5,7 +5,8 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
-import { SectionLoading } from '../components/ui/spinner.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { showAlert } from '../lib/alert.js';
@@ -63,21 +64,46 @@ export function FinanceFxRevaluation() {
     } finally { setRunning(false); }
   }
 
+  const columns: TableColumn<FxRevaluation>[] = [
+    { key: 'period', header: 'Period', accessor: 'period_date', sortable: true, render: row => new Date(`${row.period_date}T00:00:00`).toLocaleDateString() },
+    {
+      key: 'document', header: 'Document', accessor: 'subject_type', sortable: true,
+      render: row => <div><div className="font-semibold text-foreground">{row.subject_type === 'AR_INVOICE' ? 'Invoice' : 'Bill'}</div><div className="text-xs text-muted-foreground">{row.subject_id.slice(0, 8)}</div></div>,
+    },
+    { key: 'currency', header: 'Currency', accessor: 'currency', sortable: true, render: row => <Badge variant="info">{row.currency}</Badge> },
+    { key: 'balance', header: 'Open balance', accessor: 'open_balance_fc', sortable: true, align: 'right', render: row => Number(row.open_balance_fc).toLocaleString() },
+    { key: 'previousRate', header: 'Previous rate', accessor: 'comparison_rate', sortable: true, align: 'right', hideAt: 'md', render: row => Number(row.comparison_rate).toLocaleString() },
+    { key: 'periodRate', header: 'Period rate', accessor: 'current_rate', sortable: true, align: 'right', hideAt: 'md', render: row => Number(row.current_rate).toLocaleString() },
+    {
+      key: 'movement', header: 'Gain / loss', accessor: 'gain_loss', sortable: true, align: 'right',
+      render: row => { const movement = Number(row.gain_loss) || 0; return <span className={movement >= 0 ? 'font-semibold text-[var(--green)]' : 'font-semibold text-[var(--red)]'}>{fmt(movement)}</span>; },
+    },
+    { key: 'posting', header: 'Posting', accessor: 'journal_entry_id', sortable: true, render: row => row.journal_entry_id ? <Badge variant="success">Posted</Badge> : <Badge variant="warning">No movement</Badge> },
+  ];
+
   return <div className="finance-fx-page">
     <PageHeader crumbs={['Finance', 'Accounts']} titlePlain="Currency" titleEm="revaluation" subtitle="Revalue open foreign-currency receivables and payables without changing their original documents." actions={!readOnly ? <div className="finance-fx-run"><DatePicker date={periodDate} onChange={setPeriodDate} disabled={running} /><Button onClick={() => void runRevaluation()} disabled={running || !periodDate}><Icon name="refresh" size={16} />{running ? 'Revaluing…' : 'Run revaluation'}</Button></div> : undefined} />
-    <section className="finance-fx-metrics" aria-label="Foreign exchange revaluation summary">
-      <div><span>REVALUED ITEMS</span><strong>{rows.length}</strong><small>Historical entries preserved</small></div>
-      <div><span>CURRENCIES</span><strong>{summary.currencies.size}</strong><small>{[...summary.currencies].join(', ') || 'No foreign balances'}</small></div>
-      <div><span>TOTAL GAINS</span><strong className="is-positive">{fmt(summary.gains)}</strong><small>Recognised exchange gains</small></div>
-      <div><span>TOTAL LOSSES</span><strong className="is-negative">{fmt(summary.losses)}</strong><small>Recognised exchange losses</small></div>
-    </section>
+    <MetricsRow cards={[
+      { title: 'Revalued items', value: String(rows.length), comparisonLabel: 'Historical entries preserved', loading },
+      { title: 'Currencies', value: String(summary.currencies.size), comparisonLabel: [...summary.currencies].join(', ') || 'No foreign balances', loading },
+      { title: 'Total gains', value: fmt(summary.gains), comparisonLabel: 'Recognised exchange gains', barHighlight: 'var(--green)', loading },
+      { title: 'Total losses', value: fmt(summary.losses), comparisonLabel: 'Recognised exchange losses', barHighlight: 'var(--red)', loading },
+    ]} />
     {lastRun && <section className="finance-fx-result" aria-live="polite"><Icon name="checkCircle" size={18} /><div><strong>Revaluation completed for {lastRun.periodDate}</strong><span>{lastRun.subjectsRevalued} item{lastRun.subjectsRevalued === 1 ? '' : 's'} revalued · Net movement {fmt(lastRun.netMovement)}</span></div><Badge variant="success">Posted</Badge></section>}
     <section className="finance-fx-table-card">
       <header><div><h2>Revaluation history</h2><p>Foreign balances, comparison rates, period rates, and their journal movements.</p></div><Badge variant="gray">Net {fmt(summary.net)}</Badge></header>
-      {loading ? <SectionLoading label="Loading revaluation history" /> : rows.length === 0 ? <div className="finance-fx-empty"><Icon name="refresh" size={22} /><strong>No revaluations recorded</strong><span>Run the first period-end revaluation when foreign-currency balances are open.</span></div> : <div className="rtbl-wrap"><table className="rtbl"><thead><tr><th>Period</th><th>Document</th><th>Currency</th><th className="num">Open balance</th><th className="num">Previous rate</th><th className="num">Period rate</th><th className="num">Gain / loss</th><th>Posting</th></tr></thead><tbody>{rows.map(row => {
-        const movement = Number(row.gain_loss) || 0;
-        return <tr key={row.id}><td>{new Date(`${row.period_date}T00:00:00`).toLocaleDateString()}</td><td><strong>{row.subject_type === 'AR_INVOICE' ? 'Invoice' : 'Bill'}</strong><small>{row.subject_id.slice(0, 8)}</small></td><td><Badge variant="info">{row.currency}</Badge></td><td className="num">{Number(row.open_balance_fc).toLocaleString()}</td><td className="num">{Number(row.comparison_rate).toLocaleString()}</td><td className="num">{Number(row.current_rate).toLocaleString()}</td><td className={`num ${movement >= 0 ? 'is-positive' : 'is-negative'}`}>{fmt(movement)}</td><td>{row.journal_entry_id ? <Badge variant="success">Posted</Badge> : <Badge variant="warning">No movement</Badge>}</td></tr>;
-      })}</tbody></table></div>}
+      <DataTable
+        columns={columns}
+        rows={rows}
+        loading={loading}
+        empty={!loading && rows.length === 0}
+        emptyIcon="refresh"
+        emptyTitle="No revaluations recorded"
+        emptyMessage="Run the first period-end revaluation when foreign-currency balances are open."
+        defaultSortKey="period"
+        defaultSortDir="desc"
+        pageSize={15}
+      />
     </section>
   </div>;
 }

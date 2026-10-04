@@ -12,6 +12,10 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 
 interface Payment {
   id: string;
@@ -47,7 +51,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', minWidth: 0, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="fileText" size={18} color="var(--blue)" /> Payment
         </h2>
         <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink3)' }}>
@@ -64,7 +68,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Date</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : '—'}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : '—'}</div>
           </div>
         </div>
 
@@ -94,7 +98,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
             ].map((item, i, arr) => (
               <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)' }}>
                 <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{item.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                   {item.value}
                 </span>
               </div>
@@ -242,17 +246,16 @@ export const FinancePayments: React.FC = () => {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
 
-  const PAGE_SIZE = 15;
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, activeTab]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const offset = (currentPage - 1) * PAGE_SIZE;
-  const pagedPayments = filtered.slice(offset, offset + PAGE_SIZE);
+  const paymentColumns: TableColumn<Payment>[] = [
+    {
+      key: 'document', header: 'Document', accessor: 'document_number', sortable: true,
+      render: payment => <div className="flex items-center gap-2"><Badge variant={payment.direction === 'in' ? 'info' : 'warning'}>{payment.direction === 'in' ? 'Received' : 'Paid'}</Badge><span className="font-semibold text-foreground">{payment.document_number}</span></div>,
+    },
+    { key: 'party', header: 'Party', accessor: 'party_name', sortable: true, render: payment => payment.party_name || 'Unknown' },
+    ...(!isSplit ? [{ key: 'method', header: 'Mode', accessor: 'method' as keyof Payment, sortable: true, render: (payment: Payment) => payment.method || '—' }] : []),
+    { key: 'date', header: 'Date', accessor: 'payment_date', sortable: true, hideAt: 'sm' as const, render: payment => payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : '—' },
+    { key: 'amount', header: 'Amount', accessor: 'amount', sortable: true, align: 'right' as const, render: payment => <span className={payment.direction === 'in' ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>{payment.direction === 'in' ? '+' : '−'}{fmt(Number(payment.amount), (payment.currency || 'TZS') as any)}</span> },
+  ];
 
   // Full page, matching Quotations: the form replaces the list rather than
   // floating over it. Submit stays on the <form> so Enter still saves.
@@ -388,124 +391,28 @@ export const FinancePayments: React.FC = () => {
                 </TabsList>
               </Tabs>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', width: isMobile ? '100%' : 240 }}>
-                  <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
-                  <input
-                    type="search"
-                    placeholder="Search payments..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px 8px 32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r)',
-                      fontSize: 13,
-                      fontFamily: 'var(--font)',
-                      background: 'var(--white)',
-                      color: 'var(--ink)',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAdd(true)}
-                  style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
-                >
-                  <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> Record Payment
-                </button>
-              </div>
+              <SearchToolbar
+                search={search}
+                onSearch={setSearch}
+                placeholder="Search payments…"
+                actions={<Button size="sm" onClick={() => setShowAdd(true)}><Icon name="plus" size={14} /> Record payment</Button>}
+              />
             </div>
 
-            <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', textAlign: 'left', width: '100%' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg)', color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '12px 16px' }}>Document</th>
-                  <th style={{ padding: '12px 16px' }}>Party</th>
-                  {!isSplit && <th style={{ padding: '12px 16px' }}>Mode</th>}
-                  <th style={{ padding: '12px 16px' }}>Date</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>Loading payments…</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>No payments found.</td></tr>
-                ) : pagedPayments.map(p => (
-                  <tr key={p.id} onClick={() => setSelectedPayment(p)} data-selected={selectedPayment?.id === p.id ? 'true' : 'false'} style={{ borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--navy)', cursor: 'pointer' }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span title={p.direction === 'in' ? 'Received from customer' : 'Paid to supplier'}
-                          style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: p.direction === 'in' ? 'var(--green-l)' : 'var(--red-l)', color: p.direction === 'in' ? 'var(--green)' : 'var(--red)' }}>
-                          <Icon name={p.direction === 'in' ? 'arrowDown' : 'arrowUp'} size={12} strokeWidth={2.5} />
-                        </span>
-                        <span style={{ background: p.direction === 'in' ? 'var(--blue-l)' : 'var(--gold-l)', color: p.direction === 'in' ? 'var(--blue)' : 'var(--gold)', padding: '3px 8px', borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}>
-                          {p.document_number}
-                        </span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isSplit ? 120 : 200 }}>
-                        {p.party_name || 'Unknown'}
-                      </div>
-                    </td>
-                    {!isSplit && (
-                      <td style={{ padding: '12px 16px' }}>{p.method || '—'}</td>
-                    )}
-                    <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB') : '—'}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font)', color: p.direction === 'in' ? 'var(--green)' : 'var(--red)' }}>
-                      {p.direction === 'in' ? '+' : '−'}{fmt(Number(p.amount), (p.currency || 'TZS') as any)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-
-            {/* Pagination Controls */}
-            {filtered.length > PAGE_SIZE && (
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)', marginTop: 'auto' }}>
-                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                  Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)}</strong> of <strong>{filtered.length}</strong> payments
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    type="button"
-                    disabled={currentPage <= 1}
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: 'var(--ds-btn-py-sm) 12px', minHeight: 'var(--ctl-h-sm)',
-                      border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                      background: 'var(--white)', color: 'var(--ink2)', fontSize: 11.5, fontWeight: 700,
-                      cursor: currentPage <= 1 ? 'not-allowed' : 'pointer', opacity: currentPage <= 1 ? 0.45 : 1
-                    }}
-                  >
-                    <Icon name="chevronLeft" size={13} /> Previous
-                  </button>
-                  <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
-                    Page {currentPage} of {pageCount}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={currentPage >= pageCount}
-                    onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: 'var(--ds-btn-py-sm) 12px', minHeight: 'var(--ctl-h-sm)',
-                      border: '1px solid var(--border)', borderRadius: 'var(--r)',
-                      background: 'var(--white)', color: 'var(--ink2)', fontSize: 11.5, fontWeight: 700,
-                      cursor: currentPage >= pageCount ? 'not-allowed' : 'pointer', opacity: currentPage >= pageCount ? 0.45 : 1
-                    }}
-                  >
-                    Next <Icon name="chevronRight" size={13} />
-                  </button>
-                </div>
-              </div>
-            )}
+            <DataTable
+              columns={paymentColumns}
+              rows={filtered}
+              loading={loading}
+              filteredEmpty={(!!search || activeTab !== 'ALL') && filtered.length === 0}
+              empty={!loading && payments.length === 0}
+              emptyIcon="creditCard"
+              emptyTitle="No payment transactions"
+              emptyMessage="Customer receipts and supplier payments appear here after they are recorded."
+              defaultSortKey="date"
+              defaultSortDir="desc"
+              pageSize={15}
+              onRowClick={setSelectedPayment}
+            />
           </div>
         </div>
 

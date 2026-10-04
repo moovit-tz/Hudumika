@@ -19,6 +19,9 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 
 interface Visitor {
   id: string; name: string; company: string | null; purpose: string | null;
@@ -38,10 +41,15 @@ export const HrVisitors: React.FC = () => {
   const [purpose, setPurpose] = useState('');
   const [host, setHost] = useState<PickerItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const staffCache = useRef<PickerItem[] | null>(null);
 
   const reload = useCallback(async () => {
-    try { setVisitors(await apiFetch('/v1/ondi/org/visitors')); } catch (err: any) { setVisitors([]); showAlert(err?.message || 'Could not load visitors.'); }
+    setLoadError(null);
+    try { setVisitors(await apiFetch('/v1/ondi/org/visitors')); } catch (err: any) {
+      setVisitors([]);
+      setLoadError(err?.message || 'Could not load visitors.');
+    }
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -81,6 +89,14 @@ export const HrVisitors: React.FC = () => {
 
   const present = visitors?.filter(v => !v.checked_out_at) ?? [];
   const past = visitors?.filter(v => v.checked_out_at) ?? [];
+  const checkedOutToday = past.filter(visitor => new Date(visitor.checked_out_at!).toDateString() === new Date().toDateString()).length;
+  const pastColumns: TableColumn<Visitor>[] = [
+    { key: 'name', header: 'Visitor', accessor: 'name', sortable: true, render: visitor => <span><strong>{visitor.name}</strong>{visitor.company ? ` · ${visitor.company}` : ''}</span> },
+    { key: 'host', header: 'Host', render: visitor => visitor.host_name || '—' },
+    { key: 'purpose', header: 'Purpose', render: visitor => visitor.purpose || '—', hideAt: 'sm' },
+    { key: 'status', header: 'Status', render: () => <Badge variant="gray">Checked out</Badge>, width: 120 },
+    { key: 'visit', header: 'Visit', render: visitor => `${fmtTime(visitor.checked_in_at)} – ${fmtTime(visitor.checked_out_at!)}`, width: 260 },
+  ];
 
   return (
     <div>
@@ -95,6 +111,12 @@ export const HrVisitors: React.FC = () => {
           </Button>
         ) : undefined}
       />
+
+      <MetricsRow cards={[
+        { title: 'On-site now', value: String(present.length), icon: 'user', barHighlight: 'var(--green)', loading: visitors === null, error: loadError ?? undefined, onRetry: reload, emphasis: 'primary' },
+        { title: 'Checked out today', value: String(checkedOutToday), icon: 'checkCircle', loading: visitors === null, error: loadError ?? undefined, onRetry: reload },
+        { title: 'Recent visit records', value: String(past.length), icon: 'clock', loading: visitors === null, error: loadError ?? undefined, onRetry: reload },
+      ]} />
 
       {showNew && (
         <div style={{ marginBottom: 20 }}>
@@ -135,9 +157,7 @@ export const HrVisitors: React.FC = () => {
           {visitors !== null && present.length === 0 && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink3)' }}>Nobody checked in right now.</div>}
           {present.map((v, i, arr) => (
             <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="user" size={16} color="var(--green)" />
-              </div>
+              <PersonAvatar name={v.name} size={34} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v.name}{v.company ? ` · ${v.company}` : ''}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
@@ -153,21 +173,22 @@ export const HrVisitors: React.FC = () => {
         </SectionCard>
       </div>
 
-      {past.length > 0 && (
-        <SectionCard padded={false} title="Recent visits">
-          {past.slice(0, 30).map((v, i, arr) => (
-            <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 20px', borderBottom: i < Math.min(arr.length, 30) - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, color: 'var(--ink)' }}><strong style={{ fontWeight: 600 }}>{v.name}</strong>{v.company ? ` · ${v.company}` : ''}</div>
-              </div>
-              <Badge variant="gray">Checked out</Badge>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', minWidth: 200, textAlign: 'right' }}>
-                {fmtTime(v.checked_in_at)} – {fmtTime(v.checked_out_at!)}
-              </div>
-            </div>
-          ))}
-        </SectionCard>
-      )}
+      <SectionCard padded={false} title="Recent visits">
+        <DataTable
+          columns={pastColumns}
+          rows={past.slice(0, 30)}
+          loading={visitors === null}
+          error={loadError ?? undefined}
+          onRetry={reload}
+          empty={visitors !== null && !loadError && past.length === 0}
+          emptyIcon="clock"
+          emptyTitle="No recent visits"
+          emptyMessage="Completed visits will appear here after a visitor checks out."
+          defaultSortKey="visit"
+          defaultSortDir="desc"
+          compact
+        />
+      </SectionCard>
     </div>
   );
 };

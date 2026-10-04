@@ -23,6 +23,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
@@ -206,9 +207,9 @@ export const TrackingVehicleDetail: React.FC = () => {
           </div>
         </div>
         <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
-          <span style={{ alignSelf: 'center', fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '4px 12px', background: vehicle.status === 'ACTIVE' ? 'var(--green-l)' : 'var(--bg)', color: vehicle.status === 'ACTIVE' ? 'var(--green)' : 'var(--ink3)' }}>
+          <Badge variant={vehicle.status === 'ACTIVE' ? 'success' : 'gray'} className="self-center">
             {vehicle.status}
-          </span>
+          </Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button">
@@ -496,7 +497,7 @@ export const TrackingVehicleDetail: React.FC = () => {
           {detail.issues.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues reported.</div>}
           {detail.issues.map(i => (
             <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 8px', background: i.status === 'RESOLVED' ? 'var(--green-l)' : 'var(--red-l)', color: i.status === 'RESOLVED' ? 'var(--green)' : 'var(--red)' }}>{i.status}</span>
+              <Badge variant={i.status === 'RESOLVED' ? 'success' : 'error'}>{i.status}</Badge>
               <Link to={`/tracking/issues/${i.id}`} style={{ flex: 1, fontSize: 13, color: 'var(--ink)', textDecoration: 'none', fontWeight: 600 }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink)')}>

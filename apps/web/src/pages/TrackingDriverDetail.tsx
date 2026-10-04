@@ -9,6 +9,7 @@ import { AvatarPicker } from '../components/AvatarPicker.js';
 import { DriverChatPanel } from '../components/DriverChatPanel.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import './TrackingDriverDetail.css';
 
@@ -597,14 +598,16 @@ export const TrackingDriverDetail: React.FC = () => {
 
               <div className="dd-form-field">
                 <label className="dd-form-label">Lifecycle Status</label>
-                <select
+                <Select
                   value={driverForm.status || 'Available'}
-                  onChange={e => setDriverForm({ ...driverForm, status: e.target.value })}
-                  className="dd-form-select"
+                  onValueChange={value => setDriverForm({ ...driverForm, status: value })}
                 >
-                  <option value="Available">Available (Active & Ready)</option>
-                  <option value="Off Duty">Off Duty (Inactive / Rest Shift)</option>
-                </select>
+                  <SelectTrigger className="dd-form-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Available">Available (Active & Ready)</SelectItem>
+                    <SelectItem value="Off Duty">Off Duty (Inactive / Rest Shift)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="dd-form-field">

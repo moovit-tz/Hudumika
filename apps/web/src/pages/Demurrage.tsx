@@ -305,7 +305,6 @@ export const Demurrage: React.FC = () => {
               {
                 title: 'Accruing Demurrage',
                 value: String(summary?.active_containers || 0),
-                trend: -(summary?.active_containers || 0) > 0 ? 2.1 : 0,
                 invertTrend: true,
                 sub1Label: 'AT RISK', sub1Value: String(Math.floor((summary?.active_containers || 0) * 0.4)),
                 sub2Label: 'FREE DAYS LEFT', sub2Value: '2.4 avg', barHighlight: 'var(--red)',

@@ -2,8 +2,9 @@
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
-import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -40,11 +41,6 @@ interface ReturnSnapshot {
   fxSkipped: { invoices: number; bills: number };
 }
 
-const th: React.CSSProperties = {
-  padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)',
-  textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)',
-};
 const td: React.CSSProperties = { padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' };
 
 function monthRange(offset = 0) {
@@ -150,6 +146,24 @@ export function FinanceVatPeriods() {
   const gaps = open ? open.snapshot.unclassified.salesLines + open.snapshot.unclassified.purchaseLines
     + open.snapshot.fxSkipped.invoices + open.snapshot.fxSkipped.bills : 0;
 
+  const columns: TableColumn<Period>[] = [
+    {
+      key: 'period', header: 'Period', accessor: 'period_start', sortable: true,
+      render: period => <span className="font-semibold text-foreground">{String(period.period_start).slice(0, 10)} → {String(period.period_end).slice(0, 10)}</span>,
+    },
+    { key: 'jurisdiction', header: 'Jurisdiction', accessor: 'jurisdiction', sortable: true },
+    {
+      key: 'status', header: 'Status', accessor: 'status', sortable: true,
+      render: period => <div className="flex items-center gap-1.5"><Badge variant={period.status === 'closed' ? 'success' : 'gray'}>{period.status === 'closed' ? 'Filed' : 'Open'}</Badge>{period.reopened_at && <Tip label={period.reopen_reason || 'No reason recorded'}><span><Badge variant="warning">Reopened</Badge></span></Tip>}</div>,
+    },
+    { key: 'adjustment', header: 'Adjustment posted', accessor: 'adjustment_amount', sortable: true, align: 'right', hideAt: 'sm', render: period => Number(period.adjustment_amount) > 0 ? fmt(Number(period.adjustment_amount)) : '—' },
+    { key: 'closed', header: 'Closed', accessor: 'closed_at', sortable: true, hideAt: 'md', render: period => period.closed_at ? String(period.closed_at).slice(0, 10) : '—' },
+    {
+      key: 'actions', header: '', align: 'right',
+      render: period => <div className="flex justify-end gap-1.5"><Button type="button" variant="outline" size="sm" disabled={busy === period.id} onClick={() => view(period)}>{period.status === 'closed' ? 'View filed' : 'Preview'}</Button>{period.status === 'open' ? <Button type="button" size="sm" disabled={busy === period.id} onClick={() => close(period)}>Close &amp; file</Button> : <Button type="button" variant="outline" size="sm" disabled={busy === period.id} onClick={() => reopen(period)}>Reopen</Button>}</div>,
+    },
+  ];
+
   return (
     <div className="page-layout">
       <PageHeader
@@ -163,22 +177,22 @@ export function FinanceVatPeriods() {
         {
           title: 'Total Periods', value: String(periods.length), icon: 'calendar',
           sub1Label: 'OPEN', sub1Value: String(periods.filter(p => p.status === 'open').length),
-          sub2Label: 'FILED', sub2Value: String(periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)',
+          sub2Label: 'FILED', sub2Value: String(periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)', loading,
         },
         {
           title: 'Open Periods', value: String(periods.filter(p => p.status === 'open').length), icon: 'unlock',
           sub1Label: 'JURISDICTIONS', sub1Value: String(new Set(periods.filter(p => p.status === 'open').map(p => p.jurisdiction)).size),
-          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--gold)',
+          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--gold)', loading,
         },
         {
           title: 'Filed Returns', value: String(periods.filter(p => p.status === 'closed').length), icon: 'lock',
           sub1Label: 'REOPENED', sub1Value: String(periods.filter(p => p.reopened_at).length),
-          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--green)',
+          sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--green)', loading,
         },
         {
           title: 'Adjustments Posted', value: fmt(periods.reduce((s, p) => s + (Number(p.adjustment_amount) || 0), 0)), icon: 'dollarSign',
           sub1Label: 'PERIODS', sub1Value: String(periods.filter(p => Number(p.adjustment_amount) > 0).length),
-          sub2Label: 'JURISDICTIONS', sub2Value: String(new Set(periods.map(p => p.jurisdiction)).size), barHighlight: 'var(--blue)',
+          sub2Label: 'JURISDICTIONS', sub2Value: String(new Set(periods.map(p => p.jurisdiction)).size), barHighlight: 'var(--blue)', loading,
         },
       ]} />
 
@@ -211,9 +225,9 @@ export function FinanceVatPeriods() {
               <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>To</label>
               <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
             </div>
-            <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'create'} onClick={create}>
-              <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> {busy === 'create' ? 'Creating…' : 'New period'}
-            </button>
+            <Button type="button" size="sm" disabled={busy === 'create'} onClick={create}>
+              <Icon name="plus" size={13} /> {busy === 'create' ? 'Creating…' : 'New period'}
+            </Button>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', flex: '1 1 240px', minWidth: 200, lineHeight: 1.5 }}>
               Periods cannot overlap within a jurisdiction — a document must belong to exactly one return.
             </div>
@@ -223,60 +237,18 @@ export function FinanceVatPeriods() {
 
       {/* The periods */}
       <SectionCard padded={false}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-          <thead>
-            <tr style={{ background: 'var(--bg)' }}>
-              {['Period', 'Jurisdiction', 'Status', 'Adjustment posted', 'Closed', ''].map(h => (
-                <th key={h} style={th}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <tr><td colSpan={6} style={{ padding: '40px' }}><SectionLoading style={{ padding: 0 }} /></td></tr>}
-            {!loading && periods.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
-                No filing periods yet. Create one above to file a return.
-              </td></tr>
-            )}
-            {periods.map(p => (
-              <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ ...td, color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--font)', fontSize: 12 }}>
-                  {String(p.period_start).slice(0, 10)} → {String(p.period_end).slice(0, 10)}
-                </td>
-                <td style={td}>{p.jurisdiction}</td>
-                <td style={td}>
-                  <Badge variant={p.status === 'closed' ? 'success' : 'gray'}>
-                    {p.status === 'closed' ? 'Filed' : 'Open'}
-                  </Badge>
-                  {p.reopened_at && (
-                    <Tip label={p.reopen_reason || 'No reason recorded'}>
-                      <span style={{ marginLeft: 6 }}>
-                        <Badge variant="warning">Reopened</Badge>
-                      </span>
-                    </Tip>
-                  )}
-                </td>
-                <td style={{ ...td, fontFamily: 'var(--font)' }}>
-                  {Number(p.adjustment_amount) > 0 ? fmt(Number(p.adjustment_amount)) : '—'}
-                </td>
-                <td style={td}>{p.closed_at ? String(p.closed_at).slice(0, 10) : '—'}</td>
-                <td style={{ ...td, textAlign: 'right' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" disabled={busy === p.id}
-                    onClick={() => view(p)} style={{ marginRight: 6 }}>
-                    {p.status === 'closed' ? 'View as filed' : 'Preview'}
-                  </button>
-                  {p.status === 'open' ? (
-                    <button type="button" className="btn btn-primary btn-sm" disabled={busy === p.id}
-                      onClick={() => close(p)}>Close &amp; file</button>
-                  ) : (
-                    <button type="button" className="btn btn-secondary btn-sm" disabled={busy === p.id}
-                      onClick={() => reopen(p)}>Reopen</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          columns={columns}
+          rows={periods}
+          loading={loading}
+          empty={!loading && periods.length === 0}
+          emptyIcon="calendar"
+          emptyTitle="No filing periods"
+          emptyMessage="Create a period above when you are ready to prepare and file a tax return."
+          defaultSortKey="period"
+          defaultSortDir="desc"
+          pageSize={12}
+        />
       </SectionCard>
 
       {/* The return for one period */}
@@ -286,9 +258,9 @@ export function FinanceVatPeriods() {
           padded={false}
           collapsible={false}
           title={`${String(open.period.period_start).slice(0, 10)} → ${String(open.period.period_end).slice(0, 10)}${open.provisional ? ' · provisional, recomputed live' : ' · as filed'}`}
-          action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(null)}>
+          action={<Button type="button" variant="outline" size="sm" onClick={() => setOpen(null)}>
             <Icon name="x" size={13} /> Close
-          </button>}
+          </Button>}
         >
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <tbody>
@@ -315,11 +287,11 @@ export function FinanceVatPeriods() {
               Closing freezes them exactly as they are, and the filed return will carry the hole.
               <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a href="/finance/tax-codes/classify" className="btn btn-secondary btn-sm">Classify them first</a>
-                <button type="button" className="btn btn-secondary btn-sm"
+                <Button type="button" variant="outline" size="sm"
                   disabled={busy === open.period.id}
                   onClick={() => close(open.period, true)}>
                   Close anyway, accepting the gap
-                </button>
+                </Button>
               </div>
             </div>
           )}

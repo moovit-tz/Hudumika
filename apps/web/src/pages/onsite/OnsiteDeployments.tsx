@@ -24,7 +24,7 @@ export function OnsiteDeployments() {
         crumbs={['Onsite', 'Deployments']}
         titlePlain="Deployment"
         titleEm="history"
-        subtitle="Real-time audit log of all build executions, branch deployments, and rollbacks."
+        subtitle="Review builds, branch deployments, failures, and rollbacks."
       />
 
       {loading ? (

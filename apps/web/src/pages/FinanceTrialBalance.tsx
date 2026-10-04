@@ -9,6 +9,10 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { PageLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Assets',      color: 'var(--blue)', bg: 'var(--blue-l)' },
@@ -121,8 +125,8 @@ export const FinanceTrialBalance: React.FC = () => {
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balance…</div>;
-  if (error) return <div style={{ textAlign: 'center', color: 'var(--red)' }}>{error}</div>;
+  if (loading) return <PageLoading label="Loading trial balance…" />;
+  if (error) return <div className="page-layout"><Banner variant="error" title="Trial balance unavailable">{error}</Banner></div>;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -140,12 +144,12 @@ export const FinanceTrialBalance: React.FC = () => {
                 {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" title="Export trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6, whiteSpace: 'nowrap' }} onClick={exportCsv}>
+            <Button type="button" variant="outline" size="sm" onClick={exportCsv}>
               <Icon name="download" size={13} /> Export
-            </button>
-            <button type="button" title="Print trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6, whiteSpace: 'nowrap' }} onClick={() => window.print()}>
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
               <Icon name="fileText" size={13} /> Print
-            </button>
+            </Button>
           </div>
         }
       />
@@ -153,7 +157,7 @@ export const FinanceTrialBalance: React.FC = () => {
       {/* Balance status banner */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 'var(--r)', marginBottom: 20, background: balanced ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${balanced ? 'var(--green)' : 'var(--red)'}` }}>
         <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: balanced ? 'var(--green)' : 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name={balanced ? 'check' : 'alertTriangle'} size={16} color="#fff" />
+          <Icon name={balanced ? 'check' : 'alertTriangle'} size={16} color="hsl(var(--primary-foreground))" />
         </div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
@@ -209,23 +213,14 @@ export const FinanceTrialBalance: React.FC = () => {
 
         <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
           <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
-          <input
+          <Input
             type="text"
-            title="Search accounts"
+            aria-label="Search accounts"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search account…"
             style={{
-              width: '100%',
-              padding: '8px 12px 8px 32px',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r, 6px)',
-              fontSize: 13,
-              fontFamily: 'var(--font)',
-              background: 'var(--white)',
-              color: 'var(--ink)',
-              outline: 'none',
-              boxSizing: 'border-box'
+              width: '100%', paddingLeft: 32,
             }}
           />
         </div>
@@ -324,15 +319,15 @@ export const FinanceTrialBalance: React.FC = () => {
             {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
           </span>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <button type="button" className="btn btn-secondary btn-sm"
+            <Button type="button" variant="outline" size="sm"
               disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
               <Icon name="arrowLeft" size={12} /> Previous
-            </button>
+            </Button>
             <span style={{ minWidth:70, textAlign:'center' }}>Page {currentPage} of {pageCount}</span>
-            <button type="button" className="btn btn-secondary btn-sm"
+            <Button type="button" variant="outline" size="sm"
               disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
               Next <Icon name="arrowRight" size={12} />
-            </button>
+            </Button>
           </div>
         </div>
       )}

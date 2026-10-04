@@ -6,6 +6,9 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vendor { id: string; name: string }
 interface Part {
@@ -13,7 +16,6 @@ interface Part {
   quantity: number; unit_cost: number | null; reorder_level: number; vendor_id: string | null;
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function AddPartModal({ vendors, onClose, onAdded }: { vendors: Vendor[]; onClose: () => void; onAdded: () => void }) {
@@ -49,15 +51,15 @@ function AddPartModal({ vendors, onClose, onAdded }: { vendors: Vendor[]; onClos
       <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a part</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={labelStyle}>Part name</label><input required value={partName} onChange={e => setPartName(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Part name</label><Input required value={partName} onChange={e => setPartName(e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Part number</label><input value={partNumber} onChange={e => setPartNumber(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Part number</label><Input value={partNumber} onChange={e => setPartNumber(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Category</label><Input value={category} onChange={e => setCategory(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Quantity</label><input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Unit cost</label><input type="number" value={unitCost} onChange={e => setUnitCost(e.target.value)} style={inputStyle} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Reorder level</label><input type="number" value={reorderLevel} onChange={e => setReorderLevel(e.target.value)} style={inputStyle} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Quantity</label><Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Unit cost</label><Input type="number" value={unitCost} onChange={e => setUnitCost(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Reorder level</label><Input type="number" value={reorderLevel} onChange={e => setReorderLevel(e.target.value)} /></div>
           </div>
           <div>
             <label style={labelStyle}>Supplier</label>
@@ -68,10 +70,8 @@ function AddPartModal({ vendors, onClose, onAdded }: { vendors: Vendor[]; onClos
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving || !partName} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Add part'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving || !partName}>{saving ? 'Saving…' : 'Add part'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -116,10 +116,9 @@ export const TrackingPartsStock: React.FC = () => {
             subtitle="Spare parts inventory"
           />
         </div>
-        <button type="button" onClick={() => setShowAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Button type="button" onClick={() => setShowAdd(true)}>
           <Icon name="package" size={15} /> Add part
-        </button>
+        </Button>
       </div>
 
       <SectionCard>
@@ -140,7 +139,7 @@ export const TrackingPartsStock: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.category || '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontWeight: 700, color: low ? 'var(--red)' : 'var(--ink)' }}>{p.quantity}</span>
-                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 8px', background: 'var(--red-l)', color: 'var(--red)' }}>LOW STOCK</span>}
+                    {low && <Badge variant="error" style={{ marginLeft: 8 }}>LOW STOCK</Badge>}
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.unit_cost != null ? p.unit_cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vendorName(p.vendor_id)}</td>

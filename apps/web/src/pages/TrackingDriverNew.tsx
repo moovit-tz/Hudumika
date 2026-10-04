@@ -6,11 +6,11 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24 };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 export const TrackingDriverNew: React.FC = () => {
@@ -60,12 +60,12 @@ export const TrackingDriverNew: React.FC = () => {
 
       <SectionCard>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Amara Kone" style={inputStyle} /></div>
-        <div><label style={labelStyle}>Phone</label><input value={phone} onChange={e => setPhone(e.target.value)} style={inputStyle} /></div>
+        <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Amara Kone" /></div>
+        <div><label style={labelStyle}>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>License Number</label>
-            <input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} style={inputStyle} />
+            <Input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>License Expiry</label>
@@ -81,10 +81,8 @@ export const TrackingDriverNew: React.FC = () => {
         </div>
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-          <Link to="/tracking/drivers" style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
-          <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving ? 'Saving…' : 'Add Driver'}
-          </button>
+          <Button type="button" variant="outline" asChild><Link to="/tracking/drivers">Cancel</Link></Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Add Driver'}</Button>
         </div>
       </form>
       </SectionCard>

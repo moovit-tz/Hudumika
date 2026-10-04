@@ -13,6 +13,13 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { useTaxCodes } from '../data/taxCodeData.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 
 type Freq = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
 type State = 'ACTIVE' | 'PAUSED' | 'ENDED';
@@ -35,7 +42,6 @@ function mapApi(d: any): RecurringInvoice {
   };
 }
 
-const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
 
 function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoice | null; onSave: (data: any) => Promise<void>; onClose: () => void }) {
@@ -96,7 +102,7 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Auto-generates invoices on schedule</div>
         </SheetHeader>
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Template Name *</label><input type="text" placeholder="e.g. Monthly Retainer" value={name} onChange={e => setName(e.target.value)} style={inp} /></div>
+          <div style={{ marginBottom: 14 }}><label style={lbl}>Template Name *</label><Input type="text" placeholder="e.g. Monthly Retainer" value={name} onChange={e => setName(e.target.value)} /></div>
           <div style={{ marginBottom: 14 }}>
             <EntityPicker label="Customer *" value={customerItem} onChange={handleCustomerChange} search={searchCustomers} onCreate={createCustomerInline} createLabel={q => `Create new customer "${q}"`} placeholder="Search customers…" />
           </div>
@@ -105,7 +111,7 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
             <div><label style={lbl}>Currency</label><Select value={currency} onValueChange={setCurrency}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['TZS', 'USD', 'KES', 'EUR', 'GBP'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div><label style={lbl}>Amount</label><input type="number" min={0} step={0.01} value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} style={inp} /></div>
+            <div><label style={lbl}>Amount</label><Input type="number" min={0} step={0.01} value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} /></div>
             <div>
               <label style={lbl}>Tax treatment</label>
               <Select value={taxCodeId ?? '__none__'} onValueChange={v => {
@@ -125,15 +131,15 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
             <div><label style={lbl}>Next due date</label><DatePicker date={parseDateOnly(nextDue)} onChange={d => setNextDue(toDateOnlyString(d) ?? '')} /></div>
             <div><label style={lbl}>End date (optional)</label><DatePicker date={parseDateOnly(endDate)} onChange={d => setEndDate(toDateOnlyString(d) ?? '')} /></div>
           </div>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Payment terms</label><input type="text" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} style={inp} /></div>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Description</label><textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} style={{ ...inp, resize: 'vertical' }} /></div>
+          <div style={{ marginBottom: 14 }}><label style={lbl}>Payment terms</label><Input type="text" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} /></div>
+          <div style={{ marginBottom: 14 }}><label style={lbl}>Description</label><Textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} className="resize-y" /></div>
           <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)' }}>
             Total per cycle: <strong style={{ color: 'var(--teal)' }}>{currency} {total.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
           </div>
         </div>
         <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Save Template'}</button>
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button type="button" size="sm" disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Save Template'}</Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -147,6 +153,8 @@ export function RecurringInvoices() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RecurringInvoice | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [stateFilter, setStateFilter] = useState<string | null>(null);
 
   const load = () => apiFetch('/v1/invoices/recurring').then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApi)); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load recurring invoices.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
@@ -194,13 +202,51 @@ export function RecurringInvoices() {
     }
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading recurring invoices…</div>;
-
   const totalMonthly = recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').reduce((a, r) => a + r.amount * (1 + r.tax_rate / 100), 0);
   const activeCount = recurring.filter(r => r.state === 'ACTIVE').length;
   const pausedCount = recurring.filter(r => r.state === 'PAUSED').length;
   const invoicesGenerated = recurring.reduce((s, r) => s + r.invoices_generated, 0);
   const totalBilled = recurring.reduce((s, r) => s + r.total_billed, 0);
+  const query = search.trim().toLowerCase();
+  const filtered = recurring.filter(r => {
+    const matchesQuery = !query || [r.name, r.client_name, r.description, r.frequency].some(value => value?.toLowerCase().includes(query));
+    return matchesQuery && (!stateFilter || r.state === stateFilter);
+  });
+
+  const columns: TableColumn<RecurringInvoice>[] = [
+    {
+      key: 'template', header: 'Template', accessor: 'name', sortable: true,
+      render: r => <div><div className="font-semibold text-foreground">{r.name}</div>{r.description && <div className="mt-0.5 max-w-64 truncate text-xs text-muted-foreground">{r.description}</div>}</div>,
+    },
+    { key: 'customer', header: 'Customer', accessor: 'client_name', sortable: true, render: r => r.client_name || 'Unassigned' },
+    { key: 'frequency', header: 'Frequency', accessor: 'frequency', sortable: true, hideAt: 'sm', render: r => FREQ_LABEL[r.frequency] },
+    { key: 'amount', header: 'Amount', align: 'right', render: r => <span className="font-semibold text-foreground">{fmt(r.amount * (1 + r.tax_rate / 100), r.currency)}</span> },
+    {
+      key: 'due', header: 'Next due', accessor: 'next_due', sortable: true,
+      render: r => {
+        const dueDate = r.next_due ? new Date(r.next_due) : null;
+        const dueSoon = dueDate && r.state === 'ACTIVE' && dueDate.getTime() >= Date.now() && dueDate.getTime() - Date.now() < 14 * 86400000;
+        return <div className={dueSoon ? 'font-semibold text-[var(--gold)]' : ''}>{dueDate ? dueDate.toLocaleDateString('en-GB') : '—'}{dueSoon && <div className="text-xs">Due soon</div>}</div>;
+      },
+    },
+    { key: 'invoices', header: 'Invoices', accessor: 'invoices_generated', sortable: true, align: 'center', hideAt: 'md' },
+    { key: 'state', header: 'State', accessor: 'state', sortable: true, render: r => <Badge variant={r.state === 'ACTIVE' ? 'success' : r.state === 'PAUSED' ? 'warning' : 'gray'}>{r.state}</Badge> },
+    {
+      key: 'actions', header: '', width: 48, align: 'right',
+      render: r => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`Actions for ${r.name || 'recurring invoice'}`}><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={r.state !== 'ACTIVE' || generatingId === r.id} onSelect={() => handleGenerate(r)}><Icon name="zap" size={15} />Generate invoice</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => { setEditing(r); setShowForm(true); }}><Icon name="edit" size={15} />Edit template</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleToggle(r)}><Icon name={r.state === 'ACTIVE' ? 'pause' : 'chevronRight'} size={15} />{r.state === 'ACTIVE' ? 'Pause' : 'Resume'}</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => handleDelete(r)}><Icon name="trash" size={15} />Delete template</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -234,70 +280,34 @@ export function RecurringInvoices() {
           },
         ]} />
 
-      <div style={{ padding: '16px 0', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-        <Link to="/finance/invoices" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-          <Icon name="arrowLeft" size={13} /> All Invoices
-        </Link>
-        <button type="button" onClick={() => { setEditing(null); setShowForm(true); }}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Template
-        </button>
+      <div className="py-4">
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search templates, customers, or frequency…"
+          quickFilter={{
+            label: 'State', value: stateFilter, onChange: setStateFilter, allLabel: 'All states',
+            options: [{ value: 'ACTIVE', label: 'Active' }, { value: 'PAUSED', label: 'Paused' }, { value: 'ENDED', label: 'Ended' }],
+          }}
+          actions={<><Button asChild variant="outline" size="sm"><Link to="/finance/invoices"><Icon name="arrowLeft" size={13} />All invoices</Link></Button><Button size="sm" onClick={() => { setEditing(null); setShowForm(true); }}><Icon name="plus" size={14} />New template</Button></>}
+        />
       </div>
 
       <SectionCard collapsible={false} padded={false}>
-        {recurring.length === 0 ? (
-          <div style={{ padding: '64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Icon name="refresh" size={32} color="var(--ink3)" />
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No recurring invoices set up yet</div>
-          </div>
-        ) : (
-          <div className="rtbl-wrap"><table className="rtbl">
-            <thead><tr style={{ background: 'var(--bg)' }}>
-              {['Template', 'Customer', 'Frequency', 'Amount', 'Next Due', 'Invoices', 'State', ''].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {recurring.map(r => {
-                const total = r.amount * (1 + r.tax_rate / 100);
-                const dueD = r.next_due ? new Date(r.next_due) : null;
-                const dueSoon = dueD ? dueD.getTime() - Date.now() < 14 * 86400000 : false;
-                return (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', opacity: r.state === 'PAUSED' ? 0.55 : 1 }}>
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.name}</div>
-                      {r.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{r.description.length > 50 ? r.description.slice(0, 50) + '…' : r.description}</div>}
-                    </td>
-                    <td style={{ padding: '12px 14px', fontSize: 13, color: 'var(--ink2)' }}>{r.client_name}</td>
-                    <td style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--ink2)' }}>{FREQ_LABEL[r.frequency]}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 700 }}>{fmt(total, r.currency)}</td>
-                    <td style={{ padding: '12px 14px', color: dueSoon && r.state === 'ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon ? 700 : 400 }}>
-                      {r.next_due ? new Date(r.next_due).toLocaleDateString('en-GB') : '—'}
-                      {dueSoon && r.state === 'ACTIVE' && <span style={{ fontSize: 10, display: 'block', color: 'var(--gold)' }}>Due soon</span>}
-                    </td>
-                    <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)' }}>{r.invoices_generated}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ padding: '2px 9px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: r.state === 'ACTIVE' ? 'var(--green-l)' : r.state === 'PAUSED' ? 'var(--gold-l)' : 'var(--bg)', color: r.state === 'ACTIVE' ? 'var(--green)' : r.state === 'PAUSED' ? 'var(--gold)' : 'var(--ink3)' }}>{r.state}</span>
-                    </td>
-                    <td style={{ padding: '12px 10px' }}>
-                      <div style={{ display: 'flex', gap: 2 }}>
-                        <button type="button" title="Generate invoice now" onClick={() => handleGenerate(r)} disabled={r.state !== 'ACTIVE' || generatingId === r.id}
-                          style={{ background: 'none', border: 'none', cursor: r.state === 'ACTIVE' ? 'pointer' : 'default', color: r.state === 'ACTIVE' ? 'var(--teal)' : 'var(--border)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}>
-                          <Icon name="zap" size={14} />
-                        </button>
-                        <button type="button" title="Edit" onClick={() => { setEditing(r); setShowForm(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}><Icon name="edit" size={14} /></button>
-                        <button type="button" title={r.state === 'ACTIVE' ? 'Pause' : 'Resume'} onClick={() => handleToggle(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gold)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}><Icon name={r.state === 'ACTIVE' ? 'pause' : 'chevronRight'} size={14} /></button>
-                        <button type="button" title="Delete" onClick={() => handleDelete(r)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}><Icon name="trash" size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
-        )}
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          loading={loading}
+          filteredEmpty={(!!query || !!stateFilter) && filtered.length === 0}
+          empty={!loading && recurring.length === 0}
+          emptyIcon="refresh"
+          emptyTitle="No recurring invoices"
+          emptyMessage="Create a template to generate invoices automatically on a schedule."
+          emptyAction={{ label: 'New template', onClick: () => { setEditing(null); setShowForm(true); } }}
+          defaultSortKey="due"
+          defaultSortDir="asc"
+          pageSize={12}
+        />
       </SectionCard>
 
       {showForm && <RecurFormPanel initial={editing} onSave={handleSave} onClose={() => { setShowForm(false); setEditing(null); }} />}

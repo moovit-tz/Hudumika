@@ -12,6 +12,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 import './CorporateAccounting.css';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
@@ -59,6 +61,10 @@ interface DashboardSnapshot {
     month: { revenue: number; expenses: number; net: number };
     ytd: { revenue: number; expenses: number; net: number };
   };
+}
+
+function AgingSegment({ width, color, label }: { width: number; color: string; label: string }) {
+  return <Tip label={label}><div className="acct-aging-tier-item" style={{ width: `${width}%`, background: color }} /></Tip>;
 }
 
 export const FinanceLedger: React.FC = () => {
@@ -272,60 +278,12 @@ export const FinanceLedger: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 4 Metric Cards ── */}
-      <div className="acct-metrics-grid">
-        <div className="acct-metric-card">
-          <div className="acct-metric-header">
-            <span className="acct-metric-label">Revenue MTD</span>
-            <Badge variant={mtdRevenue > 0 ? 'success' : 'gray'}>{mtdRevenue > 0 ? currency : 'No data'}</Badge>
-          </div>
-          <div className="acct-metric-val">{mtdRevenue > 0 ? fmtCompact(mtdRevenue) : '—'}</div>
-          <div className="acct-metric-spark">
-            {[30, 42, 48, 55, 62, 70, 76, 80, 85, 90].map((h, i) => (
-              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
-            ))}
-          </div>
-        </div>
-
-        <div className="acct-metric-card">
-          <div className="acct-metric-header">
-            <span className="acct-metric-label">Net Profit MTD</span>
-            <Badge variant={mtdNet > 0 ? 'success' : mtdNet < 0 ? 'error' : 'gray'}>{mtdNet > 0 ? 'Profit' : mtdNet < 0 ? 'Loss' : 'No data'}</Badge>
-          </div>
-          <div className="acct-metric-val" style={{ color: mtdNet < 0 ? 'var(--red)' : undefined }}>{mtdNet !== 0 ? fmtCompact(mtdNet) : '—'}</div>
-          <div className="acct-metric-spark">
-            {[35, 40, 42, 48, 54, 60, 65, 70, 75, 80].map((h, i) => (
-              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
-            ))}
-          </div>
-        </div>
-
-        <div className="acct-metric-card">
-          <div className="acct-metric-header">
-            <span className="acct-metric-label">Net Margin MTD</span>
-            <Badge variant={netMarginPct > 0 ? 'brand' : netMarginPct < 0 ? 'error' : 'gray'}>{netMarginPct !== 0 ? `${netMarginPct > 0 ? '+' : ''}${netMarginPct.toFixed(1)}%` : '—'}</Badge>
-          </div>
-          <div className="acct-metric-val">{netMarginPct !== 0 ? `${netMarginPct.toFixed(1)}%` : '—'}</div>
-          <div className="acct-metric-spark">
-            {[25, 35, 40, 45, 50, 55, 58, 65, 70, 75].map((h, i) => (
-              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
-            ))}
-          </div>
-        </div>
-
-        <div className="acct-metric-card">
-          <div className="acct-metric-header">
-            <span className="acct-metric-label">YTD Net P&amp;L</span>
-            <Badge variant={ytdNet >= 0 ? 'success' : 'error'}>{ytdNet >= 0 ? 'Surplus' : 'Deficit'}</Badge>
-          </div>
-          <div className="acct-metric-val" style={{ color: ytdNet < 0 ? 'var(--red)' : undefined }}>{ytdNet !== 0 ? fmtCompact(ytdNet) : '—'}</div>
-          <div className="acct-metric-spark">
-            {[45, 50, 54, 58, 62, 68, 72, 78, 82, 88].map((h, i) => (
-              <div key={i} className="acct-metric-spark-bar" style={{ height: `${h}%` }} />
-            ))}
-          </div>
-        </div>
-      </div>
+      <MetricsRow cards={[
+        { title: 'Revenue MTD', value: mtdRevenue > 0 ? fmtCompact(mtdRevenue) : '—', comparisonLabel: mtdRevenue > 0 ? `${currency} · current month` : 'No revenue recorded', barHighlight: 'var(--green)', loading },
+        { title: 'Net profit MTD', value: mtdNet !== 0 ? fmtCompact(mtdNet) : '—', comparisonLabel: mtdNet > 0 ? 'Current-month profit' : mtdNet < 0 ? 'Current-month loss' : 'No net movement', barHighlight: mtdNet < 0 ? 'var(--red)' : 'var(--green)', loading },
+        { title: 'Net margin MTD', value: netMarginPct !== 0 ? `${netMarginPct.toFixed(1)}%` : '—', comparisonLabel: mtdRevenue > 0 ? 'Net profit ÷ revenue' : 'Needs recorded revenue', barHighlight: netMarginPct < 0 ? 'var(--red)' : 'var(--teal)', loading },
+        { title: 'YTD net P&L', value: ytdNet !== 0 ? fmtCompact(ytdNet) : '—', comparisonLabel: ytdNet > 0 ? 'Year-to-date surplus' : ytdNet < 0 ? 'Year-to-date deficit' : 'No year-to-date movement', barHighlight: ytdNet < 0 ? 'var(--red)' : 'var(--blue)', loading },
+      ]} />
 
       {/* ── GL Overview + Bank / Cash Summary ── */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 1fr', gap: 16 }}>
@@ -344,26 +302,14 @@ export const FinanceLedger: React.FC = () => {
           }
         >
           <div className="acct-gl-bars">
-            {[
-              { month: 'Apr', dr: 65, cr: 58 },
-              { month: 'May', dr: 72, cr: 64 },
-              { month: 'Jun', dr: 80, cr: 70 },
-              { month: 'Jul', dr: 75, cr: 68 },
-              { month: 'Aug', dr: 88, cr: 78 },
-              { month: period.label.slice(0, 3), dr: totals.dr > 0 && totals.cr > 0 ? Math.round(100 * totals.dr / Math.max(totals.dr, totals.cr)) : 92, cr: totals.dr > 0 && totals.cr > 0 ? Math.round(100 * totals.cr / Math.max(totals.dr, totals.cr)) : 84 },
-            ].map(m => (
-              <div key={m.month} className="acct-gl-month-row">
-                <span className="acct-gl-month-label">{m.month}</span>
-                <div className="acct-gl-month-tracks">
-                  <div className="acct-gl-track">
-                    <div className="acct-gl-fill-debit" style={{ width: `${m.dr}%` }} />
-                  </div>
-                  <div className="acct-gl-track">
-                    <div className="acct-gl-fill-credit" style={{ width: `${m.cr}%` }} />
-                  </div>
-                </div>
+            <div className="acct-gl-month-row">
+              <span className="acct-gl-month-label">{period.label.slice(0, 3)}</span>
+              <div className="acct-gl-month-tracks">
+                <div className="acct-gl-track"><div className="acct-gl-fill-debit" style={{ width: `${totals.dr > 0 ? Math.round(100 * totals.dr / Math.max(totals.dr, totals.cr)) : 0}%` }} /></div>
+                <div className="acct-gl-track"><div className="acct-gl-fill-credit" style={{ width: `${totals.cr > 0 ? Math.round(100 * totals.cr / Math.max(totals.dr, totals.cr)) : 0}%` }} /></div>
               </div>
-            ))}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">Current selected period only. Historical bars appear when the reporting API supplies a real time series.</p>
           </div>
         </SectionCard>
 
@@ -449,10 +395,10 @@ export const FinanceLedger: React.FC = () => {
           {apTotals.total > 0 ? (
             <>
               <div className="acct-aging-tiers">
-                {apTotals.current > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.current / apTotals.total * 100)}%`, background: 'var(--teal)' }} title={`Current: ${fmt(apTotals.current)}`} />}
-                {apTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_1_30 / apTotals.total * 100)}%`, background: '#f59e0b' }} title={`1–30d: ${fmt(apTotals.days_1_30)}`} />}
-                {apTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(apTotals.days_31_60 / apTotals.total * 100)}%`, background: 'var(--red)' }} title={`31–60d: ${fmt(apTotals.days_31_60)}`} />}
-                {(apTotals.days_61_90 + apTotals.days_90_plus) > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round((apTotals.days_61_90 + apTotals.days_90_plus) / apTotals.total * 100)}%`, background: '#991b1b' }} title={`61d+: ${fmt(apTotals.days_61_90 + apTotals.days_90_plus)}`} />}
+                {apTotals.current > 0 && <AgingSegment width={Math.round(apTotals.current / apTotals.total * 100)} color="var(--teal)" label={`Current: ${fmt(apTotals.current)}`} />}
+                {apTotals.days_1_30 > 0 && <AgingSegment width={Math.round(apTotals.days_1_30 / apTotals.total * 100)} color="var(--gold)" label={`1–30d: ${fmt(apTotals.days_1_30)}`} />}
+                {apTotals.days_31_60 > 0 && <AgingSegment width={Math.round(apTotals.days_31_60 / apTotals.total * 100)} color="var(--red)" label={`31–60d: ${fmt(apTotals.days_31_60)}`} />}
+                {(apTotals.days_61_90 + apTotals.days_90_plus) > 0 && <AgingSegment width={Math.round((apTotals.days_61_90 + apTotals.days_90_plus) / apTotals.total * 100)} color="var(--red)" label={`61d+: ${fmt(apTotals.days_61_90 + apTotals.days_90_plus)}`} />}
               </div>
               <div className="acct-aging-legend">
                 <div className="acct-aging-legend-item">
@@ -461,7 +407,7 @@ export const FinanceLedger: React.FC = () => {
                 </div>
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
-                  <strong style={{ color: '#f59e0b' }}>{fmtCompact(apTotals.days_1_30)}</strong>
+                  <strong style={{ color: 'var(--gold)' }}>{fmtCompact(apTotals.days_1_30)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>31–90d+</span>
@@ -491,10 +437,10 @@ export const FinanceLedger: React.FC = () => {
           {arTotals.total > 0 ? (
             <>
               <div className="acct-aging-tiers">
-                {arTotals.current > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.current / arTotals.total * 100)}%`, background: 'var(--teal)' }} title={`Current: ${fmt(arTotals.current)}`} />}
-                {arTotals.days_1_30 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_1_30 / arTotals.total * 100)}%`, background: '#f59e0b' }} title={`1–30d: ${fmt(arTotals.days_1_30)}`} />}
-                {arTotals.days_31_60 > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round(arTotals.days_31_60 / arTotals.total * 100)}%`, background: 'var(--red)' }} title={`31–60d: ${fmt(arTotals.days_31_60)}`} />}
-                {(arTotals.days_61_90 + arTotals.days_90_plus) > 0 && <div className="acct-aging-tier-item" style={{ width: `${Math.round((arTotals.days_61_90 + arTotals.days_90_plus) / arTotals.total * 100)}%`, background: '#991b1b' }} title={`61d+: ${fmt(arTotals.days_61_90 + arTotals.days_90_plus)}`} />}
+                {arTotals.current > 0 && <AgingSegment width={Math.round(arTotals.current / arTotals.total * 100)} color="var(--teal)" label={`Current: ${fmt(arTotals.current)}`} />}
+                {arTotals.days_1_30 > 0 && <AgingSegment width={Math.round(arTotals.days_1_30 / arTotals.total * 100)} color="var(--gold)" label={`1–30d: ${fmt(arTotals.days_1_30)}`} />}
+                {arTotals.days_31_60 > 0 && <AgingSegment width={Math.round(arTotals.days_31_60 / arTotals.total * 100)} color="var(--red)" label={`31–60d: ${fmt(arTotals.days_31_60)}`} />}
+                {(arTotals.days_61_90 + arTotals.days_90_plus) > 0 && <AgingSegment width={Math.round((arTotals.days_61_90 + arTotals.days_90_plus) / arTotals.total * 100)} color="var(--red)" label={`61d+: ${fmt(arTotals.days_61_90 + arTotals.days_90_plus)}`} />}
               </div>
               <div className="acct-aging-legend">
                 <div className="acct-aging-legend-item">
@@ -503,7 +449,7 @@ export const FinanceLedger: React.FC = () => {
                 </div>
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
-                  <strong style={{ color: '#f59e0b' }}>{fmtCompact(arTotals.days_1_30)}</strong>
+                  <strong style={{ color: 'var(--gold)' }}>{fmtCompact(arTotals.days_1_30)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>31–90d+</span>
@@ -535,7 +481,7 @@ export const FinanceLedger: React.FC = () => {
             <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 } as React.CSSProperties} />
             <Input
               type="text"
-              title="Search accounts"
+              aria-label="Search accounts"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search account code or name…"
@@ -571,7 +517,7 @@ export const FinanceLedger: React.FC = () => {
                       className="finance-ledger-account-row"
                       data-open={isOpen ? 'true' : 'false'}
                       type="button"
-                      title={`Expand ${acc.account_name}`}
+                      aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${acc.account_name}`}
                       onClick={() => toggleExpand(acc)}
                       style={{
                         width: '100%',

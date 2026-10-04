@@ -19,6 +19,8 @@ interface Gateway {
 interface SenderId { id: string; sender_id: string; label: string | null; is_default: boolean; }
 
 const PROVIDER_LABELS: Record<string, string> = { africas_talking: "Africa's Talking", twilio: 'Twilio', nexmo: 'Vonage (Nexmo)', bongolive: 'BongoLive' };
+// Providers available for new gateways — bongolive is display-only until its API is wired.
+const SELECTABLE_PROVIDERS = ['africas_talking', 'twilio', 'nexmo'] as const;
 const PROVIDER_FIELDS: Record<string, { key: string; label: string; secret?: boolean }[]> = {
   africas_talking: [{ key: 'atUser', label: 'Username' }, { key: 'atKey', label: 'API key', secret: true }],
   twilio: [{ key: 'twilioSid', label: 'Account SID' }, { key: 'twilioToken', label: 'Auth token', secret: true }],
@@ -55,6 +57,7 @@ export function SmsGateways() {
 
   async function save() {
     if (!label.trim()) { setError('Give this gateway a name.'); return; }
+    if (!(SELECTABLE_PROVIDERS as readonly string[]).includes(provider)) { setError('Select a supported SMS provider.'); return; }
     const fields = PROVIDER_FIELDS[provider];
     if (fields.some(f => !creds[f.key]?.trim())) { setError('All credential fields are required.'); return; }
     setSaving(true); setError(null);
@@ -133,7 +136,7 @@ export function SmsGateways() {
               <Select value={provider} onValueChange={v => { setProvider(v); setCreds({}); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PROVIDER_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  {SELECTABLE_PROVIDERS.map(v => <SelectItem key={v} value={v}>{PROVIDER_LABELS[v]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

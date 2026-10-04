@@ -10,6 +10,9 @@ import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer
 import { DriverChatPanel } from '../components/DriverChatPanel.js';
 import './TrackingDrivers.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface DriverMetrics {
   tracking_id: string | null; transit_status: string; transit_progress_pct: number;
@@ -130,9 +133,9 @@ export const TrackingDrivers: React.FC = () => {
         titleEm="driver lifecycle"
         subtitle="Manage drivers, active dispatches, assigned vehicles, license compliance & messaging."
         actions={
-          <Link to="/tracking/drivers/new" className="drv-add-btn">
-            <Icon name="plus" size={16} /> Add New Driver
-          </Link>
+          <Button asChild>
+            <Link to="/tracking/drivers/new"><Icon name="plus" size={16} /> Add driver</Link>
+          </Button>
         }
       />
 
@@ -144,23 +147,6 @@ export const TrackingDrivers: React.FC = () => {
         <div className="drv-main">
           {/* Single Responsive Row Toolbar */}
           <div className="drv-toolbar">
-            {/* Search Input */}
-            <div className="drv-search-wrap">
-              <Icon name="search" size={15} className="drv-search-icon" />
-              <input
-                type="text"
-                placeholder="Search drivers by name, ID, phone, vehicle or plate…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="drv-search-input"
-              />
-              {search && (
-                <button type="button" className="drv-search-clear" onClick={() => setSearch('')} title="Clear search">
-                  <Icon name="x" size={14} />
-                </button>
-              )}
-            </div>
-
             {/* Status Segmented Tabs */}
             <div className="drv-cats-scroll">
               <Tabs value={filter} onValueChange={v => setFilter(v as typeof filter)} variant="segmented">
@@ -173,23 +159,26 @@ export const TrackingDrivers: React.FC = () => {
               </Tabs>
             </div>
 
+            <SearchToolbar
+              search={search}
+              onSearch={setSearch}
+              placeholder="Search by name, ID, phone, vehicle or plate"
+              className="min-w-64 flex-1"
+            />
+
             {/* View Toggle */}
             <div className="drv-toolbar-right">
               <div className="drv-view-toggle">
-                <button
-                  type="button" title="Card Grid View"
-                  className={`drv-view-btn${view === 'grid' ? ' active' : ''}`}
-                  onClick={() => setView('grid')}
-                >
-                  <Icon name="grid" size={15} />
-                </button>
-                <button
-                  type="button" title="Table List View"
-                  className={`drv-view-btn${view === 'list' ? ' active' : ''}`}
-                  onClick={() => setView('list')}
-                >
-                  <Icon name="list" size={15} />
-                </button>
+                <Tip label="Card grid view">
+                  <button type="button" aria-label="Card grid view" className={`drv-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
+                    <Icon name="grid" size={15} />
+                  </button>
+                </Tip>
+                <Tip label="Table list view">
+                  <button type="button" aria-label="Table list view" className={`drv-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')}>
+                    <Icon name="list" size={15} />
+                  </button>
+                </Tip>
               </div>
             </div>
           </div>
@@ -262,7 +251,6 @@ export const TrackingDrivers: React.FC = () => {
                       <button
                         type="button"
                         className="drv-action-btn-sm"
-                        title="Quick Peek Metrics"
                         onClick={() => setSelectedDriver(d)}
                       >
                         <Icon name="barChart2" size={13} /> Quick Peek
@@ -271,7 +259,6 @@ export const TrackingDrivers: React.FC = () => {
                       <Link
                         to={`/tracking/drivers/${d.id}`}
                         className="drv-action-btn-primary"
-                        title="Open Full Profile & Lifecycle"
                       >
                         View Profile →
                       </Link>
@@ -335,7 +322,6 @@ export const TrackingDrivers: React.FC = () => {
                               type="button"
                               className="drv-action-btn-sm"
                               onClick={() => setSelectedDriver(d)}
-                              title="Peek Quick Drawer"
                             >
                               <Icon name="eye" size={13} /> Peek
                             </button>
@@ -388,7 +374,7 @@ export const TrackingDrivers: React.FC = () => {
                   type="button"
                   className="drv-sb-close-btn"
                   onClick={() => setSelectedDriver(null)}
-                  title="Close sidebar"
+                  aria-label="Close driver details"
                 >
                   <Icon name="x" size={16} />
                 </button>

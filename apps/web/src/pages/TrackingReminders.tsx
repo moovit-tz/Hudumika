@@ -7,6 +7,9 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vehicle { id: string; name: string }
 interface Driver { id: string; name: string }
@@ -15,7 +18,6 @@ interface Reminder {
   reminder_type: string; due_date: string; status: string; notes: string | null;
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
@@ -51,7 +53,7 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
       <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a reminder</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={labelStyle}>Title</label><input required value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Title</label><Input required value={title} onChange={e => setTitle(e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Type</label>
@@ -82,13 +84,11 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
               />
             </div>
           </div>
-          <div><label style={labelStyle}>Notes</label><input value={notes} onChange={e => setNotes(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Notes</label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving || !title || !dueDate} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Add reminder'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving || !title || !dueDate}>{saving ? 'Saving…' : 'Add reminder'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -137,10 +137,9 @@ export const TrackingReminders: React.FC = () => {
             subtitle="Maintenance, document &amp; custom due dates"
           />
         </div>
-        <button type="button" onClick={() => setShowAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Button type="button" onClick={() => setShowAdd(true)}>
           <Icon name="bell" size={15} /> Add reminder
-        </button>
+        </Button>
       </div>
 
       <SectionCard>
@@ -162,9 +161,7 @@ export const TrackingReminders: React.FC = () => {
                   {new Date(r.due_date).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: r.status === 'DONE' ? 'var(--green-l)' : r.status === 'DISMISSED' ? 'var(--bg)' : 'var(--gold-l)', color: r.status === 'DONE' ? 'var(--green)' : r.status === 'DISMISSED' ? 'var(--ink3)' : 'var(--gold)' }}>
-                    {r.status}
-                  </span>
+                  <Badge variant={r.status === 'DONE' ? 'success' : r.status === 'DISMISSED' ? 'gray' : 'warning'}>{r.status}</Badge>
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {r.status === 'PENDING' && (

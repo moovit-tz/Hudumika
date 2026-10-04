@@ -404,7 +404,7 @@ function fmtM(n: number | undefined | null) {
 }
 
 export const CommandCenter: React.FC = () => {
-  usePageSEO('Ops Command Center', 'Manage active shipments and operations.');
+  usePageSEO('Shipment Operations', 'Manage active shipments and operational work.');
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -647,7 +647,7 @@ export const CommandCenter: React.FC = () => {
     { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)',        metric: 'delivered' as Metric },
     { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: 'var(--gold-l)',        cell: 'warn', metric: 'penalty' as Metric },
     { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
-    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: 'month' as Metric },
+    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--ink)',  bg: 'var(--bg)',      metric: 'month' as Metric },
   ];
 
   // Renders one KPI card — interactive button for filter metrics or div for informational numbers.
@@ -708,9 +708,9 @@ export const CommandCenter: React.FC = () => {
 
         {/* ── Page Header ── */}
         <PageHeader
-          crumbs={['ClearOS', 'Ops Command']}
+          crumbs={['ClearOS', 'Shipments']}
           titlePlain={isJunior ? 'My' : 'Ops'}
-          titleEm={isJunior ? 'cases' : 'command'}
+          titleEm={isJunior ? 'cases' : 'operations'}
           subtitle={isJunior ? 'Shipments assigned to you, across every stage.' : 'Every shipment in the pipeline — filter by stage or switch to the board below.'}
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

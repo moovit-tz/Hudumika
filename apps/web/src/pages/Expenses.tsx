@@ -8,6 +8,7 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 
@@ -173,7 +174,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Expense Details</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Expense Details</div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button type="button" onClick={handleDelete} disabled={deleting} title="Delete" style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="trash" size={14} />
@@ -231,7 +232,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Shipment (Job)</div>
             {job ? (
-              <Link to={`/clearos/clearance/${job.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: 'hsl(var(--muted))', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
+              <Link to={`/clearos/clearance/${job.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--ink)', background: 'hsl(var(--muted))', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="package" size={12} /> {job.bl_number || job.ref_number}
               </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
@@ -506,9 +507,9 @@ export const Expenses: React.FC = () => {
         subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
         actions={
           <>
-            <Link to="/finance/expenses/categories" className="btn btn-secondary btn-sm" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="tag" size={13} /> Manage Categories
-            </Link>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/finance/expenses/categories"><Icon name="tag" size={13} /> Manage Categories</Link>
+            </Button>
             <Button onClick={() => navigate('/finance/expenses/new')}>
               <Icon name="plus" size={14} /> Add Expense
             </Button>
@@ -535,7 +536,6 @@ export const Expenses: React.FC = () => {
           {
             title: 'NET MARGIN',
             value: fmt(totalRev - totalExp, 'TZS'),
-            trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
             sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
             sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--blue)',
           },
@@ -633,10 +633,10 @@ export const Expenses: React.FC = () => {
                 {!isSplit && (
                   <div style={{ flex: 1 }}>
                     {e.source !== 'finance' ? (
-                      <span style={{ fontSize: 11, color: 'var(--blue)', background: 'var(--blue-l)', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content' }}>{SOURCE_LABEL[e.source]}</span>
+                      <Badge variant="info">{SOURCE_LABEL[e.source]}</Badge>
                     ) : (
                       <>
-                        {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: 'hsl(var(--muted))', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
+                        {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink)', background: 'hsl(var(--muted))', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
                         {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 'var(--r-sm)', width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
                       </>
                     )}
@@ -718,7 +718,7 @@ export const Expenses: React.FC = () => {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkUpload(false)}>
           <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Bulk Upload Expenses</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Bulk Upload Expenses</h2>
               <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>×</button>
             </div>
 
@@ -738,8 +738,8 @@ export const Expenses: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowBulkUpload(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import Data'}</button>
+                <Button type="button" variant="outline" onClick={() => setShowBulkUpload(false)}>Cancel</Button>
+                <Button type="submit" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import Data'}</Button>
               </div>
             </form>
           </div>

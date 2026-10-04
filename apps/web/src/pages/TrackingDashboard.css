@@ -69,6 +69,18 @@
   flex-shrink: 0;
 }
 
+.logistics-copilot-trigger {
+  background: var(--white) !important;
+  color: var(--ink) !important;
+  border-color: var(--border2) !important;
+}
+
+.logistics-copilot-trigger:hover {
+  background: var(--card-sunken) !important;
+  color: var(--ink) !important;
+  border-color: var(--teal-m) !important;
+}
+
 /* ── Bento Grid Systems ── */
 .logistics-bento {
   display: grid;
@@ -98,7 +110,7 @@
 
 /* ── Hero Operations Health Score Card ── */
 .logistics-hero-score {
-  background: linear-gradient(145deg, var(--navy) 0%, var(--navy2) 60%, color-mix(in srgb, var(--teal) 35%, var(--navy2)) 100%);
+  background: #0f172a;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 25px -5px rgba(14, 31, 61, 0.35);
@@ -106,30 +118,16 @@
 }
 
 [data-theme="dark"] .logistics-hero-score {
-  background: linear-gradient(145deg, #070d18 0%, #0a172c 60%, #0d2244 100%);
+  background: #0f172a;
   border-color: rgba(255, 255, 255, 0.08);
 }
 
 .logistics-hero-glow-1 {
-  position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(64, 191, 166, 0.3) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 .logistics-hero-glow-2 {
-  position: absolute;
-  bottom: -50px;
-  left: -40px;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 .logistics-gauge-wrapper {
@@ -315,7 +313,7 @@
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(4px);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   white-space: nowrap;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -425,7 +423,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid var(--white);
+  border: 2px solid #ffffff;
   box-shadow: 0 0 0 1px var(--border);
 }
 

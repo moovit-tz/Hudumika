@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion, DensityId,
@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -26,14 +27,7 @@ import { TwotoneIcon, TWOTONE_ICONS } from '../components/ui/twotone-icon.js';
 const OscarCatalog        = React.lazy(() => import('./OscarCatalog.js'));
 const AnimationsShowcase  = React.lazy(() => import('./AnimationsShowcase.js'));
 const BuildingBlocksShowcase = React.lazy(() => import('./BuildingBlocksShowcase.js'));
-// HugeiconsIcon itself is a small runtime wrapper (cheap to import
-// statically), but the actual icon artwork (hugeicons-map.ts, ~130 SVG
-// modules) is deliberately NOT imported here — this file sits on the same
-// eagerly-bundled path as the rest of the SuperAdmin shell, and a static
-// import of that data would defeat Icon.tsx's own React.lazy() split for
-// it. HugeiconsIconGrid below loads it via a dynamic import() instead.
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { IconSvgElement } from '@hugeicons/react';
+import { ColorField, NumberField, IconSystemSection } from './design_system/helpers.js';
 
 type SectionGroup = 'foundations' | 'components' | 'layout' | 'branding' | 'resources';
 const SECTIONS: { id: string; group: SectionGroup; label: string; icon: IconName; desc: string }[] = [
@@ -96,450 +90,8 @@ const SEMANTIC_CONFIG: Record<keyof SemanticSet, { title: string; desc: string; 
   navy2:  { title: 'Navy Alt',  desc: 'Secondary dark containers and header chrome', sample: 'System' },
 };
 
-function ColorField({
-  label,
-  value,
-  onChange,
-  description,
-  badgeText,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  description?: string;
-  badgeText?: string;
-}) {
-  return (
-    <div className="ds-field-card">
-      <div className="ds-field-info">
-        <div className="ds-field-title-row">
-          <span className="ds-field-label">{label}</span>
-          {badgeText && <span className="ds-field-badge">{badgeText}</span>}
-        </div>
-        {description && <span className="ds-field-desc">{description}</span>}
-      </div>
 
-      <ColorSwatchPicker value={value} onChange={onChange} />
-    </div>
-  );
-}
-
-function NumberField({
-  label,
-  value,
-  onChange,
-  suffix,
-  step = 1,
-  min = 0,
-  max,
-  description,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  suffix?: string;
-  step?: number;
-  min?: number;
-  max?: number;
-  description?: string;
-}) {
-  return (
-    <div className="ds-number-field-card">
-      <div className="ds-number-info">
-        <span className="ds-number-label">{label}</span>
-        {description && <span className="ds-number-desc">{description}</span>}
-      </div>
-      <div className="ds-number-input-group">
-        <input
-          type="number"
-          className="ds-number-input"
-          value={value}
-          step={step}
-          min={min}
-          max={max}
-          onChange={e => onChange(Number(e.target.value) || 0)}
-        />
-        {suffix && <span className="ds-number-unit">{suffix}</span>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Icon System Showcase ──────────────────────────────────────────────────
-
-const STROKE_ICON_NAMES: IconName[] = [
-  'grid', 'list', 'menu', 'sidebar', 'home', 'search', 'filter', 'download', 'upload',
-  'refresh', 'file', 'fileText', 'folder', 'archive', 'receipt', 'invoice',
-  'user', 'users', 'userCheck', 'contact', 'dollarSign', 'creditCard', 'trendingUp',
-  'barChart', 'ship', 'truck', 'plane', 'package', 'globe', 'mapPin',
-  'warning', 'checkCircle', 'alertCircle', 'xCircle', 'info', 'check', 'clock', 'calendar',
-  'settings', 'edit', 'trash', 'copy', 'lock', 'key', 'bell', 'send',
-  'zap', 'eye', 'star', 'tag', 'activity', 'building', 'briefcase', 'camera',
-  'mail', 'shield', 'sun', 'moon', 'sparkle', 'logIn', 'logOut', 'smartphone',
-  'link', 'share', 'image', 'phone', 'layers', 'flag',
-];
-
-const TWOTONE_ICON_NAMES = Object.keys(TWOTONE_ICONS) as string[];
-
-function StrokeIconGrid() {
-  const [iconSize, setIconSize] = useState(20);
-  const [copiedName, setCopiedName] = useState<string | null>(null);
-
-  const handleCopy = (name: string) => {
-    const code = `<Icon name="${name}" size={${iconSize}} />`;
-    navigator.clipboard?.writeText(code);
-    setCopiedName(name);
-    setTimeout(() => setCopiedName(null), 1200);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {STROKE_ICON_NAMES.length} stroke icons · click to copy JSX
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
-          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
-            {[16, 20, 24, 28].map((sz) => (
-              <button
-                key={sz}
-                type="button"
-                onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
-                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {sz}px
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-        {STROKE_ICON_NAMES.map((name) => (
-          <div
-            key={name}
-            onClick={() => handleCopy(name)}
-            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
-          >
-            <div className="h-8 flex items-center justify-center">
-              <Icon name={name} size={iconSize} />
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
-              {copiedName === name ? (
-                <span className="text-emerald-500 font-bold">✓ copied</span>
-              ) : (
-                name
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TwotoneIconGrid() {
-  const [selectedColor, setSelectedColor] = useState<'teal' | 'green' | 'gold' | 'purple' | 'red' | 'ink'>('teal');
-  const [iconSize, setIconSize] = useState(24);
-  const [copiedName, setCopiedName] = useState<string | null>(null);
-
-  const colorMap = {
-    teal:   'var(--teal)',
-    green:  'var(--green)',
-    gold:   'var(--gold)',
-    purple: 'var(--purple)',
-    red:    'var(--red)',
-    ink:    'var(--ink)',
-  };
-
-  const handleCopy = (name: string) => {
-    const code = `<TwotoneIcon name="${name}" size={${iconSize}} color="${colorMap[selectedColor]}" />`;
-    navigator.clipboard?.writeText(code);
-    setCopiedName(name);
-    setTimeout(() => setCopiedName(null), 1200);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color:</span>
-          <div className="flex items-center gap-1.5">
-            {(['teal', 'green', 'gold', 'purple', 'red', 'ink'] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setSelectedColor(c)}
-                className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                  selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
-                }`}
-                style={{ backgroundColor: colorMap[c], borderColor: 'transparent' }}
-                title={c}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
-          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
-            {[18, 22, 26, 32].map((sz) => (
-              <button
-                key={sz}
-                type="button"
-                onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
-                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {sz}px
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {/* Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-        {TWOTONE_ICON_NAMES.map((name) => (
-          <div
-            key={name}
-            onClick={() => handleCopy(name)}
-            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
-          >
-            <div className="h-8 flex items-center justify-center">
-              <TwotoneIcon
-                name={name as any}
-                size={iconSize}
-                color={colorMap[selectedColor]}
-                secondaryColor={colorMap[selectedColor]}
-              />
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
-              {copiedName === name ? (
-                <span className="text-emerald-500 font-bold">✓ copied</span>
-              ) : (
-                name
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Real, officially licensed Hugeicons free-tier artwork
-// (@hugeicons/core-free-icons) — its name→icon map is loaded via a dynamic
-// import() rather than a static one at the top of this file, so its ~130
-// SVG modules only ever download for someone who actually opens this tab,
-// not for every SuperAdmin page load. Coverage is intentionally partial
-// (verified real matches only, not guessed) — a name with no entry here is
-// what Icon.tsx itself falls back to Stroke for platform-wide.
-function HugeiconsIconGrid() {
-  const [selectedColor, setSelectedColor] = useState<'teal' | 'green' | 'gold' | 'purple' | 'red' | 'ink'>('teal');
-  const [iconSize, setIconSize] = useState(24);
-  const [copiedName, setCopiedName] = useState<string | null>(null);
-  const [map, setMap] = useState<Record<string, IconSvgElement> | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    import('../components/hugeicons-map.js').then((m) => { if (alive) setMap(m.HUGEICONS_MAP as Record<string, IconSvgElement>); });
-    return () => { alive = false; };
-  }, []);
-
-  const colorMap = {
-    teal: 'var(--teal)', green: 'var(--green)', gold: 'var(--gold)',
-    purple: 'var(--purple)', red: 'var(--red)', ink: 'var(--ink)',
-  };
-
-  const handleCopy = (name: string) => {
-    const code = `<Icon name="${name}" size={${iconSize}} />`;
-    navigator.clipboard?.writeText(code);
-    setCopiedName(name);
-    setTimeout(() => setCopiedName(null), 1200);
-  };
-
-  if (!map) {
-    return <div className="p-6 text-center text-xs text-muted-foreground">Loading Hugeicons artwork…</div>;
-  }
-
-  const names = Object.keys(map);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap p-3 rounded-xl bg-muted/40 border border-border">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color:</span>
-          <div className="flex items-center gap-1.5">
-            {(['teal', 'green', 'gold', 'purple', 'red', 'ink'] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setSelectedColor(c)}
-                className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                  selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
-                }`}
-                style={{ backgroundColor: colorMap[c], borderColor: 'transparent' }}
-                title={c}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Size:</span>
-          <div className="flex items-center gap-1 bg-background border border-border rounded-lg p-0.5">
-            {[18, 22, 26, 32].map((sz) => (
-              <button
-                key={sz}
-                type="button"
-                onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
-                  iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {sz}px
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-        {names.map((name) => (
-          <div
-            key={name}
-            onClick={() => handleCopy(name)}
-            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
-          >
-            <div className="h-8 flex items-center justify-center">
-              <HugeiconsIcon icon={map[name]} size={iconSize} color={colorMap[selectedColor]} />
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
-              {copiedName === name ? (
-                <span className="text-emerald-500 font-bold">✓ copied</span>
-              ) : (
-                name
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const ICON_TAB_META: Record<IconLibraryId, { label: string; count: number | null }> = {
-  stroke: { label: 'Stroke Icons', count: STROKE_ICON_NAMES.length },
-  twotone: { label: 'Twotone Rounded', count: TWOTONE_ICON_NAMES.length },
-  hugeicons: { label: 'Hugeicons', count: null }, // resolved async once the tab is opened — see HugeiconsIconGrid
-};
-
-function IconSystemSection() {
-  const { tokens, updateTokens } = useDesignSystem();
-  // Browsing tab starts on whichever library is actually live for this
-  // tenant — the same as opening any other design-system section on its
-  // current value — but clicking around to look at another one doesn't by
-  // itself change anything; that's what the "Use platform-wide" button
-  // below is for.
-  const [tab, setTab] = useState<IconLibraryId>(tokens.iconLibrary);
-  const isActiveLibrary = tab === tokens.iconLibrary;
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="ds-section-header-block">
-        <h3 className="ds-section-heading">Icon System</h3>
-        <p className="ds-section-sub">
-          Hudumika ships three icon libraries, switchable platform-wide.
-          <strong> Stroke</strong> — the platform's own crisp 24×24 outline set (covers every icon name, the default).
-          <strong> Twotone Rounded</strong> — a hand-authored Hugeicons-inspired dual-layer style.
-          <strong> Hugeicons</strong> — real, officially licensed Hugeicons free-tier artwork.
-          Browse a library below, then use <strong>Use platform-wide</strong> to make it what every &lt;Icon&gt; in the app actually renders — a name the chosen library doesn't cover quietly falls back to Stroke rather than going blank.
-        </p>
-      </div>
-
-      {/* Library picker tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit">
-        {ICON_LIBRARY_IDS.map(id => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-              tab === id
-                ? 'bg-card shadow-sm text-foreground border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {id === 'twotone'
-              ? <TwotoneIcon name="sparkle" size={14} color="var(--teal)" secondaryColor="var(--teal)" />
-              : <Icon name="sparkle" size={14} />}
-            {ICON_TAB_META[id].label}
-            {ICON_TAB_META[id].count !== null && (
-              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-primary/10 text-primary">
-                {ICON_TAB_META[id].count}
-              </span>
-            )}
-            {tokens.iconLibrary === id && (
-              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-600">live</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Description + platform-wide apply */}
-      <div className="flex items-center justify-between gap-4 flex-wrap p-4 rounded-xl bg-muted/40 border border-border">
-        <p className="text-xs text-muted-foreground m-0">{ICON_LIBRARY_DESCRIPTIONS[tab]}</p>
-        {isActiveLibrary ? (
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-            <Icon name="checkCircle" size={13} /> Currently active platform-wide
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => updateTokens({ iconLibrary: tab })}
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            Use {ICON_TAB_META[tab].label} platform-wide
-          </button>
-        )}
-      </div>
-
-      {/* Usage snippet */}
-      <div className="p-4 rounded-xl bg-muted/40 border border-border font-mono text-xs text-muted-foreground space-y-1.5">
-        {tab === 'stroke' && (
-          <>
-            <div><span className="text-primary">import</span> {'{ Icon }'} <span className="text-primary">from</span> <span className="text-emerald-500">'../components/Icon'</span>;</div>
-            <div className="text-foreground">{'<Icon name="shield" size={20} />'}</div>
-          </>
-        )}
-        {tab === 'twotone' && (
-          <>
-            <div><span className="text-primary">import</span> {'{ TwotoneIcon }'} <span className="text-primary">from</span> <span className="text-emerald-500">'../components/ui/twotone-icon'</span>;</div>
-            <div className="text-foreground">{'<TwotoneIcon name="shield" size={24} color="var(--teal)" secondaryColor="var(--teal)" />'}</div>
-          </>
-        )}
-        {tab === 'hugeicons' && (
-          <>
-            <div className="text-muted-foreground">// Same &lt;Icon&gt; call as Stroke — Hugeicons renders once it's the active platform-wide library above.</div>
-            <div><span className="text-primary">import</span> {'{ Icon }'} <span className="text-primary">from</span> <span className="text-emerald-500">'../components/Icon'</span>;</div>
-            <div className="text-foreground">{'<Icon name="shield" size={20} />'}</div>
-          </>
-        )}
-      </div>
-
-      {/* Icon grid */}
-      {tab === 'stroke' && <StrokeIconGrid />}
-      {tab === 'twotone' && <TwotoneIconGrid />}
-      {tab === 'hugeicons' && <HugeiconsIconGrid />}
-    </div>
-  );
-}
-
-// ───────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function DesignSystemView() {
   const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
@@ -563,7 +115,7 @@ export function DesignSystemView() {
   const [motionTrigger, setMotionTrigger] = useState(0);
 
   // Tabs section's filter-row-with-badges live example (below the plain
-  // 3-tab preview) — demonstrates the icon+label+count-badge composition
+  // 3-tab preview) â€” demonstrates the icon+label+count-badge composition
   // every hand-rolled filter pill row in the app should use instead.
   const [tabsBadgeDemo, setTabsBadgeDemo] = useState('all');
 
@@ -670,7 +222,7 @@ export function DesignSystemView() {
   const [sidebarStyle, setSidebarStyleState] = useState<SidebarStyle>(() => {
     const v = localStorage.getItem('sidebar-style') as SidebarStyle | null;
     if (v === 'light' || v === 'system') return v;
-    // Migrate legacy boolean: semi-dark=true → dark
+    // Migrate legacy boolean: semi-dark=true â†’ dark
     if (!v && localStorage.getItem('semi-dark') === 'true') return 'dark';
     return 'dark'; // default: always dark
   });
@@ -724,9 +276,9 @@ export function DesignSystemView() {
 
   const currentSectionMeta = SECTIONS.find(s => s.id === activeSection);
 
-  // Built once and mounted in two places — the permanent desktop sidebar
+  // Built once and mounted in two places â€” the permanent desktop sidebar
   // and the mobile "Browse sections" drawer (same Dialog pattern already
-  // used for the live-preview FAB below) — so both stay in lock-step with
+  // used for the live-preview FAB below) â€” so both stay in lock-step with
   // zero duplicated markup.
   const isSearching = !!railSearch.trim();
   const q = railSearch.toLowerCase().trim();
@@ -768,7 +320,7 @@ export function DesignSystemView() {
         <input
           type="text"
           className="ds-sidebar-search-input"
-          placeholder="Search sections…"
+          placeholder="Search sectionsâ€¦"
           value={railSearch}
           onChange={(e) => setRailSearch(e.target.value)}
         />
@@ -794,19 +346,19 @@ export function DesignSystemView() {
                 const isSpecial = s.id === 'blocks' || s.id === 'dropdowns' || s.id === 'oscar' || s.id === 'animations' || s.id === 'components';
                 const badgeText = s.id === 'blocks' ? 'shadcn' : s.id === 'dropdowns' ? 'Radix' : s.id === 'oscar' ? 'Oscar' : s.id === 'animations' ? 'New' : s.id === 'components' ? 'Radix' : s.id === 'icons' ? '3 sets' : null;
                 return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={`ds-sidebar-item ${isActive ? 'active' : ''}`}
-                    onClick={() => { setActiveSection(s.id); setMobileNavOpen(false); }}
-                    title={s.desc}
-                  >
-                    <Icon name={s.icon} size={15} className="ds-sidebar-item-icon" />
-                    <span className="ds-sidebar-item-label">{s.label}</span>
-                    {badgeText && (
-                      <span className={`ds-sidebar-item-badge ${isSpecial ? 'special' : ''}`}>{badgeText}</span>
-                    )}
-                  </button>
+                  <Tip key={s.id} label={s.desc} side="right">
+                    <button
+                      type="button"
+                      className={`ds-sidebar-item ${isActive ? 'active' : ''}`}
+                      onClick={() => { setActiveSection(s.id); setMobileNavOpen(false); }}
+                    >
+                      <Icon name={s.icon} size={15} className="ds-sidebar-item-icon" />
+                      <span className="ds-sidebar-item-label">{s.label}</span>
+                      {badgeText && (
+                        <span className={`ds-sidebar-item-badge ${isSpecial ? 'special' : ''}`}>{badgeText}</span>
+                      )}
+                    </button>
+                  </Tip>
                 );
               })}
             </div>
@@ -815,7 +367,7 @@ export function DesignSystemView() {
 
         {isSearching && visibleSections.length === 0 && (
           <span className="ds-sidebar-empty">
-            No section matches "{railSearch.trim()}" — try a different word, or{' '}
+            No section matches "{railSearch.trim()}" â€” try a different word, or{' '}
             <button type="button" className="ds-sidebar-empty-clear" onClick={() => setRailSearch('')}>clear the search</button>.
           </span>
         )}
@@ -851,7 +403,7 @@ export function DesignSystemView() {
         }
       />
 
-      {/* Global system switches — v1/v2 engine, platform theme preset,
+      {/* Global system switches â€” v1/v2 engine, platform theme preset,
           icon library. Not navigation (that's the sidebar below), just the
           studio's own cross-cutting controls, so it gets its own slim bar
           rather than living in the section list. */}
@@ -898,7 +450,7 @@ export function DesignSystemView() {
           </div>
         </div>
 
-        {/* Opens the same nav below in a drawer — the permanent sidebar is
+        {/* Opens the same nav below in a drawer â€” the permanent sidebar is
             hidden below the mobile breakpoint. */}
         <button type="button" className="ds-mobile-nav-trigger" onClick={() => setMobileNavOpen(true)}>
           <Icon name="menu" size={14} />
@@ -977,9 +529,9 @@ export function DesignSystemView() {
 
                 <div className="ds-version-grid">
                   {[
-                    { id: 'v1', title: 'v1 — Per-App Colors', desc: 'Active multi-hue palette with unique colors per application.' },
-                    { id: 'v2', title: 'Mellon — Unified Brand', desc: 'Locks all applications to a single unified corporate brand color.' },
-                    { id: 'v3', title: 'Dreams Core — Bento & Logistics', desc: 'Activates modern bento grid cards, Plus Jakarta Sans typography, ambient diffuse surfaces, and vibrant badges.' },
+                    { id: 'v1', title: 'v1 â€” Per-App Colors', desc: 'Active multi-hue palette with unique colors per application.' },
+                    { id: 'v2', title: 'Mellon â€” Unified Brand', desc: 'Locks all applications to a single unified corporate brand color.' },
+                    { id: 'v3', title: 'Dreams Core â€” Bento & Logistics', desc: 'Activates modern bento grid cards, Plus Jakarta Sans typography, ambient diffuse surfaces, and vibrant badges.' },
                   ].map(ver => {
                     const isSelected = designSystemVersion.version === ver.id;
                     return (
@@ -1049,7 +601,9 @@ export function DesignSystemView() {
 
                       <div className="ds-theme-palette-bar">
                         {(theme.palette.length > 1 ? theme.palette : [theme.palette[0], theme.palette[0], theme.palette[0]]).slice(0, 6).map((c, i) => (
-                          <span key={i} className="ds-theme-palette-dot" style={{ background: c }} title={c} />
+                          <Tip key={`${c}-${i}`} label={c}>
+                            <span className="ds-theme-palette-dot" style={{ background: c }} />
+                          </Tip>
                         ))}
                       </div>
                     </button>
@@ -1401,9 +955,9 @@ export function DesignSystemView() {
                   { id: 'underline', title: 'Underline Rule', desc: 'Minimalist active border line under the selected tab.' },
                   { id: 'pill', title: 'Soft Pill', desc: 'Rounded background tint highlighting the active tab on a clean track.' },
                   { id: 'segmented', title: 'Segmented Control', desc: 'Raised surface card on an inset sunken background track.' },
-                  { id: 'boxed', title: 'Boxed Chips', desc: 'Discrete bordered chips, not a shared track — the active chip gets a tinted fill.' },
+                  { id: 'boxed', title: 'Boxed Chips', desc: 'Discrete bordered chips, not a shared track â€” the active chip gets a tinted fill.' },
                   { id: 'outline', title: 'Outlined Chips', desc: 'Discrete chips where selection reads through the border alone, no fill change.' },
-                  { id: 'lifted', title: 'Lifted Tab', desc: 'Browser-tab style — the active tab rises to meet the panel below it.' },
+                  { id: 'lifted', title: 'Lifted Tab', desc: 'Browser-tab style â€” the active tab rises to meet the panel below it.' },
                 ].map(v => {
                   const isSelected = tokens.tabs.variant === v.id;
                   return (
@@ -1468,20 +1022,20 @@ export function DesignSystemView() {
                 </Tabs>
               </div>
 
-              {/* Filter/category pill rows (Settings ▸ Modules, ComplyOS
+              {/* Filter/category pill rows (Settings â–¸ Modules, ComplyOS
                   applications, Ondi Security, Contacts sort, Subscription's
                   own top tab bar, ...) are this exact same control, not a
-                  page-local pill style — every one of those used to hand-roll
+                  page-local pill style â€” every one of those used to hand-roll
                   its own "selected" look (solid dark, tinted, outlined),
                   which is the inconsistency this example exists to close off
                   by showing the one correct way to compose it: raw
                   ds-tabs-list/ds-tabs-trigger using the selected global variant,
                   icon optional, and a count badge as a plain child span. The
                   label is wrapped in .ds-tabs-trigger-label, which is what
-                  makes it collapse to icon-only under 560px — resize the
+                  makes it collapse to icon-only under 560px â€” resize the
                   window (or view on a phone) to see it happen. */}
               <div className="ds-interactive-preview-card">
-                <span className="ds-preview-mini-label">FILTER ROW WITH COUNT BADGES — SAME CONTROL, NOT A SEPARATE COMPONENT (RESIZE BELOW 560PX TO SEE THE LABEL COLLAPSE)</span>
+                <span className="ds-preview-mini-label">FILTER ROW WITH COUNT BADGES â€” SAME CONTROL, NOT A SEPARATE COMPONENT (RESIZE BELOW 560PX TO SEE THE LABEL COLLAPSE)</span>
                 <Tabs value={tabsBadgeDemo} onValueChange={setTabsBadgeDemo}>
                   <TabsList>
                     {[
@@ -1784,7 +1338,7 @@ export function DesignSystemView() {
             <section className="ds-card-section">
               <div className="ds-section-header-block">
                 <h3 className="ds-section-heading">Sidebar Navigation Style</h3>
-                <p className="ds-section-sub">Control the sidebar&apos;s colour scheme independently from the page theme. Dark is the default — the deep forest green look. Light gives a clean white sidebar. System follows the page&apos;s own light/dark setting.</p>
+                <p className="ds-section-sub">Control the sidebar&apos;s colour scheme independently from the page theme. Dark is the default â€” the deep forest green look. Light gives a clean white sidebar. System follows the page&apos;s own light/dark setting.</p>
               </div>
 
               <div className="ds-layout-options-grid">
@@ -1797,7 +1351,7 @@ export function DesignSystemView() {
                   {
                     id: 'light' as SidebarStyle,
                     title: 'Light',
-                    desc: 'Always a clean white sidebar — works in both light and dark page themes.',
+                    desc: 'Always a clean white sidebar â€” works in both light and dark page themes.',
                   },
                   {
                     id: 'system' as SidebarStyle,
@@ -1884,7 +1438,7 @@ export function DesignSystemView() {
               <div className="ds-live-breakpoint-status">
                 <span className="ds-breakpoint-label">Current Viewport State:</span>
                 <span className={`badge ${isMobileNow ? 'badge-gold' : 'badge-teal'}`}>
-                  {isMobileNow ? '📱 Mobile Layout Active' : '🖥️ Desktop Layout Active'}
+                  {isMobileNow ? 'ðŸ“± Mobile Layout Active' : 'ðŸ–¥ï¸ Desktop Layout Active'}
                 </span>
               </div>
 
@@ -1972,9 +1526,9 @@ export function DesignSystemView() {
                         <Select defaultValue="option-1">
                           <SelectTrigger style={{ width: '100%' }}><SelectValue placeholder="Choose option..." /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="option-1">Option 1 — Standard Selection</SelectItem>
-                            <SelectItem value="option-2">Option 2 — Secondary Item</SelectItem>
-                            <SelectItem value="option-3">Option 3 — Analytics Metric</SelectItem>
+                            <SelectItem value="option-1">Option 1 â€” Standard Selection</SelectItem>
+                            <SelectItem value="option-2">Option 2 â€” Secondary Item</SelectItem>
+                            <SelectItem value="option-3">Option 3 â€” Analytics Metric</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -2094,7 +1648,7 @@ export function DesignSystemView() {
         </div>
       </div>
 
-      {/* Mobile "Browse sections" drawer — same nav content as the
+      {/* Mobile "Browse sections" drawer â€” same nav content as the
           permanent sidebar, just reached through a Dialog instead of
           always being on screen. */}
       <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -2112,15 +1666,16 @@ export function DesignSystemView() {
       </Dialog>
 
       {/* Floating Action Button for Mobile Live Playground */}
-      <button
-        type="button"
-        className="ds-mobile-preview-fab"
-        onClick={() => setMobilePreviewOpen(true)}
-        title="Open Live Component Playground"
-      >
-        <Icon name="sparkle" size={16} />
-        <span>Live Playground</span>
-      </button>
+      <Tip label="Open Live Component Playground" side="left">
+        <button
+          type="button"
+          className="ds-mobile-preview-fab"
+          onClick={() => setMobilePreviewOpen(true)}
+        >
+          <Icon name="sparkle" size={16} />
+          <span>Live Playground</span>
+        </button>
+      </Tip>
 
       {/* Mobile Live Playground Drawer Dialog */}
       <Dialog open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>

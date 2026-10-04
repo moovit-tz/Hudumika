@@ -74,7 +74,7 @@
   font-size: var(--badge-fs-sm);
   font-weight: 700;
   background: var(--green);
-  color: #fff;
+  color: hsl(var(--green-foreground));
   padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 10px;
   letter-spacing: 0.02em;

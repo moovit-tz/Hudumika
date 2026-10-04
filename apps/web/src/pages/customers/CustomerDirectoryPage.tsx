@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { apiFetch } from '../../lib/api.js';
@@ -309,7 +309,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             <div key={kpi.label} style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>{kpi.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', marginTop: 4, lineHeight: 1.1 }}>{kpi.main}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginTop: 4, lineHeight: 1.1 }}>{kpi.main}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>{kpi.sub}</div>
               </div>
               <FeaturedIcon variant={kpi.variant} size="md" shape="square"><Icon name={kpi.icon} size={18} /></FeaturedIcon>
@@ -468,7 +468,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                           <td colSpan={colCount} style={{ padding: '64px 20px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--ink3)' }}>
                               <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="users" size={24} /></FeaturedIcon>
-                              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>No customers found</div>
+                              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No customers found</div>
                               <div style={{ fontSize: 13, maxWidth: 360 }}>No client accounts match your current filters. Try changing your search query or add a new customer.</div>
                               <Button size="sm" onClick={() => setShowCreate(true)} style={{ marginTop: 6 }}>
                                 <Icon name="plus" size={14} /> Add Customer
@@ -494,7 +494,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                               <Avatar name={c.name} />
                               <div>
-                                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>{c.name}</div>
+                                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{c.name}</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                   <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>{clientTag}</span>
                                   {c.city && <><span style={{ color: 'var(--border)' }}>·</span><span style={{ fontSize: 11, color: 'var(--ink3)' }}>{c.city}</span></>}
@@ -595,7 +595,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Avatar name={c.name} />
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>{c.name}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{c.name}</div>
                           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{c.client_type || 'Corporate'}{c.city ? ` · ${c.city}` : ''}</div>
                         </div>
                       </div>

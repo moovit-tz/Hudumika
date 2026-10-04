@@ -121,9 +121,9 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
   return (
     <div style={{
       width: NODE_WIDTH,
-      background: '#ffffff',
+      background: 'var(--white)',
       borderRadius: 'var(--r)',
-      border: `2px solid ${selected ? d.color : 'rgba(0,0,0,0.08)'}`,
+      border: `2px solid ${selected ? d.color : 'var(--border)'}`,
       boxShadow: selected
         ? `0 0 0 3px ${d.color}33, 0 10px 30px rgba(0,0,0,0.14)`
         : '0 4px 18px rgba(0,0,0,0.06)',
@@ -165,9 +165,9 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
 
       {/* Sub-reports count badge / Quick add bar */}
       <div style={{
-        borderTop: '1px solid #f1f5f9',
+        borderTop: '1px solid var(--border)',
         padding: '6px 12px',
-        background: '#f8fafc',
+        background: 'var(--card-sunken)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

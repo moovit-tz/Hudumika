@@ -324,7 +324,7 @@ export const OndiPersonalDevices: React.FC = () => {
         crumbs={['Ondi', 'Personal']}
         titlePlain="Hardware &"
         titleEm="sessions"
-        subtitle="Inspect active authorizations, recognized hardware telemetry, and real-time session controls."
+        subtitle="Review signed-in devices, active authorizations, and account sessions."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button

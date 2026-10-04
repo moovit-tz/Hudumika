@@ -60,7 +60,7 @@ export function SealMetrics() {
         crumbs={['SEAL', 'Analytics', 'Metrics']}
         titlePlain="Metrics &"
         titleEm="reports"
-        subtitle="Real-time inventory health, movement activity, and customs status distribution for your warehouses."
+        subtitle="Review stock levels, warehouse movements, and customs status."
       />
 
       {/* Top KPI tiles */}

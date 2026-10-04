@@ -11,6 +11,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 
 interface ProductReview {
   id: string;
@@ -205,21 +206,19 @@ export const ProductReviewsPage: React.FC = () => {
 
       {/* Toolbar */}
       <SectionCard>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-            {(['ALL', 'pending', 'approved', 'rejected'] as const).map(s => (
-              <button key={s} type="button" onClick={() => setStatusFilter(s)}
-                style={{ padding: '4px 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r, 6px)', cursor: 'pointer', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? '0 1px 3px rgba(0,0,0,0.08)' : 'none', height: 28, display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
-                {s === 'ALL' ? `All (${reviews.length})` : `${s.charAt(0).toUpperCase() + s.slice(1)} (${reviews.filter(r => r.status === s).length})`}
-              </button>
-            ))}
-          </div>
-          <div style={{ position: 'relative', flex: 1, minWidth: 180, marginLeft: 'auto' }}>
-            <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-            <input type="text" title="Search reviews" placeholder="Search reviews…" value={search} onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-        </div>
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search reviews, customers, or products"
+          quickFilter={{
+            label: 'Status', allLabel: `All (${reviews.length})`, value: statusFilter === 'ALL' ? null : statusFilter,
+            onChange: value => setStatusFilter((value || 'ALL') as typeof statusFilter),
+            options: (['pending', 'approved', 'rejected'] as const).map(status => ({
+              value: status,
+              label: `${status.charAt(0).toUpperCase() + status.slice(1)} (${reviews.filter(review => review.status === status).length})`,
+            })),
+          }}
+        />
       </SectionCard>
 
       <SectionCard padded={false}>

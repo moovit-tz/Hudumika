@@ -8,10 +8,12 @@ import { Input } from '../components/ui/input.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
-import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonLink } from '../components/PersonLink.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
+import { PageLoading } from '../components/ui/spinner.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -230,6 +232,16 @@ export function HrDocuments() {
     },
   ];
 
+  const documentColumns: TableColumn<Doc>[] = [
+    { key: 'document', header: 'Document', sortable: true, render: doc => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}><FeaturedIcon variant="gray" size="sm" shape="square"><Icon name="file" size={13} /></FeaturedIcon><span><strong style={{ display: 'block' }}>{doc.name}</strong><small style={{ color: 'var(--ink3)' }}>{doc.type.replace(/_/g, ' ')}</small></span></span> },
+    { key: 'owner', header: 'Employee / owner', sortable: true, render: doc => doc.person_name ? <PersonLink userId={doc.user_id} name={doc.person_name} size={24} /> : <Badge variant="warning">Unattached policy</Badge> },
+    { key: 'category', header: 'Category', render: doc => <Badge variant="gray">{doc.category || 'GENERAL'}</Badge> },
+    { key: 'verification', header: 'HR verification', render: doc => doc.approval_status === 'APPROVED' ? <Badge variant="success">Verified</Badge> : doc.approval_status === 'REJECTED' ? <Badge variant="error">Rejected</Badge> : <Button variant="outline" size="sm" onClick={() => setReviewDoc(doc)}>Review file</Button> },
+    { key: 'expiry', header: 'Expiry date', sortable: true, render: doc => doc.expiry_date ? <span><strong style={{ color: typeof doc.days_until_expiry === 'number' && doc.days_until_expiry <= 30 ? 'var(--red)' : 'var(--ink)' }}>{String(doc.expiry_date).slice(0, 10)}</strong>{typeof doc.days_until_expiry === 'number' && doc.days_until_expiry <= 30 && <small style={{ display: 'block', color: 'var(--red)', fontWeight: 700 }}>{doc.days_until_expiry <= 0 ? 'Expired' : `Expires in ${doc.days_until_expiry}d`}</small>}</span> : <span style={{ color: 'var(--ink3)' }}>No expiry</span> },
+    { key: 'signature', header: 'eSign status', render: doc => doc.signature_status ? <Badge variant={doc.signature_status === 'COMPLETED' ? 'success' : 'warning'}>{doc.signature_status.toLowerCase()}</Badge> : <Button variant="ghost" size="sm" onClick={() => navigate('/sign/editor/new')}>Send for eSign</Button> },
+    { key: 'actions', header: '', align: 'right', width: 120, render: doc => <Button variant="outline" size="sm" onClick={() => apiDownload(`/v1/hr/documents/${doc.id}/download`, doc.name)}><Icon name="download" size={12} /> Download</Button> },
+  ];
+
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile) {
@@ -343,7 +355,7 @@ export function HrDocuments() {
     }
   };
 
-  if (loading) return <div style={{ padding: 30, color: 'var(--ink3)' }}>Loading NexusHR documents suite…</div>;
+  if (loading) return <PageLoading label="Loading HR documents…" />;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
@@ -417,17 +429,19 @@ export function HrDocuments() {
       {/* TAB 1: FILED DOCUMENTS */}
       {activeTab === 'documents' && (
         <div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ minWidth: 260, flex: '0 1 340px' }}>
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by document name, category, or employee…" />
-            </div>
-            <SingleSelectFilter
+          <SearchToolbar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search by document name, category, or employee"
+            className="mb-4"
+            actions={<>
+              <SingleSelectFilter
               label="Document Type"
               value={type}
               onChange={v => setType(v ?? '__all__')}
               options={[{ value: '__all__', label: 'All types' }, ...types.map(t => ({ value: t, label: t.replace(/_/g, ' ') }))]}
             />
-            <SingleSelectFilter
+              <SingleSelectFilter
               label="Approval Status"
               value={approvalFilter}
               onChange={v => setApprovalFilter(v ?? '__all__')}
@@ -437,123 +451,21 @@ export function HrDocuments() {
                 { value: 'PENDING_APPROVAL', label: 'Pending Review' },
                 { value: 'REJECTED', label: 'Rejected' },
               ]}
-            />
-          </div>
+              />
+            </>}
+          />
 
-          <div style={cardStyle}>
-            {shownDocs.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <FeaturedIcon variant="gray" size="lg" shape="circle"><Icon name="fileText" size={22} /></FeaturedIcon>
-                <div style={{ fontSize: 13.5, color: 'var(--ink2)', marginTop: 12 }}>No documents match the current filter.</div>
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                      {['Document', 'Employee / Owner', 'Category', 'HR Verification', 'Expiry Date', 'eSign Status', 'Actions'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '10px 14px', ...labelStyle }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shownDocs.map(d => (
-                      <tr key={d.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '11px 14px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <FeaturedIcon variant="gray" size="sm" shape="square"><Icon name="file" size={13} /></FeaturedIcon>
-                            <div>
-                              <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{d.name}</div>
-                              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{d.type.replace(/_/g, ' ')}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          {d.person_name ? (
-                            <PersonLink userId={d.user_id} name={d.person_name} size={24} />
-                          ) : (
-                            <span style={{ fontSize: 12, color: 'var(--gold)', background: 'var(--gold-l)', padding: '2px 8px', borderRadius: 10 }}>
-                              Unattached Policy
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
-                            {d.category || 'GENERAL'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          {d.approval_status === 'APPROVED' ? (
-                            <Badge variant="success">Verified</Badge>
-                          ) : d.approval_status === 'REJECTED' ? (
-                            <Badge variant="error">Rejected</Badge>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setReviewDoc(d)}
-                              style={{
-                                background: 'var(--gold-l)',
-                                color: 'var(--gold)',
-                                border: '1px solid var(--gold)',
-                                padding: '3px 10px',
-                                borderRadius: 12,
-                                fontSize: 11.5,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Review File
-                            </button>
-                          )}
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          {d.expiry_date ? (
-                            <div>
-                              <div style={{ fontWeight: 600, color: typeof d.days_until_expiry === 'number' && d.days_until_expiry <= 30 ? 'var(--red)' : 'var(--ink)' }}>
-                                {String(d.expiry_date).slice(0, 10)}
-                              </div>
-                              {typeof d.days_until_expiry === 'number' && d.days_until_expiry <= 30 && (
-                                <div style={{ fontSize: 11, color: 'var(--red)', fontWeight: 700 }}>
-                                  {d.days_until_expiry <= 0 ? 'EXPIRED' : `Expires in ${d.days_until_expiry}d`}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span style={{ color: 'var(--ink3)', fontSize: 12 }}>No expiry</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          {d.signature_status ? (
-                            <Badge variant={d.signature_status === 'COMPLETED' ? 'success' : 'warning'}>
-                              {d.signature_status.toLowerCase()}
-                            </Badge>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => navigate('/sign/editor/new')}
-                              style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}
-                            >
-                              Send for eSign
-                            </button>
-                          )}
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => apiDownload(`/v1/hr/documents/${d.id}/download`, d.name)}
-                            style={{ height: 28, fontSize: 11.5, padding: '0 10px' }}
-                          >
-                            <Icon name="download" size={12} /> Download
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <DataTable
+            columns={documentColumns}
+            rows={shownDocs}
+            empty={docs.length === 0}
+            emptyIcon="fileText"
+            emptyTitle="No documents filed"
+            emptyMessage="Upload the first HR document to begin the employee record."
+            filteredEmpty={docs.length > 0 && shownDocs.length === 0}
+            filteredEmptyMessage="No documents match the current search or filters."
+            defaultSortKey="document"
+          />
         </div>
       )}
 

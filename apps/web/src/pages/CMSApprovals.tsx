@@ -113,7 +113,7 @@ export function CMSApprovals() {
           </div>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>ASSIGNED TO ME</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: myActionCount > 0 ? '#f59e0b' : 'var(--text)' }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: myActionCount > 0 ? 'var(--gold)' : 'var(--text)' }}>
               {myActionCount}
             </div>
           </div>
@@ -198,8 +198,8 @@ export function CMSApprovals() {
                       width: 40,
                       height: 40,
                       borderRadius: 10,
-                      background: app.status === 'approved' ? '#ecfdf5' : app.status === 'rejected' ? '#fff1f2' : app.status === 'cancelled' ? '#f1f5f9' : '#fef3c7',
-                      color: app.status === 'approved' ? '#059669' : app.status === 'rejected' ? '#dc2626' : app.status === 'cancelled' ? '#64748b' : '#d97706',
+                      background: app.status === 'approved' ? 'var(--green-l)' : app.status === 'rejected' ? 'var(--red-l)' : app.status === 'cancelled' ? 'var(--bg-muted)' : 'var(--gold-l)',
+                      color: app.status === 'approved' ? 'var(--green)' : app.status === 'rejected' ? 'var(--red)' : app.status === 'cancelled' ? 'var(--text-muted)' : 'var(--gold)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -248,8 +248,8 @@ export function CMSApprovals() {
                           gap: 6,
                           padding: '7px 14px',
                           borderRadius: 8,
-                          background: '#059669',
-                          color: '#fff',
+                          background: 'var(--green)',
+                          color: 'hsl(var(--green-foreground))',
                           border: 'none',
                           fontWeight: 600,
                           fontSize: 12,
@@ -268,8 +268,8 @@ export function CMSApprovals() {
                           padding: '7px 12px',
                           borderRadius: 8,
                           background: 'var(--surface)',
-                          color: '#dc2626',
-                          border: '1px solid #fecaca',
+                          color: 'var(--red)',
+                          border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))',
                           fontWeight: 600,
                           fontSize: 12,
                           cursor: 'pointer',
@@ -363,8 +363,8 @@ export function CMSApprovals() {
                   padding: '8px 18px',
                   borderRadius: 8,
                   border: 'none',
-                  background: decisionModal.decision === 'approved' ? '#059669' : '#dc2626',
-                  color: '#fff',
+                  background: decisionModal.decision === 'approved' ? 'var(--green)' : 'var(--red)',
+                  color: `hsl(var(--${decisionModal.decision === 'approved' ? 'green' : 'red'}-foreground))`,
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: 'pointer',

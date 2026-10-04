@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Combobox } from '../../components/ui/combobox.js';
 import type { ProjectPhase, ProjectWorkPackage, ProjectDeliverable } from '@hudumika/types';
 
 interface ProjectWbsScheduleProps {
@@ -503,16 +504,13 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                     Phase
                   </label>
-                  <select
+                  <Combobox
                     value={wbsPhaseId}
-                    onChange={(e) => setWbsPhaseId(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  >
-                    <option value="">No Phase</option>
-                    {phases.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                    onChange={setWbsPhaseId}
+                    options={[{ value: '', label: 'No phase' }, ...phases.map(phase => ({ value: phase.id, label: phase.name }))]}
+                    placeholder="Select phase"
+                    searchPlaceholder="Search phases"
+                  />
                 </div>
               </div>
 

@@ -14,6 +14,9 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 /* ── helpers ── */
 function fmtDate(str?: string | null) {
@@ -42,7 +45,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
   const isOverdue = inv.status === 'Overdue';
 
   return (
-    <button type="button" title={`Open ${inv.id}`} onClick={onClick} style={{
+    <button type="button" aria-label={`Open invoice ${inv.id}`} onClick={onClick} style={{
       display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
       background: 'var(--white)',
       border: `1px solid ${isOverdue ? 'var(--red)' : 'var(--border)'}`,
@@ -54,9 +57,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
       {/* Row 1: id + badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)', flex: 1 }}>{inv.id}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '2px 10px', flexShrink: 0 }}>
-          {st.label}
-        </span>
+        <Badge variant={inv.status === 'Paid' ? 'success' : inv.status === 'Overdue' ? 'error' : inv.status === 'Partial' ? 'warning' : 'gray'}>{st.label}</Badge>
       </div>
 
       {/* Row 2: client + route */}
@@ -98,15 +99,15 @@ function DisputeModal({ inv, onClose, onSubmit }: {
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
             Reason for dispute
           </label>
-          <textarea
-            title="Describe the dispute"
+          <Textarea
+            aria-label="Reason for dispute"
             placeholder="Describe the issue with this invoice…"
             value={reason}
             onChange={e => setReason(e.target.value)}
             rows={4}
-            style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
+            className="mb-4 resize-none"
           />
-          <Button type="button" variant="destructive" size="lg" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
+          <Button type="button" variant="destructive" size="lg" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
             disabled={!reason.trim()} className="w-full">
             Submit Dispute
           </Button>
@@ -143,13 +144,13 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
     <div style={{ fontFamily: 'var(--font)', paddingBottom: 100 }}>
       {/* Top bar */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="button" title="Back" onClick={onBack}
+        <button type="button" aria-label="Back to invoices" onClick={onBack}
           style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }}>
           <Icon name="chevronLeft" size={18} color="var(--teal)" />
           Back
         </button>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)', flex: 1 }}>{inv.id}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>{st.label}</span>
+        <Badge variant={inv.status === 'Paid' ? 'success' : inv.status === 'Overdue' ? 'error' : inv.status === 'Partial' ? 'warning' : 'gray'}>{st.label}</Badge>
       </div>
 
       <div style={{ padding: '20px 16px 0' }}>
@@ -316,17 +317,17 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
       {/* Action bar — fixed at bottom */}
       <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, padding: '12px 16px', background: 'var(--white)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, zIndex: 50 }}>
-        <Button type="button" variant="outline" title="Download PDF" onClick={handlePrint} style={{ flex: 1 }}>
+        <Button type="button" variant="outline" onClick={handlePrint} style={{ flex: 1 }}>
           <Icon name="download" size={15} />
           Download
         </Button>
-        <Link to="/support/tickets" title="Get support for this invoice"
+        <Link to="/support/tickets" aria-label="Get support for this invoice"
           style={{ flex: 1, padding: '11px 0', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--teal)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none', boxSizing: 'border-box' }}>
           <Icon name="headphones" size={15} color="var(--teal)" />
           Support
         </Link>
         {inv.status !== 'Paid' && inv.status !== 'Credited' && (
-          <Button type="button" variant="outline" title="Dispute this invoice" onClick={() => setDisputing(true)}
+          <Button type="button" variant="outline" onClick={() => setDisputing(true)}
             style={{ flex: 1, borderColor: 'var(--red)', color: 'var(--red)' }}>
             <Icon name="alertCircle" size={15} />
             Dispute
@@ -384,29 +385,18 @@ export const CustomerInvoices: React.FC = () => {
           {loading ? 'Loading…' : unpaid > 0 ? `${unpaid} invoice${unpaid !== 1 ? 's' : ''} outstanding` : `${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}`}
         </p>
 
-        {/* Summary bar */}
-        {!loading && invoices.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-            {[
-              { label: 'Overdue',  count: invoices.filter(i => i.status === 'Overdue').length,  color: 'var(--red)', bg: 'var(--red-l)' },
-              { label: 'Unpaid',   count: invoices.filter(i => i.status === 'Unpaid').length,   color: 'var(--gold)', bg: 'var(--gold-l)' },
-              { label: 'Paid',     count: invoices.filter(i => i.status === 'Paid').length,     color: 'var(--green)', bg: 'var(--green-l)' },
-            ].map(s => (
-              <button key={s.label} type="button" title={`Show ${s.label}`} onClick={() => setFilter(s.label as FilterKey)}
-                style={{ background: 'var(--white)', border: `1.5px solid ${filter === s.label ? s.color : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 8px', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.count}</div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink3)', marginTop: 2 }}>{s.label}</div>
-              </button>
-            ))}
-          </div>
-        )}
+        <MetricsRow cards={[
+          { title: 'Overdue', value: String(invoices.filter(i => i.status === 'Overdue').length), comparisonLabel: 'Past the payment due date', barHighlight: 'var(--red)', loading, emphasis: filter === 'Overdue' ? 'primary' : 'default', onClick: () => setFilter('Overdue') },
+          { title: 'Unpaid', value: String(invoices.filter(i => i.status === 'Unpaid').length), comparisonLabel: 'Awaiting full payment', barHighlight: 'var(--gold)', loading, emphasis: filter === 'Unpaid' ? 'primary' : 'default', onClick: () => setFilter('Unpaid') },
+          { title: 'Paid', value: String(invoices.filter(i => i.status === 'Paid').length), comparisonLabel: 'Settled invoices', barHighlight: 'var(--green)', loading, emphasis: filter === 'Paid' ? 'primary' : 'default', onClick: () => setFilter('Paid') },
+        ]} />
       </div>
 
       {/* Filter tabs */}
       <Tabs value={filter} onValueChange={v => setFilter(v as typeof filter)} variant="segmented" style={{ margin: '0 16px', marginBottom: 12 }}>
         <TabsList>
           {FILTER_TABS.map(f => (
-            <TabsTrigger key={f.key} value={f.key} title={f.label}>
+            <TabsTrigger key={f.key} value={f.key}>
               {f.label}
             </TabsTrigger>
           ))}

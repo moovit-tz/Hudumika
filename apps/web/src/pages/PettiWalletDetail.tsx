@@ -556,7 +556,7 @@ export function PettiWalletDetail() {
                       {w.payee_name && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Paid to {w.payee_name}</div>}
                     </td>
                     <td style={{ fontSize: 12, color: 'var(--ink2)' }}>{CATEGORY_LABELS[w.category] || w.category}</td>
-                    <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--navy)' }}>{Number(w.amount).toLocaleString()} {wallet?.currency}</td>
+                    <td style={{ fontFamily: 'var(--font)', fontWeight: 800, color: 'var(--ink)' }}>{Number(w.amount).toLocaleString()} {wallet?.currency}</td>
                     <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(w.requested_at)}</td>
                     <td><Badge variant={STATUS_VARIANT[w.status] || 'gray'}>{stepLabel(w)}</Badge></td>
                     <td style={{ textAlign: 'right' }}>

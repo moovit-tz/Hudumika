@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -186,7 +186,7 @@ export function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClos
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', width: 'min(640px, 94vw)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Media Library</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Media Library</div>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>

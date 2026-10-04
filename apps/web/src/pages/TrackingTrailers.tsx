@@ -6,6 +6,10 @@ import { Badge } from '../components/ui/badge.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Button } from '../components/ui/button.js';
 
 interface Trailer {
   id: string; name: string; registration_number: string | null; vin: string | null;
@@ -52,6 +56,14 @@ export const TrackingTrailers: React.FC = () => {
     }
     return true;
   });
+  const columns: TableColumn<Trailer>[] = [
+    { key: 'trailer', header: 'Trailer', accessor: 'name', sortable: true, render: trailer => <div><Link to={`/tracking/trailers/${trailer.id}`} className="font-semibold text-foreground hover:text-primary">{trailer.name}</Link><div className="mt-0.5 text-xs text-muted-foreground">{trailer.registration_number || 'No registration on file'}</div></div> },
+    { key: 'type', header: 'Type', accessor: 'trailer_type', sortable: true, render: trailer => `${trailer.trailer_type.replace(/_/g, ' ')}${trailer.axles ? ` · ${trailer.axles} axles` : ''}` },
+    { key: 'capacity', header: 'Capacity', accessor: 'capacity_kg', sortable: true, align: 'right', hideAt: 'sm', render: trailer => trailer.capacity_kg != null ? `${trailer.capacity_kg.toLocaleString()} kg` : '—' },
+    { key: 'ownership', header: 'Ownership', accessor: 'ownership', sortable: true, hideAt: 'md', render: trailer => <div>{trailer.ownership}{trailer.transporter_name && <div className="text-xs text-muted-foreground">{trailer.transporter_name}</div>}</div> },
+    { key: 'status', header: 'Status', accessor: 'status', sortable: true, render: trailer => <Badge variant={STATUS_VARIANT[trailer.status] ?? 'gray'}>{trailer.status.replace(/_/g, ' ')}</Badge> },
+    { key: 'trip', header: 'Current trip', sortable: true, render: trailer => trailer.current_trip ? `→ ${trailer.current_trip.destination || 'En route'}` : <span className="text-muted-foreground">Not coupled</span> },
+  ];
 
   return (
     <div style={{ padding: '0 0 24px' }}>
@@ -61,13 +73,18 @@ export const TrackingTrailers: React.FC = () => {
         titleEm="trailers"
         subtitle="Every trailer, its documents, and what it's currently coupled to."
         actions={
-          <Link to="/tracking/trailers/new" className="btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, textDecoration: 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
-            <Icon name="plus" size={15} /> Register trailer
-          </Link>
+          <Button asChild><Link to="/tracking/trailers/new"><Icon name="plus" size={15} />Register trailer</Link></Button>
         }
       />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+      <MetricsRow cards={[
+        { title: 'Trailers', value: String(stats.all), comparisonLabel: 'Registered fleet', barHighlight: 'var(--teal)', loading },
+        { title: 'Active', value: String(stats.active), comparisonLabel: 'Available or in operation', barHighlight: 'var(--green)', loading },
+        { title: 'In use', value: String(stats.inUse), comparisonLabel: 'Currently coupled to a trip', barHighlight: 'var(--blue)', loading },
+        { title: 'Unavailable', value: String(stats.maintenance), comparisonLabel: 'Maintenance or out of service', barHighlight: stats.maintenance > 0 ? 'var(--gold)' : 'var(--green)', loading },
+      ]} />
+
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <Tabs value={filter} onValueChange={setFilter}>
           <TabsList>
             <TabsTrigger value="All">All ({stats.all})</TabsTrigger>
@@ -75,67 +92,11 @@ export const TrackingTrailers: React.FC = () => {
             <TabsTrigger value="Maintenance">Maintenance ({stats.maintenance})</TabsTrigger>
           </TabsList>
         </Tabs>
-        <input
-          placeholder="Search by name or registration…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ padding: '8px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', minWidth: 240 }}
-        />
+        <SearchToolbar className="w-full lg:max-w-xl" search={search} onSearch={setSearch} placeholder="Search by name or registration…" />
       </div>
 
-      {loadError && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
-          {loadError}
-        </div>
-      )}
-
-      <SectionCard>
-        {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading trailers…</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-            {trailers.length === 0 ? (
-              <>No trailers registered yet. <Link to="/tracking/trailers/new" style={{ color: 'var(--teal)', fontWeight: 600 }}>Register your first trailer</Link>.</>
-            ) : 'No trailers match the current filters.'}
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--ink3)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '10px 12px' }}>Trailer</th>
-                  <th style={{ padding: '10px 12px' }}>Type</th>
-                  <th style={{ padding: '10px 12px' }}>Capacity</th>
-                  <th style={{ padding: '10px 12px' }}>Ownership</th>
-                  <th style={{ padding: '10px 12px' }}>Status</th>
-                  <th style={{ padding: '10px 12px' }}>Current trip</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(t => (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px' }}>
-                      <Link to={`/tracking/trailers/${t.id}`} style={{ color: 'var(--ink)', fontWeight: 700, textDecoration: 'none' }}>{t.name}</Link>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{t.registration_number || 'No registration on file'}</div>
-                    </td>
-                    <td style={{ padding: '12px', color: 'var(--ink2)' }}>{t.trailer_type.replace(/_/g, ' ')}{t.axles ? ` · ${t.axles} axles` : ''}</td>
-                    <td style={{ padding: '12px', color: 'var(--ink2)' }}>{t.capacity_kg != null ? `${t.capacity_kg.toLocaleString()} kg` : '—'}</td>
-                    <td style={{ padding: '12px', color: 'var(--ink2)' }}>
-                      {t.ownership}
-                      {t.transporter_name && <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{t.transporter_name}</div>}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <Badge variant={STATUS_VARIANT[t.status] ?? 'gray'}>{t.status.replace(/_/g, ' ')}</Badge>
-                    </td>
-                    <td style={{ padding: '12px', color: 'var(--ink2)' }}>
-                      {t.current_trip ? `→ ${t.current_trip.destination || 'En route'}` : <span style={{ color: 'var(--ink3)' }}>Not coupled</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <SectionCard padded={false}>
+        <DataTable columns={columns} rows={filtered} loading={loading} error={loadError ?? undefined} onRetry={reload} filteredEmpty={(!!search || filter !== 'All') && filtered.length === 0} empty={!loading && trailers.length === 0} emptyIcon="truck" emptyTitle="No trailers registered" emptyMessage="Register a trailer to manage its documents, status, and trip coupling." defaultSortKey="trailer" defaultSortDir="asc" pageSize={15} />
       </SectionCard>
     </div>
   );

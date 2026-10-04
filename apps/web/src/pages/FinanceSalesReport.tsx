@@ -51,16 +51,15 @@ type Period = typeof PERIODS[number];
 
 const PAGE_SIZE = 15;
 
-const pagerBtn = (disabled: boolean): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: 'var(--ds-btn-py-sm) 12px',
-  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
-  border: '1px solid var(--border)', borderRadius: 'var(--r)',
-  background: 'var(--white)', color: 'var(--ink2)',
-  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  opacity: disabled ? 0.45 : 1,
-});
+type InvoiceBadgeVariant = 'success' | 'error' | 'warning' | 'info' | 'gray';
+function invoiceStatusVariant(status: string): InvoiceBadgeVariant {
+  if (status === 'Paid')     return 'success';
+  if (status === 'Overdue')  return 'error';
+  if (status === 'Unpaid')   return 'warning';
+  if (status === 'Partial')  return 'info';
+  if (status === 'Credited') return 'info';
+  return 'gray';
+}
 
 function periodRange(period: Period): { from: Date; to: Date } {
   const now = new Date();
@@ -263,7 +262,7 @@ export const FinanceSalesReport: React.FC = () => {
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(i.total)}</td>
                     <td style={{ padding: '10px 16px', color: i.dueAmt > 0 ? 'var(--red)' : 'var(--ink3)', fontWeight: i.dueAmt > 0 ? 600 : 400, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmtFull(i.dueAmt)}</td>
                     <td style={{ padding: '10px 16px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: sc.color, background: sc.bg, borderRadius: 'var(--r-sm)', padding: '2px 8px' }}>{sc.label}</span>
+                      <Badge variant={invoiceStatusVariant(i.mapped.status)}>{sc.label}</Badge>
                     </td>
                   </tr>
                 );
@@ -278,25 +277,27 @@ export const FinanceSalesReport: React.FC = () => {
                 Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, invoices.length)}</strong> of <strong>{invoices.length}</strong> invoices
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   disabled={currentPage <= 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
-                  style={pagerBtn(currentPage <= 1)}
                 >
                   <Icon name="chevronLeft" size={13} /> Previous
-                </button>
+                </Button>
                 <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
                   Page {currentPage} of {pageCount}
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   disabled={currentPage >= pageCount}
                   onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                  style={pagerBtn(currentPage >= pageCount)}
                 >
                   Next <Icon name="chevronRight" size={13} />
-                </button>
+                </Button>
               </div>
             </div>
           )}

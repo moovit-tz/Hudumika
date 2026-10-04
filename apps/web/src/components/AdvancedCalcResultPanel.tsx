@@ -199,7 +199,7 @@ function AiAnalysisCard({ result }: { result: AdvancedCalcResult }) {
     <SectionCard title="AI Analysis">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <Icon name="sparkle" size={16} color="var(--teal)" />
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Get an AI-powered read of this estimate</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Explain this estimate</span>
       </div>
       {aiError && (
         <div style={{ marginBottom: 14 }}>

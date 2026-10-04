@@ -8,6 +8,9 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Doc {
@@ -16,7 +19,6 @@ interface Doc {
 }
 
 const DOC_TYPES = ['REGISTRATION', 'INSURANCE', 'INSPECTION', 'PERMIT', 'OTHER'];
-const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onClose: () => void; onAdded: () => void }) {
@@ -67,17 +69,15 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
               </Select>
             </div>
           </div>
-          <div><label style={labelStyle}>Document number</label><input value={docNumber} onChange={e => setDocNumber(e.target.value)} style={inputStyle} /></div>
+          <div><label style={labelStyle}>Document number</label><Input value={docNumber} onChange={e => setDocNumber(e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Issued date</label><DatePicker date={parseDateOnly(issuedDate)} onChange={d => setIssuedDate(toDateOnlyString(d))} /></div>
             <div style={{ flex: 1 }}><label style={labelStyle}>Expiry date</label><DatePicker date={parseDateOnly(expiryDate)} onChange={d => setExpiryDate(toDateOnlyString(d))} /></div>
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving || !vehicleId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {saving ? 'Saving…' : 'Add document'}
-            </button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={saving || !vehicleId}>{saving ? 'Saving…' : 'Add document'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -103,12 +103,12 @@ export const TrackingDocuments: React.FC = () => {
 
   const vehicleName = (id: string) => vehicles.find(v => v.id === id)?.name ?? '—';
 
-  function expiryStatus(date: string | null): { label: string; bg: string; fg: string } | null {
+  function expiryStatus(date: string | null): { label: string; variant: 'error' | 'warning' | 'success' } | null {
     if (!date) return null;
     const days = (new Date(date).getTime() - Date.now()) / 86_400_000;
-    if (days < 0) return { label: 'EXPIRED', bg: 'var(--red-l)', fg: 'var(--red)' };
-    if (days < 30) return { label: 'EXPIRING SOON', bg: 'var(--gold-l)', fg: 'var(--gold)' };
-    return { label: 'VALID', bg: 'var(--green-l)', fg: 'var(--green)' };
+    if (days < 0) return { label: 'EXPIRED', variant: 'error' };
+    if (days < 30) return { label: 'EXPIRING SOON', variant: 'warning' };
+    return { label: 'VALID', variant: 'success' };
   }
 
   async function remove(id: string) {
@@ -130,10 +130,9 @@ export const TrackingDocuments: React.FC = () => {
             subtitle="Registration, insurance, inspection &amp; permit expiry tracking"
           />
         </div>
-        <button type="button" onClick={() => setShowAdd(true)} disabled={vehicles.length === 0}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: vehicles.length === 0 ? 'default' : 'pointer', opacity: vehicles.length === 0 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <Button type="button" onClick={() => setShowAdd(true)} disabled={vehicles.length === 0}>
           <Icon name="shield" size={15} /> Add document
-        </button>
+        </Button>
       </div>
 
       <SectionCard>
@@ -155,7 +154,7 @@ export const TrackingDocuments: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{d.doc_number || '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
-                    {st && <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 10px', background: st.bg, color: st.fg }}>{st.label}</span>}
+                    {st && <Badge variant={st.variant}>{st.label}</Badge>}
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <button type="button" onClick={() => remove(d.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>

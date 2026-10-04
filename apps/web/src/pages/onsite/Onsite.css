@@ -679,37 +679,6 @@
   border-color: var(--purple);
 }
 
-/* Dark Mode Fine-Tuning Overrides */
-[data-theme="dark"] .onsite-btn-outline {
-  background: var(--white);
-  border-color: var(--border);
-  color: var(--ink);
-}
-
-[data-theme="dark"] .onsite-btn-outline:hover {
-  border-color: var(--purple);
-  color: var(--purple);
-}
-
-[data-theme="dark"] .onsite-card,
-[data-theme="dark"] .onsite-plan-group,
-[data-theme="dark"] .onsite-stat-card,
-[data-theme="dark"] .onsite-transfer-card,
-[data-theme="dark"] .onsite-feature-banner {
-  background: var(--white);
-  border-color: var(--border);
-}
-
-[data-theme="dark"] .onsite-prompt-box {
-  background: var(--white);
-  border-color: var(--border);
-}
-
-[data-theme="dark"] .onsite-prompt-pill {
-  background: var(--white);
-  border-color: var(--border);
-  color: var(--ink);
-}
 
 /* Breadcrumb on the website sub-pages. */
 .onsite-bc {
@@ -791,7 +760,7 @@
 .onsite-domain-stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  border-color: rgba(110, 64, 201, 0.3);
+  border-color: var(--purple-l);
 }
 
 .onsite-domain-stat-icon {
@@ -845,23 +814,23 @@
 }
 
 .onsite-status-dot.active {
-  background-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  background-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-l);
 }
 
 .onsite-status-dot.failed,
 .onsite-status-dot.expired {
-  background-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  background-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-l);
 }
 
 .onsite-status-dot.pending {
-  background-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  background-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-l);
 }
 
 .onsite-status-dot.unknown {
-  background-color: #9ca3af;
+  background-color: var(--ink3);
 }
 
 /* Filter & Controls Toolbar */
@@ -935,8 +904,8 @@
   width: 34px;
   height: 34px;
   border-radius: 0.5rem;
-  background: linear-gradient(135deg, rgba(110, 64, 201, 0.12) 0%, rgba(16, 185, 129, 0.12) 100%);
-  border: 1px solid rgba(110, 64, 201, 0.18);
+  background: linear-gradient(135deg, var(--purple-l) 0%, var(--green-l) 100%);
+  border: 1px solid var(--purple-l);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1276,7 +1245,7 @@
 .onsite-switch-thumb {
   width: 16px;
   height: 16px;
-  background-color: #ffffff;
+  background-color: var(--white);
   border-radius: 50%;
   position: absolute;
   top: 2px;
@@ -1361,8 +1330,8 @@
 
 /* ─── Email Hosting & Mailboxes Redesign ─── */
 .onsite-email-banner {
-  background: #f5f3ff;
-  border: 1px solid #e9d5ff;
+  background: var(--purple-l);
+  border: 1px solid var(--purple-l);
   border-radius: 1.25rem;
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -1382,8 +1351,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #ede9fe;
-  color: #7c3aed;
+  background: var(--purple-l);
+  color: var(--purple);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1391,7 +1360,7 @@
 }
 
 .onsite-email-badge-new {
-  background: #7c3aed;
+  background: var(--purple);
   color: #ffffff;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1448,16 +1417,16 @@
 
 .onsite-storage-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+  background: var(--purple);
   border-radius: 9999px;
   transition: width 0.3s ease;
 }
 
 /* Agentic Ready Pill Badge */
 .onsite-agentic-badge {
-  background: #f3e8ff;
-  color: #7c3aed;
-  border: 1px solid #e9d5ff;
+  background: var(--purple-l);
+  color: var(--purple);
+  border: 1px solid var(--purple-l);
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -1470,8 +1439,8 @@
 }
 
 .onsite-agentic-badge:hover {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: var(--purple-l);
+  color: var(--purple);
 }
 
 @media (max-width: 768px) {
@@ -1504,7 +1473,7 @@
   bottom: 2rem;
   right: 2rem;
   background: var(--ink);
-  color: #ffffff;
+  color: var(--bg);
   padding: 0.75rem 1.25rem;
   border-radius: 0.75rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
@@ -1519,8 +1488,8 @@
 
 /* Promo Card Styling */
 .onsite-promo-card {
-  background: linear-gradient(135deg, rgba(110, 64, 201, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border: 1px solid rgba(110, 64, 201, 0.2);
+  background: linear-gradient(135deg, var(--purple-l) 0%, var(--green-l) 100%);
+  border: 1px solid var(--purple-l);
   border-radius: 1rem;
   padding: 1.25rem 1.5rem;
   position: relative;

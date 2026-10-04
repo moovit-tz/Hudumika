@@ -13,7 +13,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
-import { Input } from '../../components/ui/input.js';
+import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 
 interface MatterSummary {
   matter_reference: string;
@@ -121,16 +121,12 @@ function MattersList() {
         subtitle="Every envelope tagged with a case or engagement reference, grouped together — the same free-text tag any preparer can set on an envelope."
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 320 }}>
-          <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', zIndex: 1 }} />
-          <Input
-            type="search" placeholder="Search by reference or client…" value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ paddingLeft: 34 }}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', marginLeft: 'auto' }}>
+      <SearchToolbar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search by matter reference or client"
+        style={{ marginBottom: 16 }}
+        actions={<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
           <span>Show</span>
           <Select value={String(perPage)} onValueChange={v => setPerPage(Number(v))}>
             <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
@@ -139,8 +135,8 @@ function MattersList() {
             </SelectContent>
           </Select>
           <span>per page</span>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
         {loading ? (

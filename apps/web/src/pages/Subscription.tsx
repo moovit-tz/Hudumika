@@ -227,7 +227,7 @@ function SectionHead({ title, sub, action }: { title: string; sub?: string; acti
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>{title}</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{title}</div>
         {sub && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>{sub}</div>}
       </div>
       {action}
@@ -247,7 +247,7 @@ function CardHead({ title, sub, right }: { title: string; sub?: string; right?: 
   return (
     <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <div>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>{title}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{title}</div>
         {sub && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{sub}</div>}
       </div>
       {right}
@@ -368,7 +368,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
                 <Icon name="layers" size={22} strokeWidth={1.75} style={{ color: plan.color } as React.CSSProperties} />
               </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{plan.name} Plan</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{plan.name} Plan</div>
                 <StatusBadge status="Active" />
               </div>
             </div>
@@ -492,7 +492,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                 <Icon name="layers" size={22} strokeWidth={1.75} style={{ color: plan.color } as React.CSSProperties} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{plan.name} Plan</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{plan.name} Plan</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>
                   {plan.itemLimit === null ? 'Unlimited items / month' : `Up to ${plan.itemLimit.toLocaleString()} items / month`} · {priceLabel}/mo · {seats} seat{seats === 1 ? '' : 's'}
                 </div>
@@ -892,7 +892,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
           <div style={{ padding: 20 }}>
             {upcoming ? (
               <>
-                <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{fmtAmount(upcoming)}</div>
+                <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>{fmtAmount(upcoming)}</div>
                 {upcoming.currency === 'USD' && <div style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>≈ {tzsEquivalent(Number(upcoming.amount))}</div>}
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Due on {fmtDate(upcoming.due_date)}</div>
                 {[[`${upcoming.plan_code} (${upcoming.seats} seat${upcoming.seats === 1 ? '' : 's'})`, fmtAmount(upcoming)], ['Tax', 'Included'], ['Total', fmtAmount(upcoming)]].map(([k, v], i) => (
@@ -1092,7 +1092,7 @@ function AddonsSection() {
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>{addon.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{addon.name}</span>
                   {addon.purchased && <span style={{ padding: '1px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', fontSize: 10, fontWeight: 700 }}>Active</span>}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: addon.color ?? 'var(--navy)', marginTop: 2 }}>
@@ -1144,7 +1144,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
     <div>
       <div className="sub-plans-head">
         <div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>Choose Your Plan</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Choose Your Plan</div>
           <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>All plans include a 14-day free trial. Cancel anytime.</div>
         </div>
         <div className="sub-billing-toggle">
@@ -1266,7 +1266,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                 const p = plans[k]; const isCur = k === currentPlan;
                 return (
                   <div key={k} style={{ padding: '16px 14px', textAlign: 'center', borderLeft: '1px solid var(--border)', background: isCur ? p.bg : 'var(--white)' }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--navy)' }}>{p.name}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</div>
                     {isCur && <div style={{ fontSize: 10, fontWeight: 700, color: p.color, marginTop: 2 }}>Current</div>}
                   </div>
                 );
@@ -1343,13 +1343,13 @@ function ReportsTab() {
         <Card>
           <div style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Active Seats</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{seats}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{seats}</div>
           </div>
         </Card>
         <Card>
           <div style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Items This Period{usage?.period ? ` (${usage.period})` : ''}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{usage ? usage.used : '—'}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>{usage ? usage.used : '—'}</div>
             <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: usage && usage.limit !== null ? 8 : 0 }}>{usage ? (usage.limit !== null ? `of ${usage.limit}` : 'Unlimited') : 'Loading…'}</div>
             {usage && usage.limit !== null && usage.used / usage.limit >= 0.8 && usage.used < usage.limit && (
               <div style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 6 }}>Approaching this month's limit</div>
@@ -1364,7 +1364,7 @@ function ReportsTab() {
         <Card>
           <div style={{ padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Modules Enabled</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{modulesOn ?? '—'}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{modulesOn ?? '—'}</div>
           </div>
         </Card>
       </div>

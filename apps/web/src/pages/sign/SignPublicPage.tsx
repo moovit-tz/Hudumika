@@ -551,7 +551,7 @@ export function SignPublicPage() {
                 <div>Join the sender for a live session before signing, if requested.</div>
               </div>
               <a href={data.envelope.meeting_url} target="_blank" rel="noreferrer"
-                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--r-sm)', background: 'var(--blue)', color: '#fff', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--r-sm)', background: 'var(--blue)', color: 'hsl(var(--blue-foreground))', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
                 Join
               </a>
             </div>

@@ -3,6 +3,9 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 
 interface Vehicle { id: string; name: string }
 interface Alert {
@@ -10,10 +13,8 @@ interface Alert {
   message: string; acknowledged: boolean; created_at: string;
 }
 
-const SEVERITY_COLORS: Record<string, { bg: string; fg: string }> = {
-  INFO: { bg: 'var(--blue-l)', fg: 'var(--blue)' },
-  WARNING: { bg: 'var(--gold-l)', fg: 'var(--gold)' },
-  CRITICAL: { bg: 'var(--red-l)', fg: 'var(--red)' },
+const SEVERITY_VARIANT: Record<string, 'info' | 'warning' | 'error'> = {
+  INFO: 'info', WARNING: 'warning', CRITICAL: 'error',
 };
 
 export const TrackingAlerts: React.FC = () => {
@@ -59,24 +60,24 @@ export const TrackingAlerts: React.FC = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {!loading && alerts.map(a => {
-          const sc = SEVERITY_COLORS[a.severity] ?? SEVERITY_COLORS.INFO;
+          const severityVariant = SEVERITY_VARIANT[a.severity] ?? 'info';
           return (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', opacity: a.acknowledged ? 0.6 : 1 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: sc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="alertTriangle" size={16} color={sc.fg} />
-              </div>
+              <FeaturedIcon variant={severityVariant} size="sm">
+                <Icon name="alertTriangle" size={16} />
+              </FeaturedIcon>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '2px 9px', background: sc.bg, color: sc.fg }}>{a.alert_type.replace('_', ' ')}</span>
+                  <Badge variant={severityVariant}>{a.alert_type.replace('_', ' ')}</Badge>
                   <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{vehicleName(a.vehicle_id)}</span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{a.message}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{new Date(a.created_at).toLocaleString()}</div>
               </div>
               {!a.acknowledged && (
-                <button type="button" onClick={() => acknowledge(a.id)} style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: 'pointer', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <Button type="button" variant="outline" size="sm" onClick={() => acknowledge(a.id)} style={{ flexShrink: 0 }}>
                   Acknowledge
-                </button>
+                </Button>
               )}
             </div>
           );

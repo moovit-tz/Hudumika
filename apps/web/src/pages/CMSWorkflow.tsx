@@ -284,7 +284,7 @@ export function CMSWorkflow() {
                     {!['draft', 'published', 'trash'].includes(st.slug) && (
                       <button
                         onClick={() => handleDeleteState(st)}
-                        style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4 }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
                         title="Delete state"
                       >
                         <Icon name="trash" size={14} />
@@ -376,7 +376,7 @@ export function CMSWorkflow() {
 
                         <button
                           onClick={() => handleDeleteTransition(tr.id)}
-                          style={{ background: 'transparent', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4 }}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
                           title="Remove transition"
                         >
                           <Icon name="trash" size={14} />
@@ -462,7 +462,7 @@ export function CMSWorkflow() {
               <button
                 onClick={handleCreateState}
                 disabled={saving}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 {saving ? 'Creating...' : 'Create State'}
               </button>
@@ -564,7 +564,7 @@ export function CMSWorkflow() {
               <button
                 onClick={handleCreateTransition}
                 disabled={saving}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 {saving ? 'Adding...' : 'Add Transition'}
               </button>

@@ -196,7 +196,7 @@ export const OndiGroups: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Static Groups</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#f1f5f9', color: 'var(--ink2)' }}><Icon name="userCheck" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--card-sunken)', color: 'var(--ink2)' }}><Icon name="userCheck" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{ color: 'var(--ink2)' }}>{staticCount}</span>
@@ -381,7 +381,7 @@ export const OndiGroups: React.FC = () => {
                             <EntityPicker value={memberPick[g.id] ?? null} onChange={p => setMemberPick(prev => ({ ...prev, [g.id]: p }))} search={searchStaff} placeholder="Add colleague to group…" />
                           </div>
                           <button type="button" onClick={() => addMember(g.id)}
-                            style={{ fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'var(--ink)', border: 'none', borderRadius: 'var(--r)', padding: '0 16px', cursor: 'pointer' }}>
+                            style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: '0 16px', cursor: 'pointer' }}>
                             Add
                           </button>
                         </div>

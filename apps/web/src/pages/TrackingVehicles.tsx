@@ -13,6 +13,11 @@ import { Combobox } from '../components/ui/combobox.js';
 import './TrackingVehicles.css';
 import 'leaflet/dist/leaflet.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { Button } from '../components/ui/button.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface Vehicle {
   id: string; name: string; plate_number: string | null; type: string;
@@ -136,10 +141,6 @@ export const TrackingVehicles: React.FC = () => {
         titleEm="vehicles"
         actions={
           <div className="trk-actions">
-            <div className="trk-search-bar">
-              <Icon name="search" size={14} style={{color: 'var(--ink3)'}} />
-              <input placeholder="Search for Fleet ID.." value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
             <Select defaultValue="30d">
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -148,7 +149,9 @@ export const TrackingVehicles: React.FC = () => {
                 <SelectItem value="today">Today</SelectItem>
               </SelectContent>
             </Select>
-            <button className="trk-icon-btn" title="Refresh" onClick={reload}><Icon name="refresh" size={16} /></button>
+            <Tip label="Refresh fleet data">
+              <Button variant="outline" size="icon" aria-label="Refresh fleet data" onClick={reload}><Icon name="refresh" size={16} /></Button>
+            </Tip>
           </div>
         }
       />
@@ -159,43 +162,12 @@ export const TrackingVehicles: React.FC = () => {
         <div className="trk-section-subtitle">Last updated {kpis ? 'just now' : '…'}</div>
       </div>
 
-      <div className="trk-kpi-grid">
-        <div className="trk-kpi-card">
-          <div className="trk-kpi-top"><Icon name="truck" size={14} /> Active fleet</div>
-          <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis ? kpis.vehicles_total.toLocaleString() : '—'}</span>
-          </div>
-          <div className="trk-kpi-desc">Vehicles registered to this workspace</div>
-        </div>
-
-        <div className="trk-kpi-card">
-          <div className="trk-kpi-top"><Icon name="package" size={14} /> Trips today</div>
-          <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis ? kpis.trips_today.toLocaleString() : '—'}</span>
-          </div>
-          <div className="trk-kpi-desc">Scheduled to start today</div>
-        </div>
-
-        <div className="trk-kpi-card">
-          <div className="trk-kpi-top"><Icon name="clock" size={14} /> Avg. delivery time</div>
-          <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">
-              {kpis?.avg_delivery_minutes_today != null
-                ? `${Math.floor(kpis.avg_delivery_minutes_today / 60)}h ${Math.round(kpis.avg_delivery_minutes_today % 60)}m`
-                : '—'}
-            </span>
-          </div>
-          <div className="trk-kpi-desc">Trips completed today</div>
-        </div>
-
-        <div className="trk-kpi-card">
-          <div className="trk-kpi-top"><Icon name="checkCircle" size={14} /> On-time performance</div>
-          <div className="trk-kpi-value-row">
-            <span className="trk-kpi-value">{kpis?.on_time_pct_today != null ? `${kpis.on_time_pct_today}%` : '—'}</span>
-          </div>
-          <div className="trk-kpi-desc">Deliveries completed on schedule today</div>
-        </div>
-      </div>
+      <MetricsRow cards={[
+        { title: 'Active fleet', value: kpis ? kpis.vehicles_total.toLocaleString() : '—', icon: 'truck', updatedLabel: 'Vehicles registered to this workspace', loading },
+        { title: 'Trips today', value: kpis ? kpis.trips_today.toLocaleString() : '—', icon: 'package', updatedLabel: 'Scheduled to start today', loading },
+        { title: 'Avg. delivery time', value: kpis?.avg_delivery_minutes_today != null ? `${Math.floor(kpis.avg_delivery_minutes_today / 60)}h ${Math.round(kpis.avg_delivery_minutes_today % 60)}m` : '—', icon: 'clock', updatedLabel: 'Trips completed today', loading, empty: !loading && kpis?.avg_delivery_minutes_today == null },
+        { title: 'On-time performance', value: kpis?.on_time_pct_today != null ? `${kpis.on_time_pct_today}%` : '—', icon: 'checkCircle', updatedLabel: 'Deliveries completed on schedule today', loading, empty: !loading && kpis?.on_time_pct_today == null, emphasis: 'primary' },
+      ]} />
       {loadError && (
         <div style={{ padding: '10px 16px', margin: '0 0 16px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600 }}>
           {loadError}
@@ -269,17 +241,24 @@ export const TrackingVehicles: React.FC = () => {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              <Link to="/tracking/vehicles/new" className="trk-icon-btn" title="Register a vehicle" style={{width: 'auto', padding: '0 14px'}}>
-                <Icon name="truck" size={15} />
-              </Link>
-              <Link to="/tracking/shipments/new" className="trk-primary-btn">
-                <Icon name="plus" size={15} /> New Shipment
-              </Link>
+              <Button asChild variant="outline" size="icon">
+                <Link to="/tracking/vehicles/new" aria-label="Register a vehicle"><Icon name="truck" size={15} /></Link>
+              </Button>
+              <Button asChild>
+                <Link to="/tracking/shipments/new"><Icon name="plus" size={15} /> New shipment</Link>
+              </Button>
             </div>
           </div>
 
+          <SearchToolbar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search by vehicle or driver"
+            className="mb-3"
+          />
+
           {loading ? (
-            <div style={{padding: 40, textAlign: 'center', color: 'var(--ink3)'}}>Loading fleet data...</div>
+            <SectionLoading label="Loading fleet data…" />
           ) : viewMode === 'grid' ? (
             <div className="trk-vehicles-grid">
               {pagedVehicles.map(v => {
@@ -424,15 +403,15 @@ export const TrackingVehicles: React.FC = () => {
 
           {!loading && filteredVehicles.length > PAGE_SIZE && (
             <div className="trk-pagination">
-              <button type="button" title="Previous page" className="trk-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+              <button type="button" aria-label="Previous page" className="trk-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
                 <Icon name="chevronLeft" size={13} />
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                <button key={n} type="button" title={`Page ${n}`} className={`trk-page-btn ${n === page ? 'active' : ''}`} onClick={() => setPage(n)}>
+                <button key={n} type="button" aria-label={`Page ${n}`} aria-current={n === page ? 'page' : undefined} className={`trk-page-btn ${n === page ? 'active' : ''}`} onClick={() => setPage(n)}>
                   {n}
                 </button>
               ))}
-              <button type="button" title="Next page" className="trk-page-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+              <button type="button" aria-label="Next page" className="trk-page-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
                 <Icon name="chevronRight" size={13} />
               </button>
             </div>

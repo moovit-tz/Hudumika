@@ -28,6 +28,9 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { TwotoneIcon } from '../components/ui/twotone-icon.js';
 import { ColorSwatchPicker, PLATFORM_SWATCHES } from '../components/ui/color-swatch-picker.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, QueryState } from '../components/ui/DataTable.js';
+import type { TableColumn, RowAction } from '../components/ui/DataTable.js';
 
 const SECTION = 'rounded-2xl border border-border bg-card p-6 shadow-sm';
 const SECTION_TITLE = 'mb-1 text-base font-bold text-foreground';
@@ -192,6 +195,32 @@ export default function ComponentShowcase() {
           </div>
         </section>
 
+        {/* Metric cards */}
+        <section className={SECTION}>
+          <div className={SECTION_TITLE}>Metric cards</div>
+          <div className={SECTION_DESC}>A consistent KPI summary: label, primary value, sentiment-aware change, explicit comparison window, optional real sparkline, supporting figures, and data freshness. Cards also support loading, error and drill-down states.</div>
+          <MetricsRow cards={[
+            {
+              title: 'On-time delivery', value: '96.4%', trend: 1.8,
+              comparisonLabel: 'vs previous 30 days', updatedLabel: 'Updated 2 minutes ago',
+              progress: 96.4, progressLabel: 'Monthly target', emphasis: 'primary',
+              icon: 'checkCircle', barHighlight: 'var(--green)',
+              bars: [88, 90, 89, 92, 91, 94, 96.4],
+              sub1Label: 'TARGET', sub1Value: '95%', sub2Label: 'DELIVERED', sub2Value: '428',
+            },
+            {
+              title: 'Demurrage exposure', value: 'TZS 8.2M', trend: 12.4,
+              invertTrend: true, comparisonLabel: 'vs last month', updatedLabel: 'Updated 5 minutes ago',
+              icon: 'alertTriangle', barHighlight: 'var(--red)',
+              bars: [4.2, 4.8, 5.1, 6.4, 6.1, 7.3, 8.2],
+              sub1Label: 'AT RISK', sub1Value: '12', sub2Label: 'DUE IN 48H', sub2Value: '5',
+            },
+            { title: 'Active shipments', value: '—', icon: 'package', loading: true },
+            { title: 'Clearance time', value: '—', icon: 'clock', empty: true, emptyMessage: 'No clearances in this period', emptyActionLabel: 'Change period', onEmptyAction: () => undefined, emphasis: 'subtle' },
+            { title: 'Customs exceptions', value: '—', icon: 'alertTriangle', error: 'Couldn’t load this metric', onRetry: () => undefined },
+          ]} />
+        </section>
+
         {/* Workspace switcher */}
         <section className={SECTION}>
           <div className={SECTION_TITLE}>Workspace switcher</div>
@@ -253,6 +282,34 @@ export default function ComponentShowcase() {
             />
             <div className="text-xs text-muted-foreground">Active filter count driven by the Multi-select above ({modules.length} selected). The Filters button glows and shows a count badge.</div>
           </div>
+        </section>
+
+        {/* Data table */}
+        <section className={SECTION}>
+          <div className={SECTION_TITLE}>Data table</div>
+          <div className={SECTION_DESC}>Sortable, paginated table with row actions, selection, and five distinct states: normal, loading skeleton, error+retry, dataset-empty, and filter-empty. All list pages should use this instead of hand-rolled tables.</div>
+          <DataTable
+            columns={[
+              { key: 'ref', header: 'Reference', accessor: 'ref', sortable: true, width: '14%' },
+              { key: 'customer', header: 'Customer', accessor: 'customer', sortable: true },
+              { key: 'mode', header: 'Mode', render: (r: any) => <span className="badge badge-info">{r.mode}</span> },
+              { key: 'value', header: 'Value (TZS)', accessor: 'value', sortable: true, align: 'right', render: (r: any) => Number(r.value).toLocaleString() },
+              { key: 'status', header: 'Status', render: (r: any) => <span className={`badge badge-${r.status === 'Cleared' ? 'success' : r.status === 'Pending' ? 'warning' : 'gray'}`}>{r.status}</span> },
+            ] as TableColumn<any>[]}
+            rows={[
+              { id: '1', ref: 'SHP-0041', customer: 'Orbit Logistics', mode: 'SEA', value: 4250000, status: 'Cleared' },
+              { id: '2', ref: 'SHP-0042', customer: 'Zanzibar Traders', mode: 'AIR', value: 1800000, status: 'Pending' },
+              { id: '3', ref: 'SHP-0043', customer: 'TZ Freight Co.', mode: 'ROAD', value: 920000, status: 'In Transit' },
+              { id: '4', ref: 'SHP-0044', customer: 'Atlas Forwarding', mode: 'SEA', value: 6100000, status: 'Cleared' },
+              { id: '5', ref: 'SHP-0045', customer: 'Mombasa Gate Ltd', mode: 'SEA', value: 3300000, status: 'Pending' },
+            ]}
+            rowActions={(row: any) => [
+              { label: 'View details', icon: 'eye', onClick: () => {} },
+              { label: 'Edit', icon: 'edit', onClick: () => {} },
+              { label: 'Delete', icon: 'trash', variant: 'danger', separator: true, onClick: () => {} },
+            ]}
+            pageSize={10}
+          />
         </section>
 
         {/* Date pickers */}
@@ -515,4 +572,3 @@ function TwotoneShowcaseGrid() {
     </div>
   );
 }
-

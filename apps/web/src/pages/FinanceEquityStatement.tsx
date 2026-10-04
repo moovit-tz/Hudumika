@@ -8,6 +8,11 @@ import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 const YEARS = ['2026', '2025', '2024'];
 
@@ -23,12 +28,6 @@ interface Dividend {
   id: string; declared_date: string; amount: string; description: string | null;
   status: 'DECLARED' | 'PAID'; paid_at: string | null; reference: string | null;
 }
-
-const th: React.CSSProperties = {
-  padding: '10px 14px', textAlign: 'right', fontSize: 10, fontWeight: 700, color: 'var(--ink3)',
-  textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)',
-};
-const td: React.CSSProperties = { padding: '11px 14px', color: 'var(--ink2)', textAlign: 'right', fontFamily: 'var(--font)', whiteSpace: 'nowrap' };
 
 export function FinanceEquityStatement() {
   const co = useCompany();
@@ -97,6 +96,21 @@ export function FinanceEquityStatement() {
   }
 
   const totals = report?.totals;
+  const accountColumns: TableColumn<EquityAccountRow>[] = [
+    { key: 'account', header: 'Account', accessor: 'name', sortable: true, render: row => <span className="font-semibold text-foreground">{row.name}</span> },
+    { key: 'opening', header: 'Opening', accessor: 'opening', sortable: true, align: 'right', render: row => fmt(row.opening) },
+    { key: 'income', header: 'From net income', accessor: 'fromNetIncome', sortable: true, align: 'right', render: row => <span className={row.fromNetIncome ? 'font-semibold text-[var(--teal)]' : 'text-muted-foreground'}>{row.fromNetIncome ? fmt(row.fromNetIncome) : '—'}</span> },
+    { key: 'dividends', header: 'Dividends', accessor: 'dividends', sortable: true, align: 'right', render: row => <span className={row.dividends ? 'font-semibold text-[var(--red)]' : 'text-muted-foreground'}>{row.dividends ? fmt(row.dividends) : '—'}</span> },
+    { key: 'other', header: 'Other', accessor: 'other', sortable: true, align: 'right', hideAt: 'sm', render: row => row.other ? fmt(row.other) : '—' },
+    { key: 'closing', header: 'Closing', accessor: 'closing', sortable: true, align: 'right', render: row => <span className="font-bold text-foreground">{fmt(row.closing)}</span> },
+  ];
+  const dividendColumns: TableColumn<Dividend>[] = [
+    { key: 'declared', header: 'Declared', accessor: 'declared_date', sortable: true },
+    { key: 'description', header: 'Description', accessor: 'description', sortable: true, render: row => row.description || '—' },
+    { key: 'amount', header: 'Amount', accessor: 'amount', sortable: true, align: 'right', render: row => <span className="font-semibold text-foreground">{fmt(Number(row.amount))}</span> },
+    { key: 'status', header: 'Status', accessor: 'status', sortable: true, render: row => <Badge variant={row.status === 'PAID' ? 'success' : 'warning'}>{row.status}</Badge> },
+    { key: 'action', header: '', align: 'right', render: row => row.status === 'DECLARED' ? <Button type="button" variant="outline" size="xs" disabled={busy === row.id} onClick={() => payDividend(row.id)}>{busy === row.id ? 'Paying…' : 'Mark paid'}</Button> : null },
+  ];
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -114,9 +128,9 @@ export function FinanceEquityStatement() {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading equity statement…</div>
+        <SectionLoading label="Loading equity statement…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error" title="Equity statement unavailable">{error}</Banner>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -159,51 +173,26 @@ export function FinanceEquityStatement() {
           title="Movement by account"
           action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{from} to {to}</span>}
         >
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-              <thead>
-                <tr>
-                  <th style={{ ...th, textAlign: 'left' }}>Account</th>
-                  <th style={th}>Opening</th>
-                  <th style={th}>From net income</th>
-                  <th style={th}>Dividends</th>
-                  <th style={th}>Other</th>
-                  <th style={th}>Closing</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(report?.accounts ?? []).map(a => (
-                  <tr key={a.code} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '11px 14px', color: 'var(--ink)', fontWeight: 600 }}>{a.name}</td>
-                    <td style={td}>{fmt(a.opening)}</td>
-                    <td style={{ ...td, color: a.fromNetIncome !== 0 ? 'var(--teal)' : 'var(--ink3)' }}>{a.fromNetIncome !== 0 ? fmt(a.fromNetIncome) : '—'}</td>
-                    <td style={{ ...td, color: a.dividends !== 0 ? 'var(--red)' : 'var(--ink3)' }}>{a.dividends !== 0 ? fmt(a.dividends) : '—'}</td>
-                    <td style={{ ...td, color: a.other !== 0 ? 'var(--gold)' : 'var(--ink3)' }}>{a.other !== 0 ? fmt(a.other) : '—'}</td>
-                    <td style={{ ...td, color: 'var(--ink)', fontWeight: 700 }}>{fmt(a.closing)}</td>
-                  </tr>
-                ))}
-                {totals && (
-                  <tr>
-                    <td style={{ padding: '11px 14px', color: 'var(--ink)', fontWeight: 800 }}>TOTAL</td>
-                    <td style={{ ...td, fontWeight: 800 }}>{fmt(totals.opening)}</td>
-                    <td style={{ ...td, fontWeight: 800, color: 'var(--teal)' }}>{fmt(totals.fromNetIncome)}</td>
-                    <td style={{ ...td, fontWeight: 800, color: 'var(--red)' }}>{fmt(totals.dividends)}</td>
-                    <td style={{ ...td, fontWeight: 800, color: 'var(--gold)' }}>{fmt(totals.other)}</td>
-                    <td style={{ ...td, fontWeight: 800 }}>{fmt(totals.closing)}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={accountColumns}
+            rows={report?.accounts ?? []}
+            empty={!report?.accounts?.length}
+            emptyIcon="layers"
+            emptyTitle="No equity movement"
+            emptyMessage={`No equity account activity was recorded for ${year}.`}
+            defaultSortKey="account"
+            defaultSortDir="asc"
+            pageSize={12}
+          />
         </SectionCard>
 
         {/* Dividends */}
         <SectionCard
           padded={false}
           title="Dividends"
-          action={<button type="button" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={() => setShowDeclareForm(v => !v)}>
+          action={<Button type="button" variant="outline" size="sm" onClick={() => setShowDeclareForm(v => !v)}>
             <Icon name="plus" size={13} /> Declare dividend
-          </button>}
+          </Button>}
         >
           {showDeclareForm && (
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -213,55 +202,29 @@ export function FinanceEquityStatement() {
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Amount ({cur})</div>
-                <input type="number" min={0} value={declareAmount} onChange={e => setDeclareAmount(e.target.value)}
-                  style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, width: 160, fontFamily: 'inherit' }} />
+                <Input type="number" min={0} value={declareAmount} onChange={e => setDeclareAmount(e.target.value)} className="w-40" />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Description (optional)</div>
-                <input type="text" value={declareDesc} onChange={e => setDeclareDesc(e.target.value)}
-                  style={{ padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, width: '100%', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <Input type="text" value={declareDesc} onChange={e => setDeclareDesc(e.target.value)} />
               </div>
-              <button type="button" className="btn btn-primary btn-sm" disabled={busy === 'declare'} onClick={declareDividend}>
+              <Button type="button" size="sm" disabled={busy === 'declare'} onClick={declareDividend}>
                 {busy === 'declare' ? 'Declaring…' : 'Declare'}
-              </button>
+              </Button>
             </div>
           )}
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-              <thead>
-                <tr>
-                  <th style={{ ...th, textAlign: 'left' }}>Declared</th>
-                  <th style={{ ...th, textAlign: 'left' }}>Description</th>
-                  <th style={th}>Amount</th>
-                  <th style={{ ...th, textAlign: 'left' }}>Status</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dividends.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: '24px 14px', textAlign: 'center', color: 'var(--ink3)' }}>No dividends declared yet.</td></tr>
-                )}
-                {dividends.map(d => (
-                  <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '11px 14px', color: 'var(--ink2)' }}>{d.declared_date}</td>
-                    <td style={{ padding: '11px 14px', color: 'var(--ink2)' }}>{d.description || '—'}</td>
-                    <td style={td}>{fmt(Number(d.amount))}</td>
-                    <td style={{ padding: '11px 14px' }}>
-                      <Badge variant={d.status === 'PAID' ? 'success' : 'warning'}>{d.status}</Badge>
-                    </td>
-                    <td style={{ padding: '11px 14px', textAlign: 'right' }}>
-                      {d.status === 'DECLARED' && (
-                        <button type="button" className="btn btn-secondary btn-xs" disabled={busy === d.id} onClick={() => payDividend(d.id)}>
-                          {busy === d.id ? 'Paying…' : 'Mark paid'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={dividendColumns}
+            rows={dividends}
+            empty={dividends.length === 0}
+            emptyIcon="dollarSign"
+            emptyTitle="No dividends declared"
+            emptyMessage="Declared dividends and their payment status appear here."
+            defaultSortKey="declared"
+            defaultSortDir="desc"
+            pageSize={10}
+          />
         </SectionCard>
       </div>
       )}

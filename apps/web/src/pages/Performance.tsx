@@ -106,12 +106,12 @@ export function Performance() {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {tab === 'goals'
-              ? <button type="button" className="btn btn-primary btn-sm" disabled={people.length === 0} onClick={() => setPane(pane === 'goal' ? 'none' : 'goal')}>
-                  <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Goal
-                </button>
-              : <button type="button" className="btn btn-primary btn-sm" onClick={() => setPane(pane === 'cycle' ? 'none' : 'cycle')}>
-                  <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Cycle
-                </button>}
+              ? <Button size="sm" disabled={people.length === 0} onClick={() => setPane(pane === 'goal' ? 'none' : 'goal')}>
+                  <Icon name="plus" size={13} /> New Goal
+                </Button>
+              : <Button size="sm" onClick={() => setPane(pane === 'cycle' ? 'none' : 'cycle')}>
+                  <Icon name="plus" size={13} /> New Cycle
+                </Button>}
           </div>
         }
       />

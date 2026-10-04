@@ -5,6 +5,9 @@ import { Icon } from '../components/Icon.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { Button } from '../components/ui/button.js';
+import { QueryState } from '../components/ui/DataTable.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Vendor { id: string; name: string }
@@ -86,6 +89,7 @@ export const TrackingMaintenance: React.FC = () => {
     const d = new Date(r.service_date);
     return d.getFullYear() === year && d.getMonth() === month;
   }).length, [records, year, month]);
+  const totalCost = useMemo(() => records.reduce((sum, record) => sum + (record.cost ?? 0), 0), [records]);
 
   const firstDow = new Date(year, month, 1).getDay();
   const daysCount = new Date(year, month + 1, 0).getDate();
@@ -116,38 +120,27 @@ export const TrackingMaintenance: React.FC = () => {
             subtitle="Service history &amp; scheduled maintenance"
           />
         </div>
-        <Link to="/tracking/maintenance/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
-          <Icon name="clipboardList" size={15} /> Log maintenance
-        </Link>
+        <Button asChild><Link to="/tracking/maintenance/new"><Icon name="clipboardList" size={15} />Log maintenance</Link></Button>
       </div>
 
       {/* Previous / expected summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 20 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Done this month</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{doneThisMonthCount}</div>
-        </div>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Upcoming (expected)</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', marginTop: 4 }}>{upcomingCount}</div>
-        </div>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Overdue</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: overdueCount > 0 ? 'var(--red)' : 'var(--ink)', marginTop: 4 }}>{overdueCount}</div>
-        </div>
-      </div>
+      <MetricsRow cards={[
+        { title: 'Done this month', value: String(doneThisMonthCount), comparisonLabel: `${MONTHS[month]} ${year}`, barHighlight: 'var(--green)', loading },
+        { title: 'Upcoming', value: String(upcomingCount), comparisonLabel: 'Expected service dates', barHighlight: 'var(--gold)', loading },
+        { title: 'Overdue', value: String(overdueCount), comparisonLabel: 'Past next-due date', barHighlight: overdueCount > 0 ? 'var(--red)' : 'var(--green)', loading },
+        { title: 'Maintenance cost', value: totalCost.toLocaleString(), comparisonLabel: `${records.length} service records`, barHighlight: 'var(--blue)', loading },
+      ]} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 300px' : '1fr', gap: 16, alignItems: 'flex-start' }}>
+      <div className={selectedDate ? 'grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]' : 'grid grid-cols-1 items-start gap-4'}>
         <SectionCard>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <button type="button" title="Previous month" onClick={prevMonth} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
+            <Button type="button" variant="outline" size="icon" aria-label="Previous month" onClick={prevMonth}>
               <Icon name="chevronLeft" size={13} />
-            </button>
+            </Button>
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{MONTHS[month]} {year}</span>
-            <button type="button" title="Next month" onClick={nextMonth} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
+            <Button type="button" variant="outline" size="icon" aria-label="Next month" onClick={nextMonth}>
               <Icon name="chevronRight" size={13} />
-            </button>
+            </Button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 4 }}>
@@ -196,7 +189,7 @@ export const TrackingMaintenance: React.FC = () => {
         {selectedDate && (
           <SectionCard
             title={new Date(selectedDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-            action={<button type="button" title="Close" onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>}
+            action={<Button type="button" variant="ghost" size="icon" aria-label="Close selected date" onClick={() => setSelectedDate(null)}><Icon name="close" size={14} /></Button>}
           >
             {selectedDone.length > 0 && (
               <div style={{ marginBottom: 14 }}>
@@ -207,7 +200,7 @@ export const TrackingMaintenance: React.FC = () => {
                     <div style={{ color: 'var(--ink2)' }}>{r.service_type} · {vendorName(r.vendor_id)}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
                       <span style={{ color: 'var(--ink3)' }}>{r.cost != null ? r.cost.toLocaleString() : '—'}</span>
-                      <button type="button" onClick={() => remove(r.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={12} /></button>
+                      <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${r.service_type} record`} onClick={() => remove(r.id)}><Icon name="trash" size={12} /></Button>
                     </div>
                   </div>
                 ))}
@@ -228,9 +221,7 @@ export const TrackingMaintenance: React.FC = () => {
         )}
       </div>
 
-      {!loading && records.length === 0 && (
-        <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No maintenance records yet.</div>
-      )}
+      {!loading && records.length === 0 && <QueryState empty emptyIcon="clipboardList" emptyTitle="No maintenance records" emptyMessage="Log completed service or schedule a due date to populate the maintenance calendar."><span /></QueryState>}
     </div>
   );
 };

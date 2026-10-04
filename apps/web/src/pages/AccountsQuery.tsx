@@ -195,7 +195,7 @@ export function AccountsQuery() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
             <Icon name="barChart" size={18} color="var(--teal)" />
-            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>Query Builder</span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>Query Builder</span>
           </div>
 
           {/* Report type */}
@@ -353,7 +353,7 @@ export function AccountsQuery() {
             {/* Header row */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--navy)', textTransform: 'capitalize' }}>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--ink)', textTransform: 'capitalize' }}>
                   {REPORT_TYPES.find(r => r.value === result.report_type)?.label} Report
                 </h2>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4, display: 'flex', gap: 16 }}>
@@ -378,11 +378,11 @@ export function AccountsQuery() {
               <div style={{ display: 'flex', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
                 <div className="card" style={{ flex: 1, minWidth: 130, padding: '14px 18px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Records</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{summaryCards.totalRecords}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{summaryCards.totalRecords}</div>
                 </div>
                 <div className="card" style={{ flex: 1, minWidth: 130, padding: '14px 18px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Total Amount</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{fmtAmt(summaryCards.totalAmount)}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{fmtAmt(summaryCards.totalAmount)}</div>
                 </div>
                 {summaryCards.paidAmount !== null && (
                   <div className="card" style={{ flex: 1, minWidth: 130, padding: '14px 18px' }}>
@@ -422,7 +422,7 @@ export function AccountsQuery() {
                   <tbody>
                     {result.data.map((r: any, i: number) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>{r.invoice_number || '—'}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>{r.invoice_number || '—'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)' }}>{r.client_name || '—'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.issue_date)}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.due_date)}</td>
@@ -451,7 +451,7 @@ export function AccountsQuery() {
                   <tbody>
                     {result.data.map((r: any, i: number) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>{r.bill_number || '—'}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>{r.bill_number || '—'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)' }}>{r.vendor_name || '—'}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.bill_date)}</td>
                         <td style={{ padding: '10px 14px', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{fmtDate(r.due_date)}</td>
@@ -505,7 +505,7 @@ export function AccountsQuery() {
                     {item.count !== undefined && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                         <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Total records</span>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>{item.count}</span>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{item.count}</span>
                       </div>
                     )}
                     {item.paid !== undefined && (
@@ -535,7 +535,7 @@ export function AccountsQuery() {
                     {item.total !== undefined && (
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Total (12m)</span>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>{fmtAmt(item.total)}</span>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{fmtAmt(item.total)}</span>
                       </div>
                     )}
                   </div>

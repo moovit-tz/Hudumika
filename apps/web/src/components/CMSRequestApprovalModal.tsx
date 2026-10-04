@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Icon } from './Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { SectionLoading } from './ui/spinner.js';
@@ -134,7 +134,7 @@ export function CMSRequestApprovalModal({
               <Icon name="checkCircle" size={16} />
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--navy)' }}>Request Content Approval</div>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)' }}>Request Content Approval</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
                 {resourceType.toUpperCase()}: <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{resourceTitle}</span>
               </div>
