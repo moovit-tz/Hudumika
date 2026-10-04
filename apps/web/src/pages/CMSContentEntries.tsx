@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
@@ -76,7 +77,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
     case 'number':
       return <input {...common} type="number" value={(value as number) ?? ''} onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} />;
     case 'boolean':
-      return <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} /> {field.label}</label>;
+      return <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><Checkbox checked={Boolean(value)} onCheckedChange={checked => onChange(Boolean(checked))} /> {field.label}</label>;
     case 'date':
       return <input {...common} type="date" value={value ? String(value).slice(0, 10) : ''} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
     case 'datetime':

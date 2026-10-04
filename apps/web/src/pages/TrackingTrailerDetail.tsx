@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { BackButton } from '../components/ui/BackButton.js';
@@ -104,9 +105,12 @@ export const TrackingTrailerDetail: React.FC = () => {
         >
           {addingDoc && (
             <form onSubmit={addDocument} style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <select value={docType} onChange={e => setDocType(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5 }}>
-                {DOC_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <Select value={docType} onValueChange={setDocType}>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DOC_TYPES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <input placeholder="Document number" value={docNumber} onChange={e => setDocNumber(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5, flex: 1, minWidth: 120 }} />
               <input type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5 }} />
               <Button type="submit" size="sm">Save</Button>

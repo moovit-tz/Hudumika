@@ -1049,8 +1049,8 @@ export const Leads: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
                   {leadTasks.map(t => (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                      <input type="checkbox" checked={t.done} style={{ marginTop: 3, cursor: 'pointer', accentColor: 'hsl(var(--primary))' }}
-                        onChange={async () => {
+                      <Checkbox checked={t.done} className="mt-0.5"
+                        onCheckedChange={async () => {
                           const updated = { ...t, done: !t.done };
                           setLeadTasks(prev => prev.map(x => x.id === t.id ? updated : x));
                           await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify({ done: !t.done }) }).catch(() => {});

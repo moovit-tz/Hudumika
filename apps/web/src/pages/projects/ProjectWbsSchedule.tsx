@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Combobox } from '../../components/ui/combobox.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import type { ProjectPhase, ProjectWorkPackage, ProjectDeliverable } from '@hudumika/types';
 
 interface ProjectWbsScheduleProps {
@@ -475,15 +476,9 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
       )}
 
       {/* MODAL: ADD WBS WORK PACKAGE */}
-      {showAddWbsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Add Work Package to WBS</h3>
-              <button onClick={() => setShowAddWbsModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddWbsModal} onOpenChange={setShowAddWbsModal}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Work Package to WBS</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreateWbs} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -587,20 +582,13 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: ADD PHASE */}
-      {showAddPhaseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Add Project Phase</h3>
-              <button onClick={() => setShowAddPhaseModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddPhaseModal} onOpenChange={setShowAddPhaseModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Add Project Phase</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreatePhase} className="mt-4 space-y-4">
               <div>
@@ -651,20 +639,13 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: ADD DELIVERABLE */}
-      {showAddDeliverableModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Add Contractual Deliverable</h3>
-              <button onClick={() => setShowAddDeliverableModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddDeliverableModal} onOpenChange={setShowAddDeliverableModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Add Contractual Deliverable</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreateDeliverable} className="mt-4 space-y-4">
               <div>
@@ -729,9 +710,8 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -248,7 +249,7 @@ export function CMSFormDetail() {
                     </Select>
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, flexShrink: 0, paddingTop: 8 }}>
-                    <input type="checkbox" checked={!!f.required} onChange={e => updateField(i, { required: e.target.checked })} /> Required
+                    <Checkbox checked={Boolean(f.required)} onCheckedChange={checked => updateField(i, { required: Boolean(checked) })} /> Required
                   </label>
                   <button type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: 6 }}>
                     <Icon name="x" size={14} />

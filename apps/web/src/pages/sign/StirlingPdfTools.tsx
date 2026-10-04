@@ -16,6 +16,7 @@ import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { PageLoading } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
@@ -388,14 +389,14 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 </div>
 
                 {active.key === 'rotate' && (
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <RadioGroup value={angle} onValueChange={setAngle} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Rotation Angle:</span>
                     {['90', '180', '270'].map(a => (
-                      <label key={a} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                        <input type="radio" name="angle" value={a} checked={angle === a} onChange={e => setAngle(e.target.value)} /> {a}°
+                      <label key={a} htmlFor={`angle-${a}`} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                        <RadioGroupItem id={`angle-${a}`} value={a} /> {a}°
                       </label>
                     ))}
-                  </div>
+                  </RadioGroup>
                 )}
 
                 {active.key === 'crop' && (

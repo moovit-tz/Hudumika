@@ -2,6 +2,7 @@
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
@@ -299,11 +300,11 @@ export function CMSContentModelDetail() {
                           nothing but title/date by default), opt-out for the
                           entry detail view (it shows every field by default). */}
                       <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer', marginBottom: 3 }}>
-                        <input type="checkbox" checked={!!(f.config as any)?.showInList} onChange={() => handleToggleDisplayFlag(f, 'showInList')} />
+                        <Checkbox checked={Boolean((f.config as any)?.showInList)} onCheckedChange={() => handleToggleDisplayFlag(f, 'showInList')} />
                         Show in list
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={!(f.config as any)?.hideInDetail} onChange={() => handleToggleDisplayFlag(f, 'hideInDetail')} />
+                        <Checkbox checked={!(f.config as any)?.hideInDetail} onCheckedChange={() => handleToggleDisplayFlag(f, 'hideInDetail')} />
                         Show in detail
                       </label>
                     </td>
@@ -370,7 +371,7 @@ export function CMSContentModelDetail() {
             <FL label="Help text (optional)"><input className="input-field" value={fieldForm.help_text} onChange={e => setFieldForm(f => ({ ...f, help_text: e.target.value }))} /></FL>
             {fieldForm.field_type !== 'computed' && (
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-                <input type="checkbox" checked={fieldForm.required} onChange={e => setFieldForm(f => ({ ...f, required: e.target.checked }))} /> Required
+                <Checkbox checked={fieldForm.required} onCheckedChange={checked => setFieldForm(f => ({ ...f, required: Boolean(checked) }))} /> Required
               </label>
             )}
             <div style={{ display: 'flex', gap: 8 }}>

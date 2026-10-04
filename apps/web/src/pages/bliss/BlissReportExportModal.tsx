@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog.js';
 import { Button } from '../../components/ui/button.js';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group.js';
 import { showAlert } from '../../lib/alert.js';
 
 interface BlissReportExportModalProps {
@@ -119,28 +120,16 @@ export const BlissReportExportModal: React.FC<BlissReportExportModalProps> = ({
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: 8, letterSpacing: '0.04em' }}>
                 Scope
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer', padding: '8px 10px', borderRadius: 'var(--r, 6px)', background: scope === 'all' ? 'var(--bg)' : 'transparent' }}>
-                  <input
-                    type="radio"
-                    name="exportScope"
-                    checked={scope === 'all'}
-                    onChange={() => setScope('all')}
-                    style={{ accentColor: 'var(--teal)' }}
-                  />
+              <RadioGroup value={scope} onValueChange={value => setScope(value as typeof scope)} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label htmlFor="export-all" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer', padding: '8px 10px', borderRadius: 'var(--r, 6px)', background: scope === 'all' ? 'var(--bg)' : 'transparent' }}>
+                  <RadioGroupItem id="export-all" value="all" />
                   <span>All records ({data.length} total rows)</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer', padding: '8px 10px', borderRadius: 'var(--r, 6px)', background: scope === 'filtered' ? 'var(--bg)' : 'transparent' }}>
-                  <input
-                    type="radio"
-                    name="exportScope"
-                    checked={scope === 'filtered'}
-                    onChange={() => setScope('filtered')}
-                    style={{ accentColor: 'var(--teal)' }}
-                  />
+                <label htmlFor="export-filtered" style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, cursor: 'pointer', padding: '8px 10px', borderRadius: 'var(--r, 6px)', background: scope === 'filtered' ? 'var(--bg)' : 'transparent' }}>
+                  <RadioGroupItem id="export-filtered" value="filtered" />
                   <span>Current filtered view</span>
                 </label>
-              </div>
+              </RadioGroup>
             </div>
           </div>
         ) : (

@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { useVehicleMakes, useVehicleModels } from '../hooks/useVehicleMakeModel.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -275,21 +276,20 @@ export const TrackingNewVehicle: React.FC = () => {
                 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Loan/Lease</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                  <RadioGroup value={form.financing_type} onValueChange={value => handleChange('financing_type', value)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
                     {['LOAN', 'LEASE', 'NONE'].map(t => (
-                      <div key={t} onClick={() => handleChange('financing_type', t)}
-                        role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleChange('financing_type', t); } }}
+                      <label key={t} htmlFor={`financing-${t}`}
                         style={{ border: `1px solid ${form.financing_type === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 16, cursor: 'pointer', background: form.financing_type === t ? 'var(--teal-l)' : 'var(--white)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <input type="radio" checked={form.financing_type === t} readOnly style={{ accentColor: 'var(--teal)' }} />
+                          <RadioGroupItem id={`financing-${t}`} value={t} />
                           <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{t === 'NONE' ? 'None' : t === 'LOAN' ? 'Loan' : 'Lease'}</span>
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
                           {t === 'NONE' ? 'This vehicle is not being financed' : t === 'LOAN' ? 'This vehicle is associated with a loan' : 'This vehicle is being leased'}
                         </div>
-                      </div>
+                      </label>
                     ))}
-                  </div>
+                  </RadioGroup>
                 </div>
               </div>
             )}

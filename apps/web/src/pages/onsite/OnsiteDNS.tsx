@@ -8,6 +8,7 @@ import { apiFetch, apiFetchRaw } from '../../lib/api.js';
 import type { OnsiteDnsRecord, DnsPropagationResult } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group.js';
 import './Onsite.css';
 
 export function OnsiteDNS() {
@@ -514,18 +515,17 @@ export function OnsiteDNS() {
             Generates the records a common setup needs. Review them before they are added.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <RadioGroup value={templateId} onValueChange={value => { setTemplateId(value); setTemplatePreview(null); }} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {templates.map(t => (
-              <label key={t.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
-                <input type="radio" name="tpl" checked={templateId === t.id}
-                  onChange={() => { setTemplateId(t.id); setTemplatePreview(null); }} />
+              <label key={t.id} htmlFor={`template-${t.id}`} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+                <RadioGroupItem id={`template-${t.id}`} value={t.id} />
                 <span>
                   <span style={{ fontWeight: 600 }}>{t.label}</span>
                   <span style={{ display: 'block', color: 'var(--ink3)', fontSize: '0.8125rem' }}>{t.description}</span>
                 </span>
               </label>
             ))}
-          </div>
+          </RadioGroup>
 
           {templates.find(t => t.id === templateId)?.inputs?.map((i: any) => (
             <div key={i.key} style={{ marginTop: '0.75rem' }}>

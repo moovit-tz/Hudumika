@@ -10,8 +10,11 @@ import { screenSubject } from '../services/sanctions.service.js';
 import { MailService } from '../services/mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { renderCustomerStatementPdf } from '../services/customer-statement-pdf.service.js';
+import { EmailIntegration } from '../integrations/email.js';
+import { wrapEmailHtml } from '../lib/email-envelope.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
 import { parse } from 'csv-parse/sync';
+import { hashPassword } from '../lib/password.js';
 
 // CSV header normalization — accept "Company Name", "company_name", "Company", etc.
 function normalizeHeaders(row: Record<string, unknown>): Record<string, string> {
@@ -570,43 +573,139 @@ export async function customerRoutes(fastify: FastifyInstance) {
   /**
    * POST /v1/customers/:id/invite
    *
-   * Never wired to any frontend caller (grepped the whole web app — zero
-   * references) and, until this fix, never sent anything either: it logged
-   * to the server console and returned a fabricated `success: true` with no
-   * real WhatsApp dispatch behind it, unlike POST /:id/claim-code two routes
-   * above, which uses this exact same `WhatsAppIntegration` for a real send.
+   * Issues a portal-login invitation to the customer's primary email address.
+   * Creates a customer_invitations row (migration 552) and emails a one-time
+   * setup link.  The recipient visits /accept-customer-invite?token=… to set
+   * their password; auth.routes.ts accepts the token, creates the users row
+   * with role='CUSTOMER' and customer_id set, and issues a session.
    *
-   * A real customer portal login genuinely exists (a `users` row with
-   * role='CUSTOMER', linked via `users.customer_id` — migration 207,
-   * resolveCustomerId() in customer-identity.service.ts) — so unlike a
-   * feature this platform has no backing for at all, this one is a real
-   * gap: nothing anywhere creates that `users` row or issues its first-login
-   * credential. Provisioning a real login (choosing the credential/password-
-   * setup flow, deciding who else can trigger it) is a product decision this
-   * fix doesn't make unilaterally — left an honest "not implemented" 501
-   * rather than the fabricated success it returned before, or a guessed-at
-   * account-creation flow, matching this codebase's own disclosure
-   * convention for a configured-but-unwired provider (BongoLive SMS,
-   * integrations/sms.ts).
+   * Body: { email?: string }  — if omitted, uses the customer's own email.
    */
-  fastify.post('/:id/invite', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+  fastify.post('/:id/invite', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'),
+  }, async (request, reply) => {
     const user = request.user;
     const { id } = idParamSchema.parse(request.params);
+    const body = (request.body as { email?: string }) ?? {};
 
     const customer = await withTenant(user.tenant_id, trx => trx
       .selectFrom('customers')
-      .select('id')
-      .where('id', '=', id)
-      .where('tenant_id', '=', user.tenant_id)
+      .leftJoin('tenants', 'tenants.id', 'customers.tenant_id')
+      .select([
+        'customers.id', 'customers.name', 'customers.email as customer_email',
+        'tenants.name as tenant_name', 'tenants.logo_url', 'tenants.primary_color',
+      ])
+      .where('customers.id', '=', id)
+      .where('customers.tenant_id', '=', user.tenant_id)
+      .where('customers.deleted_at', 'is', null)
       .executeTakeFirst());
 
-    if (!customer) {
-      return reply.status(404).send({ error: 'Customer not found' });
+    if (!customer) return reply.status(404).send({ error: 'Customer not found' });
+
+    const email = body.email?.trim() || customer.customer_email;
+    if (!email) {
+      return reply.status(400).send({
+        error: 'This customer has no email address. Add one to the customer record or pass one in the request body.',
+      });
     }
 
-    return reply.status(501).send({
-      error: 'Portal-login invitations are not built yet — nothing creates this customer a real login account. To let an organization self-link to this record instead, use "Send Claim Code."',
+    return withTenant(user.tenant_id, async (trx) => {
+      // Prevent duplicate portal accounts — one per customer.
+      const existing = await trx.selectFrom('users')
+        .select('id')
+        .where('customer_id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (existing) {
+        return reply.status(409).send({
+          error: 'This customer already has a portal login. To reset their password, use the user management panel.',
+        });
+      }
+
+      // Revoke any outstanding pending invitations for this customer.
+      await trx.updateTable('customer_invitations' as any)
+        .set({ status: 'REVOKED' } as any)
+        .where('customer_id' as any, '=', id)
+        .where('tenant_id' as any, '=', user.tenant_id)
+        .where('status' as any, '=', 'PENDING')
+        .execute();
+
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 3600_000); // 7 days
+
+      await trx.insertInto('customer_invitations' as any).values({
+        id: crypto.randomUUID(),
+        tenant_id: user.tenant_id,
+        customer_id: id,
+        email,
+        token,
+        invited_by: user.sub,
+        status: 'PENDING',
+        expires_at: expiresAt,
+      } as any).execute();
+
+      // ── email the invite link ────────────────────────────────────────────
+      const appBase = process.env.APP_BASE_URL || 'https://app.hudumika.com';
+      const inviteUrl = `${appBase}/accept-customer-invite?token=${token}`;
+
+      const tenantInfo = {
+        name: (customer as any).tenant_name || 'Hudumika',
+        logo_url: (customer as any).logo_url || null,
+        primary_color: (customer as any).primary_color || null,
+      };
+
+      const bodyHtml = wrapEmailHtml(tenantInfo, `
+        <p>Hi${customer.name ? ` ${customer.name}` : ''},</p>
+        <p>You have been invited to access the <strong>${tenantInfo.name}</strong> customer portal.</p>
+        <p>Click the button below to set your password and activate your account.</p>
+        <p style="text-align:center;margin:28px 0;">
+          <a href="${inviteUrl}" style="display:inline-block;padding:12px 28px;background:${tenantInfo.primary_color || '#0d7a6b'};color:#fff;border-radius:6px;font-weight:700;text-decoration:none;font-size:14px;">
+            Activate Portal Account
+          </a>
+        </p>
+        <p style="font-size:12px;color:#6b7280;">This link expires in 7 days. If you did not expect this invitation, you can ignore it.</p>
+      `);
+
+      await EmailIntegration.sendEmail({
+        to: email,
+        subject: `You're invited to the ${tenantInfo.name} customer portal`,
+        bodyHtml,
+        tenantId: user.tenant_id,
+      });
+
+      return { success: true, email, expires_at: expiresAt.toISOString() };
     });
+  });
+
+  /**
+   * GET /v1/customers/:id/invite-status
+   * Returns the current invitation state for a customer (pending / accepted / none).
+   */
+  fastify.get('/:id/invite-status', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'),
+  }, async (request, reply) => {
+    const user = request.user;
+    const { id } = idParamSchema.parse(request.params);
+
+    const [portalUser, pendingInvite] = await withTenant(user.tenant_id, async (trx) => {
+      return Promise.all([
+        trx.selectFrom('users').select(['id', 'email', 'created_at'])
+          .where('customer_id', '=', id)
+          .where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst(),
+        trx.selectFrom('customer_invitations' as any)
+          .select(['id', 'email', 'status', 'expires_at', 'created_at'] as any)
+          .where('customer_id' as any, '=', id)
+          .where('tenant_id' as any, '=', user.tenant_id)
+          .where('status' as any, '=', 'PENDING')
+          .orderBy('created_at' as any, 'desc')
+          .executeTakeFirst(),
+      ]);
+    });
+
+    if (portalUser) return { state: 'active', user_id: portalUser.id, email: portalUser.email };
+    if (pendingInvite) return { state: 'invited', ...(pendingInvite as any) };
+    return { state: 'none' };
   });
 
   /**
@@ -745,13 +844,15 @@ export async function customerRoutes(fastify: FastifyInstance) {
     preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE', 'SALES'),
   }, async (request: any) => {
     const tenantId = request.user.tenant_id;
+    const rawThreshold = Number((request.query as any).threshold);
+    const threshold = isFinite(rawThreshold) && rawThreshold > 0 && rawThreshold <= 1 ? rawThreshold : 0.5;
     return withTenant(tenantId, async trx => {
       const fuzzy = await sql<{ id: string; other_id: string }>`
         SELECT a.id, b.id AS other_id
         FROM customers a
         JOIN customers b ON b.tenant_id = a.tenant_id AND b.id > a.id AND b.deleted_at IS NULL
         WHERE a.tenant_id = ${tenantId} AND a.deleted_at IS NULL
-          AND similarity(a.name, b.name) >= 0.5
+          AND similarity(a.name, b.name) >= ${threshold}
       `.execute(trx);
       if (fuzzy.rows.length === 0) return [];
       const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];

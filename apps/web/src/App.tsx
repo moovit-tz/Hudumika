@@ -34,8 +34,9 @@ import { ResetPassword }   from './pages/ResetPassword.js';
 import { RecoveryPage }    from './pages/RecoveryPage.js';
 import { MagicLinkPage }   from './pages/MagicLinkPage.js';
 import { SsoCompletePage } from './pages/SsoCompletePage.js';
-import { AcceptInvite }    from './pages/AcceptInvite.js';
-import { VerifyEmail }     from './pages/VerifyEmail.js';
+import { AcceptInvite }         from './pages/AcceptInvite.js';
+import { AcceptCustomerInvite } from './pages/AcceptCustomerInvite.js';
+import { VerifyEmail }          from './pages/VerifyEmail.js';
 
 // Lazy loaded pages & hub modules
 const OrgLogin = React.lazy(() => import('./pages/OrgLogin.js').then(m => ({ default: m.OrgLogin })));
@@ -374,7 +375,8 @@ const AppContentBody: React.FC = () => {
         {/* Lands a real browser navigation (SAML's ACS redirect, not a fetch
             call) — see SsoCompletePage.tsx's own header comment. */}
         <Route path="/auth/sso-complete"    element={<SsoCompletePage />} />
-        <Route path="/accept-invite"        element={<AcceptInvite />} />
+        <Route path="/accept-invite"         element={<AcceptInvite />} />
+        <Route path="/accept-customer-invite" element={<AcceptCustomerInvite />} />
         <Route path="/auth/verify-email"    element={<VerifyEmail />} />
         <Route path="/terms"                element={<TermsOfService />} />
         <Route path="/privacy"              element={<PrivacyPolicy />} />

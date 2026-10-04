@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
@@ -641,12 +642,14 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Visibility</div>
-              {(['published', 'draft', 'scheduled'] as const).map(opt => (
-                <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer', fontSize: 13 }}>
-                  <input type="radio" name="visibility" checked={f.visibility === opt} onChange={() => set('visibility', opt)} />
-                  <span style={{ fontWeight: f.visibility === opt ? 700 : 400 }}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</span>
-                </label>
-              ))}
+              <RadioGroup value={f.visibility} onValueChange={value => set('visibility', value as typeof f.visibility)}>
+                {(['published', 'draft', 'scheduled'] as const).map(opt => (
+                  <label key={opt} htmlFor={`visibility-${opt}`} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                    <RadioGroupItem id={`visibility-${opt}`} value={opt} />
+                    <span style={{ fontWeight: f.visibility === opt ? 700 : 400 }}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</span>
+                  </label>
+                ))}
+              </RadioGroup>
             </div>
             <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Sales Channels</div>

@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { CheckboxRow } from '../components/ui/list-item-row.js';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './TrackingNewExpense.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -197,35 +198,23 @@ export const TrackingNewExpense: React.FC = () => {
 
           <div className="exp-section">
             <div className="exp-section-title">Frequency</div>
-            <div className="exp-freq-row">
-              <label className="exp-radio-label">
-                <input 
-                  type="radio" 
-                  name="frequency" 
-                  className="exp-radio-input"
-                  checked={form.frequency === 'single'}
-                  onChange={() => setForm({...form, frequency: 'single'})}
-                />
+            <RadioGroup className="exp-freq-row" value={form.frequency} onValueChange={value => setForm({...form, frequency: value})}>
+              <label className="exp-radio-label" htmlFor="frequency-single">
+                <RadioGroupItem id="frequency-single" value="single" />
                 <div className="exp-radio-text-group">
                   <div className="exp-radio-title">Single Expense</div>
                   <div className="exp-radio-desc">A single entry that does not repeat</div>
                 </div>
               </label>
 
-              <label className="exp-radio-label">
-                <input 
-                  type="radio" 
-                  name="frequency" 
-                  className="exp-radio-input"
-                  checked={form.frequency === 'recurring'}
-                  onChange={() => setForm({...form, frequency: 'recurring'})}
-                />
+              <label className="exp-radio-label" htmlFor="frequency-recurring">
+                <RadioGroupItem id="frequency-recurring" value="recurring" />
                 <div className="exp-radio-text-group">
                   <div className="exp-radio-title">Recurring Expense</div>
                   <div className="exp-radio-desc">Repeats on a monthly or annual basis</div>
                 </div>
               </label>
-            </div>
+            </RadioGroup>
           </div>
 
           <div className="exp-section">

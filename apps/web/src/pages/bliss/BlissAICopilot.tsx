@@ -3,11 +3,13 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import { Icon } from '../../components/Icon.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 
 export const BlissAICopilot: React.FC = () => {
   const [confidenceThreshold, setConfidenceThreshold] = useState(85);
+  const [tone, setTone] = useState('professional');
   const isMobile = useMediaQuery('(max-width: 900px)');
 
   return (
@@ -18,7 +20,7 @@ export const BlissAICopilot: React.FC = () => {
         titleEm="copilot"
         subtitle="Configure intent detection, sentiment scoring, and reply suggestions for support conversations."
         actions={
-          <Button variant="default" size="sm">
+          <Button variant="default" size="sm" disabled title="Knowledge-base training is not connected yet">
             <Icon name="sparkle" size={14} /> Train AI on Knowledge Base
           </Button>
         }
@@ -70,7 +72,7 @@ export const BlissAICopilot: React.FC = () => {
             <div style={{ background: 'var(--teal-l)', padding: 16, borderRadius: 'var(--r)', border: '1px solid var(--teal)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--teal)' }}>AI Recommended Response (98% Confidence)</div>
-                <Button variant="default" size="sm">Insert to Composer</Button>
+                <Button variant="default" size="sm" disabled title="Open this conversation in the support composer to insert a reply">Insert to Composer</Button>
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.45 }}>
                 "Hello! I checked container MSCU8849120 in TRA system. The clearance token was held pending TBS phytosanitary certificate validation. Our compliance team has submitted the certificate, and release is expected within 45 minutes."
@@ -95,11 +97,14 @@ export const BlissAICopilot: React.FC = () => {
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700 }}>Tone & Persona</label>
-              <select className="input-field" style={{ marginTop: 4 }}>
-                <option>Professional & Direct (Default)</option>
-                <option>Empathetic & Warm</option>
-                <option>Technical & Concise</option>
-              </select>
+              <Select value={tone} onValueChange={setTone}>
+                <SelectTrigger className="mt-1 w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professional">Professional &amp; Direct (Default)</SelectItem>
+                  <SelectItem value="empathetic">Empathetic &amp; Warm</SelectItem>
+                  <SelectItem value="technical">Technical &amp; Concise</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </SectionCard>

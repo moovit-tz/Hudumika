@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Combobox } from '../../components/ui/combobox.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import type {
   ProjectPurchaseRequest,
   ProjectRfq,
@@ -445,15 +446,9 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
       )}
 
       {/* MODAL: CREATE PR */}
-      {showAddPrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Raise Purchase Requisition</h3>
-              <button onClick={() => setShowAddPrModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddPrModal} onOpenChange={setShowAddPrModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Raise Purchase Requisition</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreatePr} className="mt-4 space-y-4">
               <div>
@@ -518,20 +513,13 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: CREATE PO */}
-      {showAddPoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Issue Purchase Order</h3>
-              <button onClick={() => setShowAddPoModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddPoModal} onOpenChange={setShowAddPoModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Issue Purchase Order</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreatePo} className="mt-4 space-y-4">
               <div>
@@ -595,20 +583,13 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: CREATE GRN */}
-      {showAddGrnModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Log Goods Receipt (GRN)</h3>
-              <button onClick={() => setShowAddGrnModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddGrnModal} onOpenChange={setShowAddGrnModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Log Goods Receipt (GRN)</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreateGrn} className="mt-4 space-y-4">
               <div>
@@ -659,9 +640,8 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };

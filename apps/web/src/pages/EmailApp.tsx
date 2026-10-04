@@ -592,6 +592,9 @@ export const EmailApp: React.FC = () => {
   const [imapTestResult, setImapTestResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [smtpTesting, setSmtpTesting] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [sendTestMailTo, setSendTestMailTo] = useState('');
+  const [testMailSending, setTestMailSending] = useState(false);
+  const [testMailResult, setTestMailResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
 
   // User-defined labels (email_labels) — replaces the old hardcoded set.
   const [labelDefs, setLabelDefs] = useState<EmailLabel[]>([]);
@@ -1649,16 +1652,61 @@ export const EmailApp: React.FC = () => {
     }
   }
 
-  async function saveSettings() {
+  async function saveSettings(andAuthorize = false) {
     if (!settings) return;
     setSettingsSaving(true);
     try {
       await apiFetch('/v1/email/account', { method: 'PUT', body: JSON.stringify(settings) });
+      if (sendTestMailTo.trim()) {
+        try {
+          await apiFetch('/v1/email/account/send-test-mail', {
+            method: 'POST',
+            body: JSON.stringify({ to: sendTestMailTo.trim() }),
+          });
+          showAlert(`Settings saved & test email sent to ${sendTestMailTo.trim()}`, { variant: 'success' });
+        } catch (e: any) {
+          showAlert(`Settings saved, but test email failed: ${e.message}`);
+        }
+      } else {
+        showAlert('Email settings saved successfully', { variant: 'success' });
+      }
+
+      if (andAuthorize) {
+        if (settings.sendProtocol === 'outlook') {
+          connectPersonalMail('outlook');
+          return;
+        }
+        if (settings.sendProtocol === 'gmail') {
+          connectPersonalMail('gmail');
+          return;
+        }
+      }
+
       setSettingsOpen(false);
     } catch (err: any) {
       showAlert(err.message || 'Failed to save Email settings');
     } finally {
       setSettingsSaving(false);
+    }
+  }
+
+  async function sendTestEmail() {
+    const target = sendTestMailTo.trim();
+    if (!target) return showAlert('Please enter an email address to send test mail to.');
+    setTestMailSending(true);
+    setTestMailResult(null);
+    try {
+      const res = await apiFetch('/v1/email/account/send-test-mail', {
+        method: 'POST',
+        body: JSON.stringify({ to: target }),
+      });
+      setTestMailResult({ success: true, message: res.message || `Test email sent to ${target}` });
+      showAlert(`Test email sent successfully to ${target}`, { variant: 'success' });
+    } catch (err: any) {
+      setTestMailResult({ success: false, error: err.message || 'Failed to send test email.' });
+      showAlert(err.message || 'Failed to send test email.');
+    } finally {
+      setTestMailSending(false);
     }
   }
 
@@ -3066,102 +3114,275 @@ export const EmailApp: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="em-settings-section">
-                          <div className="em-settings-section-hdr">
-                            <Icon name="send" size={16} />
-                            <span>Send Mail As</span>
+                        {/* ── Send Mail As & Email Protocol Card ── */}
+                        <div className="em-protocol-card">
+                          <div className="em-protocol-card-header">
+                            <h4><Icon name="send" size={16} color="var(--teal)" /> Email Settings</h4>
+                            <span className="text-xs text-muted-foreground">Outgoing mail configuration</span>
                           </div>
-                          <p className="em-settings-hint">
-                            Messages you send will show as: <strong>{settings.fromName || 'Hudumika'} &lt;{settings.fromEmail || (settings.sendProtocol === 'smtp' ? settings.smtpUser : 'your workspace address')}&gt;</strong>
-                          </p>
-                          <div className="em-settings-row">
-                            <span className="em-compose-label">Send using</span>
-                            <Select
-                              value={settings.sendProtocol === 'platform' || settings.sendProtocol === 'smtp' ? settings.sendProtocol : 'platform'}
-                              onValueChange={v => setSettings({ ...settings, sendProtocol: v as any })}
-                            >
-                              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="platform">Workspace default</SelectItem>
-                                <SelectItem value="smtp">Custom SMTP</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {settings.sendProtocol === 'smtp' && (
-                            <div className="em-settings-subform">
-                              <div className="em-settings-grid-2">
-                                <div className="em-settings-field">
-                                  <label className="em-field-label">SMTP Host</label>
-                                  <input className="em-settings-input" value={settings.smtpHost} onChange={e => setSettings({ ...settings, smtpHost: e.target.value })} placeholder="smtp.example.com" />
+                          <div className="em-protocol-card-body">
+                            {/* Protocol selection */}
+                            <div className="em-protocol-form-row">
+                              <label className="em-protocol-form-label">Email protocol</label>
+                              <div className="em-protocol-form-content">
+                                <Select
+                                  value={settings.sendProtocol === 'platform' ? 'mail' : settings.sendProtocol}
+                                  onValueChange={v => setSettings({ ...settings, sendProtocol: (v === 'mail' ? 'platform' : v) as any })}
+                                >
+                                  <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="mail">Mail</SelectItem>
+                                    <SelectItem value="smtp">SMTP</SelectItem>
+                                    <SelectItem value="outlook">Microsoft Outlook</SelectItem>
+                                    <SelectItem value="gmail">Gmail API</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            {/* Common From Name / Address for Mail & SMTP */}
+                            {(settings.sendProtocol === 'platform' || settings.sendProtocol === 'smtp') && (
+                              <>
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">Email sent from name</label>
+                                  <div className="em-protocol-form-content">
+                                    <input
+                                      className="em-settings-input"
+                                      value={settings.fromName}
+                                      onChange={e => setSettings({ ...settings, fromName: e.target.value })}
+                                      placeholder="e.g. Viden / Company Name"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="em-settings-field">
-                                  <label className="em-field-label">Port &amp; Encryption</label>
-                                  <div style={{ display: 'flex', gap: 8 }}>
-                                    <input className="em-settings-input" type="number" value={settings.smtpPort} onChange={e => setSettings({ ...settings, smtpPort: parseInt(e.target.value, 10) || 587 })} />
+
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">Email sent from address</label>
+                                  <div className="em-protocol-form-content">
+                                    <input
+                                      className="em-settings-input"
+                                      value={settings.fromEmail}
+                                      onChange={e => setSettings({ ...settings, fromEmail: e.target.value })}
+                                      placeholder="viden@optin.co.tz"
+                                    />
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {/* SMTP specific settings */}
+                            {settings.sendProtocol === 'smtp' && (
+                              <>
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">SMTP Host</label>
+                                  <div className="em-protocol-form-content">
+                                    <input
+                                      className="em-settings-input"
+                                      value={settings.smtpHost}
+                                      onChange={e => setSettings({ ...settings, smtpHost: e.target.value })}
+                                      placeholder="mail.optin.co.tz"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">SMTP Username</label>
+                                  <div className="em-protocol-form-content">
+                                    <input
+                                      className="em-settings-input"
+                                      value={settings.smtpUser}
+                                      onChange={e => setSettings({ ...settings, smtpUser: e.target.value })}
+                                      placeholder="viden@optin.co.tz"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">SMTP Password</label>
+                                  <div className="em-protocol-form-content">
+                                    <input
+                                      className="em-settings-input"
+                                      type="password"
+                                      value={settings.smtpPass}
+                                      onChange={e => setSettings({ ...settings, smtpPass: e.target.value })}
+                                      placeholder="••••••••"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">SMTP Port &amp; Security</label>
+                                  <div className="em-protocol-form-content" style={{ flexDirection: 'row', gap: 12 }}>
+                                    <input
+                                      className="em-settings-input"
+                                      type="number"
+                                      value={settings.smtpPort}
+                                      onChange={e => setSettings({ ...settings, smtpPort: parseInt(e.target.value, 10) || 587 })}
+                                      placeholder="587"
+                                      style={{ width: 110 }}
+                                    />
                                     <Select value={settings.smtpEncryption} onValueChange={v => setSettings({ ...settings, smtpEncryption: v as any })}>
-                                      <SelectTrigger className="w-28 shrink-0"><SelectValue /></SelectTrigger>
+                                      <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="ssl">SSL</SelectItem>
+                                        <SelectItem value="none">None (-)</SelectItem>
                                         <SelectItem value="tls">TLS</SelectItem>
-                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="ssl">SSL</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
                                 </div>
-                                <div className="em-settings-field">
-                                  <label className="em-field-label">SMTP Username</label>
-                                  <input className="em-settings-input" value={settings.smtpUser} onChange={e => setSettings({ ...settings, smtpUser: e.target.value })} placeholder="you@example.com" />
+
+                                <div className="em-protocol-form-row">
+                                  <div className="em-protocol-form-label"></div>
+                                  <div className="em-protocol-form-content">
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={testSmtpConnection}
+                                        disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}
+                                      >
+                                        {smtpTesting ? <><Spinner size={13} /><span>Testing SMTP…</span></> : 'Test SMTP Connection'}
+                                      </button>
+                                      {smtpTestResult && (
+                                        <Badge variant={smtpTestResult.success ? 'success' : 'destructive'}>
+                                          <Icon name={smtpTestResult.success ? 'check' : 'alertCircle'} size={12} />
+                                          <span className="ml-1">{smtpTestResult.success ? 'Connected successfully.' : smtpTestResult.error}</span>
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="em-settings-field">
-                                  <label className="em-field-label">SMTP Password</label>
-                                  <input className="em-settings-input" type="password" value={settings.smtpPass} onChange={e => setSettings({ ...settings, smtpPass: e.target.value })} placeholder="••••••••" />
+                              </>
+                            )}
+
+                            {/* Microsoft Outlook Settings */}
+                            {settings.sendProtocol === 'outlook' && (
+                              <>
+                                <div className="em-oauth-link-banner">
+                                  <span>Get your app credentials from here: <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer">Microsoft Azure Portal</a></span>
                                 </div>
-                              </div>
-                              <div className="em-settings-action-row">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={testSmtpConnection} disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}>
-                                  {smtpTesting ? <><Spinner size={13} /><span>Testing…</span></> : 'Test connection'}
-                                </button>
-                                {smtpTestResult && (
-                                  <Badge variant={smtpTestResult.success ? 'success' : 'destructive'} className="em-test-result-badge">
-                                    <Icon name={smtpTestResult.success ? 'check' : 'alertCircle'} size={13} />
-                                    <span>{smtpTestResult.success ? 'Connected successfully.' : smtpTestResult.error}</span>
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">Authorized Redirect URI</label>
+                                  <div className="em-protocol-form-content">
+                                    <pre className="em-redirect-uri-box">
+                                      <span>{window.location.origin}/v1/settings/email/outlook/callback</span>
+                                      <Tip label="Copy Redirect URI">
+                                        <button
+                                          type="button"
+                                          className="em-icon-btn em-icon-btn--ghost"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/v1/settings/email/outlook/callback`);
+                                            showAlert('Redirect URI copied to clipboard', { variant: 'success' });
+                                          }}
+                                        >
+                                          <Icon name="copy" size={13} />
+                                        </button>
+                                      </Tip>
+                                    </pre>
+                                  </div>
+                                </div>
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">Status</label>
+                                  <div className="em-protocol-form-content">
+                                    <div className="flex items-center gap-3">
+                                      <Badge variant={settings.outlookStatus === 'authorized' ? 'success' : 'warning'}>
+                                        {settings.outlookStatus === 'authorized' ? 'Authorized' : 'Unauthorized'}
+                                      </Badge>
+                                      {settings.outlookStatus !== 'authorized' && (
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary btn-sm"
+                                          onClick={() => connectPersonalMail('outlook')}
+                                        >
+                                          Connect Outlook
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {/* Gmail API Settings */}
+                            {settings.sendProtocol === 'gmail' && (
+                              <>
+                                <div className="em-oauth-link-banner">
+                                  <span>Get your app credentials from here: <a href="https://console.developers.google.com" target="_blank" rel="noopener noreferrer">Google API Console</a></span>
+                                </div>
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">Authorized Redirect URI</label>
+                                  <div className="em-protocol-form-content">
+                                    <pre className="em-redirect-uri-box">
+                                      <span>{window.location.origin}/v1/settings/email/gmail/callback</span>
+                                      <Tip label="Copy Redirect URI">
+                                        <button
+                                          type="button"
+                                          className="em-icon-btn em-icon-btn--ghost"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/v1/settings/email/gmail/callback`);
+                                            showAlert('Redirect URI copied to clipboard', { variant: 'success' });
+                                          }}
+                                        >
+                                          <Icon name="copy" size={13} />
+                                        </button>
+                                      </Tip>
+                                    </pre>
+                                  </div>
+                                </div>
+                                <div className="em-protocol-form-row">
+                                  <label className="em-protocol-form-label">Status</label>
+                                  <div className="em-protocol-form-content">
+                                    <div className="flex items-center gap-3">
+                                      <Badge variant={settings.gmailStatus === 'authorized' ? 'success' : 'warning'}>
+                                        {settings.gmailStatus === 'authorized' ? 'Authorized' : 'Unauthorized'}
+                                      </Badge>
+                                      {settings.gmailStatus !== 'authorized' && (
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary btn-sm"
+                                          onClick={() => connectPersonalMail('gmail')}
+                                        >
+                                          Connect Gmail
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            {/* Send a test mail to */}
+                            <div className="em-protocol-form-row" style={{ paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+                              <label className="em-protocol-form-label">
+                                <span>Send a test mail to</span>
+                                <Tip label="Keep it blank if you are not interested to send test mail">
+                                  <Icon name="helpCircle" size={14} color="var(--ink3)" />
+                                </Tip>
+                              </label>
+                              <div className="em-protocol-form-content">
+                                <div className="em-test-mail-input-wrap">
+                                  <input
+                                    className="em-settings-input"
+                                    value={sendTestMailTo}
+                                    onChange={e => setSendTestMailTo(e.target.value)}
+                                    placeholder="youremail@address.com"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={sendTestEmail}
+                                    disabled={testMailSending || !sendTestMailTo.trim()}
+                                  >
+                                    {testMailSending ? <><Spinner size={13} /><span>Sending…</span></> : 'Send Test Mail'}
+                                  </button>
+                                </div>
+                                {testMailResult && (
+                                  <Badge variant={testMailResult.success ? 'success' : 'destructive'} className="mt-1 self-start">
+                                    <Icon name={testMailResult.success ? 'check' : 'alertCircle'} size={12} />
+                                    <span className="ml-1">{testMailResult.success ? testMailResult.message : testMailResult.error}</span>
                                   </Badge>
                                 )}
                               </div>
-                            </div>
-                          )}
-                          {(settings.sendProtocol === 'smtp' || settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
-                            <div className="em-settings-grid-2" style={{ marginTop: 8 }}>
-                              <div className="em-settings-field">
-                                <label className="em-field-label">Display name</label>
-                                <input className="em-settings-input" value={settings.fromName} onChange={e => setSettings({ ...settings, fromName: e.target.value })} placeholder="Your name" />
-                              </div>
-                              <div className="em-settings-field">
-                                <label className="em-field-label">From address</label>
-                                <input className="em-settings-input" value={settings.fromEmail} onChange={e => setSettings({ ...settings, fromEmail: e.target.value })} placeholder="you@example.com" />
-                              </div>
-                            </div>
-                          )}
-                          <div className="em-oauth-connect-box">
-                            <div className="em-oauth-row">
-                              <span className="em-oauth-label">External Mail:</span>
-                              {settings.sendProtocol === 'outlook' ? (
-                                <Badge variant="success" className="em-oauth-status"><Icon name="check" size={13} /> Connected — sending via Outlook</Badge>
-                              ) : settings.outlookStatus === 'authorized' ? (
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSettings({ ...settings, sendProtocol: 'outlook' })}>Switch to Outlook (Connected)</button>
-                              ) : (
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => connectPersonalMail('outlook')}>Connect Outlook</button>
-                              )}
-                              {settings.sendProtocol === 'gmail' ? (
-                                <Badge variant="success" className="em-oauth-status"><Icon name="check" size={13} /> Connected — sending via Gmail</Badge>
-                              ) : settings.gmailStatus === 'authorized' ? (
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSettings({ ...settings, sendProtocol: 'gmail' })}>Switch to Gmail (Connected)</button>
-                              ) : (
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => connectPersonalMail('gmail')}>Connect Gmail</button>
-                              )}
-                              {(settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
-                                <button type="button" className="btn btn-outline btn-sm" onClick={() => setSettings({ ...settings, sendProtocol: 'platform' })}>Use workspace default instead</button>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -3297,9 +3518,16 @@ export const EmailApp: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="button" onClick={saveSettings} disabled={settingsSaving}>
-                  {settingsSaving ? 'Saving…' : 'Save settings'}
+                <Button type="button" onClick={() => saveSettings(false)} disabled={settingsSaving}>
+                  <Icon name="checkCircle" size={15} />
+                  <span className="ml-1">{settingsSaving ? 'Saving…' : 'Save'}</span>
                 </Button>
+                {(settings.sendProtocol === 'outlook' || settings.sendProtocol === 'gmail') && (
+                  <Button type="button" onClick={() => saveSettings(true)} disabled={settingsSaving} className="ml-2">
+                    <Icon name="checkCircle" size={15} />
+                    <span className="ml-1">{settingsSaving ? 'Saving…' : 'Save & authorize'}</span>
+                  </Button>
+                )}
               </DialogFooter>
             </>
           )}

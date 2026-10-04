@@ -120,14 +120,6 @@ export function TrackingShell() {
         { label: 'GPSWOX Devices', icon: 'zap', path: '/tracking/devices' },
       ],
     },
-    {
-      title: 'Linked Apps',
-      items: [
-        { label: 'Employees',            icon: 'user',       path: '/nexushr/employees' },
-        { label: 'Attendance & Payroll', icon: 'calendar',   path: '/nexushr/attendance' },
-        { label: 'Accounts',             icon: 'dollarSign', path: '/finops' },
-      ],
-    },
   ];
 
   return (

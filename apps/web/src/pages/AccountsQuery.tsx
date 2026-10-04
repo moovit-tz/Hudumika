@@ -5,6 +5,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -203,29 +204,25 @@ export function AccountsQuery() {
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>
               Report Type
             </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <RadioGroup value={reportType} onValueChange={value => { setReportType(value as ReportType); setResult(null); }} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {REPORT_TYPES.map(rt => (
-                <label key={rt.value} style={{
+                <label key={rt.value} htmlFor={`report-${rt.value}`} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
                   borderRadius: 'var(--r)', cursor: 'pointer',
                   background: reportType === rt.value ? 'rgba(var(--teal-rgb, 0,128,128), 0.08)' : 'transparent',
                   border: `1.5px solid ${reportType === rt.value ? 'var(--teal)' : 'transparent'}`,
                   transition: 'all 0.12s',
                 }}>
-                  <input
-                    type="radio"
-                    name="report_type"
+                  <RadioGroupItem
+                    id={`report-${rt.value}`}
                     value={rt.value}
-                    checked={reportType === rt.value}
-                    onChange={() => { setReportType(rt.value); setResult(null); }}
-                    style={{ accentColor: 'var(--teal)' }}
                   />
                   <span style={{ fontSize: 13, fontWeight: reportType === rt.value ? 700 : 400, color: reportType === rt.value ? 'var(--teal)' : 'var(--ink)' }}>
                     {rt.label}
                   </span>
                 </label>
               ))}
-            </div>
+            </RadioGroup>
           </div>
 
           {/* Date range */}

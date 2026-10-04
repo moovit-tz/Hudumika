@@ -15,6 +15,7 @@ import { AvatarPicker } from '../components/AvatarPicker.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -1445,11 +1446,9 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
         {/* Section 5: Directory & Customer Setup */}
         <SectionCard title="Directory Setup" collapsible={false}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, color: 'var(--ink)' }}>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={isCustomer}
-              onChange={e => setIsCustomer(e.target.checked)}
-              style={{ width: 16, height: 16, accentColor: 'var(--teal)', cursor: 'pointer' }}
+              onCheckedChange={checked => setIsCustomer(Boolean(checked))}
             />
             <span>Also register as a <strong>Customer</strong> in CRM (allows issuing invoices and quotes to this organization).</span>
           </label>

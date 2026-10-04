@@ -7,6 +7,7 @@ import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Combobox } from '../../components/ui/combobox.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import type {
   ProjectResource,
   ProjectResourceAllocation,
@@ -284,15 +285,11 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
       )}
 
       {/* MODAL: ADD RESOURCE */}
-      {showAddResourceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Register Fleet Asset</h3>
-              <button onClick={() => setShowAddResourceModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddResourceModal} onOpenChange={setShowAddResourceModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Register Fleet Asset</DialogTitle>
+            </DialogHeader>
 
             <form onSubmit={handleCreateResource} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -405,20 +402,15 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: ALLOCATE ASSET */}
-      {showAddAllocModal && projectId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Allocate Asset to Project</h3>
-              <button onClick={() => setShowAddAllocModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddAllocModal && Boolean(projectId)} onOpenChange={setShowAddAllocModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Allocate Asset to Project</DialogTitle>
+            </DialogHeader>
 
             <form onSubmit={handleCreateAllocation} className="mt-4 space-y-4">
               <div>
@@ -497,9 +489,8 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };

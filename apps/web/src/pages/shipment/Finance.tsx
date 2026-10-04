@@ -452,16 +452,15 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
             <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 100px', gap: 12, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Charge Code</label>
-                <select
-                  value={form.charge_code}
-                  onChange={e => handleCodeChange(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', fontSize: 12.5, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}
-                >
+                <Select value={form.charge_code} onValueChange={handleCodeChange}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
                   {Object.entries(CHARGE_CODE_DEFAULTS).map(([c, d]) => (
-                    <option key={c} value={c}>{c} — {d}</option>
+                    <SelectItem key={c} value={c}>{c} — {d}</SelectItem>
                   ))}
-                  <option value="CUSTOM">Custom code…</option>
-                </select>
+                    <SelectItem value="CUSTOM">Custom code…</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Description</label>
@@ -469,12 +468,14 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Inv. Type</label>
-                <select value={form.invoice_type} onChange={e => setForm(f => ({ ...f, invoice_type: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', fontSize: 12.5, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
-                  <option value="FIN">FIN — Final</option>
-                  <option value="PRE">PRE — Preliminary</option>
-                  <option value="PRO">PRO — Pro-forma</option>
-                </select>
+                <Select value={form.invoice_type} onValueChange={value => setForm(f => ({ ...f, invoice_type: value }))}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FIN">FIN — Final</SelectItem>
+                    <SelectItem value="PRE">PRE — Preliminary</SelectItem>
+                    <SelectItem value="PRO">PRO — Pro-forma</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -496,9 +497,10 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                   <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 8 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>CCY</label>
-                      <select value={form.cost_currency} onChange={e => setForm(f => ({ ...f, cost_currency: e.target.value }))} style={{ width: '100%', padding: '7px 8px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}>
-                        {['USD','EUR','GBP','TZS','KES','UGX','CNY'].map(c => <option key={c}>{c}</option>)}
-                      </select>
+                      <Select value={form.cost_currency} onValueChange={value => setForm(f => ({ ...f, cost_currency: value }))}>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>{['USD','EUR','GBP','TZS','KES','UGX','CNY'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Cost Amount</label>
@@ -534,9 +536,10 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                   <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 8 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>CCY</label>
-                      <select value={form.sell_currency} onChange={e => setForm(f => ({ ...f, sell_currency: e.target.value }))} style={{ width: '100%', padding: '7px 8px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}>
-                        {['USD','EUR','GBP','TZS','KES','UGX','CNY'].map(c => <option key={c}>{c}</option>)}
-                      </select>
+                      <Select value={form.sell_currency} onValueChange={value => setForm(f => ({ ...f, sell_currency: value }))}>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>{['USD','EUR','GBP','TZS','KES','UGX','CNY'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Sell Amount</label>

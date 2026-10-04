@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { Input } from '../components/ui/input.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import './TrackingDashboard.css';
@@ -1296,10 +1297,9 @@ export const TrackingDashboard: React.FC = () => {
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 <th style={{ padding: '10px 8px', width: 32 }}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={isPageAllSelected}
-                    onChange={toggleSelectAll}
+                    onCheckedChange={toggleSelectAll}
                     aria-label="Select all shipments on this page"
                   />
                 </th>
@@ -1349,10 +1349,9 @@ export const TrackingDashboard: React.FC = () => {
                     }}
                   >
                     <td style={{ padding: '10px 8px' }}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedShipmentIds.includes(item.id)}
-                        onChange={() => toggleSelectShipment(item.id)}
+                        onCheckedChange={() => toggleSelectShipment(item.id)}
                         aria-label={`Select shipment ${item.code}`}
                       />
                     </td>

@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Combobox } from '../../components/ui/combobox.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import type { ProjectPortfolio, ProjectProgram } from '@hudumika/types';
 
 interface ProjectPortfoliosProps {
@@ -309,20 +310,11 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
       )}
 
       {/* CREATE PORTFOLIO MODAL */}
-      {showCreatePortfolioModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Create Strategic Portfolio
-              </h3>
-              <button
-                onClick={() => setShowCreatePortfolioModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showCreatePortfolioModal} onOpenChange={setShowCreatePortfolioModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Strategic Portfolio</DialogTitle>
+            </DialogHeader>
 
             <form onSubmit={handleCreatePortfolio} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -411,25 +403,15 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* CREATE PROGRAM MODAL */}
-      {showCreateProgramModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Create Capital Program
-              </h3>
-              <button
-                onClick={() => setShowCreateProgramModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showCreateProgramModal} onOpenChange={setShowCreateProgramModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Capital Program</DialogTitle>
+            </DialogHeader>
 
             <form onSubmit={handleCreateProgram} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -530,9 +512,8 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };

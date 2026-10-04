@@ -105,7 +105,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'OPERATIONS',
     items: [
-      { label: 'Ops Command',   icon: 'monitor',    path: '/clearos/ops' },
+      { label: 'Shipment Operations', icon: 'monitor', path: '/clearos/ops' },
       { label: 'Duty Check',    icon: 'percent',    path: '/clearos/duty-check' },
       { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools', exact: true, children: [
         { label: 'Calculator (FCL)', icon: 'calculator', path: '/clearos/customs-tools', exact: true },
@@ -147,20 +147,6 @@ const NAV: SidebarSection[] = [
       // buy/sell pricing) — this is the tenant's own ICD/clearing-agency
       // charges, feeding the Landed Cost Calculator's defaults.
       { label: 'Clearing Rate Card', icon: 'sliders',    path: '/clearos/rate-card' },
-    ],
-  },
-  {
-    title: 'LINKED APPS',
-    items: [
-      // Chat and Workflows now live in the apps that own those functions.
-      // The links are deep enough to land on the ClearOS view of each, so
-      // the journey is unchanged — only the app that hosts it.
-      { label: 'Team Chat',         icon: 'chatBubble', path: '/bliss/inbox?view=team' },
-      { label: 'Workflows',         icon: 'gitBranch',  path: '/studio/clearance' },
-      { label: 'Trips',             icon: 'truck',      path: '/tracking/shipments' },
-      { label: 'Demurrage',         icon: 'alertTriangle', path: '/cargotracker' },
-      { label: 'Finance',           icon: 'dollarSign', path: '/finance' },
-      { label: 'Staff',             icon: 'users',      path: '/nexushr/employees' },
     ],
   },
 ];

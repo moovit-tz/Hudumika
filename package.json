@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit -p apps/api/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json && npm run check:triggers -w apps/api && npm run check:design-system",
     "check:design-system": "node scripts/check-design-system.mjs",
     "check:slop": "node scripts/check-slop-preflight.mjs",
+    "audit:ui": "node scripts/ui-audit.mjs",
     "lint": "eslint . --ext .ts,.tsx",
     "clean": "rimraf apps/*/dist packages/*/dist node_modules/.cache"
   },

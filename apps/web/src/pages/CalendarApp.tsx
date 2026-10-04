@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../hooks/useAuth.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Switch } from '../components/ui/switch.js';
 import { Checkbox } from '../components/ui/checkbox.js';
@@ -1800,11 +1801,11 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <RadioGroup value={endMode} onValueChange={value => setEndMode(value as typeof endMode)} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Ends</span>
             {(['never', 'until', 'count'] as const).map(mode => (
-              <label key={mode} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
-                <input type="radio" name="recur-end" checked={endMode === mode} onChange={() => setEndMode(mode)} />
+              <label key={mode} htmlFor={`recur-end-${mode}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
+                <RadioGroupItem id={`recur-end-${mode}`} value={mode} />
                 {mode === 'never' && 'Never'}
                 {mode === 'until' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1831,7 +1832,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
                 )}
               </label>
             ))}
-          </div>
+          </RadioGroup>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
             {value ? <Button size="xs" variant="ghost" onClick={() => { onChange(null); setOpen(false); }}>Remove</Button> : <span />}

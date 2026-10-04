@@ -29,6 +29,8 @@ const dealCreateSchema = z.object({
   source: z.string().max(100).nullish(),
   expected_close: z.string().nullable().optional(),
   notes: z.string().max(5000).nullish(),
+  quotation_id: z.string().uuid().nullish(),
+  territory_id: z.string().uuid().nullish(),
 });
 const dealPatchSchema = dealCreateSchema.partial();
 const stageMoveSchema = z.object({
@@ -72,6 +74,9 @@ export function mapDeal(row: any) {
     closed_at: row.closed_at ?? undefined,
     lost_reason: row.lost_reason ?? undefined,
     notes: row.notes ?? undefined,
+    quotation_id: row.quotation_id ?? undefined,
+    territory_id: row.territory_id ?? undefined,
+    territory_name: row.territory_name ?? undefined,
     stage_changed_at: row.stage_changed_at,
     days_in_stage: Math.floor((Date.now() - new Date(row.stage_changed_at).getTime()) / 86_400_000),
     created_at: row.created_at,
@@ -83,12 +88,14 @@ export const dealSelect = (qb: any): any => qb
   .leftJoin('customers', 'customers.id', 'deals.customer_id')
   .leftJoin('leads', 'leads.id', 'deals.lead_id')
   .leftJoin('users', 'users.id', 'deals.owner_id')
+  .leftJoin('crm_territories as dt', 'dt.id', 'deals.territory_id')
   .select([
     'deals.id', 'deals.name', 'deals.customer_id', 'deals.lead_id', 'deals.stage',
     'deals.value', 'deals.currency', 'deals.probability', 'deals.owner_id', 'deals.source',
     'deals.expected_close', 'deals.closed_at', 'deals.lost_reason', 'deals.notes',
-    'deals.stage_changed_at', 'deals.created_at',
-    'customers.name as customer_name', 'leads.company as lead_company', 'users.name as owner_name',
+    'deals.stage_changed_at', 'deals.created_at', 'deals.quotation_id', 'deals.territory_id',
+    'customers.name as customer_name', 'leads.company as lead_company',
+    'users.name as owner_name', 'dt.name as territory_name',
   ]);
 
 export async function dealsRoutes(fastify: FastifyInstance) {
@@ -179,8 +186,9 @@ export async function dealsRoutes(fastify: FastifyInstance) {
         source: b.source || null,
         expected_close: b.expected_close ? new Date(b.expected_close) : null,
         notes: b.notes || null,
+        territory_id: b.territory_id || null,
         created_by: request.user.sub,
-      }).returning('id').execute();
+      } as any).returning('id').execute();
       await logCrmActivity(trx, {
         tenantId, subjectType: 'deal', subjectId: row.id, type: 'created',
         body: `Deal created${b.lead_id ? ' from a converted lead' : ''}`,
@@ -212,16 +220,54 @@ export async function dealsRoutes(fastify: FastifyInstance) {
     if (b.source !== undefined) patch.source = b.source || null;
     if (b.expected_close !== undefined) patch.expected_close = b.expected_close ? new Date(b.expected_close) : null;
     if (b.notes !== undefined) patch.notes = b.notes || null;
+    if (b.quotation_id  !== undefined) patch.quotation_id  = b.quotation_id  || null;
+    if (b.territory_id  !== undefined) patch.territory_id  = b.territory_id  || null;
     // Stage changes go through PATCH /:id/stage, which also stamps
     // stage_changed_at/closed_at — not duplicated here.
 
-    await withTenant<any>(tenantId, trx =>
-      trx.updateTable('deals').set(patch).where('id', '=', id)
-        .where('tenant_id', '=', tenantId).execute()
-    );
+    const notFound = await withTenant<boolean>(tenantId, async trx => {
+      let existing: { owner_id: string | null; name: string } | undefined;
+      if (b.owner_id !== undefined) {
+        existing = await trx.selectFrom('deals').select(['owner_id', 'name'])
+          .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      }
+      const result = await trx.updateTable('deals').set(patch).where('id', '=', id)
+        .where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (result.numUpdatedRows === 0n) return true;
+      if (existing && b.owner_id !== undefined && existing.owner_id !== (b.owner_id || null)) {
+        await logCrmActivity(trx, {
+          tenantId, subjectType: 'deal', subjectId: id, type: 'owner_change',
+          body: `Deal reassigned`,
+          meta: { from: existing.owner_id, to: b.owner_id || null },
+          actorId: request.user.sub, actorName: request.user.name,
+        });
+      }
+      return false;
+    });
+    if (notFound) return reply.status(404).send({ error: 'Deal not found' });
     const [row] = await withTenant<any[]>(tenantId, trx => dealSelect(trx).where('deals.id', '=', id).execute());
     if (!row) return reply.status(404).send({ error: 'Deal not found' });
     return mapDeal(row);
+  });
+
+  /* GET /deals/:id/quotation — the linked quotation + its line items */
+  fastify.get('/:id/quotation', async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
+    const tenantId = request.user.tenant_id;
+    const deal = await withTenant<any>(tenantId, trx =>
+      (trx.selectFrom('deals') as any).select(['quotation_id'])
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!deal) return reply.status(404).send({ error: 'Deal not found' });
+    if (!deal.quotation_id) return reply.status(200).send(null);
+    const [quot, lines] = await withTenant<any[]>(tenantId, trx => Promise.all([
+      trx.selectFrom('quotations').selectAll()
+        .where('id', '=', deal.quotation_id).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      trx.selectFrom('quotation_lines').selectAll()
+        .where('quotation_id', '=', deal.quotation_id).orderBy('line_number', 'asc').execute(),
+    ])) as unknown as [any, any[]];
+    if (!quot) return reply.status(200).send(null);
+    return { ...quot, lines: lines ?? [] };
   });
 
   // Dedicated stage-move endpoint — the kanban board's drag-and-drop hits

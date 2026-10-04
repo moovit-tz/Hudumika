@@ -88,6 +88,24 @@ export function pickForegroundHsl(hex: string): string {
 export const AA_NORMAL = 4.5;
 
 /**
+ * Preserves a configured text colour when it is readable, otherwise moves it
+ * toward the opposite luminance pole until it clears the requested floor.
+ * This is used for tenant-editable neutral text as well as brand surfaces: a
+ * saved theme must not be able to make timestamps and field hints disappear.
+ */
+export function enforceTextContrast(foreground: string, background: string, floor = AA_NORMAL): string {
+  if (!/^#[0-9a-f]{6}$/i.test(foreground) || !/^#[0-9a-f]{6}$/i.test(background)) return foreground;
+  if (contrastRatio(foreground, background) >= floor) return foreground;
+
+  const shouldLighten = relativeLuminance(background) < 0.5;
+  let current = foreground;
+  for (let i = 0; i < 40 && contrastRatio(current, background) < floor; i++) {
+    current = shouldLighten ? lightenHex(current, 0.06) : darkenHex(current, 0.06);
+  }
+  return current;
+}
+
+/**
  * Nudges a brand colour until its best foreground clears an AA floor.
  *
  * The brand colour is chosen by a tenant through /admin/design-system, so any

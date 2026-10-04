@@ -116,9 +116,10 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request) => {
     const user = request.user;
+    const { customer_id: customerIdFilter } = request.query as { customer_id?: string };
     return withTenant(user.tenant_id, async (trx) => {
       const isAdmin = ADMIN_ROLES.includes(user.role);
-      const rows = await trx.selectFrom('projects')
+      let q = trx.selectFrom('projects')
         .leftJoin('users as owner_user', 'owner_user.id', 'projects.owner_id')
         .leftJoin('customers', 'customers.id', 'projects.customer_id')
         .where('projects.tenant_id', '=', user.tenant_id)
@@ -130,13 +131,15 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
             eb('projects.id', 'in', eb.selectFrom('project_members')
               .select('project_id').where('user_id', '=', user.sub).where('tenant_id', '=', user.tenant_id)),
           ]);
-        })
+        });
+      if (customerIdFilter) q = q.where('projects.customer_id', '=', customerIdFilter);
+      const rows = await q
         .select([
           'projects.id', 'projects.ref', 'projects.name', 'projects.description', 'projects.color', 'projects.status',
           'projects.owner_id', 'projects.start_date', 'projects.target_date',
           'projects.customer_id', 'projects.billing_type', 'projects.total_rate', 'projects.currency',
-          'projects.created_at', 'projects.updated_at', 'owner_user.name as owner_name',
-          'customers.name as customer_name',
+          'projects.created_at', 'projects.updated_at',
+          'owner_user.name as owner_name', 'customers.name as customer_name',
         ])
         .orderBy('projects.created_at', 'desc').execute();
 

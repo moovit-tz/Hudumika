@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { dbPlatform } from '../db/client.js';
 import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
+import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { GLService } from './gl.service.js';
 import { DefaultWorkflowService } from './default-workflow.service.js';
 import { computeAndRecordCommission } from './referral.service.js';
@@ -256,6 +257,14 @@ export class OnboardingService {
 
     const amount = input.billing_cycle === 'annual' ? Number(pkg.annual_price) : Number(pkg.monthly_price);
 
+    // When a real Flutterwave gateway is configured (production), the signup
+    // flow must go through hosted checkout — there is no direct-charge API
+    // wired into the onboarding path. simulateCharge() must never run
+    // against a live key or it would create a successful "paid" tenant
+    // without any real money moving.
+    if (PaymentGateway.isConfigured()) {
+      throw new OnboardingError(501, 'Online payment during signup is not yet available. Please contact the platform administrator.');
+    }
     const charge = PaymentsIntegration.simulateCharge(amount, input.payment);
     if (!charge.success) {
       throw new OnboardingError(402, charge.error || 'Payment was declined');

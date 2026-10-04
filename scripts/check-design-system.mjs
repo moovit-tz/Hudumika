@@ -11,6 +11,10 @@ const checks = [
   ['Tabs cannot override the global platform variant', 'apps/web/src/components/ui/tabs.tsx', (source) => source.includes('variant: _legacyVariant') && !source.includes('data-variant={')],
   ['Tab styles load globally for legacy semantic tabs', 'apps/web/src/index.css', /@import "\.\/components\/ui\/ds-tabs\.css"/],
   ['Design-system contract is documented', 'docs/DESIGN_SYSTEM.md', () => true],
+  ['Metric cards separate direction from sentiment', 'apps/web/src/components/MetricCard.tsx', (source) => source.includes('const directionUp = val >= 0') && source.includes("data-sentiment={favorable ? 'positive' : 'negative'}")],
+  ['Metric cards expose honest async states', 'apps/web/src/components/MetricCard.tsx', (source) => source.includes('loading?: boolean') && source.includes('error?: string') && source.includes('empty?: boolean')],
+  ['DataTable distinguishes dataset and filtered empty states', 'apps/web/src/components/ui/DataTable.tsx', (source) => source.includes('filteredEmpty?: boolean') && source.includes('emptyAction?:')],
+  ['DataTable uses the shared Radix action menu', 'apps/web/src/components/ui/DataTable.tsx', (source) => source.includes('<DropdownMenu>') && source.includes('aria-label="Row actions"')],
 ];
 
 const failures = [];

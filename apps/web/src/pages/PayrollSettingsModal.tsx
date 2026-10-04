@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button.js';
 import { Banner } from '../components/ui/alert.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 
@@ -159,7 +160,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
                             <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '1px 5px' }}>{s.code}</span>
                           </div>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={!!value(s, 'active')} onChange={e => set(s.id, 'active', e.target.checked)} />
+                            <Checkbox checked={Boolean(value(s, 'active'))} onCheckedChange={checked => set(s.id, 'active', Boolean(checked))} />
                             Active
                           </label>
                         </div>
@@ -194,11 +195,11 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 10 }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={!!value(s, 'reduces_tax_base')} onChange={e => set(s.id, 'reduces_tax_base', e.target.checked)} />
+                            <Checkbox checked={Boolean(value(s, 'reduces_tax_base'))} onCheckedChange={checked => set(s.id, 'reduces_tax_base', Boolean(checked))} />
                             Reduces the income-tax base <span style={{ color: 'var(--ink3)' }}>(approved retirement fund)</span>
                           </label>
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={!!value(s, 'on_payslip')} onChange={e => set(s.id, 'on_payslip', e.target.checked)} />
+                            <Checkbox checked={Boolean(value(s, 'on_payslip'))} onCheckedChange={checked => set(s.id, 'on_payslip', Boolean(checked))} />
                             Show on payslip
                           </label>
                         </div>

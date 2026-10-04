@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -452,12 +453,10 @@ export function CMSSites() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="is_default_check"
                   checked={form.is_default}
-                  onChange={e => setForm(f => ({ ...f, is_default: e.target.checked }))}
-                  style={{ width: 16, height: 16, accentColor: 'var(--teal)' }}
+                  onCheckedChange={checked => setForm(f => ({ ...f, is_default: Boolean(checked) }))}
                 />
                 <label htmlFor="is_default_check" style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
                   Set as Primary / Default Site for this workspace

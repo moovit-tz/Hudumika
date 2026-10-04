@@ -442,6 +442,67 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * POST /auth/accept-customer-invite
+   * Completes a customer portal invitation — creates the CUSTOMER user,
+   * links it to the customer record, and issues a session.
+   * Body: { token, name, password }
+   */
+  fastify.post('/accept-customer-invite', async (request, reply) => {
+    const { token, name, password } = acceptInviteSchema.parse(request.body);
+
+    // customer_invitations has no tenant_id session variable set yet — use dbPlatform.
+    const invite = await dbPlatform.selectFrom('customer_invitations' as any)
+      .selectAll()
+      .where('token' as any, '=', token)
+      .executeTakeFirst();
+    if (!invite) return reply.status(404).send({ error: 'Invitation not found' });
+    if ((invite as any).status !== 'PENDING') return reply.status(400).send({ error: 'Invitation is no longer valid' });
+    if (new Date((invite as any).expires_at) < new Date()) {
+      await dbPlatform.updateTable('customer_invitations' as any)
+        .set({ status: 'EXPIRED' } as any)
+        .where('id' as any, '=', (invite as any).id)
+        .execute();
+      return reply.status(400).send({ error: 'Invitation has expired' });
+    }
+
+    const policyCheck = await enforcePasswordPolicy((invite as any).tenant_id, password);
+    if (!policyCheck.ok) return reply.status(400).send({ error: policyCheck.reason });
+
+    const { newUser } = await withTenant((invite as any).tenant_id, async (trx) => {
+      const newUser = await trx.insertInto('users').values({
+        tenant_id: (invite as any).tenant_id,
+        email: (invite as any).email,
+        password_hash: hashPassword(password),
+        password_changed_at: new Date(),
+        role: 'CUSTOMER' as any,
+        name,
+        active: true,
+        customer_id: (invite as any).customer_id,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      await trx.updateTable('customer_invitations' as any)
+        .set({ status: 'ACCEPTED', accepted_at: new Date() } as any)
+        .where('id' as any, '=', (invite as any).id)
+        .execute();
+
+      return { newUser };
+    });
+
+    const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
+      sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role,
+      email: newUser.email, name: newUser.name,
+    };
+    const tokens = issueTokens(fastify, payload as any);
+    const safeUser: SafeUser = {
+      id: newUser.id, tenant_id: newUser.tenant_id, email: newUser.email, role: newUser.role, name: newUser.name,
+      active: newUser.active, created_at: newUser.created_at.toISOString(), updated_at: newUser.updated_at.toISOString(),
+    };
+
+    setSessionCookies(reply, tokens);
+    return { ...tokens, user: safeUser };
+  });
+
+  /**
    * POST /auth/forgot-password
    * Sends a reset link if the email matches an active account. Always
    * returns a generic success message so callers can't enumerate accounts.

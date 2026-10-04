@@ -8,6 +8,8 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { CmsWorkflowState, CmsWorkflowTransition, CreateCmsWorkflowStateInput, CreateCmsWorkflowTransitionInput } from '@hudumika/types';
 import { ColorSwatchPicker } from '../components/ui/color-swatch-picker.js';
+import { Checkbox } from '../components/ui/checkbox.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 
 export function CMSWorkflow() {
   const [states, setStates] = useState<CmsWorkflowState[] | null>(null);
@@ -439,12 +441,10 @@ export function CMSWorkflow() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="pub_toggle"
                   checked={stateForm.is_published}
-                  onChange={e => setStateForm(f => ({ ...f, is_published: e.target.checked }))}
-                  style={{ width: 16, height: 16, accentColor: 'var(--teal)' }}
+                  onCheckedChange={checked => setStateForm(f => ({ ...f, is_published: Boolean(checked) }))}
                 />
                 <label htmlFor="pub_toggle" style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
                   This state represents live public content
@@ -491,27 +491,25 @@ export function CMSWorkflow() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>From State *</label>
-                  <select
-                    value={transitionForm.from_state_id}
-                    onChange={e => setTransitionForm(f => ({ ...f, from_state_id: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
-                  >
+                  <Select value={transitionForm.from_state_id || undefined} onValueChange={value => setTransitionForm(f => ({ ...f, from_state_id: value }))}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Select state" /></SelectTrigger>
+                    <SelectContent>
                     {states?.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
-                  </select>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>To State *</label>
-                  <select
-                    value={transitionForm.to_state_id}
-                    onChange={e => setTransitionForm(f => ({ ...f, to_state_id: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
-                  >
+                  <Select value={transitionForm.to_state_id || undefined} onValueChange={value => setTransitionForm(f => ({ ...f, to_state_id: value }))}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Select state" /></SelectTrigger>
+                    <SelectContent>
                     {states?.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
-                  </select>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -528,25 +526,22 @@ export function CMSWorkflow() {
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Restricted to Role (Optional)</label>
-                <select
-                  value={transitionForm.required_role}
-                  onChange={e => setTransitionForm(f => ({ ...f, required_role: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
-                >
-                  <option value="">Any Role (Writers, Editors, Admins)</option>
-                  <option value="ADMIN">ADMIN / Tenant Admin only</option>
-                  <option value="MANAGER">MANAGER & higher</option>
-                  <option value="OPERATOR">OPERATOR & higher</option>
-                </select>
+                <Select value={transitionForm.required_role || 'ANY'} onValueChange={value => setTransitionForm(f => ({ ...f, required_role: value === 'ANY' ? '' : value }))}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ANY">Any Role (Writers, Editors, Admins)</SelectItem>
+                    <SelectItem value="ADMIN">ADMIN / Tenant Admin only</SelectItem>
+                    <SelectItem value="MANAGER">MANAGER & higher</SelectItem>
+                    <SelectItem value="OPERATOR">OPERATOR & higher</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="req_app_toggle"
                   checked={transitionForm.require_approval}
-                  onChange={e => setTransitionForm(f => ({ ...f, require_approval: e.target.checked }))}
-                  style={{ width: 16, height: 16, accentColor: 'var(--teal)' }}
+                  onCheckedChange={checked => setTransitionForm(f => ({ ...f, require_approval: Boolean(checked) }))}
                 />
                 <label htmlFor="req_app_toggle" style={{ fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}>
                   Requires formal reviewer assignment and signoff

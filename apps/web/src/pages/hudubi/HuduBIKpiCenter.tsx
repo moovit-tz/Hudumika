@@ -3,6 +3,7 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import { Icon } from '../../components/Icon.js';
 import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -266,29 +267,27 @@ export function HuduBIKpiCenter() {
               />
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-            >
-              <option value="all">All Statuses</option>
-              <option value="ON_TARGET">On Target</option>
-              <option value="AT_RISK">At Risk</option>
-              <option value="OFF_TARGET">Off Target</option>
-            </select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="ON_TARGET">On Target</SelectItem>
+                <SelectItem value="AT_RISK">At Risk</SelectItem>
+                <SelectItem value="OFF_TARGET">Off Target</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <select
-              value={domainFilter}
-              onChange={e => setDomainFilter(e.target.value)}
-              className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-            >
-              <option value="all">All Domains</option>
-              <option value="operational">Operational</option>
-              <option value="financial">Financial</option>
-              <option value="customer">Customer</option>
-              <option value="employee">Employee / HR</option>
-              <option value="business">Business</option>
-            </select>
+            <Select value={domainFilter} onValueChange={setDomainFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Domains</SelectItem>
+                <SelectItem value="operational">Operational</SelectItem>
+                <SelectItem value="financial">Financial</SelectItem>
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="employee">Employee / HR</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <button
@@ -473,19 +472,16 @@ export function HuduBIKpiCenter() {
                 <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   Metric Key <span className="text-destructive">*</span>
                 </label>
-                <select
-                  required
-                  value={selectedMetricKey}
-                  onChange={e => setSelectedMetricKey(e.target.value)}
-                  className="w-full p-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                >
-                  <option value="">Select a metric definition...</option>
+                <Select value={selectedMetricKey || undefined} onValueChange={setSelectedMetricKey}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Select a metric definition..." /></SelectTrigger>
+                  <SelectContent>
                   {metricDefs.map(m => (
-                    <option key={m.metric_key} value={m.metric_key}>
+                    <SelectItem key={m.metric_key} value={m.metric_key}>
                       [{m.app.toUpperCase()}] {m.name} ({m.metric_key})
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Direction & Target Value */}
@@ -494,14 +490,13 @@ export function HuduBIKpiCenter() {
                   <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                     Direction <span className="text-destructive">*</span>
                   </label>
-                  <select
-                    value={targetDirection}
-                    onChange={e => setTargetDirection(e.target.value as 'above' | 'below')}
-                    className="w-full p-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  >
-                    <option value="above">Greater than or equal (≥ Higher is better)</option>
-                    <option value="below">Less than or equal (≤ Lower is better)</option>
-                  </select>
+                  <Select value={targetDirection} onValueChange={value => setTargetDirection(value as 'above' | 'below')}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="above">Greater than or equal (≥ Higher is better)</SelectItem>
+                      <SelectItem value="below">Less than or equal (≤ Lower is better)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -540,16 +535,15 @@ export function HuduBIKpiCenter() {
                   <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                     Evaluation Window
                   </label>
-                  <select
-                    value={period}
-                    onChange={e => setPeriod(e.target.value as any)}
-                    className="w-full p-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  >
-                    <option value="daily">Daily (Last 24h)</option>
-                    <option value="weekly">Weekly (Last 7 days)</option>
-                    <option value="monthly">Monthly (Last 30 days)</option>
-                    <option value="quarterly">Quarterly (Last 90 days)</option>
-                  </select>
+                  <Select value={period} onValueChange={value => setPeriod(value as typeof period)}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily (Last 24h)</SelectItem>
+                      <SelectItem value="weekly">Weekly (Last 7 days)</SelectItem>
+                      <SelectItem value="monthly">Monthly (Last 30 days)</SelectItem>
+                      <SelectItem value="quarterly">Quarterly (Last 90 days)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

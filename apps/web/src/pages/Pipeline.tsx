@@ -22,6 +22,7 @@ import { CustomFieldsPanel } from '../components/crm/CustomFieldsPanel.js';
 import { STAGE_COLORS, type PipelineStage } from './CrmPipelineStages.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 
 /* ── Types — mirror deals.routes.ts's mapDeal() shape ── */
 interface Deal {
@@ -323,8 +324,8 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                   {tasks.map(t => (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                      <input type="checkbox" checked={t.done} style={{ marginTop: 2, cursor: 'pointer', accentColor: 'hsl(var(--primary))' }}
-                        onChange={async () => {
+                      <Checkbox checked={t.done} className="mt-0.5"
+                        onCheckedChange={async () => {
                           const updated = { ...t, done: !t.done };
                           setTasks(prev => prev.map(x => x.id === t.id ? updated : x));
                           await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify({ done: !t.done }) }).catch(() => {});
@@ -510,7 +511,7 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
           <thead>
             <tr>
               <th style={{ padding: '9px 12px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', width: 44 }}>
-                <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer' }} />
+                <Checkbox checked={allChecked} onCheckedChange={toggleAll} aria-label="Select all deals" />
               </th>
               <SortTh label="Deal" col="name" />
               <th style={{ padding: '9px 12px', textAlign: 'left', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Company</th>
@@ -539,9 +540,8 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = selected.has(d.id) ? 'var(--teal-l)' : ''; }}
                 >
                   <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={selected.has(d.id)}
-                      onChange={() => setSelected(p => { const n = new Set(p); n.has(d.id) ? n.delete(d.id) : n.add(d.id); return n; })}
-                      style={{ cursor: 'pointer' }} />
+                    <Checkbox checked={selected.has(d.id)} aria-label={`Select ${d.name}`}
+                      onCheckedChange={() => setSelected(p => { const n = new Set(p); n.has(d.id) ? n.delete(d.id) : n.add(d.id); return n; })} />
                   </td>
                   <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>

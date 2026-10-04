@@ -179,6 +179,7 @@ export interface LeadsTable {
   updated_at: Generated<Date>;
   contact_party_id: string | null;
   organization_party_id: string | null;
+  territory_id: string | null;
 }
 
 /** Migration 447 — the CRM's Deal/Opportunity object, distinct from a Lead
@@ -204,6 +205,7 @@ export interface DealsTable {
   created_by: string;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  territory_id: string | null;
 }
 
 /** Migration 449 — one shared activity timeline across leads/deals/customers.
@@ -215,7 +217,7 @@ export interface CrmActivitiesTable {
   tenant_id: string;
   subject_type: 'lead' | 'deal' | 'customer';
   subject_id: string;
-  type: 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'created';
+  type: 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'created' | 'owner_change' | 'task_added' | 'task_done';
   body: string;
   meta: unknown;
   actor_id: string | null;
@@ -314,6 +316,91 @@ export interface CrmSearchHistoryTable {
   result_count: Generated<number>;
   source: string | null;
   created_at: Generated<Date>;
+}
+
+/** Migration 553 — next-action tasks pinned to a deal or lead. */
+export interface CrmTasksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  subject_type: 'deal' | 'lead';
+  subject_id: string;
+  title: string;
+  due_at: Date | null;
+  done: Generated<boolean>;
+  done_at: Date | null;
+  assigned_to: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 554 — per-rep monthly sales quota targets. */
+export interface CrmSalesQuotasTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  period: string;
+  target_value: Generated<string>;
+  target_count: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 555 — auto-assignment rules for CRM leads/deals. */
+export interface CrmAssignmentRulesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  active: Generated<boolean>;
+  priority: Generated<number>;
+  subject_type: Generated<string>;
+  match_type: Generated<string>;
+  conditions: Generated<unknown>;
+  assign_to: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 556 — territory regions for routing leads and deals. */
+export interface CrmTerritoriesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  active: Generated<boolean>;
+  criteria: Generated<unknown>;
+  color: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CrmTerritoryMembersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  territory_id: string;
+  user_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface CrmLeadStagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  label: string;
+  color: string | null;
+  position: Generated<number>;
+  is_won: Generated<boolean>;
+  is_lost: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CrmTerminologyTable {
+  id: Generated<string>;
+  tenant_id: string;
+  term_key: string;
+  singular: string;
+  plural: string;
+  updated_at: Generated<Date>;
 }
 
 /** Real notes-app storage — see 265_notes_app.sql. */
@@ -5349,6 +5436,13 @@ export interface Database {
   crm_lead_scoring_rules: CrmLeadScoringRulesTable;
   crm_pipeline_stages: CrmPipelineStagesTable;
   crm_search_history: CrmSearchHistoryTable;
+  crm_tasks: CrmTasksTable;
+  crm_sales_quotas: CrmSalesQuotasTable;
+  crm_assignment_rules: CrmAssignmentRulesTable;
+  crm_territories: CrmTerritoriesTable;
+  crm_territory_members: CrmTerritoryMembersTable;
+  crm_lead_stages: CrmLeadStagesTable;
+  crm_terminology: CrmTerminologyTable;
   notes: NotesTable;
   note_labels: NoteLabelsTable;
   note_user_state: NoteUserStateTable;

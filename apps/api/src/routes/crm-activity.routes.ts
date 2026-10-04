@@ -85,7 +85,7 @@ export async function logCrmActivity(
     // 'email'/'call' are here too, alongside the manual-entry types — the
     // send-email route below and (eventually) Bliss's own call-completed
     // hook both log a real system-recorded action, not a user's own note.
-    type: 'stage_change' | 'created' | 'note' | 'email' | 'call' | 'meeting'; body: string; meta?: unknown;
+    type: 'stage_change' | 'owner_change' | 'created' | 'note' | 'email' | 'call' | 'meeting' | 'task_added' | 'task_done'; body: string; meta?: unknown;
     actorId?: string | null; actorName?: string | null;
   },
 ): Promise<void> {
@@ -93,7 +93,7 @@ export async function logCrmActivity(
     tenant_id: params.tenantId,
     subject_type: params.subjectType,
     subject_id: params.subjectId,
-    type: params.type,
+    type: params.type as any,
     body: params.body,
     meta: params.meta ? JSON.stringify(params.meta) : null,
     actor_id: params.actorId || null,

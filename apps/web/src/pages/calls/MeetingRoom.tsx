@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import { useMediaDevices } from '../../hooks/useMediaDevices.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/popover.js';
 import { Tip } from '../../components/ui/tooltip.js';
@@ -1003,19 +1004,19 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                   <>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                       <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>Lock meeting</span>
-                      <input type="checkbox" checked={hostSettings.locked} onChange={e => updateHostSetting({ locked: e.target.checked })} style={{ accentColor: 'var(--teal)' }} />
+                      <Checkbox checked={hostSettings.locked} onCheckedChange={checked => updateHostSetting({ locked: Boolean(checked) })} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                       <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>Enable waiting room</span>
-                      <input type="checkbox" checked={hostSettings.waitingRoomEnabled} onChange={e => updateHostSetting({ waiting_room_enabled: e.target.checked })} style={{ accentColor: 'var(--teal)' }} />
+                      <Checkbox checked={hostSettings.waitingRoomEnabled} onCheckedChange={checked => updateHostSetting({ waiting_room_enabled: Boolean(checked) })} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                       <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>Disable chat for everyone</span>
-                      <input type="checkbox" checked={hostSettings.chatDisabled} onChange={e => updateHostSetting({ chat_disabled: e.target.checked })} style={{ accentColor: 'var(--teal)' }} />
+                      <Checkbox checked={hostSettings.chatDisabled} onCheckedChange={checked => updateHostSetting({ chat_disabled: Boolean(checked) })} />
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                       <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>Disable screen sharing for everyone</span>
-                      <input type="checkbox" checked={hostSettings.screenShareDisabled} onChange={e => updateHostSetting({ screen_share_disabled: e.target.checked })} style={{ accentColor: 'var(--teal)' }} />
+                      <Checkbox checked={hostSettings.screenShareDisabled} onCheckedChange={checked => updateHostSetting({ screen_share_disabled: Boolean(checked) })} />
                     </label>
                     <div>
                       <div style={{ fontSize: 12.5, color: '#f1f5f9', marginBottom: 6 }}>Meeting password {hostSettings.hasPassword && <span style={{ color: 'var(--green)', fontSize: 11 }}>(set)</span>}</div>
@@ -1033,7 +1034,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         controls above are what actually locks it once on. */}
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                       <span style={{ fontSize: 12.5, color: '#f1f5f9' }}>Allow guests without an account</span>
-                      <input type="checkbox" checked={hostSettings.guestJoinEnabled} onChange={e => updateHostSetting({ guest_join_enabled: e.target.checked })} style={{ accentColor: 'var(--teal)' }} />
+                      <Checkbox checked={hostSettings.guestJoinEnabled} onCheckedChange={checked => updateHostSetting({ guest_join_enabled: Boolean(checked) })} />
                     </label>
                     {hostSettings.guestJoinEnabled && (
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -1386,7 +1387,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                     {transcribing ? 'Stop transcribing' : 'Start transcribing my speech'}
                   </button>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#cbd5e1', cursor: 'pointer', margin: '10px 0 16px' }}>
-                    <input type="checkbox" checked={captionsEnabled} onChange={e => setCaptionsEnabled(e.target.checked)} style={{ accentColor: 'var(--teal)' }} />
+                    <Checkbox checked={captionsEnabled} onCheckedChange={checked => setCaptionsEnabled(Boolean(checked))} />
                     Show live captions on screen
                   </label>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 6 }}>Transcript ({transcriptLines.length})</div>

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
+import { Switch } from '../../components/ui/switch.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -161,10 +164,10 @@ export const ApiKeysPage: React.FC = () => {
           url: webhookUrl,
           event_type: webhookEventType,
         }),
-      }).catch(() => {});
+      });
       showAlert('Webhook configuration saved successfully.');
-    } catch {
-      showAlert('Webhook settings saved.');
+    } catch (error) {
+      showAlert(error instanceof Error ? error.message : 'Webhook settings could not be saved.');
     } finally {
       setSavingWebhook(false);
     }
@@ -198,13 +201,12 @@ export const ApiKeysPage: React.FC = () => {
               <span className="api-card-title">Public API Key</span>
               <label className="api-toggle-label">
                 <span>Pause</span>
-                <div className="switch-toggle">
-                  <input
-                    type="checkbox"
+                <div>
+                  <Switch
                     checked={isPublicPaused}
-                    onChange={(e) => setIsPublicPaused(e.target.checked)}
+                    onCheckedChange={setIsPublicPaused}
+                    aria-label="Pause public API key"
                   />
-                  <span className="switch-slider" />
                 </div>
               </label>
             </div>
@@ -280,13 +282,12 @@ export const ApiKeysPage: React.FC = () => {
               <div className="api-integrations-hdr-actions">
                 <label className="api-toggle-label">
                   <span>Pause all</span>
-                  <div className="switch-toggle">
-                    <input
-                      type="checkbox"
+                  <div>
+                    <Switch
                       checked={isPauseAll}
-                      onChange={handleTogglePauseAll}
+                      onCheckedChange={handleTogglePauseAll}
+                      aria-label="Pause all integrations"
                     />
-                    <span className="switch-slider" />
                   </div>
                 </label>
 
@@ -312,10 +313,10 @@ export const ApiKeysPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th style={{ width: 34 }}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedIds.size === integrations.length && integrations.length > 0}
-                        onChange={handleSelectAll}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all integrations"
                       />
                     </th>
                     <th>Integration ⇕</th>
@@ -329,10 +330,10 @@ export const ApiKeysPage: React.FC = () => {
                   {integrations.map((item) => (
                     <tr key={item.id}>
                       <td>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedIds.has(item.id)}
-                          onChange={() => handleToggleSelect(item.id)}
+                          onCheckedChange={() => handleToggleSelect(item.id)}
+                          aria-label={`Select ${item.name}`}
                         />
                       </td>
                       <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{item.name}</td>
@@ -353,13 +354,12 @@ export const ApiKeysPage: React.FC = () => {
                         {item.dailyCalls.toLocaleString()}
                       </td>
                       <td>
-                        <div className="switch-toggle">
-                          <input
-                            type="checkbox"
+                        <div>
+                          <Switch
                             checked={item.active}
-                            onChange={() => handleToggleIntegration(item.id)}
+                            onCheckedChange={() => handleToggleIntegration(item.id)}
+                            aria-label={`${item.active ? 'Disable' : 'Enable'} ${item.name}`}
                           />
-                          <span className="switch-slider" />
                         </div>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -378,38 +378,6 @@ export const ApiKeysPage: React.FC = () => {
               </table>
             </div>
 
-            {/* Pagination Footer */}
-            <div className="api-table-pagination">
-              <div className="flex items-center gap-2">
-                <span>Rows per page</span>
-                <select
-                  defaultValue="10"
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg)',
-                    fontSize: 11.5,
-                  }}
-                >
-                  <option value="10">10</option>
-                  <option value="25">25</option>
-                  <option value="50">50</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <span>1 - {integrations.length} of 31</span>
-                <div className="api-page-btn-group">
-                  <button type="button" className="api-page-num-btn">‹</button>
-                  <button type="button" className="api-page-num-btn api-page-num-btn--active">1</button>
-                  <button type="button" className="api-page-num-btn">2</button>
-                  <button type="button" className="api-page-num-btn">3</button>
-                  <button type="button" className="api-page-num-btn">4</button>
-                  <button type="button" className="api-page-num-btn">›</button>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* 3. Webhooks Card */}
@@ -445,17 +413,16 @@ export const ApiKeysPage: React.FC = () => {
 
               <div className="api-webhook-field-row">
                 <label className="api-webhook-label">Event Type</label>
-                <select
-                  value={webhookEventType}
-                  onChange={(e) => setWebhookEventType(e.target.value)}
-                  className="api-webhook-input font-bold"
-                >
-                  <option value="All Events">All Events</option>
-                  <option value="Shipment Events">Shipment &amp; Milestone Events</option>
-                  <option value="Container Events">Container Tracking &amp; Demurrage Events</option>
-                  <option value="Invoice Events">Invoice &amp; Payment Events</option>
-                  <option value="Auth Events">Authentication &amp; User Events</option>
-                </select>
+                <Select value={webhookEventType} onValueChange={setWebhookEventType}>
+                  <SelectTrigger className="w-full font-bold"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All Events">All Events</SelectItem>
+                    <SelectItem value="Shipment Events">Shipment &amp; Milestone Events</SelectItem>
+                    <SelectItem value="Container Events">Container Tracking &amp; Demurrage Events</SelectItem>
+                    <SelectItem value="Invoice Events">Invoice &amp; Payment Events</SelectItem>
+                    <SelectItem value="Auth Events">Authentication &amp; User Events</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -647,18 +614,17 @@ export const ApiKeysPage: React.FC = () => {
 
               <div>
                 <label className="font-bold text-[var(--ink2)] block mb-1">Category / Domain</label>
-                <select
-                  value={newIntegrationCategory}
-                  onChange={(e) => setNewIntegrationCategory(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] font-bold text-[var(--ink)]"
-                >
-                  <option value="Logistics">Logistics &amp; Cargo</option>
-                  <option value="Payments">Payments &amp; Billing</option>
-                  <option value="Auth">User Authentication</option>
-                  <option value="Operations">Operations &amp; Customs</option>
-                  <option value="Analytics">Analytics &amp; Forecasting</option>
-                  <option value="Marketing">Marketing &amp; Messaging</option>
-                </select>
+                <Select value={newIntegrationCategory} onValueChange={setNewIntegrationCategory}>
+                  <SelectTrigger className="w-full font-bold"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Logistics">Logistics &amp; Cargo</SelectItem>
+                    <SelectItem value="Payments">Payments &amp; Billing</SelectItem>
+                    <SelectItem value="Auth">User Authentication</SelectItem>
+                    <SelectItem value="Operations">Operations &amp; Customs</SelectItem>
+                    <SelectItem value="Analytics">Analytics &amp; Forecasting</SelectItem>
+                    <SelectItem value="Marketing">Marketing &amp; Messaging</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">

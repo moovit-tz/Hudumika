@@ -17,7 +17,6 @@ import { SupportKB }       from '../pages/SupportKB.js';
 import { SupportSettings } from '../pages/SupportSettings.js';
 import { BlissNotifications } from '../pages/BlissNotifications.js';
 import { Calls }           from '../pages/Calls.js';
-import { CallsReports }    from '../pages/calls/CallsReports.js';
 import { MeetingCenter }   from '../pages/calls/MeetingCenter.js';
 import { MeetingSession }  from '../pages/calls/MeetingSession.js';
 import { AgentPerformanceReport } from '../pages/bliss/AgentPerformanceReport.js';
@@ -40,7 +39,7 @@ const NAV: SidebarSection[] = [
           { label: 'Agent Performance',  icon: 'award',      path: '/bliss/reports/agent-performance' },
           { label: 'SLA Compliance',     icon: 'shield',     path: '/bliss/reports/sla-compliance'    },
           { label: 'Traffic & Inbound',  icon: 'trendingUp', path: '/bliss/reports/traffic'           },
-          { label: 'Call Reports',       icon: 'barChart2',  path: '/bliss/calls/reports'             },
+          { label: 'Call Analytics',     icon: 'barChart2',  path: '/bliss/calls'                     },
         ],
       },
       {
@@ -68,15 +67,6 @@ const NAV: SidebarSection[] = [
           { label: 'Notifications',       icon: 'bell',    path: '/bliss/notifications'   },
         ],
       },
-    ],
-  },
-  // Pages that hand off to a different app entirely go last — same "LINKED
-  // APPS" convention ClearOSShell.tsx uses for cross-app shortcuts.
-  {
-    title: 'LINKED APPS',
-    items: [
-      { label: 'Customers',   icon: 'users',     path: '/crm/customers'              },
-      { label: 'Automations', icon: 'gitBranch', path: '/studio/workflows?app=bliss' },
     ],
   },
 ];
@@ -136,7 +126,7 @@ export function BlissShell() {
                 <Route path="kb"                        element={<SupportKB />} />
                 <Route path="notifications"             element={<BlissNotifications />} />
                 <Route path="calls"                     element={<Calls />} />
-                <Route path="calls/reports"             element={<CallsReports />} />
+                <Route path="calls/reports"             element={<Navigate to="/bliss/calls" replace />} />
                 <Route path="calls/meeting/:id"         element={<MeetingJoinRoute />} />
                 <Route path="meetings"                  element={<MeetingCenter />} />
               </Route>

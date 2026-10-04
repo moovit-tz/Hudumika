@@ -7,6 +7,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { dealSelect, mapDeal } from './deals.routes.js';
 import { logCrmActivity } from './crm-activity.routes.js';
+import { applyAssignmentRules } from './crm-assignment-rules.routes.js';
 import { loadScoringRules, scoreLead } from './crm-lead-scoring.routes.js';
 import { ensurePipelineStages, defaultStageKey } from './crm-pipeline-stages.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
@@ -39,6 +40,7 @@ const leadCreateSchema = z.object({
   industry: z.string().max(200).optional(),
   location: z.string().max(200).optional(),
   website: z.string().max(500).optional(),
+  territory_id: z.string().uuid().nullish(),
 });
 // A malformed (non-UUID) :id used to reach Postgres as-is and crash with a
 // raw "invalid input syntax for type uuid" driver error, forwarded verbatim
@@ -63,6 +65,7 @@ const leadPatchSchema = z.object({
   industry: z.string().max(200).nullable().optional(),
   location: z.string().max(200).nullable().optional(),
   website: z.string().max(500).nullable().optional(),
+  territory_id: z.string().uuid().nullable().optional(),
 });
 
 function mapLead(row: any) {
@@ -85,14 +88,17 @@ function mapLead(row: any) {
     industry: row.industry ?? undefined,
     location: row.location ?? undefined,
     website: row.website ?? undefined,
+    territory_id: row.territory_id ?? undefined,
+    territory_name: row.territory_name ?? undefined,
   };
 }
 
 const leadSelect = (qb: any): any => qb
   .selectFrom('leads')
   .leftJoin('users', 'users.id', 'leads.assigned_to_id')
+  .leftJoin('crm_territories as lt', 'lt.id', 'leads.territory_id')
   .selectAll('leads')
-  .select(['users.name as assigned_to_name']);
+  .select(['users.name as assigned_to_name', 'lt.name as territory_name']);
 
 export async function leadsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -155,12 +161,28 @@ export async function leadsRoutes(fastify: FastifyInstance) {
           industry: b.industry || null,
           location: b.location || null,
           website: b.website || null,
-        }).returning('id').execute();
+          territory_id: b.territory_id || null,
+        } as any).returning('id').execute();
         await logCrmActivity(trx, {
           tenantId, subjectType: 'lead', subjectId: row.id, type: 'created',
           body: `Lead captured from ${b.source || 'Web Form'}`,
           actorId: request.user.sub, actorName: request.user.name,
         });
+        if (!b.assigned_to_id) {
+          const autoId = await applyAssignmentRules(trx, tenantId, {
+            source: b.source, industry: b.industry,
+            location: b.location, priority: b.priority, company: b.company,
+          });
+          if (autoId) {
+            await trx.updateTable('leads').set({ assigned_to_id: autoId })
+              .where('id', '=', row.id).execute();
+            await logCrmActivity(trx, {
+              tenantId, subjectType: 'lead', subjectId: row.id, type: 'owner_change',
+              body: 'Auto-assigned by rule',
+              meta: { to: autoId },
+            });
+          }
+        }
         await emitDomainEvent(trx, tenantId, {
           type: 'lead.created', sourceApp: 'crm', entityType: 'lead', entityId: row.id,
           payload: { company: b.company, source: b.source || 'Web Form', value: Number(b.value) || 0 },
@@ -194,12 +216,14 @@ export async function leadsRoutes(fastify: FastifyInstance) {
     if (b.industry !== undefined) patch.industry = b.industry || null;
     if (b.location !== undefined) patch.location = b.location || null;
     if (b.website !== undefined) patch.website = b.website || null;
+    if (b.territory_id !== undefined) patch.territory_id = b.territory_id || null;
 
     const tenantId = request.user.tenant_id;
     const notFound = await withTenant(tenantId, async trx => {
-      let existing: { stage: string; company: string } | undefined;
-      if (b.stage !== undefined) {
-        existing = await trx.selectFrom('leads').select(['stage', 'company'])
+      const needsExisting = b.stage !== undefined || b.assigned_to_id !== undefined;
+      let existing: { stage: string; company: string; assigned_to_id: string | null } | undefined;
+      if (needsExisting) {
+        existing = await trx.selectFrom('leads').select(['stage', 'company', 'assigned_to_id'])
           .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
       }
       // executeTakeFirstOrThrow() used to sit here — a lead id from another
@@ -221,6 +245,14 @@ export async function leadsRoutes(fastify: FastifyInstance) {
           payload: { from: existing.stage, to: b.stage, company: existing.company },
           actorId: request.user.sub,
         }).catch(e => console.error('[CRM] lead.stage_changed emit failed:', e.message));
+      }
+      if (b.assigned_to_id !== undefined && existing && existing.assigned_to_id !== (b.assigned_to_id || null)) {
+        await logCrmActivity(trx, {
+          tenantId, subjectType: 'lead', subjectId: id, type: 'owner_change',
+          body: `Lead reassigned`,
+          meta: { from: existing.assigned_to_id, to: b.assigned_to_id || null },
+          actorId: request.user.sub, actorName: request.user.name,
+        });
       }
       return false;
     });
@@ -310,13 +342,15 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   // nothing about whether the two leads are the same company.
   fastify.get('/duplicates', async (request: any) => {
     const tenantId = request.user.tenant_id;
+    const rawThreshold = Number((request.query as any).threshold);
+    const threshold = isFinite(rawThreshold) && rawThreshold > 0 && rawThreshold <= 1 ? rawThreshold : 0.5;
     return withTenant(tenantId, async trx => {
       const fuzzy = await sql<{ id: string; other_id: string }>`
         SELECT a.id, b.id AS other_id
         FROM leads a
         JOIN leads b ON b.tenant_id = a.tenant_id AND b.id > a.id
         WHERE a.tenant_id = ${tenantId}
-          AND similarity(a.company, b.company) >= 0.5
+          AND similarity(a.company, b.company) >= ${threshold}
       `.execute(trx);
       if (fuzzy.rows.length === 0) return [];
       const ids = [...new Set(fuzzy.rows.flatMap(r => [r.id, r.other_id]))];

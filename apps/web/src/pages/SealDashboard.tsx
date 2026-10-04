@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
 } from 'recharts';
 import { Icon } from '../components/Icon.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import './SealInventoryDashboard.css';
 
@@ -865,26 +866,24 @@ export function SealDashboard() {
         </div>
 
         {/* Category Filter */}
-        <select
-          className="sid-select-filter"
-          value={selectedCategory}
-          onChange={e => setSelectedCategory(e.target.value)}
-        >
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
           {CATEGORY_OPTIONS.map(c => (
-            <option key={c} value={c}>{c}</option>
+            <SelectItem key={c} value={c}>{c}</SelectItem>
           ))}
-        </select>
+          </SelectContent>
+        </Select>
 
         {/* Status Filter */}
-        <select
-          className="sid-select-filter"
-          value={selectedStatus}
-          onChange={e => setSelectedStatus(e.target.value)}
-        >
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
           {STATUS_OPTIONS.map(s => (
-            <option key={s.value} value={s.value}>{s.label}</option>
+            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
-        </select>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* ── Products Inventory Table ── */}
@@ -1051,30 +1050,28 @@ export function SealDashboard() {
                   </div>
                   <div className="sid-form-group">
                     <label className="sid-form-label">Category</label>
-                    <select
-                      className="sid-input"
-                      value={newItem.category}
-                      onChange={e => setNewItem({ ...newItem, category: e.target.value })}
-                    >
+                    <Select value={newItem.category} onValueChange={value => setNewItem({ ...newItem, category: value })}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
                       {CATEGORY_OPTIONS.filter(c => c !== 'All Categories').map(c => (
-                        <option key={c} value={c}>{c}</option>
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
-                    </select>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div className="sid-form-group">
                     <label className="sid-form-label">Warehouse</label>
-                    <select
-                      className="sid-input"
-                      value={newItem.warehouse}
-                      onChange={e => setNewItem({ ...newItem, warehouse: e.target.value })}
-                    >
+                    <Select value={newItem.warehouse} onValueChange={value => setNewItem({ ...newItem, warehouse: value })}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
                       {WAREHOUSE_OPTIONS.filter(w => w !== 'All Warehouses').map(w => (
-                        <option key={w} value={w}>{w}</option>
+                        <SelectItem key={w} value={w}>{w}</SelectItem>
                       ))}
-                    </select>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="sid-form-group">
                     <label className="sid-form-label">Reorder Level</label>
@@ -1228,17 +1225,16 @@ export function SealDashboard() {
 
               <div className="sid-form-group">
                 <label className="sid-form-label">Reason Code</label>
-                <select
-                  className="sid-input"
-                  value={adjustReason}
-                  onChange={e => setAdjustReason(e.target.value)}
-                >
-                  <option value="Cycle Count Adjustment">Cycle Count Adjustment</option>
-                  <option value="Purchase Receipt">Purchase Receipt</option>
-                  <option value="Customer Return">Customer Return</option>
-                  <option value="Damaged / Scrap">Damaged / Scrap</option>
-                  <option value="Internal Transfer">Internal Transfer</option>
-                </select>
+                <Select value={adjustReason} onValueChange={setAdjustReason}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cycle Count Adjustment">Cycle Count Adjustment</SelectItem>
+                    <SelectItem value="Purchase Receipt">Purchase Receipt</SelectItem>
+                    <SelectItem value="Customer Return">Customer Return</SelectItem>
+                    <SelectItem value="Damaged / Scrap">Damaged / Scrap</SelectItem>
+                    <SelectItem value="Internal Transfer">Internal Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="sid-modal-footer">

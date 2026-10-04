@@ -4,6 +4,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
+import { Checkbox } from '../components/ui/checkbox.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../components/ui/dialog.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
@@ -130,7 +131,7 @@ function CatModal({ initial, categories, onSave, onClose }: {
               </div>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-              <input type="checkbox" checked={f.is_featured} onChange={e => set('is_featured', e.target.checked)} />
+              <Checkbox checked={f.is_featured} onCheckedChange={checked => set('is_featured', Boolean(checked))} />
               Featured category (shown prominently in storefront)
             </label>
           </div>

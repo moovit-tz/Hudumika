@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { TwotoneIcon } from '../components/ui/twotone-icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Checkbox } from '../components/ui/checkbox.js';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 
 // ── Style switcher (Hudumika ↔ Oscar) ─────────────────────────────────────
 function StyleSwitcher({
@@ -658,26 +660,26 @@ function ChecksDemo() {
         <div className="flex flex-col gap-3">
           {['Design System', 'Component Library', 'Theme Engine'].map((l, i) => (
             <label key={l} className="oscar-check-row">
-              <input type="checkbox" className="oscar-check" checked={checks[i]} onChange={() => setChecks(c => c.map((v, j) => j === i ? !v : v))} />
+              <Checkbox checked={checks[i]} onCheckedChange={() => setChecks(c => c.map((v, j) => j === i ? !v : v))} />
               <span className="oscar-check-label">{l}</span>
             </label>
           ))}
           <label className="oscar-check-row opacity-50">
-            <input type="checkbox" className="oscar-check" disabled />
+            <Checkbox disabled />
             <span className="oscar-check-label">Disabled option</span>
           </label>
         </div>
       </div>
       <div>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Radio Group</p>
-        <div className="flex flex-col gap-3">
+        <RadioGroup value={String(radio)} onValueChange={value => setRadio(Number(value))} className="flex flex-col gap-3">
           {['Monthly', 'Quarterly', 'Annually'].map((l, i) => (
-            <label key={l} className="oscar-check-row">
-              <input type="radio" className="oscar-radio" name="billing-demo" checked={radio === i} onChange={() => setRadio(i)} />
+            <label key={l} htmlFor={`billing-${i}`} className="oscar-check-row">
+              <RadioGroupItem id={`billing-${i}`} value={String(i)} />
               <span className="oscar-check-label">{l}</span>
             </label>
           ))}
-        </div>
+        </RadioGroup>
       </div>
     </div>
   );
@@ -985,11 +987,10 @@ function AdvancedDataTablesDemo() {
           <thead>
             <tr className="bg-muted/50 border-b border-border text-muted-foreground uppercase tracking-wider text-[10px] font-bold">
               <th className="p-3 w-10 text-center">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selectedRows.length === sampleData.length}
-                  onChange={(e) => setSelectedRows(e.target.checked ? sampleData.map((d) => d.id) : [])}
-                  className="rounded border-border"
+                  onCheckedChange={checked => setSelectedRows(checked ? sampleData.map((d) => d.id) : [])}
+                  aria-label="Select all rows"
                 />
               </th>
               <th className="p-3">User & Identity</th>
@@ -1002,11 +1003,10 @@ function AdvancedDataTablesDemo() {
             {filtered.map((row) => (
               <tr key={row.id} className="hover:bg-muted/30 transition-colors">
                 <td className="p-3 text-center">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selectedRows.includes(row.id)}
-                    onChange={() => toggleSelect(row.id)}
-                    className="rounded border-border"
+                    onCheckedChange={() => toggleSelect(row.id)}
+                    aria-label={`Select ${row.name}`}
                   />
                 </td>
                 <td className="p-3">

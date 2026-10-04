@@ -5,6 +5,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { buildSmtpTransporter } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 
 const testSchema = z.object({
   imapHost: z.string().trim().min(1),
@@ -38,14 +39,9 @@ const saveSchema = z.object({
   imapMarkAsRead: z.boolean().optional(),
   signature: z.string().max(2000).optional(),
   spamBlocklist: z.array(z.string().trim().max(255)).max(200).optional(),
-  // Per-user send identity (migration 491) — 'platform' (default) keeps
+  // Per-user send identity (migration 491) — 'platform'/'mail' (default) keeps
   // sending through the tenant/system-wide identity exactly as before.
-  // The handler below only ever *writes* 'outlook'/'gmail' when a refresh
-  // token for that provider is already on file (switching back to a
-  // previously-connected provider) — turning OAuth on for the first time is
-  // only ever done by mail-oauth.routes.ts's authorize-personal/callback
-  // round trip, the one place a real refresh token actually gets obtained.
-  sendProtocol: z.enum(['platform', 'smtp', 'outlook', 'gmail']).optional(),
+  sendProtocol: z.enum(['mail', 'platform', 'smtp', 'outlook', 'microsoft_outlook', 'gmail', 'gmail_smtp']).optional(),
   smtpHost: z.string().trim().max(255).optional(),
   smtpPort: z.number().int().positive().optional(),
   smtpUser: z.string().trim().max(255).optional(),
@@ -155,15 +151,16 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
       const smtpPassUpdate = b.smtpPass !== undefined && b.smtpPass !== MASKED_VALUE
         ? { smtp_pass: b.smtpPass ? encryptSecret(b.smtpPass) : null }
         : {};
-      // 'outlook'/'gmail' can only be *turned on* by mail-oauth.routes.ts's
-      // callback (the one place a real refresh token gets obtained), but
-      // switching back to a provider that's already connected — a token
-      // already on file from a previous connect — is a safe, reversible
-      // toggle this route can make.
+      // Normalize protocol aliases
+      const normalizedProtocol = b.sendProtocol === 'mail' ? 'platform'
+        : b.sendProtocol === 'microsoft_outlook' ? 'outlook'
+        : b.sendProtocol === 'gmail_smtp' ? 'gmail'
+        : b.sendProtocol;
+
       const canSwitchTo = (p: 'outlook' | 'gmail') => existing && (p === 'outlook' ? existing.outlook_refresh_token : existing.gmail_refresh_token);
       const sendProtocolUpdate =
-        b.sendProtocol === 'platform' || b.sendProtocol === 'smtp' ? { send_protocol: b.sendProtocol }
-        : (b.sendProtocol === 'outlook' || b.sendProtocol === 'gmail') && canSwitchTo(b.sendProtocol) ? { send_protocol: b.sendProtocol }
+        normalizedProtocol === 'platform' || normalizedProtocol === 'smtp' ? { send_protocol: normalizedProtocol }
+        : (normalizedProtocol === 'outlook' || normalizedProtocol === 'gmail') && canSwitchTo(normalizedProtocol) ? { send_protocol: normalizedProtocol }
         : {};
 
       // A changed vacation window is a new vacation period — the "already
@@ -308,6 +305,46 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Connection failed.' };
+    }
+  });
+
+  // POST /v1/email/account/send-test-mail — dispatches a real test email
+  // via the active or requested protocol (Mail, SMTP, Outlook, Gmail)
+  fastify.post('/send-test-mail', async (request: any, reply) => {
+    const user = request.user;
+    const { to } = z.object({ to: z.string().trim().email() }).parse(request.body);
+
+    try {
+      const result = await MailService.sendNow(user.tenant_id, {
+        to,
+        subject: 'Test Email from Hudumika Workspace',
+        bodyHtml: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h2 style="color: #0d9488; margin: 0; font-size: 22px;">Hudumika Mail System</h2>
+              <p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Email Protocol Delivery Verification</p>
+            </div>
+            <div style="background: #f0fdfa; padding: 18px; border-radius: 8px; border-left: 4px solid #0d9488; margin-bottom: 24px;">
+              <h4 style="margin: 0 0 6px; color: #115e59; font-size: 15px;">Configuration Successful!</h4>
+              <p style="margin: 0; color: #1e293b; font-size: 13.5px; line-height: 1.6;">
+                This test email confirms that your outgoing email protocol is properly configured and successfully transmitting messages from Hudumika Workspace.
+              </p>
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+              Sent to <strong>${to}</strong> on ${new Date().toUTCString()} via Hudumika Mail Engine
+            </div>
+          </div>
+        `,
+        sourceApp: 'email-settings-test',
+        userId: user.sub,
+      });
+
+      if (!result.success && result.error) {
+        return reply.status(400).send({ success: false, error: result.error });
+      }
+      return { success: true, message: `Test email sent successfully to ${to}` };
+    } catch (err: any) {
+      return reply.status(400).send({ success: false, error: err.message || 'Failed to send test email.' });
     }
   });
 }

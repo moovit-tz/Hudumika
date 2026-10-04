@@ -6,6 +6,8 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
 import type {
   ProjectRisk,
   ProjectIssue,
@@ -489,15 +491,9 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
       )}
 
       {/* MODAL: ADD RISK */}
-      {showAddRiskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Add Risk to Register</h3>
-              <button onClick={() => setShowAddRiskModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddRiskModal} onOpenChange={setShowAddRiskModal}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Risk to Register</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreateRisk} className="mt-4 space-y-4">
               <div>
@@ -606,20 +602,13 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: ADD ISSUE */}
-      {showAddIssueModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Log Project Issue</h3>
-              <button onClick={() => setShowAddIssueModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddIssueModal} onOpenChange={setShowAddIssueModal}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Log Project Issue</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreateIssue} className="mt-4 space-y-4">
               <div>
@@ -700,20 +689,13 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
 
       {/* MODAL: ADD CHANGE REQUEST */}
-      {showAddCrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">Submit Change Request (CR)</h3>
-              <button onClick={() => setShowAddCrModal(false)} className="text-slate-400 hover:text-slate-600">
-                <Icon name="x" size={18} />
-              </button>
-            </div>
+      <Dialog open={showAddCrModal} onOpenChange={setShowAddCrModal}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Submit Change Request (CR)</DialogTitle></DialogHeader>
 
             <form onSubmit={handleCreateCr} className="mt-4 space-y-4">
               <div className="grid grid-cols-3 gap-3">
@@ -786,12 +768,10 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="crClient"
                   checked={crClientReq}
-                  onChange={(e) => setCrClientReq(e.target.checked)}
-                  className="rounded text-teal-600"
+                  onCheckedChange={checked => setCrClientReq(Boolean(checked))}
                 />
                 <label htmlFor="crClient" className="text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
                   Requires Formal Client / Funder Counter-Signoff
@@ -807,9 +787,8 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };
