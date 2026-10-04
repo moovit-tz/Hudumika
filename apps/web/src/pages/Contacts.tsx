@@ -1402,7 +1402,7 @@ export function Contacts() {
                                 background: isSelected ? 'var(--bg)' : 'transparent',
                                 cursor: 'pointer'
                               }}
-                              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg)'; }}
+                              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--hover-bg)'; }}
                               onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                             >
                               {/* Checkbox */}

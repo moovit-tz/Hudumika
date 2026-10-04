@@ -461,7 +461,7 @@ export function CMSContentEntries() {
                 <tbody>
                   {entries.map(e => (
                     <tr key={e.id} onClick={() => setEditingId(e.id)} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                      onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--bg)')} onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
+                      onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
                       <td style={{ padding: '11px 16px', width: 34 }}><SelectBox checked={selected.has(e.id)} onToggle={ev => toggleSelect(e.id, ev)} /></td>
                       <td style={{ padding: '11px 16px', fontWeight: 600 }}>{e.title}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>

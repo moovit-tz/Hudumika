@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Badge } from '../components/ui/badge.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -561,19 +562,18 @@ export function CMSReleases() {
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Select Item</label>
-                <select
-                  value={selectedItemId}
-                  onChange={e => setSelectedItemId(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
-                >
+                <Select value={selectedItemId || undefined} onValueChange={setSelectedItemId}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder={`No ${itemType}s available`} /></SelectTrigger>
+                  <SelectContent>
                   {itemType === 'page'
                     ? availablePages.map(p => (
-                        <option key={p.id} value={p.id}>{p.title} ({p.status})</option>
+                        <SelectItem key={p.id} value={p.id}>{p.title} ({p.status})</SelectItem>
                       ))
                     : availablePosts.map(p => (
-                        <option key={p.id} value={p.id}>{p.title} ({p.status})</option>
+                        <SelectItem key={p.id} value={p.id}>{p.title} ({p.status})</SelectItem>
                       ))}
-                </select>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

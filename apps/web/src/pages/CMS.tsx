@@ -779,7 +779,7 @@ export const CMS: React.FC = () => {
                     .filter(p => pFilter === 'all' ? p.status !== 'trash' : p.status === pFilter)
                     .map((post, i, arr) => (
                     <tr key={post.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <td style={{ padding: '11px 16px', width: 34 }}><SelectBox checked={selectedPosts.has(post.id)} onToggle={e => toggleSelectPost(post.id, e)} /></td>
                       <td style={{ padding: '11px 16px', fontWeight: 600, color: 'var(--ink)', maxWidth: 260 }}>
@@ -911,7 +911,7 @@ export const CMS: React.FC = () => {
                     .filter(pg => pagesFilter === 'all' ? pg.status !== 'trash' : pg.status === pagesFilter)
                     .map((pg, i, arr) => (
                     <tr key={pg.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}>
                       <td style={{ padding: '11px 16px', width: 34 }}><SelectBox checked={selectedPages.has(pg.id)} onToggle={e => toggleSelectPage(pg.id, e)} /></td>
                       <td style={{ padding: '11px 16px', fontWeight: 600, color: 'var(--ink)' }}>

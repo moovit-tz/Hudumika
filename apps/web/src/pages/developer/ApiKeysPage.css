@@ -50,7 +50,7 @@
 }
 
 .api-keys-privacy-btn:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   color: var(--ink);
   border-color: var(--teal);
 }

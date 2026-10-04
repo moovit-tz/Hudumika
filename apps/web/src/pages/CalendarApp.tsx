@@ -768,7 +768,7 @@ export const CalendarApp: React.FC = () => {
                 type="button"
                 onClick={handleExportICS}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <Icon name="download" size={15} color="var(--ink3)" /> Export calendar (.ics)
@@ -778,7 +778,7 @@ export const CalendarApp: React.FC = () => {
                 onClick={() => icsFileInputRef.current?.click()}
                 disabled={icsImporting}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
                 <Icon name="upload" size={15} color="var(--ink3)" /> {icsImporting ? 'Importing…' : 'Import calendar (.ics)'}
@@ -787,7 +787,7 @@ export const CalendarApp: React.FC = () => {
                 <button
                   type="button"
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   <Icon name="link" size={15} color="var(--ink3)" /> Booking pages…
@@ -797,7 +797,7 @@ export const CalendarApp: React.FC = () => {
                 <button
                   type="button"
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                 >
                   <Icon name="globe" size={15} color="var(--ink3)" /> Google/Outlook sync…
@@ -897,8 +897,8 @@ export const CalendarApp: React.FC = () => {
                       onDrop={e => handleDrop(e, dateStr)}
                       onClick={() => openCreate(dateStr)}
                       style={{ background: 'var(--white)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, cursor: 'pointer', minHeight: 100 }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'var(--white)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                     >
                       <span style={{
                         alignSelf: 'flex-start', fontSize: 13, fontWeight: isTod ? 700 : 500,
@@ -1008,7 +1008,7 @@ export const CalendarApp: React.FC = () => {
                             onDragOver={handleDragOver}
                             onDrop={e => handleDrop(e, cellDateStr, `${String(hour).padStart(2,'0')}:00`)}
                             onMouseDown={() => beginDragCreate(cellDateStr, hour)}
-                            onMouseEnter={e => { extendDragCreate(cellDateStr, hour); if (!inDragRange) e.currentTarget.style.background = 'var(--bg)'; }}
+                            onMouseEnter={e => { extendDragCreate(cellDateStr, hour); if (!inDragRange) e.currentTarget.style.background = 'var(--hover-bg)'; }}
                             onMouseLeave={e => { if (!inDragRange) e.currentTarget.style.background = 'none'; }}
                             style={{ borderLeft: '1px solid var(--border2)', cursor: 'pointer', position: 'relative', background: inDragRange ? 'var(--teal-l)' : undefined }}
                           />
@@ -1169,7 +1169,7 @@ export const CalendarApp: React.FC = () => {
                         onDragOver={handleDragOver}
                         onDrop={e => handleDrop(e, cellDateStr, `${String(hour).padStart(2,'0')}:00`)}
                         onMouseDown={() => beginDragCreate(cellDateStr, hour)}
-                        onMouseEnter={e => { extendDragCreate(cellDateStr, hour); if (!inDragRange) e.currentTarget.style.background = 'var(--bg)'; }}
+                        onMouseEnter={e => { extendDragCreate(cellDateStr, hour); if (!inDragRange) e.currentTarget.style.background = 'var(--hover-bg)'; }}
                         onMouseLeave={e => { if (!inDragRange) e.currentTarget.style.background = 'none'; }}
                         style={{ borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: inDragRange ? 'var(--teal-l)' : undefined }}
                       />
