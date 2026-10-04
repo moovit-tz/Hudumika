@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { parseHex, lightenHex, tintRgba, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
+import { parseHex, lightenHex, tintRgba, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor, enforceTextContrast } from '../lib/color.js';
 import { themeFromSourceColor, argbFromHex, hexFromArgb } from '@material/material-color-utilities';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -334,16 +334,16 @@ export const SHADOW_PRESETS: Record<ShadowId, ShadowPreset> = {
 // ── Defaults — copied verbatim from index.css's static :root values ───────────
 
 export const NEUTRAL_LIGHT_DEFAULT: NeutralSet = {
-  ink: '#0f172a', ink2: '#475569', ink3: '#94a3b8',
+  ink: '#0f172a', ink2: '#475569', ink3: '#64748b',
   bg: '#f4f7fb', white: '#ffffff',
-  border: '#e2e8f0', border2: '#cbd5e1',
-  cardSunken: '#f1f5f9',
+  border: '#d5dde8', border2: '#8998ab',
+  cardSunken: '#f8fafc',
 };
 
 export const NEUTRAL_DARK_DEFAULT: NeutralSet = {
-  ink: '#f8fafc', ink2: '#94a3b8', ink3: '#64748b',
+  ink: '#f8fafc', ink2: '#a8b4c5', ink3: '#8b9bb1',
   bg: '#080b10', white: '#111218',
-  border: 'rgba(255,255,255,0.07)', border2: 'rgba(255,255,255,0.13)',
+  border: 'rgba(255,255,255,0.14)', border2: 'rgba(255,255,255,0.28)',
   cardSunken: 'rgba(255,255,255,0.035)',
 };
 
@@ -421,21 +421,21 @@ export const PLATFORM_THEMES: PlatformTheme[] = [
         light: {
           ink: '#0f172a',
           ink2: '#475569',
-          ink3: '#94a3b8',
+          ink3: '#64748b',
           bg: '#f4f7fb',
           white: '#ffffff',
-          border: '#e2e8f0',
-          border2: '#cbd5e1',
+          border: '#d5dde8',
+          border2: '#8998ab',
           cardSunken: '#f8fafc',
         },
         dark: {
           ink: '#f8fafc',
-          ink2: '#94a3b8',
-          ink3: '#64748b',
+          ink2: '#a8b4c5',
+          ink3: '#8b9bb1',
           bg: '#0c1917',
           white: '#132320',
-          border: 'rgba(255,255,255,0.08)',
-          border2: 'rgba(255,255,255,0.14)',
+          border: 'rgba(255,255,255,0.14)',
+          border2: 'rgba(255,255,255,0.28)',
           cardSunken: '#172b27',
         },
       },
@@ -850,6 +850,12 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   const blueFgDark = pickForegroundHsl(tokens.semantic.dark.blue);
   const purpleFgDark = pickForegroundHsl(tokens.semantic.dark.purple);
 
+  // Saved tenant themes may predate the accessible neutral defaults. Apply a
+  // runtime floor so older configurations improve immediately without
+  // overwriting the values a SuperAdmin saved in the database.
+  const lightInk3 = enforceTextContrast(tokens.neutral.light.ink3, tokens.neutral.light.white);
+  const darkInk3 = enforceTextContrast(tokens.neutral.dark.ink3, tokens.neutral.dark.white);
+
   const lightVars: Record<string, string | number> = {
     '--teal': tokens.brand.primary,
     '--teal-l': `rgba(${tr},${tg},${tb},0.1)`,
@@ -865,7 +871,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
 
     '--ink': tokens.neutral.light.ink,
     '--ink2': tokens.neutral.light.ink2,
-    '--ink3': tokens.neutral.light.ink3,
+    '--ink3': lightInk3,
     '--bg': tokens.neutral.light.bg,
     '--white': tokens.neutral.light.white,
     '--card-sunken': tokens.neutral.light.cardSunken ?? '#f5f5f5',
@@ -991,18 +997,10 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--mobile-breakpoint': `${responsive.breakpoint}px`,
   };
 
-  // Shadcn dark-surface tokens for platform/pre-auth pages (WorkspaceApp
-  // overrides these with per-app values; here they use the platform brand).
-  const [pr, pg, pb] = parseHex(tokens.brand.primary);
-  const dsToHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0');
-  const dsMix = (mix: number, base: [number, number, number]) => `#${[
-    Math.round(pr * mix + base[0] * (1 - mix)),
-    Math.round(pg * mix + base[1] * (1 - mix)),
-    Math.round(pb * mix + base[2] * (1 - mix)),
-  ].map(dsToHex).join('')}`;
-  const dsBgHsl     = hexToHslTriplet(dsMix(0.07, [8,  11, 16]));
-  const dsCardHsl   = hexToHslTriplet(dsMix(0.10, [17, 18, 24]));
-  const dsAccentHsl = hexToHslTriplet(dsMix(0.12, [26, 32, 47]));
+  // Shadcn dark-surface tokens — neutral dark grays, no accent tint.
+  const dsBgHsl     = hexToHslTriplet('#141414');
+  const dsCardHsl   = hexToHslTriplet('#1e1e1e');
+  const dsAccentHsl = hexToHslTriplet('#2a2a2a');
 
   const darkVars: Record<string, string | number> = {
     '--teal': darkTeal,
@@ -1024,17 +1022,17 @@ export function applyDesignTokens(tokens: DesignTokens): void {
 
     '--ink': tokens.neutral.dark.ink,
     '--ink2': tokens.neutral.dark.ink2,
-    '--ink3': tokens.neutral.dark.ink3,
+    '--ink3': darkInk3,
     /* Page background and card surface, tinted by the active app's raw accent.
        --teal-fill-raw is the original (non-lightened) hex set by WorkspaceApp on
        :root — each app's real brand colour. The fallback is the platform brand so
        pre-auth and platform pages stay in-brand without WorkspaceApp mounted. */
-    '--bg': `color-mix(in srgb, var(--teal-fill-raw, ${tokens.brand.primary}) 7%, ${tokens.neutral.dark.bg})`,
-    '--white': `color-mix(in srgb, var(--teal-fill-raw, ${tokens.brand.primary}) 10%, ${tokens.neutral.dark.white})`,
+    '--bg': '#141414',
+    '--white': '#1e1e1e',
     '--card-sunken': tokens.neutral.dark.cardSunken ?? 'rgba(255,255,255,0.035)',
     '--border': tokens.neutral.dark.border,
     '--border2': tokens.neutral.dark.border2,
-    '--nav-header-bg': `color-mix(in srgb, var(--teal-fill-raw, ${tokens.brand.primary}) 15%, #0a0e16)`,
+    '--nav-header-bg': '#111111',
 
     '--gold': tokens.semantic.dark.gold,
     '--red': tokens.semantic.dark.red,
