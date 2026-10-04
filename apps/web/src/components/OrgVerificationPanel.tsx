@@ -210,7 +210,7 @@ export function OrgVerificationPanel() {
             alignItems: 'flex-start',
             gap: 16,
             background: 'var(--gold-l)',
-            border: '1px solid #fef3c7',
+            border: '1px solid var(--gold)',
             borderRadius: 12,
             padding: 20
           }}>
@@ -218,7 +218,7 @@ export function OrgVerificationPanel() {
               <Icon name="clock" size={20} />
             </FeaturedIcon>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#92400e', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 Submission Under Review
                 <span className="ondi-status-pill warning" style={{ fontSize: 11 }}>In Progress</span>
               </div>

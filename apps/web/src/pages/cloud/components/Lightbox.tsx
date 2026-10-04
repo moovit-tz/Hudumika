@@ -355,15 +355,15 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
             {/* Text / CSV rendered inline */}
             {!showLoading && !showError && isText && textBody != null && (
               csvRows ? (
-                <div style={{ width: '100%', height: '100%', overflow: 'auto', background: '#fff' }}>
+                <div style={{ width: '100%', height: '100%', overflow: 'auto', background: 'var(--white)' }}>
                   <table className="lbx-csv-table" style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
                     <tbody>
                       {csvRows.map((r, ri) => (
                         <tr key={ri}>
                           {r.map((c, ci) => (
                             ri === 0
-                              ? <th key={ci} style={{ border: '1px solid #e2e8f0', padding: '5px 9px', background: '#f8fafc', textAlign: 'left', position: 'sticky', top: 0 }}>{c}</th>
-                              : <td key={ci} style={{ border: '1px solid #e2e8f0', padding: '5px 9px' }}>{c}</td>
+                              ? <th key={ci} style={{ border: '1px solid var(--border)', padding: '5px 9px', background: 'var(--bg)', textAlign: 'left', position: 'sticky', top: 0 }}>{c}</th>
+                              : <td key={ci} style={{ border: '1px solid var(--border)', padding: '5px 9px' }}>{c}</td>
                           ))}
                         </tr>
                       ))}
@@ -373,7 +373,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
               ) : (
                 <pre style={{
                   width: '100%', height: '100%', overflow: 'auto', margin: 0, padding: 20,
-                  background: '#fff', color: '#1e293b', fontSize: 12.5, lineHeight: 1.6,
+                  background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, lineHeight: 1.6,
                   fontFamily: 'var(--font)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 }}>{textBody}</pre>
               )
