@@ -96,7 +96,7 @@ tr[data-state="selected"] .dt-action-btn,
   cursor: pointer;
   transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
-.dt-pg-btn:hover:not(:disabled) { background: var(--bg); color: var(--ink); }
+.dt-pg-btn:hover:not(:disabled) { background: var(--hover-bg); color: var(--ink); }
 .dt-pg-btn[data-active] { background: var(--bg); color: var(--ink); border-color: var(--border); font-weight: 600; }
 .dt-pg-btn:disabled { opacity: 0.35; cursor: default; }
 .dt-pg-ellipsis {

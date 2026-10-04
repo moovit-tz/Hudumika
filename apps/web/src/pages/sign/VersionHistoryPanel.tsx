@@ -133,7 +133,7 @@ const STATUS_STYLE: Record<PageDiffStatus, { accent: string | null; tint: string
 function WordDiff({ oldText, newText }: { oldText: string; newText: string }) {
   const parts = useMemo(() => diffWords(oldText, newText), [oldText, newText]);
   return (
-    <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink2)', maxHeight: 140, overflowY: 'auto', padding: '8px 10px', background: '#fff', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+    <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink2)', maxHeight: 140, overflowY: 'auto', padding: '8px 10px', background: 'var(--white)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
       {parts.map((part, i) => (
         <span key={i} style={
           part.added ? { background: 'var(--green-l)', color: 'var(--green)', textDecoration: 'underline' }

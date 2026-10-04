@@ -260,7 +260,7 @@
 }
 .sov-th-left { text-align: left; }
 .sov-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.sov-table tr:hover td { background: var(--bg); }
+.sov-table tr:hover td { background: var(--hover-bg); }
 .sov-td-center { text-align: center; }
 .sov-td-resolved { font-weight: 700; color: var(--green); }
 .sov-td-open-high { font-weight: 700; color: var(--red); }

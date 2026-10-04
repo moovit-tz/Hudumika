@@ -517,7 +517,7 @@
   cursor: pointer;
 }
 
-.trk-page-btn:hover:not(:disabled) { background: var(--bg); }
+.trk-page-btn:hover:not(:disabled) { background: var(--hover-bg); }
 .trk-page-btn:disabled { opacity: 0.4; cursor: default; }
 .trk-page-btn.active { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 

@@ -2321,7 +2321,7 @@ select.input-field { cursor: pointer; }
 [data-theme="dark"] .hnav { background: var(--white); border-color: var(--border); }
 [data-theme="dark"] .hnav-cats { background: var(--bg); }
 [data-theme="dark"] .hnav-cat { background: var(--bg); }
-[data-theme="dark"] .hnav-cat:hover { background: color-mix(in srgb, var(--white) 30%, var(--bg)); }
+[data-theme="dark"] .hnav-cat:hover { background: var(--hover-bg); }
 [data-theme="dark"] .hnav-cat--active { background: var(--white); }
 [data-theme="dark"] .hnav-subs { background: var(--bg); }
 [data-theme="dark"] .hnav-sub:hover { background: var(--hover-bg); }
@@ -5012,6 +5012,7 @@ select.input-field { cursor: pointer; }
   white-space: nowrap;
 }
 .fin-kpi-trend--up   { color: #16a34a; }
+[data-theme="dark"] .fin-kpi-trend--up { color: var(--green); }
 .fin-kpi-trend--down { color: var(--red); }
 .fin-kpi-trend--flat { color: var(--ink3); }
 .fin-kpi-trend-sub { font-size: 10.5px; font-weight: 500; color: var(--ink3); }
@@ -6244,6 +6245,7 @@ select.input-field { cursor: pointer; }
 .frm-btn--pdf { color: var(--ink); border-color: #cbd5e1; }
 .frm-btn--pdf:hover { background: var(--hover-bg); border-color: var(--ink3); }
 .frm-btn--excel { color: #166534; border-color: #bbf7d0; background: var(--green-l); }
+[data-theme="dark"] .frm-btn--excel { color: var(--green); border-color: var(--green); }
 .frm-btn--excel:hover { background: var(--green-l); border-color: #4ade80; }
 .frm-btn--schedule {
   background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent;
