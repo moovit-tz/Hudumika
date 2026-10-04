@@ -274,7 +274,7 @@
 }
 
 .cc-table tr:hover td {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .cc-table tr:last-child td {

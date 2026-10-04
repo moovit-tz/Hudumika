@@ -638,7 +638,7 @@
 }
 
 .onsite-table tr:hover td {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 /* Code & Mono */

@@ -836,7 +836,7 @@
 }
 
 .opd-pagination-btn:hover:not(:disabled) {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--teal);
   color: var(--teal);
 }

@@ -753,7 +753,7 @@
 }
 
 .email-template-import-btn:hover:not(:disabled) {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--teal);
   color: var(--teal);
 }
@@ -1757,7 +1757,7 @@
 .simple-wysiwyg-title-input:hover,
 .simple-wysiwyg-title-input:focus {
   border-color: var(--border) !important;
-  background: var(--bg) !important;
+  background: var(--hover-bg) !important;
 }
 
 .simple-wysiwyg-meta-badges {

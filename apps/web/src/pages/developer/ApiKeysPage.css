@@ -375,7 +375,7 @@
 }
 
 .api-table tr:hover td {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 
 .api-table-key-cell {
