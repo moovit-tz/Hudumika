@@ -163,8 +163,8 @@ export function BookingPublicPage() {
                             key={s} type="button" onClick={() => setSelectedSlot(s)}
                             style={{
                               padding: '10px 8px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                              border: `1px solid ${sel ? 'var(--teal)' : 'var(--border)'}`,
-                              background: sel ? 'var(--teal)' : 'var(--white)', color: sel ? '#ffffff' : 'var(--ink)',
+                              border: `1px solid ${sel ? 'hsl(var(--primary))' : 'var(--border)'}`,
+                              background: sel ? 'hsl(var(--primary))' : 'var(--white)', color: sel ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                               transition: 'all 0.15s ease', boxShadow: sel ? '0 2px 8px var(--teal-m)' : 'none',
                             }}
                           >
@@ -191,7 +191,7 @@ export function BookingPublicPage() {
                     type="button" onClick={handleBook} disabled={submitting || !name.trim() || !email.trim()}
                     style={{
                       padding: '12px 20px', border: 'none', borderRadius: 'var(--r)', cursor: submitting ? 'default' : 'pointer',
-                      fontWeight: 700, fontSize: 14, background: 'var(--teal)', color: '#ffffff',
+                      fontWeight: 700, fontSize: 14, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
                       opacity: (submitting || !name.trim() || !email.trim()) ? 0.6 : 1, transition: 'all 0.15s ease',
                       boxShadow: '0 2px 8px var(--teal-m)',
                     }}

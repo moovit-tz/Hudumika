@@ -243,15 +243,15 @@ export function BankReconciliation() {
       {/* ── Match Center Hero Banner ── */}
       <div
         style={{
-          background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, color-mix(in srgb, var(--teal) 35%, var(--navy2)) 100%)',
+          background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, color-mix(in srgb, hsl(var(--primary)) 80%, #000) 100%)',
           borderRadius: 'var(--r-lg, 12px)',
           padding: '22px 26px',
-          color: '#ffffff',
+          color: 'hsl(var(--primary-foreground))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 20,
-          boxShadow: '0 10px 25px -5px rgba(14, 31, 61, 0.3)',
+          boxShadow: 'var(--elev-lg)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           flexWrap: 'wrap',
         }}
@@ -272,15 +272,15 @@ export function BankReconciliation() {
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 24, fontWeight: 800, color: '#ffffff' }}>{brStats.rate}%</span>
-            <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>MATCHED</span>
+            <span style={{ fontSize: 24, fontWeight: 800, color: 'hsl(var(--primary-foreground))' }}>{brStats.rate}%</span>
+            <span style={{ fontSize: 9.5, color: 'hsl(var(--primary-foreground) / 0.7)', textTransform: 'uppercase' }}>MATCHED</span>
           </div>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', gap: 8 }}>
               Automated Bank Match Center
               <Badge variant="brand">Real-Time Sync</Badge>
             </h2>
-            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+            <p style={{ fontSize: 12.5, color: 'hsl(var(--primary-foreground) / 0.85)', margin: 0 }}>
               {brStats.matchedLines} of {brStats.totalLines} statement transactions verified against the General Ledger cash register.
             </p>
           </div>
@@ -288,12 +288,12 @@ export function BankReconciliation() {
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ background: 'rgba(0,0,0,0.22)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Statements</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{brStats.reconciledCount} / {brStats.total} Reconciled</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'hsl(var(--primary-foreground) / 0.7)', textTransform: 'uppercase' }}>Statements</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'hsl(var(--primary-foreground))' }}>{brStats.reconciledCount} / {brStats.total} Reconciled</div>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.22)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Closing Balance</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{fmt(brStats.totalClosingBalance)}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'hsl(var(--primary-foreground) / 0.7)', textTransform: 'uppercase' }}>Closing Balance</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'hsl(var(--primary-foreground))' }}>{fmt(brStats.totalClosingBalance)}</div>
           </div>
         </div>
       </div>
