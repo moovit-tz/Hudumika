@@ -447,7 +447,7 @@ export const OrgShell: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       {/* Top bar */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 100, background: '#0e1f3d', color: '#fff',
+        position: 'sticky', top: 0, zIndex: 100, background: 'var(--nav-header-bg)', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
