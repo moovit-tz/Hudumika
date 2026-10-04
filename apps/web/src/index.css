@@ -305,12 +305,8 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
      Keep it above the AA text floor on both the page and card surfaces; truly
      disabled content has its own opacity treatment below. */
   --ink3:   #8b9bb1;
-  /* Page background and card surface, faintly tinted with the active app accent.
-     --teal-fill-raw is the original (non-lightened) accent, set by WorkspaceApp
-     on :root per active app so each app gets its own hue in dark mode. On pages
-     without WorkspaceApp (pre-auth, legal) the fallback is the platform brand. */
-  --bg:     color-mix(in srgb, var(--teal-fill-raw, #1257c6) 2%, #080b10);
-  --white:  color-mix(in srgb, var(--teal-fill-raw, #1257c6) 3%, #111218);
+  --bg:     #080b10;
+  --white:  #111218;
   --border: rgba(255,255,255,0.14);
   --border2:rgba(255,255,255,0.28);
   /* Sunken card body surface (dark) — a hair lighter than the card so the
@@ -323,7 +319,7 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
 
   --navy:          #d8e4f4;
   --navy2:         #b8ccdf;
-  --nav-header-bg: color-mix(in srgb, var(--teal-fill-raw, #1257c6) 5%, #0a0e16);
+  --nav-header-bg: #0a0e16;
 
   /* Semantic text colours — brighter for dark backgrounds */
   --gold:   #c8920a;
