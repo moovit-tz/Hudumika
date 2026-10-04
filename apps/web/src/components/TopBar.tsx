@@ -603,7 +603,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         {/* Expand / collapse layout */}
         <button style={ibStyle(isExpanded)} title={isExpanded ? 'Collapse layout' : 'Expand layout'}
           onClick={onToggleExpand}
-          onMouseEnter={e => (e.currentTarget.style.background = isExpanded ? 'var(--teal-l)' : 'var(--bg)')}
+          onMouseEnter={e => (e.currentTarget.style.background = isExpanded ? 'var(--teal-l)' : 'var(--hover-bg)')}
           onMouseLeave={e => (e.currentTarget.style.background = isExpanded ? 'var(--teal-l)' : 'transparent')}>
           <Icon name={isExpanded ? 'minimize' : 'maximize'} size={16} color={isExpanded ? 'var(--teal)' : 'var(--ink2)'} />
         </button>

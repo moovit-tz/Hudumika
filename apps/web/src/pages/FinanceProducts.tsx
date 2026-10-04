@@ -472,7 +472,7 @@ export function FinanceProducts() {
                   <tr key={p.id}
                     onClick={() => setSelected(isActive ? null : p)}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: isActive ? 'var(--teal-l)' : undefined, transition: 'background .1s' }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isActive ? 'var(--teal-l)' : ''; }}
                   >
                     <td style={{ padding: '11px 14px', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{p.code}</td>

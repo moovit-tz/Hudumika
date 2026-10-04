@@ -602,7 +602,7 @@ export function FinanceVendors() {
                   <tr key={v.id}
                     onClick={() => setSelected(isActive ? null : v)}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: isActive ? 'var(--teal-l)' : undefined, transition: 'background .1s' }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; }}
+                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isActive ? 'var(--teal-l)' : ''; }}
                   >
                     <td style={{ padding: '12px 14px' }}>

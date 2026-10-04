@@ -535,7 +535,7 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
                   key={d.id}
                   onClick={() => onOpen(d)}
                   style={{ cursor: 'pointer', background: selected.has(d.id) ? 'var(--teal-l)' : undefined, transition: 'background 0.1s' }}
-                  onMouseEnter={e => { if (!selected.has(d.id)) (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; }}
+                  onMouseEnter={e => { if (!selected.has(d.id)) (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = selected.has(d.id) ? 'var(--teal-l)' : ''; }}
                 >
                   <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>

@@ -110,7 +110,7 @@ function SettingsNavItem({ icon, label, sub, to }: { icon: IconName; label: stri
   return (
     <Link to={to}
       style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', boxSizing: 'border-box', padding: '10px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', textDecoration: 'none', color: 'inherit' }}
-      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}>
       <div style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'rgba(100,116,139,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon name={icon} size={13} color="var(--ink3)" />
