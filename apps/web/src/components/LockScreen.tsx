@@ -111,7 +111,7 @@ export function LockScreen() {
               style={{
                 minHeight: 'var(--ctl-h-lg)', paddingRight: 52, fontSize: 15,
                 color: showPass ? 'var(--ink)' : 'transparent',
-                caretColor: 'var(--ink)',
+                caretColor: showPass ? 'var(--ink)' : 'transparent',
               }}
             />
 
@@ -125,12 +125,15 @@ export function LockScreen() {
                 {dotKeys.length === 0 ? (
                   <span style={{ fontSize: 15, color: 'var(--ink3)' }}>Password</span>
                 ) : (
-                  dotKeys.map((k, i) => (
-                    <span
-                      key={k}
-                      className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`}
-                    />
-                  ))
+                  <>
+                    {dotKeys.map((k, i) => (
+                      <span
+                        key={k}
+                        className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`}
+                      />
+                    ))}
+                    <span className="ls-cursor" />
+                  </>
                 )}
               </div>
             )}
