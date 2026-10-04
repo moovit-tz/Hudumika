@@ -646,7 +646,7 @@ export const CommandCenter: React.FC = () => {
     { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
     { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)',        metric: 'delivered' as Metric },
     { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: 'var(--gold-l)',        cell: 'warn', metric: 'penalty' as Metric },
-    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
+    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: 'var(--blue-l)',  metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
     { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--ink)',  bg: 'var(--bg)',      metric: 'month' as Metric },
   ];
 

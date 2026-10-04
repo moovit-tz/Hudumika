@@ -185,7 +185,7 @@ export const OndiGroups: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Dynamic Rules</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfeff', color: 'var(--teal)' }}><Icon name="zap" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}><Icon name="zap" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{ color: 'var(--teal)' }}>{dynamicCount}</span>

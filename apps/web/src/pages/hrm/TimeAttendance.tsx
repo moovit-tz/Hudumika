@@ -385,7 +385,7 @@ export function LeavesPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid var(--border)' }}>
+              <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Name ⇅</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Leave Type ⇅</th>
                 {/* Department column removed — /v1/hr/staff hardcodes dept:
@@ -712,8 +712,8 @@ export function AttendancePage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1000 }}>
             <thead>
-              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', width: 180, position: 'sticky', left: 0, background: '#f0f5ff', zIndex: 5 }}>
+              <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', width: 180, position: 'sticky', left: 0, background: 'var(--bg)', zIndex: 5 }}>
                   Employee Name ⇅
                 </th>
                 {days.slice(0, 31).map(d => (

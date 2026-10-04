@@ -516,7 +516,7 @@ export function PayrollPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f0f5ff', borderBottom: '1px solid var(--border)' }}>
+              <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Total Salary</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>Over Time</th>

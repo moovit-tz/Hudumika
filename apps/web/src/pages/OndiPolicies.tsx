@@ -206,7 +206,7 @@ export const OndiPolicies: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Session Timeout</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfeff', color: 'var(--teal)' }}>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
               <Icon name="clock" size={18} />
             </div>
           </div>

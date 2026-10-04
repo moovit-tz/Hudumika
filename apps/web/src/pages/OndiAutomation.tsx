@@ -53,7 +53,7 @@ export const OndiAutomation: React.FC = () => {
         <div className="ondi-kpi-card">
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Joiner Hook</span>
-            <div className="ondi-kpi-icon-box" style={{ background: '#ecfeff', color: 'var(--teal)' }}><Icon name="userPlus" size={18} /></div>
+            <div className="ondi-kpi-icon-box" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}><Icon name="userPlus" size={18} /></div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{ fontSize: 20, color: 'var(--teal)' }}>{defaultRoleName}</span>
