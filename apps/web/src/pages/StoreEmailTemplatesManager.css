@@ -263,7 +263,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-top: 8px;
-  border-top: 1px solid var(--border-subtle, #f1f5f9);
+  border-top: 1px solid var(--border);
 }
 
 /* ── List View Container & Rows ──────────────────────────────────────────── */

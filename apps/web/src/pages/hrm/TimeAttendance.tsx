@@ -350,7 +350,7 @@ export function LeavesPage() {
       {/* ðŸ“‹ Main Data Table Container (WorkDo Leaves Style) */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Employee's Leave</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -411,7 +411,7 @@ export function LeavesPage() {
                 rows.map(l => {
                   const st = getStatusBadgeClass(l.status);
                   return (
-                    <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={l.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <PersonAvatar name={l.emp} size={30} userId={l.userId} />
@@ -454,7 +454,7 @@ export function LeavesPage() {
         </div>
 
         {/* Pagination Footer */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink2)' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink2)' }}>
           <span>Showing 1 to {rows.length} of {leaves.length} entries</span>
           <div style={{ display: 'flex', gap: 4 }}>
             <Button size="xs" variant="outline">«</Button>
@@ -620,7 +620,7 @@ export function AttendancePage() {
             </Button>
           </div>
 
-          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, padding: '10px 0', borderBottom: '1px solid #f1f5f9', overflowX: 'auto' }}>
+          <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3, padding: '10px 0', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
             {dailyBreakdown.map(d => {
               const total = d.present + d.late + d.absent;
               const scale = total ? (total / maxDailyTotal) * 130 : 0;
@@ -679,7 +679,7 @@ export function AttendancePage() {
       {/* ðŸ“‹ Main Data Table Container (WorkDo Style) */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Employee Attendance</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -735,7 +735,7 @@ export function AttendancePage() {
                 </tr>
               ) : (
                 filteredEmps.map(emp => (
-                  <tr key={emp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={emp.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 16px', position: 'sticky', left: 0, background: 'var(--white)', zIndex: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
                       <PersonAvatar name={emp.name} size={28} userId={emp.id} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{emp.name}</span>
@@ -751,7 +751,7 @@ export function AttendancePage() {
                       else if (rec?.status === 'Absent') { bg = 'var(--red-l)'; symbol = 'A'; }
                       else if (rec?.status === 'Present') { bg = 'var(--green-l)'; symbol = 'P'; }
                       return (
-                        <td key={dStr} style={{ textAlign: 'center', padding: 4, background: bg, fontSize: 11, fontWeight: 700, borderRight: '1px solid #f1f5f9' }}>
+                        <td key={dStr} style={{ textAlign: 'center', padding: 4, background: bg, fontSize: 11, fontWeight: 700, borderRight: '1px solid var(--border)' }}>
                           {symbol}
                         </td>
                       );

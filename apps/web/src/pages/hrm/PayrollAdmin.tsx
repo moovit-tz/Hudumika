@@ -434,7 +434,7 @@ export function PayrollPage() {
               No calculated payroll runs for {effectiveYear} yet.
             </div>
           ) : (
-            <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
+            <div style={{ height: 160, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--border)', position: 'relative' }}>
               {yearRuns.map(r => {
                 const { net, other, total } = runCost(r);
                 const heightPct = (total / maxRunTotal) * 100;
@@ -491,7 +491,7 @@ export function PayrollPage() {
       {/* ðŸ“‹ Main Data Table Container (WorkDo Payroll Style) */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Payroll List</span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -536,7 +536,7 @@ export function PayrollPage() {
                   const st = getStatusBadge((p as any).status || 'PAID');
                   const ot = overtimePaid(p);
                   return (
-                    <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <PersonAvatar name={p.name} size={30} userId={p.user_id} />
@@ -578,7 +578,7 @@ export function PayrollPage() {
         {/* Every loaded payslip for this run renders above — nothing is
             truncated, so this states that plainly rather than pairing it
             with a page-number control that has no second page to go to. */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9', fontSize: 12, color: 'var(--ink2)' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--ink2)' }}>
           Showing all {filteredSlips.length} of {payslips.length} entries
         </div>
       </div>

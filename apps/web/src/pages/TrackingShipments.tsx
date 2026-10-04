@@ -225,7 +225,7 @@ export const TrackingShipments: React.FC = () => {
                 <React.Fragment key={s.id}>
                   <tr 
                     onClick={() => setExpandedTrip(expandedTrip === s.id ? null : s.id)}
-                    style={{ borderTop: '1px solid var(--border)', cursor: 'pointer', background: expandedTrip === s.id ? '#f8fafc' : 'transparent' }}
+                    style={{ borderTop: '1px solid var(--border)', cursor: 'pointer', background: expandedTrip === s.id ? 'var(--hover-bg)' : 'transparent' }}
                   >
                     <td style={{ padding: '16px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

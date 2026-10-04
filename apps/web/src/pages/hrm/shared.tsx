@@ -109,7 +109,7 @@ export const TD = ({ children, mono, right, muted, bold }: { children: React.Rea
   <td style={{
     padding: '14px 16px', textAlign: right ? 'right' : 'left',
     color: muted ? '#64748b' : 'var(--ink)', fontFamily: mono ? 'var(--mono, var(--font))' : undefined,
-    fontSize: muted ? 12 : 13, fontWeight: bold ? 700 : 500, borderBottom: '1px solid #f1f5f9',
+    fontSize: muted ? 12 : 13, fontWeight: bold ? 700 : 500, borderBottom: '1px solid var(--border)',
   }}>
     {children}
   </td>

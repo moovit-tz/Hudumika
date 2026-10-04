@@ -55,10 +55,10 @@ export function OnsiteTransfers() {
         <div className="onsite-transfer-icon">
           <Icon name="globe" size={36} />
         </div>
-        <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#18181b', margin: 0 }}>
+        <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
           Start with a new domain transfer
         </h2>
-        <p style={{ color: '#71717a', fontSize: '0.9375rem', maxWidth: '480px', margin: 0 }}>
+        <p style={{ color: 'var(--ink2)', fontSize: '0.9375rem', maxWidth: '480px', margin: 0 }}>
           Transfer a domain you have registered elsewhere or move a domain to another Onsite account.
         </p>
 
