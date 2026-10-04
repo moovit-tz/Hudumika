@@ -14,6 +14,7 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 // The three real Studio triggers OAuth/SSO events emit (studio/triggers.ts) —
 // a Studio automation bound to one of these actually fires when this exact
@@ -494,10 +495,10 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>{label}</label>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <code style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 11.5, background: 'var(--bg)', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'auto', whiteSpace: 'nowrap' }}>{value}</code>
-        <button type="button" title="Copy" onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+        <Tip label={copied ? 'Copied' : 'Copy'}><button type="button" aria-label={copied ? 'Copied' : 'Copy'} onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
           style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
           <Icon name={copied ? 'check' : 'copy'} size={13} />
-        </button>
+        </button></Tip>
       </div>
     </div>
   );
@@ -716,16 +717,16 @@ export const OndiSSO: React.FC = () => {
                                   Finish setup
                                 </button>
                               ) : (
-                                <button type="button" title="View connection details" onClick={() => setSamlWizard(p)}
+                                <Tip label="View connection details"><button type="button" aria-label="View connection details" onClick={() => setSamlWizard(p)}
                                   style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                                   <Icon name="link" size={13} />
-                                </button>
+                                </button></Tip>
                               )
                             )}
-                            <button type="button" title="Remove" onClick={() => remove(p.id)}
+                            <Tip label="Remove"><button type="button" aria-label={`Remove ${p.name}`} onClick={() => remove(p.id)}
                               style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                               <Icon name="trash" size={13} />
-                            </button>
+                            </button></Tip>
                           </div>
                         </td>
                       </tr>
@@ -772,10 +773,10 @@ export const OndiSSO: React.FC = () => {
                           <td style={{ padding: '12px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <code style={{ fontFamily: 'var(--font)', fontSize: 12, background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>{c.client_id}</code>
-                              <button type="button" title="Copy Client ID" onClick={() => copyToClipboard(c.client_id)}
+                              <Tip label="Copy Client ID"><button type="button" aria-label="Copy Client ID" onClick={() => copyToClipboard(c.client_id)}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}>
                                 <Icon name="copy" size={13} />
-                              </button>
+                              </button></Tip>
                             </div>
                           </td>
                           <td style={{ padding: '12px 14px' }}>
@@ -792,10 +793,10 @@ export const OndiSSO: React.FC = () => {
                             {callbackList.join(', ') || 'None'}
                           </td>
                           <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                            <button type="button" title="Remove Client" onClick={() => removeClient(c.id)}
+                            <Tip label="Remove Client"><button type="button" aria-label={`Remove ${c.name}`} onClick={() => removeClient(c.id)}
                               style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                               <Icon name="trash" size={13} />
-                            </button>
+                            </button></Tip>
                           </td>
                         </tr>
                       );

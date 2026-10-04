@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface ProductCategory {
   id: string;
@@ -242,14 +243,14 @@ export const ProductCategoriesPage: React.FC = () => {
         <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>{children.length}</td>
         <td style={{ padding: '10px 10px' }}>
           <div style={{ display: 'flex', gap: 2 }}>
-            <button type="button" title="Edit" onClick={() => setEditing(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)' }}
+            <Tip label="Edit"><button type="button" aria-label={`Edit ${cat.name}`} onClick={() => setEditing(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               <Icon name="edit" size={14} />
-            </button>
-            <button type="button" title="Delete" onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 5, borderRadius: 'var(--r-sm)' }}
+            </button></Tip>
+            <Tip label="Delete"><button type="button" aria-label={`Delete ${cat.name}`} onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 5, borderRadius: 'var(--r-sm)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               <Icon name="trash" size={14} />
-            </button>
+            </button></Tip>
           </div>
         </td>
       </tr>

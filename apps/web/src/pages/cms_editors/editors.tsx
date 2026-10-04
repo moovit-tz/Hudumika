@@ -170,7 +170,7 @@ export function PostEditor({
                 <Icon name="clock" size={13} /> History
               </button>
               {tenantSlug && (
-                <button onClick={handlePreview} className="btn btn-secondary btn-sm" title="Preview post">
+                <button onClick={handlePreview} className="btn btn-secondary btn-sm">
                   <Icon name="eye" size={13} /> Preview
                 </button>
               )}
@@ -308,7 +308,7 @@ export function PostEditor({
           <FL label="Tags">
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input value={form.tags || ''} onChange={e => set('tags', e.target.value)} placeholder="comma, separated" className="input-field" style={{ fontSize: 12, flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiTagsLoading} title="Suggest tags with AI" onClick={handleAiTags} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiTagsLoading} onClick={handleAiTags} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Icon name="sparkle" size={12} /> {aiTagsLoading ? 'Thinking…' : 'Suggest'}
               </button>
             </div>
@@ -319,7 +319,7 @@ export function PostEditor({
             <FL label="SEO description">
               <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews…" rows={2} maxLength={500}
                 className="input-field" style={{ fontSize: 12, lineHeight: 1.5, resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
-              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} title="Generate an SEO description with AI" onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
               </button>
             </FL>
@@ -472,7 +472,7 @@ export function PageEditor({
                 <Icon name="clock" size={13} /> History
               </button>
               {tenantSlug && (
-                <button onClick={handlePreview} className="btn btn-secondary btn-sm" title="Preview page">
+                <button onClick={handlePreview} className="btn btn-secondary btn-sm">
                   <Icon name="eye" size={13} /> Preview
                 </button>
               )}
@@ -553,7 +553,7 @@ export function PageEditor({
           <FL label="SEO description">
             <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews for this page…" rows={2} maxLength={500}
               style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 11px', fontSize: 13, lineHeight: 1.5, resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
-            <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} title="Generate an SEO description with AI" onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
             </button>
           </FL>

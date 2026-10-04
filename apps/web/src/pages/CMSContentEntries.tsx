@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
@@ -359,21 +360,21 @@ export function CMSContentEntries() {
               <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', width: 170, background: 'var(--white)' }} />
             </div>
-            <button className="btn btn-secondary btn-sm" title="Save this status + search as a named filter" onClick={handleSaveFilter} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button className="btn btn-secondary btn-sm" onClick={handleSaveFilter} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Icon name="bookmark" size={13} /> Save filter
             </button>
-            <button className="btn btn-secondary btn-sm" title="Export all entries as CSV" onClick={handleExportEntries} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button className="btn btn-secondary btn-sm" onClick={handleExportEntries} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Icon name="download" size={13} /> Export CSV
             </button>
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-              <button title="Table view" onClick={() => setView('table')}
+              <Tip label="Table view"><button aria-label="Table view" onClick={() => setView('table')}
                 style={{ padding: '7px 9px', background: view === 'table' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'table' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex' }}>
                 <Icon name="list" size={14} />
-              </button>
-              <button title="Card view" onClick={() => setView('card')}
+              </button></Tip>
+              <Tip label="Card view"><button aria-label="Card view" onClick={() => setView('card')}
                 style={{ padding: '7px 9px', background: view === 'card' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'card' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex', borderLeft: '1px solid var(--border)' }}>
                 <Icon name="grid" size={14} />
-              </button>
+              </button></Tip>
             </div>
           </div>
         </div>
@@ -743,7 +744,7 @@ function EntryEditor({
                 <Icon name="clock" size={13} /> History
               </button>
               {tenantSlug && (
-                <button className="btn btn-secondary btn-sm" onClick={handlePreview} title="Preview entry">
+                <button className="btn btn-secondary btn-sm" onClick={handlePreview}>
                   <Icon name="eye" size={13} /> Preview
                 </button>
               )}

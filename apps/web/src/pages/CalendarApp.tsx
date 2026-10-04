@@ -668,13 +668,17 @@ export const CalendarApp: React.FC = () => {
           </button>
 
           <div className="cal-topbar-nav-group">
-            <button onClick={handlePrev} title="Previous" className="cal-topbar-nav-btn">
-              <Icon name="chevronLeft" size={18} />
-            </button>
+            <Tip label="Previous">
+              <button onClick={handlePrev} aria-label="Previous" className="cal-topbar-nav-btn">
+                <Icon name="chevronLeft" size={18} />
+              </button>
+            </Tip>
 
-            <button onClick={handleNext} title="Next" className="cal-topbar-nav-btn">
-              <Icon name="chevronRight" size={18} />
-            </button>
+            <Tip label="Next">
+              <button onClick={handleNext} aria-label="Next" className="cal-topbar-nav-btn">
+                <Icon name="chevronRight" size={18} />
+              </button>
+            </Tip>
           </div>
 
           <span className="cal-topbar-title">

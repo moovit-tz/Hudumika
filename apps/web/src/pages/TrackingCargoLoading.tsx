@@ -11,6 +11,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 export type CameraPreset = 'iso' | 'front' | 'side' | 'top';
 
@@ -392,7 +393,9 @@ export const TrackingCargoLoading: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <SectionCard title={manifest.name} action={
-              <button type="button" onClick={deleteManifest} title="Delete load plan" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>
+              <Tip label="Delete load plan">
+                <button type="button" onClick={deleteManifest} aria-label="Delete load plan" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>
+              </Tip>
             }>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>
                 {manifest.container_length_cm} × {manifest.container_width_cm} × {manifest.container_height_cm} cm · max {manifest.max_weight_kg.toLocaleString()} kg

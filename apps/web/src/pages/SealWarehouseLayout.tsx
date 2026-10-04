@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../components/ui/tooltip.js';
+import { Tip, Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../components/ui/tooltip.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -541,12 +541,18 @@ export function SealWarehouseLayout() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {!editingLoc && (
                       <>
-                        <button type="button" title="Edit rack" onClick={startEditLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}>
-                          <Icon name="edit" size={15} />
-                        </button>
-                        <button type="button" title="Delete rack" onClick={handleDeleteLoc} disabled={deletingLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--red)' }}>
-                          <Icon name="trash" size={15} />
-                        </button>
+                        <Tip label="Edit rack">
+                          <button type="button" aria-label="Edit rack" onClick={startEditLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}>
+                            <Icon name="edit" size={15} />
+                          </button>
+                        </Tip>
+                        <Tip label="Delete rack">
+                          <span>
+                            <button type="button" aria-label="Delete rack" onClick={handleDeleteLoc} disabled={deletingLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--red)' }}>
+                              <Icon name="trash" size={15} />
+                            </button>
+                          </span>
+                        </Tip>
                       </>
                     )}
                     <button type="button" onClick={() => { setSelectedLoc(null); setEditingLoc(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>

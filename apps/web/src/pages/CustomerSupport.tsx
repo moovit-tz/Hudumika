@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 /* ── Types ── */
 interface Message {
@@ -201,7 +202,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
         position: 'sticky', top: 0, zIndex: 10,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <button type="button" title="Back to tickets" onClick={onBack}
+          <button type="button" onClick={onBack}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 0',
               display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)',
@@ -283,9 +284,13 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
               lineHeight: 1.5,
             }}
           />
-          <Button type="button" size="icon" title="Send reply" onClick={submit} disabled={!reply.trim() || sending} style={{ flexShrink: 0 }}>
-            <Icon name="send" size={18} />
-          </Button>
+          <Tip label="Send reply">
+            <span>
+              <Button type="button" size="icon" aria-label="Send reply" onClick={submit} disabled={!reply.trim() || sending} style={{ flexShrink: 0 }}>
+                <Icon name="send" size={18} />
+              </Button>
+            </span>
+          </Tip>
         </div>
       )}
     </div>
@@ -495,7 +500,7 @@ export const CustomerSupport: React.FC = () => {
             {loading ? 'Loading…' : `${tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} open ticket(s)`}
           </p>
         </div>
-        <Button type="button" title="Create new ticket" onClick={() => setShowNew(true)}>
+        <Button type="button" onClick={() => setShowNew(true)}>
           <Icon name="plus" size={16} />
           New
         </Button>
@@ -537,7 +542,7 @@ export const CustomerSupport: React.FC = () => {
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 20px' }}>
               Our support team is ready to help
             </p>
-            <Button type="button" title="Open new ticket" onClick={() => setShowNew(true)}>
+            <Button type="button" onClick={() => setShowNew(true)}>
               Open a Ticket
             </Button>
           </div>

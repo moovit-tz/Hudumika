@@ -8,6 +8,7 @@ import { DateRangePicker } from '../components/ui/date-picker.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { DataTable, ClickableBarChart, ExportButton, exportCsv, type ColumnDef } from '../components/AnalyticsKit.js';
 import type { DateRange } from 'react-day-picker';
 import './SuperAdminReports.css';
@@ -229,9 +230,11 @@ export function SuperAdminReports() {
                     onClick={() => selectSavedReport(def)}>
                     {def.name}
                   </button>
-                  <button type="button" className="sar-saved-delete" title="Delete report" onClick={() => deleteReport(def.id)}>
-                    <Icon name="trash" size={12} />
-                  </button>
+                  <Tip label="Delete report">
+                    <button type="button" className="sar-saved-delete" aria-label="Delete report" onClick={() => deleteReport(def.id)}>
+                      <Icon name="trash" size={12} />
+                    </button>
+                  </Tip>
                 </div>
               ))}
             </div>

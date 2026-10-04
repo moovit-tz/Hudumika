@@ -411,10 +411,14 @@ export const ALL_CHANNELS: Channel[] = ['whatsapp', 'email'];
 export function ChannelToggle({ ch, active, onToggle, readOnly }: { ch: Channel; active: boolean; onToggle: () => void; readOnly?: boolean }) {
   const cfg = CH_CFG[ch];
   return (
-    <button type="button" onClick={readOnly ? undefined : onToggle} disabled={readOnly} title={readOnly ? cfg.label : `${active ? 'Disable' : 'Enable'} ${cfg.label}`}
-      style={{ fontSize: 10, padding: 'var(--ds-btn-py-xs) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-      {cfg.label}
-    </button>
+    <Tip label={readOnly ? cfg.label : `${active ? 'Disable' : 'Enable'} ${cfg.label}`}>
+      <span>
+        <button type="button" onClick={readOnly ? undefined : onToggle} disabled={readOnly}
+          style={{ fontSize: 10, padding: 'var(--ds-btn-py-xs) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          {cfg.label}
+        </button>
+      </span>
+    </Tip>
   );
 }
 

@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { apiFetch } from '../lib/api.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import {
   printSharedReport, rateCardKeyFor, fetchRateCardDefaults, fetchSizeCardsForLots,
@@ -369,9 +370,11 @@ export const LandedCostHistoryPage: React.FC = () => {
                     <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}>{fmtTzs(r.total_tzs)}</td>
                     <td>
                       <div className="lch-acts">
-                        <button type="button" className="lch-act" title="View" aria-label="View" onClick={() => openDetail(r.id)}>
-                          <Icon name="eye" size={14} />
-                        </button>
+                        <Tip label="View calculation">
+                          <button type="button" className="lch-act" aria-label="View calculation" onClick={() => openDetail(r.id)}>
+                            <Icon name="eye" size={14} />
+                          </button>
+                        </Tip>
                         {/* Offered only when the record can actually produce a
                             document. A disabled button that explains itself is
                             better than one that fails after the click. */}

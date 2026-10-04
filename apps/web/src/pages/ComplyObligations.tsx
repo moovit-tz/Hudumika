@@ -13,6 +13,7 @@ import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { showConfirm } from '../lib/confirm.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 type Filter = 'all' | 'active' | 'pending' | 'expired' | 'not-started';
 
@@ -94,9 +95,11 @@ export function ComplyObligations() {
             {obligations.filter(o => !o.mandatory).length} optional across {Object.keys(groups).length} agencies </>}
         actions={
         <div className="comply-action-row">
-          <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh obligations" aria-label="Refresh obligations">
-            <Icon name="refresh" size={13} />
-          </Button>
+          <Tip label="Refresh obligations">
+            <Button type="button" variant="outline" size="icon" onClick={refresh} aria-label="Refresh obligations">
+              <Icon name="refresh" size={13} />
+            </Button>
+          </Tip>
           <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/obligations/new')}>
             <Icon name="plus" size={14} /> Add Obligation
           </Button>
@@ -182,10 +185,14 @@ export function ComplyObligations() {
                       </Button>
                     </>
                   )}
-                  <Button type="button" variant="ghost" size="xs" title="Delete obligation" disabled={busyId === o.id} onClick={() => handleDelete(o)}
-                    style={{ color: 'var(--ink3)' }} aria-label="Delete obligation">
-                    <Icon name="trash" size={13} />
-                  </Button>
+                  <Tip label="Delete obligation">
+                    <span>
+                      <Button type="button" variant="ghost" size="xs" disabled={busyId === o.id} onClick={() => handleDelete(o)}
+                        style={{ color: 'var(--ink3)' }} aria-label="Delete obligation">
+                        <Icon name="trash" size={13} />
+                      </Button>
+                    </span>
+                  </Tip>
                 </div>
               </div>
             ))}

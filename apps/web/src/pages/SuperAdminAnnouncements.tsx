@@ -6,6 +6,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 /**
  * Writing the notices that appear in every workspace's header pill.
@@ -204,14 +205,14 @@ export const SuperAdminAnnouncements: React.FC = () => {
                   <td style={{ padding: '11px 14px' }}><Badge variant={state.variant}>{state.label}</Badge></td>
                   <td style={{ padding: '11px 14px', color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{a.dismissed_count}</td>
                   <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
-                    <button type="button" title={a.active ? 'Switch off' : 'Switch on'} onClick={() => toggle(a)}
+                    <Tip label={a.active ? 'Switch off' : 'Switch on'}><button type="button" aria-label={a.active ? 'Switch off' : 'Switch on'} onClick={() => toggle(a)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}>
                       <Icon name={a.active ? 'pause' : 'play'} size={14} />
-                    </button>
-                    <button type="button" title="Delete" onClick={() => remove(a)}
+                    </button></Tip>
+                    <Tip label="Delete"><button type="button" aria-label={`Delete ${a.title}`} onClick={() => remove(a)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}>
                       <Icon name="trash2" size={14} />
-                    </button>
+                    </button></Tip>
                   </td>
                 </tr>
               );

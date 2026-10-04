@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { getMood } from '../lib/greeting.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { WorkspaceHome } from './WorkspaceHome.js';
@@ -564,12 +565,14 @@ export const AgenticHome: React.FC = () => {
             )}
 
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="ah-header-icon-btn" title="Notifications">
-                  <Icon name="bell" size={18} color="var(--ink)" />
-                  {unreadCount > 0 && <span className="ah-header-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
-                </button>
-              </DropdownMenuTrigger>
+              <Tip label="Notifications">
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="ah-header-icon-btn" aria-label="Notifications">
+                    <Icon name="bell" size={18} color="var(--ink)" />
+                    {unreadCount > 0 && <span className="ah-header-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+                  </button>
+                </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end" className="ah-notif-menu">
                 <div className="ah-notif-head">
                   <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Notifications</span>
@@ -591,11 +594,13 @@ export const AgenticHome: React.FC = () => {
             </DropdownMenu>
 
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="ah-header-avatar-btn" title={user?.name || 'Account menu'}>
-                  <PersonAvatar userId={user?.id} name={user?.name || ''} size={32} />
-                </button>
-              </DropdownMenuTrigger>
+              <Tip label={user?.name || 'Account menu'}>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="ah-header-avatar-btn" aria-label={user?.name || 'Account menu'}>
+                    <PersonAvatar userId={user?.id} name={user?.name || ''} size={32} />
+                  </button>
+                </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end" className="ah-profile-dropdown-menu">
                 <div className="ah-profile-dropdown-user">
                   <PersonAvatar userId={user?.id} name={user?.name || ''} size={36} />

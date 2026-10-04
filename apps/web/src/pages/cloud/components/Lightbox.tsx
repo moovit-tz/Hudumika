@@ -10,6 +10,7 @@ import { usePdfDocument } from '../lib/usePdfDocument.js';
 import { DocThumbnail } from './DocThumbnail.js';
 import { PdfPageCanvas } from './PdfPageCanvas.js';
 import { PdfThumbnailRail } from './PdfThumbnailRail.js';
+import { Tip } from '../../../components/ui/tooltip.js';
 
 /**
  * Full-screen document viewer modal.
@@ -270,16 +271,14 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
             {/* Send this real file straight into a real signing workflow —
                 /v1/sign/envelopes.file_id is a real FK to cloud_files, so the
                 editor opens with this exact document loaded, not a re-upload. */}
-            <button onClick={openInSign} title="Sign & Stamp" className="lbx-sign-btn">
+            <button onClick={openInSign} className="lbx-sign-btn">
               <Icon name="stamp" size={14} color="#fff" />
               <span>Sign &amp; Stamp</span>
             </button>
 
             <div className="lbx-divider" />
 
-            <button onClick={onClose} title="Close viewer" className="lbx-icon-btn lbx-close-btn">
-              <Icon name="close" size={16} />
-            </button>
+            <Tip label="Close viewer"><button onClick={onClose} aria-label="Close viewer" className="lbx-icon-btn lbx-close-btn"><Icon name="close" size={16} /></button></Tip>
           </div>
         </div>
 

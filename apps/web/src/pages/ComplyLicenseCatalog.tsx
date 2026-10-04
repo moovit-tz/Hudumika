@@ -7,6 +7,7 @@ import type { CompLicenseCatalogEntry } from '@hudumika/types';
 import { Combobox } from '../components/ui/combobox.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import './ComplyOS.css';
+import { Tip } from '../components/ui/tooltip.js';
 
 function formatFee(amount: number | null, currency: string): string {
   if (amount === null) return '—';
@@ -121,9 +122,11 @@ export function ComplyLicenseCatalog() {
                 <div className="comply-panel-hdr-title">{selected.description}</div>
                 <span className="comply-badge comply-badge--draft">{selected.sn}. {selected.category}</span>
               </div>
-              <button type="button" title="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
-                <Icon name="x" size={18} />
-              </button>
+              <Tip label="Close">
+                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
+                  <Icon name="x" size={18} />
+                </button>
+              </Tip>
             </div>
 
             <div className="comply-panel-body">

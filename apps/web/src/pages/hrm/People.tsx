@@ -20,6 +20,7 @@ import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showPrompt } from '../../lib/prompt.js';
 import { Avatar, Badge, PageHeader, Card, TH, TD, Wrap, PrimaryBtn, ActionBtn } from './shared.js';
+import { Tip } from '../../components/ui/tooltip.js';
 /* -- Sub-pages -- */
 
 export function EmployeesPage() {
@@ -131,10 +132,10 @@ export function EmployeesPage() {
         {/* View toggle */}
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
           {(['list', 'grid'] as const).map(mode => (
-            <button key={mode} type="button" title={mode === 'list' ? 'List view' : 'Card grid view'} onClick={() => setViewMode(mode)}
+            <Tip key={mode} label={mode === 'list' ? 'List view' : 'Card grid view'}><button type="button" aria-label={mode === 'list' ? 'List view' : 'Card grid view'} onClick={() => setViewMode(mode)}
               style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name={mode === 'list' ? 'list' : 'grid'} size={15} color={viewMode === mode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
-            </button>
+            </button></Tip>
           ))}
         </div>
       </div>
@@ -216,10 +217,9 @@ export function EmployeesPage() {
 
       {/* -- Invite / Onboard Modal -- */}
       <Dialog open={showOnboard} onOpenChange={o => { if (!o) setShowOnboard(false); }}>
-        <DialogContent hideClose className="w-115 max-w-[90%] max-h-[90vh] overflow-y-auto gap-0" style={{ padding: 32 }}>
+        <DialogContent className="w-115 max-w-[90%] max-h-[90vh] overflow-y-auto gap-0" style={{ padding: 32 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <DialogTitle style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Invite New Staff</DialogTitle>
-              <button type="button" title="Close" onClick={() => setShowOnboard(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={20} color="var(--ink3)" /></button>
             </div>
             <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 24px' }}>Sends an email invite. They'll set their own name and password when they accept.</p>
 
@@ -982,9 +982,9 @@ export function TeamsPage() {
               {t.members.map(m => (
                 <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <PersonLink userId={m.user_id} name={m.user_name} size={22} style={{ flex:1 }} />
-                  <button type="button" title="Remove" onClick={() => removeMember(t.id, m.user_id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}>
+                  <Tip label="Remove"><button type="button" aria-label={`Remove ${m.user_name}`} onClick={() => removeMember(t.id, m.user_id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}>
                     <Icon name="x" size={12} />
-                  </button>
+                  </button></Tip>
                 </div>
               ))}
             </div>

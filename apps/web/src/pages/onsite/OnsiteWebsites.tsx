@@ -10,6 +10,7 @@ import type { OnsiteWebsite, OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import './Onsite.css';
 
 const WEBSITE_TYPES: { value: string; label: string }[] = [
@@ -294,17 +295,17 @@ export function OnsiteWebsites() {
                     <button className="onsite-btn-purple" onClick={() => navigate('/onsite/websites/' + site.id)}>
                       <span>Dashboard</span>
                     </button>
-                    <button
-                      className="onsite-btn-outline"
-                      disabled={!site.domain_id}
-                      title={site.domain_id ? undefined : 'No domain linked to this website yet'}
-                      onClick={() => site.domain_id && navigate('/onsite/domains/' + site.domain_id + '/dns')}
-                    >
-                      <span>DNS</span>
-                    </button>
-                    <button className="onsite-btn-outline onsite-btn-icon-sm" title="More options">
-                      <Icon name="moreVertical" size={16} />
-                    </button>
+                    <Tip label={site.domain_id ? 'Open DNS settings' : 'No domain linked to this website yet'}>
+                      <span>
+                        <button
+                          className="onsite-btn-outline"
+                          disabled={!site.domain_id}
+                          onClick={() => site.domain_id && navigate('/onsite/domains/' + site.domain_id + '/dns')}
+                        >
+                          <span>DNS</span>
+                        </button>
+                      </span>
+                    </Tip>
                   </div>
                 </div>
               ))}

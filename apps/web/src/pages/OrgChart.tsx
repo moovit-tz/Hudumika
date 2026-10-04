@@ -29,6 +29,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgNode {
@@ -335,9 +336,11 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2 }}>{form.label || 'Edit Role'}</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{form.job_title || 'Organization Member'}</div>
         </div>
-        <Button type="button" variant="ghost" size="sm" aria-label="Close" title="Close" onClick={onClose}>
-          <Icon name="x" size={18} />
-        </Button>
+        <Tip label="Close">
+          <Button type="button" variant="ghost" size="sm" aria-label="Close" onClick={onClose}>
+            <Icon name="x" size={18} />
+          </Button>
+        </Tip>
       </div>
 
       {/* Drawer Content */}
@@ -624,10 +627,10 @@ export const OrgChart: React.FC = () => {
                 <Icon name="clock" size={11} color="var(--gold)" /> Auto-saving…
               </span>
             )}
-            <Button type="button" variant="outline" size="sm" onClick={syncStaff} disabled={saving} title="Import unlinked staff from HR directory" style={{ whiteSpace: 'nowrap' }}>
+            <Button type="button" variant="outline" size="sm" onClick={syncStaff} disabled={saving} style={{ whiteSpace: 'nowrap' }}>
               <Icon name="users" size={13} /> Sync Staff
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={autoLayout} title="Auto-organize graph hierarchy" style={{ whiteSpace: 'nowrap' }}>
+            <Button type="button" variant="outline" size="sm" onClick={autoLayout} style={{ whiteSpace: 'nowrap' }}>
               <Icon name="zap" size={13} /> Auto Layout
             </Button>
             <Button type="button" size="sm" onClick={() => { setAddForm({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '', user_id: '' }); setShowAdd(true); }} style={{ whiteSpace: 'nowrap' }}>
@@ -643,10 +646,12 @@ export const OrgChart: React.FC = () => {
           display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 5 }}>
           <Icon name="alertCircle" size={14} color="var(--red)" />
           <span style={{ fontSize: 12.5, color: 'var(--red)', flex: 1 }}>{error}</span>
-          <button type="button" title="Dismiss" onClick={() => setError(null)}
+          <Tip label="Dismiss">
+          <button type="button" aria-label="Dismiss" onClick={() => setError(null)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
             <Icon name="x" size={14} color="var(--red)" />
           </button>
+          </Tip>
         </div>
       )}
 
@@ -763,9 +768,11 @@ export const OrgChart: React.FC = () => {
                 <DialogTitle style={{ fontSize: 15 }}>Add Person / Role</DialogTitle>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Create a custom node or import from Staff Directory</div>
               </div>
-              <Button type="button" variant="ghost" size="sm" aria-label="Close" title="Close" onClick={() => setShowAdd(false)} style={{ marginLeft: 'auto' }}>
-                <Icon name="x" size={16} />
-              </Button>
+              <Tip label="Close">
+                <Button type="button" variant="ghost" size="sm" aria-label="Close" onClick={() => setShowAdd(false)} style={{ marginLeft: 'auto' }}>
+                  <Icon name="x" size={16} />
+                </Button>
+              </Tip>
             </DialogHeader>
 
             {/* Import from Staff selector */}

@@ -13,6 +13,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar, CompanyAvatar } from '../components/PersonAvatar.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const SPECIALTIES_FILTER = [
   'All', 'Corporate Registration', 'Tax Compliance', 'Employment Law',
@@ -101,7 +102,9 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
             <div className="comply-panel-hdr-title">{engagement.firm_name}</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{engagement.engagement_type}{engagement.agency_code ? ` · ${engagement.agency_code}` : ''}{engagement.customer_name ? ` · ${engagement.customer_name}` : ''}</div>
           </div>
-          <button type="button" title="Close" className="comply-close-btn" onClick={onClose}><Icon name="x" size={18} /></button>
+          <Tip label="Close">
+            <button type="button" aria-label="Close" className="comply-close-btn" onClick={onClose}><Icon name="x" size={18} /></button>
+          </Tip>
         </div>
         <div className="comply-panel-body">
           <EngagementStepper status={engagement.status} />
@@ -147,9 +150,13 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input className="input-field" style={{ flex: 1 }} value={message} onChange={e => setMessage(e.target.value)} placeholder="Send a message to the firm…" onKeyDown={e => { if (e.key === 'Enter') handleSend(); }} />
-              <Button type="button" size="icon" disabled={sending} onClick={handleSend} title="Send message" aria-label="Send message">
-                <Icon name="send" size={13} />
-              </Button>
+              <Tip label="Send message">
+                <span>
+                  <Button type="button" size="icon" disabled={sending} onClick={handleSend} aria-label="Send message">
+                    <Icon name="send" size={13} />
+                  </Button>
+                </span>
+              </Tip>
             </div>
           </div>
 

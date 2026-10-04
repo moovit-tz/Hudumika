@@ -26,6 +26,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 /* ── STATUS & PRIORITY META (Perfex CRM Standard) ──────────────────── */
 
@@ -880,7 +881,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
         {!trashed && !readOnly && todo.status === 'none' && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" title="Set status" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--badge-radius)', cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
+              <button type="button" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--badge-radius)', cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
             </DropdownMenuTrigger>
             <StatusMenuItems todoId={todo.id} />
           </DropdownMenu>
@@ -889,17 +890,19 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
         {trashed ? (
           todo.isOwner ? (
             <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" title="Restore" onClick={() => restoreTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}><Icon name="refresh" size={15} /></button>
-              <button type="button" title="Delete forever" onClick={() => purgeTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}><Icon name="trash" size={15} /></button>
+              <Tip label="Restore"><button type="button" aria-label="Restore" onClick={() => restoreTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}><Icon name="refresh" size={15} /></button></Tip>
+              <Tip label="Delete forever"><button type="button" aria-label="Delete forever" onClick={() => purgeTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}><Icon name="trash" size={15} /></button></Tip>
             </div>
           ) : (
             <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Deleted by owner</span>
           )
         ) : readOnly ? null : (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" title="More" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}><Icon name="moreVertical" size={16} /></button>
-            </DropdownMenuTrigger>
+            <Tip label="More actions">
+              <DropdownMenuTrigger asChild>
+                <button type="button" aria-label="More actions" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}><Icon name="moreVertical" size={16} /></button>
+              </DropdownMenuTrigger>
+            </Tip>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => updateTodo(todo.id, { starred: !todo.starred })}>
                 <Icon name="star" size={13} className="text-muted-foreground" /> {todo.starred ? 'Unstar' : 'Star'}

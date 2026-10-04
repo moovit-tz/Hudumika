@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { showConfirm } from '../../../lib/confirm.js';
 import type { CloudFile, Crumb, CloudView } from '../../../shells/cloud-context.js';
 import { FileMenuItems, type FileMenuHandlers } from './FileMenu.js';
+import { Tip } from '../../../components/ui/tooltip.js';
 
 type SortBy = 'name' | 'size' | 'modified';
 type ViewMode = 'grid' | 'list';
@@ -91,18 +92,19 @@ export function BrowserToolbar(props: {
                     {idx > 0 && <Icon name="chevronRight" size={14} color="var(--ink3)" className="shrink-0" />}
                     <button
                       onClick={() => !isLast && navToBreadcrumb(idx)}
-                      title={crumb.name}
                       className={`fb-breadcrumb${isLast ? ' fb-breadcrumb--current' : ''}`}
                     >
                       {crumb.name}
                     </button>
                     {isLast && currentFolderItem && (
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button title="Folder options" className="fb-toolbar-icon-btn">
+                        <Tip label="Folder options">
+                          <DropdownMenuTrigger asChild>
+                          <button aria-label="Folder options" className="fb-toolbar-icon-btn">
                             <Icon name="chevronDown" size={16} color="var(--ink3)" />
                           </button>
-                        </DropdownMenuTrigger>
+                          </DropdownMenuTrigger>
+                        </Tip>
                         <DropdownMenuContent align="start" className="w-47.5">
                           <FileMenuItems item={currentFolderItem} isTrashed={false} handlers={menuHandlers} ItemComp={DropdownMenuItem} SeparatorComp={DropdownMenuSeparator} />
                         </DropdownMenuContent>
@@ -112,9 +114,7 @@ export function BrowserToolbar(props: {
                 );
               })}
               {currentFolderItem && (
-                <button title="Share this folder" aria-label="Share this folder" onClick={onShareFolder} className="fb-toolbar-icon-btn">
-                  <Icon name="users" size={15} color="var(--ink3)" />
-                </button>
+                <Tip label="Share this folder"><button aria-label="Share this folder" onClick={onShareFolder} className="fb-toolbar-icon-btn"><Icon name="users" size={15} color="var(--ink3)" /></button></Tip>
               )}
             </div>
           )}

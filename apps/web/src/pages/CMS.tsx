@@ -504,7 +504,7 @@ export const CMS: React.FC = () => {
               <button onClick={() => wpImportInputRef.current?.click()} disabled={importingWp} className="btn btn-secondary btn-sm" title="Import posts from a WordPress export (.xml)">
                 <Icon name="upload" size={13} /> {importingWp ? 'Importing…' : 'Import from WordPress'}
               </button>
-              <button onClick={handleExportPosts} className="btn btn-secondary btn-sm" title="Export all posts as CSV">
+              <button onClick={handleExportPosts} className="btn btn-secondary btn-sm">
                 <Icon name="download" size={13} /> Export CSV
               </button>
               <button onClick={() => { setEditPost(null); goTo('post-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -514,7 +514,7 @@ export const CMS: React.FC = () => {
           )}
           {view === 'pages' && (
             <>
-              <button onClick={handleExportPages} className="btn btn-secondary btn-sm" title="Export all pages as CSV">
+              <button onClick={handleExportPages} className="btn btn-secondary btn-sm">
                 <Icon name="download" size={13} /> Export CSV
               </button>
               <button onClick={() => { setEditPage({}); goTo('page-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

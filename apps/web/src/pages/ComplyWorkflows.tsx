@@ -8,6 +8,7 @@ import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 /* ── Constants ─────────────────────────────────────────────────────────────── */
 
@@ -122,7 +123,7 @@ export function ComplyWorkflows() {
         subtitle="Certificate renewal automation — review, approve and track submissions."
         actions={
         <div className="comply-action-row">
-          <Button type="button" variant="outline" size="sm" onClick={refresh} title="Refresh">
+          <Button type="button" variant="outline" size="sm" onClick={refresh}>
             <Icon name="refresh" size={14} />
             Refresh
           </Button>
@@ -282,9 +283,9 @@ export function ComplyWorkflows() {
                     <StatusBadge status={selected.status as CompRenewalStatus} />
                   </div>
                 </div>
-                <button type="button" className="comply-close-btn" title="Close" onClick={closeDrawer}>
+                <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={closeDrawer}>
                   <Icon name="x" size={16} />
-                </button>
+                </button></Tip>
               </div>
             </div>
 

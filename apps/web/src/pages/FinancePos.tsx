@@ -14,6 +14,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
+import { Tip } from '../components/ui/tooltip.js';
 import './FinancePos.css';
 
 interface Product { id:string; code:string; name:string; category:string|null; unit:string; type:string; sale_price:number; currency:string; tax_rate:number }
@@ -438,9 +439,11 @@ export function FinancePos() {
                       value={displayValue || ''}
                       onChange={e => changeDiscount(line.id, Number(e.target.value))}
                     />
-                    <button type="button" className="pos-discount-mode-btn" title={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'} onClick={() => toggleDiscountMode(line.id)}>
-                      {line.discountMode === 'pct' ? '%' : 'TZS'}
-                    </button>
+                    <Tip label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'}>
+                      <button type="button" className="pos-discount-mode-btn" aria-label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'} onClick={() => toggleDiscountMode(line.id)}>
+                        {line.discountMode === 'pct' ? '%' : 'TZS'}
+                      </button>
+                    </Tip>
                   </div>
                   <b>{cash((line.sale_price * line.qty - line.discount) * (1 + line.tax_rate / 100), line.currency)}</b>
                 </div>

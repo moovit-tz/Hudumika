@@ -11,6 +11,7 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { apiFetch } from '../lib/api.js';
 import 'leaflet/dist/leaflet.css';
 import './TrackingRoutePlanner.css';
@@ -158,11 +159,13 @@ export const TrackingRoutePlanner: React.FC = () => {
 
         <div className="rp-map-controls">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="rp-mc-btn" title="Map Layers">
+            <Tip label="Map layers">
+              <DropdownMenuTrigger asChild>
+              <button className="rp-mc-btn" aria-label="Map layers">
                 <Icon name="layers" size={16} />
               </button>
-            </DropdownMenuTrigger>
+              </DropdownMenuTrigger>
+            </Tip>
             <DropdownMenuContent align="end" className="w-36">
               {([
                 ['Auto', null],

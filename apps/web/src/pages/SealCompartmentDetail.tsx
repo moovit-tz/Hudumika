@@ -173,7 +173,7 @@ export function SealCompartmentDetail() {
             <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/edit`)}>
               <Icon name="edit" size={14} /><span>Edit</span>
             </button>
-            <button type="button" className="btn btn-secondary" onClick={handleDuplicate} title="Duplicate this warehouse definition">
+            <button type="button" className="btn btn-secondary" onClick={handleDuplicate}>
               <Icon name="copy" size={14} /><span>Duplicate</span>
             </button>
             <button type="button" className="btn btn-secondary" onClick={handleToggleStatus} style={{ color: isSuspended ? 'var(--seal)' : 'var(--red)' }}>

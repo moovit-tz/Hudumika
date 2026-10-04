@@ -1624,9 +1624,11 @@ const SharePanel: React.FC<{
                         <SelectItem value="view">Can view</SelectItem>
                       </SelectContent>
                     </Select>
-                    <button type="button" className="notes-icon-btn" title="Remove" onClick={() => removePerson(s.userId)}>
-                      <Icon name="close" size={13} />
-                    </button>
+                    <Tip label="Remove collaborator">
+                      <button type="button" className="notes-icon-btn" aria-label="Remove collaborator" onClick={() => removePerson(s.userId)}>
+                        <Icon name="close" size={13} />
+                      </button>
+                    </Tip>
                   </div>
                 );
               })}

@@ -12,6 +12,7 @@ import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
 import { showConfirm } from '../../lib/confirm.js';
+import { Tip } from '../../components/ui/tooltip.js';
 
 /** The real automation engine (support_rules — 4 real types, actually
  *  executed by support-rules.job.ts and inline in support.routes.ts), shown
@@ -283,10 +284,12 @@ export const BlissAutomations: React.FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Badge variant={rule.enabled ? 'success' : 'gray'}>{rule.enabled ? 'ACTIVE' : 'PAUSED'}</Badge>
                         {canManage && (
-                          <button type="button" title="Delete rule" onClick={e => { e.stopPropagation(); handleDelete(rule); }}
-                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}>
-                            <Icon name="trash" size={13} />
-                          </button>
+                          <Tip label="Delete rule">
+                            <button type="button" aria-label="Delete rule" onClick={e => { e.stopPropagation(); handleDelete(rule); }}
+                              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}>
+                              <Icon name="trash" size={13} />
+                            </button>
+                          </Tip>
                         )}
                       </div>
                     </div>

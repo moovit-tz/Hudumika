@@ -96,7 +96,7 @@ function RejectModal({ quote, onClose, onReject }: {
             rows={3}
             style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
           />
-          <Button type="button" variant="destructive" size="lg" title="Confirm rejection" onClick={() => onReject(reason.trim())} className="w-full">
+          <Button type="button" variant="destructive" size="lg" onClick={() => onReject(reason.trim())} className="w-full">
             Reject Quote
           </Button>
         </div>
@@ -128,10 +128,10 @@ function AcceptModal({ quote, onClose, onAccept }: {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button type="button" variant="outline" size="lg" title="Cancel" onClick={onClose} style={{ flex: 1 }}>
+            <Button type="button" variant="outline" size="lg" onClick={onClose} style={{ flex: 1 }}>
               Cancel
             </Button>
-            <Button type="button" size="lg" title="Accept quote" onClick={onAccept} style={{ flex: 1 }}>
+            <Button type="button" size="lg" onClick={onAccept} style={{ flex: 1 }}>
               Yes, Accept
             </Button>
           </div>
@@ -187,7 +187,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
     <div style={{ fontFamily: 'var(--font)', paddingBottom: canAct ? 140 : 100 }}>
       {/* Top bar */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="button" title="Back" onClick={onBack}
+        <button type="button" onClick={onBack}
           style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }}>
           <Icon name="chevronLeft" size={18} color="var(--teal)" />
           Back
@@ -300,12 +300,12 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
         {canAct ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 10 }}>
-              <Button type="button" variant="outline" size="lg" title="Reject this quote" onClick={() => setRejecting(true)} disabled={saving}
+              <Button type="button" variant="outline" size="lg" onClick={() => setRejecting(true)} disabled={saving}
                 style={{ flex: 1, borderColor: 'var(--red)', color: 'var(--red)' }}>
                 <Icon name="x" size={15} />
                 Reject
               </Button>
-              <Button type="button" size="lg" title="Accept this quote" onClick={() => setAccepting(true)} disabled={saving} style={{ flex: 2 }}>
+              <Button type="button" size="lg" onClick={() => setAccepting(true)} disabled={saving} style={{ flex: 2 }}>
                 <Icon name="checkCircle" size={15} />
                 {saving ? 'Saving…' : 'Accept Quote'}
               </Button>
@@ -353,7 +353,7 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
   const expiring = isExpiringSoon(quote.valid_until);
 
   return (
-    <button type="button" title={`Open ${quote.quote_number}`} onClick={onClick} style={{
+    <button type="button" onClick={onClick} style={{
       display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
       background: 'var(--white)', border: '1px solid var(--border)',
       borderLeft: `4px solid ${st.color}`,

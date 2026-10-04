@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface Booking {
   id: string; booking_number: string; customer_id: string; customer_name: string | null;
@@ -158,9 +159,11 @@ export function FreightBookingsPage() {
                     </Link>
                   )}
                   {(b.status === 'REQUESTED') && (
-                    <button type="button" title="Cancel booking" onClick={e => { e.stopPropagation(); cancelBooking(b); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}>
-                      <Icon name="x" size={14} />
-                    </button>
+                    <Tip label="Cancel booking">
+                      <button type="button" aria-label="Cancel booking" onClick={e => { e.stopPropagation(); cancelBooking(b); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}>
+                        <Icon name="x" size={14} />
+                      </button>
+                    </Tip>
                   )}
                   {(b.status === 'REQUESTED' || b.status === 'RATE_QUOTED') && (
                     <Icon name={expanded === b.id ? 'chevronUp' : 'chevronDown'} size={14} color="var(--ink3)" />

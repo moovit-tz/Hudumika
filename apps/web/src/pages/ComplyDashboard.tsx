@@ -7,6 +7,7 @@ import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 // agency-code → class name mapping (gov | tax | social | reg | fin)
 const AGENCY_CLASS: Record<string, string> = {
@@ -73,9 +74,11 @@ export function ComplyDashboard() {
         subtitle="Live data · Tanzania · East Africa"
         actions={
           <div className="comply-action-row">
-            <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh" aria-label="Refresh compliance data">
-              <Icon name="refresh" size={14} />
-            </Button>
+            <Tip label="Refresh compliance data">
+              <Button type="button" variant="outline" size="icon" onClick={refresh} aria-label="Refresh compliance data">
+                <Icon name="refresh" size={14} />
+              </Button>
+            </Tip>
             <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/obligation-scan')}>
               <Icon name="sparkle" size={14} />
               AI Obligation Scan

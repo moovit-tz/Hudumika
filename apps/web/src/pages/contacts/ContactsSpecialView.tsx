@@ -664,11 +664,13 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                                   {isBusy ? 'Saving…' : `+ ${currentType === 'company' ? 'Company' : 'Contact'}`}
                                 </Button>
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button type="button" className="cts-special-action-btn" title="More actions">
-                                      <Icon name="moreVertical" size={13} />
-                                    </button>
-                                  </DropdownMenuTrigger>
+                                  <Tip label="More actions">
+                                    <DropdownMenuTrigger asChild>
+                                      <button type="button" className="cts-special-action-btn" aria-label="More actions">
+                                        <Icon name="moreVertical" size={13} />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                  </Tip>
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => importSingleItem(row, 'contact')}>
                                       Save as Contact (Person)

@@ -6,6 +6,7 @@ import type { OnsiteDashboard } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import './Onsite.css';
+import { Tip } from '../../components/ui/tooltip.js';
 
 export function OnsiteOverview() {
   const { user } = useAuth();
@@ -61,9 +62,11 @@ export function OnsiteOverview() {
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
           />
-          <button type="submit" className="onsite-prompt-submit" title="Ask AI / Search">
-            <Icon name="arrowRight" size={16} />
-          </button>
+          <Tip label="Ask AI or search">
+            <button type="submit" className="onsite-prompt-submit" aria-label="Ask AI or search">
+              <Icon name="arrowRight" size={16} />
+            </button>
+          </Tip>
         </form>
 
         {/* Quick Action Tag Pills */}

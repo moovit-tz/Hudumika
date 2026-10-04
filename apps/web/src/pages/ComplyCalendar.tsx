@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -143,10 +144,12 @@ export function ComplyCalendar() {
                     {d.daysLeft <= 0 ? 'Overdue' : d.daysLeft === 1 ? 'Tomorrow' : `${d.daysLeft}d`}
                   </div>
                   {d.source === 'reminder' && (
-                    <button type="button" title="Delete reminder" onClick={() => deleteReminder(d.source_id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginLeft: 2, flexShrink: 0 }}>
-                      <Icon name="x" size={13} />
-                    </button>
+                    <Tip label="Delete reminder">
+                      <button type="button" aria-label="Delete reminder" onClick={() => deleteReminder(d.source_id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginLeft: 2, flexShrink: 0 }}>
+                        <Icon name="x" size={13} />
+                      </button>
+                    </Tip>
                   )}
                 </div>
               ))}

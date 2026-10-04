@@ -119,7 +119,7 @@ function EscCard({ esc, canResolve, onResolve }: {
       <div style={{ fontSize: 11, color: 'var(--ink3)' }}>By {esc.escalatedByName}</div>
       {canResolve && esc.status !== 'RESOLVED' && (
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button type="button" title="Mark in progress"
+          <button type="button"
             onClick={() => onResolve(esc.id)}
             style={{
               fontSize: 12, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', cursor: 'pointer',
@@ -195,11 +195,11 @@ function EscalateModal({ onClose, onSubmit }: {
               style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" title="Cancel" onClick={onClose}
+            <button type="button" onClick={onClose}
               style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Cancel
             </button>
-            <button type="submit" title="Submit escalation"
+            <button type="submit"
               style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Escalate
             </button>
@@ -277,7 +277,7 @@ export const Escalations: React.FC = () => {
           titleEm="escalations"
           subtitle={isSenior ? 'Cases and chat messages escalated to you.' : 'Cases and chat messages you\'ve escalated.'}
           actions={isJunior ? (
-            <button type="button" title="Create new escalation" onClick={() => setShowModal(true)}
+            <button type="button" onClick={() => setShowModal(true)}
               style={{
                 background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
                 padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -290,7 +290,7 @@ export const Escalations: React.FC = () => {
       {/* Status stat cards */}
       <div className="esc-stats">
         {(Object.entries(STATUS_CFG) as [keyof typeof STATUS_CFG, typeof STATUS_CFG[keyof typeof STATUS_CFG]][]).map(([status, cfg]) => (
-          <button key={status} type="button" title={cfg.label}
+          <button key={status} type="button"
             onClick={() => setFilter(filter === status ? 'ALL' : status)}
             style={{
               background: filter === status ? cfg.bg : 'var(--white)',

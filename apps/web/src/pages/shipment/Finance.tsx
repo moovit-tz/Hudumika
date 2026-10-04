@@ -719,10 +719,14 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           </button>
         ) : null}
         {isStaff && isLive && payments.length > 0 && job.customerId && (
-          <button type="button" onClick={handleFinalize} disabled={finalizing} title="Publish this shipment's billed revenue as a real invoice in FinOps Billing"
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="fileText" size={14} /> {finalizing ? 'Finalizing…' : 'Finalize Invoice'}
-          </button>
+          <Tip label="Publish billed revenue as an invoice in FinOps Billing">
+            <span>
+              <button type="button" onClick={handleFinalize} disabled={finalizing}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <Icon name="fileText" size={14} /> {finalizing ? 'Finalizing…' : 'Finalize Invoice'}
+              </button>
+            </span>
+          </Tip>
         )}
         {showForm && (
           <div style={{ flex: 1 }}>

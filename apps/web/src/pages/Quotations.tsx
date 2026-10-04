@@ -18,6 +18,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Tip } from '../components/ui/tooltip.js';
 import {
   DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
   DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
@@ -236,8 +237,8 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
         <textarea title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
-          <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <Button type="button" variant="destructive" title="Confirm rejection" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
+          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <Button type="button" variant="destructive" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
             Reject Quote
           </Button>
         </div>
@@ -254,7 +255,9 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
       <DialogContent hideClose className="max-w-120 gap-0">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</DialogTitle>
-          <button type="button" title="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}><Icon name="x" size={18}/></button>
+          <Tip label="Close">
+            <button type="button" aria-label="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}><Icon name="x" size={18}/></button>
+          </Tip>
         </div>
         <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Recipient Email</label>
         <input type="email" title="Recipient email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="customer@example.com"
@@ -263,8 +266,8 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
         <textarea title="Email message" value={msg} onChange={e=>setMsg(e.target.value)} rows={6}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', marginBottom:16, outline:'none' }}/>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button type="button" title="Send quotation" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
+          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <button type="button" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
             style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="send" size={13}/> Send Quote
           </button>
@@ -435,8 +438,8 @@ function ContactSelector({ customers, leads, value, onChange }: {
           <input type="text" title="Search contacts" placeholder="Search..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
             style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
           <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 'var(--r)', padding:3 }}>
-            <button type="button" title="Show customers" onClick={()=>setTab('customers')} style={tabS(tab==='customers')}>Customers ({custOptions.length})</button>
-            <button type="button" title="Show leads" onClick={()=>setTab('leads')} style={tabS(tab==='leads')}>Leads ({leadOptions.length})</button>
+            <button type="button" onClick={()=>setTab('customers')} style={tabS(tab==='customers')}>Customers ({custOptions.length})</button>
+            <button type="button" onClick={()=>setTab('leads')} style={tabS(tab==='leads')}>Leads ({leadOptions.length})</button>
           </div>
         </div>
         <div style={{ overflowY:'auto', flex:1 }}>
@@ -557,12 +560,14 @@ function LineItemsEditor({ lines, currency, onChange }: {
                       <input type="text" title="Description" placeholder="Describe the service or charge..." value={l.description}
                         onChange={e=>update(l._key,'description',e.target.value)} style={{ ...inpS, flex:1 }}/>
                       <Popover open={pickerKey===l._key} onOpenChange={o=>setPickerKey(o?l._key:null)}>
-                        <PopoverTrigger asChild>
-                          <button type="button" title="Pick from catalog"
-                            style={{ padding:'var(--ds-btn-py) 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', color:'var(--ink2)', flexShrink:0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                            <Icon name="search" size={12}/>
-                          </button>
-                        </PopoverTrigger>
+                        <Tip label="Pick from catalog">
+                          <PopoverTrigger asChild>
+                            <button type="button" aria-label="Pick from catalog"
+                              style={{ padding:'var(--ds-btn-py) 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', color:'var(--ink2)', flexShrink:0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                              <Icon name="search" size={12}/>
+                            </button>
+                          </PopoverTrigger>
+                        </Tip>
                         <PopoverContent align="start" className="p-0">
                           <ServicePicker onSelect={s=>insertService(s,l._key)}/>
                         </PopoverContent>
@@ -591,10 +596,12 @@ function LineItemsEditor({ lines, currency, onChange }: {
                   </td>
                   <td style={{ padding:'6px 12px', textAlign:'right', fontWeight:700, whiteSpace:'nowrap', minWidth:110 }}>{fmt(tot,currency)}</td>
                   <td style={{ padding:'6px 4px', width:32 }}>
-                    <button type="button" title="Remove line" onClick={()=>remove(l._key)}
-                      style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:4, display:'flex', borderRadius:'var(--r-sm)' }}>
-                      <Icon name="trash" size={13}/>
-                    </button>
+                    <Tip label="Remove line">
+                      <button type="button" aria-label="Remove line" onClick={()=>remove(l._key)}
+                        style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:4, display:'flex', borderRadius:'var(--r-sm)' }}>
+                        <Icon name="trash" size={13}/>
+                      </button>
+                    </Tip>
                   </td>
                 </tr>
               );
@@ -605,13 +612,13 @@ function LineItemsEditor({ lines, currency, onChange }: {
 
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'12px 8px 4px', flexWrap:'wrap', gap:12 }}>
         <div style={{ display:'flex', gap:8, position:'relative' }}>
-          <button type="button" title="Add blank line item" onClick={addBlank}
+          <button type="button" onClick={addBlank}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="plus" size={13}/> Add Line
           </button>
           <Popover open={showCatalog} onOpenChange={setShowCatalog}>
             <PopoverTrigger asChild>
-              <button type="button" title="Add from service catalog"
+              <button type="button"
                 style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="clipboard" size={13}/> From Catalog
               </button>
@@ -693,10 +700,10 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
       onCancel={onCancel}
       actions={
         <>
-          <button type="button" title="Save as draft" onClick={()=>submit(true)} disabled={saving} className="btn btn-secondary">
+          <button type="button" onClick={()=>submit(true)} disabled={saving} className="btn btn-secondary">
             {saving?'Saving…':'Save as Draft'}
           </button>
-          <button type="button" title="Save and submit for approval" onClick={()=>submit(false)} disabled={saving} className="btn btn-primary">
+          <button type="button" onClick={()=>submit(false)} disabled={saving} className="btn btn-primary">
             <Icon name="send" size={13}/> Save &amp; Submit
           </button>
         </>
@@ -1159,7 +1166,7 @@ export const Quotations: React.FC = () => {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap: 'wrap' }}>
         <div style={{ display:'flex', gap:6, flexWrap: 'wrap' }}>
           {STATUS_TABS.map(t=>(
-            <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={()=>setFilter(t.key)}
+            <button key={t.key} type="button" onClick={()=>setFilter(t.key)}
               style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }}>
               {t.label}
               {t.key!=='ALL'&&quotes.filter(q=>q.status===t.key).length>0&&(
@@ -1191,7 +1198,7 @@ export const Quotations: React.FC = () => {
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:6 }}>No quotations found</div>
                 <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{search?'Try a different search term.':'Get started by creating your first quotation.'}</div>
-                {!search&&<button type="button" title="Create quotation" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13}/>New Quotation</button>}
+                {!search&&<button type="button" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13}/>New Quotation</button>}
               </div>
             : <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
                 <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>
@@ -1215,11 +1222,13 @@ export const Quotations: React.FC = () => {
                         <td style={{ padding:'11px 10px' }} onClick={e=>e.stopPropagation()}>
                           <div style={{ display:'flex', gap:2 }}>
                             {[{ title:'View',icon:'eye' as const,fn:()=>fetchDetail(q.id) },{ title:'Print',icon:'printer' as const,fn:()=>printQuote(q) },...(['DRAFT','PENDING'].includes(q.status)?[{ title:'Edit',icon:'edit' as const,fn:async()=>{await fetchDetail(q.id);setView('edit');} }]:[])].map(a=>(
-                              <button key={a.title} type="button" title={a.title} onClick={a.fn}
-                                style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}
-                                onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
-                                <Icon name={a.icon} size={14}/>
-                              </button>
+                              <Tip key={a.title} label={a.title}>
+                                <button type="button" aria-label={a.title} onClick={a.fn}
+                                  style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}
+                                  onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
+                                  <Icon name={a.icon} size={14}/>
+                                </button>
+                              </Tip>
                             ))}
                           </div>
                         </td>

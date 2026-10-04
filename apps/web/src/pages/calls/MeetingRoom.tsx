@@ -857,13 +857,21 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
             )}
             {annotationTool && (
               <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 55, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(32,33,36,0.9)', backdropFilter: 'blur(8px)', borderRadius: 24, padding: '6px 10px', border: '1px solid #3c4043' }}>
-                <button onClick={() => setAnnotationTool('pen')} title="Pen" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: annotationTool === 'pen' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'pen' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="edit" size={14} /></button>
-                <button onClick={() => setAnnotationTool('laser')} title="Laser pointer" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: annotationTool === 'laser' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'laser' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="target" size={14} /></button>
+                <Tip label="Pen">
+                  <button aria-label="Pen" onClick={() => setAnnotationTool('pen')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: annotationTool === 'pen' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'pen' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="edit" size={14} /></button>
+                </Tip>
+                <Tip label="Laser pointer">
+                  <button aria-label="Laser pointer" onClick={() => setAnnotationTool('laser')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: '50%', background: annotationTool === 'laser' ? 'var(--teal)' : 'transparent', border: 'none', color: annotationTool === 'laser' ? '#202124' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="target" size={14} /></button>
+                </Tip>
                 {['#ef4444', 'var(--teal)', '#facc15', '#34d399'].map(c => (
-                  <button key={c} onClick={() => setAnnotationColor(c)} title={c} style={{ width: 18, height: 18, borderRadius: '50%', background: c, border: annotationColor === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer', padding: 0 }} />
+                  <Tip key={c} label={`Use ${c} for annotations`}>
+                    <button aria-label={`Use ${c} for annotations`} onClick={() => setAnnotationColor(c)} style={{ width: 18, height: 18, borderRadius: '50%', background: c, border: annotationColor === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer', padding: 0 }} />
+                  </Tip>
                 ))}
-                {sharing && <button onClick={clearAnnotations} title="Clear drawings" className="btn btn-xs" style={{ background: 'none', border: '1px solid #5f6368', color: '#cbd5e1' }}>Clear</button>}
-                <button onClick={() => setAnnotationTool(null)} title="Close" style={{ width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={13} /></button>
+                {sharing && <button onClick={clearAnnotations} className="btn btn-xs" style={{ background: 'none', border: '1px solid #5f6368', color: '#cbd5e1' }}>Clear</button>}
+                <Tip label="Close annotation tools">
+                  <button aria-label="Close annotation tools" onClick={() => setAnnotationTool(null)} style={{ width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="close" size={13} /></button>
+                </Tip>
               </div>
             )}
 
@@ -1503,11 +1511,13 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                     <Icon name="volume2" size={14} color={p.audioMuted ? 'var(--red)' : 'var(--green)'} />
                     {canModerate && (
                       <Popover>
-                        <PopoverTrigger asChild>
-                          <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2, display: 'flex' }} title="Manage participant">
-                            <Icon name="moreVertical" size={15} />
-                          </button>
-                        </PopoverTrigger>
+                        <Tip label="Manage participant">
+                          <PopoverTrigger asChild>
+                            <button aria-label={`Manage ${p.name}`} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                              <Icon name="moreVertical" size={15} />
+                            </button>
+                          </PopoverTrigger>
+                        </Tip>
                         <PopoverContent align="end" side="bottom" className="w-52 bg-slate-800 border-slate-700 p-1.5 rounded-lg">
                           {[
                             { label: 'Mute', onClick: () => muteParticipant(id) },

@@ -14,6 +14,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const NEW_APP_STEPS = ['Document', 'Details', 'Review'];
 
@@ -180,9 +181,11 @@ export function ComplyApplications() {
         subtitle="Track submissions across all government agencies"
         actions={
           <div className="comply-action-row">
-            <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh applications" aria-label="Refresh applications">
-              <Icon name="refresh" size={13} />
-            </Button>
+            <Tip label="Refresh applications">
+              <Button type="button" variant="outline" size="icon" onClick={refresh} aria-label="Refresh applications">
+                <Icon name="refresh" size={13} />
+              </Button>
+            </Tip>
             <Button type="button" size="sm" onClick={() => navigate('/complyos/applications/new')}>
               <Icon name="plus" size={14} /> New Application
             </Button>
@@ -268,9 +271,11 @@ export function ComplyApplications() {
                 <div className="comply-panel-hdr-title">{selected.cert_type}</div>
                 <span className={`comply-badge comply-badge--${selected.status}`}>{statusLabel(selected.status)}</span>
               </div>
-              <button type="button" title="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
-                <Icon name="x" size={18} />
-              </button>
+              <Tip label="Close">
+                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
+                  <Icon name="x" size={18} />
+                </button>
+              </Tip>
             </div>
 
             <div className="comply-panel-body">

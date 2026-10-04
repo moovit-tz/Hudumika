@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { PayrollSettingsModal } from '../PayrollSettingsModal.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { Avatar, Badge, PageHeader, Card, TH, TD, Wrap, PrimaryBtn, ActionBtn, fmtTZS } from './shared.js';
 
 const ltLabel: React.CSSProperties = { display:'block', fontSize:10.5, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:4 };
@@ -650,7 +651,9 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
             <DialogTitle style={{ fontSize:16 }}>{slip.name}</DialogTitle>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` · ${slip.email}` : ''}</div>
           </div>
-          <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+          <Tip label="Close">
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+          </Tip>
         </div>
         <div>{/* body */}
           <Row label="Basic pay" value={slip.basic_pay} />
@@ -740,7 +743,9 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
             <DialogTitle style={{ fontSize:16 }}>Employee pay setup</DialogTitle>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Set the salary components a payroll run reads to calculate pay.</div>
           </div>
-          <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+          <Tip label="Close">
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+          </Tip>
         </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>

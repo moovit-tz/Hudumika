@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button.js';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { StoreEmailTemplatesManager } from './StoreEmailTemplatesManager.js';
 import './Store.css';
 
@@ -307,9 +308,9 @@ export const Store: React.FC = () => {
                   onChange={e => setSearchQuery(e.target.value)}
                 />
                 {searchQuery && (
-                  <button type="button" className="store-search-clear" title="Clear search" aria-label="Clear search" onClick={() => setSearchQuery('')}>
+                  <Tip label="Clear search"><button type="button" className="store-search-clear" aria-label="Clear search" onClick={() => setSearchQuery('')}>
                     <Icon name="x" size={14} />
-                  </button>
+                  </button></Tip>
                 )}
               </div>
               <div className="store-verified-note" title="Reviewed by Hudumika Security">

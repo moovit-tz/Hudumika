@@ -563,9 +563,11 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                         <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{m.title}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.content}</div>
                       </div>
-                      <button type="button" title="Delete" onClick={e => deleteMacro(m.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', flexShrink: 0 }}>
-                        <Icon name="trash2" size={12} />
-                      </button>
+                      <Tip label="Delete macro">
+                        <button type="button" aria-label="Delete macro" onClick={e => deleteMacro(m.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', flexShrink: 0 }}>
+                          <Icon name="trash2" size={12} />
+                        </button>
+                      </Tip>
                     </div>
                   ))}
                 </div>

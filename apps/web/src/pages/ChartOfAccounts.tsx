@@ -431,10 +431,14 @@ export const ChartOfAccounts: React.FC = () => {
         <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
           <Icon name="download" size={13} /> Export CSV
         </button>
-        <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts} title={canManageAccounts ? 'Create account' : 'Requires Advanced Accounting'}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Account
-        </button>
+        <Tip label={canManageAccounts ? 'Create account' : 'Requires Advanced Accounting'}>
+          <span>
+            <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts}
+              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Account
+            </button>
+          </span>
+        </Tip>
       </div>
 
       {/* Table Card Container */}

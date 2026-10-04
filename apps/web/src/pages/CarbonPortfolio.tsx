@@ -115,7 +115,7 @@ export const CarbonPortfolio: React.FC = () => {
                     page row here, and once moved into the actions slot it took
                     the slot and pushed Refresh onto a second line. */}
                 <DateRangePicker range={dateRange} onChange={setDateRange} placeholder="All time" triggerClassName="w-48" />
-                <Button variant="outline" size="sm" onClick={load} title="Refresh data" disabled={loading}>
+                <Button variant="outline" size="sm" onClick={load} disabled={loading}>
                   <Icon name="refresh" size={13} />
                   Refresh
                 </Button>

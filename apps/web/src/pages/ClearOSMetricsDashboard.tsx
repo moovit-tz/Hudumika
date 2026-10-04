@@ -392,7 +392,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
           </div>
         </div>
         <div className="clearos-dashboard__toolbar-spacer" />
-        <Button size="sm" variant="outline" onClick={load} title="Refresh data" disabled={loading}>
+        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
           <Icon name="refresh" size={13} />
           Refresh
         </Button>

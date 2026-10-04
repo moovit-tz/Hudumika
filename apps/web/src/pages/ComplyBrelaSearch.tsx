@@ -10,6 +10,7 @@ import { formatDashedDigits9, badgeVariantForStatus } from '../lib/complyBrelaFo
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 export interface BrelaEntity {
   id: string;
@@ -552,7 +553,7 @@ export function ComplyBrelaSearch() {
               ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={16} /></span>
               : <Icon name="search" size={16} />}
           </button>
-          <button type="button" className="comply-btn-secondary comply-btn-sm comply-search-compact-clear" onClick={handleClearForm} title="Start a new search">
+          <button type="button" className="comply-btn-secondary comply-btn-sm comply-search-compact-clear" onClick={handleClearForm}>
             <Icon name="refresh" size={13} />
             <span>Clear</span>
           </button>
@@ -590,12 +591,12 @@ export function ComplyBrelaSearch() {
           {displayResults.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
               <div className="comply-view-toggle">
-                <button type="button" title="Grid view" className={`comply-view-btn${resultsView === 'grid' ? ' active' : ''}`} onClick={() => setResultsView('grid')}>
+                <Tip label="Grid view"><button type="button" aria-label="Grid view" className={`comply-view-btn${resultsView === 'grid' ? ' active' : ''}`} onClick={() => setResultsView('grid')}>
                   <Icon name="grid" size={15} />
-                </button>
-                <button type="button" title="List view" className={`comply-view-btn${resultsView === 'list' ? ' active' : ''}`} onClick={() => setResultsView('list')}>
+                </button></Tip>
+                <Tip label="List view"><button type="button" aria-label="List view" className={`comply-view-btn${resultsView === 'list' ? ' active' : ''}`} onClick={() => setResultsView('list')}>
                   <Icon name="list" size={15} />
-                </button>
+                </button></Tip>
               </div>
             </div>
           )}

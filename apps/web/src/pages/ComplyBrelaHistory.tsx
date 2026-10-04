@@ -7,6 +7,7 @@ import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -32,9 +33,9 @@ export function ComplyBrelaHistory() {
         subtitle="Every BRELA search run by your team, with what it found."
         actions={
         <div className="comply-action-row">
-          <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh" aria-label="Refresh BRELA history">
+          <Tip label="Refresh"><Button type="button" variant="outline" size="icon" onClick={refresh} aria-label="Refresh BRELA history">
             <Icon name="refresh" size={13} />
-          </Button>
+          </Button></Tip>
           <Button type="button" size="sm" onClick={() => navigate('/complyos/brela-search')}>
             <Icon name="search" size={14} /> New Search
           </Button>
@@ -102,9 +103,9 @@ export function ComplyBrelaHistory() {
                 Results for "{queryLabel(selected)}" — {formatWhen(selected.created_at)}
               </span>
             </h3>
-            <button type="button" className="comply-close-btn" title="Close" onClick={() => setSelected(null)}>
+            <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={() => setSelected(null)}>
               <Icon name="x" size={16} />
-            </button>
+            </button></Tip>
           </div>
           <div className="comply-card-body">
             {(Array.isArray(selected.results) ? selected.results : []).length === 0 ? (

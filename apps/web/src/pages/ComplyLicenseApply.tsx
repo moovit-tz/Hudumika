@@ -6,6 +6,7 @@ import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
+import { Tip } from '../components/ui/tooltip.js';
 
 const STEPS = ['Licence', 'Requirements', 'Review'];
 
@@ -139,9 +140,11 @@ export function ComplyLicenseApply() {
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <Icon name="fileText" size={13} color="var(--comply)" />
                 <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{r}</span>
-                <button type="button" className="comply-close-btn" title="Remove" onClick={() => removeRequirement(i)}>
-                  <Icon name="x" size={14} />
-                </button>
+                <Tip label="Remove requirement">
+                  <button type="button" className="comply-close-btn" aria-label="Remove requirement" onClick={() => removeRequirement(i)}>
+                    <Icon name="x" size={14} />
+                  </button>
+                </Tip>
               </div>
             ))}
             {requirements.length === 0 && <div className="comply-empty-hint">No requirements listed — add any documents your council requires below.</div>}

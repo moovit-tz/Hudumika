@@ -16,6 +16,7 @@ import { pushTenantBranding, useBranding } from '../../hooks/useBranding.js';
 import { useLocale } from '../../hooks/useLocale.js';
 import type { SupportedLocale } from '../../i18n/index.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import { Combobox } from '../../components/ui/combobox.js';
 import { ColorSwatchPicker } from '../../components/ui/color-swatch-picker.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -681,9 +682,11 @@ export function AppLicensePanel({
               <p className="s-lic-hdr-desc">Manage workspace permissions and per-seat license assignments</p>
             </div>
           </div>
-          <button type="button" className="s-lic-close-btn" onClick={onClose} title="Close (Esc)">
-            <Icon name="x" size={18} />
-          </button>
+          <Tip label="Close (Esc)">
+            <button type="button" className="s-lic-close-btn" onClick={onClose} aria-label="Close">
+              <Icon name="x" size={18} />
+            </button>
+          </Tip>
         </div>
 
         {/* Modal Body */}

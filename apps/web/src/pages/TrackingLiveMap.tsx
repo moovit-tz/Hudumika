@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { MapVariant } from '../components/MapTileLayer.js';
+import { Tip } from '../components/ui/tooltip.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '../components/ui/dropdown-menu.js';
@@ -238,14 +239,16 @@ export const TrackingLiveMap: React.FC = () => {
 
       {/* FLOATING MAP CONTROLS */}
       <div className="trk-map-controls">
-        <button className="trk-mc-btn" title="Zoom In" onClick={() => leafletMap?.zoomIn()}><Icon name="plus" size={16} /></button>
-        <button className="trk-mc-btn" title="Zoom Out" onClick={() => leafletMap?.zoomOut()}><Icon name="minus" size={16} /></button>
+        <Tip label="Zoom in"><button className="trk-mc-btn" aria-label="Zoom in" onClick={() => leafletMap?.zoomIn()}><Icon name="plus" size={16} /></button></Tip>
+        <Tip label="Zoom out"><button className="trk-mc-btn" aria-label="Zoom out" onClick={() => leafletMap?.zoomOut()}><Icon name="minus" size={16} /></button></Tip>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="trk-mc-btn" title="Map Layers">
+          <Tip label="Map layers">
+            <DropdownMenuTrigger asChild>
+            <button className="trk-mc-btn" aria-label="Map layers">
               <Icon name="layers" size={16} />
             </button>
-          </DropdownMenuTrigger>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end" className="w-36">
             {([
               ['Auto', null],

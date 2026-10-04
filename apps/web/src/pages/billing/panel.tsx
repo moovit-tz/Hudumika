@@ -19,6 +19,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui
 import { showConfirm } from '../../lib/confirm.js';
 import { showAlert } from '../../lib/alert.js';
 import { useFinanceConfiguration } from '../../hooks/useFinanceConfiguration.js';
+import { Tip } from '../../components/ui/tooltip.js';
 import type { Invoice, InvNote, InvTask, InvReminder, InvAuditEntry } from './shared.js';
 import { fmtTZS, fmtUSD, getStatusStyle, invoiceTotals, openPrintWindow } from './shared.js';
 import { ChargeSectionView } from './editor.js';
@@ -292,17 +293,17 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               implementations. */}
           {!isMobile && (
             <>
-              <Button type="button" size="icon" variant="ghost" title="Send email" onClick={sendEmail}>
+              <Tip label="Send email"><Button type="button" size="icon" variant="ghost" aria-label="Send email" onClick={sendEmail}>
                 <Icon name="mail" size={15} color="var(--ink3)" />
-              </Button>
-              <Button type="button" size="icon" variant="ghost" title="View / Print" onClick={() => openPrintWindow(inv)}>
+              </Button></Tip>
+              <Tip label="View / Print"><Button type="button" size="icon" variant="ghost" aria-label="View or print" onClick={() => openPrintWindow(inv)}>
                 <Icon name="eye" size={15} color="var(--ink3)" />
-              </Button>
+              </Button></Tip>
             </>
           )}
-          <Button type="button" size="icon" variant="ghost" title="Close" onClick={onClose}>
+          <Tip label="Close"><Button type="button" size="icon" variant="ghost" aria-label="Close" onClick={onClose}>
             <Icon name="x" size={15} color="var(--ink3)" />
-          </Button>
+          </Button></Tip>
         </div>
       </div>
 
@@ -348,8 +349,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           ) : null
         )}
         <div style={{ flex: 1 }} />
-        <Button type="button" size="icon" variant="outline" onClick={onEdit} title="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></Button>
-        <Button type="button" size="icon" variant="outline" onClick={onCopy} title="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></Button>
+        <Tip label="Edit"><Button type="button" size="icon" variant="outline" onClick={onEdit} aria-label="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></Button></Tip>
+        <Tip label="Duplicate"><Button type="button" size="icon" variant="outline" onClick={onCopy} aria-label="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></Button></Tip>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="outline" size="sm">More <Icon name="chevronDown" size={10} color="var(--ink3)" /></Button>
@@ -589,9 +590,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <div key={n.id} className="inv-note-item">
                 <div className="inv-note-meta">{n.author_name} · {new Date(n.created_at).toLocaleString('en-GB')}</div>
                 <div className="inv-note-text">{n.content}</div>
-                <button type="button" className="inv-note-del" title="Delete note" onClick={() => deleteNote(n.id)}>
+                <Tip label="Delete note"><button type="button" className="inv-note-del" aria-label="Delete note" onClick={() => deleteNote(n.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
-                </button>
+                </button></Tip>
               </div>
             ))}
           </div>
@@ -628,9 +629,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   {t.assignee && <span className="inv-task-assignee">→ {t.assignee}</span>}
                   {t.due_date && <span className="inv-task-due">Due {t.due_date}</span>}
                 </div>
-                <button type="button" className="inv-note-del" title="Delete task" onClick={() => deleteTask(t.id)}>
+                <Tip label="Delete task"><button type="button" className="inv-note-del" aria-label="Delete task" onClick={() => deleteTask(t.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
-                </button>
+                </button></Tip>
               </div>
             ))}
           </div>
@@ -665,9 +666,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   <span className="inv-task-due">{r.remind_date}</span>
                   <span className="inv-task-desc">{r.message}</span>
                 </div>
-                <button type="button" className="inv-note-del" title="Delete reminder" onClick={() => deleteReminder(r.id)}>
+                <Tip label="Delete reminder"><button type="button" className="inv-note-del" aria-label="Delete reminder" onClick={() => deleteReminder(r.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
-                </button>
+                </button></Tip>
               </div>
             ))}
           </div>
@@ -692,4 +693,3 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     </div>
   );
 }
-

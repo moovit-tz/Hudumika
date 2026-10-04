@@ -14,6 +14,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import './ComplyOS.css';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 type Filter = 'all' | 'active' | 'expiring' | 'expired';
 
@@ -144,9 +145,9 @@ export function ComplyVault() {
             {certs.filter(c => c.status === 'expired').length} expired </>}
         actions={
         <div className="comply-action-row">
-          <Button type="button" variant="outline" size="icon" onClick={refresh} title="Refresh certificates" aria-label="Refresh certificates">
+          <Tip label="Refresh certificates"><Button type="button" variant="outline" size="icon" onClick={refresh} aria-label="Refresh certificates">
             <Icon name="refresh" size={13} />
-          </Button>
+          </Button></Tip>
           <Button type="button" variant="outline" size="sm" onClick={handleExportAll} disabled={visible.length === 0}>
             <Icon name="download" size={13} /> Export All
           </Button>
@@ -178,12 +179,12 @@ export function ComplyVault() {
         </TabsList>
         </Tabs>
         <div className="comply-view-toggle">
-          <button type="button" title="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
+          <Tip label="Grid view"><button type="button" aria-label="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
             <Icon name="grid" size={15} />
-          </button>
-          <button type="button" title="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')}>
+          </button></Tip>
+          <Tip label="List view"><button type="button" aria-label="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')}>
             <Icon name="list" size={15} />
-          </button>
+          </button></Tip>
         </div>
       </div>
 
@@ -279,7 +280,7 @@ export function ComplyVault() {
                     </td>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <Button type="button" title="View certificate" variant="outline" size="xs" onClick={() => setSelected(cert)}>
+                        <Button type="button" variant="outline" size="xs" onClick={() => setSelected(cert)}>
                           <Icon name="eye" size={14} /> View
                         </Button>
                         {(cert.status === 'expiring' || cert.status === 'expired') && (
@@ -312,9 +313,9 @@ export function ComplyVault() {
                 <div className="comply-panel-hdr-title">{selected.name}</div>
                 <span className={`comply-agency comply-agency--${selected.agency_class}`}>{selected.agency_code}</span>
               </div>
-              <button type="button" title="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
+              <Tip label="Close"><button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
                 <Icon name="x" size={18} />
-              </button>
+              </button></Tip>
             </div>
             <div className="comply-panel-body">
               <div className="comply-meta-grid">

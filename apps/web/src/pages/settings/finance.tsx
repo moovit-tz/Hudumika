@@ -453,7 +453,7 @@ export const PaymentGatewaysSection: React.FC = () => {
         <div className="s-gw-count">
           {enabledCount} of {GATEWAYS.length} gateways active · customers will see enabled gateways at checkout.
         </div>
-        <button type="button" className="btn btn-primary" disabled={saving} title="Save all gateway settings" onClick={async () => {
+        <button type="button" className="btn btn-primary" disabled={saving} onClick={async () => {
           setSaving(true);
           // Every top-level `gw-<id>` key directly, the exact same shape the
           // per-gateway "Save" button and lib/payment-gateway.ts's own
@@ -569,8 +569,8 @@ export const PaymentGatewaysSection: React.FC = () => {
                         </div>
                         {/* Actions */}
                         <div className="s-gw-foot">
-                          <button type="button" className="btn btn-primary btn-sm" title="Save gateway" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})}>Save</button>
-                          <button type="button" className="btn btn-secondary btn-sm" title="Test Connection" disabled={testing === gw.id} onClick={() => testGateway(gw)}>
+                          <button type="button" className="btn btn-primary btn-sm" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})}>Save</button>
+                          <button type="button" className="btn btn-secondary btn-sm" disabled={testing === gw.id} onClick={() => testGateway(gw)}>
                             {testing === gw.id ? 'Testing…' : 'Test Connection'}
                           </button>
                           {testResults[gw.id] && (
