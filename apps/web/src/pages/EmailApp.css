@@ -1162,7 +1162,6 @@
 /* .em-ai-panel and .em-companion-btn--active need no override either —
    same reason: their base rules already read var(--blue)/var(--blue-l),
    already theme-aware. */
-[data-theme="dark"] .em-compose-hdr { background: var(--white); }
 
 /* Email workspace dark mode. Message/template content may intentionally keep
    its authored colours; every application-owned surface follows the platform. */
@@ -1175,9 +1174,13 @@
 [data-theme="dark"] .em-compose-modal {
   box-shadow: 0 -8px 36px color-mix(in srgb, #000 58%, transparent);
 }
+/* Compose header — must stay dark regardless of theme so the white icon
+   buttons (color:#fff inline) remain readable. The earlier duplicate rule
+   used color-mix(in srgb, var(--ink) 88%, #000) which computes to near-white
+   in dark mode (--ink = #f8fafc) and made white text invisible. */
 [data-theme="dark"] .em-compose-hdr {
-  background: color-mix(in srgb, var(--ink) 88%, #000);
-  border-bottom: 1px solid color-mix(in srgb, #fff 12%, transparent);
+  background: var(--email-night-raised, color-mix(in srgb, var(--white) 90%, #000));
+  border-bottom: 1px solid color-mix(in srgb, #fff 10%, transparent);
 }
 [data-theme="dark"] .em-compose-input,
 [data-theme="dark"] .em-compose-body,
@@ -1204,11 +1207,22 @@
 }
 [data-theme="dark"] .em-adv-unit-pill,
 [data-theme="dark"] .em-thread-badge {
-  background: var(--surface2);
-  border-color: var(--border);
+  background: color-mix(in srgb, var(--white) 80%, var(--teal) 20%);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: var(--ink2);
+}
+/* HTML email bodies are authored for light mode. Contain them in a light
+   surface so email colors, images, and tables render as their authors
+   intended rather than being inverted or shown on a dark card background. */
+[data-theme="dark"] .em-html-rendered {
+  color-scheme: light;
+  background: #fff;
+  border-radius: var(--r-sm);
+  padding: 2px;
 }
 [data-theme="dark"] .em-signature-preview img,
-[data-theme="dark"] .em-detail-body-text img {
+[data-theme="dark"] .em-detail-body-text img,
+[data-theme="dark"] .em-html-rendered img {
   background: #fff;
   border-radius: var(--r-sm);
 }
@@ -2179,6 +2193,10 @@
   padding: 12px 14px;
   max-height: 280px;
   overflow-y: auto;
+}
+[data-theme="dark"] .em-sig-preview-wrapper {
+  color-scheme: light;
+  background: #fff;
 }
 
 .em-sig-rendered-box {
