@@ -81,7 +81,7 @@
 .bnc-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
   letter-spacing: -0.01em;
   font-family: var(--font);
 }
@@ -226,7 +226,7 @@
 .bnc-empty-label {
   font-size: 14px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
   font-family: var(--font);
 }
 
@@ -345,7 +345,7 @@
 .bnc-row-title {
   font-size: 13px;
   font-weight: 500;
-  color: var(--navy);
+  color: var(--ink);
   font-family: var(--font);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -499,7 +499,7 @@
 .bnc-detail-headline {
   font-size: 18px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
   margin: 0 0 6px;
   font-family: var(--font);
   line-height: 1.3;

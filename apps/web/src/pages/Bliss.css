@@ -534,7 +534,7 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 800;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .spt-conv-list-panel,
@@ -564,7 +564,7 @@
 .spt-conv-title {
   font-size: 14px;
   font-weight: 800;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 /* Inbox filter nav — vertical list */
@@ -598,7 +598,7 @@
 
 .spt-inbox-item--active {
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
   background: var(--teal-l);
 }
 
@@ -973,7 +973,7 @@
 .spt-thread-customer {
   font-size: 14px;
   font-weight: 800;
-  color: var(--navy);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1810,7 +1810,7 @@
 .spt-details-title {
   font-size: 13px;
   font-weight: 800;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .spt-details-scroll {
@@ -2290,7 +2290,7 @@
   margin: 0;
   font-size: 17px;
   font-weight: 800;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .spt-modal-form {

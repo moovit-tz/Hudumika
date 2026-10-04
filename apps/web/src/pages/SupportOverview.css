@@ -138,7 +138,7 @@
 .sov-kpi-trend--up { color: var(--green); background: var(--green-l); }
 .sov-kpi-trend--down { color: var(--red); background: var(--red-l); }
 
-.sov-kpi-value { font-size: 26px; font-weight: 900; color: var(--navy); line-height: 1; margin-bottom: 4px; }
+.sov-kpi-value { font-size: 26px; font-weight: 900; color: var(--ink); line-height: 1; margin-bottom: 4px; }
 .sov-kpi-label { font-size: 12.5px; font-weight: 600; color: var(--ink2); }
 .sov-kpi-sub { font-size: 11.5px; color: var(--ink3); margin-top: 2px; }
 
@@ -174,7 +174,7 @@
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 14px;
 }
-.sov-shdr-title { font-size: 13.5px; font-weight: 800; color: var(--navy); }
+.sov-shdr-title { font-size: 13.5px; font-weight: 800; color: var(--ink); }
 .sov-shdr-action { font-size: 12px; color: var(--teal); font-weight: 600; text-decoration: none; }
 
 .sov-empty { font-size: 12.5px; color: var(--ink3); padding: 8px 0; }
@@ -196,7 +196,7 @@
   background: var(--bg); border-radius: var(--r);
   display: flex; justify-content: space-between;
 }
-.sov-total-pill-val { font-size: var(--badge-fs); font-weight: 800; color: var(--navy); }
+.sov-total-pill-val { font-size: var(--badge-fs); font-weight: 800; color: var(--ink); }
 
 /* ── Daily volume bars ── */
 .sov-daybars { display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-bottom: 8px; }
@@ -206,7 +206,7 @@
 .sov-daybars-today { font-weight: 700; color: var(--teal); }
 .sov-daybars-stats { display: flex; gap: 20px; padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .sov-daybars-stat-label { font-size: 10px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
-.sov-daybars-stat-val { font-size: 15px; font-weight: 800; color: var(--navy); }
+.sov-daybars-stat-val { font-size: 15px; font-weight: 800; color: var(--ink); }
 
 /* ── NPS card ── */
 .sov-nps-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
@@ -235,7 +235,7 @@
 /* ── Histogram ── */
 .sov-hist { display: flex; align-items: flex-end; gap: 14px; height: 110px; }
 .sov-hist-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.sov-hist-val { font-size: 12px; font-weight: 800; color: var(--navy); }
+.sov-hist-val { font-size: 12px; font-weight: 800; color: var(--ink); }
 .sov-hist-bar-wrap { width: 100%; display: flex; align-items: flex-end; height: 70px; }
 .sov-hist-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.4s; }
 .sov-hist-bar--fast { background: var(--green); opacity: 0.85; }
@@ -267,7 +267,7 @@
 .sov-td-muted { color: var(--ink3); }
 
 .sov-agent-cell { display: flex; align-items: center; gap: 9px; }
-.sov-agent-name { font-weight: 600; color: var(--navy); }
+.sov-agent-name { font-weight: 600; color: var(--ink); }
 .sov-av { border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-family: var(--font); }
 
 .sov-rate-cell { display: flex; align-items: center; gap: 7px; justify-content: center; }

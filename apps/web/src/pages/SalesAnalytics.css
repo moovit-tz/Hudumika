@@ -3,6 +3,11 @@
    ========================================================================== */
 
 .sales-analytics-container {
+  --sales-hero-bg: color-mix(in srgb, var(--teal-fill, #12376b) 38%, #07101f);
+  --sales-hero-bg-end: color-mix(in srgb, var(--teal-fill, #12376b) 58%, #101827);
+  --sales-hero-foreground: #ffffff;
+  --sales-hero-muted: rgba(255, 255, 255, 0.82);
+  --sales-hero-subtle: rgba(255, 255, 255, 0.72);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -13,10 +18,10 @@
 
 /* ── Hero Banner: Revenue Intelligence ── */
 .sales-hero-banner {
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, color-mix(in srgb, var(--teal) 35%, var(--navy2)) 100%);
+  background: linear-gradient(135deg, var(--sales-hero-bg) 0%, var(--sales-hero-bg-end) 100%);
   border-radius: var(--r-lg, 12px);
   padding: 24px 28px;
-  color: #ffffff;
+  color: var(--sales-hero-foreground);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -57,7 +62,7 @@
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--sales-hero-foreground);
 }
 
 .sales-hero-badge,
@@ -69,7 +74,7 @@
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.16) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
-  color: #ffffff !important;
+  color: var(--sales-hero-foreground) !important;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   display: inline-flex;
@@ -78,7 +83,7 @@
 
 .sales-hero-desc {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--sales-hero-muted);
   margin: 4px 0 0;
   max-width: 500px;
   line-height: 1.45;
@@ -103,7 +108,7 @@
 .sales-hero-kpi-label {
   font-size: 10.5px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--sales-hero-subtle);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 3px;
@@ -112,13 +117,13 @@
 .sales-hero-kpi-val {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--sales-hero-foreground);
   letter-spacing: -0.02em;
 }
 
 .sales-hero-kpi-sub {
   font-size: 10.5px;
-  color: var(--teal-l);
+  color: var(--sales-hero-muted);
   font-weight: 600;
   margin-top: 2px;
 }
@@ -159,7 +164,7 @@
   width: 130px;
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
   flex-shrink: 0;
 }
 
@@ -180,7 +185,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-right: 10px;
-  color: #ffffff;
+  color: var(--white);
   font-size: 11.5px;
   font-weight: 700;
   transition: width 0.6s ease;
@@ -252,7 +257,7 @@
   align-items: center;
   justify-content: center;
   padding: 10px 6px;
-  color: #ffffff;
+  color: var(--white);
   font-weight: 800;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
@@ -264,12 +269,12 @@
 
 .sales-podium-2 {
   height: 90px;
-  background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+  background: linear-gradient(180deg, var(--ink3) 0%, var(--ink2) 100%);
 }
 
 .sales-podium-3 {
   height: 70px;
-  background: linear-gradient(180deg, #d97706 0%, #78350f 100%);
+  background: linear-gradient(180deg, var(--gold) 0%, var(--gold) 100%);
 }
 
 /* ── Conversion Journey Horizontal Stepper ── */
@@ -290,7 +295,7 @@
 .sales-journey-step-count {
   font-size: 17px;
   font-weight: 800;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .sales-journey-step-label {
@@ -330,7 +335,7 @@
 .sales-risk-deal-title {
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--ink);
 }
 
 .sales-risk-deal-sub {
