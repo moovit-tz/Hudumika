@@ -240,7 +240,7 @@
   min-width: 18px; padding: 1px 5px; border-radius: 999px; background: color-mix(in srgb, currentColor 12%, transparent);
   font-size: 10px; font-variant-numeric: tabular-nums;
 }
-.email-template-group-list { display: flex; flex-direction: column; gap: 10px; padding: 0 10px 14px; overflow-y: auto; }
+.email-template-group-list { display: flex; flex-direction: column; gap: 10px; padding: 0 10px 14px; overflow-y: auto; flex: 1; min-height: 0; }
 .email-template-managed-group { border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; background: var(--white); }
 .email-template-managed-group-header { min-height: 40px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; font-size: 12.5px; font-weight: 700; color: var(--ink); background: var(--bg); }
 .email-template-group-name {

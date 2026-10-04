@@ -4,7 +4,7 @@
   display: flex;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
+  background: transparent;
   font-family: var(--font);
 }
 
