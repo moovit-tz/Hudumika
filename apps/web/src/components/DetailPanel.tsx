@@ -64,10 +64,10 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
 
   const selCh = shipment?.selectivity_channel;
   const channelCfg =
-    selCh === 'GREEN'  ? { label: 'Green Channel',  color: '#059669', bg: '#ecfdf5', icon: 'checkCircle' as const } :
-    selCh === 'YELLOW' ? { label: 'Yellow Channel', color: '#ca8a04', bg: '#fef9c3', icon: 'alertTriangle' as const } :
-    selCh === 'RED'    ? { label: 'Red Channel',    color: '#dc2626', bg: '#fee2e2', icon: 'alertTriangle' as const } :
-    selCh === 'BLUE'   ? { label: 'Blue Channel',   color: '#2563eb', bg: '#dbeafe', icon: 'info' as const } : null;
+    selCh === 'GREEN'  ? { label: 'Green Channel',  color: 'var(--green)',  bg: 'var(--green-l)',  icon: 'checkCircle' as const } :
+    selCh === 'YELLOW' ? { label: 'Yellow Channel', color: 'var(--gold)',   bg: 'var(--gold-l)',   icon: 'alertTriangle' as const } :
+    selCh === 'RED'    ? { label: 'Red Channel',    color: 'var(--red)',    bg: 'var(--red-l)',    icon: 'alertTriangle' as const } :
+    selCh === 'BLUE'   ? { label: 'Blue Channel',   color: 'var(--blue)',   bg: 'var(--blue-l)',   icon: 'info' as const } : null;
 
   const docs       = shipment?.documents     || [];
   const msgs       = shipment?.messages      || [];
