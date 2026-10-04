@@ -484,7 +484,7 @@
   color: var(--foreground);
 }
 [data-theme="dark"] .trk-search-box input:focus {
-  background: var(--navy);
+  background: var(--white);
 }
 
 [data-theme="dark"] .trk-vehicle-item {
