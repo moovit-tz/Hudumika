@@ -265,8 +265,42 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
       '--color-accent-foreground': `hsl(${primaryHsl})`,
     };
 
-    // Dark mode surfaces use fixed neutral grays (no per-app accent tint).
-    // useDesignSystem sets --background/--card/etc. globally; no per-app override needed.
+    /**
+     * Dark mode: tint the per-app surfaces with the active app's accent color
+     * at very low opacity so each app feels distinct without looking "coloured".
+     * useDesignSystem provides neutral grays (#141414/#1e1e1e) for non-app pages
+     * (landing, profile); these inline-style overrides take over inside any app.
+     */
+    if (isDark) {
+      const [ar, ag, ab] = parseHex(appColor);
+      const mix = (pct: number, base: [number, number, number]) =>
+        `#${base.map((b, i) => {
+          const ch = [ar, ag, ab][i];
+          return Math.max(0, Math.min(255, Math.round(ch * pct + b * (1 - pct))))
+            .toString(16).padStart(2, '0');
+        }).join('')}`;
+      const bgHex     = mix(0.03, [20, 20, 20]);   // page bg — near-neutral
+      const cardHex   = mix(0.04, [30, 30, 30]);   // card surface
+      const accentHex = mix(0.06, [42, 42, 42]);   // hover/active surface
+      const bgHsl     = hexToHslTriplet(bgHex);
+      const cardHsl   = hexToHslTriplet(cardHex);
+      const accentHsl = hexToHslTriplet(accentHex);
+      vars['--bg']              = bgHex;
+      vars['--white']           = cardHex;
+      vars['--nav-header-bg']   = mix(0.02, [17, 17, 17]);
+      vars['--background']      = bgHsl;
+      vars['--card']            = cardHsl;
+      vars['--popover']         = cardHsl;
+      vars['--secondary']       = bgHsl;
+      vars['--muted']           = bgHsl;
+      vars['--accent']          = accentHsl;
+      vars['--color-background'] = `hsl(${bgHsl})`;
+      vars['--color-card']       = `hsl(${cardHsl})`;
+      vars['--color-popover']    = `hsl(${cardHsl})`;
+      vars['--color-secondary']  = `hsl(${bgHsl})`;
+      vars['--color-muted']      = `hsl(${bgHsl})`;
+      vars['--color-accent']     = `hsl(${accentHsl})`;
+    }
 
     /**
      * Both the wrapper and the document root get these.
