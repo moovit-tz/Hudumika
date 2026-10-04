@@ -665,11 +665,11 @@ export function Contacts() {
     if (!activeContact) return;
     const name = `${activeContact.first_name} ${activeContact.last_name || ''}`.trim();
     const text = [name, activeContact.job_title, activeContact.company, activeContact.email, activeContact.phone].filter(Boolean).join('\n');
-    if (navigator.share) {
-      try { await navigator.share({ title: name, text }); } catch { /* dismissed */ }
-    } else {
+    try {
       await navigator.clipboard.writeText(text);
-      showAlert('Contact details copied.', { variant: 'success' });
+      showAlert('Contact details copied to clipboard.', { variant: 'success' });
+    } catch {
+      showAlert('Could not copy to clipboard.', { variant: 'error' });
     }
   };
 
