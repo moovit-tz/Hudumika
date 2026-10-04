@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button.js';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FilterBar, FilterBarLeft, FilterBarRight, FilterBarGroup, FilterBarPill, FilterBarDivider, FilterBarClear } from '../components/ui/filter-bar.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { StoreEmailTemplatesManager } from './StoreEmailTemplatesManager.js';
 import './Store.css';
@@ -333,81 +334,74 @@ export const Store: React.FC = () => {
               { value: 'installed',     label: 'Installed' },
               { value: 'not-installed', label: 'Not installed' },
             ];
-            const selectedApp = PLATFORM_APPS.find(a => a.id === worksWithFilter);
+            const selectedPlatformApp = PLATFORM_APPS.find(a => a.id === worksWithFilter);
             return (
-              <div className="store-filterbar">
-                <div className="store-filterbar-left">
-                  <span className="store-filterbar-group-label">Rating</span>
-                  <div className="store-filterbar-pills">
+              <FilterBar className="mb-5">
+                <FilterBarLeft>
+                  <FilterBarGroup label="Rating">
                     {RATING_OPTS.map(o => (
-                      <button key={o.value} type="button"
-                        className={`store-filter-pill${ratingFilter === o.value ? ' store-filter-pill--active' : ''}`}
-                        onClick={() => setRatingFilter(o.value)}>
+                      <FilterBarPill key={o.value} active={ratingFilter === o.value} onClick={() => setRatingFilter(o.value)}>
                         {o.value !== 'any' && <Icon name="star" size={10} duotone color={ratingFilter === o.value ? 'currentColor' : 'var(--gold)'} />}
                         {o.label}
-                      </button>
+                      </FilterBarPill>
                     ))}
-                  </div>
+                  </FilterBarGroup>
 
-                  <span className="store-filterbar-divider" />
+                  <FilterBarDivider />
 
-                  <span className="store-filterbar-group-label">Status</span>
-                  <div className="store-filterbar-pills">
+                  <FilterBarGroup label="Status">
                     {STATUS_OPTS.map(o => (
-                      <button key={o.value} type="button"
-                        className={`store-filter-pill${statusFilter === o.value ? ' store-filter-pill--active' : ''}`}
-                        onClick={() => setStatusFilter(o.value)}>
+                      <FilterBarPill key={o.value} active={statusFilter === o.value} onClick={() => setStatusFilter(o.value)}>
                         {o.value === 'installed' && <Icon name="checkCircle" size={11} color={statusFilter === 'installed' ? 'currentColor' : 'var(--green)'} />}
                         {o.label}
-                      </button>
+                      </FilterBarPill>
                     ))}
-                  </div>
+                  </FilterBarGroup>
 
-                  <span className="store-filterbar-divider" />
+                  <FilterBarDivider />
 
-                  <span className="store-filterbar-group-label">Works with</span>
-                  <Select value={worksWithFilter || '__all__'} onValueChange={v => setWorksWithFilter(v === '__all__' ? '' : v)}>
-                    <SelectTrigger className="store-works-trigger">
-                      <SelectValue>
-                        {selectedApp
-                          ? <span className="store-works-value"><Icon name={selectedApp.icon} size={12} />{selectedApp.label}</span>
-                          : <span className="store-works-value store-works-value--placeholder">Any app</span>
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__all__">Any app</SelectItem>
-                      {PLATFORM_APPS.map(a => (
-                        <SelectItem key={a.id} value={a.id}>
-                          <span className="store-works-option"><Icon name={a.icon} size={13} />{a.label}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterBarGroup label="Works with">
+                    <Select value={worksWithFilter || '__all__'} onValueChange={v => setWorksWithFilter(v === '__all__' ? '' : v)}>
+                      <SelectTrigger className="store-works-trigger">
+                        <SelectValue>
+                          {selectedPlatformApp
+                            ? <span className="store-works-value"><Icon name={selectedPlatformApp.icon} size={12} />{selectedPlatformApp.label}</span>
+                            : <span className="store-works-value store-works-value--placeholder">Any app</span>
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">Any app</SelectItem>
+                        {PLATFORM_APPS.map(a => (
+                          <SelectItem key={a.id} value={a.id}>
+                            <span className="store-works-option"><Icon name={a.icon} size={13} />{a.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FilterBarGroup>
 
                   {hasFilters && (
-                    <button type="button" className="store-filter-clear"
-                      onClick={() => { setRatingFilter('any'); setStatusFilter('all'); setWorksWithFilter(''); }}>
-                      <Icon name="x" size={11} /> Clear filters
-                    </button>
+                    <FilterBarClear onClick={() => { setRatingFilter('any'); setStatusFilter('all'); setWorksWithFilter(''); }} />
                   )}
-                </div>
+                </FilterBarLeft>
 
-                <div className="store-filterbar-right">
-                  <span className="store-filterbar-group-label">Sort by</span>
-                  <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
-                    <SelectTrigger className="store-sort-trigger">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="popular">Most popular</SelectItem>
-                      <SelectItem value="rating">Top rated</SelectItem>
-                      <SelectItem value="az">A – Z</SelectItem>
-                      <SelectItem value="za">Z – A</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                <FilterBarRight>
+                  <FilterBarGroup label="Sort by">
+                    <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+                      <SelectTrigger className="store-sort-trigger">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="popular">Most popular</SelectItem>
+                        <SelectItem value="rating">Top rated</SelectItem>
+                        <SelectItem value="az">A – Z</SelectItem>
+                        <SelectItem value="za">Z – A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FilterBarGroup>
+                </FilterBarRight>
+              </FilterBar>
             );
           })()}
 
