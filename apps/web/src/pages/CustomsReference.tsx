@@ -14,6 +14,16 @@ import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Tip } from '../components/ui/tooltip.js';
+
+function InlineEditActions({ saving, onSave, onCancel }: { saving: boolean; onSave: () => void; onCancel: () => void }) {
+  return (
+    <>
+      <Tip label="Save"><button type="button" aria-label="Save" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button></Tip>
+      <Tip label="Cancel"><button type="button" aria-label="Cancel" onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button></Tip>
+    </>
+  );
+}
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
@@ -354,8 +364,7 @@ export const CustomsReference: React.FC = () => {
                             <input style={{ ...editInput, marginTop: 4 }} value={draft.tel ?? ''} onChange={e => setField('tel', e.target.value)} placeholder="Phone" />
                           </td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                            <button type="button" onClick={saveEdit} disabled={saving} title="Save" style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button>
-                            <button type="button" onClick={cancelEdit} disabled={saving} title="Cancel" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button>
+                            <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
                           </td>
                         </>
                       ) : (
@@ -398,8 +407,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={td}><input style={editInput} value={draft.region ?? ''} onChange={e => setField('region', e.target.value)} placeholder="Region" /></td>
                           <td style={td}><input style={editInput} value={draft.email ?? ''} onChange={e => setField('email', e.target.value)} placeholder="Email" /></td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                            <button type="button" onClick={saveEdit} disabled={saving} title="Save" style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button>
-                            <button type="button" onClick={cancelEdit} disabled={saving} title="Cancel" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button>
+                            <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
                           </td>
                         </>
                       ) : (
@@ -439,8 +447,7 @@ export const CustomsReference: React.FC = () => {
                             <td key={k} style={td}><input style={{ ...editInput, width: 70, fontFamily: 'var(--font)' }} value={draft[k] ?? ''} onChange={e => setField(k, e.target.value)} /></td>
                           ))}
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                            <button type="button" onClick={saveEdit} disabled={saving} title="Save" style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button>
-                            <button type="button" onClick={cancelEdit} disabled={saving} title="Cancel" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button>
+                            <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
                           </td>
                         </>
                       ) : (
@@ -489,8 +496,7 @@ export const CustomsReference: React.FC = () => {
                             <input style={{ ...editInput, marginTop: 4, width: 90 }} value={draft.rate_currency ?? ''} onChange={e => setField('rate_currency', e.target.value)} placeholder="Currency" />
                           </td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                            <button type="button" onClick={saveEdit} disabled={saving} title="Save" style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button>
-                            <button type="button" onClick={cancelEdit} disabled={saving} title="Cancel" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button>
+                            <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
                           </td>
                         </>
                       ) : (

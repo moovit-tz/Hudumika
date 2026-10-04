@@ -18,6 +18,7 @@ import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropd
 import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; totalPaid: number }>): Vendor {
   const b = balancesById.get(s.id);
@@ -88,14 +89,14 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button type="button" onClick={() => onEdit(vendor)} title="Edit vendor"
+          <Tip label="Edit vendor"><button type="button" aria-label="Edit vendor" onClick={() => onEdit(vendor)}
             style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="edit" size={14} color="var(--ink2)" />
-          </button>
-          <button type="button" onClick={onClose} title="Close"
+          </button></Tip>
+          <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose}
             style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="x" size={14} color="var(--ink2)" />
-          </button>
+          </button></Tip>
         </div>
       </div>
 
@@ -617,18 +618,18 @@ export function FinanceVendors() {
                       <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
                     </td>
                     <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
-                      <button type="button" title="Edit" onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}
+                      <Tip label="Edit"><button type="button" aria-label={`Edit ${v.name}`} onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                         <Icon name="edit" size={14} />
-                      </button>
-                      <button type="button" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
+                      </button></Tip>
+                      <Tip label="Delete"><button type="button" aria-label={`Delete ${v.name}`} onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
                         <Icon name="trash2" size={14} />
-                      </button>
+                      </button></Tip>
                     </td>
                   </tr>
                 );

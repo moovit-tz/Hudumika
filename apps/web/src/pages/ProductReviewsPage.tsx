@@ -12,6 +12,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface ProductReview {
   id: string;
@@ -273,10 +274,12 @@ export const ProductReviewsPage: React.FC = () => {
                       style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', cursor: 'pointer' }}>
                       <Icon name="messageSquare" size={12} /> Reply
                     </button>
-                    <button type="button" title="Delete review" onClick={() => handleDelete(r)}
-                      style={{ padding: '4px 8px', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }}>
-                      <Icon name="trash" size={12} />
-                    </button>
+                    <Tip label="Delete review">
+                      <button type="button" aria-label="Delete review" onClick={() => handleDelete(r)}
+                        style={{ padding: '4px 8px', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }}>
+                        <Icon name="trash" size={12} />
+                      </button>
+                    </Tip>
                   </div>
                 </div>
               </div>

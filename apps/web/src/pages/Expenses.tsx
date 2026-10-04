@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const CATS: Record<string, { label: string; color: string }> = {
   PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
@@ -176,12 +177,8 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Expense Details</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button type="button" onClick={handleDelete} disabled={deleting} title="Delete" style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="trash" size={14} />
-          </button>
-          <button type="button" onClick={onClose} title="Close" style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="x" size={14} />
-          </button>
+          <Tip label="Delete"><button type="button" aria-label="Delete" onClick={handleDelete} disabled={deleting} style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="trash" size={14} /></button></Tip>
+          <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="x" size={14} /></button></Tip>
         </div>
       </div>
 
@@ -561,9 +558,7 @@ export const Expenses: React.FC = () => {
               <button type="button" className="stb-icon-btn" onClick={() => setShowBulkUpload(true)} title="Bulk Upload" aria-label="Bulk Upload">
                 <Icon name="upload" size={14} />
               </button>
-              <button type="button" className="stb-icon-btn" onClick={exportCsv} title="Export CSV" aria-label="Export CSV">
-                <Icon name="download" size={14} />
-              </button>
+              <Tip label="Export CSV"><button type="button" className="stb-icon-btn" onClick={exportCsv} aria-label="Export CSV"><Icon name="download" size={14} /></button></Tip>
             </>
           }
         />

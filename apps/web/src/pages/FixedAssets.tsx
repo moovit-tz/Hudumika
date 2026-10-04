@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const CATEGORIES = ['OFFICE_EQUIPMENT', 'MOTOR_VEHICLE', 'IT_EQUIPMENT', 'FURNITURE', 'MACHINERY', 'OTHER'];
 const CATEGORY_LABEL: Record<string, string> = { OFFICE_EQUIPMENT: 'Office Equipment', MOTOR_VEHICLE: 'Motor Vehicle', IT_EQUIPMENT: 'IT Equipment', FURNITURE: 'Furniture', MACHINERY: 'Machinery', OTHER: 'Other' };
@@ -377,9 +378,9 @@ export function FixedAssets() {
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button type="button" className="finance-icon-action" title="View schedule" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }}><Icon name="fileText" size={14} /></button>
-                      {!readOnly && a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Dispose" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }}><Icon name="logOut" size={14} /></button>}
-                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <button type="button" className="finance-icon-action" title="Delete" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /></button>}
+                      <Tip label="View schedule"><button type="button" aria-label="View schedule" className="finance-icon-action" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }}><Icon name="fileText" size={14} /></button></Tip>
+                      {!readOnly && a.status === 'ACTIVE' && <Tip label="Dispose"><button type="button" aria-label="Dispose" className="finance-icon-action" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }}><Icon name="logOut" size={14} /></button></Tip>}
+                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <Tip label="Delete"><button type="button" aria-label="Delete" className="finance-icon-action" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /></button></Tip>}
                     </div>
                   </td>
                 </tr>

@@ -24,6 +24,7 @@ import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showPrompt } from '../lib/prompt.js';
@@ -275,27 +276,27 @@ export const OndiWallet: React.FC = () => {
               </div>
               <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>Updated {fmtDate(item.updated_at)}</div>
             </div>
-            <button type="button" title={revealed[item.id] !== undefined ? 'Hide' : 'Reveal'} disabled={revealing === item.id} onClick={() => reveal(item)}
+            <Tip label={revealed[item.id] !== undefined ? 'Hide' : 'Reveal'}><button type="button" aria-label={revealed[item.id] !== undefined ? 'Hide' : 'Reveal'} disabled={revealing === item.id} onClick={() => reveal(item)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
               <Icon name={revealed[item.id] !== undefined ? 'eyeOff' : 'eye'} size={16} />
-            </button>
-            <button type="button" title="Copy" onClick={() => copySecret(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+            </button></Tip>
+            <Tip label="Copy"><button type="button" aria-label="Copy" onClick={() => copySecret(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
               <Icon name="copy" size={16} />
-            </button>
+            </button></Tip>
             {opts.canShare && (
-              <button type="button" title="Share" onClick={() => toggleSharePanel(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: shareOpenFor === item.id ? 'var(--teal)' : 'var(--ink3)', padding: 6 }}>
+              <Tip label="Share"><button type="button" aria-label="Share" onClick={() => toggleSharePanel(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: shareOpenFor === item.id ? 'var(--teal)' : 'var(--ink3)', padding: 6 }}>
                 <Icon name="userPlus" size={16} />
-              </button>
+              </button></Tip>
             )}
             {opts.canEdit && (
-              <button type="button" title="Edit" onClick={() => startEdit(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+              <Tip label="Edit"><button type="button" aria-label="Edit" onClick={() => startEdit(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
                 <Icon name="edit" size={16} />
-              </button>
+              </button></Tip>
             )}
             {opts.canDelete && (
-              <button type="button" title="Delete" onClick={() => remove(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}>
+              <Tip label="Delete"><button type="button" aria-label="Delete" onClick={() => remove(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}>
                 <Icon name="trash2" size={16} />
-              </button>
+              </button></Tip>
             )}
           </div>
         )}

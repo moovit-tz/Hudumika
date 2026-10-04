@@ -14,6 +14,7 @@ import { useTaxCodes, defaultTaxCode, TAX_CODE_KIND_HINT } from '../data/taxCode
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 function newId() { return 'PRD-' + Date.now().toString(36).toUpperCase(); }
 
@@ -76,14 +77,14 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, fontFamily: 'var(--font)' }}>{product.code}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          <button type="button" onClick={() => onEdit(product)} title="Edit"
+          <Tip label="Edit"><button type="button" aria-label={`Edit ${product.name}`} onClick={() => onEdit(product)}
             style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="edit" size={14} color="var(--ink2)" />
-          </button>
-          <button type="button" onClick={onClose} title="Close"
+          </button></Tip>
+          <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose}
             style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="x" size={14} color="var(--ink2)" />
-          </button>
+          </button></Tip>
         </div>
       </div>
 
@@ -497,18 +498,18 @@ export function FinanceProducts() {
                       </span>
                     </td>
                     <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
-                      <button type="button" title="Edit" onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
+                      <Tip label="Edit"><button type="button" aria-label={`Edit ${p.name}`} onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                         <Icon name="edit" size={14} />
-                      </button>
-                      <button type="button" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(p.id); }}
+                      </button></Tip>
+                      <Tip label="Delete"><button type="button" aria-label={`Delete ${p.name}`} onClick={e => { e.stopPropagation(); handleDelete(p.id); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
                         <Icon name="trash2" size={14} />
-                      </button>
+                      </button></Tip>
                     </td>
                   </tr>
                 );
