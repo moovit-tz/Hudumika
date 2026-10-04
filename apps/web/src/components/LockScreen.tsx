@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useIdleLock } from '../hooks/useIdleLock.js';
 import { Icon } from './Icon.js';
@@ -31,6 +31,22 @@ export function LockScreen() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // One stable key per character position — a new key causes React to remount
+  // that dot span, which re-fires the pop animation. Deleting trims from the right.
+  const [dotKeys, setDotKeys] = useState<string[]>([]);
+  const prevLenRef = useRef(0);
+  useEffect(() => {
+    const newLen = password.length;
+    const delta  = newLen - prevLenRef.current;
+    prevLenRef.current = newLen;
+    if (delta > 0) {
+      const fresh = Array.from({ length: delta }, (_, i) => `d-${Date.now()}-${i}`);
+      setDotKeys(prev => [...prev, ...fresh]);
+    } else if (delta < 0) {
+      setDotKeys(prev => prev.slice(0, newLen));
+    }
+  }, [password.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,15 +100,41 @@ export function LockScreen() {
 
         <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ position: 'relative' }}>
+            {/* Real input — hidden text so the animated dot overlay shows instead */}
             <Input
               type={showPass ? 'text' : 'password'}
-              placeholder="Password"
+              placeholder={showPass ? 'Password' : ''}
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"
               autoFocus
-              style={{ minHeight: 'var(--ctl-h-lg)', paddingRight: 52, fontSize: 15 }}
+              style={{
+                minHeight: 'var(--ctl-h-lg)', paddingRight: 52, fontSize: 15,
+                color: showPass ? 'var(--ink)' : 'transparent',
+                caretColor: 'var(--ink)',
+              }}
             />
+
+            {/* Animated dot display — rendered over the input when in mask mode */}
+            {!showPass && (
+              <div style={{
+                position: 'absolute', inset: 0, pointerEvents: 'none',
+                display: 'flex', alignItems: 'center',
+                paddingLeft: 14, paddingRight: 52, gap: 7,
+              }}>
+                {dotKeys.length === 0 ? (
+                  <span style={{ fontSize: 15, color: 'var(--ink3)' }}>Password</span>
+                ) : (
+                  dotKeys.map((k, i) => (
+                    <span
+                      key={k}
+                      className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => setShowPass(p => !p)}
