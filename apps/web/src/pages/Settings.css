@@ -808,6 +808,7 @@
 .s-gw-chdr      { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--white); }
 .s-gw-chdr--sep { border-bottom: 1px solid var(--border); }
 .s-gw-chdr--on  { background: var(--gw-bg, var(--bg)); }
+[data-theme="dark"] .s-gw-chdr--on { background: color-mix(in srgb, var(--gw-c, var(--teal)) 10%, transparent); }
 .s-gw-badge     { width: 40px; height: 40px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .s-gw-babbr     { color: rgba(255,255,255,0.92); font-weight: 900; font-size: 13px; font-family: var(--font); letter-spacing: -.03em; }
 .s-gw-babbr--sm { font-size: 10px; }
