@@ -1,6 +1,6 @@
 .clearos-dashboard {
   padding: 0 0 28px;
-  background: var(--bg);
+  background: transparent;
 }
 
 .clearos-dashboard__toolbar {

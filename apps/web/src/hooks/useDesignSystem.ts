@@ -342,9 +342,9 @@ export const NEUTRAL_LIGHT_DEFAULT: NeutralSet = {
 
 export const NEUTRAL_DARK_DEFAULT: NeutralSet = {
   ink: '#f8fafc', ink2: '#a8b4c5', ink3: '#8b9bb1',
-  bg: '#080b10', white: '#111218',
+  bg: '#0a0c12', white: '#1a1e2c',
   border: 'rgba(255,255,255,0.14)', border2: 'rgba(255,255,255,0.28)',
-  cardSunken: 'rgba(255,255,255,0.035)',
+  cardSunken: 'rgba(255,255,255,0.05)',
 };
 
 export const SEMANTIC_LIGHT_DEFAULT: SemanticSet = {
@@ -1028,7 +1028,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
        :root — each app's real brand colour. The fallback is the platform brand so
        pre-auth and platform pages stay in-brand without WorkspaceApp mounted. */
     '--bg': '#0d0d0d',
-    '--white': '#131313',
+    '--white': tokens.neutral.dark.white,
     '--card-sunken': tokens.neutral.dark.cardSunken ?? 'rgba(255,255,255,0.035)',
     '--border': tokens.neutral.dark.border,
     '--border2': tokens.neutral.dark.border2,
