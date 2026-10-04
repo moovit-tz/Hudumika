@@ -887,7 +887,7 @@ html[data-expanded="true"] .app-sidebar {
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-toggle {
   background: var(--bg); border-color: rgba(255,255,255,0.1); box-shadow: 2px 0 8px rgba(0,0,0,0.4);
 }
-[data-theme="dark"][data-sidebar-style="system"] .app-sb-toggle:hover { background: var(--white); }
+[data-theme="dark"][data-sidebar-style="system"] .app-sb-toggle:hover { background: var(--hover-bg); }
 [data-theme="dark"][data-sidebar-style="system"] .app-sb-sub-footer {
   background: rgba(255,255,255,0.03); border-top-color: rgba(255,255,255,0.06);
 }

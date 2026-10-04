@@ -384,7 +384,7 @@
 }
 
 .drv-action-btn-sm:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   color: var(--ink);
   border-color: var(--border2);
 }
@@ -455,7 +455,7 @@
 }
 
 .drv-sb-close-btn:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

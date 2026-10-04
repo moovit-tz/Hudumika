@@ -226,7 +226,7 @@
   box-shadow: var(--elev);
   transition: all 0.2s;
 }
-.trk-mc-btn:hover { background: var(--white); transform: translateY(-2px); }
+.trk-mc-btn:hover { background: var(--hover-bg); transform: translateY(-2px); }
 
 .trk-layers-menu {
   position: absolute;

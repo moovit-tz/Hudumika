@@ -89,7 +89,7 @@
 }
 
 [data-theme="dark"] [data-crm="true"] .sales-quote-card:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   border-color: var(--sales-stage-color);
   box-shadow: 0 12px 26px rgba(0,28,74,.32), 0 0 0 1px color-mix(in srgb, var(--sales-stage-color) 22%, transparent);
 }

@@ -61,7 +61,7 @@
 }
 
 .r6-preset-pill:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   color: var(--ink);
   border-color: var(--border2, var(--border));
 }
@@ -280,7 +280,7 @@
 }
 
 .r6-step-row:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   border-color: var(--border);
 }
 

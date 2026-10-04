@@ -35,7 +35,7 @@
   box-shadow: var(--elev);
   transition: all 0.2s;
 }
-.rp-mc-btn:hover { background: var(--white); transform: translateY(-2px); }
+.rp-mc-btn:hover { background: var(--hover-bg); transform: translateY(-2px); }
 
 .rp-layers-menu {
   position: absolute;

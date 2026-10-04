@@ -342,7 +342,7 @@
 }
 
 .logistics-ping-item:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   border-color: var(--border);
 }
 

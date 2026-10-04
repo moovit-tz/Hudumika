@@ -421,7 +421,7 @@
 }
 
 .s-mod-access-tag:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   border-color: var(--border);
   color: var(--teal);
 }

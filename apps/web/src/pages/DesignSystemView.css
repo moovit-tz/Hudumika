@@ -823,7 +823,7 @@
 
 .ds-field-card:hover {
   border-color: var(--teal-m);
-  background: var(--white);
+  background: var(--hover-bg);
   box-shadow: var(--elev-sm);
   transform: translateY(-1px);
 }
@@ -1019,7 +1019,7 @@
 
 .ds-number-field-card:hover {
   border-color: var(--teal-m);
-  background: var(--white);
+  background: var(--hover-bg);
   box-shadow: var(--elev-sm);
   transform: translateY(-1px);
 }
@@ -1170,7 +1170,7 @@
 
 .ds-variant-card:hover {
   border-color: var(--border2);
-  background: var(--white);
+  background: var(--hover-bg);
 }
 
 .ds-variant-card--active {
@@ -1220,7 +1220,7 @@
 
 .ds-shadow-card:hover {
   border-color: var(--border2);
-  background: var(--white);
+  background: var(--hover-bg);
 }
 
 .ds-shadow-card--active {
@@ -1331,7 +1331,7 @@
 
 .ds-layout-option-card:hover {
   border-color: var(--border2);
-  background: var(--white);
+  background: var(--hover-bg);
 }
 
 .ds-layout-option-card--active {

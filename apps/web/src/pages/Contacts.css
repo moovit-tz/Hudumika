@@ -618,7 +618,7 @@
 .cts-relationship-card-head { min-height:48px; padding:9px 12px; display:flex; align-items:center; gap:8px; justify-content:space-between; border-bottom:1px solid var(--border); background:var(--white); }
 .cts-relationship-card-head > div:first-child { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; }
 .cts-interaction-row,.cts-file-row { width:100%; border:0; border-bottom:1px solid var(--border); background:transparent; display:flex; align-items:flex-start; gap:10px; padding:11px 12px; text-align:left; color:var(--ink); cursor:pointer; }
-.cts-interaction-row:hover,.cts-file-row:hover { background:var(--white); }
+.cts-interaction-row:hover,.cts-file-row:hover { background:var(--hover-bg); }
 .cts-interaction-row strong,.cts-file-row strong,.cts-interaction-row small,.cts-file-row small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cts-interaction-row > span:last-child,.cts-file-row > span { min-width:0; flex:1; }
 .cts-interaction-row strong,.cts-file-row strong { font-size:12.5px; }
@@ -673,7 +673,7 @@
 }
 
 .cts-special-filter-tab:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   color: var(--ink);
 }
 

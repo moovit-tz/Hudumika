@@ -785,7 +785,7 @@
 }
 
 .wh-expand-btn:hover {
-  background: var(--white);
+  background: var(--hover-bg);
   border-color: var(--border2);
   color: var(--ink);
 }

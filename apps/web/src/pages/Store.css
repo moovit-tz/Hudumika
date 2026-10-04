@@ -133,7 +133,7 @@
   border-radius: 6px;
 }
 
-.store-search-clear:hover { background: var(--white); color: var(--ink); }
+.store-search-clear:hover { background: var(--hover-bg); color: var(--ink); }
 
 .store-verified-note {
   display: flex;

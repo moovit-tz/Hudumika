@@ -53,7 +53,7 @@
   transition: background .12s, color .12s;
 }
 .app-header-pill-search:hover,
-.app-header-pill-icon:hover { background: var(--white); color: var(--ink); }
+.app-header-pill-icon:hover { background: var(--hover-bg); color: var(--ink); }
 .app-header-pill-icon[aria-pressed="true"] { color: var(--teal); }
 
 /* The announcement itself — min-width:0 on both this and the title is what

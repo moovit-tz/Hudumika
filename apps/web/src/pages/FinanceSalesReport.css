@@ -220,7 +220,7 @@
   border-radius: var(--r-sm);
 }
 
-.fsr-client:hover { background: var(--white); }
+.fsr-client:hover { background: var(--hover-bg); }
 
 .fsr-client-rank {
   width: 25px;
