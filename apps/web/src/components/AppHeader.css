@@ -1177,7 +1177,7 @@
 .ah-menu-item-link:hover,
 .ah-menu-item-link:focus-visible,
 .ah-menu-item-link[data-highlighted] {
-  background: var(--bg) !important;
+  background: var(--hover-bg) !important;
   color: var(--teal) !important;
 }
 

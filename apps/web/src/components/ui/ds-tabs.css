@@ -154,7 +154,7 @@
 }
 :root[data-tabs="boxed"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
 .ds-tabs-trigger[data-variant="boxed"]:hover:not([data-state="active"]):not(:disabled) {
-  background: var(--bg);
+  background: var(--hover-bg);
   border-color: var(--ink3);
 }
 :root[data-tabs="boxed"] .ds-tabs-trigger[data-state="active"],
@@ -217,7 +217,7 @@
 }
 :root[data-tabs="lifted"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
 .ds-tabs-trigger[data-variant="lifted"]:hover:not([data-state="active"]):not(:disabled) {
-  background: var(--bg);
+  background: var(--hover-bg);
 }
 :root[data-tabs="lifted"] .ds-tabs-trigger[data-state="active"],
 .ds-tabs-trigger[data-variant="lifted"][data-state="active"] {
