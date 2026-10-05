@@ -11,8 +11,10 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
 import { Switch } from '../components/ui/switch.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '../components/ui/select.js';
@@ -293,82 +295,40 @@ export function CrmPipelineStages() {
         }
       />
 
-      {/* ── Metric KPI Strip ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Active Stages */}
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4.5 shadow-sm transition-all hover:shadow-md">
-          <FeaturedIcon variant="brand" size="md" shape="square">
-            <Layers className="h-5 w-5" />
-          </FeaturedIcon>
-          <div className="min-w-0 flex-1">
-            <div className="text-2xl font-extrabold tracking-tight text-foreground">
-              {stages ? `${metrics.active}/${metrics.total}` : '—'}
-            </div>
-            <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-              Active Stages in Funnel
-            </div>
-          </div>
-        </div>
-
-        {/* Live Open Deals */}
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4.5 shadow-sm transition-all hover:shadow-md">
-          <FeaturedIcon variant="info" size="md" shape="square">
-            <BarChart3 className="h-5 w-5" />
-          </FeaturedIcon>
-          <div className="min-w-0 flex-1">
-            <div className="text-2xl font-extrabold tracking-tight text-foreground">
-              {stages ? metrics.openDeals : '—'}
-            </div>
-            <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-              Active Deals In Progress
-            </div>
-          </div>
-        </div>
-
-        {/* Closed Won Milestone */}
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4.5 shadow-sm transition-all hover:shadow-md">
-          <FeaturedIcon variant="success" size="md" shape="square">
-            <CheckCircle2 className="h-5 w-5" />
-          </FeaturedIcon>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold tracking-tight text-foreground">
-                {stages ? metrics.wonDeals : '—'}
-              </span>
-              {metrics.wonLabel && (
-                <span className="truncate text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  {metrics.wonLabel}
-                </span>
-              )}
-            </div>
-            <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-              Deals Closed Won
-            </div>
-          </div>
-        </div>
-
-        {/* Closed Lost Milestone */}
-        <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4.5 shadow-sm transition-all hover:shadow-md">
-          <FeaturedIcon variant="error" size="md" shape="square">
-            <XCircle className="h-5 w-5" />
-          </FeaturedIcon>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-extrabold tracking-tight text-foreground">
-                {stages ? metrics.lostDeals : '—'}
-              </span>
-              {metrics.lostLabel && (
-                <span className="truncate text-xs font-semibold text-rose-600 dark:text-rose-400">
-                  {metrics.lostLabel}
-                </span>
-              )}
-            </div>
-            <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-              Deals Closed Lost
-            </div>
-          </div>
-        </div>
-      </div>
+      <MetricsRow cards={[
+        {
+          title: 'STAGES IN FUNNEL',
+          value: stages ? `${metrics.active}/${metrics.total}` : '—',
+          loading: stages === null,
+          icon: 'layers',
+        },
+        {
+          title: 'ACTIVE DEALS',
+          value: stages ? String(metrics.openDeals) : '—',
+          loading: stages === null,
+          icon: 'barChart2',
+          barColor: 'var(--blue)',
+          barHighlight: 'var(--blue)',
+        },
+        {
+          title: 'CLOSED WON',
+          value: stages ? String(metrics.wonDeals) : '—',
+          sub1Label: metrics.wonLabel || undefined,
+          sub1Value: metrics.wonLabel ? ' ' : undefined,
+          loading: stages === null,
+          icon: 'checkCircle',
+          barColor: 'var(--green)',
+          barHighlight: 'var(--green)',
+        },
+        {
+          title: 'CLOSED LOST',
+          value: stages ? String(metrics.lostDeals) : '—',
+          loading: stages === null,
+          icon: 'alertTriangle',
+          barColor: 'var(--red)',
+          barHighlight: 'var(--red)',
+        },
+      ]} />
 
       {/* ── Visual Pipeline Progression Stepper ── */}
       <Card className="border border-border/80 bg-card shadow-sm">
@@ -472,30 +432,14 @@ export function CrmPipelineStages() {
 
             {/* Filter Tabs & Search */}
             <div className="flex flex-wrap items-center gap-2.5">
-              {/* Filter Tabs */}
-              <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
-                {(
-                  [
-                    { id: 'all', label: 'All Stages' },
-                    { id: 'open', label: 'In Progress' },
-                    { id: 'terminal', label: 'Milestones' },
-                    { id: 'active', label: 'Active Only' },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setFilterTab(tab.id)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
-                      filterTab === tab.id
-                        ? 'bg-background text-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+              <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as FilterTab)}>
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="open">In Progress</TabsTrigger>
+                  <TabsTrigger value="terminal">Milestones</TabsTrigger>
+                  <TabsTrigger value="active">Active Only</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
               {/* Search Bar */}
               <div className="relative w-44 md:w-56">
@@ -712,7 +656,7 @@ export function CrmPipelineStages() {
                           }
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all ${
                             s.is_won
-                              ? 'bg-[var(--green-l)] text-[var(--green)] border border-[var(--green)]/40 shadow-xs'
+                              ? 'bg-(--green-l) text-(--green) border border-(--green)/40 shadow-xs'
                               : 'border border-border/80 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                           }`}
                         >
@@ -733,7 +677,7 @@ export function CrmPipelineStages() {
                           }
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all ${
                             s.is_lost
-                              ? 'bg-[var(--red-l)] text-[var(--red)] border border-[var(--red)]/40 shadow-xs'
+                              ? 'bg-(--red-l) text-(--red) border border-(--red)/40 shadow-xs'
                               : 'border border-border/80 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                           }`}
                         >
@@ -927,7 +871,7 @@ export function CrmPipelineStages() {
                   onClick={() => setEditMilestone('open')}
                   className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                     editMilestone === 'open'
-                      ? 'border-primary bg-[var(--teal-l)] text-[var(--teal)] ring-2 ring-primary/20'
+                      ? 'border-primary bg-(--teal-l) text-(--teal) ring-2 ring-primary/20'
                       : 'border-border bg-card text-muted-foreground hover:border-primary/40'
                   }`}
                 >
@@ -945,12 +889,12 @@ export function CrmPipelineStages() {
                   onClick={() => setEditMilestone('won')}
                   className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                     editMilestone === 'won'
-                      ? 'border-emerald-500 bg-[var(--green-l)] text-[var(--green)] ring-2 ring-emerald-500/20'
-                      : 'border-border bg-card text-muted-foreground hover:border-emerald-500/40'
+                      ? 'border-(--green) bg-(--green-l) text-(--green) ring-2 ring-(--green)/20'
+                      : 'border-border bg-card text-muted-foreground hover:border-(--green)/40'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-(--green)" />
                     <span>Closed Won</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground">
@@ -963,12 +907,12 @@ export function CrmPipelineStages() {
                   onClick={() => setEditMilestone('lost')}
                   className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                     editMilestone === 'lost'
-                      ? 'border-rose-500 bg-[var(--red-l)] text-[var(--red)] ring-2 ring-rose-500/20'
-                      : 'border-border bg-card text-muted-foreground hover:border-rose-500/40'
+                      ? 'border-(--red) bg-(--red-l) text-(--red) ring-2 ring-(--red)/20'
+                      : 'border-border bg-card text-muted-foreground hover:border-(--red)/40'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                    <XCircle className="h-3.5 w-3.5 text-(--red)" />
                     <span>Closed Lost</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground">
@@ -993,7 +937,7 @@ export function CrmPipelineStages() {
 
             {/* Deal Count Warning */}
             {editingStage && editingStage.deal_count > 0 && (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-xl border border-(--gold)/30 bg-(--gold-l) p-3 text-xs text-(--gold)">
                 <Sparkles className="h-4 w-4 shrink-0" />
                 <span>
                   This stage currently holds <strong>{editingStage.deal_count}</strong> active {editingStage.deal_count === 1 ? 'deal' : 'deals'}.
@@ -1086,7 +1030,7 @@ export function CrmPipelineStages() {
                   onClick={() => setNewDialogMilestone('open')}
                   className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                     newDialogMilestone === 'open'
-                      ? 'border-primary bg-[var(--teal-l)] text-[var(--teal)] ring-2 ring-primary/20'
+                      ? 'border-primary bg-(--teal-l) text-(--teal) ring-2 ring-primary/20'
                       : 'border-border bg-card text-muted-foreground hover:border-primary/40'
                   }`}
                 >
@@ -1102,12 +1046,12 @@ export function CrmPipelineStages() {
                   onClick={() => setNewDialogMilestone('won')}
                   className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                     newDialogMilestone === 'won'
-                      ? 'border-emerald-500 bg-[var(--green-l)] text-[var(--green)] ring-2 ring-emerald-500/20'
-                      : 'border-border bg-card text-muted-foreground hover:border-emerald-500/40'
+                      ? 'border-(--green) bg-(--green-l) text-(--green) ring-2 ring-(--green)/20'
+                      : 'border-border bg-card text-muted-foreground hover:border-(--green)/40'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-(--green)" />
                     <span>Closed Won</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground">Terminal Won</span>
@@ -1118,12 +1062,12 @@ export function CrmPipelineStages() {
                   onClick={() => setNewDialogMilestone('lost')}
                   className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
                     newDialogMilestone === 'lost'
-                      ? 'border-rose-500 bg-[var(--red-l)] text-[var(--red)] ring-2 ring-rose-500/20'
-                      : 'border-border bg-card text-muted-foreground hover:border-rose-500/40'
+                      ? 'border-(--red) bg-(--red-l) text-(--red) ring-2 ring-(--red)/20'
+                      : 'border-border bg-card text-muted-foreground hover:border-(--red)/40'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                    <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                    <XCircle className="h-3.5 w-3.5 text-(--red)" />
                     <span>Closed Lost</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground">Terminal Lost</span>

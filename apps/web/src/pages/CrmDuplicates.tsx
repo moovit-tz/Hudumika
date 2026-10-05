@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, GitMerge, SearchCheck, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { CheckCircle2, GitMerge, SearchCheck } from 'lucide-react';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -48,7 +49,7 @@ function DupGroup<T extends { id: string; created_at: string }>({ items, renderL
               <label
                 key={item.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3.5 transition-colors ${
-                  selected ? 'border-[var(--teal)] bg-[var(--teal-l)]' : 'border-border bg-card hover:bg-muted/20'
+                  selected ? 'border-(--teal) bg-(--teal-l)' : 'border-border bg-card hover:bg-muted/20'
                 }`}
               >
                 <RadioGroupItem value={item.id} aria-label={`Keep ${renderLabel(item)}`} />
@@ -63,7 +64,7 @@ function DupGroup<T extends { id: string; created_at: string }>({ items, renderL
         </RadioGroup>
         <div className="mt-4 flex justify-end">
           <Button size="sm" className="gap-2" disabled={!primaryId || busy} onClick={() => onMerge(primaryId, items.filter((item) => item.id !== primaryId).map((item) => item.id))}>
-            <GitMerge className="h-4 w-4" /> {busy ? 'Merging…' : 'Merge into selected'}
+            <GitMerge className="h-4 w-4" /> {busy ? 'Merging…' : 'Merge selected'}
           </Button>
         </div>
       </CardContent>
@@ -80,12 +81,23 @@ export function CrmDuplicates() {
   const [threshold, setThreshold] = useState(50); // 1–100, divided by 100 for API
   const [bulkMerging, setBulkMerging] = useState(false);
 
+  const autoSwitched = useRef(false);
+
   const load = useCallback(() => {
+    autoSwitched.current = false;
     const t = threshold / 100;
     apiFetch(`/v1/leads/duplicates?threshold=${t}`).then(data => { setLeadGroups(data); setLoadErrors(e => e.filter(x => x !== 'lead duplicates')); }).catch(() => { setLeadGroups([]); setLoadErrors(e => e.includes('lead duplicates') ? e : [...e, 'lead duplicates']); });
     apiFetch(`/v1/customers/duplicates?threshold=${t}`).then(data => { setCustomerGroups(data); setLoadErrors(e => e.filter(x => x !== 'customer duplicates')); }).catch(() => { setCustomerGroups([]); setLoadErrors(e => e.includes('customer duplicates') ? e : [...e, 'customer duplicates']); });
   }, [threshold]);
   useEffect(() => { load(); }, [load]);
+
+  // Auto-switch to the tab that has results on initial load
+  useEffect(() => {
+    if (autoSwitched.current || leadGroups === null || customerGroups === null) return;
+    autoSwitched.current = true;
+    if (leadGroups.length === 0 && customerGroups.length > 0) setTab('customers');
+    else if (customerGroups.length === 0 && leadGroups.length > 0) setTab('leads');
+  }, [leadGroups, customerGroups]);
 
   async function mergeLeads(primaryId: string, duplicateIds: string[]) {
     const confirmed = await showConfirm(`Merge ${duplicateIds.length} lead(s) into the selected one? This cannot be undone.`, { confirmLabel: 'Merge Leads' });
@@ -133,8 +145,6 @@ export function CrmDuplicates() {
     }
   }
 
-  const activeGroups = tab === 'leads' ? leadGroups : customerGroups;
-
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
@@ -163,14 +173,14 @@ export function CrmDuplicates() {
               <span>Fewer matches (stricter)</span>
             </div>
           </div>
-          {activeGroups !== null && activeGroups.length > 0 && (
+          {(() => { const g = tab === 'leads' ? leadGroups : customerGroups; return g !== null && g.length > 0; })() && (
             <Button
               variant="outline" size="sm" className="shrink-0 gap-2"
               disabled={bulkMerging}
               onClick={mergeAll}
             >
               <GitMerge className="h-4 w-4" />
-              {bulkMerging ? 'Merging…' : `Merge all ${activeGroups.length} group${activeGroups.length === 1 ? '' : 's'}`}
+              {bulkMerging ? 'Merging…' : `Merge all (${(tab === 'leads' ? leadGroups : customerGroups)?.length ?? 0})`}
             </Button>
           )}
         </CardContent>
@@ -178,55 +188,90 @@ export function CrmDuplicates() {
 
       {loadErrors.length > 0 && <Banner variant="error" title="Duplicate records could not be checked">Unavailable: {loadErrors.join(', ')}. Refresh and try again.</Banner>}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="tablist" aria-label="Duplicate record type">
-        {([
-          { key: 'leads' as const, label: 'Lead duplicates', description: 'Potential matches based on company names.', count: leadGroups?.length ?? 0 },
-          { key: 'customers' as const, label: 'Customer duplicates', description: 'Potential matches across customer accounts.', count: customerGroups?.length ?? 0 },
-        ]).map((item) => {
-          const active = tab === item.key;
-          return (
-            <button
-              key={item.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setTab(item.key)}
-              className={`flex min-h-24 items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
-                active ? 'border-[var(--teal)] bg-[var(--teal-l)] ring-1 ring-[var(--teal)]/20' : 'border-border bg-card hover:border-[var(--teal)]/50 hover:bg-muted/20'
-              }`}
-            >
-              <FeaturedIcon variant={active ? 'brand' : 'gray'} size="sm" shape="square"><Users className="h-4 w-4" /></FeaturedIcon>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-foreground">{item.label}</span>
-                <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>
-              </span>
-              <Badge variant={active ? 'brand' : 'gray'}>{item.count}</Badge>
-            </button>
-          );
-        })}
-      </div>
+      <MetricsRow cards={[
+        {
+          title: 'LEAD DUPLICATES',
+          value: leadGroups === null ? '—' : String(leadGroups.length),
+          loading: leadGroups === null,
+          emphasis: tab === 'leads' ? 'primary' : 'default',
+          onClick: () => setTab('leads'),
+          icon: 'users',
+        },
+        {
+          title: 'CUSTOMER DUPLICATES',
+          value: customerGroups === null ? '—' : String(customerGroups.length),
+          loading: customerGroups === null,
+          emphasis: tab === 'customers' ? 'primary' : 'default',
+          onClick: () => setTab('customers'),
+          icon: 'users',
+        },
+      ]} />
 
-      {activeGroups === null ? (
-        <Card><CardContent className="flex min-h-52 items-center justify-center"><SectionLoading /></CardContent></Card>
-      ) : activeGroups.length === 0 ? (
-        <Card>
-          <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
-            <FeaturedIcon variant="success" size="lg" shape="circle"><CheckCircle2 className="h-6 w-6" /></FeaturedIcon>
-            <h2 className="mt-4 text-sm font-bold text-foreground">No duplicate {tab} found</h2>
-            <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">The current CRM records do not contain any likely company-name matches.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <SearchCheck className="h-4 w-4 text-[var(--teal)]" />
-            {activeGroups.length} group{activeGroups.length === 1 ? '' : 's'} require review
-          </div>
-          {tab === 'leads'
-            ? leadGroups!.map((group, index) => <DupGroup key={index} items={group.leads} onMerge={mergeLeads} busy={group.leads.some(item => item.id === mergingId)} renderLabel={(lead) => lead.company} renderSub={(lead) => `${lead.contact_name} · ${fmtValue(lead.value)}`} />)
-            : customerGroups!.map((group, index) => <DupGroup key={index} items={group.customers} onMerge={mergeCustomers} busy={group.customers.some(item => item.id === mergingId)} renderLabel={(customer) => customer.name} renderSub={(customer) => customer.email || 'No email on file'} />)}
-        </div>
-      )}
+      <div className="space-y-3">
+        {tab === 'leads' ? (
+          leadGroups === null ? (
+            <Card><CardContent className="flex min-h-52 items-center justify-center"><SectionLoading /></CardContent></Card>
+          ) : leadGroups.length === 0 ? (
+            <Card>
+              <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
+                <FeaturedIcon variant="success" size="lg" shape="circle"><CheckCircle2 className="h-6 w-6" /></FeaturedIcon>
+                <h2 className="mt-4 text-sm font-bold text-foreground">No duplicate leads found</h2>
+                {customerGroups !== null && customerGroups.length > 0 ? (
+                  <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+                    No lead matches at this threshold —{' '}
+                    <button type="button" className="font-semibold text-(--teal) underline-offset-2 hover:underline" onClick={() => setTab('customers')}>
+                      {customerGroups.length} customer group{customerGroups.length === 1 ? '' : 's'} need review
+                    </button>.
+                  </p>
+                ) : (
+                  <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">No likely company-name matches at the current threshold.</p>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <SearchCheck className="h-4 w-4 text-(--teal)" />
+                {leadGroups.length} group{leadGroups.length === 1 ? ' requires' : 's require'} review
+              </div>
+              {leadGroups.map((group, index) => (
+                <DupGroup key={index} items={group.leads} onMerge={mergeLeads} busy={group.leads.some(item => item.id === mergingId)} renderLabel={(lead) => lead.company} renderSub={(lead) => `${lead.contact_name} · ${fmtValue(lead.value)}`} />
+              ))}
+            </>
+          )
+        ) : (
+          customerGroups === null ? (
+            <Card><CardContent className="flex min-h-52 items-center justify-center"><SectionLoading /></CardContent></Card>
+          ) : customerGroups.length === 0 ? (
+            <Card>
+              <CardContent className="flex min-h-64 flex-col items-center justify-center px-6 py-10 text-center">
+                <FeaturedIcon variant="success" size="lg" shape="circle"><CheckCircle2 className="h-6 w-6" /></FeaturedIcon>
+                <h2 className="mt-4 text-sm font-bold text-foreground">No duplicate customers found</h2>
+                {leadGroups !== null && leadGroups.length > 0 ? (
+                  <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+                    No customer matches at this threshold —{' '}
+                    <button type="button" className="font-semibold text-(--teal) underline-offset-2 hover:underline" onClick={() => setTab('leads')}>
+                      {leadGroups.length} lead group{leadGroups.length === 1 ? '' : 's'} need review
+                    </button>.
+                  </p>
+                ) : (
+                  <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">No likely account matches at the current threshold.</p>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <SearchCheck className="h-4 w-4 text-(--teal)" />
+                {customerGroups.length} group{customerGroups.length === 1 ? ' requires' : 's require'} review
+              </div>
+              {customerGroups.map((group, index) => (
+                <DupGroup key={index} items={group.customers} onMerge={mergeCustomers} busy={group.customers.some(item => item.id === mergingId)} renderLabel={(customer) => customer.name} renderSub={(customer) => customer.email || 'No email on file'} />
+              ))}
+            </>
+          )
+        )}
+      </div>
     </div>
   );
 }

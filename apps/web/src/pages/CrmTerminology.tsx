@@ -134,7 +134,7 @@ export function CrmTerminology() {
         titleEm="terminology"
         subtitle="Rename CRM entities to match your industry or internal vocabulary."
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={resetAll}>
               <RotateCcw size={14} className="mr-1" /> Reset all
             </Button>
@@ -146,35 +146,29 @@ export function CrmTerminology() {
       />
 
       {!terms ? <SectionLoading /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 860 }}>
+        <div className="flex flex-col gap-8 max-w-215">
 
           {/* Industry presets */}
           <div>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Quick-start presets
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
               {presets.map(preset => (
                 <button
                   key={preset.key}
                   type="button"
                   disabled={!!applyingPreset}
                   onClick={() => applyPreset(preset)}
-                  style={{
-                    padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)',
-                    borderRadius: 'var(--r)', textAlign: 'left', cursor: 'pointer', fontFamily: 'var(--font)',
-                    transition: 'border-color 0.12s, box-shadow 0.12s',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--teal)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 2px var(--teal-l)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
+                  className="rounded-lg border border-border bg-card px-4 py-3.5 text-left transition-colors hover:border-(--teal) hover:ring-2 hover:ring-(--teal-l) disabled:opacity-60"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <Wand2 size={14} color="var(--teal)" />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <Wand2 size={14} className="text-(--teal)" />
+                    <span className="text-sm font-bold text-foreground">
                       {applyingPreset === preset.key ? 'Applying…' : preset.label}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <div className="flex flex-wrap gap-1">
                     {Object.entries(preset.preview).slice(0, 4).map(([k, v]) => (
                       <Badge key={k} variant="brand" className="text-xs">{v}</Badge>
                     ))}
@@ -187,10 +181,10 @@ export function CrmTerminology() {
           {/* Per-term overrides */}
           {GROUPED.map(([groupLabel, keys]) => (
             <div key={groupLabel}>
-              <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 12 }}>
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 {groupLabel}
               </h2>
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
+              <div className="overflow-hidden rounded-lg border border-border bg-card">
                 {keys.map((key, i) => {
                   const term = terms[key];
                   const singular = getValue(key, 'singular');
@@ -199,38 +193,31 @@ export function CrmTerminology() {
                   return (
                     <div
                       key={key}
-                      style={{
-                        display: 'grid', gridTemplateColumns: '180px 1fr 1fr auto',
-                        alignItems: 'center', gap: 12,
-                        padding: '12px 16px',
-                        borderBottom: i < keys.length - 1 ? '1px solid var(--border)' : 'none',
-                        background: changed ? 'var(--teal-l)' : undefined,
-                      }}
+                      className={`grid items-center gap-3 px-4 py-3 ${i < keys.length - 1 ? 'border-b border-border' : ''} ${changed ? 'bg-(--teal-l)' : ''}`}
+                      style={{ gridTemplateColumns: '180px 1fr 1fr auto' }}
                     >
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{TERM_LABELS[key]}</div>
+                        <div className="text-sm font-medium text-foreground">{TERM_LABELS[key]}</div>
                         {term?.overridden && !changed && (
-                          <Badge variant="brand" className="text-xs mt-0.5">Custom</Badge>
+                          <Badge variant="brand" className="mt-0.5 text-xs">Custom</Badge>
                         )}
                       </div>
                       <Input
                         value={singular}
                         onChange={e => setField(key, 'singular', e.target.value)}
                         placeholder="Singular…"
-                        style={{ fontSize: 13 }}
                       />
                       <Input
                         value={plural}
                         onChange={e => setField(key, 'plural', e.target.value)}
                         placeholder="Plural…"
-                        style={{ fontSize: 13 }}
                       />
                       <button
                         type="button"
                         onClick={() => { if (changed) { setEdits(p => { const n = { ...p }; delete n[key]; return n; }); } else if (term?.overridden) { resetOne(key); } }}
                         disabled={!changed && !term?.overridden}
                         title={changed ? 'Discard this edit' : 'Reset to default'}
-                        style={{ background: 'none', border: 'none', cursor: changed || term?.overridden ? 'pointer' : 'default', color: changed || term?.overridden ? 'var(--red)' : 'var(--ink3)', padding: '4px 6px', borderRadius: 'var(--r-sm)', opacity: !changed && !term?.overridden ? 0.3 : 1 }}
+                        className={`rounded p-1.5 transition-colors ${changed || term?.overridden ? 'cursor-pointer text-(--red) hover:bg-(--red-l)' : 'cursor-default opacity-30 text-muted-foreground'}`}
                       >
                         <RotateCcw size={13} />
                       </button>
@@ -242,7 +229,7 @@ export function CrmTerminology() {
           ))}
 
           {isDirty && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingBottom: 40 }}>
+            <div className="flex justify-end gap-2 pb-10">
               <Button variant="outline" onClick={() => setEdits({})}>Discard changes</Button>
               <Button onClick={save} disabled={saving}>
                 {saving ? 'Saving…' : 'Save changes'}

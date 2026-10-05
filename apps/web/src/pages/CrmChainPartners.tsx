@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Card, CardContent } from '../components/ui/card.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -12,6 +13,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -260,87 +262,33 @@ export function CrmChainPartners() {
         titleEm="directory"
         subtitle={`${totalCount} ICD, CFS, bonded warehouse, and logistics partners registered.`}
         actions={
-          <Button
-            variant="default"
-            size="sm"
-            onClick={goToNewPartner}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Icon name="plus" size={15} strokeWidth={2.5} color="hsl(var(--primary-foreground))" />
+          <Button variant="default" size="sm" onClick={goToNewPartner}>
+            <Icon name="plus" size={15} strokeWidth={2.5} />
             Add Partner
           </Button>
         }
       />
 
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* KPI Metrics Ribbon */}
-        <div className="partner-metrics-grid">
-          {/* KPI 1 */}
-          <div className="partner-metric-card">
-            <div className="partner-metric-card-content">
-              <div className="partner-metric-label">Partners Directory</div>
-              <div className="partner-metric-value">{totalCount}</div>
-              <div className="partner-metric-subtext">{withContact} with contact person</div>
-            </div>
-            <FeaturedIcon variant="brand" size="md" shape="square">
-              <Icon name="link" size={18} />
-            </FeaturedIcon>
-          </div>
-
-          {/* KPI 2 */}
-          <div className="partner-metric-card">
-            <div className="partner-metric-card-content">
-              <div className="partner-metric-label">With Email</div>
-              <div className="partner-metric-value">{withEmail}</div>
-              <div className="partner-metric-subtext">
-                <span style={{ color: 'var(--teal)', fontWeight: 600 }}>{totalCount > 0 ? Math.round((withEmail / totalCount) * 100) : 0}%</span> email coverage
-              </div>
-            </div>
-            <FeaturedIcon variant="info" size="md" shape="square">
-              <Icon name="mail" size={18} />
-            </FeaturedIcon>
-          </div>
-
-          {/* KPI 3 */}
-          <div className="partner-metric-card">
-            <div className="partner-metric-card-content">
-              <div className="partner-metric-label">With Phone</div>
-              <div className="partner-metric-value">{withPhone}</div>
-              <div className="partner-metric-subtext">
-                <span style={{ color: 'var(--green)', fontWeight: 600 }}>{totalCount > 0 ? Math.round((withPhone / totalCount) * 100) : 0}%</span> phone coverage
-              </div>
-            </div>
-            <FeaturedIcon variant="success" size="md" shape="square">
-              <Icon name="phone" size={18} />
-            </FeaturedIcon>
-          </div>
-
-          {/* KPI 4 */}
-          <div className="partner-metric-card">
-            <div className="partner-metric-card-content">
-              <div className="partner-metric-label">Fully Connected</div>
-              <div className="partner-metric-value">{fullyLinked}</div>
-              <div className="partner-metric-subtext">Contact + email + phone</div>
-            </div>
-            <FeaturedIcon variant="warning" size="md" shape="square">
-              <Icon name="checkCircle" size={18} />
-            </FeaturedIcon>
-          </div>
-        </div>
+      <div className="flex flex-col gap-5">
+        <MetricsRow cards={[
+          { title: 'PARTNERS DIRECTORY', value: String(totalCount), loading: loading, icon: 'link', sub1Label: `${withContact} with contact person` },
+          { title: 'WITH EMAIL', value: String(withEmail), loading: loading, icon: 'mail', sub1Label: `${totalCount > 0 ? Math.round((withEmail / totalCount) * 100) : 0}% email coverage` },
+          { title: 'WITH PHONE', value: String(withPhone), loading: loading, icon: 'phone', sub1Label: `${totalCount > 0 ? Math.round((withPhone / totalCount) * 100) : 0}% phone coverage` },
+          { title: 'FULLY CONNECTED', value: String(fullyLinked), loading: loading, icon: 'checkCircle', sub1Label: 'Contact + email + phone' },
+        ]} />
 
         {/* Partners Table Card */}
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--elev-sm)', overflow: 'hidden' }}>
+        <Card className="overflow-hidden">
           {/* Toolbar */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 360 }}>
-              <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
+          <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
+            <div className="relative min-w-55 max-w-90 flex-1">
+              <Icon name="search" size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                className="input-field"
+                className="input-field pl-8 pr-8 w-full"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search partners by name, contact, phone…"
-                style={{ paddingLeft: 32, paddingRight: search ? 32 : 12, width: '100%' }}
               />
               {search && (
                 <Tip label="Clear search">
@@ -348,7 +296,7 @@ export function CrmChainPartners() {
                     type="button"
                     aria-label="Clear partner search"
                     onClick={() => setSearch('')}
-                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex', alignItems: 'center' }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-0.5 text-muted-foreground hover:text-foreground"
                   >
                     <Icon name="x" size={13} />
                   </button>
@@ -356,8 +304,7 @@ export function CrmChainPartners() {
               )}
             </div>
 
-            {/* Category Filter */}
-            <div style={{ width: 180 }}>
+            <div className="w-45">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Categories" />
@@ -371,108 +318,101 @@ export function CrmChainPartners() {
               </Select>
             </div>
 
-            <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+            <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">
               {filtered.length !== totalCount ? `Showing ${filtered.length} of ${totalCount}` : `${totalCount} partner${totalCount !== 1 ? 's' : ''}`}
-            </div>
+            </span>
           </div>
 
           {/* Table Content */}
           {loading ? (
-            <div style={{ padding: 48 }}><SectionLoading /></div>
+            <div className="flex min-h-48 items-center justify-center"><SectionLoading /></div>
           ) : partners.length === 0 ? (
-            <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
               <FeaturedIcon variant="gray" size="xl" shape="square" className="mx-auto mb-3">
                 <Icon name="link" size={28} />
               </FeaturedIcon>
-              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>No partners yet</div>
-              <div style={{ fontSize: 13, maxWidth: 440, margin: '0 auto', lineHeight: 1.6, color: 'var(--ink3)' }}>
+              <p className="text-sm font-bold text-foreground">No partners yet</p>
+              <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">
                 Add ICDs, CFS operators, bonded warehouse providers, and logistics partners.
                 A company can be both a customer and a partner in the CRM.
-              </div>
-              <Button variant="default" size="sm" onClick={goToNewPartner} style={{ marginTop: 18, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="plus" size={14} strokeWidth={2.5} color="hsl(var(--primary-foreground))" />
+              </p>
+              <Button variant="default" size="sm" onClick={goToNewPartner} className="mt-5">
+                <Icon name="plus" size={14} strokeWidth={2.5} />
                 Register first partner
               </Button>
             </div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>
-              No partners match <strong>"{search}"</strong>
-              <div style={{ marginTop: 10 }}>
-                <Button variant="outline" size="sm" onClick={() => { setSearch(''); setCategoryFilter('ALL'); }}>
-                  Reset filters
-                </Button>
-              </div>
+            <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
+              <p className="text-sm text-muted-foreground">No partners match <strong>"{search}"</strong></p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => { setSearch(''); setCategoryFilter('ALL'); }}>
+                Reset filters
+              </Button>
             </div>
           ) : (
             <div className="rtbl-wrap">
-              <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <table className="w-full min-w-195 border-collapse text-left text-sm">
                 <thead>
-                  <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', color: 'var(--ink3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <th style={{ padding: '11px 18px', fontWeight: 700 }}>Partner</th>
-                    <th style={{ padding: '11px 18px', fontWeight: 700 }}>Category</th>
-                    <th style={{ padding: '11px 18px', fontWeight: 700 }}>Contact Person</th>
-                    <th style={{ padding: '11px 18px', fontWeight: 700 }}>Email & Phone</th>
-                    <th style={{ padding: '11px 18px', fontWeight: 700 }}>Location</th>
-                    <th style={{ padding: '11px 18px', fontWeight: 700 }}>Registered</th>
-                    <th style={{ padding: '11px 12px', fontWeight: 700, width: 40 }}></th>
+                  <tr className="border-b border-border bg-muted/30 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4.5 py-2.5">Partner</th>
+                    <th className="px-4.5 py-2.5">Category</th>
+                    <th className="px-4.5 py-2.5">Contact Person</th>
+                    <th className="px-4.5 py-2.5">Email &amp; Phone</th>
+                    <th className="px-4.5 py-2.5">Location</th>
+                    <th className="px-4.5 py-2.5">Registered</th>
+                    <th className="w-10 px-3 py-2.5"></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border">
                   {filtered.map(p => {
                     const cat = partnerCategory(p);
                     const locationStr = [p.city, p.country].filter(Boolean).join(', ');
                     return (
-                      <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.1s' }}>
-                        <td style={{ padding: '13px 18px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <tr key={p.id} className="transition-colors hover:bg-muted/20">
+                        <td className="px-4.5 py-3">
+                          <div className="flex items-center gap-3">
                             <AvatarPicker id={p.id} kind="customers" name={p.name} size={36} shape="square" />
-                            <div>
-                              <button
-                                type="button"
-                                className="partner-name-button"
-                                onClick={() => goToPartner(p.id)}
-                              >
-                                {p.name}
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              className="partner-name-button"
+                              onClick={() => goToPartner(p.id)}
+                            >
+                              {p.name}
+                            </button>
                           </div>
                         </td>
-                        <td style={{ padding: '13px 18px' }}>
+                        <td className="px-4.5 py-3">
                           <Badge variant={cat.variant}>{cat.label}</Badge>
                         </td>
-                        <td style={{ padding: '13px 18px', color: p.contact_name ? 'var(--ink)' : 'var(--ink3)', fontStyle: p.contact_name ? 'normal' : 'italic' }}>
+                        <td className={`px-4.5 py-3 ${p.contact_name ? 'text-foreground' : 'italic text-muted-foreground'}`}>
                           {p.contact_name || 'Not set'}
                         </td>
-                        <td style={{ padding: '13px 18px' }}>
+                        <td className="px-4.5 py-3">
                           {p.email && (
-                            <a href={`mailto:${p.email}`} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink)', textDecoration: 'none', marginBottom: p.phone ? 4 : 0, fontSize: 12.5 }}>
-                              <Icon name="mail" size={12} style={{ color: 'var(--ink3)', flexShrink: 0 }} />
+                            <a href={`mailto:${p.email}`} className={`flex items-center gap-1 text-xs text-foreground no-underline hover:underline ${p.phone ? 'mb-1' : ''}`}>
+                              <Icon name="mail" size={12} className="shrink-0 text-muted-foreground" />
                               {p.email}
                             </a>
                           )}
                           {p.phone && (
-                            <a href={`https://wa.me/${p.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--green)', textDecoration: 'none', fontSize: 12.5 }}>
-                              <Icon name="phone" size={12} style={{ flexShrink: 0 }} />
+                            <a href={`https://wa.me/${p.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-(--green) no-underline hover:underline">
+                              <Icon name="phone" size={12} className="shrink-0" />
                               {p.phone}
                             </a>
                           )}
-                          {!p.email && !p.phone && <span style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>—</span>}
+                          {!p.email && !p.phone && <span className="italic text-muted-foreground">—</span>}
                         </td>
-                        <td style={{ padding: '13px 18px', color: locationStr ? 'var(--ink2)' : 'var(--ink3)' }}>
+                        <td className={`px-4.5 py-3 text-sm ${locationStr ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {locationStr || '—'}
                         </td>
-                        <td style={{ padding: '13px 18px', color: 'var(--ink3)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        <td className="whitespace-nowrap px-4.5 py-3 text-xs text-muted-foreground">
                           {new Date(p.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
-                        <td style={{ padding: '13px 12px' }}>
+                        <td className="px-3 py-3">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button
-                                aria-label="More actions"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: 'var(--r)', color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}
-                              >
+                              <Button variant="ghost" size="icon" aria-label="More actions">
                                 <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
-                              </button>
+                              </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem className="cursor-pointer" onClick={() => goToPartner(p.id)}>
@@ -508,7 +448,7 @@ export function CrmChainPartners() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );
@@ -638,7 +578,7 @@ function PartnerDetailPageView({
     return (
       <div className="partner-page-container">
         <BackButton onClick={onBack} label="Back to Partners Directory" />
-        <div style={{ padding: 60 }}><SectionLoading /></div>
+        <div className="flex min-h-60 items-center justify-center"><SectionLoading /></div>
       </div>
     );
   }
@@ -647,16 +587,18 @@ function PartnerDetailPageView({
     return (
       <div className="partner-page-container">
         <BackButton onClick={onBack} label="Back to Partners Directory" />
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 48, textAlign: 'center' }}>
-          <FeaturedIcon variant="warning" size="xl" shape="square" className="mx-auto mb-3">
-            <Icon name="alertCircle" size={28} />
-          </FeaturedIcon>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Partner record not found</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>This partner may have been removed or deleted.</div>
-          <Button variant="outline" size="sm" onClick={onBack} style={{ marginTop: 16 }}>
-            Return to directory
-          </Button>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
+            <FeaturedIcon variant="warning" size="xl" shape="square" className="mx-auto mb-3">
+              <Icon name="alertCircle" size={28} />
+            </FeaturedIcon>
+            <p className="text-base font-bold text-foreground">Partner record not found</p>
+            <p className="mt-1 text-sm text-muted-foreground">This partner may have been removed or deleted.</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={onBack}>
+              Return to directory
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -676,41 +618,27 @@ function PartnerDetailPageView({
         titleEm="profile"
         subtitle={`Partner in the logistics & trade chain directory.`}
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowEditDialog(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
               <Icon name="edit" size={14} />
               Edit Profile
             </Button>
             {partner.email && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { window.open(`mailto:${partner.email}`); }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
+              <Button variant="outline" size="sm" onClick={() => { window.open(`mailto:${partner.email}`); }}>
                 <Icon name="mail" size={14} />
                 Send Email
               </Button>
             )}
             {partner.phone && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { window.open(`https://wa.me/${partner.phone!.replace(/\D/g, '')}`, '_blank'); }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)' }}
-              >
+              <Button variant="outline" size="sm" className="text-(--green)"
+                onClick={() => { window.open(`https://wa.me/${partner.phone!.replace(/\D/g, '')}`, '_blank'); }}>
                 <Icon name="whatsapp" size={14} />
                 WhatsApp
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" style={{ padding: '0 8px' }}>
+                <Button variant="outline" size="icon">
                   <Icon name="moreHorizontal" size={15} />
                 </Button>
               </DropdownMenuTrigger>
@@ -734,7 +662,7 @@ function PartnerDetailPageView({
         }
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="flex flex-col gap-5">
         {/* Hero Identity Card */}
         <div className="partner-hero-card">
           <div className="partner-hero-top">
@@ -770,7 +698,7 @@ function PartnerDetailPageView({
             <div className="partner-metric-card">
               <div className="partner-metric-card-content">
                 <div className="partner-metric-label">Category / Role</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>
+                <div className="mt-1 text-base font-bold text-foreground">
                   {partner.partner_role || cat.label}
                 </div>
                 <div className="partner-metric-subtext">Chain directory grouping</div>
@@ -783,7 +711,7 @@ function PartnerDetailPageView({
             <div className="partner-metric-card">
               <div className="partner-metric-card-content">
                 <div className="partner-metric-label">Primary Contact</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="mt-1 truncate text-base font-bold text-foreground">
                   {partner.contact_name || 'None designated'}
                 </div>
                 <div className="partner-metric-subtext">{partner.phone || 'No direct phone'}</div>
@@ -796,7 +724,7 @@ function PartnerDetailPageView({
             <div className="partner-metric-card">
               <div className="partner-metric-card-content">
                 <div className="partner-metric-label">Email Channel</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="mt-1 truncate text-base font-bold text-foreground">
                   {partner.email ? 'Connected' : 'Not set'}
                 </div>
                 <div className="partner-metric-subtext">{partner.email || 'Add email for dispatches'}</div>
@@ -809,7 +737,7 @@ function PartnerDetailPageView({
             <div className="partner-metric-card">
               <div className="partner-metric-card-content">
                 <div className="partner-metric-label">Classification</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>
+                <div className="mt-1 text-base font-bold text-foreground">
                   {partner.is_customer ? 'Dual Entity' : 'Partner Only'}
                 </div>
                 <div className="partner-metric-subtext">{partner.is_customer ? 'Partner & Customer' : 'Trade Chain Partner'}</div>
@@ -831,20 +759,16 @@ function PartnerDetailPageView({
             </TabsList>
 
             {/* TAB 1: PROFILE & DETAILS */}
-            <TabsContent value="profile" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
+            <TabsContent value="profile" className="flex flex-col gap-4 pt-4">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16 }}>
                 {/* Contact Information */}
                 <SectionCard
                   title="Contact Information"
                   collapsible={false}
                   action={
-                    <button
-                      type="button"
-                      onClick={() => setShowEditDialog(true)}
-                      style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <Button type="button" variant="ghost" size="sm" className="text-(--teal)" onClick={() => setShowEditDialog(true)}>
                       <Icon name="edit" size={12} /> Edit
-                    </button>
+                    </Button>
                   }
                 >
                   <div className="partner-info-grid">
@@ -856,7 +780,7 @@ function PartnerDetailPageView({
                       <span className="partner-info-box-label">Email Address</span>
                       <span className="partner-info-box-value">
                         {partner.email ? (
-                          <a href={`mailto:${partner.email}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                          <a href={`mailto:${partner.email}`} className="text-(--teal) no-underline hover:underline">
                             {partner.email}
                           </a>
                         ) : 'Not set'}
@@ -866,7 +790,7 @@ function PartnerDetailPageView({
                       <span className="partner-info-box-label">Phone Number</span>
                       <span className="partner-info-box-value">
                         {partner.phone ? (
-                          <a href={`tel:${partner.phone}`} style={{ color: 'var(--ink)', textDecoration: 'none' }}>
+                          <a href={`tel:${partner.phone}`} className="text-foreground no-underline hover:underline">
                             {partner.phone}
                           </a>
                         ) : 'Not set'}
@@ -876,7 +800,7 @@ function PartnerDetailPageView({
                       <span className="partner-info-box-label">Website</span>
                       <span className="partner-info-box-value">
                         {partner.website ? (
-                          <a href={partner.website.startsWith('http') ? partner.website : `https://${partner.website}`} target="_blank" rel="noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <a href={partner.website.startsWith('http') ? partner.website : `https://${partner.website}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-(--teal) no-underline hover:underline">
                             {partner.website} <Icon name="externalLink" size={11} />
                           </a>
                         ) : 'Not set'}
@@ -890,13 +814,9 @@ function PartnerDetailPageView({
                   title="Registration & Legal Details"
                   collapsible={false}
                   action={
-                    <button
-                      type="button"
-                      onClick={() => setShowEditDialog(true)}
-                      style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
+                    <Button type="button" variant="ghost" size="sm" className="text-(--teal)" onClick={() => setShowEditDialog(true)}>
                       <Icon name="edit" size={12} /> Edit
-                    </button>
+                    </Button>
                   }
                 >
                   <div className="partner-info-grid">
@@ -931,13 +851,9 @@ function PartnerDetailPageView({
                 title="Physical Location & Address"
                 collapsible={false}
                 action={
-                  <button
-                    type="button"
-                    onClick={() => setShowEditDialog(true)}
-                    style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
+                  <Button type="button" variant="ghost" size="sm" className="text-(--teal)" onClick={() => setShowEditDialog(true)}>
                     <Icon name="edit" size={12} /> Edit
-                  </button>
+                  </Button>
                 }
               >
                 <div className="partner-info-grid">
@@ -961,13 +877,9 @@ function PartnerDetailPageView({
                 title="Operational Notes & Guidelines"
                 collapsible={false}
                 action={
-                  <button
-                    type="button"
-                    onClick={() => setShowEditDialog(true)}
-                    style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
+                  <Button type="button" variant="ghost" size="sm" className="text-(--teal)" onClick={() => setShowEditDialog(true)}>
                     <Icon name="edit" size={12} /> Edit Notes
-                  </button>
+                  </Button>
                 }
               >
                 {partner.notes ? (
@@ -975,21 +887,19 @@ function PartnerDetailPageView({
                     <p>{partner.notes}</p>
                   </div>
                 ) : (
-                  <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                  <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                     No operational notes or handling guidelines recorded for this partner.
-                  </div>
+                  </p>
                 )}
               </SectionCard>
             </TabsContent>
 
             {/* TAB 2: CATEGORY SETTINGS */}
-            <TabsContent value="category" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}>
+            <TabsContent value="category" className="flex flex-col gap-4 pt-4">
               <SectionCard title="Partner Category Classification" collapsible={false}>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 13.5, color: 'var(--ink2)', lineHeight: 1.5 }}>
-                    Select how <strong>{partner.name}</strong> is categorized in the supply chain directory. This grouping governs customs clearance workflows, carrier assignments, and warehouse linkages.
-                  </div>
-                </div>
+                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                  Select how <strong>{partner.name}</strong> is categorized in the supply chain directory. This grouping governs customs clearance workflows, carrier assignments, and warehouse linkages.
+                </p>
 
                 <div className="partner-category-picker-grid">
                   {PARTNER_CATEGORIES.map(category => {
@@ -1014,7 +924,7 @@ function PartnerDetailPageView({
                             <Icon name={info.icon} size={18} />
                           </FeaturedIcon>
                           {isSelected && (
-                            <Badge variant="brand" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Badge variant="brand" className="inline-flex items-center gap-1">
                               <Icon name="check" size={10} /> Active
                             </Badge>
                           )}
@@ -1028,28 +938,26 @@ function PartnerDetailPageView({
               </SectionCard>
 
               <SectionCard title="Dual Directory Status" collapsible={false}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div className="flex items-start gap-3.5">
                   <FeaturedIcon variant="brand" size="lg" shape="square">
                     <Icon name="building" size={20} />
                   </FeaturedIcon>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
-                      Customer & Partner Status
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 4, lineHeight: 1.5, maxWidth: 640 }}>
+                    <p className="text-sm font-bold text-foreground">Customer &amp; Partner Status</p>
+                    <p className="mt-1 max-w-160 text-sm leading-relaxed text-muted-foreground">
                       {partner.is_customer ? (
                         <>This entity is flagged as both a <strong>Customer</strong> and a <strong>Chain Partner</strong>. You can issue sales invoices to them while maintaining their vendor/terminal role.</>
                       ) : (
                         <>This entity is currently registered exclusively as a <strong>Chain Partner</strong>. If you provide clearance or freight services to them directly, you can also link them to the customer directory.</>
                       )}
-                    </div>
+                    </p>
                   </div>
                 </div>
               </SectionCard>
             </TabsContent>
 
             {/* TAB 3: ACTIVITY & TIMELINE */}
-            <TabsContent value="activity" style={{ paddingTop: 16 }}>
+            <TabsContent value="activity" className="pt-4">
               <SectionCard title="Chronological Activity & Notes" collapsible={false}>
                 <ActivityTimeline
                   subjectType="customer"
@@ -1073,7 +981,7 @@ function PartnerDetailPageView({
             <DialogBody>
               <div className="partner-form-grid">
                 <div className="partner-form-grid-full">
-                  <label className="seal-field-label">Company / Partner Name <span style={{ color: 'var(--red)' }}>*</span></label>
+                  <label className="seal-field-label">Company / Partner Name <span className="text-(--red)">*</span></label>
                   <input
                     type="text"
                     className="input-field"
@@ -1297,7 +1205,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
           <div className="partner-form-grid">
             <div className="partner-form-grid-full">
               <label className="seal-field-label">
-                Partner / Organization Name <span style={{ color: 'var(--red)' }}>*</span>
+                Partner / Organization Name <span className="text-(--red)">*</span>
               </label>
               <input
                 type="text"
@@ -1445,7 +1353,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
 
         {/* Section 5: Directory & Customer Setup */}
         <SectionCard title="Directory Setup" collapsible={false}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, color: 'var(--ink)' }}>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground">
             <Checkbox
               checked={isCustomer}
               onCheckedChange={checked => setIsCustomer(Boolean(checked))}
@@ -1459,13 +1367,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
           <Button type="button" variant="outline" size="sm" onClick={onBack}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            variant="default"
-            size="sm"
-            disabled={saving || !name.trim()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
+          <Button type="submit" variant="default" size="sm" disabled={saving || !name.trim()}>
             <Icon name="check" size={14} />
             {saving ? 'Registering partner…' : 'Register partner'}
           </Button>

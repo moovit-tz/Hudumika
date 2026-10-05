@@ -141,16 +141,16 @@ export function CrmLeadStages() {
       />
 
       {loading ? <SectionLoading /> : (
-        <div style={{ maxWidth: 720 }}>
+        <div className="max-w-2xl">
           {stages.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink-3)' }}>
+            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
               <FeaturedIcon variant="brand" size="lg" shape="circle">
                 <GripVertical size={24} />
               </FeaturedIcon>
-              <p style={{ marginTop: 16 }}>No stages yet — add one to get started.</p>
+              <p className="mt-4 text-sm">No stages yet — add one to get started.</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {stages.map(stage => (
                 <div
                   key={stage.id}
@@ -159,28 +159,18 @@ export function CrmLeadStages() {
                   onDragOver={e => handleDragOver(e, stage.id)}
                   onDrop={() => handleDrop(stage.id)}
                   onDragEnd={handleDragEnd}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '10px 14px',
-                    background: 'var(--surface)',
-                    border: `1px solid ${dragOver === stage.id ? 'var(--teal)' : 'var(--border)'}`,
-                    borderRadius: 'var(--r)',
-                    cursor: 'grab',
-                    opacity: dragging === stage.id ? 0.4 : 1,
-                    transition: 'border-color 0.15s',
-                  }}
+                  className={`flex items-center gap-3 rounded-lg border px-3.5 py-2.5 bg-card transition-colors cursor-grab ${
+                    dragOver === stage.id ? 'border-(--teal)' : 'border-border'
+                  } ${dragging === stage.id ? 'opacity-40' : ''}`}
                 >
-                  <GripVertical size={16} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />
+                  <GripVertical size={16} className="text-muted-foreground shrink-0" />
                   <span
-                    style={{
-                      width: 14, height: 14, borderRadius: '50%',
-                      background: stage.color ?? 'var(--teal)',
-                      flexShrink: 0,
-                    }}
+                    className="h-3.5 w-3.5 rounded-full shrink-0"
+                    style={{ background: stage.color ?? 'var(--teal)' }}
                   />
-                  <span style={{ flex: 1, fontWeight: 500 }}>{stage.label}</span>
-                  {stage.is_won  && <Badge variant="success" className="text-xs">Won</Badge>}
-                  {stage.is_lost && <Badge variant="error"   className="text-xs">Lost</Badge>}
+                  <span className="flex-1 text-sm font-medium text-foreground">{stage.label}</span>
+                  {stage.is_won  && <Badge variant="success">Won</Badge>}
+                  {stage.is_lost && <Badge variant="error">Lost</Badge>}
                   <Button size="sm" variant="ghost" onClick={() => openEdit(stage)}>Edit</Button>
                   <Button size="sm" variant="ghost" onClick={() => remove(stage)}>
                     <Trash2 size={14} />
@@ -191,7 +181,7 @@ export function CrmLeadStages() {
           )}
 
           {terminalCount === 0 && stages.length > 0 && (
-            <p style={{ marginTop: 16, color: 'var(--gold)', fontSize: 13 }}>
+            <p className="mt-4 text-sm text-(--gold)">
               Tip: mark at least one stage as Won and one as Lost so conversions are tracked.
             </p>
           )}
@@ -203,9 +193,9 @@ export function CrmLeadStages() {
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit stage' : 'New stage'}</DialogTitle>
           </DialogHeader>
-          <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <DialogBody className="space-y-4">
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>Label</label>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Label</label>
               <Input
                 value={draft.label}
                 onChange={e => setDraft(d => ({ ...d, label: e.target.value }))}
@@ -214,24 +204,24 @@ export function CrmLeadStages() {
               />
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>Colour</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <label className="mb-1.5 block text-xs font-semibold text-foreground">Colour</label>
+              <div className="flex items-center gap-2.5">
                 <input
                   type="color"
                   value={draft.color}
                   onChange={e => setDraft(d => ({ ...d, color: e.target.value }))}
-                  style={{ width: 40, height: 36, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer' }}
+                  className="h-9 w-10 cursor-pointer rounded-lg border border-border"
                 />
                 <Input
                   value={draft.color}
                   onChange={e => setDraft(d => ({ ...d, color: e.target.value }))}
                   placeholder="#6366f1"
-                  style={{ fontFamily: 'monospace', flex: 1 }}
+                  className="flex-1 font-mono"
                   maxLength={7}
                 />
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div className="flex flex-col gap-1">
               <SwitchRow
                 title="Won stage"
                 description="Leads that reach this stage count as converted."

@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
+import { Card, CardContent, CardHeader } from '../components/ui/card.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -45,11 +47,11 @@ function RuleEditor({ entity, catalog, rules, onChange, labels }: {
     patch(i, { field, op: ops[0] || 'eq', value: NO_VALUE_OPS.has(ops[0]) ? null : '' });
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {rules.map((r, i) => {
         const spec = catalog[entity][r.field];
         return (
-          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div key={i} className="flex flex-wrap items-center gap-1.5">
             <Select value={r.field} onValueChange={v => changeField(i, v)}>
               <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>{fields.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
@@ -82,7 +84,7 @@ function RuleEditor({ entity, catalog, rules, onChange, labels }: {
           </div>
         );
       })}
-      <Button type="button" variant="outline" size="sm" onClick={() => onChange([...rules, { field: Object.keys(catalog[entity])[0], op: 'eq', value: '' }])} style={{ alignSelf: 'flex-start' }}>
+      <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => onChange([...rules, { field: Object.keys(catalog[entity])[0], op: 'eq', value: '' }])}>
         <Icon name="plus" size={12} /> Add rule
       </Button>
     </div>
@@ -139,85 +141,97 @@ export function CrmSmartViews() {
   const ENTITIES: EntityType[] = ['lead', 'deal', 'customer'];
 
   return (
-    <div style={{ padding: '20px 0 40px' }}>
+    <div className="space-y-6 pb-12">
       <PageHeader crumbs={['CRM', 'Saved Views']} titlePlain="Saved" titleEm="views" subtitle="A filter you name once and reopen forever — membership recomputed every time." />
 
       {loadErrors.length > 0 && <Banner variant="error" title="Some saved-view data could not be loaded">Unavailable: {loadErrors.join(', ')}. Refresh and try again.</Banner>}
 
-      <div style={{ display: 'flex', gap: 8, margin: '18px 0 20px', flexWrap: 'wrap' }}>
-        {ENTITIES.map(e => (
-          <button key={e} type="button" onClick={() => setEntity(e)}
-            className={e === entity ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'} style={{ textTransform: 'capitalize' }}>
-            {e}s
-          </button>
-        ))}
-        <Button type="button" variant="outline" size="sm" className="max-sm:w-full sm:ml-auto"
+      <MetricsRow cards={ENTITIES.map(e => ({
+        title: (e + 's').toUpperCase(),
+        value: e === entity && views !== null ? String(views.length) : '—',
+        loading: e === entity && views === null,
+        emphasis: e === entity ? 'primary' as const : 'default' as const,
+        onClick: () => { setEntity(e); setSelected(null); },
+        icon: 'layers' as const,
+      }))} />
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button type="button" variant="outline" size="sm"
           onClick={() => setEditing({ name: '', match_type: 'all', rules: [{ field: catalog ? Object.keys(catalog[entity])[0] : 'stage', op: 'eq', value: '' }] })}>
           <Icon name="plus" size={13} /> New view
         </Button>
       </div>
 
       {editing && catalog && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 18, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{editing.id ? 'Edit view' : `New ${entity} view`}</div>
-          <Input placeholder="e.g. Nairobi leads over 10M" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} autoFocus />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)' }}>
-            Match
-            <Select value={editing.match_type} onValueChange={v => setEditing({ ...editing, match_type: v as 'all' | 'any' })}>
-              <SelectTrigger style={{ width: 80, height: 32 }}><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="all">all</SelectItem><SelectItem value="any">any</SelectItem></SelectContent>
-            </Select>
-            of these rules
-          </div>
-          <RuleEditor entity={entity} catalog={catalog} rules={editing.rules} onChange={r => setEditing({ ...editing, rules: r })} labels={labels} />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Button type="button" size="sm" disabled={!editing.name.trim()} onClick={save}>{editing.id ? 'Save' : 'Create'}</Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="border-b border-border p-5">
+            <p className="text-sm font-bold text-foreground">{editing.id ? 'Edit view' : `New ${entity} view`}</p>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 p-5">
+            <Input placeholder="e.g. Nairobi leads over 10M" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} autoFocus />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              Match
+              <Select value={editing.match_type} onValueChange={v => setEditing({ ...editing, match_type: v as 'all' | 'any' })}>
+                <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="all">all</SelectItem><SelectItem value="any">any</SelectItem></SelectContent>
+              </Select>
+              of these rules
+            </div>
+            <RuleEditor entity={entity} catalog={catalog} rules={editing.rules} onChange={r => setEditing({ ...editing, rules: r })} labels={labels} />
+            <div className="flex gap-2">
+              <Button type="button" size="sm" disabled={!editing.name.trim()} onClick={save}>{editing.id ? 'Save' : 'Create'}</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {views === null ? <SectionLoading />
-            : views.length === 0 ? <div style={{ color: 'var(--ink3)', fontSize: 13, fontStyle: 'italic' }}>No saved {entity} views yet.</div>
+            : views.length === 0 ? <p className="text-sm italic text-muted-foreground">No saved {entity} views yet.</p>
             : views.map(v => (
-              <div key={v.id} onClick={() => setSelected(v)}
-                style={{ background: selected?.id === v.id ? 'var(--teal-l)' : 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{v.name}</span>
-                  <span className="mono" style={{ fontSize: 12, color: 'var(--ink3)' }}>{v.count}</span>
+              <button key={v.id} type="button" onClick={() => setSelected(v)}
+                className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${selected?.id === v.id ? 'border-(--teal) bg-(--teal-l)' : 'border-border bg-card hover:bg-muted/20'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-bold text-foreground">{v.name}</span>
+                  <span className="mono text-xs text-muted-foreground">{v.count}</span>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{v.rules.map(r => fmtRule(r, labelName)).join(v.match_type === 'any' ? '  ·  or  ·  ' : '  ·  and  ·  ')}</div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">{v.rules.map(r => fmtRule(r, labelName)).join(v.match_type === 'any' ? '  ·  or  ·  ' : '  ·  and  ·  ')}</p>
+                <div className="mt-2 flex gap-3">
                   <button type="button" onClick={e => { e.stopPropagation(); setEditing({ id: v.id, name: v.name, match_type: v.match_type, rules: v.rules }); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal-d)', fontSize: 11, fontWeight: 600, padding: 0 }}>Edit</button>
+                    className="text-[11px] font-semibold text-(--teal) hover:underline">Edit</button>
                   <button type="button" onClick={e => { e.stopPropagation(); remove(v); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 11, fontWeight: 600, padding: 0 }}>Delete</button>
+                    className="text-[11px] font-semibold text-(--red) hover:underline">Delete</button>
                 </div>
-              </div>
+              </button>
             ))}
         </div>
 
         <div>
           {!selected ? (
-            <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 40, textAlign: 'center' }}>Pick a view to see who's in it right now.</div>
+            <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
+              Pick a view to see who's in it right now.
+            </div>
           ) : results === null ? (
-            <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 20 }}>Loading results…</div>
+            <div className="flex min-h-32 items-center justify-center text-sm text-muted-foreground"><SectionLoading /></div>
           ) : results.length === 0 ? (
-            <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 20, fontStyle: 'italic' }}>Nothing matches this view right now.</div>
+            <div className="flex min-h-48 items-center justify-center text-sm italic text-muted-foreground">Nothing matches this view right now.</div>
           ) : (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
+            <Card className="overflow-hidden">
+              <div className="border-b border-border px-4 py-2.5 text-xs font-bold text-muted-foreground">
                 {results.length} {entity}{results.length === 1 ? '' : 's'}{results.length > 200 ? ' · showing first 200' : ''}
               </div>
-              {results.slice(0, 200).map((row: any) => (
-                <button type="button" key={row.id} onClick={() => navigate(entity === 'lead' ? `/crm/leads?lead=${row.id}` : entity === 'deal' ? `/crm/pipeline?deal=${row.id}` : `/crm/customers?id=${row.id}`)} style={{ padding: '9px 14px', border: 0, borderBottom: '1px solid var(--border)', background: 'transparent', width: '100%', textAlign: 'left', cursor: 'pointer', fontSize: 12.5, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{row.company || row.name}</span>
-                  <span className="mono" style={{ color: 'var(--ink3)' }}>{row.stage || row.account_status || ''}</span>
-                </button>
-              ))}
-            </div>
+              <div className="divide-y divide-border">
+                {results.slice(0, 200).map((row: any) => (
+                  <button type="button" key={row.id} onClick={() => navigate(entity === 'lead' ? `/crm/leads?lead=${row.id}` : entity === 'deal' ? `/crm/pipeline?deal=${row.id}` : `/crm/customers?id=${row.id}`)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted/20">
+                    <span className="font-semibold text-foreground">{row.company || row.name}</span>
+                    <span className="mono text-xs text-muted-foreground">{row.stage || row.account_status || ''}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
           )}
         </div>
       </div>

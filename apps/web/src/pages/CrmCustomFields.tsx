@@ -16,6 +16,7 @@ import {
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { showAlert } from '../lib/alert.js';
@@ -171,33 +172,14 @@ export function CrmCustomFields() {
         )}
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" role="tablist" aria-label="Record type">
-        {ENTITIES.map((item) => {
-          const active = entity === item;
-          return (
-            <button
-              key={item}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => { setEntity(item); setSearch(''); }}
-              className={`flex min-h-24 items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
-                active
-                  ? 'border-[var(--teal)] bg-[var(--teal-l)] ring-1 ring-[var(--teal)]/20'
-                  : 'border-border bg-card hover:border-[var(--teal)]/50 hover:bg-muted/20'
-              }`}
-            >
-              <FeaturedIcon variant={active ? 'brand' : 'gray'} size="sm" shape="square">
-                <Users className="h-4 w-4" />
-              </FeaturedIcon>
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-foreground">{ENTITY_META[item].label}</span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{ENTITY_META[item].description}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <MetricsRow cards={ENTITIES.map((item) => ({
+        title: ENTITY_META[item].label.toUpperCase(),
+        value: entity === item && defs !== null ? String(defs.length) : '—',
+        loading: entity === item && defs === null,
+        emphasis: entity === item ? 'primary' as const : 'default' as const,
+        onClick: () => { setEntity(item); setSearch(''); },
+        icon: 'sliders' as const,
+      }))} />
 
       <Card>
         <CardHeader className="gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
@@ -283,7 +265,7 @@ export function CrmCustomFields() {
                         size="icon"
                         onClick={() => remove(field)}
                         aria-label={`Delete ${field.label}`}
-                        className="shrink-0 text-muted-foreground hover:bg-[var(--red-l)] hover:text-[var(--red)]"
+                        className="shrink-0 text-muted-foreground hover:bg-(--red-l) hover:text-(--red)"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

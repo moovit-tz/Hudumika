@@ -254,7 +254,7 @@ export function CrmLeadScoring() {
                         <Button
                           type="button" variant="ghost" size="icon" onClick={() => remove(rule)}
                           aria-label={`Delete ${rule.label}`}
-                          className="text-muted-foreground hover:bg-[var(--red-l)] hover:text-[var(--red)]"
+                          className="text-muted-foreground hover:bg-(--red-l) hover:text-(--red)"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -326,13 +326,13 @@ export function CrmLeadScoring() {
               <p className="mt-1.5 text-[11px] text-muted-foreground">Use a negative number for signals that should lower lead priority.</p>
             </div>
 
-            <div className="flex items-center gap-3 rounded-lg border border-[var(--teal)]/25 bg-[var(--teal-l)] p-3.5">
+            <div className="flex items-center gap-3 rounded-lg border border-(--teal)/25 bg-(--teal-l) p-3.5">
               <FeaturedIcon variant="brand" size="sm" shape="square"><Sparkles className="h-4 w-4" /></FeaturedIcon>
               <div className="min-w-0 text-xs text-muted-foreground">
                 <span className="font-bold text-foreground">Preview: </span>
                 {FIELD_LABEL[draft.field] ?? draft.field} {OP_LABEL[draft.op] ?? draft.op} {draft.value || '…'}
                 <ArrowRight className="mx-1.5 inline h-3.5 w-3.5" />
-                <span className={draft.points >= 0 ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>
+                <span className={draft.points >= 0 ? 'font-bold text-(--green)' : 'font-bold text-(--red)'}>
                   {draft.points > 0 ? '+' : ''}{draft.points} points
                 </span>
               </div>
