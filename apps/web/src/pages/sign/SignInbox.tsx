@@ -437,7 +437,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
 
       <section className="sign-inbox-panel" aria-label={`${currentTab?.label ?? view} envelopes`}>
         <div className="sign-inbox-toolbar">
-          {/* Row 1: scrollable tab strip */}
+          {/* Scrollable tab strip — takes remaining space */}
           <div className="sign-inbox-tab-bar">
             <div className="sign-inbox-tabs-scroll">
               <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
@@ -455,13 +455,12 @@ export function SignInbox({ view }: { view: ViewKey }) {
               </Tabs>
             </div>
           </div>
-          {/* Row 2: search + per-page + view toggle */}
+          {/* Search + per-page + view toggle — right-aligned, never shrinks */}
           <div className="sign-inbox-ctrl-bar">
             <SearchToolbar
               search={search}
               onSearch={setSearch}
               placeholder="Search envelopes"
-              className="flex-1"
               actions={<>
                 <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
                 <div className="sign-view-toggle">

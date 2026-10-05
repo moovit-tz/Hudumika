@@ -224,22 +224,23 @@
   box-shadow: var(--elev);
 }
 
-/* Two-row toolbar: (1) scrollable tab strip, (2) search + controls */
+/* Single-row toolbar: scrollable tabs left, search + controls right */
 .sign-inbox-toolbar {
-  flex-shrink: 0;
-  background: var(--card-bg);
-}
-.sign-inbox-tab-bar {
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
-  min-height: 44px;
+  background: var(--card-bg);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sign-inbox-tab-bar {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 .sign-inbox-tabs-scroll {
-  flex: 1;
-  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -249,8 +250,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .sign-inbox-tab-count {
@@ -322,10 +322,14 @@
 .sign-inbox-table tbody tr { transition: background-color 0.15s ease; }
 .sign-inbox-table tbody tr:hover { background: var(--surface2); }
 
+@media (max-width: 768px) {
+  /* On tablets/phones the toolbar stacks: full-width tabs above, controls below */
+  .sign-inbox-toolbar { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .sign-inbox-tab-bar { flex: 1 1 100%; }
+  .sign-inbox-ctrl-bar { flex: 1 1 100%; justify-content: flex-end; }
+}
 @media (max-width: 640px) {
   .sign-inbox-panel { border-right: 0; border-left: 0; border-radius: 0; box-shadow: none; }
-  .sign-inbox-tab-bar { padding: 0 12px; }
-  .sign-inbox-ctrl-bar { padding: 8px 12px; flex-wrap: wrap; }
   .sign-inbox-content { padding: 12px; }
   .sign-view-toggle { flex-shrink: 0; }
   .sign-inbox-bulk { flex-wrap: wrap; padding: 10px 12px; }
