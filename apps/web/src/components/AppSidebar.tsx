@@ -66,7 +66,6 @@ const APP_ICONS: Record<AppId, IconName> = {
   calendar:  'calendar',
   tasks:     'tasks',
   seal:      'package',
-  inventory: 'package',
   studio:    'gitBranch',
   hudubi:    'barChart2',
   petti:     'wallet',
@@ -96,8 +95,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   contacts:  'Contact Manager',
   store:     'Add-ons & Plugins',
   cargotracker:  'Cargo Tracking & Demurrage',
-  seal:          'Bonded Warehouse Ledger',
-  inventory:     'Inventory Control',
+  seal:          'Warehouse & Inventory',
   petti:         'Petty Cash Wallet',
   developer:     'API Gateway & Platform',
 };

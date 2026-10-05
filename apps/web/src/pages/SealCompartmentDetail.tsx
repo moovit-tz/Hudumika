@@ -143,7 +143,7 @@ export function SealCompartmentDetail() {
             <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={56} shape="square" style={{ boxShadow: 'var(--elev-sm)' }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <h1 className="seal-page-title" style={{ margin: 0, fontSize: 22 }}>{c.name}</h1>
+                <h2 className="seal-entity-title">{c.name}</h2>
                 <Badge variant={isSuspended ? 'error' : 'success'}>{isSuspended ? 'SUSPENDED' : 'ACTIVE'}</Badge>
               </div>
               <div className="seal-mono" style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>

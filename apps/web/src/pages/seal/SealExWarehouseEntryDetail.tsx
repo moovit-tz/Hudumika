@@ -121,11 +121,11 @@ export function SealExWarehouseEntryDetail() {
   const c = entry.computation;
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="seal-page">
       <PageHeader
-        crumbs={['ClearOS', 'Ops Command', 'Declarations']}
-        titlePlain={entry.lotDescription ?? 'Declaration'}
-        titleEm=""
+        crumbs={['SEAL', 'Ex-Warehouse']}
+        titlePlain={entry.lotDescription ?? 'Ex-warehouse'}
+        titleEm="entry"
         subtitle={`${SEAL_DECLARATION_PROCEDURE_LABELS[entry.procedureCode] ?? entry.procedureCode} · HS ${entry.hsCode}`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

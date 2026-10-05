@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import { Icon } from '../../components/Icon.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
+import { Tip } from '../../components/ui/tooltip.js';
 
 export const BlissAICopilot: React.FC = () => {
   const [confidenceThreshold, setConfidenceThreshold] = useState(85);
@@ -20,9 +21,11 @@ export const BlissAICopilot: React.FC = () => {
         titleEm="copilot"
         subtitle="Configure intent detection, sentiment scoring, and reply suggestions for support conversations."
         actions={
-          <Button variant="default" size="sm" disabled title="Knowledge-base training is not connected yet">
-            <Icon name="sparkle" size={14} /> Train AI on Knowledge Base
-          </Button>
+          <Tip label="Knowledge-base training is not connected yet">
+            <span><Button variant="default" size="sm" disabled>
+              <Icon name="sparkle" size={14} /> Train AI on Knowledge Base
+            </Button></span>
+          </Tip>
         }
       />
 
@@ -72,7 +75,9 @@ export const BlissAICopilot: React.FC = () => {
             <div style={{ background: 'var(--teal-l)', padding: 16, borderRadius: 'var(--r)', border: '1px solid var(--teal)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--teal)' }}>AI Recommended Response (98% Confidence)</div>
-                <Button variant="default" size="sm" disabled title="Open this conversation in the support composer to insert a reply">Insert to Composer</Button>
+                <Tip label="Open this conversation in the support composer to insert a reply">
+                  <span><Button variant="default" size="sm" disabled>Insert to Composer</Button></span>
+                </Tip>
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.45 }}>
                 "Hello! I checked container MSCU8849120 in TRA system. The clearance token was held pending TBS phytosanitary certificate validation. Our compliance team has submitted the certificate, and release is expected within 45 minutes."

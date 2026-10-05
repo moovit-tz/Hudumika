@@ -310,9 +310,9 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
      useDesignSystem.ts overrides these at runtime (non-app pages: #0d0d0d/token).
      WorkspaceApp overrides them further per active app with a faint accent tint. */
   --bg:     #0d0d0d;
-  --white:  #1a1e2c;
-  --border: rgba(255,255,255,0.14);
-  --border2:rgba(255,255,255,0.28);
+  --white:  #141414;
+  --border: rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.14);
   /* Sunken card body surface (dark) — a hair lighter than the card so the
      detail pane still separates from the header. See the light-mode note. */
   --card-sunken: rgba(255,255,255,0.05);
@@ -377,6 +377,19 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --shadcn-border: 220 13% 20%;
   --shadcn-input: 220 13% 20%;
   --ring: 212.7 26.8% 83.9%;
+}
+
+/* Non-app pages (NavShell — no WorkspaceApp mounted) get neutral dark
+   surfaces rather than an accent tint, even when the useDesignSystem style
+   tag hasn't yet re-run its effect after a hot reload. WorkspaceApp pages
+   are unaffected: they don't carry app-main--no-app on their wrapper. */
+[data-theme="dark"] .app-main--no-app {
+  --white:       #141414;
+  --bg:          #0d0d0d;
+  --card-sunken: rgba(255, 255, 255, 0.025);
+  --border:      rgba(255, 255, 255, 0.07);
+  --border2:     rgba(255, 255, 255, 0.14);
+  --card-bg:     #141414;
 }
 
 /* ── Hidden scrollbars (scroll still works) ── */
@@ -6580,6 +6593,9 @@ html[data-expanded="true"] .fin-shell {
   max-width: 100% !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   background: transparent !important;
 }
 

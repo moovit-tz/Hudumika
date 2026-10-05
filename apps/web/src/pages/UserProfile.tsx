@@ -253,9 +253,8 @@ export const UserProfile: React.FC = () => {
           }}
           className="profile-cover-banner"
         >
-          {/* Inner Content Grid inside Cover */}
+          {/* Cover heading and account actions */}
           <div className="profile-cover-inner">
-            {/* Left Header info inside Cover */}
             <div className="profile-cover-header">
               <div className="profile-cover-crumbs">
                 <span>WORKSPACE</span>
@@ -270,7 +269,6 @@ export const UserProfile: React.FC = () => {
               </p>
             </div>
 
-            {/* Right Action buttons inside Cover */}
             <div className="profile-cover-actions-top">
               <Link to="/subscription" className="profile-cover-glass-btn">
                 <Icon name="creditCard" size={13} strokeWidth={2} />
@@ -308,6 +306,21 @@ export const UserProfile: React.FC = () => {
             </div>
           </div>
 
+          <div className="profile-cover-identity">
+            <div className="profile-hero-avatar-wrap">
+              <AvatarPicker id={user.id} kind="people" name={user.name} size={78} ring="#ffffff" />
+            </div>
+            <div className="profile-cover-user-copy">
+              <div className="profile-cover-name-row">
+                <h2>{user.name}</h2>
+                <span className="profile-cover-status">
+                  <span className="profile-online-dot" aria-hidden="true" /> Active
+                </span>
+              </div>
+              <p>{form.job_title || ROLE_LABELS[user.role] || user.role}{form.department ? ` · ${form.department}` : ''}</p>
+            </div>
+          </div>
+
           {form.cover_url && !draggingCover && (
             <div className="profile-cover-pill">
               <Icon name="hand" size={12} strokeWidth={2} />
@@ -324,24 +337,11 @@ export const UserProfile: React.FC = () => {
           />
         </div>
 
-        {/* Hero Identity Body */}
+        {/* Profile metadata and primary account actions */}
         <div className="profile-hero-body">
           <div className="profile-hero-identity-row">
             <div className="profile-hero-identity-left">
-              {/* Avatar Picker with 4px concentric white ring */}
-              <div className="profile-hero-avatar-wrap">
-                <AvatarPicker id={user.id} kind="people" name={user.name} size={78} ring="#ffffff" />
-              </div>
-
-              {/* User Name & Metadata */}
               <div className="profile-hero-user-details">
-                <div className="profile-hero-name-row">
-                  <h2 className="profile-hero-name">{user.name}</h2>
-                  <span className="profile-hero-role-tag">
-                    {ROLE_LABELS[user.role] || user.role}
-                  </span>
-                </div>
-
                 <div className="profile-hero-meta-bar">
                   <span className="profile-hero-meta-item">
                     <Icon name="mail" size={13} strokeWidth={2} />
@@ -367,6 +367,9 @@ export const UserProfile: React.FC = () => {
                   <span className="profile-hero-meta-item">
                     <Icon name="globe" size={13} strokeWidth={2} />
                     {form.city ? `${form.city}, ${form.country}` : form.country}
+                  </span>
+                  <span className="profile-hero-role-tag">
+                    {ROLE_LABELS[user.role] || user.role}
                   </span>
                 </div>
               </div>
@@ -426,41 +429,6 @@ export const UserProfile: React.FC = () => {
               </button>
             </div>
           </div>
-
-          {/* 4 Executive KPI / Insight Showcase Tiles */}
-          <div className="profile-hero-kpis-grid">
-            <div className="profile-kpi-tile profile-kpi-tile--green">
-              <span className="profile-kpi-num profile-kpi-num--green">
-                <span className="profile-online-dot" aria-hidden="true" />
-                Online
-              </span>
-              <span className="profile-kpi-sublabel">Presence</span>
-            </div>
-
-            <div className="profile-kpi-tile profile-kpi-tile--teal">
-              <span className="profile-kpi-num profile-kpi-num--teal">
-                <Icon name="shield" size={15} strokeWidth={2.4} />
-                98% Protected
-              </span>
-              <span className="profile-kpi-sublabel">Security Posture</span>
-            </div>
-
-            <div className="profile-kpi-tile profile-kpi-tile--blue">
-              <span className="profile-kpi-num profile-kpi-num--blue">
-                <Icon name="activity" size={15} strokeWidth={2.4} />
-                2 Sessions
-              </span>
-              <span className="profile-kpi-sublabel">Active Devices</span>
-            </div>
-
-            <div className="profile-kpi-tile profile-kpi-tile--purple">
-              <span className="profile-kpi-num profile-kpi-num--purple">
-                <Icon name="user" size={15} strokeWidth={2.4} />
-                {ROLE_LABELS[user.role] ? ROLE_LABELS[user.role].split(' ')[0] : 'Admin'}
-              </span>
-              <span className="profile-kpi-sublabel">Access Tier</span>
-            </div>
-          </div>
         </div>
 
         {/* Integrated Segmented Tab Strip */}
@@ -488,7 +456,7 @@ export const UserProfile: React.FC = () => {
         {/* ══ TAB 1: PERSONAL INFO (BENTO GRID) ══ */}
         {activeTab === 'personal' && (
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <div className="profile-card profile-card--attached">
+            <div className="profile-card">
 
               {/* Unified card header */}
               <div className="profile-card-header">
@@ -944,7 +912,7 @@ export const UserProfile: React.FC = () => {
         {activeTab === 'notifications' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {/* Single unified notifications card */}
-            <section className="profile-card profile-card--attached">
+            <section className="profile-card">
               <div className="profile-card-header">
                 <div className="profile-card-title-group">
                   <FeaturedIcon variant="brand" size="md" shape="squircle">
@@ -1081,7 +1049,7 @@ export const UserProfile: React.FC = () => {
 
         {/* ══ TAB 4: ACCOUNT ACTIVITY ══ */}
         {activeTab === 'activity' && (
-          <section className="profile-card profile-card--attached">
+          <section className="profile-card">
             <div className="profile-card-header">
               <div className="profile-card-title-group">
                 <FeaturedIcon variant="brand" size="md" shape="squircle">

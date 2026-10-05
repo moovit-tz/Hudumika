@@ -1,4 +1,4 @@
-﻿/* ══════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════
    AppHeader — slim 57px strip (matches sidebar brand)
 ══════════════════════════════════════════════════ */
 
@@ -16,7 +16,8 @@
 }
 
 [data-theme="dark"] .app-header {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: #141414;
+  border-bottom-color: rgba(255, 255, 255, 0.07);
 }
 
 /* ── Navbar type — set from /admin/design-system's Layout Customizer ── */
@@ -1247,3 +1248,54 @@
   background: var(--red-l) !important;
   color: var(--red) !important;
 }
+
+/* ── Mode Switcher Pill in AppHeader (Normal ↔ Agentic) ── */
+.app-header-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  outline: none;
+}
+
+.app-header-mode-pill:hover {
+  background: hsl(var(--primary) / 0.16);
+  border-color: hsl(var(--primary) / 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.15);
+}
+
+.app-header-mode-pill:active {
+  transform: translateY(0);
+}
+
+.app-header-mode-pill-sparkle {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.app-header-mode-pill-text {
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .app-header-mode-pill-text {
+    display: none;
+  }
+  .app-header-mode-pill {
+    padding: 0 8px;
+  }
+}
+

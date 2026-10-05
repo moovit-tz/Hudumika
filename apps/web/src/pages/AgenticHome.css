@@ -1,4 +1,4 @@
-﻿/* Basic (Agentic) landing — bespoke header + shell, deliberately separate
+/* Basic (Agentic) landing — bespoke header + shell, deliberately separate
    from AppHeader (see App.tsx's HubPage). Reuses .hub2-welcome-* (index.css)
    for the greeting band — a complete, theme-aware welcome-band style that
    already existed in the stylesheet with no component using it. */
@@ -22,33 +22,9 @@
 .ah-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
   min-width: fit-content;
-}
-
-.ah-header-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-sm);
-  background: #0e1f3d;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: opacity 0.15s ease, transform 0.1s ease;
-}
-
-.ah-header-mark:hover {
-  background: color-mix(in srgb, #0e1f3d 88%, var(--teal));
-  transform: translateY(-1px);
-}
-
-.ah-header-mark.is-open {
-  background: hsl(var(--primary));
-  box-shadow: 0 0 0 3px var(--teal-l);
 }
 
 /* ── Dynamic App Brand Lockup in Header ── */
@@ -62,14 +38,14 @@
 }
 
 .ah-app-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-sm);
-  overflow: hidden;
-  box-shadow: none;
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform 0.15s ease;
 }
 
 .ah-brand-meta {
@@ -100,6 +76,100 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--ink2);
+}
+
+/* ── Dreams Core Navigation Group (Explore + Apps) ── */
+.ah-header-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+}
+
+.ah-header-pill-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.ah-header-pill-btn:hover {
+  background: var(--border2);
+  border-color: var(--border2);
+  color: var(--ink);
+}
+
+.ah-header-pill-btn.is-active,
+.ah-header-pill-btn[data-state="open"] {
+  background: var(--white);
+  border-color: var(--teal);
+  color: var(--teal);
+  box-shadow: 0 0 0 2px var(--teal-l);
+}
+
+.ah-pill-chevron {
+  color: var(--ink3);
+  transition: transform 0.15s ease;
+}
+
+.ah-header-pill-btn.is-active .ah-pill-chevron,
+.ah-header-pill-btn[data-state="open"] .ah-pill-chevron {
+  transform: rotate(180deg);
+  color: var(--teal);
+}
+
+.ah-explore-menu {
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  box-shadow: var(--elev-lg);
+  z-index: 999;
+}
+
+.ah-explore-menu-head {
+  padding: 6px 10px 4px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  font-family: var(--font);
+}
+
+.ah-explore-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.ah-explore-menu-item:hover {
+  background: var(--hover-bg);
+}
+
+.ah-explore-menu-item.is-active {
+  background: var(--teal-l);
+  color: var(--teal);
+  font-weight: 600;
 }
 
 .ah-header-center {
@@ -853,4 +923,197 @@
     margin-left: auto;
   }
 }
+
+/* ── Dark mode — Claude.ai-inspired aesthetic ──────────────────────────────
+   Neutral dark grays (#141414) instead of the platform's default blue-navy
+   (#1a1e2c --white), ambient teal glow at the top of the scroll area, and
+   more refined surface/border treatment throughout.
+
+   SectionCard uses inline style="background:var(--white)" so it cannot be
+   targeted by a class selector directly. Redefining --white / --card-sunken /
+   --border on .ah-scroll means every card and row inside the landing page
+   body picks up the neutral-dark value instead of the global navy value set
+   in the platform dark-mode block. */
+
+[data-theme="dark"] .ah-scroll {
+  --white:       #141414;
+  --card-sunken: rgba(255, 255, 255, 0.025);
+  --border:      rgba(255, 255, 255, 0.07);
+  --border2:     rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="dark"] .ah-header {
+  background: rgba(8, 8, 8, 0.98);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Ambient glow at top of scroll — matches claude.ai's hero gradient */
+[data-theme="dark"] .ah-scroll {
+  background: radial-gradient(
+    ellipse 90% 35% at 50% -2%,
+    color-mix(in srgb, var(--teal) 9%, transparent) 0%,
+    #0d0d0d 55%
+  );
+}
+
+[data-theme="dark"] .ah-tabs-list {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .ah-tab-trigger[data-state="active"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .ah-search-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+[data-theme="dark"] .ah-search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent);
+}
+
+[data-theme="dark"] .ah-search-dropdown {
+  background: #151515;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .ah-search-dropdown-header {
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .ah-search-row {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .ah-search-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .ah-stat-tile {
+  background: #141414;
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .ah-agent-feature-banner {
+  background: #141414;
+  border-color: rgba(245, 158, 11, 0.13);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .ah-agent-feature-banner:hover {
+  border-color: rgba(245, 158, 11, 0.26);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .ah-action-btn {
+  background: #141414;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .ah-notif-menu,
+[data-theme="dark"] .ah-profile-dropdown-menu {
+  background: #151515;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .ah-profile-dropdown-user {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .ah-chat-panel {
+  background: #111111;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+[data-theme="dark"] .ah-chat-head {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .ah-chat-msg--agent,
+[data-theme="dark"] .ah-chat-msg--pending {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .ah-chat-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+[data-theme="dark"] .ah-chat-input-row {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .ah-task-row,
+[data-theme="dark"] .ah-queue-row {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .ah-task-check {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .ah-task-check:hover {
+  background: color-mix(in srgb, var(--teal) 15%, transparent);
+  border-color: var(--teal);
+}
+
+[data-theme="dark"] .ah-bar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Mode Switcher Button in AgenticHome (Agentic → Normal View) ── */
+.ah-view-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  outline: none;
+}
+
+.ah-view-switch-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--border2);
+  color: var(--teal);
+  transform: translateY(-1px);
+  box-shadow: var(--elev-sm);
+}
+
+.ah-view-switch-btn:active {
+  transform: translateY(0);
+}
+
+.ah-view-switch-icon {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .ah-view-switch-label {
+    display: none;
+  }
+  .ah-view-switch-btn {
+    padding: 0 8px;
+  }
+}
+
 

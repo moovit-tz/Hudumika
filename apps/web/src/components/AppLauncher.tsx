@@ -1,20 +1,53 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Icon } from './Icon.js';
+import { Icon, type IconName } from './Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
-import { LAUNCHER_APPS, LauncherAppSvg, INTERNAL_APP_IDS } from './LauncherApps.js';
+import { LAUNCHER_APPS, INTERNAL_APP_IDS } from './LauncherApps.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { getRecentApps } from '../lib/recentApps.js';
 import './AppLauncher.css';
 
+export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; label?: string }> = {
+  calendar:     { icon: 'calendar',      color: '#059669', label: 'Calendar' },
+  email:        { icon: 'mail',          color: '#16a34a', label: 'Email' },
+  chat:         { icon: 'message',       color: '#334155', label: 'Chat' },
+  tasks:        { icon: 'clipboardList', color: '#d97706', label: 'To Do' },
+  cloud:        { icon: 'folder',        color: '#dc2626', label: 'Files' },
+  notes:        { icon: 'fileText',      color: '#475569', label: 'Notes' },
+  crm:          { icon: 'phone',         color: '#d97706', label: 'Call' },
+  contacts:     { icon: 'contact',       color: '#1a73e8', label: 'Contacts' },
+  finops:       { icon: 'invoice',       color: '#059669', label: 'Invoices' },
+  petti:        { icon: 'wallet',        color: '#16a34a', label: 'Petti' },
+  bliss:        { icon: 'ticket',        color: '#b91c1c', label: 'Tickets' },
+  clearos:      { icon: 'ship',          color: '#ea580c', label: 'ClearOS' },
+  complyos:     { icon: 'shield',        color: '#059669', label: 'ComplyOS' },
+  nexushr:      { icon: 'users',         color: '#0d9488', label: 'NexusHR' },
+  seal:         { icon: 'shield',        color: '#0f766e', label: 'SEAL' },
+  sign:         { icon: 'edit',          color: '#2563eb', label: 'eSign' },
+  store:        { icon: 'shoppingCart',  color: '#8b5cf6', label: 'Store' },
+  studio:       { icon: 'zap',           color: '#4361ee', label: 'Studio' },
+  sms:          { icon: 'message',       color: '#dc2626', label: 'SMS' },
+  projects:     { icon: 'columns',       color: '#f59e0b', label: 'Projects' },
+  developer:    { icon: 'terminal',      color: '#0f766e', label: 'Developer' },
+  hudubi:       { icon: 'barChart',      color: '#18181b', label: 'HuduBI' },
+  onesite:      { icon: 'globe',         color: '#06b6d4', label: 'CMS' },
+  onsite:       { icon: 'server',        color: '#0f172a', label: 'Onsite' },
+  tracking:     { icon: 'truck',         color: '#0891b2', label: 'Tracking' },
+  cargotracker: { icon: 'package',       color: '#4f46e5', label: 'Cargo' },
+  ondi:         { icon: 'userCheck',     color: '#4253d1', label: 'Account' },
+  workspace:    { icon: 'settings',      color: '#64748b', label: 'Settings' },
+  lens:         { icon: 'eye',           color: '#475569', label: 'Lens' },
+};
+
 interface AppLauncherProps {
   renderTrigger?: (opts: { open: boolean; onClick: () => void }) => React.ReactNode;
+  variant?: 'icon' | 'pill';
 }
 
-export function AppLauncher({ renderTrigger }: AppLauncherProps) {
+export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProps) {
   const branding = useBranding();
   const { t } = useLocale();
   const enabledApps = useEnabledApps();
@@ -36,17 +69,9 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [recentApps, setRecentApps] = useState<(typeof LAUNCHER_APPS)[0][]>([]);
 
-  // The app list is taller than any laptop viewport, so it has to scroll. Left
-  // unmarked, the row the scroll edge cuts through looks like the footer card
-  // is painting over it. `moreBelow` drives a fade on the bottom edge — but it
-  // has to switch off once you reach the end, or the fade eats the last row,
-  // which is why this is measured rather than a static CSS mask.
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [moreBelow, setMoreBelow] = useState(false);
 
-  // Backdrop click already dismisses the panel; Escape is the other half of
-  // that same expectation and every other dismissible surface in the app
-  // (Radix popovers/dialogs) already honors it. This one didn't.
   useEffect(() => {
     if (!launcherOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -62,8 +87,6 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
     const measure = () => setMoreBelow(el.scrollTop + el.clientHeight < el.scrollHeight - 2);
     measure();
     el.addEventListener('scroll', measure, { passive: true });
-    // The tile count changes with entitlements and role, and the panel is
-    // capped to the viewport — both change whether anything is below the fold.
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     if (el.firstElementChild) ro.observe(el.firstElementChild);
@@ -75,10 +98,9 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
     };
   }, [launcherOpen, recentApps.length]);
 
-  // Compute the 4 most recently viewed apps, backfilling from allowed apps if needed
   useEffect(() => {
     if (!launcherOpen) return;
-    const ids = getRecentApps(['clearos', 'finops', 'nexushr', 'bliss', 'complyos']);
+    const ids = getRecentApps(['calendar', 'email', 'chat', 'tasks', 'cloud', 'notes', 'crm', 'finops', 'bliss']);
     const allowed = LAUNCHER_APPS
       .filter(a => isAppEnabled(a.id, enabledApps))
       .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
@@ -89,13 +111,13 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
 
     const result = [...fromRecent];
     for (const app of allowed) {
-      if (result.length >= 4) break;
+      if (result.length >= 9) break;
       if (!result.some(a => a.id === app.id)) {
         result.push(app);
       }
     }
 
-    setRecentApps(result.slice(0, 4));
+    setRecentApps(result.slice(0, 9));
   }, [launcherOpen, enabledApps, canSeeInternal]);
 
   const orderedApps = useMemo(() => {
@@ -105,8 +127,6 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
     const extras = LAUNCHER_APPS.filter(a => !appOrder.includes(a.id));
     return [...ordered, ...extras]
       .filter(a => isAppEnabled(a.id, enabledApps))
-      // Internal tooling is not entitlement-gated — a tenant could be granted
-      // every feature and must still never see it. Role is the gate.
       .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
   }, [appOrder, enabledApps]);
 
@@ -146,7 +166,19 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
 
   const trigger = renderTrigger
     ? renderTrigger({ open: launcherOpen, onClick: () => setLauncherOpen(d => !d) })
-    : (
+    : variant === 'pill' ? (
+      <button
+        type="button"
+        className={`ah-header-pill-btn${launcherOpen ? ' is-active' : ''}`}
+        onClick={() => setLauncherOpen(d => !d)}
+        title={t('header.allApps')}
+        aria-expanded={launcherOpen}
+      >
+        <Icon name="grid" size={14} style={{ color: 'var(--teal)' }} />
+        <span>Apps</span>
+        <Icon name="chevronDown" size={11} className="ah-pill-chevron" />
+      </button>
+    ) : (
       <button
         type="button"
         className={`app-header-icon-btn${launcherOpen ? ' app-header-icon-btn--open' : ''}`}
@@ -157,23 +189,6 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
       </button>
     );
 
-  /**
-   * The overlay is portalled to document.body, not rendered where the trigger
-   * sits.
-   *
-   * Its `z-index: 1001` was fiction. The panel lives inside <header
-   * class="app-header">, which is `position: relative; z-index: 10` — a
-   * stacking context — so 1001 only ordered the panel *within the header*, and
-   * the header as a whole competed against the page at 10. `.cust-header`, the
-   * sticky company row in the ClearOS list, is also z-index 10 and comes later
-   * in the DOM, so it won the tie and painted its risk badges straight over the
-   * open launcher.
-   *
-   * Raising one number or lowering the other would only move the collision to
-   * the next element that declares a z-index. Out here in the root stacking
-   * context 1001 means what it says, which is also how every Radix overlay in
-   * this app already behaves.
-   */
   const overlay = (
     <>
       {launcherOpen && (
@@ -181,29 +196,31 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
       )}
 
       <div className={`app-lnch-panel${launcherOpen ? ' app-lnch-panel--open' : ''}`}>
-        {/* Header matching Adobe Web Apps Launcher */}
+        {/* Dreams Core Header */}
         <div className="app-lnch-panel-hdr">
-          <span className="app-lnch-panel-title">Web Apps</span>
+          <div className="app-lnch-hdr-text">
+            <span className="app-lnch-panel-title">Apps</span>
+            <span className="app-lnch-panel-sub">Jump to a workspace app</span>
+          </div>
           <div className="app-lnch-panel-hdr-btns">
+            <Link
+              to="/workspace"
+              className="app-lnch-settings-btn"
+              onClick={closeLauncher}
+              title="Manage workspace apps & settings"
+            >
+              <Icon name="settings" size={15} />
+            </Link>
             <button
               type="button"
               className={`app-lnch-edit-toggle${editMode ? ' app-lnch-edit-toggle--active' : ''}`}
               onClick={() => setEditMode(m => !m)}
               title={editMode ? t('launcher.done') : t('launcher.rearrange')}
             >
-              {editMode ? (
-                <span>{t('launcher.done')}</span>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              )}
+              <Icon name={editMode ? 'check' : 'edit'} size={13} />
             </button>
             <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title={t('launcher.close')}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+              <Icon name="close" size={14} />
             </button>
           </div>
         </div>
@@ -213,53 +230,39 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
         )}
 
         <div className="app-lnch-panel-scroll" ref={scrollRef} data-more-below={moreBelow || undefined}>
-          {/* Recently viewed */}
-          {recentApps.length > 0 && !editMode && (
-            <>
-              <p className="app-lnch-section-label">{t('launcher.recentlyViewed')}</p>
-              <div className="app-lnch-recent-row">
-                {recentApps.map(app => (
-                  <Link
-                    key={app.id}
-                    to={app.path}
-                    className="app-lnch-panel-item app-lnch-panel-item--recent"
-                    onClick={() => closeLauncher()}
-                  >
-                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={32} />
-                    <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
-                  </Link>
-                ))}
-              </div>
-              <div className="app-lnch-section-divider" />
-            </>
-          )}
-
-          {/* 3-Column Apps Grid */}
+          {/* 3-Column Dreams Core Apps Grid with Hudumika Design System Vector Icons */}
           <div className={`app-lnch-panel-grid${editMode ? ' app-lnch-panel-grid--edit' : ''}`}>
-            {orderedApps.map(app => (
-              <Link
-                key={app.id}
-                to={app.path}
-                className={`app-lnch-panel-item${dragOverId === app.id ? ' app-lnch-panel-item--over' : ''}`}
-                draggable={editMode}
-                onDragStart={editMode ? e => handleDragStart(e, app.id) : undefined}
-                onDragOver={editMode ? e => handleDragOver(e, app.id) : undefined}
-                onDrop={editMode ? e => handleDrop(e, app.id) : undefined}
-                onDragEnd={editMode ? handleDragEnd : undefined}
-                onClick={e => { if (editMode) { e.preventDefault(); return; } closeLauncher(); }}
-              >
-                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={32} />
-                <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
-              </Link>
-            ))}
+            {orderedApps.map(app => {
+              const meta = LAUNCHER_APP_META[app.id] ?? { icon: 'grid', color: app.color, label: app.name };
+              const appColor = branding.getAppColor(app.id, meta.color || app.color);
+              const appLabel = branding.getAppName(app.id, meta.label || app.name);
+              return (
+                <Link
+                  key={app.id}
+                  to={app.path}
+                  className={`app-lnch-panel-item${dragOverId === app.id ? ' app-lnch-panel-item--over' : ''}`}
+                  draggable={editMode}
+                  onDragStart={editMode ? e => handleDragStart(e, app.id) : undefined}
+                  onDragOver={editMode ? e => handleDragOver(e, app.id) : undefined}
+                  onDrop={editMode ? e => handleDrop(e, app.id) : undefined}
+                  onDragEnd={editMode ? handleDragEnd : undefined}
+                  onClick={e => { if (editMode) { e.preventDefault(); return; } closeLauncher(); }}
+                >
+                  <div className="app-lnch-icon-box" style={{ background: appColor }}>
+                    <Icon name={meta.icon || 'grid'} size={20} color="#ffffff" strokeWidth={2.2} />
+                  </div>
+                  <span className="app-lnch-panel-name">{appLabel}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
-        {/* Adobe-Style Bottom Card Footer */}
+        {/* Bottom card footer */}
         <div className="app-lnch-adobe-footer-card">
           <Link to="/" className="app-lnch-adobe-footer-item" onClick={closeLauncher}>
             <div className="app-lnch-adobe-brand-icon">
-              <img src={branding.favicon || branding.logoLight || '/favicon.png'} alt="" width={18} height={18} style={{ objectFit: 'contain' }} />
+              <img src={branding.favicon || branding.logoLight || '/favicon.png'} alt="" width={16} height={16} style={{ objectFit: 'contain' }} />
             </div>
             <span className="app-lnch-adobe-footer-label">hudumika.tz</span>
           </Link>
@@ -267,8 +270,8 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           <div className="app-lnch-adobe-footer-divider" />
 
           <Link to="/" className="app-lnch-adobe-footer-item" onClick={closeLauncher}>
-            <Icon name="grid" size={17} style={{ color: 'var(--ink2)' }} />
-            <span className="app-lnch-adobe-footer-label">All apps</span>
+            <Icon name="grid" size={15} style={{ color: 'var(--ink2)' }} />
+            <span className="app-lnch-adobe-footer-label">All modules</span>
           </Link>
         </div>
       </div>

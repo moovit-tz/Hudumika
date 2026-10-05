@@ -45,7 +45,7 @@ export const ALL_FEATURE_KEYS = [
   // Lens is deliberately absent. It is internal tooling gated on SUPER_ADMIN,
   // not something a plan grants or a tenant admin toggles.
   'seal',
-  'inventory',
+  'seal_advanced', // bonded warehouse / ICD / CFS / customs overlay — requires base 'seal'
   'studio',
   'crm',
   'bliss',

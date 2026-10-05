@@ -13,7 +13,7 @@ import { useLocale } from '../hooks/useLocale.js';
 import { AppLauncher } from './AppLauncher.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import { apiFetch } from '../lib/api.js';
-import { resolveLandingStyle } from '../lib/landingStyle.js';
+import { useLandingStyle } from '../hooks/useLandingStyle.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { getJobs } from '../pages/clearanceData.js';
 import {
@@ -165,28 +165,7 @@ export function AppHeader({
   }
 
   // ── Landing style (Basic/Agentic vs Advanced) ──
-  // One click, same weight as the theme toggle above — a per-account
-  // preference (users.profile.landing_style), not per-device, so it follows
-  // the person across browsers/devices. See lib/landingStyle.ts for the
-  // resolution order against the tenant's own default.
-  const landingStyle = resolveLandingStyle(user);
-  const [landingStyleSaving, setLandingStyleSaving] = useState(false);
-  async function toggleLandingStyle() {
-    if (landingStyleSaving) return;
-    const next = landingStyle === 'basic' ? 'advanced' : 'basic';
-    setLandingStyleSaving(true);
-    try {
-      const res = await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify({ profile: { landing_style: next } }) });
-      if (res?.user) updateUser(res.user);
-      // This button renders in every app's header, not just the hub's — the
-      // landing style it switches only has anything to show on "/", so
-      // toggling it from inside ClearOS/FinOps/etc. used to save the
-      // preference and change nothing on screen, which read as the button
-      // being broken. Send the person to see what they just switched to.
-      if (location.pathname !== '/') navigate('/');
-    } catch { /* the header toggle isn't the place to surface this — the button just stays on its current state */ }
-    finally { setLandingStyleSaving(false); }
-  }
+  const { isAgentic, setLandingStyle, toggleLandingStyle, isSaving: landingStyleSaving } = useLandingStyle();
 
   // ── Layout toggle (boxed ↔ full-width) ──
   // Full-width is the default. Boxed capped every page at 1100-1380px, which
@@ -786,16 +765,17 @@ export function AppHeader({
               </button>
             )}
 
-            {/* Landing style — Basic (Agentic) vs Advanced */}
+            {/* Landing style mode switcher pill (Normal ↔ Agentic) */}
             <button
               type="button"
-              className="app-header-icon-btn"
-              onClick={toggleLandingStyle}
+              className="app-header-mode-pill"
+              onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
               disabled={landingStyleSaving}
-              title={landingStyle === 'basic' ? 'Switch to Advanced landing' : 'Switch to Basic (Agentic) landing'}
-              aria-pressed={landingStyle === 'basic'}
+              title={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'}
+              aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
             >
-              <Icon name={landingStyle === 'basic' ? 'layoutDashboard' : 'sparkle'} size={17} />
+              <span className="app-header-mode-pill-sparkle">✨</span>
+              <span className="app-header-mode-pill-text">{isAgentic ? 'Normal View' : 'Agentic View'}</span>
             </button>
 
             {/* Theme toggle */}
@@ -893,6 +873,16 @@ export function AppHeader({
 
                 {/* Navigation items (Refreshed) */}
                 <div className="ah-menu-nav-group">
+                  <DropdownMenuItem
+                    onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
+                    className="ah-menu-item-link ah-menu-item-mode-switch"
+                  >
+                    <div className="ah-menu-icon-box" style={{ '--icon-color': isAgentic ? 'var(--teal)' : '#8b5cf6', '--icon-bg': isAgentic ? 'var(--teal-l)' : 'rgba(139, 92, 246, 0.14)' } as React.CSSProperties}>
+                      <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
+                    </div>
+                    <span className="ah-menu-item-label">{isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}</span>
+                  </DropdownMenuItem>
+
                   <DropdownMenuItem asChild>
                     <Link to="/profile" className="ah-menu-item-link">
                       <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--teal)', '--icon-bg': 'var(--teal-l)' } as React.CSSProperties}>

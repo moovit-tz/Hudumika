@@ -443,6 +443,7 @@ export const EmailApp: React.FC = () => {
   const [emailsTotal, setEmailsTotal] = useState(0);
   const [activeFolder, setActiveFolder] = useState<Folder>(folderFromPath);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const deepLinkedMessageRef = useRef<string | null>(new URLSearchParams(location.search).get('message'));
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -888,6 +889,19 @@ export const EmailApp: React.FC = () => {
 
   useEffect(() => { loadEmails(); }, [loadEmails]);
   useEffect(() => () => emailRequestRef.current?.controller.abort(), []);
+
+  useEffect(() => {
+    const id = deepLinkedMessageRef.current;
+    if (!id || emailsLoading) return;
+    if (!emails.some(email => email.id === id)) return;
+    deepLinkedMessageRef.current = null;
+    selectEmail(id);
+    const params = new URLSearchParams(location.search);
+    params.delete('message');
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    // selectEmail is intentionally consumed once after the inbox request resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emails, emailsLoading]);
   useEffect(() => {
     const id = setInterval(loadEmails, 30000);
     return () => clearInterval(id);
@@ -2101,9 +2115,11 @@ export const EmailApp: React.FC = () => {
                   <Tip label="Mark unread"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('unread')}><Icon name="eyeOff" size={13} /></button></Tip>
                   {labelDefs.length > 0 && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button type="button" className="em-bulk-btn" title="Apply label"><Icon name="tag" size={13} /></button>
-                      </DropdownMenuTrigger>
+                      <Tip label="Apply label">
+                        <DropdownMenuTrigger asChild>
+                          <button type="button" className="em-bulk-btn" aria-label="Apply label"><Icon name="tag" size={13} /></button>
+                        </DropdownMenuTrigger>
+                      </Tip>
                       <DropdownMenuContent align="start">
                         {labelDefs.map(l => (
                           <DropdownMenuItem key={l.id} onClick={() => bulkLabelAction(l.name)}>{l.name}</DropdownMenuItem>
@@ -2331,9 +2347,11 @@ export const EmailApp: React.FC = () => {
               )}
               {labelDefs.length > 0 && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Labels"><Icon name="tag" size={16} /></button>
-                  </DropdownMenuTrigger>
+                  <Tip label="Labels">
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="Labels"><Icon name="tag" size={16} /></button>
+                    </DropdownMenuTrigger>
+                  </Tip>
                   <DropdownMenuContent align="start">
                     {labelDefs.map(l => (
                       <DropdownMenuCheckboxItem key={l.id} checked={selectedEmail.labels.includes(l.name)} onCheckedChange={() => toggleMessageLabel(selectedEmail.id, l.name)}>
@@ -2344,9 +2362,11 @@ export const EmailApp: React.FC = () => {
                 </DropdownMenu>
               )}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" title="More"><Icon name="moreVertical" size={16} /></button>
-                </DropdownMenuTrigger>
+                <Tip label="More actions">
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="More actions"><Icon name="moreVertical" size={16} /></button>
+                  </DropdownMenuTrigger>
+                </Tip>
                 <DropdownMenuContent align="start">
                   {selectedEmail.folder === 'scheduled' && (
                     <>

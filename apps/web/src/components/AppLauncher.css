@@ -1,41 +1,7 @@
 /* ══════════════════════════════════════════════════
-   AppLauncher — Adobe-style App Launcher Popover
+   AppLauncher — Dreams Core Style Apps Popover Panel
+   3-Column Flat Squircles with Hudumika Vector Icons
 ══════════════════════════════════════════════════ */
-
-/* ── Custom-logo icon ──
-   Shape comes from the squircle `clip-path` set inline per instance
-   (LauncherApps.tsx — it depends on the rendered `size`, which a CSS class
-   alone can't express). Icon-level shadows are deliberately avoided: they
-   create a dark perimeter that reads as a second holder around the logo. */
-.app-lnch-custom-icon {
-  width: var(--lnch-sz, 46px);
-  height: var(--lnch-sz, 46px);
-  background: var(--lnch-bg, #64748b);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  filter: none;
-}
-.app-lnch-custom-icon-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transform: scale(1.04);
-}
-
-/* ── SVG app icon in launcher — shape is the squircle <path> drawn inside
-   plus a matching inline clip-path (see LauncherApps.tsx); no CSS radius. ── */
-.app-lnch-svg-icon {
-  display: block;
-  flex-shrink: 0;
-  filter: none;
-  transition: transform 0.18s ease;
-}
-
-/* ══ Launcher — Adobe Floating Popover Panel ══ */
 
 .app-lnch-backdrop {
   position: fixed;
@@ -46,33 +12,24 @@
 
 .app-lnch-panel {
   position: fixed;
-  top: 60px;
-  right: 14px;
-  /* Was 320px. At 4 columns that leaves ~68px per tile, narrower than the
-     max-content width of ordinary single-word app names ("NexusHR",
-     "CargoTracker") — every grid item's default min-width:auto refused to
-     shrink below that content width, so the grid's real (rendered) column
-     width exceeded its 1fr share and the 4th column spilled straight past
-     the panel's own edge with no ellipsis ever engaging. 344px plus the
-     min-width:0 fix below (which lets ellipsis actually do its job for the
-     genuinely long names — "Account & Security", "Inventory Control") is
-     the combination that fits everything else without truncation. */
-  width: 310px;
-  max-height: calc(100dvh - 80px);
-  background: color-mix(in srgb, var(--white) 96%, transparent);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  top: 62px;
+  right: 16px;
+  width: 330px;
+  max-height: calc(100dvh - 84px);
+  background: color-mix(in srgb, var(--white) 98%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border);
-  border-radius: var(--card-radius, var(--r-lg));
-  box-shadow: var(--elev-lg);
-  outline: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.16), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  outline: 1px solid rgba(0, 0, 0, 0.04);
   outline-offset: -1px;
   z-index: 1001;
   display: flex;
   flex-direction: column;
-  padding: 10px 10px 8px 10px;
+  padding: 16px 14px 12px 14px;
   transform-origin: top right;
-  transform: scale(0.94) translateY(-10px);
+  transform: scale(0.95) translateY(-8px);
   opacity: 0;
   pointer-events: none;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
@@ -87,21 +44,38 @@
   pointer-events: auto;
 }
 
-/* Panel Header matching Adobe "Web Apps" header */
+/* ── Panel Header matching Dreams Core "Apps / Jump to a workspace app" header ── */
 .app-lnch-panel-hdr {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 4px 6px 4px;
+  padding: 0 4px 10px 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 
+.app-lnch-hdr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .app-lnch-panel-title {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--ink);
   font-family: var(--font);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.app-lnch-panel-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink3);
+  font-family: var(--font);
+  line-height: 1.2;
 }
 
 .app-lnch-panel-hdr-btns {
@@ -110,9 +84,26 @@
   gap: 6px;
 }
 
+.app-lnch-settings-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  text-decoration: none;
+}
+
+.app-lnch-settings-btn:hover {
+  background: var(--card-sunken);
+  color: var(--ink);
+}
+
 .app-lnch-edit-toggle {
   height: 26px;
-  padding: 0 9px;
+  padding: 0 8px;
   border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--bg);
@@ -133,26 +124,12 @@
   color: var(--ink);
 }
 
-/* `--seal` was never defined anywhere in the platform's token set — every
-   use of it here silently fell through to its hardcoded fallback, which is
-   exactly the "hardcoded hex standing in for the app's own accent" trap
-   CLAUDE.md's design-system rule flags: it should track the current app's
-   real --teal (WorkspaceApp writes it to document.documentElement, so this
-   portalled panel already sees the right one — orange in ClearOS, pink in
-   NexusHR, etc.), not one fixed teal-green for every tenant and every app. */
 .app-lnch-edit-toggle--active {
   background: var(--teal-l);
   border-color: var(--teal);
   color: var(--teal);
 }
 
-/* Genuinely pre-existing, just invisible until --seal's undefined fallback
-   made it moot: plain :hover (class + pseudo-class, specificity 0,2,0) beat
-   plain --active (single class, 0,1,0) on the `color` property regardless of
-   source order, so hovering the "Done" toggle silently fell back to the
-   base --ink2/--ink text color instead of staying teal. Needs its own
-   explicit hover state, not just a bigger selector, since "active and
-   hovered" is a real state worth its own (slightly deeper) look. */
 .app-lnch-edit-toggle--active:hover {
   background: var(--teal-m);
   border-color: var(--teal);
@@ -182,7 +159,7 @@
 .app-lnch-edit-hint {
   margin: 0 0 8px 0;
   padding: 5px 10px;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--teal);
   background: var(--teal-l);
@@ -192,78 +169,30 @@
   flex-shrink: 0;
 }
 
-.app-lnch-section-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink3);
-  font-family: var(--font);
-  margin: 0 0 3px 2px;
-}
-
-/* Section divider */
-.app-lnch-section-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0 6px;
-}
-
-/* Recently viewed — clean 4-column grid displaying the last 4 apps viewed */
-.app-lnch-recent-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px 2px;
-  margin: 0 0 2px;
-}
-
-.app-lnch-panel-item--recent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 2px 3px 2px;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
-  font-family: var(--font);
-  text-decoration: none;
-  color: inherit;
-  min-width: 0;
-  background: transparent;
-  box-shadow: none;
-  transform: none;
-  opacity: 1;
-}
-
-.app-lnch-panel-item--recent:hover {
-  background: var(--card-sunken);
-  transform: translateY(-1px);
-}
-
 /* Scrollable grid area */
 .app-lnch-panel-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 1px 1px 4px 1px;
+  padding: 2px 2px 6px 2px;
   transition: mask-image 0.15s ease;
 }
 
 .app-lnch-panel-scroll[data-more-below] {
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
 }
 
 .app-lnch-panel-scroll::-webkit-scrollbar { width: 4px; }
 .app-lnch-panel-scroll::-webkit-scrollbar-track { background: transparent; }
 .app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: var(--r-sm); }
 
-/* Adobe-style app grid — 4 columns */
+/* ── Dreams Core 3-Column Apps Grid ── */
 .app-lnch-panel-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px 2px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 10px;
+  padding: 4px 2px;
 }
 
 /* App item tile */
@@ -271,38 +200,58 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 4px 2px 3px 2px;
-  border-radius: var(--r-sm);
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 4px 4px 4px;
+  border-radius: 12px;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
   font-family: var(--font);
   text-decoration: none;
   color: inherit;
   min-width: 0;
+  background: transparent;
 }
 
 .app-lnch-panel-item:hover {
   background: var(--card-sunken);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .app-lnch-panel-item--over {
   background: var(--teal-l) !important;
 }
 
+/* Solid rounded squircle icon container with crisp 2D white vector icon */
+.app-lnch-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.app-lnch-panel-item:hover .app-lnch-icon-box {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.13);
+}
+
 .app-lnch-panel-name {
-  font-size: 9.5px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 500;
   color: var(--ink);
   text-align: center;
   font-family: var(--font);
-  line-height: 1.15;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  padding: 0 1px;
+  padding: 0 2px;
 }
 
 /* Edit mode — wiggle + grab cursor */
@@ -330,11 +279,11 @@
   transform: scale(1.06);
 }
 
-/* ── Adobe Bottom Card Footer ── */
+/* ── Bottom Card Footer ── */
 .app-lnch-adobe-footer-card {
-  margin-top: 6px;
+  margin-top: 8px;
   background: var(--card-sunken);
-  border-radius: var(--r);
+  border-radius: 10px;
   padding: 8px 6px;
   display: flex;
   align-items: center;
@@ -377,39 +326,17 @@
 
 .app-lnch-adobe-footer-divider {
   width: 1px;
-  height: 22px;
+  height: 20px;
   background: var(--border2);
 }
 
-/* The one piece of the platform's shared popover "ring" that can't just be a
-   token read at both ends of the cascade — Radix's own dark:ring-white/10
-   literally flips white/black by theme, not lightness of one color. */
+/* Dark mode overrides */
 [data-theme="dark"] .app-lnch-panel {
-  outline-color: rgba(255, 255, 255, 0.1);
+  outline-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.45);
 }
 
-/* --ink3 (this label's token) is legible on the light card but fails AA
-   against the dark card's --white (~3.75:1, under the 4.5:1 floor for text
-   this small) — --ink2 clears it comfortably (~6.9:1). Genuinely needs the
-   theme-specific bump; not a leftover duplicate like the rest of the block
-   used to be. */
-[data-theme="dark"] .app-lnch-section-label {
-  color: var(--ink2);
-}
-
-/* ── Dark mode ──
-   No per-property overrides needed here anymore. Every rule above now reads
-   color from a real design-system token (--ink/--ink2/--ink3, --bg, --white,
-   --border/--border2, --card-sunken, --teal/--teal-l) instead of a raw hex,
-   and every one of those tokens is already redefined for dark mode once, at
-   the root, in index.css. This block used to carry a second, hand-picked
-   zinc palette (#18181b/#27272a/#3f3f46/...) in parallel with that — visibly
-   close to the real dark tokens but never quite them, and a second thing to
-   keep in sync by hand on every future change to this file. Retokenizing the
-   light-mode rules made the whole block redundant rather than something to
-   port forward. */
-
-/* ── Mobile — bottom sheet ── */
+/* Mobile — bottom sheet */
 @media (max-width: 600px) {
   .app-lnch-panel {
     width: 100%;
@@ -417,7 +344,7 @@
     top: auto;
     bottom: 0;
     right: 0;
-    border-radius: var(--card-radius, var(--r-lg)) var(--card-radius, var(--r-lg)) 0 0;
+    border-radius: 20px 20px 0 0;
     border-bottom: none;
     transform-origin: bottom center;
     transform: translateY(100%);

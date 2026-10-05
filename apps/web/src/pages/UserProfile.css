@@ -6,10 +6,10 @@
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
-  gap: 0;
+  gap: 16px;
   /* padding-bottom creates space below the last card so the sticky save bar
      never covers the final form fields — 120px > footer height (~70px). */
-  padding: 0 0 120px 0;
+  padding: 0 0 140px 0;
   width: auto !important;
   max-width: none !important;
   margin: 0 max(0px, calc(64px - var(--page-pad-x, 8px))) !important;
@@ -56,7 +56,7 @@
 .profile-hero-card {
   background: var(--card-bg, var(--white));
   border: 1px solid var(--border);
-  border-radius: var(--card-radius, var(--r-xl, 16px)) var(--card-radius, var(--r-xl, 16px)) 0 0;
+  border-radius: var(--card-radius, var(--r-xl, 16px));
   box-shadow: var(--card-shadow, var(--elev-sm));
   overflow: hidden;
   position: relative;
@@ -115,6 +115,58 @@
   flex-wrap: wrap;
   gap: 16px;
   width: 100%;
+}
+
+.profile-cover-identity {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 0;
+}
+
+.profile-cover-user-copy {
+  min-width: 0;
+  padding-bottom: 4px;
+  color: #fff;
+}
+
+.profile-cover-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-cover-name-row h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.profile-cover-user-copy p {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.profile-cover-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--badge-radius, 999px);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
 }
 
 /* Header Text inside Cover */
@@ -244,10 +296,10 @@
 
 /* ── Hero Identity Section ── */
 .profile-hero-body {
-  padding: 0 24px 18px 24px;
+  padding: 16px 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 0;
 }
 
 .profile-hero-identity-row {
@@ -256,14 +308,12 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  margin-top: -44px;
   position: relative;
-  z-index: 3;
 }
 
 .profile-hero-identity-left {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 18px;
   flex-wrap: wrap;
 }
@@ -274,6 +324,10 @@
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+.profile-cover-identity .profile-hero-avatar-wrap {
+  margin-bottom: -8px;
 }
 
 .profile-online-dot {
@@ -427,7 +481,7 @@
 .profile-tab-strip {
   border-top: 1px solid var(--border);
   background: var(--card-bg, var(--white));
-  padding: 10px 24px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -834,17 +888,26 @@
     padding-bottom: 48px;
   }
   .profile-cover-banner {
-    min-height: 240px;
+    min-height: 280px;
     padding: 16px;
+  }
+  .profile-cover-inner {
+    flex-direction: column;
+  }
+  .profile-cover-actions-top {
+    width: 100%;
+  }
+  .profile-cover-identity {
+    align-items: center;
+  }
+  .profile-cover-identity .profile-hero-avatar-wrap {
+    margin-bottom: 0;
   }
   .profile-cover-title {
     font-size: 24px;
   }
   .profile-hero-body {
-    padding: 0 16px 16px 16px;
-  }
-  .profile-hero-identity-row {
-    margin-top: -36px;
+    padding: 14px 16px;
   }
   .profile-form-grid-2 {
     grid-template-columns: 1fr;
@@ -872,8 +935,11 @@
 }
 
 @media (max-width: 480px) {
-  .profile-hero-kpis-grid {
-    grid-template-columns: 1fr;
+  .profile-cover-banner {
+    min-height: 320px;
+  }
+  .profile-cover-identity {
+    align-items: flex-start;
   }
   .profile-hero-identity-row {
     flex-direction: column;
@@ -896,5 +962,5 @@
 }
 
 [data-theme="dark"] .profile-hero-avatar-box {
-  background: var(--card-bg, #182234);
+  background: var(--card-bg, rgba(255, 255, 255, 0.04));
 }

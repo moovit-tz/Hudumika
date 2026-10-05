@@ -191,9 +191,9 @@ export function SealLotDetail() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="seal-strip" style={{ height: 24, background: `var(${CUSTOMS_STATUS_COLOR_VAR[lot.customsStatus]})` }} />
-            <h1 className="seal-page-title" style={{ margin: 0 }}>{lot.description}</h1>
+            <h2 className="seal-entity-title">{lot.description}</h2>
           </div>
-          <p className="seal-page-sub" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p className="seal-page-sub" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             <PersonAvatar userId={lot.ownerId} kind="customers" name={lot.ownerName ?? 'Unknown owner'} size={18} />
             {lot.ownerName ?? 'Unknown owner'} · {lot.qtyOnHand.toLocaleString()} {lot.uom}
           </p>

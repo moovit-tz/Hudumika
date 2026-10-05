@@ -474,26 +474,26 @@ export function SimpleWysiwygEditor({
       <div className="simple-wysiwyg-footer">
         <div className="simple-wysiwyg-footer-left">
           {onDelete && !isImported && (
-            <Button variant="ghost" size="sm" onClick={onDelete} className="simple-wysiwyg-del-btn">
+            <Button variant="outline" size="sm" onClick={onDelete} className="simple-wysiwyg-del-btn">
               <Icon name="trash" size={13} color="var(--red)" /> Delete
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={onPublish}>
+          <Button variant="outline" size="sm" onClick={onPublish} className="simple-wysiwyg-pub-btn">
             <Icon name="package" size={13} /> Publish to Store
           </Button>
         </div>
 
         <div className="simple-wysiwyg-footer-right">
-          {/* Requirement 2: Button to Advanced Builder */}
+          {/* Button to Advanced Builder */}
           <Button
             variant="outline"
             onClick={onOpenAdvancedBuilder}
             className="simple-wysiwyg-adv-btn"
           >
-            <Icon name="terminal" size={14} /> Advanced Builder
+            <Icon name="terminal" size={14} /> &gt;_ Advanced Builder
           </Button>
 
-          {/* Requirement 3: Save to Template Library */}
+          {/* Save to Template Library */}
           <Button
             onClick={onSave}
             disabled={saving}

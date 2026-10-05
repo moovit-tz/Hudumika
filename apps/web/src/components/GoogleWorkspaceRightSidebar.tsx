@@ -799,9 +799,14 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                       >
                         {todo.completed && <Icon name="check" size={10} style={{ color: '#fff' }} />}
                       </button>
-                      <span style={{ flex: 1, fontSize: 13, color: todo.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: todo.completed ? 'line-through' : 'none' }}>
+                      <a
+                        href={`/tasks?task=${encodeURIComponent(todo.id)}`}
+                        className="gws-task-link"
+                        aria-label={`Open task: ${todo.title}`}
+                        style={{ flex: 1, minWidth: 0, fontSize: 13, color: todo.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: todo.completed ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
                         {todo.title}
-                      </span>
+                      </a>
                       <ReminderPicker
                         value={todo.reminder ?? null}
                         onChange={v => updateTodo(todo.id, { reminder: v })}
@@ -848,12 +853,12 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Upcoming Events</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {events.filter(ev => matches(ev.title)).slice(0, 6).map(ev => (
-                    <div key={ev.id} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <a key={ev.id} href={`/calendar?event=${encodeURIComponent(ev.id)}`} aria-label={`Open event: ${ev.title}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{ev.title}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
                         {new Date(ev.start).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                       </div>
-                    </div>
+                    </a>
                   ))}
                   {events.length === 0 && (
                     <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>No events scheduled</div>
@@ -873,7 +878,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {envelopes.filter(env => matches(env.title)).map(env => (
-                    <a key={env.id} href={`/sign/envelope/${env.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
+                    <a key={env.id} href={`/sign/envelope/${env.id}`} aria-label={`Open envelope: ${env.title}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                         <Icon name="stamp" size={16} style={{ color: 'var(--teal)' }} />
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{env.title}</span>
@@ -1049,7 +1054,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Notes</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {notesList.filter(n => !n.isTrashed && !n.isArchived).filter(n => matches(n.title, n.content)).map(n => (
-                    <a key={n.id} href="/notes" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 8, textDecoration: 'none' }}>
+                    <a key={n.id} href={`/notes?note=${encodeURIComponent(n.id)}`} aria-label={`Open note: ${n.title || 'Untitled note'}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 8, textDecoration: 'none' }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         {n.title && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>}
                         <div style={{ fontSize: 12, color: 'var(--ink2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.content || 'Empty note'}</div>
@@ -1093,7 +1098,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Messages</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {smsMessages.filter(m => matches(m.contact_name, m.to_number, m.body)).map(m => (
-                    <a key={m.id} href="/sms/reports" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                    <a key={m.id} href={`/sms/reports?message=${encodeURIComponent(m.id)}`} aria-label={`Open SMS to ${m.contact_name || m.to_number}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.contact_name || m.to_number}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{m.status}</span>
@@ -1126,7 +1131,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Inbox</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {inboxEmails.filter(m => matches(m.from?.name, m.subject, m.snippet)).map(m => (
-                    <a key={m.id} href="/email" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 3, textDecoration: 'none' }}>
+                    <a key={m.id} href={`/email?message=${encodeURIComponent(m.id)}`} aria-label={`Open email: ${m.subject}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 3, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: m.read ? 600 : 800, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.from?.name}</span>
                         {!m.read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ea4335', flexShrink: 0, marginTop: 3 }} />}
@@ -1162,7 +1167,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Contacts ({contacts.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {contacts.filter(c => matches(c.first_name, c.last_name, c.email, c.company)).map(c => (
-                    <a key={c.id} href="/contacts" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                    <a key={c.id} href={`/contacts/contact/${encodeURIComponent(c.id)}`} aria-label={`Open contact: ${c.first_name} ${c.last_name || ''}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                       <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(37,99,235,0.12)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 700 }}>
                         {c.first_name?.[0]?.toUpperCase() ?? '?'}
                       </div>
@@ -1188,7 +1193,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Shipments</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {shipments.filter(s => matches(s.bl_number, s.ref_number, s.goods_desc)).map(s => (
-                    <a key={s.id} href={`/clearos/clearance/${s.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                    <a key={s.id} href={`/clearos/clearance/${s.id}`} aria-label={`Open shipment: ${s.bl_number || s.ref_number || 'Shipment'}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.bl_number || s.ref_number || 'Shipment'}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{s.status}</span>
@@ -1226,7 +1231,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   {invoices.filter(inv => matches(inv.invoice_number, inv.client_name)).map(inv => {
                     const total = (inv.items || []).reduce((sum, it) => sum + (Number(it.rate) || 0) * (Number(it.qty) || 1), 0);
                     return (
-                      <a key={inv.id} href={`/finance/invoices?id=${inv.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                      <a key={inv.id} href={`/finance/invoices?id=${inv.id}`} aria-label={`Open invoice: ${inv.invoice_number}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.client_name || inv.invoice_number}</span>
                           <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{inv.status}</span>
@@ -1267,7 +1272,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Wallets</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {pettiWallets.filter(w => matches(w.name)).map(w => (
-                    <a key={w.id} href={`/petti/wallets/${w.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none' }}>
+                    <a key={w.id} href={`/petti/wallets/${w.id}`} aria-label={`Open wallet: ${w.name}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
                       <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--font)', flexShrink: 0 }}>{w.balance.toLocaleString()} {w.currency}</span>
                     </a>
@@ -1307,7 +1312,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Staff ({staffList.length})</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {staffList.filter(s => matches(s.name, s.email, s.role)).map(s => (
-                    <a key={s.id} href={`/nexushr/staff/${s.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                    <a key={s.id} href={`/nexushr/staff/${s.id}`} aria-label={`Open staff member: ${s.name}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                       <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(219,39,119,0.12)', color: '#db2777', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 700 }}>
                         {s.name?.[0]?.toUpperCase() ?? '?'}
                       </div>
@@ -1334,7 +1339,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Consignments</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {consignments.filter(c => matches(c.owner_name, c.transport_doc_number, c.goods_description)).map(c => (
-                    <a key={c.id} href={`/seal/consignments/${c.id}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                    <a key={c.id} href={`/seal/consignments/${c.id}`} aria-label={`Open consignment: ${c.owner_name || c.transport_doc_number || 'Consignment'}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.owner_name || c.transport_doc_number || 'Consignment'}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{c.status?.replace(/_/g, ' ').toLowerCase()}</span>
@@ -1361,7 +1366,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Bookings</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {bookings.filter(b => matches(b.booking_number, b.customer_name, b.origin_port, b.destination_port)).map(b => (
-                    <a key={b.id} href="/cargotracker/bookings" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                    <a key={b.id} href={`/cargotracker/bookings?booking=${encodeURIComponent(b.id)}`} aria-label={`Open booking: ${b.booking_number}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.booking_number}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', flexShrink: 0 }}>{b.status?.replace(/_/g, ' ')}</span>
@@ -1385,7 +1390,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Recent Files</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {driveFiles.filter(f => matches(f.name, f.owner_name)).map(f => (
-                    <a key={f.id} href="/cloud" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+                    <a key={f.id} href={`/cloud/files?file=${encodeURIComponent(f.id)}`} aria-label={`Open file: ${f.name}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                       <Icon name="fileText" size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
@@ -1409,7 +1414,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Obligations</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {obligations.filter(o => matches(o.name, o.customer_name)).map(o => (
-                    <a key={o.id} href="/complyos/obligations" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                    <a key={o.id} href={`/complyos/obligations?obligation=${encodeURIComponent(o.id)}`} aria-label={`Open obligation: ${o.name}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--teal-l)', color: 'var(--teal)', textTransform: 'capitalize', flexShrink: 0 }}>{o.status}</span>
@@ -1431,7 +1436,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Marketplace</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {storeApps.filter(a => matches(a.name, a.category, a.shortDesc)).map(a => (
-                    <a key={a.id} href="/store" style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
+                    <a key={a.id} href={`/store?app=${encodeURIComponent(a.id)}`} aria-label={`Open app: ${a.name}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                         <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>★ {a.rating}</span>

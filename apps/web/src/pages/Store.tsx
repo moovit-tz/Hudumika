@@ -172,7 +172,7 @@ const RATING_BARS = [
 
 // ── Component ────────────────────────────────────────────────────
 export const Store: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('cat') ?? 'all';
   const [apps, setApps] = useState<AddonApp[]>([]);
   const [appsLoading, setAppsLoading] = useState(true);
@@ -199,6 +199,18 @@ export const Store: React.FC = () => {
   }, []);
 
   useEffect(() => { setSelectedApp(null); }, [activeCategory]);
+
+  useEffect(() => {
+    const appId = searchParams.get('app');
+    if (!appId || appsLoading) return;
+    const app = apps.find(item => item.id === appId);
+    if (!app) return;
+    setSelectedApp(app);
+    setActiveDetailTab('overview');
+    const next = new URLSearchParams(searchParams);
+    next.delete('app');
+    setSearchParams(next, { replace: true });
+  }, [apps, appsLoading, searchParams, setSearchParams]);
 
   function triggerToast(msg: string) {
     setToast(msg);

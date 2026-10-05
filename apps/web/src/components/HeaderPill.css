@@ -131,6 +131,12 @@
   padding: 0 2px;
 }
 
+/* ── Dark mode ─────────────────────────────────────────────────────────── */
+[data-theme="dark"] .app-header-pill-body {
+  background: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
 /* Below 1100px the sub-line competes with too much; drop it. */

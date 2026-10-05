@@ -373,7 +373,7 @@ export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
   typography: { font: 'atlassian-sans', scale: TYPE_SCALE_DEFAULT },
   shape: SHAPE_DEFAULT,
   elevation: 'default',
-  density: 'default',
+  density: 'comfortable',
   iconLibrary: 'stroke',
   motion: { durFast: 80, dur: 150, durSlow: 300, ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
   tabs: { variant: 'segmented', radius: 6, height: 34, size: 13 },
@@ -1023,15 +1023,18 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--ink': tokens.neutral.dark.ink,
     '--ink2': tokens.neutral.dark.ink2,
     '--ink3': darkInk3,
-    /* Page background and card surface, tinted by the active app's raw accent.
-       --teal-fill-raw is the original (non-lightened) hex set by WorkspaceApp on
-       :root — each app's real brand colour. The fallback is the platform brand so
-       pre-auth and platform pages stay in-brand without WorkspaceApp mounted. */
+    /* Neutral dark surfaces for all non-app pages (Profile, NavShell, hub, etc.).
+       The Material color scheme generates brand-tinted surfaces (tokens.neutral.dark.white
+       = dark.surface seeded from brand.primary), which produces a greenish card when
+       the brand is teal. WorkspaceApp overrides --white per-app with its own
+       accent-tinted mix(0.06) value, so app shells are unaffected by fixing this
+       to neutral here. Non-app pages that used to read the Material-tinted value
+       from :root now get the same neutral dark as claude.ai. */
     '--bg': '#0d0d0d',
-    '--white': tokens.neutral.dark.white,
-    '--card-sunken': tokens.neutral.dark.cardSunken ?? 'rgba(255,255,255,0.035)',
-    '--border': tokens.neutral.dark.border,
-    '--border2': tokens.neutral.dark.border2,
+    '--white': '#141414',
+    '--card-sunken': 'rgba(255,255,255,0.025)',
+    '--border': 'rgba(255,255,255,0.07)',
+    '--border2': 'rgba(255,255,255,0.14)',
     '--nav-header-bg': '#090909',
 
     '--gold': tokens.semantic.dark.gold,

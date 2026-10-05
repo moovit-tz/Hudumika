@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -41,10 +41,22 @@ function statusLabel(status: string) {
 }
 
 export function ComplyObligations() {
+  const deepLinkedObligationRef = useRef<string | null>(new URLSearchParams(window.location.search).get('obligation'));
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>('all');
   const { obligations, loading, error, refresh, update, remove } = useComplyObligations();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [focusedObligationId, setFocusedObligationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = deepLinkedObligationRef.current;
+    if (!id || loading || !obligations.some(obligation => obligation.id === id)) return;
+    deepLinkedObligationRef.current = null;
+    setFocusedObligationId(id);
+    setFilter('all');
+    window.history.replaceState(null, '', window.location.pathname);
+    window.setTimeout(() => document.getElementById(`obligation-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+  }, [loading, obligations]);
 
   async function handleFulfil(o: CompObligation) {
     setBusyId(o.id);
@@ -162,7 +174,7 @@ export function ComplyObligations() {
           </div>
           <div>
             {obls.map(o => (
-              <div key={o.id} className="comply-oblig-row">
+              <div id={`obligation-${o.id}`} key={o.id} aria-current={focusedObligationId === o.id ? 'true' : undefined} className="comply-oblig-row" style={{ background: focusedObligationId === o.id ? 'var(--teal-l)' : undefined, boxShadow: focusedObligationId === o.id ? 'inset 3px 0 0 var(--teal)' : undefined }}>
                 <div className={`comply-oblig-icon comply-agency--${o.agency_class}`}>
                   <Icon name={AGENCY_CLASS_ICON[o.agency_class] ?? 'fileText'} size={16} />
                 </div>

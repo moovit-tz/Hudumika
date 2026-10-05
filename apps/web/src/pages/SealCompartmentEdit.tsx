@@ -156,7 +156,7 @@ export function SealCompartmentEdit() {
   }
 
   return (
-    <div className="seal-page" style={{ paddingBottom: 60 }}>
+    <div className="seal-page">
       <PageHeader
         crumbs={['SEAL', 'Edit Compartment']}
         titlePlain="Edit this"
@@ -168,14 +168,6 @@ export function SealCompartmentEdit() {
         <Link to={`/seal/compartments/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--seal)', textDecoration: 'none' }}>
           <Icon name="arrowLeft" size={14} /> Back to Compartment Detail
         </Link>
-      </div>
-
-      {/* Title Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 className="seal-page-title" style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px 0' }}>Edit Compartment — {name}</h1>
-        <p className="seal-page-sub" style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>
-          Update facility branding, customs license numbers, storage rules, and FinOps billing parameters.
-        </p>
       </div>
 
       {/* Main Form */}

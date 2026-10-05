@@ -224,7 +224,7 @@ export function SealConsignmentDetail() {
             <Icon name="arrowLeft" size={13} />
             <span>Back to Consignments</span>
           </button>
-          <h1 className="seal-page-title">{consignment.transport_doc_type} {consignment.transport_doc_number ?? ''}</h1>
+          <h2 className="seal-entity-title">{consignment.transport_doc_type} {consignment.transport_doc_number ?? ''}</h2>
           <p className="seal-page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <PersonAvatar userId={consignment.owner_id} kind="customers" name={consignment.owner_name ?? 'Unknown owner'} size={18} />
             {consignment.owner_name ?? 'Unknown owner'} · {consignment.goods_description ?? 'No description'}

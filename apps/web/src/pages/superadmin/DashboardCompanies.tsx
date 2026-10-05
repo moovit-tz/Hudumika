@@ -532,8 +532,8 @@ export function CompaniesView() {
         action={
           <div className="sa-toolbar-actions">
             {apiError && <span className="sa-toolbar-offline">API offline â€” showing mock data</span>}
-            <button type="button" title="Refresh companies" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm"><Icon name="refresh" size={12}/>Refresh</button>
-            <button type="button" title="Add company" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md"><Icon name="plus" size={13}/>Add Company</button>
+            <button type="button" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm"><Icon name="refresh" size={12}/>Refresh</button>
+            <button type="button" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md"><Icon name="plus" size={13}/>Add Company</button>
           </div>
         }
       />
@@ -928,7 +928,7 @@ export function CompaniesView() {
           <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
               <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Add Company</span>
-              <button type="button" title="Close" onClick={()=>setShowAdd(false)} className="dp-close"><Icon name="close" size={16} /></button>
+              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowAdd(false)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
             </div>
             <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:14 }}>
               {([
@@ -954,8 +954,8 @@ export function CompaniesView() {
               </div>
             </div>
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
-              <button type="button" title="Cancel" onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button type="button" title="Add company" onClick={addCompany} className="btn btn-primary btn-sm" disabled={!form.name.trim()||!form.email.trim()}>Add Company</button>
+              <button type="button" onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
+              <button type="button" onClick={addCompany} className="btn btn-primary btn-sm" disabled={!form.name.trim()||!form.email.trim()}>Add Company</button>
             </div>
           </div>
         </div>
@@ -966,7 +966,7 @@ export function CompaniesView() {
           <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
               <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Edit Company</span>
-              <button type="button" title="Close" onClick={()=>setShowEdit(false)} className="dp-close"><Icon name="close" size={16} /></button>
+              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowEdit(false)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
               <div>
@@ -1067,8 +1067,8 @@ export function CompaniesView() {
             </div>
 
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
-              <button type="button" title="Cancel" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button type="button" title="Save changes" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()}>Save Changes</button>
+              <button type="button" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
+              <button type="button" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()}>Save Changes</button>
             </div>
           </div>
         </div>
@@ -1086,7 +1086,7 @@ export function CompaniesView() {
                     {resyncingCloud ? 'Resyncingâ€¦' : 'Resync Cloud Links'}
                   </button>
                 </Tip>
-                <button type="button" title="Close" onClick={()=>setCustomersCo(null)} className="dp-close"><Icon name="close" size={16} /></button>
+                <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setCustomersCo(null)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
               </div>
             </div>
             {loadingCustomers ? (

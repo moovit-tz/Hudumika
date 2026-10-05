@@ -38,6 +38,13 @@ import { SealAdjustments } from '../pages/SealAdjustments.js';
 import { SealExWarehouseEntries } from '../pages/seal/SealExWarehouseEntries.js';
 import { SealExWarehouseEntryNew } from '../pages/seal/SealExWarehouseEntryNew.js';
 import { SealExWarehouseEntryDetail } from '../pages/seal/SealExWarehouseEntryDetail.js';
+// Inventory pages — these moved from the standalone Inventory app into SEAL.
+// base `seal` plan: Items, Stock Levels, Stock Counts, Warehouses (= Compartments).
+// Routes redirect /inventory/* here so existing bookmarks keep working.
+import { InventoryItems } from '../pages/InventoryItems.js';
+import { InventoryStock } from '../pages/InventoryStock.js';
+import { InventoryCounts, } from '../pages/InventoryCounts.js';
+import { InventoryCountDetail } from '../pages/InventoryCountDetail.js';
 import { useSealCapabilities } from '../hooks/useSealCapabilities.js';
 
 /**
@@ -72,8 +79,14 @@ function buildNav(caps: ReturnType<typeof useSealCapabilities>): SidebarSection[
         { label: 'Appointments', icon: 'calendar', path: '/seal/appointments' },
       ],
     },
-    {
-      title: caps.customs ? 'THE LEDGER' : 'INVENTORY',
+  ];
+
+  if (caps.customs) {
+    // Advanced plan (seal_advanced): bonded warehouse / ICD / CFS surface.
+    // Items and counts are still reachable via routes but the ledger is the
+    // primary view — Lots already track quantity and status per SKU.
+    sections.push({
+      title: 'THE LEDGER',
       items: [
         { label: 'Lots', icon: 'package', path: '/seal/lots' },
         { label: 'Stock Transfers', icon: 'arrowRight' as const, path: '/seal/stock-transfers' },
@@ -82,10 +95,7 @@ function buildNav(caps: ReturnType<typeof useSealCapabilities>): SidebarSection[
           ? [{ label: 'Guarantees', icon: 'shield' as const, path: '/seal/guarantees' }]
           : []),
       ],
-    },
-  ];
-
-  if (caps.customs) {
+    });
     sections.push({
       title: 'CUSTOMS',
       items: [
@@ -96,14 +106,26 @@ function buildNav(caps: ReturnType<typeof useSealCapabilities>): SidebarSection[
         { label: 'Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
       ],
     });
+    sections.push({
+      title: 'YARD',
+      items: [
+        { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
+      ],
+    });
+  } else {
+    // Base plan (seal): standard inventory surface — no customs overlay.
+    sections.push({
+      title: 'INVENTORY',
+      items: [
+        { label: 'Items', icon: 'tag', path: '/seal/items' },
+        { label: 'Stock Levels', icon: 'layers', path: '/seal/stock' },
+        { label: 'Stock Counts', icon: 'clipboardList', path: '/seal/counts' },
+        { label: 'Lots', icon: 'package', path: '/seal/lots' },
+        { label: 'Stock Transfers', icon: 'arrowRight' as const, path: '/seal/stock-transfers' },
+        { label: 'Warehouses', icon: 'warehouse', path: '/seal/compartments' },
+      ],
+    });
   }
-
-  sections.push({
-    title: 'YARD',
-    items: [
-      { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
-    ],
-  });
 
   sections.push({
     title: 'OPERATIONS',
@@ -196,6 +218,11 @@ export function SealShell() {
                 <Route path="fulfillment"       element={<SealFulfillment />}        />
                 <Route path="fulfillment/:id"   element={<SealFulfillmentDetail />}  />
                 <Route path="dispatch-requests" element={<SealDispatchRequests />}   />
+                {/* Inventory routes (formerly /inventory/*) */}
+                <Route path="items"             element={<InventoryItems />}         />
+                <Route path="stock"             element={<InventoryStock />}         />
+                <Route path="counts"            element={<InventoryCounts />}        />
+                <Route path="counts/:id"        element={<InventoryCountDetail />}   />
               </Route>
             </Routes>
           </div>

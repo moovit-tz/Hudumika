@@ -21,7 +21,7 @@ import { ConfirmHost } from './components/ConfirmHost.js';
 import { PromptHost } from './components/PromptHost.js';
 import { InAppBrowserHost } from './components/InAppBrowserHost.js';
 import { AppHeader } from './components/AppHeader.js';
-import { resolveLandingStyle } from './lib/landingStyle.js';
+import { useLandingStyle } from './hooks/useLandingStyle.js';
 
 // Fast critical auth pages kept eagerly loaded for instant initial render
 import { Login }           from './pages/Login.js';
@@ -92,7 +92,6 @@ const AdminShell = React.lazy(() => import('./shells/AdminShell.js').then(m => (
 const SuperAdminShell = React.lazy(() => import('./shells/SuperAdminShell.js').then(m => ({ default: m.SuperAdminShell })));
 const ComplyOSShell = React.lazy(() => import('./shells/ComplyOSShell.js').then(m => ({ default: m.ComplyOSShell })));
 const SealShell = React.lazy(() => import('./shells/SealShell.js').then(m => ({ default: m.SealShell })));
-const InventoryShell = React.lazy(() => import('./shells/InventoryShell.js').then(m => ({ default: m.InventoryShell })));
 const EmailShell = React.lazy(() => import('./shells/EmailShell.js').then(m => ({ default: m.EmailShell })));
 const CRMShell = React.lazy(() => import('./shells/CRMShell.js').then(m => ({ default: m.CRMShell })));
 const ContactsShell = React.lazy(() => import('./shells/ContactsShell.js').then(m => ({ default: m.ContactsShell })));
@@ -122,9 +121,8 @@ const DeveloperShell = React.lazy(() => import('./shells/DeveloperShell.js').the
    rule. ── */
 const HubPage: React.FC = () => {
   const [hubSearch, setHubSearch] = React.useState('');
-  const { user } = useAuth();
-  const isBasic = resolveLandingStyle(user) === 'basic';
-  if (isBasic) {
+  const { isAgentic } = useLandingStyle();
+  if (isAgentic) {
     return (
       <Suspense fallback={<SkeletonPage />}>
         <AgenticHome />
@@ -156,7 +154,7 @@ const ClearanceRedirect: React.FC<{ edit?: boolean }> = ({ edit }) => {
 /* ── Nav shell — AppHeader without a sidebar, for standalone tool pages ── */
 const NavShell: React.FC = () => (
   <div className="app-shell">
-    <div className="app-main">
+    <div className="app-main app-main--no-app">
       <AppHeader />
       <div className="app-shell-content">
         <React.Suspense fallback={<SkeletonPage />}>
@@ -487,15 +485,19 @@ const AppContentBody: React.FC = () => {
             <Route path="/cloud/*"    element={<CloudShell />} />
             <Route path="/workspace/*"element={<AdminShell />} />
             <Route path="/admin/*"    element={<SuperAdminShell />} />
-            {/* The standalone AI app is retired — Agent Flow, Automations,
-                Insights and Controls all live as tabs on the Agentic home
-                (HubPage below) now. Old links redirect to "/" rather than
-                404ing or resurrecting the shell. */}
-            <Route path="/ai/*"       element={<Navigate to="/" replace />} />
-            <Route path="/agent"      element={<Navigate to="/" replace />} />
+            {/* Agentic View & Hub routes */}
+            <Route path="/agentic"    element={<Suspense fallback={<SkeletonPage />}><AgenticHome /></Suspense>} />
+            <Route path="/ai/*"       element={<Navigate to="/agentic" replace />} />
+            <Route path="/agent"      element={<Navigate to="/agentic" replace />} />
             <Route path="/complyos/*" element={<ComplyOSShell />} />
             <Route path="/seal/*"     element={<SealShell />} />
-            <Route path="/inventory/*" element={<InventoryShell />} />
+            {/* Inventory app retired — content merged into SEAL at /seal/items|stock|counts */}
+            <Route path="/inventory/items"       element={<Navigate to="/seal/items" replace />} />
+            <Route path="/inventory/warehouses"  element={<Navigate to="/seal/compartments" replace />} />
+            <Route path="/inventory/stock"       element={<Navigate to="/seal/stock" replace />} />
+            <Route path="/inventory/counts"      element={<Navigate to="/seal/counts" replace />} />
+            <Route path="/inventory/tasks"       element={<Navigate to="/seal/activities" replace />} />
+            <Route path="/inventory/*"           element={<Navigate to="/seal" replace />} />
             <Route path="/email/*"    element={<EmailShell />} />
             <Route path="/crm/*"      element={<CRMShell />} />
             <Route path="/contacts/*"  element={<ContactsShell />} />

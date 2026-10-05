@@ -251,7 +251,7 @@ export function SealWarehouseLayout() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="seal-page" style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 60 }}>
+      <div className="seal-page">
         {/* Page Header */}
         <div>
           <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>

@@ -52,11 +52,11 @@ export function SettingsView() {
   const [maintenance, setMaintenance] = useState(false);
   const [smtp, setSmtp] = useState({ host:'smtp.mailgun.org', port:'587', user:'no-reply@clearos.io', pass:'', from:'Hudumika Platform <no-reply@clearos.io>', tls:true });
   const [security, setSecurity] = useState({ minPasswordLength:'8', sessionTimeoutHours:'8', maxLoginAttempts:'5', lockoutMinutes:'15', twoFaPolicy:'optional' as 'off'|'optional'|'required', ipAllowlist:'' });
-  const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢', keyRotationDays:'90' });
+  const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [ocr, setOcr] = useState({ geminiApiKey:'' });
   // Platform-wide fallback AI key (apps/api/src/lib/platform-settings.ts's
-  // resolveAiCredentials()) â€” used by every tenant that hasn't configured
+  // resolveAiCredentials()) — used by every tenant that hasn't configured
   // its own key in Settings > Integrations > AI Integration. A tenant's own
   // key always wins over this one; this only fills the gap for tenants
   // that never set one up, billed to the platform rather than the tenant.
@@ -75,9 +75,9 @@ export function SettingsView() {
     const def = AI_PROVIDERS.find(x => x.value === provider);
     setAiTest(prev => ({ ...prev, [provider]: { busy: true } }));
     try {
-      // A typed (unsaved) key is tested as typed; the mask means "use the stored key" â€” the server resolves it.
+      // A typed (unsaved) key is tested as typed; the mask means "use the stored key" — the server resolves it.
       const r = await apiFetch('/v1/superadmin/ai/test', { method: 'POST', body: JSON.stringify({ provider, model: row?.model || def?.models[0].value, apiKey: row?.apiKey || undefined }) });
-      setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: !!r.ok, message: r.ok ? `Working â€” ${r.model} answered in ${r.latencyMs} ms.` : (r.error || 'The provider rejected the request.') } }));
+      setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: !!r.ok, message: r.ok ? `Working — ${r.model} answered in ${r.latencyMs} ms.` : (r.error || 'The provider rejected the request.') } }));
     } catch (err: any) {
       setAiTest(prev => ({ ...prev, [provider]: { busy: false, ok: false, message: err?.message || 'Test failed' } }));
     }
@@ -105,7 +105,7 @@ export function SettingsView() {
     if (cronPage > lastPage) setCronPage(lastPage);
   }, [jobs.jobs.length, cronPage, cronPageSize]);
 
-  // 8 sections in one long scroll with no way to jump to one â€” tabbed instead,
+  // 8 sections in one long scroll with no way to jump to one — tabbed instead,
   // same ?section= deep-link convention DesignSystemView already established
   // (Navigate to="/admin/design-system?section=identity" etc. in
   // SuperAdminShell.tsx) so a bookmark/link to one settings section works the
@@ -179,7 +179,7 @@ export function SettingsView() {
     }
   }
 
-  // Used to just re-save whatever was already sitting in the field â€” clicking
+  // Used to just re-save whatever was already sitting in the field — clicking
   // "Regenerate" changed nothing at all. Generates a real random secret
   // client-side (crypto.getRandomValues, not Math.random) and saves it
   // immediately, same shape as an API key's own secret generation.
@@ -304,19 +304,19 @@ export function SettingsView() {
     <div className="sa-settings-page">
       <PageHdr title="Platform Settings" sub="Platform-wide configuration applied across all tenants" />
 
-      {/* â”€â”€ Maintenance Mode â”€â”€ */}
+      {/* ── Maintenance Mode ── */}
       <div className={`sa-settings-card sa-maintenance-card${maintenance ? ' is-active' : ''}`}>
         <div className="sa-maintenance-card-inner">
           <div className="sa-maintenance-copy">
             <div className="sa-maintenance-title">
               <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Maintenance Mode</span>
               <UiBadge variant={maintenance ? 'error' : 'success'}>
-                {maintenance ? 'Active â€” Platform Offline' : 'Operational'}
+                {maintenance ? 'Active — Platform Offline' : 'Operational'}
               </UiBadge>
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.45 }}>
               {maintenance
-                ? 'Platform is in maintenance mode â€” all tenants see a maintenance page. API endpoints return 503.'
+                ? 'Platform is in maintenance mode — all tenants see a maintenance page. API endpoints return 503.'
                 : 'Platform is live and fully accessible to all tenants and staff.'}
             </div>
           </div>
@@ -346,7 +346,7 @@ export function SettingsView() {
 
         <div className="sa-settings-content">
         <TabsContent value="security">
-      {/* â”€â”€ Security & Sessions â”€â”€ */}
+      {/* ── Security & Sessions ── */}
       <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
         <Banner variant="brand" icon="shield" className="sa-settings-banner">Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.</Banner>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
@@ -370,9 +370,9 @@ export function SettingsView() {
             <Select value={security.twoFaPolicy} onValueChange={v => setSecurity(p=>({...p,twoFaPolicy:v as any}))}>
               <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="off">Off â€” not offered</SelectItem>
-                <SelectItem value="optional">Optional â€” users can enable it</SelectItem>
-                <SelectItem value="required">Required â€” all users must enable it</SelectItem>
+                <SelectItem value="off">Off — not offered</SelectItem>
+                <SelectItem value="optional">Optional — users can enable it</SelectItem>
+                <SelectItem value="required">Required — all users must enable it</SelectItem>
               </SelectContent>
             </Select>
           </Field>
@@ -385,7 +385,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="smtp">
-      {/* â”€â”€ Email / SMTP â”€â”€ */}
+      {/* ── Email / SMTP ── */}
       <SectionCard title="Email / SMTP" sub="Outgoing email server configuration for notifications, alerts, and billing" section="smtp">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="SMTP Host">
@@ -407,7 +407,7 @@ export function SettingsView() {
               onChange={e => setSmtp(p=>({...p,user:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Password">
-            <input title="SMTP Password" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={smtp.pass}
+            <input title="SMTP Password" type="password" placeholder="••••••••" value={smtp.pass}
               onChange={e => setSmtp(p=>({...p,pass:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="From Address" hint="Displayed as the sender name in all platform emails">
@@ -424,8 +424,8 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="ai">
-      {/* â”€â”€ AI Providers (platform-wide fallback): one key per provider â”€â”€ */}
-      <SectionCard title="AI Providers" sub="Add a key for each provider you want available, then choose which one is the platform default. Billed to the platform â€” a tenant's own key (Hudu Advanced plan) always wins over these." section="ai">
+      {/* ── AI Providers (platform-wide fallback): one key per provider ── */}
+      <SectionCard title="AI Providers" sub="Add a key for each provider you want available, then choose which one is the platform default. Billed to the platform — a tenant's own key (Hudu Advanced plan) always wins over these." section="ai">
         <div className="sa-setting-row" style={{ paddingTop: 0 }}>
           <div className="sa-setting-row-main">
             <div className="sa-setting-row-title">
@@ -436,15 +436,15 @@ export function SettingsView() {
             </div>
             <div className="sa-setting-row-desc">
               {ai.enabled
-                ? 'On â€” tenants with no key of their own get a working agent, billed to the platform.'
-                : 'Off â€” a tenant without their own key sees "AI is not configured" until they add one.'}
+                ? 'On — tenants with no key of their own get a working agent, billed to the platform.'
+                : 'Off — a tenant without their own key sees "AI is not configured" until they add one.'}
             </div>
           </div>
           <Switch checked={ai.enabled} onCheckedChange={v => setAi(p=>({...p, enabled: v}))} size="lg" aria-label="Enable platform-default AI" />
         </div>
 
         {ai.enabled && !ai.providers[ai.provider]?.apiKey && (
-          <Banner variant="warning" className="sa-settings-banner">The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' â€” ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.</Banner>
+          <Banner variant="warning" className="sa-settings-banner">The default provider ({AI_PROVIDERS.find(x => x.value === ai.provider)?.label.split(' — ')[0]}) has no key yet, so AI stays off until you add one or make another provider the default.</Banner>
         )}
 
         <div className="sa-ai-provider-grid">
@@ -452,7 +452,7 @@ export function SettingsView() {
             const row = ai.providers[prov.value] ?? { apiKey: '', model: '' };
             const hasKey = !!row.apiKey;
             const isDefault = ai.provider === prov.value;
-            const [name, freeNote] = prov.label.split(' â€” ');
+            const [name, freeNote] = prov.label.split(' — ');
             const brand = AI_PROVIDER_BRAND[prov.value] ?? { icon: 'sparkle' as IconName, color: 'var(--teal)' };
             const saveKey = `ai-${prov.value}`;
             return (
@@ -476,7 +476,7 @@ export function SettingsView() {
                 </div>
 
                 <div className="sa-ai-provider-fields">
-                  <Field label="API key" hint={freeNote ? `Free â€” ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
+                  <Field label="API key" hint={freeNote ? `Free — ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
                     <input title={`${name} API key`} type="password" placeholder="Paste API key" autoComplete="off" value={row.apiKey}
                       onChange={e => setAiRow(prov.value, { apiKey: e.target.value })} className="input-field" style={{ width:'100%' }} />
                   </Field>
@@ -500,7 +500,7 @@ export function SettingsView() {
                   <div className="sa-ai-provider-actions">
                     <Tip label={hasKey ? 'Test this provider with its saved key and current model' : 'Add and save an API key first'}>
                       <span><Button type="button" size="xs" variant="outline" disabled={!hasKey || aiTest[prov.value]?.busy}
-                        onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testingâ€¦' : 'Test'}</Button></span>
+                        onClick={() => testAiProvider(prov.value)}>{aiTest[prov.value]?.busy ? 'Testing…' : 'Test'}</Button></span>
                     </Tip>
                     {hasKey && <Button type="button" size="xs" variant="outline" onClick={() => { setAiRow(prov.value, { apiKey: '' }); setAiTest(prev => ({ ...prev, [prov.value]: { busy: false } })); }}>Remove key</Button>}
                     <Tip label={isDefault ? 'Current platform-default provider' : hasKey ? `Use ${name} as the platform default` : 'Add and save an API key first'}>
@@ -510,7 +510,7 @@ export function SettingsView() {
                       </Button></span>
                     </Tip>
                   </div>
-                  <Button type="button" size="xs" variant="default" title={`Save ${name}`}
+                  <Button type="button" size="xs" variant="default"
                     onClick={() => save(saveKey)} className="sa-app-save-btn">
                     {saved === saveKey ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
                   </Button>
@@ -523,11 +523,11 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="ocr">
-      {/* â”€â”€ OCR / Document Scanning â”€â”€ */}
+      {/* ── OCR / Document Scanning ── */}
       <SectionCard title="OCR / Document Scanning" sub="Google Gemini API key used to extract structured data from scanned BLs, invoices, and TANSAD documents in ClearOS" section="ocr">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Gemini API Key" hint="From aistudio.google.com/apikey. Leave blank to keep OCR running on simulated demo data.">
-            <input title="Gemini API Key" type="password" placeholder="AIzaâ€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={ocr.geminiApiKey}
+            <input title="Gemini API Key" type="password" placeholder="AIza••••••••••••••••" value={ocr.geminiApiKey}
               onChange={e => setOcr(p=>({...p,geminiApiKey:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <div style={{ display:'flex', alignItems:'flex-end' }}>
@@ -537,13 +537,13 @@ export function SettingsView() {
           </div>
         </div>
         <div style={{ fontSize:11, color:'var(--ink3)', marginTop:6, display:'flex', alignItems:'center', gap:8 }}>
-          {ocr.geminiApiKey ? <UiBadge variant="success">Live â€” Gemini Vision Extraction Active</UiBadge> : <UiBadge variant="gray">Simulated â€” No API Key Configured</UiBadge>}
+          {ocr.geminiApiKey ? <UiBadge variant="success">Live — Gemini Vision Extraction Active</UiBadge> : <UiBadge variant="gray">Simulated — No API Key Configured</UiBadge>}
         </div>
       </SectionCard>
         </TabsContent>
 
         <TabsContent value="ondiSso">
-      {/* â”€â”€ Ondi SSO (Dark-launch flag & Social Auth) â”€â”€ */}
+      {/* ── Ondi SSO (Dark-launch flag & Social Auth) ── */}
       <SectionCard
         title="Ondi SSO & Social Authentication"
         sub="Default sign-in experience and OAuth 2.0 social identity providers for all tenant accounts"
@@ -615,7 +615,7 @@ export function SettingsView() {
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
-                <Button type="button" size="xs" variant="default" title="Save Google OAuth 2.0"
+                <Button type="button" size="xs" variant="default"
                   onClick={() => save('ondi-google')} className="sa-app-save-btn">
                   {saved === 'ondi-google' ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
                 </Button>
@@ -652,7 +652,7 @@ export function SettingsView() {
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
-                <Button type="button" size="xs" variant="default" title="Save Microsoft Entra ID"
+                <Button type="button" size="xs" variant="default"
                   onClick={() => save('ondi-microsoft')} className="sa-app-save-btn">
                   {saved === 'ondi-microsoft' ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
                 </Button>
@@ -689,7 +689,7 @@ export function SettingsView() {
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
-                <Button type="button" size="xs" variant="default" title="Save Sign in with Apple"
+                <Button type="button" size="xs" variant="default"
                   onClick={() => save('ondi-apple')} className="sa-app-save-btn">
                   {saved === 'ondi-apple' ? <><Icon name="check" size={12} /> Saved</> : <><Icon name="save" size={12} /> Save</>}
                 </Button>
@@ -709,7 +709,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="api">
-      {/* â”€â”€ API & Webhooks â”€â”€ */}
+      {/* ── API & Webhooks ── */}
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
         <div style={{ marginBottom:16 }}>
           <Banner variant="warning">Rate limit and CORS origins are enforced platform-wide. Key rotation and the webhook secret below are saved but not yet acted on anywhere.</Banner>
@@ -723,11 +723,11 @@ export function SettingsView() {
             <input title="Key rotation days" type="number" min={30} max={365} value={api.keyRotationDays}
               onChange={e => setApi(p=>({...p,keyRotationDays:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="CORS Allowed Origins" hint="Comma-separated extra origins, layered on top of the server's own configured origin â€” this can only add access, never remove the app's own.">
+          <Field label="CORS Allowed Origins" hint="Comma-separated extra origins, layered on top of the server's own configured origin — this can only add access, never remove the app's own.">
             <input title="CORS origins" placeholder="https://app.yourcompany.com" value={api.corsOrigins}
               onChange={e => setApi(p=>({...p,corsOrigins:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="Webhook Signing Secret" hint="Not yet used to sign anything â€” saved for a future outbound webhook feature">
+          <Field label="Webhook Signing Secret" hint="Not yet used to sign anything — saved for a future outbound webhook feature">
             <div style={{ display:'flex', gap:8 }}>
               <input title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
                 onChange={e => setApi(p=>({...p,webhookSecret:e.target.value}))} className="input-field" style={{ flex:1 }} />
@@ -749,16 +749,16 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="modules-pointer">
-      {/* â”€â”€ Modules & Plan Features â”€â”€ */}
+      {/* ── Modules & Plan Features ── */}
       {/* This used to be two separate panels (Feature Flags, Storage Quotas)
-          whose toggles/fields saved to a settings key nothing ever read â€”
+          whose toggles/fields saved to a settings key nothing ever read —
           real writes, but a dead end. App Status and Packages already own
           this for real (app_status/package_features/package_app_quotas,
           actually enforced), so this card points there instead of running a
           second, disconnected copy of the same controls. */}
       <SectionCard title="Modules & Plan Features" sub="Per-app availability and per-plan feature/storage grants" section="modules-pointer" readOnly>
         <div style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.6, marginBottom:16 }}>
-          Enabling or disabling an app platform-wide (or per tenant), and what each subscription plan includes â€” feature grants, storage limits, monthly item caps â€” are configured on their own real, enforced pages rather than duplicated here.
+          Enabling or disabling an app platform-wide (or per tenant), and what each subscription plan includes — feature grants, storage limits, monthly item caps — are configured on their own real, enforced pages rather than duplicated here.
         </div>
         <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
           <Link to="/admin/app-status" className="btn btn-outline btn-sm" style={{ gap:6 }}>
@@ -772,11 +772,11 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="cron">
-      {/* â”€â”€ Cron Jobs â”€â”€ */}
-      <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server â€” name and schedule, read live" section="cron" readOnly>
+      {/* ── Cron Jobs ── */}
+      <SectionCard title="Cron Jobs" sub="Every background job actually registered by this server — name and schedule, read live" section="cron" readOnly>
         <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color: jobs.connected ? 'var(--green)' : 'var(--gold)', background: jobs.connected ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${jobs.connected ? 'var(--green)' : 'var(--gold)'}`, borderRadius: 'var(--r)', padding:'8px 12px', marginBottom:16 }}>
           <Icon name={jobs.connected ? 'checkCircle' : 'alertTriangle'} size={13} />
-          {jobs.connected ? 'BullMQ (Redis) connected â€” schedules below are persistent and distributed.' : 'Redis unavailable â€” running on an in-process interval fallback (no persisted run history).'}
+          {jobs.connected ? 'BullMQ (Redis) connected — schedules below are persistent and distributed.' : 'Redis unavailable — running on an in-process interval fallback (no persisted run history).'}
         </div>
         <div className="rtbl-wrap">
           <table className="rtbl">
@@ -795,7 +795,7 @@ export function SettingsView() {
                     <td className="sa-cron-td">{j.name}</td>
                     <td className="sa-cron-td--sched">{j.schedule}</td>
                     <td className="sa-cron-td--status">
-                      <span className={`sa-cron-badge sa-cron-badge--${runs ? 'active' : 'inactive'}`} title={j.fallbackOnly ? 'Only scheduled by the interval fallback â€” no BullMQ repeat registration exists for this job yet.' : undefined}>
+                      <span className={`sa-cron-badge sa-cron-badge--${runs ? 'active' : 'inactive'}`} title={j.fallbackOnly ? 'Only scheduled by the interval fallback — no BullMQ repeat registration exists for this job yet.' : undefined}>
                         {runs ? 'scheduled' : 'not scheduled'}
                       </span>
                     </td>
@@ -823,7 +823,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="server">
-      {/* â”€â”€ System & Server Info â”€â”€ */}
+      {/* ── System & Server Info ── */}
       <SectionCard title="System & Server Info" sub="Read-only platform infrastructure and runtime details, read live from the running process" section="server" readOnly>
         <div className="sa-server-grid">
           {serverInfo ? ([
@@ -855,7 +855,7 @@ export function SettingsView() {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   APP STATUS VIEW â€” per-app maintenance kill switch
+   APP STATUS VIEW — per-app maintenance kill switch
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
@@ -863,7 +863,7 @@ const APP_LABELS: Record<string, string> = {
   nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
   petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS', onsite: 'Onsite', onesite: 'CMS',
   inventory: 'Inventory',
-  // Backfilled by migration 395 â€” these had real feature keys and
+  // Backfilled by migration 395 — these had real feature keys and
   // package_features grants (see ALL_FEATURE_KEYS) but never got an
   // app_status row at all, so this console had nothing to toggle for them,
   // for maintenance or Beta either one.
@@ -929,7 +929,7 @@ export function AppStatusView() {
   }, [rows, search, statusFilter, betaOnly, sortBy]);
 
   /**
-   * Platform-wide "Beta" label (migration 395) â€” independent of the
+   * Platform-wide "Beta" label (migration 395) — independent of the
    * maintenance status toggle() below. Every tenant's GET /v1/entitlements
    * reports the same betaApps list, which is what Settings.tsx's Modules &
    * Extensions grid renders the pill from, so this is the one place that
@@ -967,12 +967,12 @@ export function AppStatusView() {
     }
   }
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app statusâ€¦</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app status…</div>;
 
   const liveCount = rows.filter(r => r.status === 'active').length;
   const betaCount = rows.filter(r => r.is_beta).length;
   const SORT_OPTIONS: { value: string; label: string }[] = [
-    { value: 'name',    label: 'Name Aâ€“Z' },
+    { value: 'name',    label: 'Name A—Z' },
     { value: 'status',  label: 'Maintenance first' },
     { value: 'updated', label: 'Recently updated' },
   ];
@@ -981,7 +981,7 @@ export function AppStatusView() {
     <div>
       <PageHdr
         title="App Status"
-        sub="Per-app maintenance switch and Beta label â€” take a single app down for a deploy, or flag it Beta, without affecting the rest of the platform. Both are seen identically by every tenant."
+        sub="Per-app maintenance switch and Beta label — take a single app down for a deploy, or flag it Beta, without affecting the rest of the platform. Both are seen identically by every tenant."
         action={
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <Badge cfg={{ label: `${betaCount} Beta`, color:'var(--gold)', bg:'var(--gold-l)' }} />
@@ -1000,7 +1000,7 @@ export function AppStatusView() {
             className="input-field"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search appsâ€¦"
+            placeholder="Search apps…"
             style={{ width:'100%', boxSizing:'border-box', paddingLeft:34, height:36 }}
           />
         </div>
@@ -1086,7 +1086,7 @@ export function AppStatusView() {
                   action={inMaintenance && (
                     <input
                       title="Maintenance message shown to tenants"
-                      placeholder="Optional message shown to tenants while in maintenanceâ€¦"
+                      placeholder="Optional message shown to tenants while in maintenance…"
                       value={drafts[row.app_id] ?? row.message ?? ''}
                       onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
                       className="input-field"
@@ -1145,7 +1145,7 @@ export function AppStatusView() {
                 {inMaintenance && (
                   <input
                     title="Maintenance message shown to tenants"
-                    placeholder="Optional message shown to tenants while in maintenanceâ€¦"
+                    placeholder="Optional message shown to tenants while in maintenance…"
                     value={drafts[row.app_id] ?? row.message ?? ''}
                     onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
                     className="input-field"
@@ -1162,10 +1162,10 @@ export function AppStatusView() {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   DEVICES â€” cross-tenant Device Management oversight
+   DEVICES — cross-tenant Device Management oversight
    (379_attendance_devices.sql). Read-only: "monitor,
    troubleshoot, audit", same stance this console already
-   takes toward tenant attendance/leave data â€” never a
+   takes toward tenant attendance/leave data — never a
    write action on another tenant's device from here.
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 

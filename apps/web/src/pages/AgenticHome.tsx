@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
-import { Icon } from '../components/Icon.js';
+import { Icon, type IconName } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
@@ -20,6 +20,7 @@ import { AppLauncher } from '../components/AppLauncher.js';
 import { AIInsights } from './AIInsights.js';
 import { AgentControls } from './AgentControls.js';
 import { AIAutomations } from './AIAutomations.js';
+import { useLandingStyle } from '../hooks/useLandingStyle.js';
 import './AgenticHome.css';
 
 /** Mirrors apps/api/src/routes/search.routes.ts's SearchHit — not imported
@@ -119,6 +120,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 
 export const AgenticHome: React.FC = () => {
   const { user, logout } = useAuth();
+  const { setLandingStyle } = useLandingStyle();
   const navigate = useNavigate();
   const enabledApps = useEnabledApps();
   // Automations/Insights/Controls call the same /v1/ai/* and /v1/agent/*
@@ -311,6 +313,7 @@ export const AgenticHome: React.FC = () => {
           appId: 'route6',
           name: 'Route6',
           color: '#ea580c',
+          icon: 'truck' as IconName,
           assignee: activeWorkflow.assigneeName || 'Sinza',
           contextRef: activeWorkflow.contextRef || 'TRP-1042',
           sub: 'Fleet Ops',
@@ -321,6 +324,7 @@ export const AgenticHome: React.FC = () => {
           appId: 'clearos',
           name: 'ClearOS',
           color: '#ea580c',
+          icon: 'ship' as IconName,
           assignee: activeWorkflow.assigneeName || 'Rashid K.',
           contextRef: activeWorkflow.contextRef || 'JOB-9821',
           sub: 'Customs Clearance',
@@ -331,6 +335,7 @@ export const AgenticHome: React.FC = () => {
           appId: 'finops',
           name: 'FinOps',
           color: '#0284c7',
+          icon: 'wallet' as IconName,
           assignee: activeWorkflow.assigneeName || 'Amani M.',
           contextRef: activeWorkflow.contextRef || 'REQ-4091',
           sub: 'Finance & Accounts',
@@ -340,6 +345,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'ai',
         name: activeWorkflow.brandName || 'Hudumika AI',
         color: '#6d28d9',
+        icon: 'sparkle' as IconName,
         assignee: activeWorkflow.assigneeName || 'Autonomous Agent',
         contextRef: activeWorkflow.contextRef || 'AGENT-RUN',
         sub: 'AI Workflow',
@@ -351,6 +357,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'workspace',
         name: 'Hudumika',
         color: 'var(--teal)',
+        icon: 'activity' as IconName,
         assignee: 'Live Feed',
         contextRef: null,
         sub: 'Cockpit',
@@ -362,6 +369,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'workspace',
         name: 'Operations',
         color: '#0f766e',
+        icon: 'grid' as IconName,
         assignee: 'Workspace Hub',
         contextRef: null,
         sub: 'Applications',
@@ -373,6 +381,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'studio',
         name: 'Automations',
         color: '#4361ee',
+        icon: 'zap' as IconName,
         assignee: 'Workflow Engine',
         contextRef: null,
         sub: 'Automations',
@@ -384,6 +393,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'ai',
         name: 'Insights',
         color: '#6d28d9',
+        icon: 'trendingUp' as IconName,
         assignee: 'Daily Digest',
         contextRef: null,
         sub: 'Insights',
@@ -395,6 +405,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'seal',
         name: 'Controls',
         color: '#0f766e',
+        icon: 'shield' as IconName,
         assignee: 'Agent Permissions',
         contextRef: null,
         sub: 'Controls',
@@ -406,6 +417,7 @@ export const AgenticHome: React.FC = () => {
         appId: 'hudubi',
         name: 'Reports',
         color: '#18181b',
+        icon: 'barChart' as IconName,
         assignee: 'Daily Metrics',
         contextRef: null,
         sub: 'Analytics',
@@ -416,6 +428,7 @@ export const AgenticHome: React.FC = () => {
       appId: 'workspace',
       name: 'Hudumika',
       color: 'var(--teal)',
+      icon: 'sparkle' as IconName,
       assignee: '',
       contextRef: null,
       sub: '',
@@ -441,28 +454,14 @@ export const AgenticHome: React.FC = () => {
       <div className="app-main">
         <div className="ah-header">
           <div className="ah-header-left">
-            <AppLauncher
-              renderTrigger={({ open, onClick }) => (
-                <button
-                  type="button"
-                  className={`ah-header-mark${open ? ' is-open' : ''}`}
-                  onClick={onClick}
-                  title="Quick apps"
-                  aria-label="Open Quick Apps navigation"
-                  aria-expanded={open}
-                >
-                  <Icon name="grid" size={16} color="#fff" />
-                </button>
-              )}
-            />
-
-            {/* Dynamic App Brand Switching */}
+            {/* Dynamic App Brand Switching with Flat Hudumika Design System Vector Icon */}
             <div className="ah-header-brand-lockup" title={`${activeAppBrand.name} · ${activeAppBrand.sub}`}>
-              <div className="ah-app-icon-wrapper">
-                <LauncherAppSvg
-                  id={activeAppBrand.appId}
-                  color={activeAppBrand.color}
-                  size={30}
+              <div className="ah-app-icon-wrapper" style={{ backgroundColor: activeAppBrand.color }}>
+                <Icon
+                  name={activeAppBrand.icon}
+                  size={16}
+                  color="#ffffff"
+                  strokeWidth={2.2}
                 />
               </div>
               <div className="ah-brand-meta">
@@ -474,6 +473,69 @@ export const AgenticHome: React.FC = () => {
                   </>
                 )}
               </div>
+            </div>
+
+            <div className="ah-header-nav-group">
+              {/* Dreams Core Explore Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="ah-header-pill-btn"
+                    title="Explore workspaces and agent flows"
+                    aria-label="Explore workspaces and agent flows"
+                  >
+                    <Icon name="grid" size={14} style={{ color: 'var(--ink2)' }} />
+                    <span>Explore</span>
+                    <Icon name="chevronDown" size={11} className="ah-pill-chevron" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="ah-explore-menu" style={{ width: 260 }}>
+                  <div className="ah-explore-menu-head">
+                    <span>Views & Workspaces</span>
+                  </div>
+                  {visibleTabs.map(t => (
+                    <DropdownMenuItem
+                      key={t.key}
+                      onClick={() => setTab(t.key)}
+                      className={`ah-explore-menu-item${tab === t.key ? ' is-active' : ''}`}
+                    >
+                      <Icon name={t.icon} size={15} style={{ color: tab === t.key ? 'var(--teal)' : 'var(--ink2)' }} />
+                      <span className="flex-1 font-medium">{t.label}</span>
+                      {tab === t.key && <Icon name="check" size={13} style={{ color: 'var(--teal)' }} />}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <div className="ah-explore-menu-head">
+                    <span>Quick Workflows</span>
+                  </div>
+                  {PRESET_WORKFLOWS.map(wf => (
+                    <DropdownMenuItem
+                      key={wf.id}
+                      onClick={() => {
+                        setActiveWorkflow(wf);
+                        setTab('agent');
+                      }}
+                      className={`ah-explore-menu-item${activeWorkflow.id === wf.id && tab === 'agent' ? ' is-active' : ''}`}
+                    >
+                      <Icon
+                        name={
+                          wf.id.includes('route') ? 'truck' :
+                          wf.id.includes('clear') ? 'ship' :
+                          wf.id.includes('fin') ? 'wallet' :
+                          'sparkle'
+                        }
+                        size={14}
+                        style={{ color: 'var(--ink2)' }}
+                      />
+                      <span className="flex-1 truncate">{wf.brandName} · {wf.assigneeSub}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Dreams Core Apps Launcher Pill Button */}
+              <AppLauncher variant="pill" />
             </div>
           </div>
 
@@ -557,6 +619,18 @@ export const AgenticHome: React.FC = () => {
           </div>
 
           <div className="ah-header-right">
+            {/* View Mode Switcher: Switch to Normal View */}
+            <button
+              type="button"
+              className="ah-view-switch-btn"
+              onClick={() => setLandingStyle('advanced')}
+              title="Switch to Normal Workspace View (Standard app layout & navigation)"
+              aria-label="Switch to Normal Workspace View"
+            >
+              <Icon name="layoutDashboard" size={14} className="ah-view-switch-icon" />
+              <span className="ah-view-switch-label">Normal View</span>
+            </button>
+
             {/* Context Ref Pill */}
             {activeAppBrand.contextRef && (
               <div className="ah-header-context-ref">
@@ -609,6 +683,11 @@ export const AgenticHome: React.FC = () => {
                     <div className="ah-profile-dropdown-role">{roleLabel(user?.role)}</div>
                   </div>
                 </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setLandingStyle('advanced')} className="ah-profile-menu-link">
+                  <Icon name="layoutDashboard" size={14} color="var(--teal)" />
+                  <span>Switch to Normal View</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="ah-profile-menu-link">

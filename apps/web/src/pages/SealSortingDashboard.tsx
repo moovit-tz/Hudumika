@@ -49,8 +49,7 @@ export function SealSortingDashboard() {
           <Button type="button" variant="outline" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
             <Icon name="arrowLeft" size={13} /><span>Back to Compartments</span>
           </Button>
-          <h1 className="seal-page-title">{data.compartment.name} — Sorting Dashboard</h1>
-          <p className="seal-page-sub">Throughput matters more than storage here — every parcel's dwell time is measured in hours, reconstructed from the same movement ledger the rest of SEAL uses.</p>
+          <h2 className="seal-entity-title">{data.compartment.name}</h2>
         </div>
         <Button type="button" onClick={() => navigate('/seal/lots/new')}>
           <Icon name="plus" size={14} /><span>Receive Parcel</span>

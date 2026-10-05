@@ -1,4 +1,4 @@
-﻿// ─── SignInbox.tsx — Inbox + Sent + Drafts + Completed views ─────────────────
+// ─── SignInbox.tsx — Inbox + Sent + Drafts + Completed views ─────────────────
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob, apiDownload, BASE_URL } from '../../lib/api.js';
@@ -20,6 +20,7 @@ import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showPrompt } from '../../lib/prompt.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
+import { SlidersHorizontal, Check, Calendar } from 'lucide-react';
 // Same real-canvas PDF render Cloud's Lightbox and the envelope editor both
 // use — this page used to show only a filename chip, with no way to
 // actually see the document without downloading it first.
@@ -301,6 +302,8 @@ function InboxEnvelopeRow({ env, userId, onClick }: { env: EnvelopeWithRecipient
 }
 
 type ViewMode = 'list' | 'grid';
+type SortOption = 'newest' | 'oldest' | 'title_asc' | 'title_desc';
+type DateRangeOption = 'all' | 'today' | '7days' | '30days' | '90days';
 
 export function SignInbox({ view }: { view: ViewKey }) {
   const navigate = useNavigate();
@@ -316,6 +319,12 @@ export function SignInbox({ view }: { view: ViewKey }) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Advanced filtering & sorting states (Dreams Core pattern)
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [dateRange, setDateRange] = useState<DateRangeOption>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [execTypeFilter, setExecTypeFilter] = useState<string>('all');
 
   useEffect(() => {
     apiFetch('/v1/sign/envelopes/counts').then(setCounts).catch(() => {});
@@ -349,7 +358,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
   // Clears on a view or search change, not just view — otherwise a
   // selection made before narrowing the search could linger as a
   // "N selected" bar referencing rows no longer even in the list.
-  useEffect(() => { setSelected(new Set()); }, [view, debouncedSearch]);
+  useEffect(() => { setSelected(new Set()); }, [view, debouncedSearch, statusFilter, dateRange, execTypeFilter, sortBy]);
 
   function toggleSelect(id: string, evt: React.MouseEvent) {
     evt.stopPropagation();
@@ -384,15 +393,75 @@ export function SignInbox({ view }: { view: ViewKey }) {
     }
   }
 
-  // Filtering now happens server-side (real full-text search, migration
-  // 463) — `envelopes` already reflects `debouncedSearch` by the time it's
-  // rendered below.
-  const filtered = envelopes;
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (dateRange !== 'all') count++;
+    if (execTypeFilter !== 'all') count++;
+    return count;
+  }, [statusFilter, dateRange, execTypeFilter]);
+
+  function handleResetFilters() {
+    setStatusFilter('all');
+    setDateRange('all');
+    setExecTypeFilter('all');
+    setSortBy('newest');
+    setSearch('');
+  }
+
+  // Client-side filtering & sorting on top of the backend fetched envelopes
+  const filtered = useMemo(() => {
+    let list = [...envelopes];
+
+    // Status filter (when explicitly chosen in filter popover)
+    if (statusFilter !== 'all') {
+      list = list.filter(e => e.status === statusFilter);
+    }
+
+    // Date range filter
+    if (dateRange !== 'all') {
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      let maxAge = Infinity;
+      if (dateRange === 'today') maxAge = oneDay;
+      else if (dateRange === '7days') maxAge = 7 * oneDay;
+      else if (dateRange === '30days') maxAge = 30 * oneDay;
+      else if (dateRange === '90days') maxAge = 90 * oneDay;
+
+      list = list.filter(e => {
+        const itemDate = new Date(e.updated_at || e.created_at).getTime();
+        return (now - itemDate) <= maxAge;
+      });
+    }
+
+    // Execution type filter
+    if (execTypeFilter !== 'all') {
+      list = list.filter(e => (e as any).execution_type === execTypeFilter);
+    }
+
+    // Sorting
+    list.sort((a, b) => {
+      if (sortBy === 'oldest') {
+        return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+      }
+      if (sortBy === 'title_asc') {
+        return (a.title || '').localeCompare(b.title || '');
+      }
+      if (sortBy === 'title_desc') {
+        return (b.title || '').localeCompare(a.title || '');
+      }
+      // default newest
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+    return list;
+  }, [envelopes, statusFilter, dateRange, execTypeFilter, sortBy]);
+
   const currentTab = VIEW_TABS.find(t => t.key === view);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   // Reset to page 1 whenever the filtered set or per-page changes.
-  useEffect(() => { setPage(1); }, [view, debouncedSearch, perPage]);
+  useEffect(() => { setPage(1); }, [view, debouncedSearch, statusFilter, dateRange, execTypeFilter, sortBy, perPage]);
   const pageItems = useMemo(() => filtered.slice((page - 1) * perPage, page * perPage), [filtered, page, perPage]);
 
   function toggleAllVisible(checked: boolean) {
@@ -436,45 +505,204 @@ export function SignInbox({ view }: { view: ViewKey }) {
       )}
 
       <section className="sign-inbox-panel" aria-label={`${currentTab?.label ?? view} envelopes`}>
+        {/* Dedicated segmented tab strip — horizontal scrolling without wrapping */}
+        <div className="sign-inbox-header-tabs">
+          <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
+            <TabsList>
+              {VIEW_TABS.map(tab => {
+                const count = counts[tab.key] ?? 0;
+                return (
+                  <TabsTrigger key={tab.key} value={tab.key}>
+                    {tab.label}
+                    {count > 0 && <span className="sign-inbox-tab-count">{count}</span>}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Dreams Core Search & Filter Toolbar */}
         <div className="sign-inbox-toolbar">
-          {/* Scrollable tab strip — takes remaining space */}
-          <div className="sign-inbox-tab-bar">
-            <div className="sign-inbox-tabs-scroll">
-              <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
-                <TabsList>
-                  {VIEW_TABS.map(tab => {
-                    const count = counts[tab.key] ?? 0;
-                    return (
-                      <TabsTrigger key={tab.key} value={tab.key}>
-                        {tab.label}
-                        {count > 0 && <span className="sign-inbox-tab-count">{count}</span>}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </Tabs>
-            </div>
-          </div>
-          {/* Search + per-page + view toggle — right-aligned, never shrinks */}
-          <div className="sign-inbox-ctrl-bar">
-            <SearchToolbar
-              search={search}
-              onSearch={setSearch}
-              placeholder="Search envelopes"
-              actions={<>
+          <SearchToolbar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search envelopes by title, recipient, or ID…"
+            quickFilter={{
+              label: 'Sort',
+              value: sortBy,
+              onChange: (v) => setSortBy((v as SortOption) ?? 'newest'),
+              allLabel: 'Newest',
+              options: [
+                { value: 'newest', label: 'Newest first' },
+                { value: 'oldest', label: 'Oldest first' },
+                { value: 'title_asc', label: 'Title (A–Z)' },
+                { value: 'title_desc', label: 'Title (Z–A)' },
+              ],
+            }}
+            activeFilterCount={activeFilterCount}
+            filterContent={(close) => {
+              const hasActive = activeFilterCount > 0 || Boolean(search.trim());
+              return (
+                <div className="sign-filter-popover">
+                  {/* Header */}
+                  <div className="sign-filter-header">
+                    <div className="sign-filter-title">
+                      <SlidersHorizontal size={14} style={{ color: 'hsl(var(--primary))' }} />
+                      <span>Filter Envelopes</span>
+                      {activeFilterCount > 0 && (
+                        <span className="stb-green-badge">
+                          <span className="stb-green-dot" />
+                          <span>{activeFilterCount}</span>
+                        </span>
+                      )}
+                    </div>
+                    {hasActive && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'hsl(var(--primary))',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                        }}
+                        className="hover:underline"
+                      >
+                        Reset all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Date Range Section */}
+                  <div className="sign-filter-group">
+                    <label className="sign-filter-label">Updated Date</label>
+                    <div className="sign-filter-chips">
+                      {[
+                        { id: 'all', label: 'All time' },
+                        { id: 'today', label: 'Today' },
+                        { id: '7days', label: 'Last 7 days' },
+                        { id: '30days', label: 'Last 30 days' },
+                        { id: '90days', label: 'Last 90 days' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          data-active={dateRange === opt.id}
+                          className="sign-filter-chip"
+                          onClick={() => setDateRange(opt.id as DateRangeOption)}
+                        >
+                          {opt.label}
+                          {dateRange === opt.id && <Check size={12} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Status Section */}
+                  <div className="sign-filter-group">
+                    <label className="sign-filter-label">Status</label>
+                    <div className="sign-filter-chips">
+                      {[
+                        { id: 'all', label: 'All' },
+                        { id: 'draft', label: 'Draft', color: 'var(--ink3)' },
+                        { id: 'sent', label: 'Sent', color: 'var(--blue)' },
+                        { id: 'completed', label: 'Completed', color: 'var(--green)' },
+                        { id: 'voided', label: 'Voided', color: 'var(--red)' },
+                        { id: 'declined', label: 'Declined', color: 'var(--red)' },
+                        { id: 'needs_rerouting', label: 'Action needed', color: 'var(--amber)' },
+                        { id: 'expired', label: 'Expired', color: 'var(--ink3)' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          data-active={statusFilter === opt.id}
+                          className="sign-filter-chip"
+                          onClick={() => setStatusFilter(opt.id)}
+                        >
+                          {opt.color && (
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: opt.color, display: 'inline-block' }} />
+                          )}
+                          {opt.label}
+                          {statusFilter === opt.id && <Check size={12} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Execution Type Section */}
+                  <div className="sign-filter-group">
+                    <label className="sign-filter-label">Execution Type</label>
+                    <div className="sign-filter-chips">
+                      {[
+                        { id: 'all', label: 'All Types' },
+                        { id: 'NORMAL_SIGN', label: 'Normal Sign' },
+                        { id: 'WITNESSED_SIGNATURE', label: 'Witnessed' },
+                        { id: 'AFFIDAVIT', label: 'Affidavit' },
+                        { id: 'NOTARIAL_CERTIFICATION', label: 'Notarial' },
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          data-active={execTypeFilter === opt.id}
+                          className="sign-filter-chip"
+                          onClick={() => setExecTypeFilter(opt.id)}
+                        >
+                          {opt.label}
+                          {execTypeFilter === opt.id && <Check size={12} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="sign-filter-footer">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        handleResetFilters();
+                        close();
+                      }}
+                      style={{ fontSize: 12 }}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => close()}
+                      style={{ fontSize: 12, fontWeight: 600 }}
+                    >
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              );
+            }}
+            actions={
+              <>
                 <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
                 <div className="sign-view-toggle">
                   {(['list', 'grid'] as const).map(m => (
                     <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
-                      <button type="button" onClick={() => setViewMode(m)} className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode(m)}
+                        className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}
+                      >
                         <Icon name={m} size={15} />
                       </button>
                     </Tip>
                   ))}
                 </div>
-              </>}
-            />
-          </div>
+              </>
+            }
+          />
         </div>
 
       {/* Bulk-select action bar — Void/Remind many envelopes from one

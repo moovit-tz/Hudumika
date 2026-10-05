@@ -79,6 +79,7 @@ const COLOR_OPTIONS: { id: KeepColor; name: string; hex: string }[] = [
  * couldn't see.
  */
 export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFilter }) => {
+  const deepLinkedNoteRef = useRef<string | null>(new URLSearchParams(window.location.search).get('note'));
   const notes = useNotes();
   const labels = useNoteLabels();
   const peopleById = usePeopleById();
@@ -115,6 +116,19 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
   const [activeReminderPopover, setActiveReminderPopover] = useState<string | null>(null);
   const [activeCategoryPopover, setActiveCategoryPopover] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState<NoteItem | null>(null);
+
+  useEffect(() => {
+    const id = deepLinkedNoteRef.current;
+    if (!id || !loaded) return;
+    const note = notes.find(item => item.id === id);
+    if (!note) return;
+    deepLinkedNoteRef.current = null;
+    setEditingNote(note);
+    setShowSharePanel(false);
+    setShowHistoryPanel(false);
+    setShowMeetingPanel(false);
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [loaded, notes]);
   // Debounced autosave for the editor's free-text fields (title, content,
   // checklist item text) — these used to fire a real PATCH on every single
   // keystroke, which is both needless network chatter and why a single

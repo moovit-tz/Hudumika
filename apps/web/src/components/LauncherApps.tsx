@@ -29,7 +29,6 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'tasks',     name: 'Tasks',    color: '#0f766e', path: '/tasks'     },
   { id: 'cargotracker',  name: 'CargoTracker', color: '#4f46e5', path: '/cargotracker' },
   { id: 'seal',      name: 'SEAL',     color: '#0f766e', path: '/seal'      },
-  { id: 'inventory', name: 'Inventory', color: '#0f766e', path: '/inventory' },
   { id: 'studio',    name: 'Studio',   color: '#4361ee', path: '/studio'    },
   { id: 'notes',     name: 'Notes',    color: '#fbbc04', path: '/notes'    },
   // CMS ('onesite') and Onsite ('onsite') are two separate real apps, one

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useRef } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -31,11 +32,13 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function FreightBookingsPage() {
+  const deepLinkedBookingRef = useRef<string | null>(new URLSearchParams(window.location.search).get('booking'));
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rateCards, setRateCards] = useState<RateCard[]>([]);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [focusedBookingId, setFocusedBookingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +54,20 @@ export function FreightBookingsPage() {
     ]).then(([b, rc, c]) => { setBookings(b); setRateCards(rc); setCarriers(c); }).catch(() => {}).finally(() => setLoading(false));
   }
   useEffect(load, []);
+
+  useEffect(() => {
+    const id = deepLinkedBookingRef.current;
+    if (!id || loading) return;
+    const booking = bookings.find(item => item.id === id);
+    if (!booking) return;
+    deepLinkedBookingRef.current = null;
+    setFocusedBookingId(id);
+    if (booking.status === 'REQUESTED' || booking.status === 'RATE_QUOTED') toggleExpand(booking);
+    window.history.replaceState(null, '', window.location.pathname);
+    window.setTimeout(() => document.getElementById(`booking-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+    // toggleExpand is intentionally consumed once after the booking list loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings, loading]);
 
   function toggleExpand(booking: Booking) {
     if (expanded === booking.id) { setExpanded(null); return; }
@@ -135,7 +152,7 @@ export function FreightBookingsPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {bookings.map(b => (
-              <div key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+              <div id={`booking-${b.id}`} key={b.id} aria-current={focusedBookingId === b.id ? 'true' : undefined} style={{ borderBottom: '1px solid var(--border)', background: focusedBookingId === b.id ? 'var(--teal-l)' : undefined, boxShadow: focusedBookingId === b.id ? 'inset 3px 0 0 var(--teal)' : undefined }}>
                 <div
                   onClick={() => b.status !== 'CANCELLED' && b.status !== 'CONFIRMED' ? toggleExpand(b) : undefined}
                   style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', cursor: b.status === 'REQUESTED' || b.status === 'RATE_QUOTED' ? 'pointer' : 'default' }}

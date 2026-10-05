@@ -13,6 +13,7 @@ import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 import {
   HsResult, LandedCostResult, ShipmentMode, HsSuggestion, HsMemoryHit, HsRecommendation, AiPick,
@@ -2544,20 +2545,19 @@ export const LandedCostPage: React.FC = () => {
                           <input className="input-field" type="number" min="1" step="1" placeholder="Qty" value={lot.count}
                             onChange={e => setContainerLots(l => l.map((x, j) => j === i ? { ...x, count: e.target.value } : x))}
                             style={{ width: '100%', height: 44, boxSizing: 'border-box' }} />
-                          <button type="button" title="Remove"
+                          <Tip label="Remove container size"><span><button type="button" aria-label="Remove container size"
                             onClick={() => setContainerLots(l => l.length > 1 ? l.filter((_, j) => j !== i) : l)}
                             disabled={containerLots.length === 1}
                             style={{ background: 'none', border: 'none', cursor: containerLots.length === 1 ? 'default' : 'pointer', opacity: containerLots.length === 1 ? 0.3 : 1, color: 'var(--red)', padding: 6, height: 44 }}>
                             <Icon name="trash" size={14} color="var(--red)" />
-                          </button>
+                          </button></span></Tip>
                           {i === containerLots.length - 1 ? (
-                            <button type="button"
+                            <Tip label={containerLots.length >= 2 ? 'Both container sizes are already listed' : 'Add the other container size'}><span><button type="button"
                               onClick={() => setContainerLots(l => l.length >= 2 ? l : [...l, { size: l.some(x => x.size === '20ft') ? '40ft' : '20ft', count: '1' }])}
                               disabled={containerLots.length >= 2}
-                              title={containerLots.length >= 2 ? 'Both container sizes are already listed' : 'Add the other container size'}
                               style={{ height: 44, whiteSpace: 'nowrap', fontSize: 12, fontWeight: 700, color: containerLots.length >= 2 ? 'var(--ink3)' : 'var(--teal)', background: 'none', border: `1px solid ${containerLots.length >= 2 ? 'var(--border)' : 'var(--teal)'}`, borderRadius: 'var(--r-sm)', padding: '0 12px', cursor: containerLots.length >= 2 ? 'not-allowed' : 'pointer' }}>
                               + Add size
-                            </button>
+                            </button></span></Tip>
                           ) : <span />}
                         </div>
                       ))}

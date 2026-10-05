@@ -29,8 +29,7 @@ export type AppId =
   | 'tasks'      // Tasks / To-do — free app
   | 'demurrage'    // Container demurrage tariffs & tracking (split out of ClearOS)
   | 'cargotracker' // AWB/BL shipment tracking (split out of ClearOS)
-  | 'seal'         // Bonded / customs-controlled warehouse
-  | 'inventory'    // General multi-warehouse stock control (separate from SEAL's bonded-warehouse domain)
+  | 'seal'         // Bonded / customs-controlled warehouse + standard inventory (merged)
   | 'studio'       // Workflow Studio — the platform's automation control plane
   | 'hudubi'       // Data Layer & AI Analytics Engine
   | 'petti'        // Tenant petty-cash wallet — deposits, request/approve/disburse withdrawals
@@ -45,7 +44,7 @@ export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks', 'notes', 'sign', 'sms',
-  'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi', 'petti', 'projects', 'developer',
+  'demurrage', 'cargotracker', 'seal', 'studio', 'hudubi', 'petti', 'projects', 'developer',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and
   // both its route and its endpoints require that role.

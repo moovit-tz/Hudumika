@@ -38,6 +38,7 @@ const PATH_TO_VIEW: Record<string, CloudView> = {
 
 export const FileBrowser: React.FC = () => {
   const location = useLocation();
+  const deepLinkedFileRef = useRef<string | null>(new URLSearchParams(location.search).get('file'));
   const pathView = PATH_TO_VIEW[location.pathname] ?? null;
   const isFilesRoot = location.pathname === '/cloud/files';
 
@@ -102,6 +103,18 @@ export const FileBrowser: React.FC = () => {
   // the lightbox opened) so its own Star button reflects the toggle it just
   // made, same reasoning as previewItem above.
   const liveLightboxItem = lightboxItem ? files.find(f => f.id === lightboxItem.id) ?? lightboxItem : null;
+
+  useEffect(() => {
+    const id = deepLinkedFileRef.current;
+    if (!id || loading) return;
+    const file = files.find(item => item.id === id);
+    if (!file) return;
+    deepLinkedFileRef.current = null;
+    setSelectedIds(new Set([id]));
+    setLastAnchorId(id);
+    setPreviewItemId(id);
+    window.history.replaceState(null, '', window.location.pathname);
+  }, [files, loading, setPreviewItemId]);
 
   function clearSelection() { setSelectedIds(new Set()); setLastAnchorId(null); }
 

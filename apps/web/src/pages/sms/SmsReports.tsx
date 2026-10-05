@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Icon } from '../../components/Icon.js';
@@ -26,11 +26,13 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'gray'> =
 };
 
 export function SmsReports() {
+  const deepLinkedMessageRef = useRef<string | null>(new URLSearchParams(window.location.search).get('message'));
   usePageSEO('SMS Reports', 'Full outbound SMS history across quick sends, campaigns, and every app in the platform that sends SMS.');
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -44,6 +46,17 @@ export function SmsReports() {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
   }, [load]);
+
+  useEffect(() => {
+    const id = deepLinkedMessageRef.current;
+    if (!id || loading || !messages.some(message => message.id === id)) return;
+    deepLinkedMessageRef.current = null;
+    setFocusedMessageId(id);
+    setSearch('');
+    setStatus(null);
+    window.history.replaceState(null, '', window.location.pathname);
+    window.setTimeout(() => document.getElementById(`sms-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+  }, [loading, messages]);
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -71,7 +84,7 @@ export function SmsReports() {
             ))}</tr></thead>
             <tbody>
               {messages.map(m => (
-                <tr key={m.id} style={{ borderBottom: '1px solid var(--border)' }} title={m.error || undefined}>
+                <tr id={`sms-${m.id}`} key={m.id} aria-current={focusedMessageId === m.id ? 'true' : undefined} style={{ borderBottom: '1px solid var(--border)', background: focusedMessageId === m.id ? 'var(--teal-l)' : undefined, boxShadow: focusedMessageId === m.id ? 'inset 3px 0 0 var(--teal)' : undefined }} title={m.error || undefined}>
                   <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{m.contact_name || m.to_number}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.body}</td>
                   <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)', textTransform: 'capitalize' }}>{m.source_app}</td>

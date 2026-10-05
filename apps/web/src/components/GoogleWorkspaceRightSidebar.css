@@ -380,3 +380,39 @@
   flex-direction: column;
   gap: 16px;
 }
+
+/* Record rows across every companion panel share one interaction language:
+   a small lift on hover, a tokenized accent border, and a visible keyboard
+   ring. The aria-label prefix also keeps this scoped away from composer and
+   footer links that live in the same drawer. */
+.gws-drawer-body a[aria-label^="Open "]:not(.gws-task-link) {
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.gws-drawer-body a[aria-label^="Open "]:not(.gws-task-link):hover {
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border)) !important;
+  background: color-mix(in srgb, var(--teal-l) 55%, var(--card-bg)) !important;
+  box-shadow: var(--elev);
+  transform: translateY(-1px);
+}
+
+.gws-drawer-body a[aria-label^="Open "]:not(.gws-task-link):focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.gws-drawer-body a[aria-label^="Open "]:not(.gws-task-link):active {
+  transform: translateY(0);
+}
+
+.gws-task-link:hover {
+  color: var(--teal) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+.gws-task-link:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}

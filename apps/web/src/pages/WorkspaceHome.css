@@ -933,10 +933,21 @@
 
 /* ── DARK MODE OVERRIDES ── */
 [data-theme="dark"] .wh-new-root {
+  /* Force neutral dark surfaces — app accent color should never tint card
+     backgrounds. WorkspaceApp mixes the accent ~6% into --white on :root,
+     and useDesignSystem seeds --white from the Material scheme (brand-tinted).
+     Both produce greenish cards when the brand is teal. Override here so
+     the hub page always gets claude.ai-style neutral dark regardless of brand. */
+  --white:       #141414;
+  --bg:          #0d0d0d;
+  --card-sunken: rgba(255, 255, 255, 0.025);
+  --border:      rgba(255, 255, 255, 0.07);
+  --border2:     rgba(255, 255, 255, 0.14);
+
   --wh-night-brand: var(--teal);
-  --wh-night-card: var(--white);
+  --wh-night-card: #141414;
   --wh-night-card-hover: rgba(255,255,255,0.06);
-  --wh-night-border: var(--border);
+  --wh-night-border: rgba(255,255,255,0.07);
   --wh-night-border-hover: var(--teal-m);
 }
 

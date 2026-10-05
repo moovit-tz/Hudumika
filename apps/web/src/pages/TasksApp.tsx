@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -10,7 +10,7 @@ import {
   fetchTodoComments, postTodoComment, deleteTodoComment,
   Todo, TaskStatus, TaskPriority, TodoComment,
 } from '../data/calendarStore.js';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ReminderPicker } from '../components/ReminderPicker.js';
@@ -83,6 +83,7 @@ function formatMinutes(mins?: number): string {
 /* ── MAIN TASKS APPLICATION COMPONENT ─────────────────────────────── */
 
 export const TasksApp: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const allTodos = useTodos();
   const lists = useLists();
   const linked = useLinkedTasks();
@@ -98,6 +99,28 @@ export const TasksApp: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const openedDeepLinkRef = useRef<string | null>(null);
+
+  // Companion-panel links carry the task id so opening Tasks lands on the
+  // exact record instead of a generic list. Wait for the shared task store to
+  // hydrate, then switch to the record's owning view and expand its details.
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (!taskId) return;
+    const task = allTodos.find(t => t.id === taskId);
+    if (!task || openedDeepLinkRef.current === taskId) return;
+
+    openedDeepLinkRef.current = taskId;
+    setFilterStatus('all');
+    setSearchQuery('');
+    setDisplayMode('list');
+    setShowCompleted(task.completed);
+    setExpandedId(task.id);
+    setActiveTaskView(task.deletedAt ? 'trash' : `list:${task.listId}`);
+    window.setTimeout(() => {
+      document.getElementById(`task-${task.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+  }, [searchParams, allTodos]);
 
   const listMap = useMemo(() => Object.fromEntries(lists.map(l => [l.id, l])), [lists]);
   const active = useMemo(() => allTodos.filter(t => !t.deletedAt), [allTodos]);
@@ -795,7 +818,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
   }
 
   return (
-    <div className="list-row-accent" data-variant={!trashed && todo.status !== 'none' ? statusMeta.variant : undefined}
+    <div id={`task-${todo.id}`} className="list-row-accent" data-variant={!trashed && todo.status !== 'none' ? statusMeta.variant : undefined}
       style={{
         background: 'var(--white)', borderRadius: 'var(--r)', overflow: 'hidden',
         borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',

@@ -127,7 +127,7 @@ export function SealFulfillmentDetail() {
           <Button type="button" variant="outline" onClick={() => navigate('/seal/fulfillment')} style={{ marginBottom: 12 }}>
             <Icon name="arrowLeft" size={13} /><span>Back to Fulfillment</span>
           </Button>
-          <h1 className="seal-page-title">{order.reference}</h1>
+          <h2 className="seal-entity-title">{order.reference}</h2>
           <p className="seal-page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <PersonAvatar userId={order.customerId} kind="customers" name={order.ownerName ?? ''} size={18} />
             {order.ownerName ?? '—'} · {order.compartmentName ?? '—'}

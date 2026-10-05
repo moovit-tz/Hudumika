@@ -6,7 +6,6 @@ import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
-import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import type { IconName } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Tip } from '../../components/ui/tooltip.js';
@@ -131,7 +130,6 @@ export const CustomerDirectoryPage: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [bulkAction, setBulkAction] = useState('');
-  const [listTab, setListTab] = useState<'all' | 'active' | 'corporate' | 'shipments' | 'inactive'>('all');
   const [clientTypeFilter, setClientTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [visibleCols, setVisibleCols] = useState({
@@ -187,15 +185,9 @@ export const CustomerDirectoryPage: React.FC = () => {
       const clientType = c.client_type || (isCorporate ? 'Corporate' : 'SME');
       const matchClientType = clientTypeFilter === 'all' || clientType === clientTypeFilter;
 
-      let matchListTab = true;
-      if (listTab === 'active') matchListTab = status === 'Active';
-      else if (listTab === 'inactive') matchListTab = status !== 'Active';
-      else if (listTab === 'corporate') matchListTab = isCorporate;
-      else if (listTab === 'shipments') matchListTab = (c.shipment_count ?? 0) > 0;
-
-      return matchSearch && matchStatus && matchClientType && matchListTab;
+      return matchSearch && matchStatus && matchClientType;
     });
-  }, [customers, search, statusFilter, clientTypeFilter, listTab]);
+  }, [customers, search, statusFilter, clientTypeFilter]);
 
   function exportCSV(rows: Customer[]) {
     const hdr = ['Name', 'Client Type', 'Email', 'Phone', 'Contact Person', 'TIN Number', 'City', 'Preferred Port', 'Shipments', 'Status', 'Joined'].join(',');
@@ -316,17 +308,6 @@ export const CustomerDirectoryPage: React.FC = () => {
             </div>
           ))}
         </div>
-
-        {/* Segmented list tabs */}
-        <Tabs value={listTab} onValueChange={v => { setListTab(v as typeof listTab); setPage(1); }} variant="segmented">
-          <TabsList style={{ overflowX: 'auto' }}>
-            <TabsTrigger value="all">All Accounts ({totalCount})</TabsTrigger>
-            <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
-            <TabsTrigger value="corporate">Corporate & Key ({corporateCount})</TabsTrigger>
-            <TabsTrigger value="shipments">With Shipments ({withShipmentsCount})</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive / Suspended ({inactiveCount})</TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {/* Main card */}
         <div className="crm-card" style={{ borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>

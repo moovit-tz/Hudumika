@@ -94,8 +94,8 @@ export function SealExWarehouseEntryNew() {
   }
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
-      <PageHeader crumbs={['ClearOS', 'Ops Command', 'Declarations']} titlePlain="New" titleEm="Declaration" subtitle="Every number below traces to a stored HS tariff line — the computation panel updates live as you type." />
+    <div className="seal-page">
+      <PageHeader crumbs={['SEAL', 'Ex-Warehouse']} titlePlain="New ex-warehouse" titleEm="entry" subtitle="Every number below traces to a stored HS tariff line — the computation panel updates live as you type." />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'flex-start', marginTop: 16 }}>
         <form onSubmit={handleSubmit} style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>

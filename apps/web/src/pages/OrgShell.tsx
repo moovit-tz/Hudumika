@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface LinkedAgent {
   customer_id: string;
@@ -641,15 +642,15 @@ export const OrgShell: React.FC = () => {
                           {d.tenant_name}
                         </span>
                         {d.can_manage_sharing && (
-                          <button type="button" title="Manage sharing" onClick={() => setShareDoc(d)}
+                          <Tip label="Manage sharing"><button type="button" aria-label="Manage sharing" onClick={() => setShareDoc(d)}
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
                             <Icon name="users" size={15} />
-                          </button>
+                          </button></Tip>
                         )}
-                        <button type="button" title="Download" onClick={() => downloadDoc(d)}
+                        <Tip label="Download"><button type="button" aria-label="Download" onClick={() => downloadDoc(d)}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}>
                           <Icon name="download" size={15} />
-                        </button>
+                        </button></Tip>
                       </div>
                     );
                   })}
@@ -854,10 +855,10 @@ export const OrgShell: React.FC = () => {
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderRadius: 'var(--badge-radius)', padding: '2px 8px', whiteSpace: 'nowrap' }}>
                       {s.role}
                     </span>
-                    <button type="button" title="Remove access" disabled={shareBusy} onClick={() => removeShare(i)}
+                    <Tip label="Remove access"><span><button type="button" aria-label="Remove access" disabled={shareBusy} onClick={() => removeShare(i)}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, background: 'none', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--red)', cursor: shareBusy ? 'default' : 'pointer', flexShrink: 0, opacity: shareBusy ? 0.5 : 1 }}>
                       <Icon name="x" size={14} />
-                    </button>
+                    </button></span></Tip>
                   </div>
                 ))}
               </div>

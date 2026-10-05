@@ -275,7 +275,6 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   calendar:      [],
   tasks:         [],
   seal:          [],
-  inventory:     [],
   hudubi:        [],
   // Petti builds its own sidebar in PettiShell.tsx, like Lens/Onsite/Studio.
   petti:         [],

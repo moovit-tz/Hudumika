@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import './SealInventoryDashboard.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface InventoryItem {
   id: string;
@@ -277,7 +278,6 @@ export function SealDashboard() {
         setCompartmentId(wName);
       }
     }
-    setShowWarehouseMenu(false);
   };
 
   // Filter States
@@ -288,8 +288,6 @@ export function SealDashboard() {
   const [dateRangeText, setDateRangeText] = useState('Jul 1 – Jul 20');
 
   // Dropdown States
-  const [showWarehouseMenu, setShowWarehouseMenu] = useState(false);
-  const [showDateMenu, setShowDateMenu] = useState(false);
   const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
 
   // Modal States
@@ -486,151 +484,41 @@ export function SealDashboard() {
   };
 
   return (
-    <div className="sid-root" onClick={() => { setShowWarehouseMenu(false); setShowDateMenu(false); setActiveActionMenuId(null); }}>
-      
-      {/* ── Page Header Area ── */}
-      <div className="sid-header-wrap">
-        <div>
-          <div className="sid-eyebrow">Dashboards / Inventory</div>
-          <div className="sid-title-row">
-            <h1 className="sid-title">Inventory</h1>
-            
-            {/* Warehouse Selector Pill Dropdown */}
-            <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-              <button
-                type="button"
-                className="sid-warehouse-pill"
-                onClick={() => setShowWarehouseMenu(v => !v)}
-              >
-                <span>{selectedWarehouse}</span>
-                <Icon name="chevronDown" size={12} color="var(--ink3)" />
-              </button>
-
-              {showWarehouseMenu && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: 6,
-                    background: 'var(--white)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--r)',
-                    boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
-                    zIndex: 50,
-                    minWidth: 200,
-                    padding: 4,
-                  }}
-                >
-                  {warehouseList.map(w => (
-                    <div
-                      key={w}
-                      onClick={() => handleSelectWarehouse(w)}
-                      style={{
-                        padding: '8px 12px',
-                        fontSize: 13,
-                        fontWeight: selectedWarehouse === w ? 700 : 500,
-                        color: selectedWarehouse === w ? 'var(--teal)' : 'var(--ink)',
-                        background: selectedWarehouse === w ? 'var(--teal-l)' : 'transparent',
-                        borderRadius: 'var(--r-sm)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <span>{w}</span>
-                      {selectedWarehouse === w && <Icon name="check" size={14} color="var(--teal)" />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="sid-subtitle">4,218 SKUs tracked across 4 warehouses</div>
-        </div>
-
-        {/* Top Right Action Buttons */}
-        <div className="sid-actions" onClick={e => e.stopPropagation()}>
-          {/* Date Range Selector */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              className="sid-btn-date"
-              onClick={() => setShowDateMenu(v => !v)}
+    <div className="seal-page" onClick={() => setActiveActionMenuId(null)}>
+      <PageHeader
+        crumbs={['SEAL']}
+        titlePlain="Warehouse"
+        titleEm="dashboard"
+        subtitle="Stock levels, movement and reorder health across all warehouses."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+            <Select
+              value={compartmentId ?? '__all__'}
+              onValueChange={v => {
+                if (v === '__all__') { setCompartmentId(null); setSelectedWarehouse('All Warehouses'); }
+                else { const m = dbCompartments.find(c => c.id === v); setCompartmentId(v); setSelectedWarehouse(m?.name ?? v); }
+              }}
             >
-              <Icon name="calendar" size={14} color="var(--ink2)" />
-              <span>{dateRangeText}</span>
+              <SelectTrigger style={{ minWidth: 160 }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Warehouses</SelectItem>
+                {dbCompartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" className="sid-btn-outline" onClick={() => setShowImportModal(true)}>
+              <Icon name="fileText" size={14} color="var(--ink2)" /><span>Import</span>
             </button>
-
-            {showDateMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: 6,
-                  background: 'var(--white)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--r)',
-                  boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
-                  zIndex: 50,
-                  minWidth: 180,
-                  padding: 4,
-                }}
-              >
-                {['Today', 'Last 7 Days', 'Jul 1 – Jul 20', 'Last 30 Days', 'This Quarter', 'Year to Date'].map(d => (
-                  <div
-                    key={d}
-                    onClick={() => { setDateRangeText(d); setShowDateMenu(false); }}
-                    style={{
-                      padding: '8px 12px',
-                      fontSize: 12.5,
-                      fontWeight: dateRangeText === d ? 700 : 500,
-                      color: dateRangeText === d ? 'var(--teal)' : 'var(--ink)',
-                      background: dateRangeText === d ? 'var(--teal-l)' : 'transparent',
-                      borderRadius: 'var(--r-sm)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-            )}
+            <button type="button" className="sid-btn-outline" onClick={handleExportCSV}>
+              <Icon name="send" size={14} color="var(--ink2)" /><span>Export</span>
+            </button>
+            <button type="button" className="sid-btn-primary" onClick={() => setShowAddModal(true)}>
+              <Icon name="plus" size={14} color="currentColor" /><span>Add Item</span>
+            </button>
           </div>
-
-          {/* Import Button */}
-          <button
-            type="button"
-            className="sid-btn-outline"
-            onClick={() => setShowImportModal(true)}
-          >
-            <Icon name="fileText" size={14} color="var(--ink2)" />
-            <span>Import</span>
-          </button>
-
-          {/* Export Button */}
-          <button
-            type="button"
-            className="sid-btn-outline"
-            onClick={handleExportCSV}
-          >
-            <Icon name="send" size={14} color="var(--ink2)" />
-            <span>Export</span>
-          </button>
-
-          {/* Add Item Primary Button */}
-          <button
-            type="button"
-            className="sid-btn-primary"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Icon name="plus" size={14} color="currentColor" />
-            <span>Add Item</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Top Bento Row (2 Cards) ── */}
       <div className="sid-bento-grid">
