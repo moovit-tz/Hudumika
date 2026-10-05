@@ -426,70 +426,57 @@ export function SignInbox({ view }: { view: ViewKey }) {
         ) : undefined}
       />
 
-      {/* Inbox metrics strip — only shown when there is something to act on */}
-      {view === 'inbox' && !loading && filtered.length > 0 && inboxMetrics && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-          {inboxMetrics.pending > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5 }}>
-              <Icon name="clock" size={14} style={{ color: 'var(--gold)' }} />
-              <strong style={{ color: 'var(--gold)', fontSize: 16, lineHeight: 1 }}>{inboxMetrics.pending}</strong>
-              <span style={{ color: 'var(--ink2)' }}>awaiting my action</span>
-            </div>
-          )}
-          {inboxMetrics.viewed > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--blue-l)', border: '1px solid var(--blue)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5 }}>
-              <Icon name="eye" size={14} style={{ color: 'var(--blue)' }} />
-              <strong style={{ color: 'var(--blue)', fontSize: 16, lineHeight: 1 }}>{inboxMetrics.viewed}</strong>
-              <span style={{ color: 'var(--ink2)' }}>opened, not yet signed</span>
-            </div>
-          )}
-          {inboxMetrics.signed > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5 }}>
-              <Icon name="checkCircle" size={14} style={{ color: 'var(--green)' }} />
-              <strong style={{ color: 'var(--green)', fontSize: 16, lineHeight: 1 }}>{inboxMetrics.signed}</strong>
-              <span style={{ color: 'var(--ink2)' }}>signed by me</span>
-            </div>
-          )}
-        </div>
+      {/* Inbox KPI strip — MetricsRow shows all 3 states at a glance */}
+      {view === 'inbox' && (
+        <MetricsRow cards={[
+          { title: 'AWAITING ACTION', value: String(inboxMetrics?.pending ?? 0), loading, icon: 'clock' as const, sub1Label: 'needs my signature' },
+          { title: 'OPENED NOT SIGNED', value: String(inboxMetrics?.viewed ?? 0), loading, icon: 'eye' as const, sub1Label: 'viewed but not signed' },
+          { title: 'SIGNED BY ME', value: String(inboxMetrics?.signed ?? 0), loading, icon: 'checkCircle' as const, sub1Label: 'completed my part' },
+        ]} />
       )}
 
       <section className="sign-inbox-panel" aria-label={`${currentTab?.label ?? view} envelopes`}>
         <div className="sign-inbox-toolbar">
-          <div className="sign-inbox-tabs-scroll">
-            <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
-              <TabsList>
-                {VIEW_TABS.map(tab => {
-                  const count = counts[tab.key] ?? 0;
-                  return (
-                    <TabsTrigger key={tab.key} value={tab.key}>
-                      {tab.label}
-                      {count > 0 && <span className="sign-inbox-tab-count">{count}</span>}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </Tabs>
+          {/* Row 1: scrollable tab strip */}
+          <div className="sign-inbox-tab-bar">
+            <div className="sign-inbox-tabs-scroll">
+              <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
+                <TabsList>
+                  {VIEW_TABS.map(tab => {
+                    const count = counts[tab.key] ?? 0;
+                    return (
+                      <TabsTrigger key={tab.key} value={tab.key}>
+                        {tab.label}
+                        {count > 0 && <span className="sign-inbox-tab-count">{count}</span>}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
-
-          <SearchToolbar
-            search={search}
-            onSearch={setSearch}
-            placeholder="Search envelopes"
-            className="sign-inbox-tools"
-            actions={<>
-              <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
-              <div className="sign-view-toggle">
-                {(['list', 'grid'] as const).map(m => (
-                  <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
-                    <button type="button" onClick={() => setViewMode(m)} className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
-                      <Icon name={m} size={15} />
-                    </button>
-                  </Tip>
-                ))}
-              </div>
-            </>}
-          />
-      </div>
+          {/* Row 2: search + per-page + view toggle */}
+          <div className="sign-inbox-ctrl-bar">
+            <SearchToolbar
+              search={search}
+              onSearch={setSearch}
+              placeholder="Search envelopes"
+              className="flex-1"
+              actions={<>
+                <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
+                <div className="sign-view-toggle">
+                  {(['list', 'grid'] as const).map(m => (
+                    <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
+                      <button type="button" onClick={() => setViewMode(m)} className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}>
+                        <Icon name={m} size={15} />
+                      </button>
+                    </Tip>
+                  ))}
+                </div>
+              </>}
+            />
+          </div>
+        </div>
 
       {/* Bulk-select action bar — Void/Remind many envelopes from one
           multi-select, instead of opening each one. The backend reports
@@ -567,7 +554,68 @@ export function SignInbox({ view }: { view: ViewKey }) {
           </>
         ) : (
           <>
-            <div className="rtbl-wrap sign-inbox-table-wrap">
+            {/* Mobile card view — only visible on screens < 640px */}
+            <div className="sign-mobile-cards">
+              {pageItems.map(env => {
+                const signerCount = env.recipients?.length ?? 0;
+                const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
+                if (view === 'inbox') {
+                  const myR = env.recipients?.find(r => r.user_id === user?.id || r.matched_user_id === user?.id);
+                  const signUrl = (myR?.status === 'pending' || myR?.status === 'viewed') && myR?.token
+                    ? `/sign/public/${myR.token}` : null;
+                  return (
+                    <div key={env.id} className="sign-mobile-card" role="button" tabIndex={0}
+                      onClick={() => navigate(`/sign/envelope/${env.id}`)}
+                      onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)}>
+                      <div className="sign-mobile-card-top">
+                        <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
+                        <div className="sign-mobile-card-info">
+                          <div className="sign-mobile-card-name">{env.title}</div>
+                          <div className="sign-mobile-card-sender">
+                            <PersonAvatar userId={env.created_by} name={env.created_by_name ?? ''} size={16} />
+                            <span>{env.created_by_name ?? 'Unknown'}</span>
+                          </div>
+                        </div>
+                        {myR && <Badge variant={recipientBadgeVariant(myR.status)}>{myR.status === 'pending' ? 'Awaiting' : myR.status}</Badge>}
+                      </div>
+                      {signUrl && (
+                        <div className="sign-mobile-card-action" onClick={e => e.stopPropagation()}>
+                          <Button size="sm" className="w-full" onClick={() => window.open(signUrl, '_blank', 'noopener')}>
+                            <Icon name="edit" size={13} /> Sign Now
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <div key={env.id} className="sign-mobile-card" role="button" tabIndex={0}
+                    onClick={() => navigate(`/sign/envelope/${env.id}`)}
+                    onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)}>
+                    <div className="sign-mobile-card-top">
+                      <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
+                      <div className="sign-mobile-card-info">
+                        <div className="sign-mobile-card-name">{env.title}</div>
+                        {env.file_name && <div className="sign-mobile-card-fname"><Icon name="paperclip" size={10} /> {env.file_name}</div>}
+                      </div>
+                      <Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge>
+                    </div>
+                    <div className="sign-mobile-card-bottom">
+                      {signerCount > 0 && (
+                        <>
+                          <RecipientAvatarStack recipients={env.recipients} size={18} max={4} />
+                          <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
+                        </>
+                      )}
+                      <span className="sign-mobile-card-date">{new Date(env.updated_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table view — hidden on mobile, full table on >= 640px */}
+            <div className="sign-desktop-table rtbl-wrap sign-inbox-table-wrap">
               <table className="rtbl sign-inbox-table">
                 <thead>
                   {view === 'inbox' ? (

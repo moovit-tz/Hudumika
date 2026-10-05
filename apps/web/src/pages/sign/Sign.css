@@ -224,19 +224,33 @@
   box-shadow: var(--elev);
 }
 
+/* Two-row toolbar: (1) scrollable tab strip, (2) search + controls */
 .sign-inbox-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
   background: var(--card-bg);
 }
-
-.sign-inbox-tabs-scroll {
-  min-width: 0;
+.sign-inbox-tab-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  min-height: 44px;
   overflow: hidden;
+}
+.sign-inbox-tabs-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sign-inbox-tabs-scroll::-webkit-scrollbar { display: none; }
+.sign-inbox-ctrl-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
 }
 
 .sign-inbox-tab-count {
@@ -257,28 +271,6 @@
   background: var(--teal-l);
   color: var(--teal-d);
 }
-
-.sign-inbox-tools {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.sign-inbox-search {
-  position: relative;
-  width: min(280px, 28vw);
-}
-.sign-inbox-search > svg {
-  position: absolute;
-  z-index: 1;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--ink3);
-  pointer-events: none;
-}
-.sign-inbox-search input { padding-left: 34px; }
 
 .sign-inbox-bulk {
   display: flex;
@@ -330,24 +322,93 @@
 .sign-inbox-table tbody tr { transition: background-color 0.15s ease; }
 .sign-inbox-table tbody tr:hover { background: var(--surface2); }
 
-@media (max-width: 1100px) {
-  .sign-inbox-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
-  .sign-inbox-tools { justify-content: space-between; }
-  .sign-inbox-search { width: min(100%, 420px); flex: 1; }
-  .sign-inbox-tabs-scroll { overflow: visible; }
-}
-
 @media (max-width: 640px) {
-  .sign-inbox-metrics { display: none; }
   .sign-inbox-panel { border-right: 0; border-left: 0; border-radius: 0; box-shadow: none; }
-  .sign-inbox-toolbar, .sign-inbox-content { padding: 12px; }
-  .sign-inbox-tools { align-items: stretch; }
-  .sign-inbox-search { width: 100%; }
+  .sign-inbox-tab-bar { padding: 0 12px; }
+  .sign-inbox-ctrl-bar { padding: 8px 12px; flex-wrap: wrap; }
+  .sign-inbox-content { padding: 12px; }
   .sign-view-toggle { flex-shrink: 0; }
   .sign-inbox-bulk { flex-wrap: wrap; padding: 10px 12px; }
   .sign-inbox-clear-btn { margin-left: 0; }
   .sign-envelope-grid { grid-template-columns: 1fr; gap: 10px; }
-  .sign-inbox-table { min-width: 680px; }
+}
+
+/* ── Mobile envelope cards (list view on small screens) ───────────────────── */
+.sign-mobile-cards { display: none; }
+.sign-desktop-table { display: block; }
+
+@media (max-width: 639px) {
+  .sign-mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+  .sign-desktop-table { display: none; }
+}
+
+.sign-mobile-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sign-mobile-card:hover,
+.sign-mobile-card:focus-visible {
+  border-color: var(--teal);
+  box-shadow: var(--elev);
+  outline: none;
+}
+.sign-mobile-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sign-mobile-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.sign-mobile-card-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sign-mobile-card-fname {
+  font-size: 11.5px;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sign-mobile-card-sender {
+  font-size: 12px;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+.sign-mobile-card-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sign-mobile-card-date {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--ink3);
+  white-space: nowrap;
+}
+.sign-mobile-card-action {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 
 /* ── Page document preview canvas ─────────────────────────────────────────── */
