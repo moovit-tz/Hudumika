@@ -4,9 +4,13 @@ export interface Customer {
   id: string;
   name: string;
   email?: string;
+  phone?: string;
   phone_wa?: string;
   tax_id?: string;
   contact_name?: string;
+  contact_person?: string;
+  contact_role?: string;
+  account_manager_name?: string;
   address?: string;
   created_at: string;
   shipment_count?: number;
@@ -14,19 +18,27 @@ export interface Customer {
   country?: string;
   website?: string;
   vat_number?: string;
+  vrn_number?: string;
   import_license?: string;
   preferred_port?: string;
   freight_terms?: string;
+  incoterms?: string;
   commodity_type?: string;
+  sector?: string;
+  classification?: string;
   credit_days?: string;
+  payment_terms?: string;
   client_type?: string;
+  status?: string;
   account_status?: 'Active' | 'Inactive' | 'Suspended';
   notes?: string;
   currency?: string;
+  avatar_url?: string;
   tancis_number?: string;
   organization_id?: string;
   organization_name?: string;
   daily_report_enabled?: boolean | null;
+  whatsapp_alerts_enabled?: boolean | null;
 }
 
 export const PAGE_SIZE = 10;

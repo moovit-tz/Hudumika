@@ -85,6 +85,7 @@ export function SignShell() {
                 <Route path="drafts"          element={<SignInbox view="drafts" />} />
                 <Route path="completed"       element={<SignInbox view="completed" />} />
                 <Route path="voided"          element={<SignInbox view="voided" />} />
+                <Route path="needs_rerouting" element={<SignInbox view="needs_rerouting" />} />
                 <Route path="declined"        element={<SignInbox view="declined" />} />
                 <Route path="expired"         element={<SignInbox view="expired" />} />
                 <Route path="journal"         element={<SignJournalPage />} />

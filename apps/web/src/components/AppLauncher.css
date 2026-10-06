@@ -14,7 +14,7 @@
   position: fixed;
   top: 62px;
   right: 16px;
-  width: 330px;
+  width: 320px;
   max-height: calc(100dvh - 84px);
   background: color-mix(in srgb, var(--white) 98%, transparent);
   -webkit-backdrop-filter: blur(20px);
@@ -27,7 +27,7 @@
   z-index: 1001;
   display: flex;
   flex-direction: column;
-  padding: 16px 14px 12px 14px;
+  padding: 12px 10px 10px 10px;
   transform-origin: top right;
   transform: scale(0.95) translateY(-8px);
   opacity: 0;
@@ -187,12 +187,27 @@
 .app-lnch-panel-scroll::-webkit-scrollbar-track { background: transparent; }
 .app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: var(--r-sm); }
 
-/* ── Dreams Core 3-Column Apps Grid ── */
+/* ── Section label ── */
+.app-lnch-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink3);
+  padding: 6px 4px 4px 4px;
+  font-family: var(--font);
+}
+
+/* ── 4-Column Apps Grid ── */
 .app-lnch-panel-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px 10px;
-  padding: 4px 2px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px 4px;
+  padding: 2px 2px;
+}
+
+.app-lnch-panel-grid--recent {
+  margin-bottom: 2px;
 }
 
 /* App item tile */
@@ -201,8 +216,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 6px 4px 4px 4px;
+  gap: 5px;
+  padding: 5px 2px 4px 2px;
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
@@ -235,13 +250,9 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.app-lnch-panel-item:hover .app-lnch-icon-box {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.13);
-}
 
 .app-lnch-panel-name {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--ink);
   text-align: center;
@@ -328,6 +339,38 @@
   width: 1px;
   height: 20px;
   background: var(--border2);
+}
+
+/* ── LauncherAppSvg squircle icon classes ── */
+.app-lnch-svg-icon {
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+}
+
+.app-lnch-custom-icon {
+  width: var(--lnch-sz, 40px);
+  height: var(--lnch-sz, 40px);
+  background: var(--lnch-bg, var(--teal));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, filter 0.18s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+}
+
+.app-lnch-custom-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.app-lnch-panel-item:hover .app-lnch-svg-icon,
+.app-lnch-panel-item:hover .app-lnch-custom-icon {
+  transform: scale(1.07);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.18));
 }
 
 /* Dark mode overrides */

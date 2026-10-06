@@ -1,5 +1,9 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Card } from '../../components/ui/card.js';
+import { MetricsRow } from '../../components/MetricCard.js';
+import { SkeletonTable } from '../../components/ui/skeleton.js';
+import './SignManagement.css';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -59,23 +63,21 @@ function Pagination({ total, page, perPage, onPage }: { total: number; page: num
     if (page < totalPages - 2) pages.push('...');
     pages.push(totalPages);
   }
-  const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0' }}>
-      <button type="button" style={{ ...btnBase, opacity: page === 1 ? 0.4 : 1 }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+      <Button variant="outline" size="icon" aria-label="Previous page" type="button" disabled={page === 1} onClick={() => onPage(page - 1)}>
         <Icon name="chevronLeft" size={13} />
-      </button>
+      </Button>
       {pages.map((p, i) => p === '...' ? (
         <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
       ) : (
-        <button key={p} type="button" onClick={() => onPage(p as number)}
-          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+        <Button key={p} type="button" size="icon" variant={p === page ? 'default' : 'outline'} aria-current={p === page ? 'page' : undefined} onClick={() => onPage(p as number)}>
           {p}
-        </button>
+        </Button>
       ))}
-      <button type="button" style={{ ...btnBase, opacity: page === totalPages ? 0.4 : 1 }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+      <Button variant="outline" size="icon" aria-label="Next page" type="button" disabled={page === totalPages} onClick={() => onPage(page + 1)}>
         <Icon name="chevronRight" size={13} />
-      </button>
+      </Button>
       <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
         {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
       </span>
@@ -154,59 +156,47 @@ export function SignJournalPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="sign-management-page">
       <PageHeader
         crumbs={['eSign', 'Electronic Journal']}
         titlePlain="Electronic"
         titleEm="journal"
-        subtitle="Chronological, append-only official register of all witnessed, notarized, and declared signatures."
+        subtitle="A permanent record of certifications, witnesses, and declarations."
       />
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 20 }}>
-        {[
-          { label: 'Total Recorded Acts',      value: stats.total,       icon: 'fileText'   as const, variant: 'brand'   as const },
-          { label: 'Notarial Certifications',  value: stats.certified,   icon: 'shield'     as const, variant: 'brand'   as const },
-          { label: 'Witnessed Signatures',     value: stats.witnessed,   icon: 'eye'        as const, variant: 'info'    as const },
-          { label: 'Affidavits & Declarations',value: stats.declared,    icon: 'fileText'   as const, variant: 'warning' as const },
-        ].map(card => (
-          <div key={card.label} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{card.label}</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{card.value}</div>
-            </div>
-            <FeaturedIcon variant={card.variant} size="md" shape="square"><Icon name={card.icon} size={18} /></FeaturedIcon>
-          </div>
-        ))}
-      </div>
-
+      <MetricsRow cards={[
+        { title: 'Entries', value: String(stats.total), loading, icon: 'fileText' },
+        { title: 'Certified', value: String(stats.certified), loading, icon: 'shield' },
+        { title: 'Witnessed', value: String(stats.witnessed), loading, icon: 'eye' },
+        { title: 'Declarations', value: String(stats.declared), loading, icon: 'fileText' },
+      ]} />
       {/* Filter + Search toolbar */}
       <div style={{ marginBottom: 16 }}>
       <SectionCard>
         <SearchToolbar
           search={search}
           onSearch={setSearch}
-          placeholder="Search document title, certifier, roll number, code, or notes"
+          placeholder="Search journal…"
           quickFilter={{
-            label: 'Event', allLabel: 'All Acts & Events', value: typeFilter === 'all' ? null : typeFilter,
+            label: 'Event', allLabel: 'All events', value: typeFilter === 'all' ? null : typeFilter,
             onChange: value => setTypeFilter(value || 'all'),
             options: [
-              { value: 'certified', label: 'Notarial Certifications' }, { value: 'witnessed', label: 'Witnessed Signatures' },
-              { value: 'declared', label: 'Affidavit Declarations' }, { value: 'journal_correction', label: 'Corrections' },
+              { value: 'certified', label: 'Certifications' }, { value: 'witnessed', label: 'Witnessed' },
+              { value: 'declared', label: 'Declarations' }, { value: 'journal_correction', label: 'Corrections' },
             ],
           }}
           actions={<>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
             <span>Show</span>
             <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
-              <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Items per page" className="w-20"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PER_PAGE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
             <span>per page</span>
             </div>
-            <Button variant="outline" size="sm" onClick={loadJournal} disabled={loading}>
+            <Button variant="outline" size="default" onClick={loadJournal} disabled={loading}>
             <Icon name="refresh" size={14} style={{ animation: loading ? 'spin 1s linear infinite' : undefined }} />
             Refresh
             </Button>
@@ -216,7 +206,7 @@ export function SignJournalPage() {
       </div>
 
       {/* Journal table */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
+      <div className="sign-management-results">
         <SectionCard padded={false}>
           {loading && !entries ? (
             <SectionLoading />
@@ -225,7 +215,7 @@ export function SignJournalPage() {
               <FeaturedIcon variant="gray" size="lg" shape="circle"><Icon name="fileText" size={24} /></FeaturedIcon>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No journal entries found</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 400, lineHeight: 1.55 }}>
-                When documents are certified by a Notary Public, witnessed, or signed under affidavit, an immutable journal entry will automatically appear here.
+                Certifications, witnessed signatures, and declarations appear here automatically.
               </div>
             </div>
           ) : (
@@ -312,7 +302,7 @@ export function SignJournalPage() {
                           </td>
                           <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                             {entry.event_type !== 'journal_correction' && (
-                              <Button variant="ghost" size="sm" onClick={() => { setSelectedEvent(entry); setCorrectionNote(''); }}
+                              <Button variant="ghost" size="default" onClick={() => { setSelectedEvent(entry); setCorrectionNote(''); }}
                                 style={{ fontSize: 12, height: 28, gap: 4 }}>
                                 <Icon name="edit" size={12} /> Add Correction
                               </Button>
@@ -336,7 +326,7 @@ export function SignJournalPage() {
           <DialogHeader>
             <DialogTitle>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="shield" size={16} /></FeaturedIcon>
+                <FeaturedIcon variant="brand" size="md" shape="square"><Icon name="shield" size={16} /></FeaturedIcon>
                 Append Journal Correction
               </div>
             </DialogTitle>

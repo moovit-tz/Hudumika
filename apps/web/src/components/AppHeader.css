@@ -1281,11 +1281,6 @@
   transform: translateY(0);
 }
 
-.app-header-mode-pill-sparkle {
-  font-size: 13px;
-  line-height: 1;
-}
-
 .app-header-mode-pill-text {
   line-height: 1;
 }

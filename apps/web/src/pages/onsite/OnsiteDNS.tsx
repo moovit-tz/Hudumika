@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
@@ -9,13 +9,21 @@ import type { OnsiteDnsRecord, DnsPropagationResult } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group.js';
+import { Button } from '../../components/ui/button.js';
+import { Input } from '../../components/ui/input.js';
+import { Card } from '../../components/ui/card.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import './Onsite.css';
+import './OnsiteDNS.css';
 
 export function OnsiteDNS() {
   const { domainId } = useParams<{ domainId: string }>();
   const [records, setRecords] = useState<OnsiteDnsRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [recordType, setRecordType] = useState('all');
+  const visibleRecords = records.filter(record => (recordType === 'all' || record.type === recordType) && `${record.name} ${record.value} ${record.type}`.toLowerCase().includes(search.toLowerCase()));
 
   // Form State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -52,6 +60,7 @@ export function OnsiteDNS() {
   const fetchDNS = () => {
     if (!domainId) return;
     setLoading(true);
+    setError(null);
     apiFetch(`/v1/onsite/domains/${domainId}/dns`)
       .then((res: any) => setRecords(res.records || []))
       .catch((err: any) => setError(err.message ?? 'Failed to load DNS records'))
@@ -241,40 +250,48 @@ export function OnsiteDNS() {
   };
 
   return (
-    <div className="onsite-page">
+    <div className="onsite-page onsite-dns-page">
       <PageHeader
-        crumbs={['Onsite', 'Domains', 'DNS']}
+        crumbs={['Onsite', { label: 'Domains', to: '/onsite/domains' }, 'DNS']}
         titlePlain="DNS"
         titleEm="records"
-        subtitle="Configure A, CNAME, MX, TXT, and SRV records for your domain."
+        subtitle="Manage domain routing, email delivery, and verification records."
         actions={<>
-          <button className="btn btn-secondary" onClick={() => setShowTemplates(true)}>
+          <Button variant="outline" onClick={() => setShowTemplates(true)}>
             <Icon name="layers" size={16} /> Quick setup
-          </button>
-          <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
+          </Button>
+          <Button variant="outline" onClick={() => setShowImport(true)}>
             <Icon name="upload" size={16} /> Import
-          </button>
-          <button className="btn btn-secondary" onClick={handleExport}>
+          </Button>
+          <Button variant="outline" onClick={handleExport}>
             <Icon name="download" size={16} /> Export
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> Add Record
-          </button>
+          </Button>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Icon name="plus" size={16} /> Add record
+          </Button>
         </>}
       />
 
       {loading ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--ink3)' }}>Loading DNS zone records…</p>
+          <SectionLoading label="Loading DNS records…" />
         </div>
       ) : error ? (
         <div className="onsite-card">
-          <p style={{ color: 'var(--red)' }}>Error: {error}</p>
+          <p role="alert" style={{ color: 'var(--red)' }}>{error}</p>
+          <Button variant="outline" onClick={fetchDNS}>Retry</Button>
         </div>
       ) : (
-        <div className="onsite-card">
+        <Card className="onsite-dns-records">
+          <div className="onsite-dns-toolbar">
+            <div><h2>Zone records <span>{records.length}</span></h2><p>{visibleRecords.length} shown · TTL controls how long resolvers cache each record.</p></div>
+            <div className="onsite-dns-filters">
+              <Select value={recordType} onValueChange={setRecordType}><SelectTrigger aria-label="Record type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All types</SelectItem>{[...new Set(records.map(record => record.type))].sort().map(item => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+              <Input aria-label="Search DNS records" placeholder="Search records…" value={search} onChange={event => setSearch(event.target.value)} />
+            </div>
+          </div>
           <div className="onsite-table-wrapper">
-            <table className="onsite-table">
+            <table className="onsite-table onsite-dns-table">
               <thead>
                 <tr>
                   <th>Type</th>
@@ -286,43 +303,44 @@ export function OnsiteDNS() {
                 </tr>
               </thead>
               <tbody>
-                {records.map((r) => (
+                {visibleRecords.map((r) => (
                   <tr key={r.id}>
-                    <td>
+                    <td data-label="Type">
                       <span className="onsite-badge" style={{ background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 700 }}>
                         {r.type}
                       </span>
                     </td>
-                    <td className="onsite-mono" style={{ fontWeight: 600 }}>{r.name}</td>
-                    <td className="onsite-mono" style={{ maxWidth: '360px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td data-label="Name" className="onsite-mono" style={{ fontWeight: 600 }}>{r.name}</td>
+                    <td data-label="Value" className="onsite-mono onsite-dns-value">
                       {r.value}
                     </td>
-                    <td style={{ color: 'var(--ink3)' }}>{r.ttl}s</td>
-                    <td style={{ color: 'var(--ink3)' }}>{r.priority ?? '—'}</td>
-                    <td>
+                    <td data-label="TTL" style={{ color: 'var(--ink3)' }}>{r.ttl}s</td>
+                    <td data-label="Priority" style={{ color: 'var(--ink3)' }}>{r.priority ?? '—'}</td>
+                    <td data-label="Actions">
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-sm btn-ghost" onClick={() => handleCheckPropagation(r)} title="Check Propagation">
-                          <Icon name="globe" size={14} /> Probe
-                        </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteRecord(r.id)}>
+                        <Button variant="ghost" onClick={() => handleCheckPropagation(r)} title="Check propagation">
+                          <Icon name="globe" size={14} /> Check
+                        </Button>
+                        <Button variant="ghost" aria-label={`Delete ${r.type} record ${r.name}`} style={{ color: 'var(--red)' }} onClick={() => handleDeleteRecord(r.id)}>
                           <Icon name="trash2" size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {!visibleRecords.length && <div className="onsite-dns-empty"><Icon name="globe" size={32} /><h3>{records.length ? 'No matching records' : 'No DNS records'}</h3><p>{records.length ? 'Try another search or record type.' : 'Add a record or use Quick setup to configure this zone.'}</p><Button variant="outline" onClick={() => { if (records.length) { setSearch(''); setRecordType('all'); } else setShowAddModal(true); }}>{records.length ? 'Clear filters' : 'Add record'}</Button></div>}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Add Record Modal */}
+      {/* Add record Modal */}
       <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
-        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <DialogContent hideClose className="max-w-130 gap-0 onsite-dns-dialog" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Add DNS Record</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+            <Button variant="ghost" onClick={() => setShowAddModal(false)}>✕</Button>
           </div>
           <form onSubmit={handleAddRecord} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
@@ -392,12 +410,12 @@ export function OnsiteDNS() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
                   Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Saving…' : 'Save Record'}
-                </button>
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? 'Saving…' : 'Save record'}
+                </Button>
               </div>
           </form>
         </DialogContent>
@@ -405,12 +423,12 @@ export function OnsiteDNS() {
 
       {/* Propagation Check Modal */}
       <Dialog open={!!checkRecord} onOpenChange={(o) => { if (!o) setCheckRecord(null); }}>
-        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <DialogContent hideClose className="max-w-130 gap-0 onsite-dns-dialog" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {checkRecord && (
             <>
               <div className="onsite-card-header">
                 <DialogTitle className="onsite-card-title">DNS Propagation Probe</DialogTitle>
-                <button className="btn btn-sm btn-ghost" onClick={() => setCheckRecord(null)}>✕</button>
+                <Button variant="ghost" onClick={() => setCheckRecord(null)}>✕</Button>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--ink3)' }}>
                 Checking global propagation for <strong>{checkRecord.type}</strong> <code>{checkRecord.name}</code>:
@@ -448,9 +466,9 @@ export function OnsiteDNS() {
               ) : null}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <button className="btn btn-secondary" onClick={() => setCheckRecord(null)}>
+                <Button variant="outline" onClick={() => setCheckRecord(null)}>
                   Close
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -492,15 +510,15 @@ export function OnsiteDNS() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-            <button className="btn btn-ghost" onClick={() => { setShowImport(false); setImportPlan(null); }}>Cancel</button>
-            <button className="btn btn-secondary" disabled={importBusy || !importText.trim()} onClick={previewImport}>
+            <Button variant="ghost" onClick={() => { setShowImport(false); setImportPlan(null); }}>Cancel</Button>
+            <Button variant="outline" disabled={importBusy || !importText.trim()} onClick={previewImport}>
               {importBusy ? 'Reading…' : 'Preview'}
-            </button>
-            <button className="btn btn-primary"
+            </Button>
+            <Button
               disabled={importBusy || !importPlan || importPlan.errors?.length > 0 || importPlan.create === 0}
               onClick={applyImport}>
               {importPlan ? `Add ${importPlan.create} record(s)` : 'Apply'}
-            </button>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -553,14 +571,14 @@ export function OnsiteDNS() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-            <button className="btn btn-ghost" onClick={() => { setShowTemplates(false); setTemplatePreview(null); }}>Cancel</button>
-            <button className="btn btn-secondary" disabled={!templateId || templateBusy}
+            <Button variant="ghost" onClick={() => { setShowTemplates(false); setTemplatePreview(null); }}>Cancel</Button>
+            <Button variant="outline" disabled={!templateId || templateBusy}
               onClick={() => previewTemplate(templateId)}>
               {templateBusy ? 'Building…' : 'Preview records'}
-            </button>
-            <button className="btn btn-primary" disabled={!templatePreview || templateBusy} onClick={applyTemplate}>
+            </Button>
+            <Button disabled={!templatePreview || templateBusy} onClick={applyTemplate}>
               Add {templatePreview ? `${templatePreview.length} ` : ''}record(s)
-            </button>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

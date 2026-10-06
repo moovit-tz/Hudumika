@@ -6,7 +6,6 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -14,9 +13,11 @@ import { getMood } from '../lib/greeting.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { WorkspaceHome } from './WorkspaceHome.js';
 import { STAGE_LABELS } from '@hudumika/types';
-import { AgenticExecutionStage, PRESET_WORKFLOWS, AgentWorkflow } from '../components/agentic/AgenticExecutionStage.js';
-import { LauncherAppSvg } from '../components/LauncherApps.js';
+import { PRESET_WORKFLOWS, AgentWorkflow } from '../components/agentic/AgenticExecutionStage.js';
+import { AgentTaskPlanner } from '../components/agentic/AgentTaskPlanner.js';
+import { PageFooter } from '../components/PageLayout.js';
 import { AppLauncher } from '../components/AppLauncher.js';
+import { useBranding } from '../hooks/useBranding.js';
 import { AIInsights } from './AIInsights.js';
 import { AgentControls } from './AgentControls.js';
 import { AIAutomations } from './AIAutomations.js';
@@ -121,6 +122,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 export const AgenticHome: React.FC = () => {
   const { user, logout } = useAuth();
   const { setLandingStyle } = useLandingStyle();
+  const branding = useBranding();
   const navigate = useNavigate();
   const enabledApps = useEnabledApps();
   // Automations/Insights/Controls call the same /v1/ai/* and /v1/agent/*
@@ -308,50 +310,8 @@ export const AgenticHome: React.FC = () => {
   // ── Active app brand details based on current tab and active workflow ──
   const activeAppBrand = useMemo(() => {
     if (tab === 'agent') {
-      if (activeWorkflow.id === 'route6-trip') {
-        return {
-          appId: 'route6',
-          name: 'Route6',
-          color: '#ea580c',
-          icon: 'truck' as IconName,
-          assignee: activeWorkflow.assigneeName || 'Sinza',
-          contextRef: activeWorkflow.contextRef || 'TRP-1042',
-          sub: 'Fleet Ops',
-        };
-      }
-      if (activeWorkflow.id === 'clearos-customs') {
-        return {
-          appId: 'clearos',
-          name: 'ClearOS',
-          color: '#ea580c',
-          icon: 'ship' as IconName,
-          assignee: activeWorkflow.assigneeName || 'Rashid K.',
-          contextRef: activeWorkflow.contextRef || 'JOB-9821',
-          sub: 'Customs Clearance',
-        };
-      }
-      if (activeWorkflow.id === 'finops-petti') {
-        return {
-          appId: 'finops',
-          name: 'FinOps',
-          color: '#0284c7',
-          icon: 'wallet' as IconName,
-          assignee: activeWorkflow.assigneeName || 'Amani M.',
-          contextRef: activeWorkflow.contextRef || 'REQ-4091',
-          sub: 'Finance & Accounts',
-        };
-      }
-      return {
-        appId: 'ai',
-        name: activeWorkflow.brandName || 'Hudumika AI',
-        color: '#6d28d9',
-        icon: 'sparkle' as IconName,
-        assignee: activeWorkflow.assigneeName || 'Autonomous Agent',
-        contextRef: activeWorkflow.contextRef || 'AGENT-RUN',
-        sub: 'AI Workflow',
-      };
+      return { appId: 'ai', name: 'Workspace agent', color: 'var(--teal)', icon: 'sparkle' as IconName, assignee: '', contextRef: 'Task planner', sub: 'Plan & run' };
     }
-
     if (tab === 'feed') {
       return {
         appId: 'workspace',
@@ -450,29 +410,13 @@ export const AgenticHome: React.FC = () => {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${tab === 'agent' ? ' agent-task-shell' : ''}`}>
       <div className="app-main">
         <div className="ah-header">
           <div className="ah-header-left">
-            {/* Dynamic App Brand Switching with Flat Hudumika Design System Vector Icon */}
-            <div className="ah-header-brand-lockup" title={`${activeAppBrand.name} · ${activeAppBrand.sub}`}>
-              <div className="ah-app-icon-wrapper" style={{ backgroundColor: activeAppBrand.color }}>
-                <Icon
-                  name={activeAppBrand.icon}
-                  size={16}
-                  color="#ffffff"
-                  strokeWidth={2.2}
-                />
-              </div>
-              <div className="ah-brand-meta">
-                <span className="ah-brand-title">{activeAppBrand.name}</span>
-                {activeAppBrand.assignee && (
-                  <>
-                    <span className="ah-brand-divider">/</span>
-                    <span className="ah-assignee-label">{activeAppBrand.assignee}</span>
-                  </>
-                )}
-              </div>
+            <div className="ah-header-logo-wrap">
+              <img src={branding.logoLight} className="ah-header-logo ah-header-logo--light" alt={branding.platformName} />
+              <img src={branding.logoDark || branding.logoLight} className="ah-header-logo ah-header-logo--dark" alt={branding.platformName} />
             </div>
 
             <div className="ah-header-nav-group">
@@ -540,25 +484,6 @@ export const AgenticHome: React.FC = () => {
           </div>
 
           <div className="ah-header-center">
-            <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented" className="ah-header-tabs">
-              <TabsList className="ah-tabs-list">
-                {visibleTabs.map(t => {
-                  const count = t.key === 'agent' ? agentApprovals.length : 0;
-                  return (
-                    <TabsTrigger
-                      key={t.key} value={t.key} className="ah-tab-trigger"
-                      title={count > 0 ? `${t.label} — ${count} waiting on you` : t.label}
-                      aria-label={count > 0 ? `${t.label}, ${count} waiting on you` : t.label}
-                    >
-                      <Icon name={t.icon} size={14} strokeWidth={tab === t.key ? 2.3 : 1.8} />
-                      <span className="ah-tab-label">{t.label}</span>
-                      {count > 0 && <span className="ah-tab-count">{count > 9 ? '9+' : count}</span>}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </Tabs>
-
             <div className={`ah-header-search${searchFocused ? ' ah-header-search--focused' : ''}`}>
               <Icon name="search" size={14} className="ah-search-icon" />
               <input
@@ -714,10 +639,7 @@ export const AgenticHome: React.FC = () => {
         <div className="ah-scroll">
           {tab === 'agent' && (
             <div className="ah-agent-flow-view">
-              <AgenticExecutionStage
-                hideHeader={true}
-                onWorkflowChange={setActiveWorkflow}
-              />
+              <AgentTaskPlanner templateId={activeWorkflow.id} />
             </div>
           )}
 
@@ -747,7 +669,9 @@ export const AgenticHome: React.FC = () => {
 
               <div className="ah-agent-feature-banner" onClick={() => setTab('agent')}>
                 <div className="ah-agent-feature-left">
-                  <div className="r6-logo-badge" style={{ fontSize: 13, padding: '3px 7px' }}>R6</div>
+                  <div className="ah-app-icon-wrapper" style={{ backgroundColor: '#f59e0b' }}>
+                    <Icon name="truck" size={14} color="#ffffff" />
+                  </div>
                   <div>
                     <div className="ah-agent-feature-title">Route6 Autonomous Agent Flow</div>
                     <div className="ah-agent-feature-sub">TRP-1042 · Live stepped execution for trip closing, inspection, invoice generation & customer dispatch</div>
@@ -919,6 +843,7 @@ export const AgenticHome: React.FC = () => {
               </div>
             </div>
           )}
+          {tab === 'agent' && <div className="agent-task-footer"><PageFooter /></div>}
         </div>
 
         <button type="button" className="ah-chat-fab" onClick={() => setChatOpen(o => !o)} title="Ask your workspace agent">

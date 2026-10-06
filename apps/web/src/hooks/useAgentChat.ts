@@ -88,5 +88,12 @@ export function useAgentChat() {
     }
   }, [pendingApproval, decisionBusy, apply]);
 
-  return { messages, busy, error, pendingApproval, decisionBusy, send, decide };
+  const reset = useCallback(() => {
+    if (busy || pendingApproval || decisionBusy) return;
+    setRunId(null);
+    setMessages([]);
+    setError(null);
+  }, [busy, pendingApproval, decisionBusy]);
+
+  return { messages, busy, error, pendingApproval, decisionBusy, send, decide, reset };
 }

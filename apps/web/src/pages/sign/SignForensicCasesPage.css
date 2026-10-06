@@ -56,7 +56,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   border: 1px solid var(--border);
   font-family: monospace;
@@ -74,7 +74,7 @@
 
 /* ── Verdict Hero Banner ── */
 .sfc-verdict-hero {
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   padding: 20px 24px;
   display: flex;
   gap: 18px;
@@ -83,7 +83,7 @@
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--elev-sm);
 }
 
 @media (max-width: 640px) {
@@ -96,7 +96,7 @@
 
 .sfc-verdict-hero--danger {
   border-color: color-mix(in srgb, var(--red) 35%, var(--border));
-  background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--red) 4%, var(--white)) 100%);
+  background: var(--red-l);
 }
 [data-theme="dark"] .sfc-verdict-hero--danger {
   background: var(--red-l);
@@ -104,7 +104,7 @@
 
 .sfc-verdict-hero--warning {
   border-color: color-mix(in srgb, var(--gold) 35%, var(--border));
-  background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--gold) 4%, var(--white)) 100%);
+  background: var(--gold-l);
 }
 [data-theme="dark"] .sfc-verdict-hero--warning {
   background: var(--gold-l);
@@ -112,7 +112,7 @@
 
 .sfc-verdict-hero--success {
   border-color: color-mix(in srgb, var(--green) 35%, var(--border));
-  background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--green) 4%, var(--white)) 100%);
+  background: var(--green-l);
 }
 [data-theme="dark"] .sfc-verdict-hero--success {
   background: var(--green-l);
@@ -120,7 +120,7 @@
 
 .sfc-verdict-hero--info {
   border-color: color-mix(in srgb, var(--teal) 35%, var(--border));
-  background: linear-gradient(135deg, var(--white) 0%, color-mix(in srgb, var(--teal) 4%, var(--white)) 100%);
+  background: var(--teal-l);
 }
 [data-theme="dark"] .sfc-verdict-hero--info {
   background: var(--teal-l);
@@ -129,7 +129,7 @@
 .sfc-verdict-icon-wrap {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,7 +187,7 @@
 
 .sfc-verdict-resolution {
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   border-left: 3px solid var(--teal);
   font-size: 12.5px;
@@ -214,7 +214,7 @@
   color: var(--ink3);
   background: var(--bg);
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   min-width: 0;
   border: 0.5px solid var(--border);
 }
@@ -268,7 +268,7 @@
 .sfc-stat-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -278,7 +278,7 @@
 .sfc-stat-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -317,14 +317,14 @@
 }
 
 .sfc-finding-item {
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   border: 1px solid var(--border);
   background: var(--white);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--elev-sm);
 }
 
 .sfc-finding-item--added {
@@ -365,7 +365,7 @@
   line-height: 1.5;
   background: var(--white);
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   word-break: break-word;
   white-space: pre-wrap;
@@ -383,7 +383,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13px;
   line-height: 1.45;
   border: 1px solid var(--border);
@@ -416,10 +416,10 @@
 
 .sfc-visual-card {
   border: 1px solid color-mix(in srgb, var(--red) 30%, var(--border));
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   overflow: hidden;
   background: var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--elev-sm);
   display: flex;
   flex-direction: column;
 }
@@ -482,7 +482,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   border: 1px solid var(--border);
   transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -491,13 +491,13 @@
 .sfc-evidence-tile:hover {
   background: var(--hover-bg);
   border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--elev-sm);
 }
 
 .sfc-evidence-icon {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--teal-l);
   color: var(--teal);
   display: flex;
@@ -581,7 +581,7 @@
   flex-shrink: 0;
   z-index: 2;
   border: 2px solid var(--white);
-  box-shadow: 0 0 0 1px var(--border);
+  box-shadow: var(--elev-sm);
 }
 
 .sfc-timeline-content {
@@ -624,7 +624,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   border: 1px solid var(--border);
   font-size: 12px;
@@ -662,7 +662,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--elev-sm);
   animation: sfc-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -688,7 +688,7 @@
   max-width: 100%;
   max-height: 75vh;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 
 @keyframes sfc-fade-in {
@@ -712,12 +712,12 @@
 .sfc-list-stat-box {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   padding: 14px 18px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--elev-sm);
 }
 
 .sfc-list-card-grid {
@@ -738,14 +738,14 @@
 .sfc-case-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--card-radius);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--elev-sm);
 }
 
 .sfc-case-card:hover {

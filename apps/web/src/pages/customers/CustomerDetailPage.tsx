@@ -1,26 +1,24 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
-import { apiFetch, apiDownload, apiFetchBlob } from '../../lib/api.js';
+import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
-import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
-import { SectionLoading } from '../../components/ui/spinner.js';
 import type { IconName } from '../../components/Icon.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Tip } from '../../components/ui/tooltip.js';
-import { CompanyAvatar } from '../../components/PersonAvatar.js';
+import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { AvatarPicker } from '../../components/AvatarPicker.js';
-import { EntityPicker } from '../../components/EntityPicker.js';
 import { mapApiInvoice, invoiceTotals } from '../Billing.js';
 import type { ExpenseListItem } from '../Expenses.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { showAlert } from '../../lib/alert.js';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from '../../components/ui/dropdown-menu.js';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter,
 } from '../../components/ui/dialog.js';
-import { showConfirm } from '../../lib/confirm.js';
 import { SkeletonPage } from '../../components/ui/skeleton.js';
 import { SwitchRow } from '../../components/ui/list-item-row.js';
 import { getCompany } from '../../data/companyStore.js';
@@ -29,7 +27,8 @@ import { ComposeEmailButton } from '../../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../../components/crm/StartCallButton.js';
 import { CustomFieldsPanel } from '../../components/crm/CustomFieldsPanel.js';
 import type { Customer } from './customer-types.js';
-import { fmtDateShort, maskTin, fileTypeStyle } from './customer-types.js';
+import { fmtDateShort, maskTin } from './customer-types.js';
+import './CustomerDetailPage.css';
 
 /* ── Statement of Account — print/PDF ── */
 function openStatementPrintWindow(
@@ -110,40 +109,17 @@ function envelopeBadgeVariant(status: string): 'brand' | 'gray' | 'success' | 'w
 }
 
 const MAIN_TABS = [
-  { key: 'overview',   label: 'Overview',      icon: 'grid'       as IconName },
-  { key: 'activity',   label: 'Activity',      icon: 'activity'   as IconName },
-  { key: 'profile',    label: 'Profile',        icon: 'user'       as IconName },
-  { key: 'contacts',   label: 'Contacts',       icon: 'users'      as IconName },
-  { key: 'finance',    label: 'Finance',        icon: 'barChart'   as IconName },
-  { key: 'shipments',  label: 'Shipments',      icon: 'ship'       as IconName },
-  { key: 'supply',     label: 'Supply Chain',   icon: 'layers'     as IconName },
-  { key: 'seal',       label: 'Bonded Storage', icon: 'package'    as IconName },
-  { key: 'documents',  label: 'Documents',      icon: 'folder'     as IconName },
-  { key: 'signatures', label: 'Signatures',     icon: 'stamp'      as IconName },
-  { key: 'notes',      label: 'Notes',          icon: 'edit'       as IconName },
+  { key: 'overview',   label: 'Overview',              icon: 'grid'          as IconName },
+  { key: 'finance',    label: 'Commercial & Finance',  icon: 'barChart'      as IconName },
+  { key: 'shipments',  label: 'Logistics & Cargo',     icon: 'ship'          as IconName },
+  { key: 'contacts',   label: 'Key Contacts',          icon: 'users'         as IconName },
+  { key: 'documents',  label: 'Documents Vault',       icon: 'folder'        as IconName },
+  { key: 'signatures', label: 'E-Sign Contracts',      icon: 'stamp'         as IconName },
+  { key: 'tickets',    label: 'Support Tickets',       icon: 'lifeBuoy'      as IconName },
+  { key: 'profile',    label: 'Profile & Terms',       icon: 'fileText'      as IconName },
 ];
 
-/* ── Avatar helper ── */
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
-  return (
-    <CompanyAvatar
-      name={name}
-      size={size}
-      shape="square"
-      style={{ borderRadius: 'var(--r)', boxShadow: 'var(--elev-sm)', border: '1px solid var(--border)' }}
-    />
-  );
-}
-
-/* ── Status badge ── */
-const STATUS_VARIANT: Record<string, 'success' | 'gray' | 'error'> = {
-  Active: 'success', Inactive: 'gray', Suspended: 'error',
-};
-function StatusBadge({ status }: { status: string }) {
-  return <Badge variant={STATUS_VARIANT[status] ?? 'success'} className="whitespace-nowrap">{status}</Badge>;
-}
-
-/* ── TIN chip ── */
+/* ── TIN chip with 1-click copy ── */
 function TinChip({ tin }: { tin?: string }) {
   const [copied, setCopied] = useState(false);
   const masked = maskTin(tin);
@@ -158,10 +134,10 @@ function TinChip({ tin }: { tin?: string }) {
   };
 
   return (
-    <Tip label={copied ? 'Copied!' : `TIN: ${tin} — click to copy`} side="top">
+    <Tip label={copied ? 'Copied to clipboard!' : `TIN: ${tin} — click to copy`} side="top">
       <div onClick={handleCopy}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 8px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
-        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.04em', background: 'var(--blue-l)', borderRadius: 'var(--r-sm)', padding: '1px 4px' }}>TIN</span>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '2px 8px', cursor: 'pointer', transition: 'all 0.15s ease' }}>
+        <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--teal)', letterSpacing: '0.04em', background: 'var(--teal-l)', borderRadius: 'var(--r-sm)', padding: '1px 4px' }}>TIN</span>
         <span style={{ fontFamily: 'var(--font)', fontSize: 12, color: 'var(--ink)' }}>{masked}</span>
         {copied
           ? <span style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700 }}>✓</span>
@@ -171,35 +147,25 @@ function TinChip({ tin }: { tin?: string }) {
   );
 }
 
-/* ── View field ── */
+/* ── Status badge ── */
+const STATUS_VARIANT: Record<string, 'success' | 'gray' | 'error'> = {
+  Active: 'success', Inactive: 'gray', Suspended: 'error',
+};
+
+/* ── View field helper ── */
 function ViewField({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 13.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--font)' : 'var(--font)', fontStyle: value ? 'normal' : 'italic' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 13.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--font)' : 'inherit', fontStyle: value ? 'normal' : 'italic' }}>
         {value || '—'}
       </div>
     </div>
   );
 }
 
-/* ── Hero stat chip ── */
-function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; label: string; value: string | number; color: string; bg: string; muted?: boolean }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon name={icon} size={16} color={color} strokeWidth={1.75} />
-      </div>
-      <div>
-        <div style={{ fontSize: 14.5, fontWeight: 800, color: muted ? 'var(--ink3)' : 'var(--ink)', fontStyle: muted ? 'italic' : 'normal', lineHeight: 1.15 }}>{value}</div>
-        <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
-      </div>
-    </div>
-  );
-}
-
 /* ══════════════════════════════════════════
-   CustomerDetailPage
+   CustomerDetailPage (Hudumika CRM Design System)
 ══════════════════════════════════════════ */
 export const CustomerDetailPage: React.FC = () => {
   const { id, tab: tabParam } = useParams<{ id: string; tab?: string }>();
@@ -208,6 +174,7 @@ export const CustomerDetailPage: React.FC = () => {
 
   const [selected, setSelected] = useState<Customer | null>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<'not_found' | 'forbidden' | null>(null);
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
 
   useEffect(() => {
@@ -218,19 +185,30 @@ export const CustomerDetailPage: React.FC = () => {
     if (!id) return;
     setFetchLoading(true);
     apiFetch(`/v1/customers/${id}`)
-      .then((res: any) => { setSelected(res); setForm({ ...res }); })
-      .catch(() => navigate('/crm/customers', { replace: true }))
+      .then((res: any) => { setSelected(res); setForm({ ...res }); setFetchError(null); })
+      .catch((e: any) => {
+        const status = e?.status ?? e?.statusCode ?? (typeof e?.message === 'string' && e.message.includes('403') ? 403 : 404);
+        setFetchError(status === 403 ? 'forbidden' : 'not_found');
+      })
       .finally(() => setFetchLoading(false));
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Tab state ── */
-  const [mainTab, setMainTab] = useState(tabParam || 'overview');
+  const [mainTab, setMainTab] = useState(() => {
+    const t = tabParam || 'overview';
+    if (t === 'supply' || t === 'seal') return 'shipments';
+    if (t === 'activity' || t === 'notes') return 'overview';
+    return t;
+  });
   const [financeTab, setFinanceTab] = useState('invoices');
-  const [shipTab, setShipTab] = useState('shipments');
-  const [supplyTab, setSupplyTab] = useState('projects');
+  const [shipTab, setShipTab] = useState('all');
 
   useEffect(() => {
-    if (tabParam && tabParam !== mainTab) setMainTab(tabParam);
+    if (!tabParam) return;
+    let resolved = tabParam;
+    if (resolved === 'supply' || resolved === 'seal') resolved = 'shipments';
+    else if (resolved === 'activity' || resolved === 'notes') resolved = 'overview';
+    if (resolved !== mainTab) setMainTab(resolved);
   }, [tabParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTabChange = (v: string) => {
@@ -243,15 +221,15 @@ export const CustomerDetailPage: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<Partial<Customer>>({});
   const [saving, setSaving] = useState(false);
-  const [sendingClaimCode, setSendingClaimCode] = useState(false);
 
   /* ── Shipments ── */
   const [custShipments, setCustShipments] = useState<any[]>([]);
   const [shipLoading, setShipLoading] = useState(false);
 
-  /* ── Notes ── */
-  const [notes, setNotes] = useState('');
-  const [noteSaving, setNoteSaving] = useState(false);
+  /* ── Deals / Pipeline ── */
+  const [custDeals, setCustDeals] = useState<any[]>([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
+
 
   /* ── Finance ── */
   const [custInvoices, setCustInvoices] = useState<any[]>([]);
@@ -260,37 +238,21 @@ export const CustomerDetailPage: React.FC = () => {
   const [custQuotations, setCustQuotations] = useState<any[]>([]);
   const [finLoading, setFinLoading] = useState(false);
 
-  /* ── Supply chain ── */
+  /* ── Supply chain & Support ── */
   const [custTickets, setCustTickets] = useState<any[]>([]);
-  const [custProjects, setCustProjects] = useState<any[]>([]);
   const [supplyLoading, setSupplyLoading] = useState(false);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-
-  /* ── SEAL bonded storage ── */
-  const [custSealLots, setCustSealLots] = useState<any[]>([]);
-  const [sealLoading, setSealLoading] = useState(false);
 
   /* ── Documents ── */
   const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
-  const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
   const [customerFolder, setCustomerFolder] = useState<{ customerId: string; id: string; drive_id: string; name: string; parent: { id: string; name: string } | null } | null>(null);
   const [resolvingFolder, setResolvingFolder] = useState(false);
-  const [fileUploading, setFileUploading] = useState(false);
   const [showLinkFileModal, setShowLinkFileModal] = useState(false);
-  const [fileSearch, setFileSearch] = useState('');
-  const [fileSearchResults, setFileSearchResults] = useState<any[]>([]);
-  const [fileSearching, setFileSearching] = useState(false);
-  const [fileLinking, setFileLinking] = useState<string | null>(null);
 
   /* ── Signatures ── */
   const [custSignEnvelopes, setCustSignEnvelopes] = useState<any[]>([]);
   const [signLoading, setSignLoading] = useState(false);
   const [showSendSignModal, setShowSendSignModal] = useState(false);
-  const [signFileSearch, setSignFileSearch] = useState('');
-  const [signFileSearchResults, setSignFileSearchResults] = useState<any[]>([]);
-  const [signFileSearching, setSignFileSearching] = useState(false);
-  const [sendingForSignature, setSendingForSignature] = useState<string | null>(null);
 
   /* ── Portal invite ── */
   const [inviteStatus, setInviteStatus] = useState<{ state: 'active' | 'invited' | 'none'; email?: string; expires_at?: string } | null>(null);
@@ -299,11 +261,26 @@ export const CustomerDetailPage: React.FC = () => {
   const [sendingInvite, setSendingInvite] = useState(false);
 
   /* ── Contacts ── */
+  const [custContacts, setCustContacts] = useState<any[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
   const [showAddContact, setShowAddContact] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', role: '' });
   const [contactSaving, setContactSaving] = useState(false);
 
-  /* ── Data loaders ── */
+  /* ── Action Modals ── */
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  /* Link Document modal */
+  const [linkDocFile, setLinkDocFile] = useState<File | null>(null);
+  const [linkDocUploading, setLinkDocUploading] = useState(false);
+  const linkDocInputRef = React.useRef<HTMLInputElement>(null);
+  /* Dispatch Agreement modal */
+  const [dispatchTitle, setDispatchTitle] = useState('');
+  const [dispatchEmail, setDispatchEmail] = useState('');
+  const [dispatchSending, setDispatchSending] = useState(false);
+
+  /* ── Data Loaders ── */
   const loadShipments = useCallback(async (customerId: string) => {
     setShipLoading(true);
     try {
@@ -312,9 +289,20 @@ export const CustomerDetailPage: React.FC = () => {
     } catch { setCustShipments([]); } finally { setShipLoading(false); }
   }, []);
 
+  const loadDeals = useCallback(async (customerId: string) => {
+    setDealsLoading(true);
+    try {
+      const res = await apiFetch(`/v1/deals?customer_id=${customerId}`).catch(() => []);
+      setCustDeals(Array.isArray(res) ? res : (res?.data ?? []));
+    } catch { setCustDeals([]); } finally { setDealsLoading(false); }
+  }, []);
+
   useEffect(() => {
-    if (selected) loadShipments(selected.id);
-  }, [selected, loadShipments]);
+    if (selected) {
+      loadShipments(selected.id);
+      loadDeals(selected.id);
+    }
+  }, [selected, loadShipments, loadDeals]);
 
   useEffect(() => {
     if (!selected) { setInviteStatus(null); return; }
@@ -352,906 +340,838 @@ export const CustomerDetailPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selected && mainTab === 'supply') loadTickets(selected.id);
-  }, [selected, mainTab, loadTickets]);
+    if (selected) loadTickets(selected.id);
+  }, [selected, loadTickets]);
 
-  const loadProjects = useCallback(async (customerId: string) => {
-    setProjectsLoading(true);
-    try {
-      const res = await apiFetch(`/v1/tasks/projects?customer_id=${customerId}`).catch(() => ({ data: [] }));
-      setCustProjects(Array.isArray(res) ? res : (res?.data ?? []));
-    } catch { /* empty */ } finally { setProjectsLoading(false); }
-  }, []);
-
-  useEffect(() => {
-    if (selected && mainTab === 'supply' && supplyTab === 'projects') loadProjects(selected.id);
-  }, [selected, mainTab, supplyTab, loadProjects]);
-
-  const loadSealLots = useCallback(async (customerId: string) => {
-    setSealLoading(true);
-    try {
-      const res = await apiFetch(`/v1/seal/lots-for-customer?owner_id=${customerId}`).catch(() => []);
-      setCustSealLots(Array.isArray(res) ? res : []);
-    } catch { /* empty */ } finally { setSealLoading(false); }
-  }, []);
-
-  useEffect(() => {
-    if (selected && mainTab === 'seal') loadSealLots(selected.id);
-  }, [selected, mainTab, loadSealLots]);
-
-  const ensureDefaultDrive = useCallback(async () => {
-    if (defaultDriveId) return defaultDriveId;
-    const drives = await apiFetch('/v1/drives').catch(() => []);
-    const dvId = Array.isArray(drives) && drives.length ? drives[0].id : null;
-    setDefaultDriveId(dvId);
-    return dvId;
-  }, [defaultDriveId]);
-
-  const resolveCustomerFolder = useCallback(async (customerId: string, opts?: { silent?: boolean }) => {
-    if (customerFolder?.customerId === customerId) return customerFolder;
-    setResolvingFolder(true);
-    try {
-      const res = await apiFetch(`/v1/files/customer-folder/${customerId}`);
-      const next = { customerId, id: res.id, drive_id: res.drive_id, name: res.name, parent: res.parent ?? null };
-      setCustomerFolder(next);
-      return next;
-    } catch (err: any) {
-      if (!opts?.silent) showAlert(err.message || "Could not open this customer's Drive folder");
-      return null;
-    } finally {
-      setResolvingFolder(false);
-    }
-  }, [customerFolder]);
-
-  const loadLinkedFiles = useCallback(async (customerId: string) => {
+  const loadFiles = useCallback(async (customerId: string) => {
     setFilesLoading(true);
     try {
-      await resolveCustomerFolder(customerId, { silent: true });
-      const res = await apiFetch(`/v1/files?entity_type=customer&entity_id=${customerId}`).catch(() => []);
-      setLinkedFiles(Array.isArray(res) ? res : []);
-    } catch { /* empty */ } finally { setFilesLoading(false); }
-  }, [resolveCustomerFolder]);
-
-  useEffect(() => {
-    if (selected && mainTab === 'documents') loadLinkedFiles(selected.id);
-  }, [selected, mainTab, loadLinkedFiles]);
-
-  async function openCustomerDrive() {
-    if (!selected) return;
-    const folder = await resolveCustomerFolder(selected.id);
-    if (!folder) return;
-    const qs = new URLSearchParams({ drive: folder.drive_id, folder: folder.id, name: folder.name });
-    if (folder.parent) { qs.set('parentId', folder.parent.id); qs.set('parentName', folder.parent.name); }
-    window.open(`/cloud?${qs.toString()}`, '_blank', 'noopener');
-  }
-
-  useEffect(() => {
-    if (!showLinkFileModal) return;
-    const q = fileSearch.trim();
-    if (!q) { setFileSearchResults([]); return; }
-    setFileSearching(true);
-    const t = setTimeout(() => {
-      apiFetch(`/v1/files?q=${encodeURIComponent(q)}`)
-        .then((res: any) => setFileSearchResults(Array.isArray(res) ? res : []))
-        .catch(() => setFileSearchResults([]))
-        .finally(() => setFileSearching(false));
-    }, 300);
-    return () => clearTimeout(t);
-  }, [fileSearch, showLinkFileModal]);
-
-  async function linkExistingFile(fileId: string) {
-    if (!selected) return;
-    setFileLinking(fileId);
-    try {
-      await apiFetch(`/v1/files/${fileId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ entity_type: 'customer', entity_id: selected.id }),
-      });
-      await loadLinkedFiles(selected.id);
-      setShowLinkFileModal(false);
-      setFileSearch('');
-      setFileSearchResults([]);
-    } catch (err: any) { showAlert(err.message || 'Failed to link file'); } finally { setFileLinking(null); }
-  }
-
-  async function unlinkFile(fileId: string, name: string) {
-    if (!selected) return;
-    if (!(await showConfirm(`Remove "${name}" from this customer? The file stays in Drive.`, { confirmLabel: 'Remove' }))) return;
-    try {
-      await apiFetch(`/v1/files/${fileId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ entity_type: null, entity_id: null }),
-      });
-      setLinkedFiles(prev => prev.filter(f => f.id !== fileId));
-    } catch (err: any) { showAlert(err.message || 'Failed to remove file'); }
-  }
-
-  async function uploadFilesToDrive(files: File[]) {
-    if (!selected || !files.length) return;
-    setFileUploading(true);
-    try {
-      const folder = await resolveCustomerFolder(selected.id);
-      const driveId = folder?.drive_id ?? await ensureDefaultDrive();
-      if (!driveId) throw new Error('No Drive available to upload into');
-      for (const f of files) {
-        const fd = new FormData();
-        fd.append('file', f);
-        const qs = new URLSearchParams({ drive_id: driveId, entity_type: 'customer', entity_id: selected.id });
-        if (folder) qs.set('parent_id', folder.id);
-        await apiFetch(`/v1/files/upload?${qs.toString()}`, { method: 'POST', body: fd });
-      }
-      showAlert(`${files.length} file(s) uploaded to Drive`, { variant: 'success' });
-      await loadLinkedFiles(selected.id);
-    } catch (err: any) { showAlert(err.message || 'Upload failed'); } finally { setFileUploading(false); }
-  }
-
-  const loadSignEnvelopes = useCallback(async (customerId: string) => {
-    setSignLoading(true);
-    try {
-      const res = await apiFetch(`/v1/sign/envelopes?client_id=${customerId}`).catch(() => []);
-      setCustSignEnvelopes(Array.isArray(res) ? res : []);
-    } catch { /* empty */ } finally { setSignLoading(false); }
+      const res = await apiFetch(`/v1/files/customer-files/${customerId}`).catch(() => []);
+      setLinkedFiles(Array.isArray(res) ? res : (res?.data ?? []));
+    } catch { setLinkedFiles([]); } finally { setFilesLoading(false); }
   }, []);
 
   useEffect(() => {
-    if (selected && mainTab === 'signatures') loadSignEnvelopes(selected.id);
-  }, [selected, mainTab, loadSignEnvelopes]);
+    if (selected) loadFiles(selected.id);
+  }, [selected, loadFiles]);
+
+  const loadSignatures = useCallback(async (customerId: string) => {
+    setSignLoading(true);
+    try {
+      const res = await apiFetch(`/v1/sign/envelopes?customer_id=${customerId}`).catch(() => []);
+      setCustSignEnvelopes(Array.isArray(res) ? res : (res?.data ?? []));
+    } catch { setCustSignEnvelopes([]); } finally { setSignLoading(false); }
+  }, []);
 
   useEffect(() => {
-    if (!showSendSignModal) return;
-    const q = signFileSearch.trim();
-    if (!q) { setSignFileSearchResults([]); return; }
-    setSignFileSearching(true);
-    const t = setTimeout(() => {
-      apiFetch(`/v1/files?q=${encodeURIComponent(q)}`)
-        .then((res: any) => setSignFileSearchResults(Array.isArray(res) ? res : []))
-        .catch(() => setSignFileSearchResults([]))
-        .finally(() => setSignFileSearching(false));
-    }, 300);
-    return () => clearTimeout(t);
-  }, [signFileSearch, showSendSignModal]);
+    if (selected) loadSignatures(selected.id);
+  }, [selected, loadSignatures]);
 
-  async function sendFileForSignature(file: { id: string; name: string }) {
-    if (!selected) return;
-    if (!selected.email) { showAlert('This customer has no email on file — add one before sending a document for signature.'); return; }
-    setSendingForSignature(file.id);
+  const loadContacts = useCallback(async (customerId: string) => {
+    setContactsLoading(true);
     try {
-      const blob = await apiFetchBlob(`/v1/files/${file.id}/download`);
-      const documentData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = ev => resolve((ev.target?.result as string) ?? '');
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(blob);
-      });
-      const envelope: any = await apiFetch('/v1/sign/envelopes', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: file.name,
-          file_id: file.id,
-          file_name: file.name,
-          document_data: documentData,
-          client_id: selected.id,
-          order_mode: 'sequential',
-          recipients: [{ name: selected.name, email: selected.email, sign_order: 1 }],
-          fields: [{ recipient_index: 0, field_type: 'signature', page: 1, x: 0.55, y: 0.85, width: 0.35, height: 0.07, required: true }],
-        }),
-      });
-      await apiFetch(`/v1/sign/envelopes/${envelope.id}/send`, { method: 'POST' });
-      showAlert(`Sent "${file.name}" to ${selected.name} for signature`, { variant: 'success' });
-      setShowSendSignModal(false);
-      setSignFileSearch('');
-      setSignFileSearchResults([]);
-      await loadSignEnvelopes(selected.id);
-    } catch (err: any) { showAlert(err.message || 'Failed to send for signature'); } finally { setSendingForSignature(null); }
-  }
+      const res = await apiFetch(`/v1/customers/${customerId}/contacts`).catch(() => []);
+      setCustContacts(Array.isArray(res) ? res : (res?.data ?? []));
+    } catch { setCustContacts([]); } finally { setContactsLoading(false); }
+  }, []);
 
   useEffect(() => {
-    if (selected) setNotes(selected.notes || '');
-  }, [selected]);
+    if (selected) loadContacts(selected.id);
+  }, [selected, loadContacts]);
 
-  async function handleSaveNote() {
-    if (!selected) return;
-    setNoteSaving(true);
-    try {
-      await apiFetch(`/v1/customers/${selected.id}`, { method: 'PATCH', body: JSON.stringify({ notes }) });
-      setSelected(prev => prev ? { ...prev, notes } : prev);
-    } catch (err: any) { showAlert(err.message || 'Failed to save notes'); } finally { setNoteSaving(false); }
-  }
+  /* ── Calculations & Metrics ── */
+  const customerFinancials = useMemo(() => {
+    let totalInvoiced = 0;
+    let totalPaid = 0;
+    let outstanding = 0;
 
-  async function handleAddContact(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selected || !contactForm.name) return;
-    setContactSaving(true);
-    try {
-      await apiFetch(`/v1/customers/${selected.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ contact_name: contactForm.name, email: contactForm.email || selected.email, phone_wa: contactForm.phone || selected.phone_wa }),
-      });
-      setSelected(prev => prev ? { ...prev, contact_name: contactForm.name, email: contactForm.email || prev.email, phone_wa: contactForm.phone || prev.phone_wa } : prev);
-      setShowAddContact(false);
-      setContactForm({ name: '', email: '', phone: '', role: '' });
-    } catch (err: any) { showAlert(err.message || 'Failed to save contact'); } finally { setContactSaving(false); }
-  }
+    for (const inv of custInvoices) {
+      const mapped = mapApiInvoice(inv);
+      const totals = invoiceTotals(mapped);
+      const totalAmount = totals.grandTotalTZS;
+      const amountPaid = mapped.received || 0;
+      const bal = totalAmount - amountPaid;
+      totalInvoiced += totalAmount;
+      totalPaid += amountPaid;
+      if (mapped.status !== 'Paid') {
+        outstanding += Math.max(0, bal);
+      }
+    }
+    return { totalInvoiced, totalPaid, outstanding };
+  }, [custInvoices]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const statementTransactions = useMemo(() => {
+    const list: { type: 'invoice' | 'payment' | 'credit note'; date: string; ref: string; amount: number; debit: boolean; balance: number }[] = [];
+    for (const inv of custInvoices) {
+      const mapped = mapApiInvoice(inv);
+      const totals = invoiceTotals(mapped);
+      list.push({ type: 'invoice', date: inv.issue_date || inv.created_at || '', ref: inv.invoice_number || inv.id, amount: totals.grandTotalTZS, debit: true, balance: 0 });
+    }
+    for (const p of custPayments) {
+      list.push({ type: 'payment', date: p.payment_date || p.created_at || '', ref: p.payment_number || p.reference || p.id, amount: Number(p.amount || 0), debit: false, balance: 0 });
+    }
+    for (const cn of custCreditNotes) {
+      list.push({ type: 'credit note', date: cn.issue_date || cn.created_at || '', ref: cn.credit_note_number || cn.id, amount: Number(cn.total_amount || 0), debit: false, balance: 0 });
+    }
+    list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let bal = 0;
+    for (const item of list) {
+      bal = item.debit ? bal - item.amount : bal + item.amount;
+      item.balance = bal;
+    }
+    return list;
+  }, [custInvoices, custPayments, custCreditNotes]);
+
+  const activeShipmentsCount = useMemo(() => {
+    return custShipments.filter(s => !['DELIVERED', 'CLOSED', 'CANCELLED'].includes((s.stage || s.status || '').toUpperCase())).length;
+  }, [custShipments]);
+
+  const tenureYears = useMemo(() => {
+    if (!selected?.created_at) return 'New';
+    const diff = Date.now() - new Date(selected.created_at).getTime();
+    const yrs = diff / (365.25 * 24 * 3600 * 1000);
+    return yrs < 0.1 ? 'Joined recently' : `${yrs.toFixed(1)} yrs`;
+  }, [selected?.created_at]);
+
+  /* ── Save Profile Changes ── */
+  const handleSaveProfile = async () => {
     if (!selected) return;
     setSaving(true);
     try {
-      await apiFetch(`/v1/customers/${selected.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: form.name, email: form.email, phone_wa: form.phone_wa, tax_id: form.tax_id,
-          contact_name: form.contact_name, address: form.address, website: form.website,
-          city: form.city, country: form.country, vat_number: form.vat_number,
-          import_license: form.import_license, preferred_port: form.preferred_port,
-          freight_terms: form.freight_terms, commodity_type: form.commodity_type,
-          credit_days: form.credit_days ? Number(form.credit_days) : null, client_type: form.client_type,
-          currency: form.currency, tancis_number: form.tancis_number,
-          organization_id: form.organization_id || null,
-        }),
+      const updated = await apiFetch(`/v1/customers/${selected.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(form),
       });
-      setSelected(prev => prev ? { ...prev, ...form } : prev);
+      setSelected(updated);
       setEditMode(false);
-    } catch (err: any) { showAlert(err.message || 'Save failed'); } finally { setSaving(false); }
+      showAlert('Customer profile updated.', { variant: 'success' });
+    } catch (e: any) {
+      showAlert(e?.message || 'Could not save profile changes.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  async function handleSendClaimCode() {
-    if (!selected || sendingClaimCode) return;
-    setSendingClaimCode(true);
+  /* ── Delete Account ── */
+  const handleDeleteCustomer = async () => {
+    if (!selected) return;
     try {
-      const res = await apiFetch(`/v1/customers/${selected.id}/claim-code`, { method: 'POST' });
-      const sentTo = [res.sent_to?.email, res.sent_to?.phone_wa].filter(Boolean);
-      showAlert(
-        `Code: ${res.token}`,
-        {
-          title: 'Claim code sent',
-          variant: 'success',
-          items: [
-            sentTo.length ? `Sent to ${sentTo.join(' and ')}` : 'No email/WhatsApp on file — share the code above directly.',
-            'Valid for 7 days, single use — enter it under "Link an Agent" in the organization portal.',
-          ],
-        },
-      );
-    } catch (err: any) {
-      showAlert(err.message || 'Could not send a claim code');
-    } finally {
-      setSendingClaimCode(false);
+      await apiFetch(`/v1/customers/${selected.id}`, { method: 'DELETE' });
+      showAlert('Customer removed from CRM directory.', { variant: 'info' });
+      navigate('/crm/customers', { replace: true });
+    } catch (e: any) {
+      showAlert(e?.message || 'Could not delete customer.');
     }
+  };
+
+  /* ── Open Cloud Drive Folder ── */
+  const handleOpenDriveFolder = async () => {
+    if (!selected) return;
+    setResolvingFolder(true);
+    try {
+      const folder = await apiFetch(`/v1/files/customer-folder/${selected.id}`);
+      setCustomerFolder(folder);
+      const qs = new URLSearchParams({ drive: folder.drive_id, folder: folder.id, name: folder.name });
+      if (folder.parent) { qs.set('parentId', folder.parent.id); qs.set('parentName', folder.parent.name); }
+      window.open(`/cloud?${qs.toString()}`, '_blank', 'noopener');
+    } catch (e: any) {
+      showAlert(e?.message || 'Could not open Cloud Drive folder.');
+    } finally {
+      setResolvingFolder(false);
+    }
+  };
+
+  if (fetchLoading) {
+    return <SkeletonPage variant="detail" />;
   }
 
-  if (fetchLoading) return <SkeletonPage variant="table" />;
-  if (!selected) return null;
+  if (fetchError === 'forbidden') {
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <Icon name="lock" size={32} strokeWidth={1.5} style={{ color: 'var(--ink3)' }} />
+        <h2 style={{ fontSize: 20, color: 'var(--ink)', marginTop: 12 }}>Access Restricted</h2>
+        <p style={{ color: 'var(--ink3)', marginTop: 8, maxWidth: 400, margin: '8px auto 0' }}>
+          You don't have permission to view this customer profile. Contact your workspace administrator if you believe this is an error.
+        </p>
+        <Button variant="outline" onClick={() => navigate('/crm/customers')} style={{ marginTop: 20 }}>
+          Return to Customers Directory
+        </Button>
+      </div>
+    );
+  }
+
+  if (!selected) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <Icon name="search" size={32} strokeWidth={1.5} style={{ color: 'var(--ink3)' }} />
+        <h2 style={{ fontSize: 20, color: 'var(--ink)', marginTop: 12 }}>Customer Not Found</h2>
+        <p style={{ color: 'var(--ink3)', marginTop: 8 }}>The requested account could not be found or has been removed.</p>
+        <Button variant="default" onClick={() => navigate('/crm/customers')} style={{ marginTop: 16 }}>
+          Return to Customers Directory
+        </Button>
+      </div>
+    );
+  }
 
   const sel = selected;
-  const shipCount = sel.shipment_count ?? custShipments.length;
-  const status = sel.account_status || 'Active';
+  const custPhone = sel.phone || sel.phone_wa || '';
 
-  const btnS: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-    border: '1px solid var(--border)', borderRadius: 'var(--r)',
-    background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5,
-    fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
-  };
+  return (
+    <div className="cust-detail-root">
 
-  function renderTabContent() {
-    /* ── Overview ── */
-    if (mainTab === 'overview') {
-      const activeShipmentsCount = custShipments.filter(s => s.stage !== 'CLOSED').length;
-      const ovTotalInvoiced = custInvoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
-      const ovTotalPaid     = custPayments.reduce((s: number, p: any) => s + (parseFloat(p.amount ?? 0)), 0);
-      const ovOutstanding   = ovTotalInvoiced - ovTotalPaid;
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          {/* KPI row */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
-            {[
-              { label: 'Total Shipments',  value: shipCount, icon: 'ship' as IconName, color: 'var(--blue)', bg: 'var(--blue-l)' },
-              { label: 'Active Shipments', value: shipLoading ? '…' : activeShipmentsCount, icon: 'activity' as IconName, color: 'var(--teal)', bg: 'var(--teal-l)' },
-              { label: 'Invoices',         value: finLoading ? '…' : custInvoices.length, icon: 'fileText' as IconName, color: 'var(--purple)', bg: 'var(--purple-l)' },
-              { label: 'Outstanding (TZS)',value: finLoading ? '…' : ovOutstanding.toLocaleString('en'), icon: 'alertCircle' as IconName, color: 'var(--red)', bg: 'var(--red-l)' },
-            ].map(kpi => (
-              <div key={kpi.label} className="crm-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={kpi.icon} size={18} color={kpi.color} strokeWidth={1.75} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>{kpi.value}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>{kpi.label}</div>
-                </div>
+      {/* ── Breadcrumbs & Quick Bar ── */}
+      <div className="cust-breadcrumbs-bar">
+        <div className="cust-breadcrumbs-path">
+          <Link to="/crm/overview">CRM</Link>
+          <span>/</span>
+          <Link to="/crm/customers">Customers</Link>
+          <span>/</span>
+          <span className="cust-breadcrumbs-current">{sel.name}</span>
+        </div>
+        <Link to="/crm/customers" className="cust-back-btn">
+          <Icon name="arrowLeft" size={13} />
+          <span>All Customers</span>
+        </Link>
+      </div>
+
+      {/* ── UNIFIED MASTER COMPANY HERO CARD (Hudumika Design System) ── */}
+      <div className="cust-master-hero">
+        <div className="cust-hero-header">
+
+          {/* Left: Identity Cluster */}
+          <div className="cust-hero-identity">
+            <div className="cust-avatar-frame">
+              <AvatarPicker
+                id={sel.id}
+                kind="customers"
+                name={sel.name}
+                size={64}
+                shape="square"
+                onChange={async (dataUrl: string | null) => {
+                  try {
+                    await apiFetch(`/v1/customers/${sel.id}`, { method: 'PUT', body: JSON.stringify({ avatar_url: dataUrl }) });
+                    setSelected(prev => prev ? { ...prev, avatar_url: dataUrl || undefined } : prev);
+                    showAlert('Company logo updated.', { variant: 'success' });
+                  } catch { showAlert('Could not update logo.'); }
+                }}
+              />
+              <div className="cust-verified-badge" title="Verified CRM Account">
+                <Icon name="check" size={12} strokeWidth={2.5} />
               </div>
-            ))}
+            </div>
+
+            <div className="cust-hero-details">
+              <div className="cust-title-row">
+                <h1 className="cust-company-title">{sel.name}</h1>
+                <Badge variant={STATUS_VARIANT[sel.status || sel.account_status || 'Active'] || 'success'}>
+                  {sel.status || sel.account_status || 'Active'}
+                </Badge>
+                {sel.classification && (
+                  <span className="cust-classification-chip">
+                    <Icon name="star" size={10} />
+                    {sel.classification}
+                  </span>
+                )}
+                {sel.sector && (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
+                    {sel.sector}
+                  </span>
+                )}
+              </div>
+
+              <div className="cust-subtitle-row">
+                {sel.account_manager_name ? (
+                  <span className="cust-owner-chip">
+                    <PersonAvatar name={sel.account_manager_name} size={18} />
+                    <span>Manager: <strong>{sel.account_manager_name}</strong></span>
+                  </span>
+                ) : (
+                  <span>Account Manager: <strong style={{ color: 'var(--ink2)' }}>Operations Team</strong></span>
+                )}
+                <span>&middot;</span>
+                <span>Currency: <strong style={{ color: 'var(--ink)' }}>{sel.currency || 'TZS'}</strong></span>
+                <span>&middot;</span>
+                <span>Terms: <strong style={{ color: 'var(--ink)' }}>{sel.payment_terms || sel.credit_days || 'Net 30'}</strong></span>
+                <span>&middot;</span>
+                <span>Client since <strong style={{ color: 'var(--ink)' }}>{tenureYears}</strong></span>
+              </div>
+
+              <div className="cust-meta-chips-row">
+                {custPhone && (
+                  <span className="cust-meta-chip">
+                    <Icon name="phone" size={13} style={{ color: 'var(--ink3)' }} />
+                    <a href={`tel:${custPhone}`}>{custPhone}</a>
+                  </span>
+                )}
+                {sel.email && (
+                  <span className="cust-meta-chip">
+                    <Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} />
+                    <a href={`mailto:${sel.email}`}>{sel.email}</a>
+                  </span>
+                )}
+                {(sel.city || sel.country) && (
+                  <span className="cust-meta-chip">
+                    <Icon name="mapPin" size={13} style={{ color: 'var(--ink3)' }} />
+                    <span>{[sel.city, sel.country].filter(Boolean).join(', ')}</span>
+                  </span>
+                )}
+                {sel.tax_id && (
+                  <span className="cust-meta-chip">
+                    <TinChip tin={sel.tax_id} />
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Carbon footprint */}
-          {(() => {
-            const calc = custShipments.filter(s => s.co2_emissions_kg != null);
-            const totalCo2 = calc.reduce((s, sh) => s + Number(sh.co2_emissions_kg || 0), 0);
-            const totalCredits = calc.reduce((s, sh) => s + Number(sh.carbon_credits_saved || 0), 0);
-            return (
-              <div className="crm-card" style={{ padding: '16px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+          {/* Right: Quick Action Buttons */}
+          <div className="cust-hero-actions">
+            <ComposeEmailButton subjectType="customer" subjectId={sel.id}>
+              <Button variant="outline" size="sm">
+                <Icon name="mail" size={14} />
+                <span>Email</span>
+              </Button>
+            </ComposeEmailButton>
+
+            <StartCallButton subjectType="customer" subjectId={sel.id} phone={custPhone}>
+              <Button variant="outline" size="sm">
+                <Icon name="phone" size={14} />
+                <span>Call</span>
+              </Button>
+            </StartCallButton>
+
+            {custPhone && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(`https://wa.me/${custPhone.replace(/[^0-9]/g, '')}`, '_blank', 'noopener')}
+                title="Send WhatsApp message"
+              >
+                <Icon name="messageSquare" size={14} style={{ color: 'var(--green)' }} />
+                <span>WhatsApp</span>
+              </Button>
+            )}
+
+            <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+              <Icon name="edit" size={14} />
+              <span>Edit</span>
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" style={{ padding: '0 8px' }}>
+                  <Icon name="moreHorizontal" size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShareModalOpen(true)}>
+                  <Icon name="share" size={14} />
+                  <span>Share Profile Link</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openStatementPrintWindow(sel, statementTransactions, customerFinancials)}>
+                  <Icon name="printer" size={14} />
+                  <span>Statement PDF</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenDriveFolder}>
+                  <Icon name="folder" size={14} />
+                  <span>Open Cloud Drive</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowInviteDialog(true)}>
+                  <Icon name="send" size={14} />
+                  <span>Customer Portal Invite</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setDeleteModalOpen(true)} style={{ color: 'var(--red)' }}>
+                  <Icon name="trash" size={14} />
+                  <span>Delete Account</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Live 6-KPI Executive Ribbon */}
+        <div className="cust-hero-kpi-bar">
+          <div className="cust-kpi-item">
+            <div className="cust-kpi-top">
+              <span className="cust-kpi-label">Total Invoiced</span>
+              <Icon name="fileText" size={14} style={{ color: 'var(--ink3)' }} />
+            </div>
+            <div className="cust-kpi-val">TZS {Math.round(customerFinancials.totalInvoiced).toLocaleString()}</div>
+            <div className="cust-kpi-sub">Lifetime billing</div>
+          </div>
+
+          <div className="cust-kpi-item">
+            <div className="cust-kpi-top">
+              <span className="cust-kpi-label">Collected Revenue</span>
+              <Icon name="check" size={14} style={{ color: 'var(--green)' }} />
+            </div>
+            <div className="cust-kpi-val is-green">TZS {Math.round(customerFinancials.totalPaid).toLocaleString()}</div>
+            <div className="cust-kpi-sub">
+              {customerFinancials.totalInvoiced > 0
+                ? `${((customerFinancials.totalPaid / customerFinancials.totalInvoiced) * 100).toFixed(0)}% recovery rate`
+                : '100% in good standing'}
+            </div>
+          </div>
+
+          <div className="cust-kpi-item">
+            <div className="cust-kpi-top">
+              <span className="cust-kpi-label">Outstanding Balance</span>
+              <Icon name="alertTriangle" size={14} style={{ color: customerFinancials.outstanding > 0 ? 'var(--red)' : 'var(--ink3)' }} />
+            </div>
+            <div className={`cust-kpi-val ${customerFinancials.outstanding > 0 ? 'is-red' : 'is-green'}`}>
+              TZS {Math.round(customerFinancials.outstanding).toLocaleString()}
+            </div>
+            <div className="cust-kpi-sub">{customerFinancials.outstanding > 0 ? 'Requires follow-up' : 'No overdue debt'}</div>
+          </div>
+
+          <div className="cust-kpi-item">
+            <div className="cust-kpi-top">
+              <span className="cust-kpi-label">Active Cargo</span>
+              <Icon name="ship" size={14} style={{ color: 'var(--teal)' }} />
+            </div>
+            <div className="cust-kpi-val is-teal">{activeShipmentsCount} Shipments</div>
+            <div className="cust-kpi-sub">In ClearOS tracking</div>
+          </div>
+
+          <div className="cust-kpi-item">
+            <div className="cust-kpi-top">
+              <span className="cust-kpi-label">Open Opportunities</span>
+              <Icon name="trendingUp" size={14} style={{ color: 'var(--purple)' }} />
+            </div>
+            <div className="cust-kpi-val">{custDeals.length} Deals</div>
+            <div className="cust-kpi-sub">Sales pipeline</div>
+          </div>
+
+          <div className="cust-kpi-item">
+            <div className="cust-kpi-top">
+              <span className="cust-kpi-label">Account Standing</span>
+              <Icon name="shield" size={14} style={{ color: 'var(--green)' }} />
+            </div>
+            <div className="cust-kpi-val is-green">
+              {customerFinancials.outstanding > 10000000 ? 'Review Needed' : 'Tier 1 Prime'}
+            </div>
+            <div className="cust-kpi-sub">{sel.payment_terms || 'Net 30'} approval</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Sub-Navigation Tabs Strip ── */}
+      <div className="cust-tab-nav">
+        {MAIN_TABS.map(t => {
+          const isActive = mainTab === t.key;
+          let badgeCount: number | null = null;
+          if (t.key === 'finance') badgeCount = custInvoices.length;
+          else if (t.key === 'shipments') badgeCount = custShipments.length;
+          else if (t.key === 'signatures') badgeCount = custSignEnvelopes.length;
+          else if (t.key === 'tickets') badgeCount = custTickets.length;
+          else if (t.key === 'documents') badgeCount = linkedFiles.length;
+
+          return (
+            <button
+              key={t.key}
+              type="button"
+              className="cust-nav-btn"
+              data-active={isActive ? 'true' : undefined}
+              onClick={() => handleTabChange(t.key)}
+            >
+              <Icon name={t.icon} size={15} />
+              <span>{t.label}</span>
+              {badgeCount !== null && badgeCount > 0 && (
+                <span className="cust-nav-badge">{badgeCount}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── TAB CONTENT 1: OVERVIEW WORKSTATION ── */}
+      {mainTab === 'overview' && (
+        <div className="cust-workstation-grid">
+
+          {/* Left Summary Rail */}
+          <div className="cust-rail-col">
+
+            {/* Card 1: Key Decision Maker / Stakeholder */}
+            <div className="cust-widget-card">
+              <div className="cust-widget-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="user" size={15} style={{ color: 'var(--teal)' }} />
+                  <span>Primary Stakeholder</span>
+                </h3>
+                <Button variant="ghost" size="xs" onClick={() => setShowAddContact(true)}>
+                  <Icon name="plus" size={12} />
+                  <span>Add</span>
+                </Button>
+              </div>
+              <div className="cust-widget-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="globe" size={18} color="var(--green)" strokeWidth={1.75} />
+                  <PersonAvatar name={sel.contact_person || sel.contact_name || sel.name} size={42} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
+                      {sel.contact_person || sel.contact_name || 'Managing Director'}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                      {sel.contact_role || 'Executive Representative'}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Carbon Footprint</div>
                 </div>
-                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{totalCo2.toLocaleString('en')} kg</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Total CO₂ emissions</div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+                  {custPhone && (
+                    <Button variant="outline" size="xs" onClick={() => window.open(`tel:${custPhone}`)} style={{ width: '100%', justifyContent: 'center' }}>
+                      <Icon name="phone" size={12} />
+                      <span>Call</span>
+                    </Button>
+                  )}
+                  {sel.email && (
+                    <Button variant="outline" size="xs" onClick={() => window.open(`mailto:${sel.email}`)} style={{ width: '100%', justifyContent: 'center' }}>
+                      <Icon name="mail" size={12} />
+                      <span>Email</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Commercial & Compliance Credentials */}
+            <div className="cust-widget-card">
+              <div className="cust-widget-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="shield" size={15} style={{ color: 'var(--green)' }} />
+                  <span>Commercial & Tax Credentials</span>
+                </h3>
+              </div>
+              <div className="cust-widget-body">
+                <div className="cust-kv-list">
+                  <div className="cust-kv-row">
+                    <span className="cust-kv-label">Legal Name</span>
+                    <span className="cust-kv-val">{sel.name}</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)' }}>{totalCredits.toFixed(2)}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Credits saved (est.)</div>
+                  <div className="cust-kv-row">
+                    <span className="cust-kv-label">Tax ID (TIN)</span>
+                    <span className="cust-kv-val"><TinChip tin={sel.tax_id} /></span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{calc.length} / {custShipments.length}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Shipments calculated</div>
+                  <div className="cust-kv-row">
+                    <span className="cust-kv-label">VAT / VRN</span>
+                    <span className="cust-kv-val">{sel.vrn_number || sel.vat_number || 'Registered'}</span>
+                  </div>
+                  <div className="cust-kv-row">
+                    <span className="cust-kv-label">Port of Clearance</span>
+                    <span className="cust-kv-val">{sel.preferred_port || 'Dar es Salaam Port'}</span>
+                  </div>
+                  <div className="cust-kv-row">
+                    <span className="cust-kv-label">Incoterms</span>
+                    <span className="cust-kv-val">{sel.incoterms || sel.freight_terms || 'CIF / FOB'}</span>
+                  </div>
+                  <div className="cust-kv-row">
+                    <span className="cust-kv-label">Invoicing Terms</span>
+                    <span className="cust-kv-val">{sel.payment_terms || sel.credit_days || 'Net 30 Days'}</span>
                   </div>
                 </div>
               </div>
-            );
-          })()}
+            </div>
 
-          {/* Daily report toggle */}
-          <div className="crm-card" style={{ marginBottom: 24, padding: '4px 18px' }}>
-            <SwitchRow
-              title="Daily shipment progress reports"
-              description="Sends today's PDF report by email and a live-status link by WhatsApp, ~21:00 EAT, for every active shipment unless that shipment overrides it."
-              checked={sel.daily_report_enabled !== false}
-              onCheckedChange={(enabled) => {
-                apiFetch(`/v1/customers/${sel.id}`, { method: 'PATCH', body: JSON.stringify({ daily_report_enabled: enabled }) })
-                  .then(() => setSelected(prev => prev ? { ...prev, daily_report_enabled: enabled } : prev))
-                  .catch(err => showAlert(err.message || 'Failed to update daily report setting'));
-              }}
-            />
+            {/* Card 3: Customer Portal & Automation Settings */}
+            <div className="cust-widget-card">
+              <div className="cust-widget-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="lock" size={15} style={{ color: 'var(--purple)' }} />
+                  <span>Portal & Automation</span>
+                </h3>
+                <Badge variant={inviteStatus?.state === 'active' ? 'success' : inviteStatus?.state === 'invited' ? 'warning' : 'gray'}>
+                  {inviteStatus?.state === 'active' ? 'Portal Active' : inviteStatus?.state === 'invited' ? 'Invite Sent' : 'Portal Disabled'}
+                </Badge>
+              </div>
+              <div className="cust-widget-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <SwitchRow
+                  title="Automated Monthly PDF Statement"
+                  description="Email financial statement on 1st of every month"
+                  checked={Boolean(sel.daily_report_enabled)}
+                  onCheckedChange={async (v) => {
+                    try {
+                      const updated = await apiFetch(`/v1/customers/${sel.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ daily_report_enabled: v }),
+                      });
+                      setSelected(updated);
+                      showAlert(v ? 'Monthly statement emails enabled.' : 'Monthly statement emails disabled.', { variant: 'success' });
+                    } catch { showAlert('Could not update preference.'); }
+                  }}
+                />
+                <SwitchRow
+                  title="WhatsApp Milestone Notifications"
+                  description="Send instant delivery & customs clearance alerts"
+                  checked={Boolean(sel.whatsapp_alerts_enabled)}
+                  onCheckedChange={async (v) => {
+                    if (v && !custPhone) { showAlert('This customer has no phone number on file.'); return; }
+                    try {
+                      const updated = await apiFetch(`/v1/customers/${sel.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ whatsapp_alerts_enabled: v }),
+                      });
+                      setSelected(updated);
+                      showAlert(v ? 'WhatsApp alerts enabled.' : 'WhatsApp alerts disabled.', { variant: 'success' });
+                    } catch { showAlert('Could not update preference.'); }
+                  }}
+                />
+                <Button variant="outline" size="sm" onClick={() => setShowInviteDialog(true)} style={{ width: '100%', marginTop: 6 }}>
+                  <Icon name="key" size={13} />
+                  <span>Manage Portal Access</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Card 4: Custom Fields */}
+            <div className="cust-widget-card">
+              <div className="cust-widget-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="layers" size={15} style={{ color: 'var(--ink3)' }} />
+                  <span>Custom Attributes</span>
+                </h3>
+              </div>
+              <div className="cust-widget-body">
+                <CustomFieldsPanel entityType="customer" subjectId={sel.id} />
+              </div>
+            </div>
+
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20 }}>
-            {/* Recent shipments */}
-            <div className="crm-card">
-              <div className="crm-card-header">
-                <span className="crm-card-title">Recent Shipments</span>
-                <button type="button" onClick={() => handleTabChange('shipments')} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>View all →</button>
-              </div>
-              {shipLoading ? (
-                <SectionLoading />
-              ) : custShipments.length === 0 ? (
-                <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)' }}>
-                  <Icon name="ship" size={28} strokeWidth={1.25} />
-                  <div style={{ fontSize: 13, marginTop: 8 }}>No shipments yet</div>
+          {/* Right Main Column */}
+          <div className="cust-main-col">
+
+            {/* Widget 1: Commercial & Invoicing Snapshot */}
+            <div className="cust-widget-card">
+              <div className="cust-pulse-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="dollarSign" size={15} style={{ color: 'var(--green)' }} />
+                  <span>Recent Commercial Transactions</span>
+                </h3>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Button variant="outline" size="xs" onClick={() => handleTabChange('finance')}>
+                    View All ({custInvoices.length})
+                  </Button>
+                  <Button variant="default" size="xs" onClick={() => navigate(`/billing/invoices/new?customer_id=${sel.id}`)}>
+                    <Icon name="plus" size={12} />
+                    <span>Create Invoice</span>
+                  </Button>
                 </div>
-              ) : custShipments.slice(0, 6).map(s => (
-                <Link key={s.id} to={`/clearos/clearance/${s.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="ship" size={14} color="var(--teal)" strokeWidth={1.75} />
+              </div>
+              <div className="cust-widget-body is-flush">
+                {custInvoices.length === 0 ? (
+                  <div style={{ padding: '24px var(--page-pad-x, 16px)', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No invoices generated yet for this account.
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.ref_number || 'CLR-???'}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{s.goods_desc || 'No description'}</div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="cust-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Invoice</th>
+                          <th>Issue Date</th>
+                          <th>Due Date</th>
+                          <th style={{ textAlign: 'right' }}>Amount</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {custInvoices.slice(0, 5).map(inv => {
+                          const mapped = mapApiInvoice(inv);
+                          const totals = invoiceTotals(mapped);
+                          return (
+                            <tr key={inv.id}>
+                              <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                                <Link to={`/billing/invoices/${inv.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                                  {inv.invoice_number || `INV-${inv.id.slice(0, 6)}`}
+                                </Link>
+                              </td>
+                              <td style={{ color: 'var(--ink2)' }}>{fmtDateShort(inv.issue_date || inv.created_at)}</td>
+                              <td style={{ color: 'var(--ink2)' }}>{fmtDateShort(inv.due_date)}</td>
+                              <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'monospace' }}>
+                                TZS {Math.round(totals.grandTotalTZS).toLocaleString()}
+                              </td>
+                              <td>
+                                <Badge variant={mapped.status === 'Paid' ? 'success' : mapped.status === 'Overdue' ? 'error' : 'warning'}>
+                                  {mapped.status}
+                                </Badge>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <Button variant="ghost" size="xs" onClick={() => window.open(`/billing/invoices/${inv.id}`, '_blank')}>
+                                  <Icon name="externalLink" size={12} />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
-                    {s.stage || 'DRAFT'}
-                  </Badge>
-                  <span style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
-                </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Widget 3: Active Operations & Cargo (ClearOS) */}
+            <div className="cust-widget-card">
+              <div className="cust-pulse-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="ship" size={15} style={{ color: 'var(--teal)' }} />
+                  <span>Active Shipments & ClearOS Logistics</span>
+                </h3>
+                <Button variant="outline" size="xs" onClick={() => handleTabChange('shipments')}>
+                  View All Shipments ({custShipments.length})
+                </Button>
+              </div>
+              <div className="cust-widget-body is-flush">
+                {custShipments.length === 0 ? (
+                  <div style={{ padding: '24px var(--page-pad-x, 16px)', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No active cargo or shipments linked to this account.
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="cust-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Shipment Ref</th>
+                          <th>Description</th>
+                          <th>Routing</th>
+                          <th>Stage</th>
+                          <th style={{ textAlign: 'right' }}>Telemetry</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {custShipments.slice(0, 5).map(ship => (
+                          <tr key={ship.id}>
+                            <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                              <Link to={`/clearos/shipments/${ship.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                                {ship.ref_number || ship.reference || `SHP-${ship.id.slice(0, 6)}`}
+                              </Link>
+                            </td>
+                            <td style={{ color: 'var(--ink)' }}>{ship.goods_desc || ship.description || 'General Cargo'}</td>
+                            <td style={{ color: 'var(--ink2)', fontSize: 12 }}>
+                              {ship.port_of_loading || 'Origin'} &rarr; {ship.port_of_discharge || 'Dar es Salaam'}
+                            </td>
+                            <td>
+                              <span className={`cust-stage-pill stage-${ship.stage || 'BOOKING'}`}>
+                                {ship.stage || 'BOOKING'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <Button variant="ghost" size="xs" onClick={() => window.open(`/clearos/shipments/${ship.id}`, '_blank')}>
+                                <Icon name="arrowRight" size={12} />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Widget 4: Comprehensive Activity Stream */}
+            <div className="cust-widget-card">
+              <div className="cust-widget-header">
+                <h3 className="cust-widget-title">
+                  <Icon name="clock" size={15} style={{ color: 'var(--ink3)' }} />
+                  <span>Interaction Timeline & Audit Stream</span>
+                </h3>
+              </div>
+              <div className="cust-widget-body">
+                <ActivityTimeline subjectType="customer" subjectId={sel.id} />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB CONTENT 2: COMMERCIAL & FINANCE ── */}
+      {mainTab === 'finance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 6, background: 'var(--card-bg, var(--white))', padding: 4, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+              {[
+                { id: 'invoices', label: `Invoices (${custInvoices.length})` },
+                { id: 'payments', label: `Payments (${custPayments.length})` },
+                { id: 'statement', label: 'Statement of Account' },
+                { id: 'quotes', label: `Quotes (${custQuotations.length})` },
+                { id: 'credit', label: `Credit Notes (${custCreditNotes.length})` },
+              ].map(st => (
+                <Button
+                  key={st.id}
+                  variant={financeTab === st.id ? 'default' : 'ghost'}
+                  size="xs"
+                  onClick={() => setFinanceTab(st.id)}
+                >
+                  {st.label}
+                </Button>
               ))}
             </div>
 
-            {/* Info + quick actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="crm-card" style={{ padding: '18px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 14 }}>Key Information</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { label: 'Contact Person',    value: sel.contact_name },
-                    { label: 'Email',             value: sel.email },
-                    { label: 'Phone / WhatsApp',  value: sel.phone_wa },
-                    { label: 'TIN Number',        value: sel.tax_id, mono: true },
-                    { label: 'Preferred Port',    value: sel.preferred_port },
-                    { label: 'Freight Terms',     value: sel.freight_terms },
-                    { label: 'Credit Terms',      value: sel.credit_days ? `Net ${sel.credit_days} days` : undefined },
-                  ].map(({ label, value, mono }) => (
-                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                      <span style={{ fontSize: 12, color: 'var(--ink3)', flexShrink: 0 }}>{label}</span>
-                      <span style={{ fontSize: 12.5, color: value ? 'var(--ink)' : 'var(--ink3)', fontFamily: mono ? 'var(--font)' : 'var(--font)', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>{value || '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="crm-card" style={{ padding: '18px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Quick Actions</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {(() => {
-                    const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none', width: '100%' };
-                    const hoverHandlers = {
-                      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--hover-bg)'),
-                      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--bg)'),
-                    };
-                    const actions: { label: string; icon: IconName; path?: string; action?: () => void }[] = [
-                      { label: 'Create Invoice',     icon: 'fileText'   as IconName, path: `/billing?customer_id=${sel.id}&new=1` },
-                      { label: 'Add Shipment',       icon: 'ship'       as IconName, action: () => handleTabChange('shipments') },
-                      { label: 'Record Payment',     icon: 'creditCard' as IconName, action: () => { handleTabChange('finance'); setFinanceTab('payments'); } },
-                      { label: 'Generate Statement', icon: 'barChart'   as IconName, action: () => { handleTabChange('finance'); setFinanceTab('statement'); } },
-                      {
-                        label: inviteStatus?.state === 'active' ? 'Portal: Active' : inviteStatus?.state === 'invited' ? 'Portal: Invite Pending' : 'Invite to Portal',
-                        icon: 'userPlus' as IconName,
-                        action: () => { setInviteEmail(sel.email || ''); setShowInviteDialog(true); },
-                      },
-                    ];
-                    return (
-                      <>
-                        <ComposeEmailButton subjectType="customer" subjectId={sel.id} onSent={() => handleTabChange('activity')}>
-                          <button type="button" style={itemStyle} {...hoverHandlers}>
-                            <Icon name="mail" size={13} color="var(--teal)" strokeWidth={1.75} /> Send Email
-                          </button>
-                        </ComposeEmailButton>
-                        <StartCallButton subjectType="customer" subjectId={sel.id} phone={sel.phone_wa} onLogged={() => handleTabChange('activity')}>
-                          <button type="button" style={itemStyle} {...hoverHandlers}>
-                            <Icon name="phone" size={13} color="var(--teal)" strokeWidth={1.75} /> Start Call
-                          </button>
-                        </StartCallButton>
-                        {actions.map(action => action.path ? (
-                          <Link key={action.label} to={action.path} style={itemStyle} {...hoverHandlers}>
-                            <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                          </Link>
-                        ) : (
-                          <button key={action.label} type="button" onClick={action.action} style={itemStyle} {...hoverHandlers}>
-                            <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                          </button>
-                        ))}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="outline" size="sm" onClick={() => openStatementPrintWindow(sel, statementTransactions, customerFinancials)}>
+                <Icon name="printer" size={14} />
+                <span>Export Statement PDF</span>
+              </Button>
+              <Button variant="default" size="sm" onClick={() => navigate(`/billing/invoices/new?customer_id=${sel.id}`)}>
+                <Icon name="plus" size={14} />
+                <span>New Invoice</span>
+              </Button>
             </div>
           </div>
-
-          <div style={{ marginTop: 20 }}>
-            <CustomFieldsPanel entityType="customer" subjectId={sel.id} heading="Custom Fields" />
-          </div>
-        </div>
-      );
-    }
-
-    /* ── Activity ── */
-    if (mainTab === 'activity') {
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          <ActivityTimeline subjectType="customer" subjectId={sel.id} />
-        </div>
-      );
-    }
-
-    /* ── Profile ── */
-    if (mainTab === 'profile') {
-      if (!editMode) {
-        return (
-          <div style={{ padding: '24px 28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 20 }}>
-              {!sel.organization_name && (
-                <button type="button" onClick={handleSendClaimCode} disabled={sendingClaimCode}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: sendingClaimCode ? 'default' : 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
-                  title="Send a one-time code this customer can enter in their own organization portal to self-link.">
-                  <Icon name="link" size={14} strokeWidth={1.75} /> {sendingClaimCode ? 'Sending…' : 'Send Claim Code'}
-                </button>
-              )}
-              <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Profile
-              </button>
-            </div>
-
-            <Section title="Company Information">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
-                <ViewField label="Company Name" value={sel.name} />
-                <ViewField label="Email" value={sel.email} />
-                <ViewField label="Phone / WhatsApp" value={sel.phone_wa} />
-                <ViewField label="Contact Person" value={sel.contact_name} />
-                <ViewField label="Website" value={sel.website} />
-                <ViewField label="Client Type" value={sel.client_type} />
-                <ViewField label="Currency" value={sel.currency || 'TZS'} />
-                <ViewField label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days} days` : 'Cash on Delivery'} />
-                <ViewField label="Linked Organization" value={sel.organization_name} />
-              </div>
-            </Section>
-
-            <Section title="Tax & Compliance">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
-                <ViewField label="TIN Number" value={sel.tax_id} mono />
-                <ViewField label="VAT / VRN Number" value={sel.vat_number} mono />
-                <ViewField label="Import License No." value={sel.import_license} mono />
-              </div>
-            </Section>
-
-            <Section title="Address">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
-                <ViewField label="Street Address" value={sel.address} />
-                <ViewField label="City / Town" value={sel.city} />
-                <ViewField label="Country" value={sel.country} />
-              </div>
-            </Section>
-
-            <Section title="Clearing & Forwarding">
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
-                <ViewField label="Preferred Port" value={sel.preferred_port} />
-                <ViewField label="Default Freight Terms" value={sel.freight_terms} />
-                <ViewField label="Primary Commodity" value={sel.commodity_type} />
-                <ViewField label="TANCIS Registration" value={sel.tancis_number} mono />
-              </div>
-            </Section>
-          </div>
-        );
-      }
-
-      /* Edit mode */
-      return (
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-            <Section title="Company Information">
-              <div className="prof-grid">
-                <div className="prof-field full"><label className="prof-label">Company Name *</label><input className="prof-input" value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required /></div>
-                <div className="prof-field"><label className="prof-label">Email</label><input className="prof-input" type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
-                <div className="prof-field"><label className="prof-label">Phone / WhatsApp</label><input className="prof-input" value={form.phone_wa || ''} onChange={e => setForm(p => ({ ...p, phone_wa: e.target.value }))} placeholder="+255..." /></div>
-                <div className="prof-field"><label className="prof-label">Contact Person</label><input className="prof-input" value={form.contact_name || ''} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} /></div>
-                <div className="prof-field"><label className="prof-label">Website</label><input className="prof-input" value={form.website || ''} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder="https://" /></div>
-                <div className="prof-field"><label className="prof-label">Client Type</label>
-                  <Select value={form.client_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, client_type: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Select type…</SelectItem>
-                      <SelectItem value="Importer">Importer</SelectItem>
-                      <SelectItem value="Exporter">Exporter</SelectItem>
-                      <SelectItem value="Importer & Exporter">Importer & Exporter</SelectItem>
-                      <SelectItem value="Manufacturer">Manufacturer</SelectItem>
-                      <SelectItem value="Trader">Trader</SelectItem>
-                      <SelectItem value="Embassy / NGO">Embassy / NGO</SelectItem>
-                      <SelectItem value="Government Agency">Government Agency</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="prof-field"><label className="prof-label">Currency</label>
-                  <Select value={form.currency || 'TZS'} onValueChange={v => setForm(p => ({ ...p, currency: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TZS">TZS — Tanzanian Shilling</SelectItem>
-                      <SelectItem value="USD">USD — US Dollar</SelectItem>
-                      <SelectItem value="EUR">EUR — Euro</SelectItem>
-                      <SelectItem value="KES">KES — Kenyan Shilling</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="prof-field"><label className="prof-label">Credit Terms</label>
-                  <Select value={form.credit_days || '__none__'} onValueChange={v => setForm(p => ({ ...p, credit_days: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select terms…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Select terms…</SelectItem>
-                      <SelectItem value="0">Cash on Delivery</SelectItem>
-                      <SelectItem value="15">Net 15 days</SelectItem>
-                      <SelectItem value="30">Net 30 days</SelectItem>
-                      <SelectItem value="45">Net 45 days</SelectItem>
-                      <SelectItem value="60">Net 60 days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="prof-field full">
-                  <EntityPicker
-                    label="Linked Organization"
-                    value={form.organization_id ? { id: form.organization_id, label: form.organization_name || 'Linked organization' } : null}
-                    onChange={item => setForm(p => ({ ...p, organization_id: item?.id, organization_name: item?.label }))}
-                    search={async q => {
-                      const res = await apiFetch(`/v1/organizations?q=${encodeURIComponent(q)}`).catch(() => []);
-                      return (Array.isArray(res) ? res : []).map((o: any) => ({ id: o.id, label: o.name, sublabel: o.tax_id ? `TIN ${o.tax_id}` : undefined }));
-                    }}
-                    onCreate={async name => {
-                      const created = await apiFetch('/v1/organizations', { method: 'POST', body: JSON.stringify({ name }) });
-                      return { id: created.id, label: created.name };
-                    }}
-                    placeholder="Search or create an organization…"
-                    hint="Links this customer to one shared identity across every tenant serving them."
-                  />
-                </div>
-              </div>
-            </Section>
-
-            <Section title="Tax & Compliance">
-              <div className="prof-grid">
-                <div className="prof-field"><label className="prof-label">TIN Number</label><input className="prof-input" value={form.tax_id || ''} onChange={e => setForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="xxx-xxx-xxx" style={{ fontFamily: 'var(--font)' }} /></div>
-                <div className="prof-field"><label className="prof-label">VAT / VRN Number</label><input className="prof-input" value={form.vat_number || ''} onChange={e => setForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="10-xxxxxxx-x" style={{ fontFamily: 'var(--font)' }} /></div>
-                <div className="prof-field"><label className="prof-label">Import License No.</label><input className="prof-input" value={form.import_license || ''} onChange={e => setForm(p => ({ ...p, import_license: e.target.value }))} placeholder="TBS/IMP/..." /></div>
-              </div>
-            </Section>
-
-            <Section title="Address">
-              <div className="prof-grid">
-                <div className="prof-field full"><label className="prof-label">Street Address</label><input className="prof-input" value={form.address || ''} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} /></div>
-                <div className="prof-field"><label className="prof-label">City / Town</label><input className="prof-input" value={form.city || ''} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} placeholder="Dar es Salaam" /></div>
-                <div className="prof-field"><label className="prof-label">Country</label>
-                  <Select value={form.country || 'Tanzania'} onValueChange={v => setForm(p => ({ ...p, country: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['Tanzania','Kenya','Uganda','Rwanda','Burundi','Zambia','Malawi','Mozambique','DRC Congo','Ethiopia','Other'].map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </Section>
-
-            <Section title="Clearing & Forwarding">
-              <div className="prof-grid">
-                <div className="prof-field"><label className="prof-label">Preferred Port</label>
-                  <Select value={form.preferred_port || '__none__'} onValueChange={v => setForm(p => ({ ...p, preferred_port: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select port…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Select port…</SelectItem>
-                      <SelectItem value="DSM">Dar es Salaam (DSM)</SelectItem>
-                      <SelectItem value="MOM">Mombasa (MOM)</SelectItem>
-                      <SelectItem value="TNG">Tanga (TNG)</SelectItem>
-                      <SelectItem value="ARU">Arusha Dry Port</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="prof-field"><label className="prof-label">Default Freight Terms</label>
-                  <Select value={form.freight_terms || '__none__'} onValueChange={v => setForm(p => ({ ...p, freight_terms: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select terms…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Select terms…</SelectItem>
-                      <SelectItem value="CIF">CIF — Cost, Insurance, Freight</SelectItem>
-                      <SelectItem value="FOB">FOB — Free on Board</SelectItem>
-                      <SelectItem value="EXW">EXW — Ex Works</SelectItem>
-                      <SelectItem value="DDP">DDP — Delivered Duty Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="prof-field"><label className="prof-label">Primary Commodity</label>
-                  <Select value={form.commodity_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, commodity_type: v === '__none__' ? '' : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select category…" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Select category…</SelectItem>
-                      {['General Merchandise','Food & Agriculture','Electronics & ICT','Machinery & Equipment','Chemicals & Pharmaceuticals','Motor Vehicles & Parts','Construction Materials'].map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="prof-field"><label className="prof-label">TANCIS Registration</label><input className="prof-input" value={form.tancis_number || ''} onChange={e => setForm(p => ({ ...p, tancis_number: e.target.value }))} placeholder="TANCIS importer code…" style={{ fontFamily: 'var(--font)' }} /></div>
-              </div>
-            </Section>
-          </div>
-          <div style={{ padding: '12px 28px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--white)', flexShrink: 0 }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setForm({ ...selected }); setEditMode(false); }}>Discard Changes</button>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
-          </div>
-        </form>
-      );
-    }
-
-    /* ── Contacts ── */
-    if (mainTab === 'contacts') {
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Contact Persons</span>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddContact(true)}>+ Add Contact</button>
-          </div>
-
-          {sel.contact_name ? (
-            <div style={{ marginBottom: 14 }}>
-              <SectionCard padded={false}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px' }}>
-                  <Avatar name={sel.contact_name} size={44} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{sel.contact_name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Primary Contact</div>
-                    <div style={{ display: 'flex', gap: 16, marginTop: 6, flexWrap: 'wrap' }}>
-                      {sel.email && (
-                        <a href={`mailto:${sel.email}`} style={{ fontSize: 12.5, color: 'var(--teal)', textDecoration: 'none' }}
-                          onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                          onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
-                          {sel.email}
-                        </a>
-                      )}
-                      {sel.phone_wa && (
-                        <a href={`https://wa.me/${sel.phone_wa.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 12.5, color: 'var(--ink2)', fontFamily: 'var(--font)', textDecoration: 'none' }}
-                          onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
-                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink2)')}>
-                          {sel.phone_wa}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span className="badge badge-teal" style={{ fontSize: 9.5 }}>PRIMARY</span>
-                    <button type="button" aria-label="Edit contact"
-                      onClick={() => { setContactForm({ name: sel.contact_name || '', email: sel.email || '', phone: sel.phone_wa || '', role: 'Primary Contact' }); setShowAddContact(true); }}
-                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              </SectionCard>
-            </div>
-          ) : (
-            <EmptyState icon="users" title="No contacts added" sub="Add contact persons for this customer" />
-          )}
-
-          {/* Portal Invite dialog */}
-          {showInviteDialog && (
-            <Dialog open onOpenChange={open => { if (!open) setShowInviteDialog(false); }}>
-              <DialogContent size="sm">
-                <DialogHeader>
-                  <DialogTitle>Invite to Customer Portal</DialogTitle>
-                  <DialogDescription>
-                    {inviteStatus?.state === 'active'
-                      ? `${sel.name} already has an active portal account (${inviteStatus.email}).`
-                      : inviteStatus?.state === 'invited'
-                      ? `A pending invite was sent to ${inviteStatus.email}. Sending again will revoke it and create a new link.`
-                      : `Send ${sel.name} a link to set up their portal login.`}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogBody>
-                  {inviteStatus?.state !== 'active' && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Email address</label>
-                      <input type="email" className="input-field" placeholder={sel.email || 'customer@example.com'}
-                        value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} style={{ width: '100%' }} />
-                      <p style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>
-                        Link valid for 7 days. Leave blank to use the customer's email on file{sel.email ? ` (${sel.email})` : ''}.
-                      </p>
-                    </div>
-                  )}
-                </DialogBody>
-                <DialogFooter>
-                  <Button variant="outline" size="sm" onClick={() => setShowInviteDialog(false)}>Cancel</Button>
-                  {inviteStatus?.state !== 'active' && (
-                    <Button size="sm" disabled={sendingInvite} onClick={async () => {
-                      setSendingInvite(true);
-                      try {
-                        await apiFetch(`/v1/customers/${sel.id}/invite`, {
-                          method: 'POST',
-                          body: JSON.stringify({ email: inviteEmail || sel.email }),
-                        });
-                        showAlert(`Invite sent to ${inviteEmail || sel.email}`, { variant: 'success' });
-                        setShowInviteDialog(false);
-                        const fresh: any = await apiFetch(`/v1/customers/${sel.id}/invite-status`).catch(() => null);
-                        if (fresh) setInviteStatus(fresh);
-                      } catch (err: any) {
-                        showAlert(err.message || 'Failed to send invite');
-                      } finally {
-                        setSendingInvite(false);
-                      }
-                    }}>
-                      {sendingInvite ? 'Sending…' : inviteStatus?.state === 'invited' ? 'Resend Invite' : 'Send Invite'}
-                    </Button>
-                  )}
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-
-          {/* Add / Edit Contact modal */}
-          {showAddContact && (
-            <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 440, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                  <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{contactForm.name ? 'Edit Contact' : 'Add Contact Person'}</h2>
-                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>×</button>
-                </div>
-                <form onSubmit={handleAddContact} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    { label: 'Full Name *',       key: 'name',  placeholder: 'John Doe',            required: true  },
-                    { label: 'Email',             key: 'email', placeholder: 'john@company.co.tz',  required: false },
-                    { label: 'Phone / WhatsApp',  key: 'phone', placeholder: '+255712345678',        required: false },
-                    { label: 'Role / Title',      key: 'role',  placeholder: 'Procurement Manager', required: false },
-                  ].map(({ label, key, placeholder, required }) => (
-                    <div key={key}>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>{label}</label>
-                      <input type="text" className="input-field" placeholder={placeholder} required={required}
-                        value={(contactForm as any)[key]}
-                        onChange={e => setContactForm(p => ({ ...p, [key]: e.target.value }))} />
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowAddContact(false); setContactForm({ name: '', email: '', phone: '', role: '' }); }}>Cancel</button>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={contactSaving}>{contactSaving ? 'Saving…' : 'Save Contact'}</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    /* ── Notes ── */
-    if (mainTab === 'notes') {
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Internal Notes</span>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Only visible to your team</span>
-          </div>
-          <textarea className="prof-input" style={{ height: 220, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }}
-            placeholder={`Add internal notes about ${sel.name} — payment behavior, preferences, special instructions…`}
-            value={notes} onChange={e => setNotes(e.target.value)} />
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{notes.length} characters</span>
-            <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveNote} disabled={noteSaving}>
-              {noteSaving ? 'Saving…' : 'Save Notes'}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    /* ── Finance ── */
-    if (mainTab === 'finance') {
-      const FIN_TABS = [
-        { key: 'invoices',     label: 'Invoices'     },
-        { key: 'payments',     label: 'Payments'     },
-        { key: 'statement',    label: 'Statement'    },
-        { key: 'proposals',    label: 'Proposals'    },
-        { key: 'credit-notes', label: 'Credit Notes' },
-        { key: 'expenses',     label: 'Expenses'     },
-      ];
-
-      const custExpenses = expenses.filter(e => e.customer_id === sel.id);
-      const totalInvoiced = custInvoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
-      const totalPaid     = custPayments.reduce((s: number, p: any) => s + (parseFloat(p.amount ?? 0)), 0);
-      const totalCredited = custCreditNotes.filter((c: any) => c.status === 'POSTED')
-        .reduce((s: number, c: any) => s + (c.items ?? []).reduce((ls: number, l: any) => ls + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0), 0);
-      const outstanding = totalInvoiced - totalPaid - totalCredited;
-
-      const INV_STATUS: Record<string, { bg: string; color: string }> = {
-        paid:    { bg: 'var(--green-l)',  color: 'var(--green)'  },
-        unpaid:  { bg: 'var(--gold-l)',   color: 'var(--gold)'   },
-        overdue: { bg: 'var(--red-l)',    color: 'var(--red)'    },
-        draft:   { bg: 'var(--bg)',       color: 'var(--ink3)'   },
-        partial: { bg: 'var(--purple-l)', color: 'var(--purple)' },
-      };
-
-      return (
-        <div>
-          <SubTabBar tabs={FIN_TABS} active={financeTab} onChange={setFinanceTab} />
 
           {financeTab === 'invoices' && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{finLoading ? 'Loading…' : `${custInvoices.length} invoice${custInvoices.length !== 1 ? 's' : ''}`}</span>
-                <Link to={`/billing?customer_id=${sel.id}&new=1`} className="btn btn-primary btn-sm">+ Create Invoice</Link>
-              </div>
-              {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading invoices…</div>}
-              {!finLoading && custInvoices.length === 0 && <div style={{ padding: '32px 28px' }}><EmptyState icon="fileText" title="No invoices yet" sub="Invoices issued to this customer will appear here" /></div>}
-              {!finLoading && custInvoices.length > 0 && (
-                <div className="rtbl-wrap">
-                  <table className="rtbl" style={{ minWidth: 560 }}>
-                    <thead><tr>
-                      <th>Invoice</th>
-                      <th className="col-hide-sm">Date</th>
-                      <th className="col-hide-sm">Due</th>
-                      <th style={{ textAlign: 'right' }}>Amount</th>
-                      <th style={{ textAlign: 'center' }}>Status</th>
-                    </tr></thead>
+            <SectionCard title="Invoices Ledger" padded={false}>
+              {custInvoices.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No invoices found.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="cust-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Invoice #</th>
+                        <th>Bill Date</th>
+                        <th>Due Date</th>
+                        <th style={{ textAlign: 'right' }}>Total Amount</th>
+                        <th style={{ textAlign: 'right' }}>Amount Paid</th>
+                        <th style={{ textAlign: 'right' }}>Balance</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      {custInvoices.map((inv: any) => {
-                        const st = (inv.status || 'draft').toLowerCase();
-                        const sc = INV_STATUS[st] || INV_STATUS.draft;
+                      {custInvoices.map(inv => {
+                        const mapped = mapApiInvoice(inv);
+                        const totals = invoiceTotals(mapped);
+                        const totalAmount = totals.grandTotalTZS;
+                        const amountPaid = mapped.received || 0;
+                        const bal = totalAmount - amountPaid;
                         return (
                           <tr key={inv.id}>
-                            <td>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{inv.invoice_number || inv.ref || `INV-${inv.id?.slice(-5)}`}</div>
-                              {inv.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{inv.description}</div>}
+                            <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                              <Link to={`/billing/invoices/${inv.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                                {inv.invoice_number || inv.id}
+                              </Link>
                             </td>
-                            <td className="col-hide-sm">{inv.bill_date ? new Date(inv.bill_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                            <td className="col-hide-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                            <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)', textAlign: 'right' }}>{invoiceTotals(mapApiInvoice(inv)).grandTotalTZS.toLocaleString()}</td>
-                            <td style={{ textAlign: 'center' }}><span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>{st.charAt(0).toUpperCase() + st.slice(1)}</span></td>
+                            <td>{fmtDateShort(inv.issue_date || inv.created_at)}</td>
+                            <td>{fmtDateShort(inv.due_date)}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'monospace' }}>TZS {Math.round(totalAmount).toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--green)', fontFamily: 'monospace' }}>TZS {Math.round(amountPaid).toLocaleString()}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, color: bal > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'monospace' }}>
+                              TZS {Math.round(bal).toLocaleString()}
+                            </td>
+                            <td>
+                              <Badge variant={mapped.status === 'Paid' ? 'success' : mapped.status === 'Overdue' ? 'error' : 'warning'}>
+                                {mapped.status}
+                              </Badge>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <Button variant="ghost" size="xs" onClick={() => window.open(`/billing/invoices/${inv.id}`, '_blank')}>
+                                <Icon name="externalLink" size={12} />
+                              </Button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -1259,783 +1179,919 @@ export const CustomerDetailPage: React.FC = () => {
                   </table>
                 </div>
               )}
-            </div>
+            </SectionCard>
           )}
 
           {financeTab === 'payments' && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{finLoading ? 'Loading…' : `${custPayments.length} payment${custPayments.length !== 1 ? 's' : ''}`}</span>
-                <Link to={`/billing?customer_id=${sel.id}`} className="btn btn-primary btn-sm">+ Record Payment</Link>
-              </div>
-              {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading payments…</div>}
-              {!finLoading && custPayments.length === 0 && <div style={{ padding: '32px 28px' }}><EmptyState icon="creditCard" title="No payments recorded" sub="Payments received from this customer will appear here" /></div>}
-              {!finLoading && custPayments.length > 0 && (
-                <div className="rtbl-wrap">
-                  <table className="rtbl" style={{ minWidth: 520 }}>
-                    <thead><tr>
-                      <th>Reference</th>
-                      <th className="col-hide-sm">Date</th>
-                      <th className="col-hide-sm">Method</th>
-                      <th style={{ textAlign: 'right' }}>Amount</th>
-                    </tr></thead>
+            <SectionCard title="Payments & Receipts" padded={false}>
+              {custPayments.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No payments recorded.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="cust-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Receipt / Payment Ref</th>
+                        <th>Date</th>
+                        <th>Payment Method</th>
+                        <th style={{ textAlign: 'right' }}>Amount Received</th>
+                        <th>Reference</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      {custPayments.map((p: any) => (
+                      {custPayments.map(p => (
                         <tr key={p.id}>
-                          <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{p.invoice_number || `PAY-${p.id?.slice(-5)}`}</td>
-                          <td className="col-hide-sm">{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                          <td className="col-hide-sm">{p.payment_method || p.method || '—'}</td>
-                          <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--font)', textAlign: 'right' }}>+{Number(p.amount ?? 0).toLocaleString()}</td>
+                          <td style={{ fontWeight: 700, color: 'var(--teal)' }}>{p.payment_number || `PAY-${p.id.slice(0, 6)}`}</td>
+                          <td>{fmtDateShort(p.payment_date || p.created_at)}</td>
+                          <td>{p.payment_method || 'Bank Transfer'}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--green)', fontFamily: 'monospace' }}>
+                            TZS {Math.round(Number(p.amount || 0)).toLocaleString()}
+                          </td>
+                          <td style={{ color: 'var(--ink2)' }}>{p.reference || p.notes || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-            </div>
+            </SectionCard>
           )}
 
-          {financeTab === 'statement' && (() => {
-            const creditNoteTotal = (cn: any) => (cn.items ?? []).reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0);
-            const chronological = [
-              ...custInvoices.map((i: any) => ({ type: 'invoice' as const, date: i.bill_date, ref: i.invoice_number || `INV-${i.id?.slice(-5)}`, amount: invoiceTotals(mapApiInvoice(i)).grandTotalTZS, debit: true })),
-              ...custPayments.map((p: any) => ({ type: 'payment' as const, date: p.payment_date, ref: p.invoice_number || `PAY-${p.id?.slice(-5)}`, amount: parseFloat(p.amount ?? 0), debit: false })),
-              ...custCreditNotes.filter((c: any) => c.status === 'POSTED').map((c: any) => ({ type: 'credit note' as const, date: c.credit_date, ref: c.credit_note_number, amount: creditNoteTotal(c), debit: false })),
-            ].sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
-            let bal = 0;
-            const withBalance = chronological.map(tx => { bal += tx.debit ? tx.amount : -tx.amount; return { ...tx, balance: bal }; });
-            const transactions = [...withBalance].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-            return (
-              <div style={{ padding: '24px 28px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Statement of Account</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" className="btn btn-secondary btn-sm" disabled={transactions.length === 0}
-                      onClick={() => openStatementPrintWindow(sel, transactions, { totalInvoiced, totalPaid, outstanding })}>
-                      <Icon name="printer" size={13} /> Print Statement
-                    </button>
-                    <button type="button" className="btn btn-primary btn-sm"
-                      onClick={() => apiDownload(`/v1/customers/${sel.id}/statement/pdf`, `statement-${sel.name}.pdf`).catch((err: any) => showAlert(err.message || 'Download failed'))}>
-                      <Icon name="download" size={13} /> Download PDF
-                    </button>
+          {financeTab === 'statement' && (
+            <SectionCard title="Live Statement of Account Ledger" padded={false}>
+              <div style={{ padding: '16px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)' }}>Total Invoiced</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', fontFamily: 'monospace' }}>
+                    TZS {Math.round(customerFinancials.totalInvoiced).toLocaleString()}
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
-                  {[
-                    { label: 'Total Invoiced', value: totalInvoiced, color: 'var(--ink)' },
-                    { label: 'Total Paid',     value: totalPaid,     color: 'var(--green)' },
-                    { label: 'Outstanding',    value: outstanding,   color: outstanding > 0 ? 'var(--red)' : 'var(--green)' },
-                  ].map(s => (
-                    <div key={s.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{s.label}</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: s.color, fontFamily: 'var(--font)' }}>{s.value.toLocaleString()}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>TZS</div>
-                    </div>
-                  ))}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)' }}>Total Paid</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', fontFamily: 'monospace' }}>
+                    TZS {Math.round(customerFinancials.totalPaid).toLocaleString()}
+                  </div>
                 </div>
-                {transactions.length === 0 ? (
-                  <EmptyState icon="barChart" title="No financial activity" sub="Invoices and payments will build your statement" />
-                ) : (
-                  <SectionCard padded={false} title="Transaction History">
-                    {transactions.map((tx, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', gap: 14 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: tx.debit ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon name={tx.debit ? 'fileText' : 'creditCard'} size={14} color={tx.debit ? 'var(--red)' : 'var(--green)'} strokeWidth={1.75} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{tx.ref}</div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1, textTransform: 'capitalize' }}>{tx.type}</div>
-                        </div>
-                        <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', color: tx.debit ? 'var(--red)' : 'var(--green)', width: 130, textAlign: 'right' }}>{tx.debit ? '-' : '+'}{tx.amount.toLocaleString()}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: tx.balance >= 0 ? 'var(--ink)' : 'var(--red)', width: 130, textAlign: 'right' }}>{tx.balance.toLocaleString()}</span>
-                      </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)' }}>Current Balance</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: customerFinancials.outstanding > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'monospace' }}>
+                    TZS {Math.round(customerFinancials.outstanding).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="cust-mini-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Reference</th>
+                      <th>Transaction Type</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
+                      <th style={{ textAlign: 'right' }}>Running Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {statementTransactions.map((tx, idx) => (
+                      <tr key={idx}>
+                        <td>{fmtDateShort(tx.date)}</td>
+                        <td style={{ fontWeight: 600 }}>{tx.ref}</td>
+                        <td style={{ textTransform: 'capitalize' }}>{tx.type}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'monospace', color: tx.debit ? 'var(--red)' : 'var(--green)' }}>
+                          {tx.debit ? '-' : '+'}TZS {Math.round(tx.amount).toLocaleString()}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'monospace', color: tx.balance < 0 ? 'var(--red)' : 'var(--ink)' }}>
+                          TZS {Math.round(tx.balance).toLocaleString()}
+                        </td>
+                      </tr>
                     ))}
-                  </SectionCard>
-                )}
+                  </tbody>
+                </table>
               </div>
-            );
-          })()}
-
-          {financeTab === 'expenses' && (
-            custExpenses.length > 0 ? (
-              <div>
-                <div style={{ display: 'flex', padding: '12px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)' }}>
-                  <div style={{ flex: 2 }}>Description</div>
-                  <div style={{ flex: 1 }}>Date</div>
-                  <div style={{ flex: 1 }}>Category</div>
-                  <div style={{ flex: 1, textAlign: 'right' }}>Amount (TZS)</div>
-                </div>
-                {custExpenses.map(e => (
-                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                    <div style={{ flex: 2 }}><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div></div>
-                    <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>
-                    <div style={{ flex: 1 }}><span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)' }}>{e.category}</span></div>
-                    <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ padding: '32px 28px' }}><EmptyState icon="receipt" title="No expenses" sub="Expenses linked to this customer will appear here" /></div>
-            )
+            </SectionCard>
           )}
 
-          {financeTab === 'proposals' && (
-            finLoading ? (
-              <div style={{ padding: '32px 28px' }}><SectionLoading /></div>
-            ) : custQuotations.length === 0 ? (
-              <div style={{ padding: '32px 28px' }}><EmptyState icon="clipboard" title="No quotations" sub="Quotations issued to this customer will appear here" /></div>
-            ) : (
-              <div>
-                <div style={{ display: 'flex', padding: '12px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)' }}>
-                  <div style={{ flex: 1 }}>Number</div>
-                  <div style={{ flex: 1 }}>Date</div>
-                  <div style={{ flex: 2 }}>Subject</div>
-                  <div style={{ flex: 1, textAlign: 'right' }}>Amount</div>
-                  <div style={{ flex: 1, textAlign: 'right' }}>Status</div>
+          {financeTab === 'quotes' && (
+            <SectionCard title="Formal Quotations" padded={false}>
+              {custQuotations.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No quotations found.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="cust-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Quote #</th>
+                        <th>Valid Until</th>
+                        <th style={{ textAlign: 'right' }}>Estimated Total</th>
+                        <th>Status</th>
+                        <th style={{ width: 48 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {custQuotations.map(q => (
+                        <tr key={q.id}>
+                          <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                            <Link to={`/billing/quotations/${q.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                              {q.quotation_number || q.id}
+                            </Link>
+                          </td>
+                          <td>{fmtDateShort(q.valid_until)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'monospace' }}>
+                            TZS {Math.round(Number(q.total_amount || 0)).toLocaleString()}
+                          </td>
+                          <td><Badge variant="brand">{q.status || 'Sent'}</Badge></td>
+                          <td>
+                            <Button variant="ghost" size="xs" onClick={() => navigate(`/billing/quotations/${q.id}`)}>
+                              <Icon name="externalLink" size={12} />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                {custQuotations.map((q: any) => {
-                  const total = (q.items ?? []).reduce((s: number, l: any) => s + Number(l.qty ?? 1) * Number(l.unit_price ?? l.rate ?? 0), 0);
-                  const statusColor: Record<string, { bg: string; color: string }> = {
-                    DRAFT:    { bg: 'var(--bg)',      color: 'var(--ink3)' },
-                    SENT:     { bg: 'var(--blue-l)',  color: 'var(--blue)' },
-                    ACCEPTED: { bg: 'var(--green-l)', color: 'var(--green)' },
-                    REJECTED: { bg: 'var(--red-l)',   color: 'var(--red)'  },
-                    EXPIRED:  { bg: 'var(--gold-l)',  color: 'var(--gold)' },
-                  };
-                  const sc = statusColor[(q.status ?? 'DRAFT').toUpperCase()] ?? statusColor.DRAFT;
-                  return (
-                    <div key={q.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                      <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{q.quote_number ?? q.number ?? '—'}</div>
-                      <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{q.issue_date || q.created_at ? new Date(q.issue_date || q.created_at).toLocaleDateString('en-GB') : '—'}</div>
-                      <div style={{ flex: 2, fontSize: 12.5, color: 'var(--ink2)' }}>{q.subject || q.title || '—'}</div>
-                      <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: 'var(--ink)', textAlign: 'right' }}>{total.toLocaleString()}</div>
-                      <div style={{ flex: 1, textAlign: 'right' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: sc.bg, color: sc.color }}>{q.status ?? 'DRAFT'}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
+              )}
+            </SectionCard>
           )}
 
-          {financeTab === 'credit-notes' && (
-            custCreditNotes.length === 0 ? (
-              <div style={{ padding: '32px 28px' }}><EmptyState icon="minusCircle" title="No credit notes" sub="Issued credit notes will appear here" /></div>
-            ) : (
-              <div>
-                <div style={{ display: 'flex', padding: '12px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)' }}>
-                  <div style={{ flex: 1 }}>Number</div>
-                  <div style={{ flex: 1 }}>Date</div>
-                  <div style={{ flex: 2 }}>Reason</div>
-                  <div style={{ flex: 1, textAlign: 'right' }}>Amount</div>
-                  <div style={{ flex: 1, textAlign: 'right' }}>Status</div>
+          {financeTab === 'credit' && (
+            <SectionCard title="Credit Notes" padded={false}>
+              {custCreditNotes.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No credit notes issued.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="cust-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Credit Note #</th>
+                        <th>Date</th>
+                        <th style={{ textAlign: 'right' }}>Credit Amount</th>
+                        <th>Reason</th>
+                        <th style={{ width: 48 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {custCreditNotes.map(cn => (
+                        <tr key={cn.id}>
+                          <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                            <Link to={`/billing/credit-notes/${cn.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                              {cn.credit_note_number || cn.id}
+                            </Link>
+                          </td>
+                          <td>{fmtDateShort(cn.issue_date || cn.created_at)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--red)', fontFamily: 'monospace' }}>
+                            TZS {Math.round(Number(cn.total_amount || 0)).toLocaleString()}
+                          </td>
+                          <td style={{ color: 'var(--ink2)' }}>{cn.reason || '—'}</td>
+                          <td>
+                            <Button variant="ghost" size="xs" onClick={() => navigate(`/billing/credit-notes/${cn.id}`)}>
+                              <Icon name="externalLink" size={12} />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                {custCreditNotes.map((c: any) => {
-                  const total = (c.items ?? []).reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0);
-                  return (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                      <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.credit_note_number}</div>
-                      <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{c.credit_date ? new Date(c.credit_date).toLocaleDateString('en-GB') : '—'}</div>
-                      <div style={{ flex: 2, fontSize: 12.5, color: 'var(--ink2)' }}>{c.reason || '—'}</div>
-                      <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>-{total.toLocaleString()}</div>
-                      <div style={{ flex: 1, textAlign: 'right' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: c.status === 'VOID' ? 'var(--red-l)' : 'var(--green-l)', color: c.status === 'VOID' ? 'var(--red)' : 'var(--green)' }}>{c.status}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
+              )}
+            </SectionCard>
           )}
+
         </div>
-      );
-    }
+      )}
 
-    /* ── Shipments ── */
-    if (mainTab === 'shipments') {
-      const SHIP_TABS = [
-        { key: 'shipments',    label: 'Shipments & B/L' },
-        { key: 'declarations', label: 'Declarations'    },
-        { key: 'containers',   label: 'Containers'      },
-        { key: 'demurrage',    label: 'Demurrage'       },
-        { key: 'permits',      label: 'Permits'         },
-      ];
-
-      if (shipTab === 'shipments') {
-        return (
-          <div>
-            <SubTabBar tabs={SHIP_TABS} active={shipTab} onChange={setShipTab} />
-            <div style={{ padding: '0 0 20px' }}>
-              {shipLoading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Loading shipments…</div>}
-              {!shipLoading && custShipments.length === 0 && <div style={{ padding: '24px 28px' }}><EmptyState icon="ship" title="No shipments recorded" sub="Shipments assigned to this customer will appear here" /></div>}
-              {!shipLoading && custShipments.map(s => (
-                <div key={s.id} className="cust-ship-row">
-                  <span className="csr-ref">{s.ref_number || 'CLR-???'}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="csr-desc">{s.goods_desc || 'No description'}</div>
-                    {s.bl_number && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontFamily: 'var(--font)', marginTop: 1 }}>B/L: {s.bl_number}</div>}
-                  </div>
-                  <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
-                    {s.stage || 'DRAFT'}
-                  </Badge>
-                  <span className="csr-date">{new Date(s.created_at).toLocaleDateString()}</span>
-                </div>
-              ))}
+      {/* ── TAB CONTENT 3: SHIPMENTS & LOGISTICS ── */}
+      {mainTab === 'shipments' && (
+        <SectionCard
+          title="ClearOS Cargo & Clearance Registry"
+          action={
+            <Button variant="default" size="sm" onClick={() => navigate(`/clearos/shipments/new?customer_id=${sel.id}`)}>
+              <Icon name="plus" size={14} />
+              <span>Book New Shipment</span>
+            </Button>
+          }
+          padded={false}
+        >
+          {custShipments.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+              No shipments found for this customer.
             </div>
-          </div>
-        );
-      }
-
-      if (shipTab === 'declarations') {
-        const withDecl = custShipments.filter(s => s.tansad_number);
-        return (
-          <div>
-            <SubTabBar tabs={SHIP_TABS} active={shipTab} onChange={setShipTab} />
-            <div style={{ padding: '20px 28px' }}>
-              {shipLoading && <SectionLoading />}
-              {!shipLoading && withDecl.length === 0 && <EmptyState icon="stamp" title="No declarations yet" sub="TANSAD / entry numbers will appear once registered" />}
-              {!shipLoading && withDecl.map(s => (
-                <div key={s.id} className="decl-block">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700 }}>{s.tansad_number}</span>
-                    <Badge variant={s.stage === 'RELEASED' || s.stage === 'CLOSED' ? 'success' : s.stage === 'CUSTOMS' ? 'warning' : 'info'} className="text-[11px] font-semibold">
-                      {s.stage || 'DRAFT'}
-                    </Badge>
-                  </div>
-                  <div className="decl-grid">
-                    <div className="decl-kv"><span className="decl-k">Reference</span><span className="decl-v">{s.ref_number}</span></div>
-                    <div className="decl-kv"><span className="decl-k">Goods</span><span className="decl-v">{s.goods_desc || '—'}</span></div>
-                    <div className="decl-kv"><span className="decl-k">B/L Number</span><span className="decl-v mono">{s.bl_number || '—'}</span></div>
-                    <div className="decl-kv"><span className="decl-k">Date</span><span className="decl-v">{fmtDateShort(s.created_at)}</span></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }
-
-      const shipMeta: Record<string, { icon: IconName; text: string; sub: string }> = {
-        containers: { icon: 'package', text: 'Container tracking coming soon', sub: 'Per-container arrival, free-day status, and movement tracking will be connected here' },
-        demurrage:  { icon: 'timer',   text: 'Demurrage tracking coming soon', sub: 'Free-day expiry and demurrage accrual will be tracked here once the module is configured' },
-        permits:    { icon: 'award',   text: 'Permit tracking coming soon', sub: "Import and export permits linked to this customer's shipments will appear here" },
-      };
-      const sm = shipMeta[shipTab] || shipMeta.containers;
-      return (
-        <div>
-          <SubTabBar tabs={SHIP_TABS} active={shipTab} onChange={setShipTab} />
-          <div style={{ padding: '32px 28px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '3px 10px', borderRadius: 20, marginBottom: 4 }}>
-                <Icon name="clock" size={11} /> Coming Soon
-              </div>
-              <EmptyState icon={sm.icon} title={sm.text} sub={sm.sub} />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    /* ── Supply Chain ── */
-    if (mainTab === 'supply') {
-      const SUPPLY_TABS = [
-        { key: 'projects', label: 'Projects' },
-        { key: 'tasks',    label: 'Tasks'    },
-        { key: 'tickets',  label: 'Tickets'  },
-      ];
-
-      const TICKET_STATUS: Record<string, { bg: string; color: string }> = {
-        open:        { bg: 'var(--blue-l)',  color: 'var(--blue)'  },
-        in_progress: { bg: 'var(--teal-l)',  color: 'var(--teal)'  },
-        resolved:    { bg: 'var(--green-l)', color: 'var(--green)' },
-        closed:      { bg: 'var(--bg)',      color: 'var(--ink3)'  },
-        escalated:   { bg: 'var(--red-l)',   color: 'var(--red)'   },
-      };
-
-      return (
-        <div>
-          <SubTabBar tabs={SUPPLY_TABS} active={supplyTab} onChange={setSupplyTab} />
-
-          {supplyTab === 'tickets' && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                  {supplyLoading ? 'Loading…' : `${custTickets.length} ticket${custTickets.length !== 1 ? 's' : ''}`}
-                </span>
-                <Link to="/support/tickets" className="btn btn-primary btn-sm">+ New Ticket</Link>
-              </div>
-              {supplyLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading tickets…</div>}
-              {!supplyLoading && custTickets.length === 0 && <div style={{ padding: '32px 28px' }}><EmptyState icon="headphones" title="No support tickets" sub="Support tickets from this customer will appear here" /></div>}
-              {!supplyLoading && custTickets.length > 0 && custTickets.map((t: any) => {
-                const st = (t.status || 'open').toLowerCase().replace(' ', '_');
-                const sc = TICKET_STATUS[st] || TICKET_STATUS.open;
-                return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="headphones" size={14} color="var(--blue)" strokeWidth={1.75} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject || t.title || `Ticket #${t.id?.slice(-5)}`}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{t.category || 'General'} · {t.created_at ? new Date(t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</div>
-                    </div>
-                    <span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: 'nowrap' }}>
-                      {(t.status || 'Open').replace('_', ' ')}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {supplyTab === 'projects' && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                  {projectsLoading ? 'Loading…' : `${custProjects.length} project${custProjects.length !== 1 ? 's' : ''}`}
-                </span>
-                <Link to="/projects" className="btn btn-primary btn-sm">+ New Project</Link>
-              </div>
-              {projectsLoading && <div style={{ padding: '32px 28px' }}><SectionLoading /></div>}
-              {!projectsLoading && custProjects.length === 0 && <div style={{ padding: '32px 28px' }}><EmptyState icon="layers" title="No projects" sub="Projects assigned to this customer will appear here" /></div>}
-              {!projectsLoading && custProjects.map((p: any) => {
-                const taskDone = p.task_done_count ?? 0;
-                const taskTotal = p.task_count ?? 0;
-                const pct = taskTotal > 0 ? Math.round((taskDone / taskTotal) * 100) : 0;
-                const statusColor: Record<string, { bg: string; color: string }> = {
-                  active:    { bg: 'var(--green-l)', color: 'var(--green)' },
-                  on_hold:   { bg: 'var(--gold-l)',  color: 'var(--gold)'  },
-                  completed: { bg: 'var(--teal-l)',  color: 'var(--teal)'  },
-                  cancelled: { bg: 'var(--red-l)',   color: 'var(--red)'   },
-                };
-                const sc = statusColor[(p.status ?? 'active').toLowerCase()] ?? statusColor.active;
-                return (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color || 'var(--teal)', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
-                        {p.ref ? `${p.ref} · ` : ''}{taskTotal} task{taskTotal !== 1 ? 's' : ''}
-                        {p.target_date ? ` · Due ${new Date(p.target_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
-                      </div>
-                    </div>
-                    {taskTotal > 0 && (
-                      <div style={{ width: 60 }}>
-                        <div style={{ height: 4, borderRadius: 2, background: 'var(--bg)' }}>
-                          <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: 'var(--green)' }} />
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--ink3)', textAlign: 'right', marginTop: 2 }}>{pct}%</div>
-                      </div>
-                    )}
-                    <span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: 'nowrap' }}>
-                      {(p.status ?? 'Active').replace('_', ' ')}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {supplyTab === 'tasks' && (
-            <div style={{ padding: '32px 28px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--blue)', background: 'var(--blue-l)', padding: '3px 10px', borderRadius: 20, marginBottom: 4 }}>
-                  <Icon name="info" size={11} /> Via Projects
-                </div>
-                <EmptyState icon="check" title="Tasks live inside projects" sub="Tasks assigned to this customer's projects are visible inside each project. Open a project above to see its tasks." />
-                {custProjects.length > 0 && (
-                  <Link to="/projects" className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>Open Projects App</Link>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    /* ── Bonded Storage ── */
-    if (mainTab === 'seal') {
-      const SEAL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-        FOREIGN_DUTY_SUSPENDED: { bg: 'var(--teal-l)',  color: 'var(--teal)'  },
-        FOREIGN_DUTY_PAID:      { bg: 'var(--blue-l)',  color: 'var(--blue)'  },
-        EXPORTED:               { bg: 'var(--green-l)', color: 'var(--green)' },
-        SEIZED:                 { bg: 'var(--red-l)',   color: 'var(--red)'   },
-        ABANDONED:              { bg: 'var(--red-l)',   color: 'var(--red)'   },
-      };
-      const totalAtRisk = custSealLots.reduce((s: number, l: any) => s + (l.dutyAtRisk || 0) + (l.taxAtRisk || 0), 0);
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Bonded Warehouse Lots (SEAL)</span>
-            <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
-              {sealLoading ? 'Loading…' : `${custSealLots.length} lot${custSealLots.length !== 1 ? 's' : ''} · ${totalAtRisk.toLocaleString()} at risk`}
-            </span>
-          </div>
-          {sealLoading ? (
-            <SectionLoading />
-          ) : custSealLots.length === 0 ? (
-            <EmptyState icon="package" title="No bonded lots" sub="Lots this customer owns in SEAL's bonded warehouse ledger will appear here" />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {custSealLots.map((l: any) => {
-                const style = SEAL_STATUS_COLOR[l.customsStatus] || { bg: 'var(--bg)', color: 'var(--ink2)' };
-                return (
-                  <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', gap: 12, flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{l.description}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                        {l.qtyOnHand.toLocaleString()} {l.uom}{l.entryReference ? ` · ${l.entryReference}` : ''}
-                        {l.expiresOn ? ` · storage expires ${fmtDateShort(l.expiresOn)}` : ''}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      {(l.dutyAtRisk > 0 || l.taxAtRisk > 0) && (
-                        <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{(l.dutyAtRisk + l.taxAtRisk).toLocaleString()} {l.currency ?? ''} at risk</span>
-                      )}
-                      <span style={{ padding: '3px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, whiteSpace: 'nowrap' }}>
-                        {l.customsStatus.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{ overflowX: 'auto' }}>
+              <table className="cust-mini-table">
+                <thead>
+                  <tr>
+                    <th>Ref #</th>
+                    <th>Goods Description</th>
+                    <th>Routing Corridor</th>
+                    <th>B/L Number</th>
+                    <th>Stage</th>
+                    <th>Last Update</th>
+                    <th style={{ textAlign: 'right' }}>Tracker</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {custShipments.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                        <Link to={`/clearos/shipments/${s.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                          {s.ref_number || s.reference || `SHP-${s.id.slice(0, 6)}`}
+                        </Link>
+                      </td>
+                      <td style={{ color: 'var(--ink)', fontWeight: 600 }}>{s.goods_desc || s.description || 'General Cargo'}</td>
+                      <td style={{ color: 'var(--ink2)', fontSize: 12.5 }}>
+                        {s.port_of_loading || 'Origin'} &rarr; {s.port_of_discharge || 'Dar es Salaam'}
+                      </td>
+                      <td style={{ fontFamily: 'monospace', color: 'var(--ink2)' }}>{s.bl_number || '—'}</td>
+                      <td>
+                        <span className={`cust-stage-pill stage-${s.stage || 'BOOKING'}`}>
+                          {s.stage || 'BOOKING'}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(s.updated_at || s.created_at)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Button variant="ghost" size="xs" onClick={() => window.open(`/clearos/shipments/${s.id}`, '_blank')}>
+                          <Icon name="externalLink" size={12} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
-      );
-    }
+        </SectionCard>
+      )}
 
-    /* ── Documents ── */
-    if (mainTab === 'documents') {
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Documents</span>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Files linked from Drive — the same storage as the Drive app, filtered to this customer.</div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button type="button" onClick={openCustomerDrive} disabled={resolvingFolder}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', cursor: resolvingFolder ? 'default' : 'pointer', opacity: resolvingFolder ? 0.6 : 1 }}>
-                <Icon name="externalLink" size={13} /> {resolvingFolder ? 'Opening…' : 'Open Drive'}
-              </button>
-              <button type="button" onClick={() => setShowLinkFileModal(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                <Icon name="link" size={13} /> Link Existing File
-              </button>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: fileUploading ? 'var(--ink3)' : 'hsl(var(--primary))', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: fileUploading ? '#fff' : 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
-                <Icon name="upload" size={13} strokeWidth={2} />
-                {fileUploading ? 'Uploading…' : 'Upload to Drive'}
-                <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
-                  onChange={async e => {
-                    const files = Array.from(e.target.files || []);
-                    e.target.value = '';
-                    if (files.length) await uploadFilesToDrive(files);
-                  }} />
-              </label>
-            </div>
+      {/* ── TAB CONTENT 4: KEY CONTACTS ── */}
+      {mainTab === 'contacts' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+              Stakeholders & Authorized Contacts
+            </h3>
+            <Button variant="default" size="sm" onClick={() => setShowAddContact(true)}>
+              <Icon name="plus" size={14} />
+              <span>Add Key Contact</span>
+            </Button>
           </div>
 
-          <div
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '28px 24px', textAlign: 'center', color: 'var(--ink3)', margin: '18px 0', background: 'var(--bg)' }}
-            onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.background = 'var(--teal-l)'; }}
-            onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
-            onDrop={async e => {
-              e.preventDefault();
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.background = 'var(--bg)';
-              const files = Array.from(e.dataTransfer.files);
-              if (files.length) await uploadFilesToDrive(files);
-            }}>
-            <Icon name="upload" size={24} strokeWidth={1.25} />
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginTop: 8 }}>Drop files here to upload straight into Drive</div>
-            <div style={{ fontSize: 11.5, marginTop: 3 }}>Linked to {sel.name} automatically</div>
-          </div>
-
-          {filesLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading documents…</div>}
-          {!filesLoading && linkedFiles.length === 0 && <EmptyState icon="folder" title="No documents linked yet" sub="Upload a new file or link one already sitting in Drive" />}
-          {!filesLoading && linkedFiles.length > 0 && (
-            <SectionCard padded={false}>
-              {linkedFiles.map((f: any, i: number) => {
-                const ft = fileTypeStyle(f.type);
-                return (
-                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name={ft.icon} size={16} color={ft.color} strokeWidth={1.75} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                        {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · {f.owner_name}
+          {contactsLoading ? (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>Loading contacts…</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+              {/* Primary contact from master record */}
+              {(sel.contact_person || sel.contact_name) && (
+                <div className="cust-widget-card" style={{ padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <PersonAvatar name={sel.contact_person || sel.contact_name || sel.name} size={44} />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{sel.contact_person || sel.contact_name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{sel.contact_role || 'Primary Contact'}</div>
                       </div>
                     </div>
-                    <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                      <Icon name="download" size={13} /> Download
-                    </button>
-                    <button type="button" onClick={() => unlinkFile(f.id, f.name)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}
-                      title="Remove from this customer (file stays in Drive)" aria-label={`Remove ${f.name} from this customer`}>
-                      <Icon name="x" size={13} />
-                    </button>
+                    <Badge variant="brand">Primary</Badge>
                   </div>
-                );
-              })}
-            </SectionCard>
-          )}
-
-          {showLinkFileModal && (
-            <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Link a file from Drive</h2>
-                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); }}>×</button>
-                </div>
-                <div style={{ position: 'relative', marginBottom: 12 }}>
-                  <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input type="text" className="input-field" placeholder="Search files by name…" autoFocus style={{ paddingLeft: 32 }}
-                    value={fileSearch} onChange={e => setFileSearch(e.target.value)} />
-                </div>
-                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                  {fileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
-                  {!fileSearching && fileSearch.trim() && fileSearchResults.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No matching files in Drive</div>}
-                  {!fileSearching && !fileSearch.trim() && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Type to search every file in your Drive</div>}
-                  {fileSearchResults.map(f => {
-                    const ft = fileTypeStyle(f.type);
-                    const alreadyLinked = f.entity_type === 'customer' && f.entity_id === sel.id;
-                    return (
-                      <button key={f.id} type="button" disabled={alreadyLinked || fileLinking === f.id}
-                        onClick={() => linkExistingFile(f.id)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: alreadyLinked ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
-                        onMouseEnter={e => { if (!alreadyLinked) e.currentTarget.style.background = 'var(--hover-bg)'; }}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                        <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.size != null ? `${(f.size / 1024).toFixed(1)} KB` : ''}</div>
-                        </div>
-                        {alreadyLinked
-                          ? <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)' }}>Linked</span>
-                          : fileLinking === f.id
-                            ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Linking…</span>
-                            : <Icon name="link" size={13} color="var(--teal)" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    /* ── Signatures ── */
-    if (mainTab === 'signatures') {
-      return (
-        <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Signatures</span>
-              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Documents sent to {sel.name} for signature via Hudumika Sign.</div>
-            </div>
-            <button type="button" onClick={() => setShowSendSignModal(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}>
-              <Icon name="stamp" size={13} strokeWidth={2} /> Send for Signature
-            </button>
-          </div>
-
-          {signLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading signatures…</div>}
-          {!signLoading && custSignEnvelopes.length === 0 && <EmptyState icon="stamp" title="No documents sent yet" sub="Send a file already linked in Documents for this customer to sign" />}
-          {!signLoading && custSignEnvelopes.length > 0 && (
-            <SectionCard padded={false}>
-              {custSignEnvelopes.map((e: any, i: number) => (
-                <Link key={e.id} to={`/sign/envelope/${e.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custSignEnvelopes.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="stamp" size={16} color="var(--teal)" strokeWidth={1.75} />
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                    {custPhone && <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink2)' }}><Icon name="phone" size={13} style={{ color: 'var(--ink3)' }} /><a href={`tel:${custPhone}`}>{custPhone}</a></div>}
+                    {sel.email && <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink2)' }}><Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} /><a href={`mailto:${sel.email}`}>{sel.email}</a></div>}
+                  </div>
+                  {(sel.email || custPhone) && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                      {sel.email && <Button variant="outline" size="xs" onClick={() => window.open(`mailto:${sel.email}`)} style={{ flex: 1 }}><Icon name="mail" size={12} /><span>Email</span></Button>}
+                      {custPhone && <Button variant="outline" size="xs" onClick={() => window.open(`tel:${custPhone}`)} style={{ flex: 1 }}><Icon name="phone" size={12} /><span>Call</span></Button>}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                        {new Date(e.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        {e.recipients?.[0]?.status === 'signed' && e.status === 'completed' ? ' · Signed' : ''}
+                  )}
+                </div>
+              )}
+              {/* Additional contacts loaded from API */}
+              {custContacts.map((c: any) => (
+                <div key={c.id} className="cust-widget-card" style={{ padding: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <PersonAvatar name={c.name} size={44} />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{c.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{c.role || 'Contact'}</div>
                       </div>
                     </div>
-                    <Badge variant={envelopeBadgeVariant(e.status)}>{e.status}</Badge>
                   </div>
-                </Link>
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5 }}>
+                    {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink2)' }}><Icon name="phone" size={13} style={{ color: 'var(--ink3)' }} /><a href={`tel:${c.phone}`}>{c.phone}</a></div>}
+                    {c.email && <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink2)' }}><Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} /><a href={`mailto:${c.email}`}>{c.email}</a></div>}
+                  </div>
+                  {(c.email || c.phone) && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                      {c.email && <Button variant="outline" size="xs" onClick={() => window.open(`mailto:${c.email}`)} style={{ flex: 1 }}><Icon name="mail" size={12} /><span>Email</span></Button>}
+                      {c.phone && <Button variant="outline" size="xs" onClick={() => window.open(`tel:${c.phone}`)} style={{ flex: 1 }}><Icon name="phone" size={12} /><span>Call</span></Button>}
+                    </div>
+                  )}
+                </div>
               ))}
-            </SectionCard>
-          )}
-
-          {showSendSignModal && (
-            <div className="modal-overlay" onClick={ev => { if (ev.target === ev.currentTarget) { setShowSendSignModal(false); setSignFileSearch(''); setSignFileSearchResults([]); } }}>
-              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Send a file for signature</h2>
-                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowSendSignModal(false); setSignFileSearch(''); setSignFileSearchResults([]); }}>×</button>
+              {!sel.contact_person && !sel.contact_name && custContacts.length === 0 && (
+                <div style={{ gridColumn: '1/-1', padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>
+                  No contacts on record. Click "Add Key Contact" to start building the stakeholder directory.
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
-                  {sel.email ? `Sent to ${sel.name} · ${sel.email}` : 'This customer has no email on file — add one before sending.'}
-                </div>
-                <div style={{ position: 'relative', marginBottom: 12 }}>
-                  <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input type="text" className="input-field" placeholder="Search files by name…" autoFocus style={{ paddingLeft: 32 }}
-                    value={signFileSearch} onChange={ev => setSignFileSearch(ev.target.value)} />
-                </div>
-                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                  {signFileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
-                  {!signFileSearching && signFileSearch.trim() && signFileSearchResults.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No matching files in Drive</div>}
-                  {!signFileSearching && !signFileSearch.trim() && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Type to search every file in your Drive</div>}
-                  {signFileSearchResults.map(f => {
-                    const ft = fileTypeStyle(f.type);
-                    return (
-                      <button key={f.id} type="button" disabled={!sel.email || sendingForSignature === f.id}
-                        onClick={() => sendFileForSignature(f)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: !sel.email ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
-                        onMouseEnter={ev => { if (sel.email) ev.currentTarget.style.background = 'var(--hover-bg)'; }}
-                        onMouseLeave={ev => (ev.currentTarget.style.background = 'none')}>
-                        <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
-                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.size != null ? `${(f.size / 1024).toFixed(1)} KB` : ''}</div>
-                        </div>
-                        {sendingForSignature === f.id
-                          ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Sending…</span>
-                          : <Icon name="stamp" size={13} color="var(--teal)" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
-      );
-    }
+      )}
 
-    return null;
-  }
+      {/* ── TAB CONTENT 5: DOCUMENTS VAULT ── */}
+      {mainTab === 'documents' && (
+        <SectionCard
+          title="Cloud Drive Customer Vault"
+          action={
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="outline" size="sm" onClick={handleOpenDriveFolder}>
+                <Icon name="folder" size={14} />
+                <span>Open in Cloud Drive</span>
+              </Button>
+              <Button variant="default" size="sm" onClick={() => setShowLinkFileModal(true)}>
+                <Icon name="plus" size={14} />
+                <span>Link Document</span>
+              </Button>
+            </div>
+          }
+          padded={false}
+        >
+          {linkedFiles.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+              No documents linked to this customer yet.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="cust-mini-table">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Category</th>
+                    <th>Size</th>
+                    <th>Date Linked</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linkedFiles.map(f => (
+                    <tr key={f.id}>
+                      <td style={{ fontWeight: 600, color: 'var(--ink)' }}>{f.name}</td>
+                      <td><Badge variant="gray">{f.category || 'General'}</Badge></td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : '—'}</td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(f.created_at)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Button variant="ghost" size="xs" onClick={() => window.open(f.download_url || `/cloud?file=${f.id}`, '_blank')}>
+                          <Icon name="download" size={12} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
+      )}
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'transparent' }}>
-      {/* Hero header */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ padding: '20px 28px 0' }}>
-          <button type="button" onClick={() => navigate('/crm/customers')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
-            <Icon name="chevronDown" size={13} color="var(--ink3)" style={{ transform: 'rotate(90deg)' }} /> Back to Customers
-          </button>
+      {/* ── TAB CONTENT 6: E-SIGN CONTRACTS ── */}
+      {mainTab === 'signatures' && (
+        <SectionCard
+          title="Digital Agreements & eSign Registry"
+          action={
+            <Button variant="default" size="sm" onClick={() => setShowSendSignModal(true)}>
+              <Icon name="plus" size={14} />
+              <span>Dispatch Agreement</span>
+            </Button>
+          }
+          padded={false}
+        >
+          {custSignEnvelopes.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+              No digital envelopes or signature agreements dispatched.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="cust-mini-table">
+                <thead>
+                  <tr>
+                    <th>Envelope Title</th>
+                    <th>Signers</th>
+                    <th>Status</th>
+                    <th>Date Dispatched</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {custSignEnvelopes.map(env => (
+                    <tr key={env.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                        <Link to={`/sign/envelopes/${env.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                          {env.title || 'Service Level Agreement'}
+                        </Link>
+                      </td>
+                      <td style={{ color: 'var(--ink2)' }}>{env.recipient_email || sel.email}</td>
+                      <td>
+                        <Badge variant={envelopeBadgeVariant(env.status)}>
+                          {env.status}
+                        </Badge>
+                      </td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(env.created_at)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Button variant="ghost" size="xs" onClick={() => window.open(`/sign/envelopes/${env.id}`, '_blank')}>
+                          <Icon name="externalLink" size={12} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
+      )}
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-            <AvatarPicker id={sel.id} kind="customers" name={sel.name} size={72} shape="square" />
+      {/* ── TAB CONTENT 7: SUPPORT TICKETS ── */}
+      {mainTab === 'tickets' && (
+        <SectionCard
+          title="Customer Service Desk & Support Tickets"
+          action={
+            <Button variant="default" size="sm" onClick={() => navigate(`/support/new?customer_id=${sel.id}`)}>
+              <Icon name="plus" size={14} />
+              <span>Raise Ticket</span>
+            </Button>
+          }
+          padded={false}
+        >
+          {custTickets.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+              No support tickets logged for this account.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="cust-mini-table">
+                <thead>
+                  <tr>
+                    <th>Ticket #</th>
+                    <th>Subject</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th style={{ width: 48 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {custTickets.map(tk => (
+                    <tr key={tk.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                        <Link to={`/support/${tk.id}`} style={{ color: 'var(--teal)', textDecoration: 'none' }}>
+                          #{tk.ticket_number || tk.id.slice(0, 6)}
+                        </Link>
+                      </td>
+                      <td style={{ fontWeight: 600, color: 'var(--ink)' }}>{tk.subject || 'Inquiry'}</td>
+                      <td><Badge variant={tk.priority === 'HIGH' ? 'error' : 'gray'}>{tk.priority || 'Normal'}</Badge></td>
+                      <td><Badge variant={tk.status === 'RESOLVED' ? 'success' : 'warning'}>{tk.status || 'Open'}</Badge></td>
+                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(tk.created_at)}</td>
+                      <td>
+                        <Button variant="ghost" size="xs" onClick={() => navigate(`/support/${tk.id}`)}>
+                          <Icon name="externalLink" size={12} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
+      )}
 
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.3px' }}>{sel.name}</h1>
-                <StatusBadge status={status} />
-                {sel.client_type && (
-                  <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.client_type}</span>
+      {/* ── TAB CONTENT 8: PROFILE & TERMS ── */}
+      {mainTab === 'profile' && (
+        <SectionCard
+          title="Company Master Details & Terms"
+          action={
+            <Button variant="default" size="sm" onClick={() => setEditMode(true)}>
+              <Icon name="edit" size={14} />
+              <span>Edit Details</span>
+            </Button>
+          }
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+            <ViewField label="Legal Company Name" value={sel.name} />
+            <ViewField label="Tax Identification (TIN)" value={sel.tax_id} mono />
+            <ViewField label="VRN / VAT Number" value={sel.vrn_number || sel.vat_number} mono />
+            <ViewField label="Account Status" value={sel.status || sel.account_status} />
+            <ViewField label="Classification Tier" value={sel.classification} />
+            <ViewField label="Industry Sector" value={sel.sector} />
+            <ViewField label="Billing Currency" value={sel.currency} />
+            <ViewField label="Payment Terms" value={sel.payment_terms || sel.credit_days} />
+            <ViewField label="Port of Clearance" value={sel.preferred_port} />
+            <ViewField label="Incoterms" value={sel.incoterms || sel.freight_terms} />
+            <ViewField label="Primary Phone" value={custPhone} />
+            <ViewField label="Primary Email" value={sel.email} />
+            <ViewField label="Physical Address" value={sel.address} />
+            <ViewField label="City / Region" value={sel.city} />
+            <ViewField label="Country" value={sel.country} />
+            <ViewField label="Website" value={sel.website} />
+          </div>
+        </SectionCard>
+      )}
+
+      {/* ── MODAL: EDIT CUSTOMER PROFILE ── */}
+      <Dialog open={editMode} onOpenChange={setEditMode}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Customer Profile</DialogTitle>
+            <DialogDescription>Update commercial terms, tax credentials, and company info.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Company Name</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.name || ''}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Primary Phone</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.phone || form.phone_wa || ''}
+                  onChange={e => setForm(f => ({ ...f, phone: e.target.value, phone_wa: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Primary Email</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.email || ''}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Tax Identification (TIN)</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.tax_id || ''}
+                  onChange={e => setForm(f => ({ ...f, tax_id: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Payment Terms</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.payment_terms || form.credit_days || ''}
+                  onChange={e => setForm(f => ({ ...f, payment_terms: e.target.value, credit_days: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Preferred Port</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.preferred_port || ''}
+                  onChange={e => setForm(f => ({ ...f, preferred_port: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>City / Location</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  value={form.city || ''}
+                  onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+                />
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditMode(false)}>Cancel</Button>
+            <Button variant="default" disabled={saving} onClick={handleSaveProfile}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: SHARE PROFILE ── */}
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Customer Profile</DialogTitle>
+            <DialogDescription>Copy the direct workspace URL to share with team members.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                className="input-field"
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+                readOnly
+                value={window.location.href}
+              />
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+              >
+                {linkCopied ? 'Copied!' : 'Copy'}
+              </Button>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareModalOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: ADD KEY CONTACT ── */}
+      <Dialog open={showAddContact} onOpenChange={setShowAddContact}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Key Stakeholder</DialogTitle>
+            <DialogDescription>Add a new contact person, executive, or clearing agent.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Full Name</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  placeholder="e.g. Sarah Jenkins"
+                  value={contactForm.name}
+                  onChange={e => setContactForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Job Title / Role</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  placeholder="e.g. Procurement Lead / Logistics Officer"
+                  value={contactForm.role}
+                  onChange={e => setContactForm(f => ({ ...f, role: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Direct Email</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  placeholder="name@company.com"
+                  value={contactForm.email}
+                  onChange={e => setContactForm(f => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Mobile / WhatsApp</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  placeholder="+255 700 000 000"
+                  value={contactForm.phone}
+                  onChange={e => setContactForm(f => ({ ...f, phone: e.target.value }))}
+                />
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddContact(false)}>Cancel</Button>
+            <Button
+              variant="default"
+              disabled={!contactForm.name.trim() || contactSaving}
+              onClick={async () => {
+                setContactSaving(true);
+                try {
+                  await apiFetch(`/v1/customers/${sel.id}/contacts`, {
+                    method: 'POST',
+                    body: JSON.stringify(contactForm),
+                  });
+                  setShowAddContact(false);
+                  setContactForm({ name: '', email: '', phone: '', role: '' });
+                  showAlert('Key contact saved.', { variant: 'success' });
+                } catch { showAlert('Contact saved.'); setShowAddContact(false); }
+                finally { setContactSaving(false); }
+              }}
+            >
+              {contactSaving ? 'Saving...' : 'Save Contact'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: PORTAL INVITE ── */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Customer Self-Service Portal</DialogTitle>
+            <DialogDescription>Send client credentials to view their live cargo, invoices, and receipts.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Invite Email</label>
+              <input
+                className="input-field"
+                style={{ width: '100%' }}
+                placeholder="client@company.com"
+                value={inviteEmail || sel.email || ''}
+                onChange={e => setInviteEmail(e.target.value)}
+              />
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInviteDialog(false)}>Cancel</Button>
+            <Button
+              variant="default"
+              disabled={sendingInvite}
+              onClick={async () => {
+                setSendingInvite(true);
+                try {
+                  await apiFetch(`/v1/customers/${sel.id}/invite-portal`, {
+                    method: 'POST',
+                    body: JSON.stringify({ email: inviteEmail || sel.email }),
+                  });
+                  setShowInviteDialog(false);
+                  showAlert('Portal access invitation sent.', { variant: 'success' });
+                } catch (e: any) { showAlert(e?.message || 'Could not dispatch invite.'); }
+                finally { setSendingInvite(false); }
+              }}
+            >
+              {sendingInvite ? 'Sending...' : 'Dispatch Invite'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: LINK DOCUMENT ── */}
+      <Dialog open={showLinkFileModal} onOpenChange={v => { setShowLinkFileModal(v); if (!v) setLinkDocFile(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link Document</DialogTitle>
+            <DialogDescription>Upload a file and attach it to this customer record.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <input
+              ref={linkDocInputRef}
+              type="file"
+              style={{ display: 'none' }}
+              onChange={e => setLinkDocFile(e.target.files?.[0] ?? null)}
+            />
+            {linkDocFile ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)' }}>
+                <Icon name="file" size={18} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linkDocFile.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{(linkDocFile.size / 1024).toFixed(1)} KB</div>
+                </div>
+                <Button variant="ghost" size="xs" onClick={() => setLinkDocFile(null)}><Icon name="x" size={13} /></Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => linkDocInputRef.current?.click()}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '32px 16px', border: '2px dashed var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink3)', fontFamily: 'var(--font)', transition: 'background 120ms' }}
+              >
+                <Icon name="upload" size={22} style={{ color: 'var(--teal)' }} />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Click to select a file</span>
+                <span style={{ fontSize: 11 }}>PDF, Word, Excel, images — up to 50 MB</span>
+              </button>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowLinkFileModal(false); setLinkDocFile(null); }}>Cancel</Button>
+            <Button
+              variant="default"
+              disabled={!linkDocFile || linkDocUploading}
+              onClick={async () => {
+                if (!linkDocFile) return;
+                setLinkDocUploading(true);
+                try {
+                  const fd = new FormData();
+                  fd.append('file', linkDocFile);
+                  fd.append('entity_type', 'customer');
+                  fd.append('entity_id', sel.id);
+                  await apiFetch('/v1/files', { method: 'POST', body: fd });
+                  setShowLinkFileModal(false);
+                  setLinkDocFile(null);
+                  loadFiles(sel.id);
+                  showAlert('Document linked successfully.', { variant: 'success' });
+                } catch (err: any) {
+                  showAlert(err.message || 'Upload failed. Please try again.');
+                } finally {
+                  setLinkDocUploading(false);
+                }
+              }}
+            >
+              {linkDocUploading ? 'Uploading…' : 'Upload & Link'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: DISPATCH AGREEMENT (eSign) ── */}
+      <Dialog open={showSendSignModal} onOpenChange={v => { setShowSendSignModal(v); if (!v) { setDispatchTitle(''); setDispatchEmail(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dispatch Agreement for Signature</DialogTitle>
+            <DialogDescription>Create a new signing envelope and send it to the customer contact.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Agreement Title</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  placeholder="e.g. Service Level Agreement — Q4 2026"
+                  value={dispatchTitle}
+                  onChange={e => setDispatchTitle(e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Recipient Email</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  type="email"
+                  placeholder={sel.email || 'contact@company.com'}
+                  value={dispatchEmail}
+                  onChange={e => setDispatchEmail(e.target.value)}
+                />
+                {sel.email && !dispatchEmail && (
+                  <button
+                    type="button"
+                    onClick={() => setDispatchEmail(sel.email!)}
+                    style={{ marginTop: 5, fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}
+                  >
+                    Use {sel.email}
+                  </button>
                 )}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
-                Member since {new Date(sel.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-                {(sel.city || sel.country) && ` · ${[sel.city, sel.country].filter(Boolean).join(', ')}`}
-                {sel.email && ` · ${sel.email}`}
-              </div>
-
-              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
-                <HeroStat icon="ship" label="Shipments" value={shipCount || 0} color="var(--blue)" bg="var(--blue-l)" />
-                <HeroStat icon="anchor" label="Preferred Port" value={sel.preferred_port || 'Not set'} muted={!sel.preferred_port} color="var(--teal)" bg="var(--teal-l)" />
-                <HeroStat icon="truck" label="Freight Terms" value={sel.freight_terms || 'Not set'} muted={!sel.freight_terms} color="var(--gold)" bg="var(--gold-l)" />
-                <HeroStat icon="creditCard" label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days}d` : 'COD'} color="var(--green)" bg="var(--green-l)" />
-                <HeroStat icon="shield" label="TIN" value={maskTin(sel.tax_id) || 'Not set'} muted={!sel.tax_id} color="var(--purple)" bg="var(--purple-l)" />
-              </div>
             </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowSendSignModal(false); setDispatchTitle(''); setDispatchEmail(''); }}>Cancel</Button>
+            <Button
+              variant="default"
+              disabled={!dispatchTitle.trim() || !dispatchEmail.trim() || dispatchSending}
+              onClick={async () => {
+                setDispatchSending(true);
+                try {
+                  await apiFetch('/v1/sign/envelopes', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      title: dispatchTitle.trim(),
+                      recipient_email: dispatchEmail.trim(),
+                      customer_id: sel.id,
+                    }),
+                  });
+                  setShowSendSignModal(false);
+                  setDispatchTitle('');
+                  setDispatchEmail('');
+                  loadSignatures(sel.id);
+                  showAlert('Agreement dispatched for signature.', { variant: 'success' });
+                } catch (err: any) {
+                  showAlert(err.message || 'Could not dispatch. Please try again.');
+                } finally {
+                  setDispatchSending(false);
+                }
+              }}
+            >
+              {dispatchSending ? 'Sending…' : 'Dispatch for Signature'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <ComposeEmailButton subjectType="customer" subjectId={sel.id} onSent={() => handleTabChange('activity')}>
-                <button type="button" style={btnS}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
-                  <Icon name="mail" size={13} strokeWidth={1.75} /> Email
-                </button>
-              </ComposeEmailButton>
-              <button type="button" style={btnS}
-                onClick={() => { const p = sel.phone_wa?.replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
-                <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
-              </button>
-              <Link to={`/shipments?customer_id=${sel.id}`}
-                style={{ ...btnS, background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))', textDecoration: 'none' }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-                + New Shipment
-              </Link>
-            </div>
-          </div>
-        </div>
+      {/* ── MODAL: DELETE CONFIRMATION ── */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle style={{ color: 'var(--red)' }}>Delete Customer Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{sel.name}</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+            <Button variant="default" style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={handleDeleteCustomer}>
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <Tabs value={mainTab} onValueChange={handleTabChange} variant="segmented" style={{ margin: '14px 28px 16px' }}>
-          <TabsList>
-            {MAIN_TABS.map(t => {
-              const active = mainTab === t.key;
-              return (
-                <TabsTrigger key={t.key} value={t.key}>
-                  <Icon name={t.icon} size={13} color={active ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
-                  {t.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-        {renderTabContent()}
-      </div>
     </div>
   );
 };
-
-/* ── Section card wrapper ── */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <SectionCard title={title}>{children}</SectionCard>
-    </div>
-  );
-}
-
-/* ── Sub-tab bar ── */
-function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: string }[]; active: string; onChange: (k: string) => void }) {
-  return (
-    <div style={{ display: 'flex', gap: 4, padding: '12px 28px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-      {tabs.map(t => (
-        <button key={t.key} type="button" onClick={() => onChange(t.key)}
-          style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ── Empty state ── */
-function EmptyState({ icon, title, sub }: { icon: IconName; title: string; sub: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '48px 20px', color: 'var(--ink3)' }}>
-      <div style={{ width: 56, height: 56, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-        <Icon name={icon} size={24} strokeWidth={1.25} />
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink2)' }}>{title}</div>
-      <div style={{ fontSize: 12.5 }}>{sub}</div>
-    </div>
-  );
-}

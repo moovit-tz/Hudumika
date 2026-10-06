@@ -4,6 +4,7 @@ import { Icon } from '../Icon.js';
 import type { IconName } from '../Icon.js';
 import { PersonAvatar } from '../PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select.js';
+import { Button } from '../ui/button.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 
@@ -99,16 +100,23 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
           </SelectContent>
         </Select>
         <textarea
-          className="input-field"
           value={body}
           onChange={e => setBody(e.target.value)}
           placeholder={`Log a ${TYPE_CFG[type].label.toLowerCase()}…`}
           rows={2}
-          style={{ flex: 1, resize: 'vertical', minHeight: 36 }}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit(); }}
+          style={{
+            flex: 1, resize: 'vertical', minHeight: 36,
+            border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+            padding: '7px 10px', fontSize: 13, fontFamily: 'var(--font)',
+            color: 'var(--ink)', background: 'var(--card-bg, var(--white))',
+            outline: 'none', lineHeight: 1.5,
+          }}
         />
-        <button type="button" className="btn btn-primary btn-sm" disabled={saving || !body.trim()} onClick={submit} style={{ flexShrink: 0 }}>
-          {saving ? '…' : 'Log'}
-        </button>
+        <Button variant="default" size="sm" disabled={saving || !body.trim()} onClick={submit} style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
+          {saving ? <Icon name="clock" size={13} /> : <Icon name="check" size={13} />}
+          <span>Log</span>
+        </Button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -133,10 +141,10 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
                   </div>
                 </div>
                 {canDelete && (
-                  <button type="button" onClick={() => remove(a.id)} title="Delete"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0, alignSelf: 'flex-start' }}>
+                  <Button variant="ghost" size="xs" onClick={() => remove(a.id)} title="Delete"
+                    style={{ flexShrink: 0, alignSelf: 'flex-start', color: 'var(--ink3)', padding: '2px 4px' }}>
                     <Icon name="x" size={12} />
-                  </button>
+                  </Button>
                 )}
               </div>
             );

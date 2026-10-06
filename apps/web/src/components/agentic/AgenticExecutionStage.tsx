@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Icon } from '../Icon.js';
 import { PersonAvatar } from '../PersonAvatar.js';
-import { LauncherAppSvg } from '../LauncherApps.js';
 import { apiFetch } from '../../lib/api.js';
 import './AgenticExecutionStage.css';
 
@@ -300,6 +299,7 @@ export const PRESET_WORKFLOWS: AgentWorkflow[] = [
 ];
 
 export interface AgenticExecutionStageProps {
+  workflowId?: string;
   defaultWorkflowId?: string;
   hideHeader?: boolean;
   onWorkflowChange?: (workflow: AgentWorkflow) => void;
@@ -307,18 +307,28 @@ export interface AgenticExecutionStageProps {
 }
 
 export function AgenticExecutionStage({
+  workflowId,
   defaultWorkflowId = 'route6-trip',
   hideHeader = true,
   onWorkflowChange,
   onClose,
 }: AgenticExecutionStageProps) {
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>(defaultWorkflowId);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>(workflowId || defaultWorkflowId);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const playbackSpeed = 1;
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [isCustomFlow, setIsCustomFlow] = useState<boolean>(false);
   const [customWorkflow, setCustomWorkflow] = useState<AgentWorkflow | null>(null);
+
+  useEffect(() => {
+    if (workflowId && workflowId !== selectedWorkflowId) {
+      setIsCustomFlow(false);
+      setSelectedWorkflowId(workflowId);
+      setCurrentStepIndex(0);
+      setIsPlaying(true);
+    }
+  }, [workflowId, selectedWorkflowId]);
 
   const activeWorkflow: AgentWorkflow = isCustomFlow && customWorkflow
     ? customWorkflow
@@ -347,30 +357,9 @@ export function AgenticExecutionStage({
     return () => clearTimeout(timer);
   }, [isPlaying, currentStepIndex, activeWorkflow.steps.length, playbackSpeed]);
 
-  const handleSelectWorkflow = (wfId: string) => {
-    setIsCustomFlow(false);
-    setSelectedWorkflowId(wfId);
-    setCurrentStepIndex(0);
-    setIsPlaying(true);
-  };
-
   const handleStepClick = (idx: number) => {
     setCurrentStepIndex(idx);
     setIsPlaying(false);
-  };
-
-  const handleTogglePlay = () => {
-    if (isLastStep) {
-      setCurrentStepIndex(0);
-      setIsPlaying(true);
-    } else {
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleReplay = () => {
-    setCurrentStepIndex(0);
-    setIsPlaying(true);
   };
 
   const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -668,93 +657,15 @@ export function AgenticExecutionStage({
 
   return (
     <div className="r6-stage-wrapper">
-      {/* ── Scenario Selectors & Controls ── */}
-      <div className="r6-controls-bar">
-        <div className="r6-preset-pills">
-          <span className="r6-controls-label">Workflows:</span>
-          {PRESET_WORKFLOWS.map(wf => {
-            const appId = wf.id === 'route6-trip' ? 'route6' : wf.id === 'clearos-customs' ? 'clearos' : 'petti';
-            const appColor = wf.id === 'route6-trip' ? '#f59e0b' : wf.id === 'clearos-customs' ? '#ea580c' : '#16a34a';
-            return (
-              <button
-                key={wf.id}
-                type="button"
-                className={`r6-preset-pill ${!isCustomFlow && selectedWorkflowId === wf.id ? 'active' : ''}`}
-                onClick={() => handleSelectWorkflow(wf.id)}
-              >
-                <div className="r6-preset-pill-icon">
-                  <LauncherAppSvg id={appId} color={appColor} size={18} />
-                </div>
-                <span>{wf.brandName} Flow</span>
-                <span className="r6-preset-ref">({wf.contextRef})</span>
-              </button>
-            );
-          })}
-          {isCustomFlow && (
-            <button type="button" className="r6-preset-pill active">
-              <div className="r6-preset-pill-icon">
-                <LauncherAppSvg id="ai" color="#6d28d9" size={18} />
-              </div>
-              <span>Custom Prompt Flow</span>
-            </button>
-          )}
-        </div>
-
-        <div className="r6-playback-actions">
-          <select
-            className="r6-speed-select"
-            value={playbackSpeed}
-            onChange={e => setPlaybackSpeed(Number(e.target.value))}
-            title="Playback speed"
-          >
-            <option value={0.5}>0.5x</option>
-            <option value={1}>1x Speed</option>
-            <option value={2}>2x Speed</option>
-          </select>
-
-          <button
-            type="button"
-            className="r6-action-btn"
-            onClick={handleTogglePlay}
-            title={isPlaying ? 'Pause auto-play' : 'Play auto-play'}
-          >
-            <Icon name={isPlaying ? 'pause' : 'play'} size={14} />
-            <span>{isPlaying ? 'Pause' : isLastStep ? 'Replay' : 'Play'}</span>
-          </button>
-
-          <button
-            type="button"
-            className="r6-action-btn"
-            onClick={handleReplay}
-            title="Replay from beginning"
-          >
-            <Icon name="refresh" size={14} />
-            <span>Restart</span>
-          </button>
-
-          {onClose && (
-            <button
-              type="button"
-              className="r6-action-btn"
-              onClick={onClose}
-              title="Close Agentic Stage"
-            >
-              <Icon name="close" size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* ── Main Stage Canvas ── */}
       <div className="r6-stage-canvas">
         {/* Header (rendered only if not hoisted) */}
         {!hideHeader && (
           <div className="r6-canvas-header">
             <div className="r6-brand-lockup">
-              <LauncherAppSvg
-                id={activeWorkflow.id === 'route6-trip' ? 'route6' : activeWorkflow.id === 'clearos-customs' ? 'clearos' : activeWorkflow.id === 'finops-petti' ? 'petti' : 'ai'}
-                color={activeWorkflow.id === 'route6-trip' ? '#f59e0b' : activeWorkflow.id === 'clearos-customs' ? '#ea580c' : activeWorkflow.id === 'finops-petti' ? '#16a34a' : '#6d28d9'}
-                size={26}
+              <Icon
+                name={activeWorkflow.id === 'route6-trip' ? 'truck' : activeWorkflow.id === 'clearos-customs' ? 'ship' : activeWorkflow.id === 'finops-petti' ? 'wallet' : 'sparkle'}
+                size={20}
               />
               <div className="r6-brand-title">{activeWorkflow.brandName}</div>
               <div className="r6-brand-divider" />

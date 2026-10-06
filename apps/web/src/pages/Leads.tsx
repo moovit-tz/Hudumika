@@ -1,12 +1,17 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { OrganizationPicker, PersonPicker } from '../components/PartyPicker.js';
 import type { PickerItem } from '../components/EntityPicker.js';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
+import { Textarea } from '../components/ui/textarea.js';
+import './LeadProfile.css';
 import { Button } from '../components/ui/button.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -283,7 +288,8 @@ function exportLeadsCSV(rows: Lead[]) {
 function StagePipeline({ current, onSelect, interactive }: { current: string; onSelect: (stage: string) => void; interactive: boolean }) {
   const { stageIds, stageCfg, lostIds } = React.useContext(LeadStagesContext);
   const activeStages = stageIds.filter(s => !lostIds.has(s));
-  const active = activeStages.indexOf(current);
+  // Older leads retain built-in stage IDs after a tenant configures its stages.
+  const active = activeStages.findIndex(stage => stage === current || stageCfg[stage]?.label === stageCfg[current]?.label);
   const isLost = lostIds.has(current);
   const lostCfg = stageCfg[current] || stageCfg.LOST || { color: 'var(--red)', bg: 'var(--red-l)', label: 'Lost' };
 
@@ -306,38 +312,18 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
         return (
           <React.Fragment key={s}>
             <Tip label={clickable ? `Move to ${cfg.label}` : cfg.label}>
-            <button
+            <Button variant={cur ? 'default' : done ? 'secondary' : 'outline'}
               type="button"
+              aria-current={cur ? 'step' : undefined}
               disabled={!clickable}
               onClick={() => clickable && onSelect(s)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '6px 13px', borderRadius: 'var(--badge-radius)',
-                fontSize: 12.5, fontWeight: cur ? 700 : 600,
-                fontFamily: 'var(--font)',
-                background: cur ? cfg.bg : done ? 'var(--teal-l)' : 'var(--white)',
-                color: cur ? cfg.color : done ? 'var(--teal)' : 'var(--ink3)',
-                border: cur ? `1.5px solid ${cfg.color}` : done ? '1px solid transparent' : '1px solid var(--border)',
-                cursor: clickable ? 'pointer' : 'default',
-                transition: 'background 0.12s, border-color 0.12s, color 0.12s',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={e => {
-                if (!clickable) return;
-                e.currentTarget.style.background = cfg.bg;
-                e.currentTarget.style.color = cfg.color;
-                e.currentTarget.style.borderColor = cfg.color;
-              }}
-              onMouseLeave={e => {
-                if (!clickable) return;
-                e.currentTarget.style.background = done ? 'var(--teal-l)' : 'var(--white)';
-                e.currentTarget.style.color = done ? 'var(--teal)' : 'var(--ink3)';
-                e.currentTarget.style.borderColor = done ? 'transparent' : 'var(--border)';
-              }}
+
+
+
             >
               {done && <Icon name="check" size={12} strokeWidth={3} />}
               {cfg.label}
-            </button>
+            </Button>
             </Tip>
             {i < activeStages.length - 1 && (
               <div style={{ width: 18, height: 2, borderRadius: 'var(--badge-radius)', background: i < active ? 'var(--teal)' : 'var(--border)', flexShrink: 0, margin: '0 2px' }} />
@@ -455,6 +441,7 @@ export const Leads: React.FC = () => {
   const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
+  const profileFileInput = useRef<HTMLInputElement>(null);
   const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
 
   const loadLeads = useCallback(async () => {
@@ -723,14 +710,13 @@ export const Leads: React.FC = () => {
 
   function setF(k: keyof FormState, v: string | number) { setAddForm(p => ({ ...p, [k]: v })); }
 
-  const btnS: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' };
 
   /* ══════════════════════
      PROFILE VIEW
   ══════════════════════ */
   if (view === 'profile' && selected) {
     const sel = selected;
-    const stageCfg = STAGE_CFG[sel.stage] || STAGE_CFG.NEW;
+    const stageCfg = liveStageCfg[sel.stage] || STAGE_CFG.NEW;
     const priCfg   = PRIORITY_CFG[sel.priority] || PRIORITY_CFG.LOW;
     const days     = daysInPipeline(sel.created_at);
 
@@ -744,237 +730,239 @@ export const Leads: React.FC = () => {
     ];
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
-
-        {/* ── Hero ── */}
-        <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ padding: '20px 28px 0' }}>
-
-            <button type="button" onClick={closeProfile}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
-              <Icon name="chevronDown" size={13} style={{ transform: 'rotate(90deg)' }} /> Back to Leads
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-              <AvatarPicker id={sel.id} kind="leads" name={sel.company} size={72} shape="square" />
-
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-                  <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.3px' }}>{sel.company}</h1>
-                  <StageBadge stage={sel.stage} />
-                  <PriBadge priority={sel.priority} />
-                  <ScoreBadge score={sel.score} />
-                  {sel.industry && <span style={{ padding: '2px 9px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 600, background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)' }}>{sel.industry}</span>}
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <LabelChips subjectType="lead" subjectId={sel.id} />
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 16 }}>
-                  {sel.contact_name}
-                  {sel.location && ` · ${sel.location}`}
-                  {` · Added ${fmtDate(sel.created_at)}`}
-                </div>
-
-                {/* Stats row */}
-                <div style={{ display: 'flex', gap: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Pipeline Value', value: fmtValue(sel.value) },
-                    { label: 'Days in Pipeline', value: `${days}d` },
-                    { label: 'Source', value: sel.source },
-                    { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to || '—' },
-                    { label: 'Expected Close', value: sel.expected_close ? fmtShort(sel.expected_close) : '—' },
-                  ].map((s, i, arr) => (
-                    <React.Fragment key={s.label}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>{s.value}</div>
-                        <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>{s.label}</div>
-                      </div>
-                      {i < arr.length - 1 && <div style={{ width: 1, background: 'var(--border)', alignSelf: 'stretch' }} />}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
-                  <button type="button" style={btnS}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
-                    <Icon name="mail" size={13} strokeWidth={1.75} /> Email
-                  </button>
-                </ComposeEmailButton>
-                <button type="button" style={btnS} onClick={() => { const p = sel.contact_phone?.replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
-                  <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
-                </button>
-                <button type="button" style={{ ...btnS, background: 'hsl(var(--primary))', border: 'none', color: 'hsl(var(--primary-foreground))' }}
-                  onClick={() => openEdit(sel)}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-                  <Icon name="edit" size={13} strokeWidth={1.75} /> Edit Lead
-                </button>
-              </div>
-            </div>
+      <div className="lead-lp-root">
+        {/* Breadcrumbs */}
+        <div className="lead-lp-crumbs-bar">
+          <div className="lead-lp-crumbs-path">
+            <a href="/crm/leads" onClick={e => { e.preventDefault(); closeProfile(); }}>CRM · Leads</a>
+            <span>/</span>
+            <span className="lead-lp-crumbs-current">{sel.company}</span>
           </div>
-
-          {/* Tabs */}
-          <Tabs value={profileTab} onValueChange={(v) => { setProfileTab(v as any); setEditMode(false); }} variant="segmented">
-          <TabsList style={{ margin: '14px 28px 16px' }}>
-            {PROF_TABS.map(tab => {
-              const isActive = profileTab === tab.key;
-              return (
-                <TabsTrigger key={tab.key} value={tab.key}>
-                  <Icon name={tab.icon} size={13} color={isActive ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
-                  {tab.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-          </Tabs>
+          <button className="lead-lp-back-btn" onClick={closeProfile}>
+            <Icon name="arrowLeft" size={13} />
+            All Leads
+          </button>
         </div>
 
-        {/* ── Tab content ── */}
-        <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-
-          {/* Overview */}
-          {profileTab === 'overview' && (
-            <div style={{ padding: '24px 28px' }}>
-              {/* Stage pipeline */}
-              <div style={{ marginBottom: 20 }}>
-              <SectionCard
-                title="Pipeline Stage"
-                action={!isTerminal(sel.stage) ? (
-                    <button type="button"
-                      onClick={() => updateStage(lostStageId)}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink3)', transition: 'color 0.12s, border-color 0.12s, background 0.12s' }}
-                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.background = 'var(--red-l)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink3)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'none'; }}
-                    >
-                      <Icon name="x" size={12} strokeWidth={2.5} />
-                      Mark as Lost
-                    </button>
-                ) : undefined}
-              >
-                <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
-                  <StagePipeline current={sel.stage} onSelect={updateStage} interactive={!isTerminal(sel.stage)} />
-                </div>
-              </SectionCard>
+        {/* Hero */}
+        <div className="lead-lp-hero">
+          <div className="lead-lp-hero-header">
+            <div className="lead-lp-identity">
+              <div className="lead-lp-avatar-frame">
+                <AvatarPicker id={sel.id} kind="leads" name={sel.company} size={64} shape="square" controls="default" />
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: 20 }}>
-                {/* KPI cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 14, alignContent: 'start' }}>
-                  {[
-                    { label: 'Pipeline Value',   value: fmtValue(sel.value),   icon: 'dollarSign' as IconName, color: 'var(--blue)', bg: 'var(--blue-l)' },
-                    { label: 'Days in Pipeline', value: `${days} days`,         icon: 'timer'      as IconName, color: 'var(--gold)', bg: 'var(--gold-l)' },
-                    { label: 'Priority',         value: priCfg.label,           icon: 'alertCircle'as IconName, color: priCfg.color, bg: priCfg.bg },
-                    { label: 'Lead Source',      value: sel.source,             icon: 'target'     as IconName, color: 'var(--teal)', bg: 'var(--teal-l)' },
-                  ].map(kpi => (
-                    <div key={kpi.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name={kpi.icon} size={18} color={kpi.color} strokeWidth={1.75} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2 }}>{kpi.value}</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>{kpi.label}</div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Notes preview */}
-                  {sel.notes && (
-                    <div style={{ gridColumn: '1 / -1' }}>
-                    <SectionCard title="Notes">
-                      <p style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.65, margin: 0 }}>{sel.notes}</p>
-                    </SectionCard>
-                    </div>
-                  )}
+              <div className="lead-lp-details">
+                <div className="lead-lp-title-row">
+                  <h1 className="lead-lp-company-name">{sel.company}</h1>
+                  <Badge variant={wonIds.has(sel.stage) ? 'success' : lostIds.has(sel.stage) ? 'error' : 'brand'}>{stageCfg.label}</Badge>
+                  <Badge variant={sel.priority === 'HIGH' ? 'error' : sel.priority === 'MEDIUM' ? 'warning' : 'gray'}>{priCfg.label}</Badge>
+                  {sel.score != null && <Badge variant="gray">Score {sel.score}</Badge>}
                 </div>
+                <div className="lead-lp-subtitle-row">
+                  {sel.contact_name && (
+                    <span className="lead-lp-contact-chip">
+                      <PersonAvatar name={sel.contact_name} size={18} />
+                      <span>{sel.contact_name}</span>
+                    </span>
+                  )}
+                  {(sel.assigned_to_name || sel.assigned_to) ? (
+                    <>
+                      <span>·</span>
+                      <span className="lead-lp-contact-chip">
+                        <PersonAvatar userId={sel.assigned_to_id} name={sel.assigned_to_name || sel.assigned_to || ''} size={18} />
+                        <span>Owner: {sel.assigned_to_name || sel.assigned_to}</span>
+                      </span>
+                    </>
+                  ) : null}
+                  {sel.source && <><span>·</span><span>Source: <strong style={{ color: 'var(--ink)' }}>{sel.source}</strong></span></>}
+                </div>
+                <div className="lead-lp-meta-chips">
+                  {sel.contact_email && (
+                    <span className="lead-lp-meta-chip"><Icon name="mail" size={13} /><a href={`mailto:${sel.contact_email}`}>{sel.contact_email}</a></span>
+                  )}
+                  {sel.contact_phone && (
+                    <span className="lead-lp-meta-chip"><Icon name="phone" size={13} /><a href={`tel:${sel.contact_phone}`}>{sel.contact_phone}</a></span>
+                  )}
+                  {sel.location && <span className="lead-lp-meta-chip"><Icon name="mapPin" size={13} /><span>{sel.location}</span></span>}
+                  {sel.industry && <span className="lead-lp-meta-chip"><Icon name="briefcase" size={13} /><span>{sel.industry}</span></span>}
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <LabelChips subjectType="lead" subjectId={sel.id} />
+                </div>
+              </div>
+            </div>
+            <div className="lead-lp-hero-actions">
+              <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
+                <Button variant="outline" size="sm"><Icon name="mail" size={14} /><span>Email</span></Button>
+              </ComposeEmailButton>
+              <StartCallButton subjectType="lead" subjectId={sel.id} phone={sel.contact_phone} onLogged={() => setProfileTab('activity')}>
+                <Button variant="outline" size="sm" disabled={!sel.contact_phone}><Icon name="phone" size={14} /><span>Call</span></Button>
+              </StartCallButton>
+              {sel.contact_phone && (
+                <Button variant="outline" size="sm"
+                  onClick={() => { const phone = sel.contact_phone?.replace(/\D/g, ''); if (phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener,noreferrer'); }}>
+                  <Icon name="send" size={14} /><span>WhatsApp</span>
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => { setProfileForm({ ...sel }); setEditMode(true); setProfileTab('contact'); }}>
+                <Icon name="edit" size={14} /><span>Edit</span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" style={{ padding: '0 8px' }}>
+                    <Icon name="moreHorizontal" size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={convertToDeal}><Icon name="briefcase" size={14} /><span>Convert to Deal</span></DropdownMenuItem>
+                  {!isTerminal(sel.stage) && <DropdownMenuItem onClick={() => updateStage(wonStageId)}><Icon name="check" size={14} /><span>Mark Won</span></DropdownMenuItem>}
+                  {!isTerminal(sel.stage) && <DropdownMenuItem onClick={() => updateStage(lostStageId)}><Icon name="x" size={14} /><span>Mark Lost</span></DropdownMenuItem>}
+                  <DropdownMenuItem onClick={() => handleDelete(sel.id, sel.company)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /><span>Delete Lead</span></DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          {/* KPI bar */}
+          <div className="lead-lp-kpi-bar">
+            <div className="lead-lp-kpi-item">
+              <div className="lead-lp-kpi-top"><span className="lead-lp-kpi-label">Deal Value</span><Icon name="dollarSign" size={14} /></div>
+              <div className={`lead-lp-kpi-val${sel.value > 0 ? ' is-green' : ''}`}>{fmtValue(sel.value)}</div>
+              <div className="lead-lp-kpi-sub">Estimated pipeline value</div>
+            </div>
+            <div className="lead-lp-kpi-item">
+              <div className="lead-lp-kpi-top"><span className="lead-lp-kpi-label">Pipeline Age</span><Icon name="clock" size={14} /></div>
+              <div className="lead-lp-kpi-val">{Math.max(0, days)} days</div>
+              <div className="lead-lp-kpi-sub">Since first contact</div>
+            </div>
+            <div className="lead-lp-kpi-item">
+              <div className="lead-lp-kpi-top"><span className="lead-lp-kpi-label">Expected Close</span><Icon name="calendar" size={14} /></div>
+              <div className={`lead-lp-kpi-val${sel.expected_close && new Date(sel.expected_close) < new Date() && !isTerminal(sel.stage) ? ' is-red' : ''}`}>
+                {sel.expected_close ? fmtShort(sel.expected_close) : 'Not set'}
+              </div>
+              <div className="lead-lp-kpi-sub">{sel.expected_close && new Date(sel.expected_close) < new Date() && !isTerminal(sel.stage) ? 'Overdue close date' : 'Target close date'}</div>
+            </div>
+            <div className="lead-lp-kpi-item">
+              <div className="lead-lp-kpi-top"><span className="lead-lp-kpi-label">{sel.score != null ? 'Lead Score' : 'Priority'}</span><Icon name="trendingUp" size={14} /></div>
+              {sel.score != null ? (
+                <>
+                  <div className={`lead-lp-kpi-val${sel.score >= 70 ? ' is-green' : sel.score >= 40 ? ' is-gold' : ''}`}>{sel.score}/100</div>
+                  <div className="lead-lp-kpi-sub">{sel.score >= 70 ? 'High-quality lead' : sel.score >= 40 ? 'Moderate interest' : 'Low engagement'}</div>
+                </>
+              ) : (
+                <>
+                  <div className={`lead-lp-kpi-val${sel.priority === 'HIGH' ? ' is-red' : sel.priority === 'MEDIUM' ? ' is-gold' : ''}`}>{priCfg.label}</div>
+                  <div className="lead-lp-kpi-sub">Sales priority</div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
 
-                {/* Right sidebar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {/* Key info */}
-                  <SectionCard title="Key Information">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Tab navigation strip */}
+        <div className="lead-lp-tab-nav">
+          {PROF_TABS.map(t => (
+            <button key={t.key} type="button" className="lead-lp-nav-btn"
+              data-active={profileTab === t.key ? 'true' : undefined}
+              onClick={() => { setProfileTab(t.key); setEditMode(false); }}>
+              <Icon name={t.icon} size={15} />
+              <span>{t.label}</span>
+              {t.key === 'tasks' && leadTasks.filter(u => !u.done).length > 0 && (
+                <span className="lead-lp-nav-badge">{leadTasks.filter(u => !u.done).length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <LeadStagesContext.Provider value={stagesCtx}>
+        <div className="lead-lp-content">
+
+          {/* OVERVIEW */}
+          {profileTab === 'overview' && (
+            <div className="lead-lp-overview-grid">
+              <div className="lead-lp-main-col">
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr">
+                    <h3 className="lead-lp-card-title"><Icon name="trendingUp" size={15} /><span>Sales Pipeline</span></h3>
+                    {!isTerminal(sel.stage) && <Button variant="outline" size="sm" onClick={() => updateStage(lostStageId)}>Mark lost</Button>}
+                  </div>
+                  <div className="lead-lp-card-body">
+                    <div className="lead-lp-pipeline"><StagePipeline current={sel.stage} onSelect={updateStage} interactive={!isTerminal(sel.stage)} /></div>
+                  </div>
+                </div>
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr">
+                    <h3 className="lead-lp-card-title"><Icon name="user" size={15} /><span>Contact &amp; Company</span></h3>
+                    <Button variant="ghost" size="sm" onClick={() => { setProfileTab('contact'); setEditMode(false); }}><Icon name="edit" size={13} /><span>Edit</span></Button>
+                  </div>
+                  <div className="lead-lp-card-body is-flush">
+                    <div className="lead-lp-kv-list">
                       {[
-                        { label: 'Contact Person', value: sel.contact_name },
-                        { label: 'Email', value: sel.contact_email },
-                        { label: 'Phone', value: sel.contact_phone },
-                        { label: 'Industry', value: sel.industry },
-                        { label: 'Location', value: sel.location },
-                        { label: 'Website', value: sel.website },
-                        { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to },
-                        { label: 'Expected Close', value: sel.expected_close ? fmtDate(sel.expected_close) : undefined },
-                      ].map(({ label, value }) => (
-                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                          <span style={{ fontSize: 12, color: 'var(--ink3)', flexShrink: 0 }}>{label}</span>
-                          <span style={{ fontSize: 12.5, color: value ? 'var(--ink)' : 'var(--ink3)', textAlign: 'right', fontStyle: value ? 'normal' : 'italic' }}>{value || '—'}</span>
+                        { label: 'Email',     value: sel.contact_email,  icon: 'mail'      as IconName },
+                        { label: 'Phone',     value: sel.contact_phone,  icon: 'phone'     as IconName },
+                        { label: 'Location',  value: sel.location,       icon: 'mapPin'    as IconName },
+                        { label: 'Industry',  value: sel.industry,       icon: 'briefcase' as IconName },
+                        { label: 'Website',   value: sel.website,        icon: 'globe'     as IconName },
+                        { label: 'Source',    value: sel.source,         icon: 'target'    as IconName },
+                        { label: 'Territory', value: sel.territory_name, icon: 'mapPin'    as IconName },
+                      ].filter(item => item.value).map(item => (
+                        <div key={item.label} className="lead-lp-kv-row" style={{ padding: '10px var(--page-pad-x, 16px)' }}>
+                          <span className="lead-lp-kv-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon name={item.icon} size={13} />{item.label}
+                          </span>
+                          <span className="lead-lp-kv-val">{item.value}</span>
                         </div>
                       ))}
                     </div>
-                  </SectionCard>
-
-                  <CustomFieldsPanel entityType="lead" subjectId={sel.id} heading="Custom Fields" />
-
-                  {/* Quick actions */}
-                  <SectionCard title="Quick Actions">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {(() => {
-                        const qaStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, width: '100%' };
-                        const hover = { onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--hover-bg)'), onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = 'var(--bg)') };
-                        return (
-                          <>
-                            <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
-                              <button type="button" style={qaStyle} {...hover}>
-                                <Icon name="mail" size={13} color="var(--teal)" strokeWidth={1.75} /> Send Email
-                              </button>
-                            </ComposeEmailButton>
-                            <StartCallButton subjectType="lead" subjectId={sel.id} phone={sel.contact_phone} onLogged={() => setProfileTab('activity')}>
-                              <button type="button" style={qaStyle} {...hover}>
-                                <Icon name="phone" size={13} color="var(--teal)" strokeWidth={1.75} /> Start Call
-                              </button>
-                            </StartCallButton>
-                            {([
-                              { label: 'Send WhatsApp',      icon: 'send'       as IconName, action: () => { const p = sel.contact_phone?.replace(/\D/g,''); if(p) window.open(`https://wa.me/${p}`,'_blank'); } },
-                              { label: 'Convert to Deal',    icon: 'briefcase'  as IconName, action: convertToDeal },
-                              { label: 'Edit Lead Details',  icon: 'edit'       as IconName, action: () => openEdit(sel) },
-                              { label: 'Add Notes',          icon: 'fileText'   as IconName, action: () => setProfileTab('notes') },
-                              { label: 'Mark as Won',        icon: 'check'      as IconName, action: () => updateStage(wonStageId) },
-                              { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage(lostStageId) },
-                            ]).map(action => (
-                              <button key={action.label} type="button" onClick={action.action} style={qaStyle} {...hover}>
-                                <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                              </button>
-                            ))}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </SectionCard>
+                  </div>
+                </div>
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr">
+                    <h3 className="lead-lp-card-title"><Icon name="edit" size={15} /><span>Team Notes</span></h3>
+                    <Button variant="ghost" size="sm" onClick={() => setProfileTab('notes')}><Icon name="edit" size={13} /><span>Edit</span></Button>
+                  </div>
+                  <div className="lead-lp-card-body">
+                    {sel.notes
+                      ? <p className="lead-lp-notes-body">{sel.notes}</p>
+                      : <p className="lead-lp-notes-body" style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>No notes yet — add context for your team.</p>
+                    }
+                  </div>
                 </div>
               </div>
+              <aside className="lead-lp-side-col">
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr">
+                    <h3 className="lead-lp-card-title"><Icon name="zap" size={15} /><span>Next Steps</span></h3>
+                  </div>
+                  <div className="lead-lp-card-body">
+                    <div className="lead-lp-next-steps">
+                      <Button size="sm" onClick={convertToDeal} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="briefcase" size={14} /><span>Convert to Deal</span></Button>
+                      <Button variant="outline" size="sm" onClick={() => setProfileTab('tasks')} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="checkCircle" size={14} /><span>View Tasks</span></Button>
+                      <Button variant="outline" size="sm" onClick={() => setProfileTab('activity')} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="activity" size={14} /><span>Log Activity</span></Button>
+                      {!isTerminal(sel.stage) && <Button variant="outline" size="sm" onClick={() => updateStage(wonStageId)} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="check" size={14} /><span>Mark Won</span></Button>}
+                    </div>
+                  </div>
+                </div>
+                <CustomFieldsPanel entityType="lead" subjectId={sel.id} />
+              </aside>
             </div>
           )}
 
-          {/* Contact */}
+          {/* CONTACT */}
           {profileTab === 'contact' && (
-            <div style={{ padding: '24px 28px' }}>
+            <div className="lead-lp-card">
               {!editMode ? (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-                    <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                      <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Contact
-                    </button>
-                  </div>
-                  <SectionCard collapsible={false}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
-                      <LeadAv name={sel.contact_name} size={56} />
+                  <div className="lead-lp-card-hdr">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <LeadAv name={sel.contact_name} size={40} />
                       <div>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>{sel.contact_name}</div>
-                        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 3 }}>{sel.company}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{sel.contact_name || 'No contact'}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{sel.company}</div>
                       </div>
                     </div>
+                    <Button variant="outline" size="sm" onClick={() => setEditMode(true)}><Icon name="edit" size={13} /><span>Edit</span></Button>
+                  </div>
+                  <div className="lead-lp-card-body">
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
                       {[
                         { label: 'Email', value: sel.contact_email },
@@ -983,6 +971,7 @@ export const Leads: React.FC = () => {
                         { label: 'Location', value: sel.location },
                         { label: 'Website', value: sel.website },
                         { label: 'Lead Source', value: sel.source },
+                        { label: 'Territory', value: sel.territory_name },
                         { label: 'Assigned To', value: sel.assigned_to_name || sel.assigned_to },
                       ].map(({ label, value }) => (
                         <div key={label}>
@@ -991,12 +980,18 @@ export const Leads: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                  </SectionCard>
+                  </div>
                 </>
               ) : (
                 <form onSubmit={handleProfileSave}>
-                  <div style={{ marginBottom: 16 }}>
-                  <SectionCard collapsible={false}>
+                  <div className="lead-lp-card-hdr">
+                    <h3 className="lead-lp-card-title"><Icon name="edit" size={14} /><span>Edit Lead Details</span></h3>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button variant="outline" size="sm" type="button" onClick={() => { setProfileForm({ ...sel }); setEditMode(false); }}>Discard</Button>
+                      <Button size="sm" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+                    </div>
+                  </div>
+                  <div className="lead-lp-card-body">
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 20px' }}>
                       {([
                         { label: 'Company Name *', key: 'company',       req: true  },
@@ -1008,8 +1003,8 @@ export const Leads: React.FC = () => {
                         { label: 'Website',        key: 'website',       req: false },
                       ] as { label: string; key: keyof Lead; req: boolean }[]).map(({ label, key, req }) => (
                         <div key={key}>
-                          <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>{label}</label>
-                          <input type="text" className="input-field" required={req}
+                          <Label htmlFor={`lead-${key}`} className="mb-2 block">{label}</Label>
+                          <Input id={`lead-${key}`} type={key === 'contact_email' ? 'email' : 'text'} required={req}
                             value={String(profileForm[key] ?? '')}
                             onChange={e => setProfileForm(p => ({ ...p, [key]: e.target.value }))} />
                         </div>
@@ -1024,31 +1019,35 @@ export const Leads: React.FC = () => {
                           searchPlaceholder="Search people…"
                         />
                       </div>
+                      <div><Label htmlFor="lead-value" className="mb-2 block">Value (TZS)</Label><Input id="lead-value" type="number" min={0} value={profileForm.value ?? 0} onChange={e => setProfileForm(p => ({ ...p, value: Number(e.target.value) }))} /></div>
+                      <div><Label htmlFor="lead-source" className="mb-2 block">Source</Label><Select value={profileForm.source || 'Web Form'} onValueChange={source => setProfileForm(p => ({ ...p, source }))}><SelectTrigger id="lead-source"><SelectValue /></SelectTrigger><SelectContent>{[...new Set([...SOURCES, profileForm.source].filter(Boolean))].map(source => <SelectItem key={source} value={source!}>{source}</SelectItem>)}</SelectContent></Select></div>
+                      <div><Label htmlFor="lead-priority" className="mb-2 block">Priority</Label><Select value={profileForm.priority || 'MEDIUM'} onValueChange={priority => setProfileForm(p => ({ ...p, priority: priority as Lead['priority'] }))}><SelectTrigger id="lead-priority"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(PRIORITY_CFG).map(([value, cfg]) => <SelectItem key={value} value={value}>{cfg.label}</SelectItem>)}</SelectContent></Select></div>
+                      <div><Label htmlFor="lead-stage" className="mb-2 block">Stage</Label><Select value={profileForm.stage || 'NEW'} onValueChange={stage => setProfileForm(p => ({ ...p, stage }))}><SelectTrigger id="lead-stage"><SelectValue /></SelectTrigger><SelectContent>{[...new Set([...stageIds, profileForm.stage].filter(Boolean))].map(stage => <SelectItem key={stage} value={stage!}>{liveStageCfg[stage!]?.label || stage}</SelectItem>)}</SelectContent></Select></div>
+                      <div><Label className="mb-2 block">Close date</Label><DatePicker key={profileForm.expected_close || 'empty'} date={parseDateOnly(profileForm.expected_close || '')} onChange={date => setProfileForm(p => ({ ...p, expected_close: date ? toDateOnlyString(date) : '' }))} /></div>
                     </div>
-                  </SectionCard>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setProfileForm({ ...sel }); setEditMode(false); }}>Discard</button>
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
                   </div>
                 </form>
               )}
             </div>
           )}
 
-          {/* Activity — real chronological history (calls, emails, meetings,
-              stage changes), not a static notes field. Shared component,
-              backed by crm_activities (migration 449). */}
-          {/* Tasks */}
+          {/* TASKS */}
           {profileTab === 'tasks' && (
-            <div style={{ padding: '24px 28px' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>
-                Tasks <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>({leadTasks.filter(t => !t.done).length} open)</span>
+            <div className="lead-lp-card">
+              <div className="lead-lp-card-hdr">
+                <h3 className="lead-lp-card-title">
+                  <Icon name="checkCircle" size={15} /><span>Tasks</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>({leadTasks.filter(t => !t.done).length} open)</span>
+                </h3>
               </div>
-              {leadTasks.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+              {leadTasks.length === 0 ? (
+                <div style={{ padding: '28px var(--page-pad-x, 16px)', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                  <Icon name="checkCircle" size={24} strokeWidth={1.25} /><div style={{ marginTop: 8 }}>No tasks yet</div>
+                </div>
+              ) : (
+                <div>
                   {leadTasks.map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+                    <div key={t.id} className="lead-lp-task-row">
                       <Checkbox checked={t.done} className="mt-0.5"
                         onCheckedChange={async () => {
                           const updated = { ...t, done: !t.done };
@@ -1064,27 +1063,25 @@ export const Leads: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, fontSize: 16, lineHeight: 1 }}
+                      <Button variant="ghost" size="xs" type="button"
                         onClick={async () => {
                           setLeadTasks(prev => prev.filter(x => x.id !== t.id));
                           await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'DELETE' }).catch(() => {});
-                        }}>×</button>
+                        }}>
+                        <Icon name="x" size={12} />
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
-              {leadTasks.filter(t => !t.done).length === 0 && leadTasks.length === 0 && (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                  <Icon name="checkCircle" size={24} strokeWidth={1.25} /><div style={{ marginTop: 8 }}>No tasks yet</div>
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <input className="input-field" placeholder="Add a task…" value={newTaskTitle}
+              <div className="lead-lp-task-add">
+                <Input placeholder="Add a task…" value={newTaskTitle}
                   onChange={e => setNewTaskTitle(e.target.value)}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 150 }}
+                  onKeyDown={e => { if (e.key === 'Enter' && newTaskTitle.trim()) document.getElementById('lead-task-add-btn')?.click(); }}
                 />
-                <input type="date" className="input-field" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} style={{ width: 140 }} />
-                <button type="button" className="btn btn-primary btn-sm" disabled={!newTaskTitle.trim() || addingTask}
+                <DatePicker key={newTaskDue || 'empty'} date={parseDateOnly(newTaskDue)} onChange={date => setNewTaskDue(date ? toDateOnlyString(date) : '')} placeholder="Due date" />
+                <Button id="lead-task-add-btn" type="button" size="sm" disabled={!newTaskTitle.trim() || addingTask}
                   onClick={async () => {
                     if (!newTaskTitle.trim()) return;
                     setAddingTask(true);
@@ -1096,94 +1093,96 @@ export const Leads: React.FC = () => {
                     finally { setAddingTask(false); }
                   }}>
                   {addingTask ? '…' : 'Add'}
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
+          {/* ACTIVITY */}
           {profileTab === 'activity' && (
-            <div style={{ padding: '24px 28px' }}>
-              <ActivityTimeline subjectType="lead" subjectId={sel.id} />
+            <div className="lead-lp-card">
+              <div className="lead-lp-card-hdr">
+                <h3 className="lead-lp-card-title"><Icon name="activity" size={15} /><span>Activity &amp; Interaction Timeline</span></h3>
+              </div>
+              <div className="lead-lp-card-body">
+                <ActivityTimeline subjectType="lead" subjectId={sel.id} />
+              </div>
             </div>
           )}
 
-          {/* Notes */}
+          {/* NOTES */}
           {profileTab === 'notes' && (
-            <div style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Internal Notes</span>
+            <div className="lead-lp-card">
+              <div className="lead-lp-card-hdr">
+                <h3 className="lead-lp-card-title"><Icon name="edit" size={15} /><span>Team Notes</span></h3>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Only visible to your team</span>
               </div>
-              <textarea className="prof-input" style={{ height: 220, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }}
-                placeholder={`Notes about ${sel.company} — follow-ups, preferences, concerns…`}
-                value={notes} onChange={e => setNotes(e.target.value)} />
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{notes.length} characters</span>
-                <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveNote} disabled={noteSaving}>{noteSaving ? 'Saving…' : 'Save Notes'}</button>
+              <div className="lead-lp-card-body">
+                <Textarea style={{ height: 200, resize: 'vertical', width: '100%', boxSizing: 'border-box', lineHeight: 1.7 }}
+                  placeholder={`Notes about ${sel.company} — follow-ups, preferences, concerns…`}
+                  value={notes} onChange={e => setNotes(e.target.value)} />
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{notes.length} characters</span>
+                  <Button type="button" size="sm" onClick={handleSaveNote} disabled={noteSaving}>{noteSaving ? 'Saving…' : 'Save Notes'}</Button>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Documents — real Drive-linked files (entity_type='lead'), not a
-              decorative drop zone. See the upload/loadLinkedFiles/unlinkFile
-              comment above: the upload control used to post to a route that
-              was never implemented on the backend, so every upload here
-              silently 404'd no matter what was picked. */}
+          {/* DOCUMENTS */}
           {profileTab === 'documents' && (
-            <div style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Documents</span>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)', opacity: fileUploading ? 0.7 : 1 }}>
-                  <Icon name="upload" size={13} strokeWidth={2} />
+            <div className="lead-lp-card">
+              <div className="lead-lp-card-hdr">
+                <h3 className="lead-lp-card-title"><Icon name="folder" size={15} /><span>Documents Vault</span></h3>
+                <Button size="sm" disabled={fileUploading} onClick={() => profileFileInput.current?.click()}>
+                  <Icon name="upload" size={13} />
                   {fileUploading ? 'Uploading…' : 'Upload File'}
-                  <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
-                    onChange={async e => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length) await uploadFilesToDrive(files);
-                      e.target.value = '';
-                    }} />
-                </label>
+                </Button>
+                <input ref={profileFileInput} type="file" multiple disabled={fileUploading} hidden
+                  onChange={async e => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length) await uploadFilesToDrive(files);
+                    e.target.value = '';
+                  }} />
               </div>
-
               {filesLoading ? (
-                <SectionLoading />
+                <div className="lead-lp-card-body"><SectionLoading /></div>
               ) : linkedFiles.length > 0 ? (
-                <SectionCard collapsible={false} padded={false}>
-                  {linkedFiles.map((f: any, i: number) => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="file" size={16} color="var(--ink3)" strokeWidth={1.75} />
-                      </div>
+                <div>
+                  {linkedFiles.map((f: any) => (
+                    <div key={f.id} className="lead-lp-file-row">
+                      <div className="lead-lp-file-icon"><Icon name="file" size={16} color="var(--ink3)" strokeWidth={1.75} /></div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
                           {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </div>
-                      <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                      <Button variant="outline" size="sm" type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}>
                         <Icon name="download" size={13} /> Download
-                      </button>
+                      </Button>
                       <Tip label="Remove from this lead (file stays in Drive)">
-                        <button type="button" onClick={() => unlinkFile(f.id, f.name)} aria-label={`Remove ${f.name} from this lead`}
-                          style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                        <Button variant="outline" size="sm" type="button" onClick={() => unlinkFile(f.id, f.name)} aria-label={`Remove ${f.name} from this lead`}>
                           <Icon name="x" size={13} />
-                        </button>
+                        </Button>
                       </Tip>
                     </div>
                   ))}
-                </SectionCard>
+                </div>
               ) : (
-                <div style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', background: 'var(--bg)' }}>
-                  <Icon name="upload" size={28} strokeWidth={1.25} />
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>No documents yet</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>Proposals, contracts, any documents for this lead</div>
+                <div className="lead-lp-card-body">
+                  <div className="lead-lp-empty-drop">
+                    <Icon name="upload" size={28} strokeWidth={1.25} />
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>No documents yet</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>Proposals, contracts, any documents for this lead</div>
+                  </div>
                 </div>
               )}
             </div>
           )}
-        </div>
 
+        </div>
+        </LeadStagesContext.Provider>
         {/* Add/Edit modal (reused from list) */}
         {showAdd && (
           <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>

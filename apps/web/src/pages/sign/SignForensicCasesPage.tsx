@@ -15,6 +15,10 @@ import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { Card } from '../../components/ui/card.js';
+import { MetricsRow } from '../../components/MetricCard.js';
+import { SkeletonTable } from '../../components/ui/skeleton.js';
+import './SignManagement.css';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { showAlert } from '../../lib/alert.js';
@@ -221,23 +225,21 @@ function Pagination({ total, page, perPage, onPage }: { total: number; page: num
     if (page < totalPages - 2) pages.push('...');
     pages.push(totalPages);
   }
-  const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0' }}>
-      <button type="button" style={{ ...btnBase, opacity: page === 1 ? 0.4 : 1 }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+      <Button variant="outline" size="icon" aria-label="Previous page" type="button" disabled={page === 1} onClick={() => onPage(page - 1)}>
         <Icon name="chevronLeft" size={13} />
-      </button>
+      </Button>
       {pages.map((p, i) => p === '...' ? (
         <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
       ) : (
-        <button key={p} type="button" onClick={() => onPage(p as number)}
-          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+        <Button key={p} type="button" size="icon" variant={p === page ? 'default' : 'outline'} aria-current={p === page ? 'page' : undefined} onClick={() => onPage(p as number)}>
           {p}
-        </button>
+        </Button>
       ))}
-      <button type="button" style={{ ...btnBase, opacity: page === totalPages ? 0.4 : 1 }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+      <Button variant="outline" size="icon" aria-label="Next page" type="button" disabled={page === totalPages} onClick={() => onPage(page + 1)}>
         <Icon name="chevronRight" size={13} />
-      </button>
+      </Button>
       <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
         {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
       </span>
@@ -290,31 +292,17 @@ function CaseListView() {
         crumbs={['eSign', 'Forensics']}
         titlePlain="Forensic"
         titleEm="Cases"
-        subtitle="Verifications that came back non-clean — a seal that didn't validate, or a scanned copy whose content doesn't match the canonical document."
+        subtitle="Review flagged verifications, evidence, and case outcomes."
       />
 
-      {/* Top summary stats */}
-      <div className="sfc-list-stats">
-        <div className="sfc-list-stat-box">
-          <span className="sfc-stat-label">Total Cases</span>
-          <span className="sfc-stat-val">{cases.length}</span>
-        </div>
-        <div className="sfc-list-stat-box">
-          <span className="sfc-stat-label" style={{ color: 'var(--gold)' }}>Open Action Required</span>
-          <span className="sfc-stat-val" style={{ color: 'var(--gold)' }}>{openCount}</span>
-        </div>
-        <div className="sfc-list-stat-box">
-          <span className="sfc-stat-label" style={{ color: 'var(--blue)' }}>Under Review</span>
-          <span className="sfc-stat-val" style={{ color: 'var(--blue)' }}>{reviewingCount}</span>
-        </div>
-        <div className="sfc-list-stat-box">
-          <span className="sfc-stat-label" style={{ color: 'var(--green)' }}>Resolved</span>
-          <span className="sfc-stat-val" style={{ color: 'var(--green)' }}>{resolvedCount}</span>
-        </div>
-      </div>
-
+      <MetricsRow cards={[
+        { title: 'Cases', value: String(cases.length), loading, icon: 'shield' },
+        { title: 'Open', value: String(openCount), loading, icon: 'clock' },
+        { title: 'In review', value: String(reviewingCount), loading, icon: 'eye' },
+        { title: 'Resolved', value: String(resolvedCount), loading, icon: 'checkCircle' },
+      ]} />
       {/* Status Filter + per-page */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+      <Card className="sign-management-toolbar sign-management-filter-row">
         <SingleSelectFilter
           label="Status"
           options={STATUS_OPTIONS}
@@ -325,31 +313,18 @@ function CaseListView() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', marginLeft: 'auto' }}>
           <span>Show</span>
           <Select value={String(perPage)} onValueChange={v => setPerPage(Number(v))}>
-            <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Items per page" className="w-20"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PER_PAGE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
             </SelectContent>
           </Select>
           <span>per page</span>
         </div>
-      </div>
+      </Card>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      <div className="sign-management-results">
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  height: 56,
-                  borderRadius: 'var(--r)',
-                  background: 'var(--border)',
-                  opacity: 0.35,
-                  animation: 'pulse 1.4s ease-in-out infinite',
-                }}
-              />
-            ))}
-          </div>
+          <SkeletonTable rows={4} cols={4} />
         ) : cases.length === 0 ? (
           <div
             style={{
@@ -371,10 +346,10 @@ function CaseListView() {
               <Icon name="shield" size={26} />
             </div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-              {statusFilter ? `No ${statusFilter} cases` : 'No Forensic Cases'}
+              {statusFilter ? `No ${statusFilter} cases` : 'No cases yet'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 400, lineHeight: 1.5 }}>
-              A case opens automatically the moment a verification's seal fails to validate or its content doesn't match the canonical document — all documents in this tenant are authentic.
+              Flagged verifications appear here for investigation. No cases are recorded for this view.
             </div>
           </div>
         ) : (
@@ -584,7 +559,7 @@ function CaseDetailView({ id }: { id: string }) {
           <p style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 360 }}>
             The requested forensic case ID does not exist or may belong to another tenant.
           </p>
-          <Button variant="outline" size="sm" onClick={() => navigate('/sign/forensics')}>
+          <Button variant="outline" size="default" onClick={() => navigate('/sign/forensics')}>
             <Icon name="arrowLeft" size={14} /> Back to Forensic Cases
           </Button>
         </div>
@@ -612,7 +587,7 @@ function CaseDetailView({ id }: { id: string }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 28 }}>
                 <a href={modalImage.src} target="_blank" rel="noreferrer" download={modalImage.filename}>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="default">
                     <Icon name="download" size={13} /> Download
                   </Button>
                 </a>
@@ -650,43 +625,43 @@ function CaseDetailView({ id }: { id: string }) {
         }
         actions={
           <div className="sfc-header-actions">
-            <Button variant="outline" size="sm" onClick={() => navigate('/sign/forensics')} style={{ fontWeight: 600 }}>
+            <Button variant="outline" size="default" onClick={() => navigate('/sign/forensics')} style={{ fontWeight: 600 }}>
               <Icon name="arrowLeft" size={14} /> Back
             </Button>
             <Badge variant={STATUS_CFG[kase.status].variant} style={{ padding: '6px 12px', fontSize: 12.5, fontWeight: 700 }}>
               {STATUS_CFG[kase.status].label}
             </Badge>
-            <Button variant="outline" size="sm" disabled={reanalyzing} onClick={reanalyze}>
+            <Button variant="outline" size="default" disabled={reanalyzing} onClick={reanalyze}>
               <Icon name="refresh" size={14} /> {reanalyzing ? 'Re-analyzing…' : 'Re-analyze'}
             </Button>
             {latestReport ? (
               <a href={`${BASE_URL}/v1/sign/forensics/cases/${kase.id}/evidence/${latestReport.id}/download`} target="_blank" rel="noreferrer">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="default">
                   <Icon name="download" size={14} /> Download Report
                 </Button>
               </a>
             ) : (
-              <Button variant="outline" size="sm" disabled={generatingReport} onClick={generateReport}>
+              <Button variant="outline" size="default" disabled={generatingReport} onClick={generateReport}>
                 <Icon name="fileText" size={14} /> {generatingReport ? 'Generating…' : 'Generate Report'}
               </Button>
             )}
             {kase.status !== 'resolved' && kase.status !== 'dismissed' && (
               <>
                 {kase.status === 'open' && (
-                  <Button variant="outline" size="sm" disabled={updating} onClick={() => changeStatus('reviewing')}>
+                  <Button variant="outline" size="default" disabled={updating} onClick={() => changeStatus('reviewing')}>
                     Start Reviewing
                   </Button>
                 )}
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="default"
                   disabled={updating}
                   onClick={() => changeStatus('resolved')}
                   style={{ borderColor: 'var(--green)', color: 'var(--green)' }}
                 >
                   <Icon name="checkCircle" size={14} /> Mark Resolved
                 </Button>
-                <Button variant="outline" size="sm" disabled={updating} onClick={() => changeStatus('dismissed')}>
+                <Button variant="outline" size="default" disabled={updating} onClick={() => changeStatus('dismissed')}>
                   Dismiss
                 </Button>
               </>
@@ -866,11 +841,11 @@ function CaseDetailView({ id }: { id: string }) {
                         <img src={imgUrl} alt={e.filename} className="sfc-visual-img" />
                       </div>
                       <div className="sfc-visual-ftr">
-                        <Button size="sm" variant="ghost" onClick={() => setModalImage({ src: imgUrl, filename: e.filename })}>
+                        <Button size="default" variant="ghost" onClick={() => setModalImage({ src: imgUrl, filename: e.filename })}>
                           <Icon name="maximize" size={13} /> Zoom
                         </Button>
                         <a href={imgUrl} target="_blank" rel="noreferrer" download={e.filename}>
-                          <Button size="sm" variant="outline">
+                          <Button size="default" variant="outline">
                             <Icon name="download" size={13} /> Download
                           </Button>
                         </a>
@@ -923,7 +898,7 @@ function CaseDetailView({ id }: { id: string }) {
                         {e.source.replace(/_/g, ' ')}
                       </Badge>
                       <a href={downloadUrl} target="_blank" rel="noreferrer" download={e.filename}>
-                        <Button variant="outline" size="sm" style={{ padding: '5px 9px' }}>
+                        <Button variant="outline" size="default" style={{ padding: '5px 9px' }}>
                           <Icon name="download" size={13} />
                         </Button>
                       </a>

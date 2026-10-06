@@ -9,7 +9,12 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
+import { Card } from '../../components/ui/card.js';
+import { MetricsRow } from '../../components/MetricCard.js';
+import { SkeletonTable } from '../../components/ui/skeleton.js';
+import './SignManagement.css';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -56,23 +61,21 @@ function Pagination({ total, page, perPage, onPage }: { total: number; page: num
     if (page < totalPages - 2) pages.push('...');
     pages.push(totalPages);
   }
-  const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0' }}>
-      <button type="button" style={{ ...btnBase, opacity: page === 1 ? 0.4 : 1 }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+      <Button variant="outline" size="icon" aria-label="Previous page" type="button" disabled={page === 1} onClick={() => onPage(page - 1)}>
         <Icon name="chevronLeft" size={13} />
-      </button>
+      </Button>
       {pages.map((p, i) => p === '...' ? (
         <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
       ) : (
-        <button key={p} type="button" onClick={() => onPage(p as number)}
-          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+        <Button key={p} type="button" size="icon" variant={p === page ? 'default' : 'outline'} aria-current={p === page ? 'page' : undefined} onClick={() => onPage(p as number)}>
           {p}
-        </button>
+        </Button>
       ))}
-      <button type="button" style={{ ...btnBase, opacity: page === totalPages ? 0.4 : 1 }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+      <Button variant="outline" size="icon" aria-label="Next page" type="button" disabled={page === totalPages} onClick={() => onPage(page + 1)}>
         <Icon name="chevronRight" size={13} />
-      </button>
+      </Button>
       <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>
         {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
       </span>
@@ -113,23 +116,29 @@ function MattersList() {
   const pageItems = useMemo(() => filtered.slice((page - 1) * perPage, page * perPage), [filtered, page, perPage]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="sign-management-page">
       <PageHeader
         crumbs={['eSign', 'Admin']}
         titlePlain="Case"
         titleEm="matters"
-        subtitle="Every envelope tagged with a case or engagement reference, grouped together — the same free-text tag any preparer can set on an envelope."
+        subtitle="Documents grouped by case or engagement reference."
       />
 
+      <MetricsRow cards={[
+        { title: 'Matters', value: String(matters.length), loading, icon: 'briefcase' },
+        { title: 'Documents', value: String(matters.reduce((total, matter) => total + matter.envelope_count, 0)), loading, icon: 'fileText' },
+        { title: 'Clients', value: String(new Set(matters.flatMap(matter => matter.client_names ?? [])).size), loading, icon: 'users' },
+      ]} />
+      <Card className="sign-management-toolbar">
       <SearchToolbar
         search={search}
         onSearch={setSearch}
         placeholder="Search by matter reference or client"
-        style={{ marginBottom: 16 }}
+
         actions={<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
           <span>Show</span>
           <Select value={String(perPage)} onValueChange={v => setPerPage(Number(v))}>
-            <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Items per page" className="w-20"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PER_PAGE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
             </SelectContent>
@@ -138,26 +147,23 @@ function MattersList() {
         </div>}
       />
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      </Card>
+      <div className="sign-management-results">
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: 52, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4 }} />
-            ))}
-          </div>
+          <SkeletonTable rows={6} cols={3} />
         ) : filtered.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
             <Icon name="briefcase" size={32} strokeWidth={1.25} />
-            <div style={{ fontSize: 13.5, fontWeight: 600 }}>No matters tagged yet</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600 }}>{search ? 'No matches' : 'No matters yet'}</div>
             <div style={{ fontSize: 12, maxWidth: 360, lineHeight: 1.5 }}>
-              Set a "Matter / Reference" on any envelope in the editor to group it here with everything else under the same case.
+              Add a matter reference in the editor to group related documents.
             </div>
           </div>
         ) : (
           <>
             <SectionCard padded={false}>
               {pageItems.map((m, i) => (
-                <div key={m.matter_reference}
+                <div className="sign-matter-row" key={m.matter_reference} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter') navigate(`/sign/matters/${encodeURIComponent(m.matter_reference)}`); }}
                   onClick={() => navigate(`/sign/matters/${encodeURIComponent(m.matter_reference)}`)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
                   <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -202,7 +208,7 @@ function MatterDetail({ reference }: { reference: string }) {
   const pageItems = useMemo(() => envelopes.slice((page - 1) * perPage, page * perPage), [envelopes, page, perPage]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="sign-management-page">
       <PageHeader
         crumbs={['eSign', 'Admin', 'Matters']}
         titlePlain="Matter"
@@ -215,7 +221,7 @@ function MatterDetail({ reference }: { reference: string }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', marginBottom: 12, justifyContent: 'flex-end' }}>
           <span>Show</span>
           <Select value={String(perPage)} onValueChange={v => setPerPage(Number(v))}>
-            <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Items per page" className="w-20"><SelectValue /></SelectTrigger>
             <SelectContent>
               {PER_PAGE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
             </SelectContent>
@@ -224,7 +230,7 @@ function MatterDetail({ reference }: { reference: string }) {
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20 }}>
+      <div className="sign-management-results">
         {loading ? (
           <SectionLoading />
         ) : envelopes.length === 0 ? (

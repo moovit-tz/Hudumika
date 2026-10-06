@@ -1,0 +1,60 @@
+.sign-management-page { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.sign-management-toolbar { padding: 20px 24px; min-width: 0; }
+.sign-management-results { min-width: 0; }
+.sign-management-filter-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.sign-management-page .rtbl-wrap { overflow-x: auto; }
+.sign-management-page .rtbl td { vertical-align: middle; }
+.sign-management-page [role="button"]:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+.sign-verify-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 12px 24px; min-height: 72px; background: var(--card-bg); border-bottom: 1px solid var(--border); }
+.sign-verify-brand { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: var(--ink); }
+.sign-verify-brand img { width: 40px; height: 40px; object-fit: contain; }
+.sign-verify-main { width: min(100%, 720px); margin: auto; padding: 40px 24px; }
+.sign-verify-main > .page-header { text-align: center; }
+.sign-verify-main .page-header-crumb { justify-content: center; }
+.sign-verify-main .page-header-main-row { justify-content: center !important; }
+.sign-verify-main .sign-verify-help { text-align: center; }
+.sign-verify-card { padding: 32px !important; width: 100%; margin-inline: auto; }
+.sign-verify-form-row { display: flex; gap: 12px; }
+.sign-verify-form-row > div { min-width: 0; }
+.sign-verify-form-row input { min-height: max(44px, var(--ctl-h-lg)); font-size: 14px; width: 100%; }
+.sign-verify-form-row button, .sign-verify-back button { min-height: max(44px, var(--ctl-h-lg)); }
+.sign-verify-back .sign-verify-back-link { padding-inline: 0; border: 0; background: transparent; box-shadow: none; color: var(--blue); }
+.sign-verify-modes { width: 100%; }
+.sign-verify-modes .ds-tabs-list { display: flex; width: 100%; gap: 8px; height: auto !important; }
+.sign-verify-modes .ds-tabs-trigger { flex: 1; min-width: 0; min-height: max(44px, var(--ctl-h-lg)) !important; height: auto !important; padding: var(--ds-btn-py-lg) 16px !important; font-size: 14px !important; border-radius: var(--r-sm) !important; }
+.sign-verify-card { overflow-wrap: anywhere; }
+.sign-verify-card img { max-width: 100%; }
+.sign-verify-help { margin-top: 24px; padding: 20px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.sign-verify-help strong { display: block; color: var(--ink); margin-bottom: 6px; font-size: 14px; }
+.sign-verify-help p { font-size: 13px; color: var(--ink3); line-height: 1.6; margin: 0; }
+.sign-editor-steps { display: flex; gap: 20px; padding: 20px 24px; flex-wrap: wrap; border-bottom: 1px solid var(--border); color: var(--ink3); font-size: 13px; }
+.sign-editor-steps span { display: inline-flex; gap: 8px; align-items: center; }
+.sign-editor-steps span:first-child { color: var(--teal); font-weight: 600; }
+.sign-editor-control-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--card-bg); flex-shrink: 0; }
+@media (max-width: 640px) {
+  .sign-verify-header { padding: 12px; gap: 8px; }
+  .sign-verify-brand { font-size: 14px; gap: 8px; }
+  .sign-verify-brand img { width: 32px; height: 32px; }
+  .sign-matter-row { flex-wrap: wrap; }
+  .sign-matter-row > div:nth-child(2) { flex-basis: calc(100% - 60px) !important; }
+  .sign-matter-row > div:nth-child(2) > div:first-child { white-space: normal !important; overflow-wrap: anywhere; }
+  .sign-matter-row > .badge { margin-left: 46px; }
+  .sign-management-toolbar { padding: 16px; }
+  .sign-management-page .stb { flex-wrap: wrap; height: auto; }
+  .sign-management-page .stb-search { flex: 1 1 100%; min-width: 0; border-bottom: 1px solid var(--border); }
+  .sign-management-page .stb-sep { display: none; }
+  .sign-management-page .stb-actions { flex-wrap: wrap; gap: 8px; }
+  .sign-verify-main { padding: 24px 16px; }
+  .sign-verify-card { padding: 20px !important; }
+  .sign-verify-form-row { flex-direction: column; }
+  .sign-verify-form-row > div { flex: auto !important; }
+  .sign-verify-form-row > button { width: 100%; }
+  .sign-verify-help { grid-template-columns: 1fr; }
+  .sign-editor-control-bar { padding: 16px; }
+}
+@media (max-width: 360px) {
+  .sign-verify-back-label { display: none; }
+  .sign-verify-back button { width: 44px; padding-inline: 0; }
+  .sign-verify-modes .ds-tabs-trigger { padding-inline: 8px !important; font-size: 13px !important; }
+  .sign-verify-card { padding: 16px !important; }
+}

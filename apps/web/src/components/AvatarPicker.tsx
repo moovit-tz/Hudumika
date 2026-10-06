@@ -3,6 +3,7 @@ import { PersonAvatar } from './PersonAvatar.js';
 import { setAvatar, clearAvatar, squareAvatarDataUrl, avatarObjectUrl } from '../lib/identity.js';
 import type { SubjectKind } from '../lib/identity.js';
 import { Icon } from './Icon.js';
+import { Button } from './ui/button.js';
 
 /**
  * Set the picture for anything the identity service knows about.
@@ -23,7 +24,7 @@ import { Icon } from './Icon.js';
  * rather than a disabled button.
  */
 export function AvatarPicker({
-  id, kind, name, size = 72, shape, ring = false, canEdit = true, onChange,
+  id, kind, name, size = 72, shape, ring = false, canEdit = true, controls = 'compact', onChange,
 }: {
   id: string;
   kind: SubjectKind;
@@ -43,6 +44,7 @@ export function AvatarPicker({
   ring?: boolean | string;
   canEdit?: boolean;
   /** Fired after the picture is saved or removed, for a caller that keeps its own copy. */
+  controls?: 'compact' | 'default';
   onChange?: (dataUrl: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -117,7 +119,7 @@ export function AvatarPicker({
     <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
       <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
         {avatar}
-        <button
+        {controls === 'compact' && <button
           type="button"
           title={busy ? 'Saving…' : 'Set picture'}
           onClick={() => inputRef.current?.click()}
@@ -135,14 +137,18 @@ export function AvatarPicker({
           }}
         >
           <Icon name="camera" size={Math.max(11, Math.round(size * 0.16))} color="#fff" />
-        </button>
+        </button>}
         <input
           ref={inputRef} type="file" accept="image/*" hidden
           onChange={e => { const f = e.target.files?.[0]; if (f) choose(f); }}
         />
       </div>
 
-      {hasPicture && (
+      {controls === 'default' && <Button type="button" variant="outline" disabled={busy} onClick={() => inputRef.current?.click()}>
+        <Icon name="camera" />{busy ? 'Saving…' : 'Photo'}
+      </Button>}
+      {hasPicture && controls === 'default' && <Button type="button" variant="ghost" disabled={busy} onClick={remove}>Remove photo</Button>}
+      {hasPicture && controls === 'compact' && (
         <button type="button" onClick={remove} disabled={busy}
           style={{ background: 'none', border: 'none', padding: 0, cursor: busy ? 'wait' : 'pointer',
                    color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)' }}>

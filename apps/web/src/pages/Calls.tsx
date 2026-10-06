@@ -7,41 +7,13 @@ import { Icon } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { Tip } from '../components/ui/tooltip.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
-import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { CallsMetrics } from './calls/CallsMetrics.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
-import {
-  Phone,
-  PhoneCall,
-  PhoneIncoming,
-  PhoneOutgoing,
-  Video,
-  Users,
-  Calendar,
-  Download,
-  FileText,
-  SlidersHorizontal,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
-  MoreHorizontal,
-  Sparkles,
-  Shield,
-  Layers,
-  Activity,
-  Globe,
-  Radio,
-  X,
-  Check,
-  Zap,
-} from 'lucide-react';
 import './Calls.css';
 
 interface Staff {
@@ -50,12 +22,6 @@ interface Staff {
   role: string;
   email?: string;
   department?: string;
-  country?: string;
-  callsCount?: number;
-  crpRank?: string;
-  spending?: string;
-  trendPct?: number;
-  trendDir?: 'up' | 'down';
 }
 
 interface CallRow {
@@ -84,129 +50,6 @@ function fmtDate(iso: string | null): string {
   );
 }
 
-// Topographic Contour Lines SVG
-function TopographicContourBg() {
-  return (
-    <svg
-      viewBox="0 0 500 240"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="none"
-      className="cc-topo-svg-bg"
-    >
-      <path
-        d="M-50 180 C 60 140, 140 220, 260 170 C 370 120, 440 190, 550 150"
-        stroke="white"
-        strokeWidth="1.2"
-        strokeDasharray="4 3"
-        opacity="0.5"
-      />
-      <path
-        d="M-50 140 C 70 90, 160 170, 270 120 C 380 70, 450 150, 550 100"
-        stroke="white"
-        strokeWidth="1.2"
-        opacity="0.6"
-      />
-      <path
-        d="M-50 100 C 80 50, 170 130, 290 80 C 390 30, 460 110, 550 60"
-        stroke="white"
-        strokeWidth="1.2"
-        strokeDasharray="6 4"
-        opacity="0.4"
-      />
-      <path
-        d="M-50 60 C 90 10, 180 90, 300 40 C 400 -10, 470 70, 550 20"
-        stroke="white"
-        strokeWidth="1.2"
-        opacity="0.5"
-      />
-      <path
-        d="M-50 20 C 100 -30, 190 50, 310 0 C 410 -50, 480 30, 550 -20"
-        stroke="white"
-        strokeWidth="1.2"
-        opacity="0.3"
-      />
-      <path
-        d="M-50 220 C 50 180, 130 250, 250 200 C 360 150, 430 230, 550 190"
-        stroke="white"
-        strokeWidth="1.2"
-        opacity="0.7"
-      />
-    </svg>
-  );
-}
-
-// Mini Sparkline Component
-function SparklineWave({ color = 'var(--blue)', isUp = true }: { color?: string; isUp?: boolean }) {
-  const points = isUp
-    ? '0,18 20,22 40,14 60,18 80,10 100,16 120,6 140,12 160,4'
-    : '0,6 20,10 40,4 60,14 80,10 100,18 120,12 140,22 160,18';
-
-  return (
-    <svg width="90" height="26" viewBox="0 0 160 26" fill="none" style={{ overflow: 'visible' }}>
-      <path
-        d={`M ${points}`}
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// Metronic Mock Agents with rich performance stats
-const MOCK_AGENTS: Staff[] = [
-  {
-    id: 'agent-1',
-    name: 'Jane Cooper',
-    role: 'Senior Support Agent',
-    department: 'Customer Care',
-    country: 'Monaco',
-    callsCount: 725,
-    spending: '$63.83%',
-    crpRank: '$63.83%',
-    trendPct: 0.4,
-    trendDir: 'down',
-  },
-  {
-    id: 'agent-2',
-    name: 'Jacob Jones',
-    role: 'Technical Specialist',
-    department: 'Tier 2 Support',
-    country: 'Poland',
-    callsCount: 173,
-    spending: '$92.56%',
-    crpRank: '$92.56%',
-    trendPct: 9.2,
-    trendDir: 'up',
-  },
-  {
-    id: 'agent-3',
-    name: 'Esther Howard',
-    role: 'Billing Advisor',
-    department: 'Finance & Billing',
-    country: 'Kiribati',
-    callsCount: 642,
-    spending: '$64.02%',
-    crpRank: '$64.02%',
-    trendPct: 9.2,
-    trendDir: 'up',
-  },
-  {
-    id: 'agent-4',
-    name: 'Ralph Edwards',
-    role: 'Inbound Sales Lead',
-    department: 'Sales Ops',
-    country: 'Iceland',
-    callsCount: 329,
-    spending: '$89.31%',
-    crpRank: '$89.31%',
-    trendPct: 0.4,
-    trendDir: 'down',
-  },
-];
 
 export function Calls() {
   const { user } = useAuth();
@@ -268,14 +111,12 @@ export function Calls() {
       if (Array.isArray(s)) {
         const filtered = s.filter((x: any) => x.id !== user?.id);
         setStaff(
-          filtered.map((item: any, idx: number) => ({
-            ...item,
-            callsCount: 150 + (idx * 95) % 600,
-            spending: `${(60 + (idx * 7.5) % 35).toFixed(2)}%`,
-            crpRank: `${(60 + (idx * 7.5) % 35).toFixed(2)}%`,
-            trendPct: Number((idx % 2 === 0 ? 9.2 : 0.4).toFixed(1)),
-            trendDir: idx % 2 === 0 ? 'up' : 'down',
-            country: item.country || ['Tanzania', 'Kenya', 'Uganda', 'Rwanda'][idx % 4],
+          filtered.map((item: any) => ({
+            id: item.id,
+            name: item.name || item.full_name || item.display_name || 'Staff Member',
+            role: item.role || item.job_title || '',
+            email: item.email,
+            department: item.department,
           }))
         );
       }
@@ -306,11 +147,8 @@ export function Calls() {
     load();
   }, [load]);
 
-  // Combined staff list for directory display
-  const combinedStaff = useMemo(() => {
-    if (staff.length > 0) return staff;
-    return MOCK_AGENTS;
-  }, [staff]);
+  // Alias for consistent naming across the tab sections
+  const combinedStaff = staff;
 
   // ── WebRTC Signaling Socket ──
   const send = (m: any) => {
@@ -712,11 +550,11 @@ export function Calls() {
             </div>
 
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/meetings')}>
-              <Video className="w-3.5 h-3.5 mr-1" />
+              <Icon name="camera" size={14} />
               <span>Meeting Center</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/telephony')}>
-              <SlidersHorizontal className="w-3.5 h-3.5 mr-1" />
+              <Icon name="sliders" size={14} />
               <span>Telephony</span>
             </Button>
           </div>
@@ -725,886 +563,49 @@ export function Calls() {
 
       {error && <Banner variant="error">{error}</Banner>}
 
-      {/* ── Tab Switcher Strip ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'var(--card-bg, var(--white))',
-          padding: '6px 12px',
-          borderRadius: 'var(--r, 14px)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-          flexWrap: 'wrap',
-          gap: 10,
-        }}
-      >
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="outline">
-          <TabsList>
-            <TabsTrigger value="overview" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Activity className="w-3.5 h-3.5 text-primary" />
-              <span>Dashboard & Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="directory" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Users className="w-3.5 h-3.5" />
-              <span>Colleague Directory ({filteredStaff.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <PhoneCall className="w-3.5 h-3.5" />
-              <span>Call History ({filteredHistory.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="dialpad" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Radio className="w-3.5 h-3.5" />
-              <span>Quick Dialpad</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Reports & Analytics</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
+      {/* ── Tab Navigation Strip ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', minHeight: 48, padding: '0 6px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+          {([
+            { key: 'overview',   label: 'Overview',            icon: 'activity' as const },
+            { key: 'directory',  label: `Directory (${filteredStaff.length})`, icon: 'users' as const },
+            { key: 'history',    label: `History (${filteredHistory.length})`, icon: 'phone' as const },
+            { key: 'dialpad',    label: 'Dialpad',             icon: 'smartphone' as const },
+            { key: 'reports',    label: 'Reports & Analytics', icon: 'barChart2' as const },
+          ] as const).map(t => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key as any)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, padding: '12px 14px',
+                fontSize: 13, fontWeight: activeTab === t.key ? 700 : 600,
+                color: activeTab === t.key ? 'var(--teal)' : 'var(--ink2)',
+                background: 'transparent', border: 'none',
+                borderBottom: activeTab === t.key ? '2px solid var(--teal)' : '2px solid transparent',
+                cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font)',
+                transition: 'all 120ms ease',
+              }}
+            >
+              <Icon name={t.icon} size={14} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
         {activeTab === 'history' && (
-          <Button variant="outline" size="sm" onClick={exportHistoryCSV}>
-            <Download className="w-3.5 h-3.5 mr-1" />
+          <Button variant="outline" size="sm" onClick={exportHistoryCSV} style={{ flexShrink: 0, marginRight: 6 }}>
+            <Icon name="download" size={13} />
             <span>Export CSV</span>
           </Button>
         )}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════════
-         TAB 1: METRONIC 8 CALL CENTER DASHBOARD (OVERVIEW)
+         TAB 1: OVERVIEW — real data via CallsMetrics
          ════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* ── ROW 1: Topographic Metric Cards + Performance Hourly Wave Chart ── */}
-          <div className="cc-grid-top">
-            {/* Card 1: Red Gradient Topographic Inbound Calls */}
-            <div className="cc-topo-card cc-topo-red">
-              <TopographicContourBg />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
-                <div className="cc-topo-icon-badge">
-                  <PhoneIncoming size={19} />
-                </div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: 20,
-                    background: 'rgba(255,255,255,0.22)',
-                    backdropFilter: 'blur(4px)',
-                  }}
-                >
-                  Live Today
-                </span>
-              </div>
-
-              <div style={{ position: 'relative', zIndex: 1, margin: '14px 0' }}>
-                <div className="cc-topo-val-main">1.2k</div>
-                <div className="cc-topo-label-main">Inbound Calls</div>
-              </div>
-
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  paddingTop: 10,
-                  borderTop: '1px solid rgba(255,255,255,0.2)',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                }}
-              >
-                <span className="cc-topo-val-sub">935</span>
-                <span className="cc-topo-label-sub">Problems Solved</span>
-              </div>
-            </div>
-
-            {/* Card 2: Purple Gradient Topographic Outbound Calls */}
-            <div className="cc-topo-card cc-topo-purple">
-              <TopographicContourBg />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
-                <div className="cc-topo-icon-badge">
-                  <PhoneOutgoing size={19} />
-                </div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: 20,
-                    background: 'rgba(255,255,255,0.22)',
-                    backdropFilter: 'blur(4px)',
-                  }}
-                >
-                  Outgoing Hub
-                </span>
-              </div>
-
-              <div style={{ position: 'relative', zIndex: 1, margin: '14px 0' }}>
-                <div className="cc-topo-val-main">427</div>
-                <div className="cc-topo-label-main">Outbound Calls</div>
-              </div>
-
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  paddingTop: 10,
-                  borderTop: '1px solid rgba(255,255,255,0.2)',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                }}
-              >
-                <span className="cc-topo-val-sub">386</span>
-                <span className="cc-topo-label-sub">Generated Leads</span>
-              </div>
-            </div>
-
-            {/* Card 3: Performance Hourly Traffic Chart */}
-            <div className="cc-card">
-              <div className="cc-card-header">
-                <div>
-                  <div className="cc-card-title">Performance</div>
-                  <div className="cc-card-subtitle">1,046 Inbound Calls today</div>
-                </div>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '4px 10px',
-                    borderRadius: 'var(--r-sm, 8px)',
-                    background: 'var(--card-sunken)',
-                    border: '1px solid var(--border)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: 'var(--ink2)',
-                  }}
-                >
-                  <span>2 Oct 2026</span>
-                  <Calendar size={13} style={{ color: 'var(--ink3)' }} />
-                </div>
-              </div>
-
-              <div className="cc-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                {/* Multi-Series Area SVG Chart */}
-                <div style={{ width: '100%', height: 120, position: 'relative' }}>
-                  <svg
-                    viewBox="0 0 540 120"
-                    width="100%"
-                    height="100%"
-                    preserveAspectRatio="none"
-                    style={{ overflow: 'visible' }}
-                  >
-                    <defs>
-                      <linearGradient id="inboundGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-                      </linearGradient>
-                      <linearGradient id="outboundGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* Horizontal Grid lines */}
-                    <line x1="0" y1="20" x2="540" y2="20" stroke="var(--border)" strokeDasharray="3 3" strokeOpacity="0.6" />
-                    <line x1="0" y1="50" x2="540" y2="50" stroke="var(--border)" strokeDasharray="3 3" strokeOpacity="0.6" />
-                    <line x1="0" y1="80" x2="540" y2="80" stroke="var(--border)" strokeDasharray="3 3" strokeOpacity="0.6" />
-                    <line x1="0" y1="110" x2="540" y2="110" stroke="var(--border)" strokeOpacity="0.8" />
-
-                    {/* Inbound Call Area & Line (Blue) */}
-                    <path
-                      d="M 20,85 C 60,20 100,20 140,55 C 180,55 220,20 260,20 C 300,20 340,20 380,20 C 420,55 460,55 520,70 L 520,110 L 20,110 Z"
-                      fill="url(#inboundGrad)"
-                    />
-                    <path
-                      d="M 20,85 C 60,20 100,20 140,55 C 180,55 220,20 260,20 C 300,20 340,20 380,20 C 420,55 460,55 520,70"
-                      fill="none"
-                      stroke="#3b82f6"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-
-                    {/* Outbound Call Area & Line (Green) */}
-                    <path
-                      d="M 20,95 C 60,50 100,75 140,90 C 180,90 220,50 260,50 C 300,50 340,50 380,50 C 420,80 460,95 520,95 L 520,110 L 20,110 Z"
-                      fill="url(#outboundGrad)"
-                    />
-                    <path
-                      d="M 20,95 C 60,50 100,75 140,90 C 180,90 220,50 260,50 C 300,50 340,50 380,50 C 420,80 460,95 520,95"
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-
-                {/* X-Axis labels & legend */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginTop: 8, fontWeight: 600 }}>
-                  <span>9 AM</span>
-                  <span>12 PM</span>
-                  <span>15 PM</span>
-                  <span>18 PM</span>
-                  <span>19 PM</span>
-                </div>
-
-                <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} />
-                    <span>Inbound (1,046)</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
-                    <span>Outbound (427)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── ROW 2: Performance Donut & Upgrade Banner ── */}
-          <div className="cc-grid-2col">
-            {/* Card 1: Performance Donut Card */}
-            <div className="cc-card">
-              <div className="cc-card-header">
-                <div>
-                  <div className="cc-card-title">Performance</div>
-                  <div className="cc-card-subtitle">1,046 Inbound Calls today</div>
-                </div>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '3px 8px',
-                    borderRadius: 20,
-                    background: 'var(--red-l, #fef2f2)',
-                    color: 'var(--red, #ef4444)',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                  }}
-                >
-                  <TrendingDown size={13} />
-                  <span>7.4%</span>
-                </div>
-              </div>
-
-              <div className="cc-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-                {/* KPI Legend list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--blue)' }} />
-                      <span>CRM Team Performance:</span>
-                    </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>72.56%</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--green)' }} />
-                      <span>Recurring Calls:</span>
-                    </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>29.34%</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: '#93c5fd' }} />
-                      <span>Tickets Raised:</span>
-                    </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>17.83%</span>
-                  </div>
-                </div>
-
-                {/* Donut SVG */}
-                <div style={{ width: 130, height: 130, flexShrink: 0, position: 'relative' }}>
-                  <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ transform: 'rotate(-90deg)' }}>
-                    {/* Background circle */}
-                    <circle cx="50" cy="50" r="38" fill="none" stroke="var(--border)" strokeWidth="14" />
-                    {/* CRM Segment (Blue ~72.5%) */}
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="38"
-                      fill="none"
-                      stroke="#3b82f6"
-                      strokeWidth="14"
-                      strokeDasharray="172 238"
-                      strokeDashoffset="0"
-                      strokeLinecap="round"
-                    />
-                    {/* Recurring Calls (Green ~29%) */}
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="38"
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth="14"
-                      strokeDasharray="70 238"
-                      strokeDashoffset="-176"
-                      strokeLinecap="round"
-                    />
-                    {/* Tickets Raised (Light Blue ~17%) */}
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="38"
-                      fill="none"
-                      stroke="#93c5fd"
-                      strokeWidth="14"
-                      strokeDasharray="42 238"
-                      strokeDashoffset="-246"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'column',
-                    }}
-                  >
-                    <span style={{ fontSize: 16, fontWeight: 900, color: 'var(--ink)', lineHeight: 1 }}>72.6%</span>
-                    <span style={{ fontSize: 9.5, fontWeight: 600, color: 'var(--ink3)', marginTop: 2 }}>EFFICIENCY</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2: Upgrade Your Plan / Telephony Banner */}
-            <div className="cc-banner-card">
-              <div style={{ maxWidth: '65%', zIndex: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-                  Upgrade Your Plan
-                </div>
-                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', marginTop: 4, marginBottom: 16 }}>
-                  Enterprise SIP trunking with unlimited HD voice, video conferencing, and automated transcription.
-                </div>
-
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
-                  <div className="cc-banner-badge">
-                    <Layers size={14} />
-                    <span>Projects Up to 500</span>
-                  </div>
-                  <div className="cc-banner-badge">
-                    <Sparkles size={14} />
-                    <span>Tasks Unlimited</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="cc-banner-btn"
-                  onClick={() => navigate('/bliss/telephony')}
-                >
-                  <Zap size={15} />
-                  <span>Upgrade Plan</span>
-                </button>
-              </div>
-
-              {/* Graphic Illustration */}
-              <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0, opacity: 0.95 }}>
-                <svg viewBox="0 0 100 100" width="100%" height="100%">
-                  <circle cx="50" cy="50" r="45" fill="rgba(255,255,255,0.15)" />
-                  <circle cx="50" cy="50" r="32" fill="rgba(255,255,255,0.2)" />
-                  <path
-                    d="M32 60 C32 45 42 35 50 35 C58 35 68 45 68 60 C68 70 58 75 50 75 C42 75 32 70 32 60 Z"
-                    fill="#ffffff"
-                    opacity="0.9"
-                  />
-                  <circle cx="50" cy="30" r="10" fill="#ffffff" />
-                  <circle cx="70" cy="40" r="6" fill="#fef08a" />
-                  <circle cx="28" cy="45" r="5" fill="#bae6fd" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* ── ROW 3: Avg. Agent Earnings + Agent Performance Stats Table ── */}
-          <div className="cc-grid-3-2">
-            {/* Left: Avg. Agent Earnings Card */}
-            <div className="cc-card">
-              <div className="cc-card-header">
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 24, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-                      $3,274.94
-                    </span>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        padding: '2px 7px',
-                        borderRadius: 16,
-                        background: 'var(--green-l, #ecfdf5)',
-                        color: 'var(--green, #10b981)',
-                        fontSize: 11,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <ArrowUpRight size={13} />
-                      <span>9.2%</span>
-                    </span>
-                  </div>
-                  <div className="cc-card-subtitle">Avg. Agent Earnings</div>
-                </div>
-
-                <button
-                  type="button"
-                  style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
-                >
-                  <MoreHorizontal size={18} />
-                </button>
-              </div>
-
-              <div className="cc-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Timeframe pill selector */}
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <div className="cc-timeframe-group">
-                    {(['1d', '5d', '1m', '6m', '1y'] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        className="cc-timeframe-btn"
-                        data-active={String(timeframe === t)}
-                        onClick={() => setTimeframe(t)}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Crimson/Pink Gradient Sparkline Chart */}
-                <div style={{ width: '100%', height: 75, position: 'relative' }}>
-                  <svg
-                    viewBox="0 0 300 75"
-                    width="100%"
-                    height="100%"
-                    preserveAspectRatio="none"
-                    style={{ overflow: 'visible' }}
-                  >
-                    <defs>
-                      <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M 10,20 C 40,25 70,60 100,55 C 130,50 160,20 190,20 C 220,20 250,45 290,40 L 290,75 L 10,75 Z"
-                      fill="url(#earningsGrad)"
-                    />
-                    <path
-                      d="M 10,20 C 40,25 70,60 100,55 C 130,50 160,20 190,20 C 220,20 250,45 290,40"
-                      fill="none"
-                      stroke="#f43f5e"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-
-                {/* Recent Settlements List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div className="cc-activity-row">
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>2:30 PM</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$2,756.26</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)' }}>-139.34</span>
-                  </div>
-
-                  <div className="cc-activity-row">
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>3:10 PM</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$3,207.03</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>+576.24</span>
-                  </div>
-
-                  <div className="cc-activity-row">
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>3:55 PM</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$3,274.94</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>+124.03</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Projects Stats / Agent Performance Table */}
-            <div className="cc-card">
-              <div className="cc-card-header">
-                <div>
-                  <div className="cc-card-title">Projects Stats</div>
-                  <div className="cc-card-subtitle">Updated 37 minutes ago</div>
-                </div>
-
-                {/* Top Right KPI mini strip */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$23K</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Avg. Sales</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>$1,748.03</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Today Spending</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>3.8%</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>Overall Share</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--red)' }}>-7.4%</div>
-                    <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600 }}>7 Days</div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '4px 8px',
-                      borderRadius: 6,
-                      background: 'var(--card-sunken)',
-                      border: '1px solid var(--border)',
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                    }}
-                  >
-                    <span>2 Oct 2026</span>
-                    <Calendar size={12} style={{ color: 'var(--ink3)' }} />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className="cc-table">
-                  <thead>
-                    <tr>
-                      <th>Item / Agent</th>
-                      <th>Calls</th>
-                      <th>CRP Rank</th>
-                      <th>Progress</th>
-                      <th>Trend</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {combinedStaff.slice(0, 4).map((ag, idx) => {
-                      const isUp = ag.trendDir === 'up';
-                      const isOnline = online.has(ag.id);
-                      return (
-                        <tr key={ag.id}>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <PersonAvatar userId={ag.id} name={ag.name} size={36} />
-                              <div>
-                                <div style={{ fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span>{ag.name}</span>
-                                  {isOnline && (
-                                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
-                                  )}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{ag.country || 'East Africa'}</div>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td style={{ fontWeight: 700, color: 'var(--ink2)' }}>{ag.callsCount || 340 + idx * 75}</td>
-
-                          <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{ag.spending || '$74.20%'}</td>
-
-                          <td>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                padding: '2px 7px',
-                                borderRadius: 12,
-                                background: isUp ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
-                                color: isUp ? 'var(--green)' : 'var(--red)',
-                                fontSize: 11,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                              <span>{ag.trendPct || 9.2}%</span>
-                            </span>
-                          </td>
-
-                          <td>
-                            <SparklineWave color={isUp ? 'var(--blue)' : 'var(--red)'} isUp={isUp} />
-                          </td>
-
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                style={{ height: 28, padding: '0 8px', fontSize: 11 }}
-                                onClick={() => startCall(ag, 'VOICE')}
-                              >
-                                <Phone size={12} style={{ color: 'var(--green)', marginRight: 4 }} />
-                                <span>Voice</span>
-                              </Button>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                style={{ height: 28, padding: '0 8px', fontSize: 11 }}
-                                onClick={() => startCall(ag, 'VIDEO')}
-                              >
-                                <Video size={12} style={{ marginRight: 4 }} />
-                                <span>Video</span>
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {/* ── ROW 4: Calls by Department (Radar) + Calls Geography (World Map) ── */}
-          <div className="cc-grid-2col">
-            {/* Left: Calls by Departments (Radar Chart) */}
-            <div className="cc-card">
-              <div className="cc-card-header">
-                <div>
-                  <div className="cc-card-title">Calls by Departments</div>
-                  <div className="cc-card-subtitle">8k social visitors • Inbound distribution</div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => showAlert('PDF Department Report generated.', { variant: 'success' })}
-                >
-                  <FileText size={13} className="mr-1" />
-                  <span>PDF Report</span>
-                </Button>
-              </div>
-
-              <div className="cc-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
-                {/* Circular Polar / Radar Diagram */}
-                <div style={{ width: 280, height: 280, position: 'relative' }}>
-                  <svg viewBox="0 0 300 300" width="100%" height="100%" style={{ overflow: 'visible' }}>
-                    {/* Concentric circles */}
-                    <circle cx="150" cy="150" r="120" fill="none" stroke="var(--border)" strokeWidth="1" strokeDasharray="3 3" />
-                    <circle cx="150" cy="150" r="90" fill="none" stroke="var(--border)" strokeWidth="1" />
-                    <circle cx="150" cy="150" r="60" fill="none" stroke="var(--border)" strokeWidth="1" strokeDasharray="3 3" />
-                    <circle cx="150" cy="150" r="30" fill="none" stroke="var(--border)" strokeWidth="1" />
-
-                    {/* Radial axes */}
-                    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
-                      <line
-                        key={deg}
-                        x1="150"
-                        y1="150"
-                        x2={150 + 120 * Math.cos((deg * Math.PI) / 180)}
-                        y2={150 + 120 * Math.sin((deg * Math.PI) / 180)}
-                        stroke="var(--border)"
-                        strokeWidth="0.75"
-                      />
-                    ))}
-
-                    {/* Blue Polygon (Revenue Load) */}
-                    <polygon
-                      points="150,55 215,90 230,165 190,225 120,240 75,185 85,100"
-                      fill="#38bdf8"
-                      fillOpacity="0.45"
-                      stroke="#0284c7"
-                      strokeWidth="1.5"
-                    />
-
-                    {/* Green Polygon (Expense Load) */}
-                    <polygon
-                      points="150,75 190,110 205,155 170,205 130,210 95,160 110,115"
-                      fill="#4ade80"
-                      fillOpacity="0.4"
-                      stroke="#16a34a"
-                      strokeWidth="1.5"
-                    />
-
-                    {/* Center Tags */}
-                    <circle cx="150" cy="150" r="18" fill="var(--card-bg, #ffffff)" stroke="var(--border)" />
-                    <text x="150" y="146" className="cc-radar-center-tag" fill="#0284c7">
-                      Revenue
-                    </text>
-                    <text x="150" y="156" className="cc-radar-center-tag" fill="#16a34a">
-                      Expense
-                    </text>
-
-                    {/* Department Outer Labels */}
-                    <text x="150" y="18" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="middle">
-                      Openlane
-                    </text>
-                    <text x="260" y="65" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="start">
-                      Goodsilron
-                    </text>
-                    <text x="285" y="155" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="start">
-                      OpenTech
-                    </text>
-                    <text x="260" y="240" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="start">
-                      Kirinaplus
-                    </text>
-                    <text x="150" y="295" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="middle">
-                      Starextor
-                    </text>
-                    <text x="40" y="240" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="end">
-                      Lexiquolax
-                    </text>
-                    <text x="15" y="155" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="end">
-                      Faxquote
-                    </text>
-                    <text x="40" y="65" fontSize="10" fontWeight="700" fill="var(--ink3)" textAnchor="end">
-                      Warehouse
-                    </text>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Calls Geography (World Map) */}
-            <div className="cc-card">
-              <div className="cc-card-header">
-                <div>
-                  <div className="cc-card-title">Calls Geography</div>
-                  <div className="cc-card-subtitle">Updated 37 minutes ago • Global caller traffic</div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => showAlert('Calls Geography Report downloaded.', { variant: 'success' })}
-                >
-                  <FileText size={13} className="mr-1" />
-                  <span>PDF Report</span>
-                </Button>
-              </div>
-
-              <div className="cc-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 280 }}>
-                <div style={{ width: '100%', height: 260, position: 'relative' }}>
-                  {/* Stylized World Map Vector */}
-                  <svg viewBox="0 0 600 300" width="100%" height="100%" style={{ overflow: 'visible' }}>
-                    {/* North America Base */}
-                    <path
-                      d="M 60,60 Q 90,40 140,50 Q 180,80 160,120 Q 120,130 90,110 Z"
-                      fill="var(--border)"
-                      opacity="0.6"
-                    />
-                    {/* Highlighted USA */}
-                    <path
-                      d="M 80,75 Q 120,70 150,85 Q 140,110 95,105 Z"
-                      fill="#10b981"
-                      opacity="0.9"
-                    />
-
-                    {/* South America Base */}
-                    <path
-                      d="M 140,140 Q 170,150 160,200 Q 140,240 130,220 Q 125,170 140,140 Z"
-                      fill="var(--border)"
-                      opacity="0.6"
-                    />
-                    {/* Highlighted Brazil */}
-                    <path
-                      d="M 145,155 Q 170,165 155,195 Q 135,185 145,155 Z"
-                      fill="#10b981"
-                      opacity="0.9"
-                    />
-
-                    {/* Europe Base */}
-                    <path
-                      d="M 270,50 Q 330,45 340,90 Q 300,105 270,80 Z"
-                      fill="var(--border)"
-                      opacity="0.6"
-                    />
-                    {/* Highlighted Western Europe */}
-                    <path
-                      d="M 285,60 Q 310,60 305,80 Q 285,85 285,60 Z"
-                      fill="#10b981"
-                      opacity="0.9"
-                    />
-
-                    {/* Africa Base */}
-                    <path
-                      d="M 270,105 Q 340,100 350,160 Q 320,230 290,210 Q 260,150 270,105 Z"
-                      fill="var(--border)"
-                      opacity="0.6"
-                    />
-                    {/* Highlighted East Africa (Tanzania, Kenya) */}
-                    <path
-                      d="M 315,145 Q 345,145 340,175 Q 315,170 315,145 Z"
-                      fill="#10b981"
-                      opacity="0.9"
-                    />
-
-                    {/* Asia Base */}
-                    <path
-                      d="M 350,45 Q 480,40 500,110 Q 440,150 370,110 Z"
-                      fill="var(--border)"
-                      opacity="0.6"
-                    />
-
-                    {/* Australia Base + Highlighted */}
-                    <path
-                      d="M 460,190 Q 520,185 525,230 Q 470,245 460,190 Z"
-                      fill="#10b981"
-                      opacity="0.9"
-                    />
-
-                    {/* Regional Ping Location Markers */}
-                    {/* East Africa */}
-                    <circle cx="330" cy="160" r="5" fill="#10b981" />
-                    <circle cx="330" cy="160" r="10" fill="none" stroke="#10b981" className="cc-map-pin" />
-
-                    {/* New York */}
-                    <circle cx="130" cy="85" r="4" fill="#10b981" />
-                    <circle cx="130" cy="85" r="9" fill="none" stroke="#10b981" className="cc-map-pin" />
-
-                    {/* London */}
-                    <circle cx="295" cy="68" r="4" fill="#10b981" />
-
-                    {/* Sydney */}
-                    <circle cx="495" cy="215" r="4" fill="#10b981" />
-                  </svg>
-
-                  {/* Regional Call Stats Bottom Floating Strip */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      display: 'flex',
-                      justifyContent: 'space-around',
-                      padding: '8px 12px',
-                      background: 'var(--card-sunken)',
-                      borderRadius: 'var(--r-sm, 8px)',
-                      border: '1px solid var(--border)',
-                      fontSize: 11.5,
-                      color: 'var(--ink2)',
-                      fontWeight: 600,
-                    }}
-                  >
-                    <span>● East Africa: <strong>428 calls</strong></span>
-                    <span>● North America: <strong>312 calls</strong></span>
-                    <span>● Europe: <strong>184 calls</strong></span>
-                    <span>● Asia-Pac: <strong>122 calls</strong></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CallsMetrics />
         </div>
       )}
 
@@ -1709,7 +710,7 @@ export function Calls() {
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {filteredStaff.length === 0 ? (
                 <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
-                  <Users size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+                  <Icon name="users" size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
                   <div style={{ fontWeight: 700, color: 'var(--ink)' }}>No colleagues found</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Try clearing keywords or presence filter.</div>
                 </div>
@@ -1756,7 +757,7 @@ export function Calls() {
                           onClick={() => startCall(p, 'VOICE')}
                           style={{ flex: isMobile ? 1 : 'none' }}
                         >
-                          <Phone size={13} style={{ color: 'var(--green)', marginRight: 4 }} />
+                          <Icon name="phone" size={13} style={{ color: 'var(--green)' }} />
                           <span>Voice</span>
                         </Button>
                         <Button
@@ -1766,7 +767,7 @@ export function Calls() {
                           onClick={() => startCall(p, 'VIDEO')}
                           style={{ flex: isMobile ? 1 : 'none' }}
                         >
-                          <Video size={13} style={{ marginRight: 4 }} />
+                          <Icon name="camera" size={13} />
                           <span>Video</span>
                         </Button>
                       </div>
@@ -1996,7 +997,7 @@ export function Calls() {
                         </td>
                         <td>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
-                            {h.kind === 'VOICE' ? <Phone size={13} style={{ color: 'var(--ink3)' }} /> : <Video size={13} style={{ color: 'var(--ink3)' }} />}
+                            <Icon name={h.kind === 'VOICE' ? 'phone' : 'camera'} size={13} style={{ color: 'var(--ink3)' }} />
                             {h.kind}
                           </span>
                         </td>
@@ -2096,7 +1097,7 @@ export function Calls() {
                   onClick={() => setDialpadNumber('')}
                   style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
                 >
-                  <X size={16} />
+                  <Icon name="x" size={16} />
                 </button>
               )}
             </div>
@@ -2193,7 +1194,7 @@ export function Calls() {
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VOICE')}
                 style={{ justifyContent: 'center' }}
               >
-                <Phone size={15} style={{ color: 'var(--green)', marginRight: 6 }} />
+                <Icon name="phone" size={15} style={{ color: 'var(--green)' }} />
                 <span>Voice Call</span>
               </Button>
 
@@ -2203,7 +1204,7 @@ export function Calls() {
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VIDEO')}
                 style={{ justifyContent: 'center' }}
               >
-                <Video size={15} style={{ marginRight: 6 }} />
+                <Icon name="camera" size={15} />
                 <span>Video Call</span>
               </Button>
             </div>
@@ -2277,7 +1278,7 @@ export function Calls() {
                 gap: 6,
               }}
             >
-              {kind === 'VIDEO' ? <Video size={14} /> : <Phone size={14} />}
+              <Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={14} />
               <span>Incoming WebRTC {kind === 'VIDEO' ? 'Video' : 'Voice'} Call…</span>
             </div>
 
@@ -2287,7 +1288,7 @@ export function Calls() {
                 style={{ flex: 1, borderRadius: 30, padding: '12px 20px', justifyContent: 'center' }}
                 onClick={declineCall}
               >
-                <X size={16} style={{ marginRight: 6 }} />
+                <Icon name="x" size={16} />
                 <span>Decline</span>
               </Button>
               <Button
@@ -2302,7 +1303,7 @@ export function Calls() {
                 }}
                 onClick={acceptCall}
               >
-                <Phone size={16} style={{ marginRight: 6 }} />
+                <Icon name="phone" size={16} />
                 <span>Accept</span>
               </Button>
             </div>
@@ -2383,7 +1384,7 @@ export function Calls() {
                     gap: 6,
                   }}
                 >
-                  {kind === 'VIDEO' ? <Video size={15} /> : <Phone size={15} />}
+                  <Icon name={kind === 'VIDEO' ? 'camera' : 'phone'} size={15} />
                   <span>
                     {callState === 'calling' ? 'Ringing WebRTC peer…' : `In Voice Call • ${fmtDur(elapsed)}`}
                   </span>
@@ -2491,7 +1492,7 @@ export function Calls() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Video size={20} />
+                <Icon name="camera" size={20} />
               </button>
             )}
 
@@ -2513,7 +1514,7 @@ export function Calls() {
                 transition: 'all 0.15s ease',
               }}
             >
-              <X size={24} />
+              <Icon name="x" size={24} />
             </button>
           </div>
         </div>

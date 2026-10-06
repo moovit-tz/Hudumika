@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 export const PageLayout: React.FC = () => {
-  const year = new Date().getFullYear();
 
   return (
     <div className="page-layout">
@@ -10,7 +9,14 @@ export const PageLayout: React.FC = () => {
       <div className="page-layout-content">
         <Outlet />
       </div>
-      <footer className="page-footer">
+      <PageFooter />
+    </div>
+  );
+};
+
+export const PageFooter: React.FC = () => {
+  const year = new Date().getFullYear();
+  return <footer className="page-footer">
         {/* Left: brand + legal */}
         <div className="page-footer-copyright">
           <span className="page-footer-identity"><strong>Hudumika Workspace</strong> &copy; {year} <strong>Moovit Mobility Limited</strong>.</span>{' '}
@@ -25,7 +31,5 @@ export const PageLayout: React.FC = () => {
           <span className="page-footer-link-sep">·</span>
           <Link to="/support/tickets" className="page-footer-link">Support</Link>
         </nav>
-      </footer>
-    </div>
-  );
+      </footer>;
 };

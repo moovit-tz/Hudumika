@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from './Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
+import { LauncherAppSvg } from './LauncherApps.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LAUNCHER_APPS, INTERNAL_APP_IDS } from './LauncherApps.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { getRecentApps } from '../lib/recentApps.js';
+import { getRecentApps, recordRecentApp } from '../lib/recentApps.js';
 import './AppLauncher.css';
 
 export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; label?: string }> = {
@@ -100,7 +101,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
 
   useEffect(() => {
     if (!launcherOpen) return;
-    const ids = getRecentApps(['calendar', 'email', 'chat', 'tasks', 'cloud', 'notes', 'crm', 'finops', 'bliss']);
+    const ids = getRecentApps(); // no fallback — only genuinely visited apps
     const allowed = LAUNCHER_APPS
       .filter(a => isAppEnabled(a.id, enabledApps))
       .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
@@ -109,15 +110,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
       .map(id => allowed.find(a => a.id === id))
       .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a));
 
-    const result = [...fromRecent];
-    for (const app of allowed) {
-      if (result.length >= 9) break;
-      if (!result.some(a => a.id === app.id)) {
-        result.push(app);
-      }
-    }
-
-    setRecentApps(result.slice(0, 9));
+    setRecentApps(fromRecent.slice(0, 4));
   }, [launcherOpen, enabledApps, canSeeInternal]);
 
   const orderedApps = useMemo(() => {
@@ -200,7 +193,6 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
         <div className="app-lnch-panel-hdr">
           <div className="app-lnch-hdr-text">
             <span className="app-lnch-panel-title">Apps</span>
-            <span className="app-lnch-panel-sub">Jump to a workspace app</span>
           </div>
           <div className="app-lnch-panel-hdr-btns">
             <Link
@@ -230,7 +222,38 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
         )}
 
         <div className="app-lnch-panel-scroll" ref={scrollRef} data-more-below={moreBelow || undefined}>
-          {/* 3-Column Dreams Core Apps Grid with Hudumika Design System Vector Icons */}
+          {/* Recently visited row */}
+          {!editMode && recentApps.length > 0 && (
+            <>
+              <div className="app-lnch-section-label">Recent</div>
+              <div className="app-lnch-panel-grid app-lnch-panel-grid--recent">
+                {recentApps.map(app => {
+                  const meta = LAUNCHER_APP_META[app.id] ?? { icon: 'grid', color: app.color, label: app.name };
+                  const appColor = branding.getAppColor(app.id, meta.color || app.color);
+                  const appLabel = branding.getAppName(app.id, meta.label || app.name);
+                  return (
+                    <Link
+                      key={app.id}
+                      to={app.path}
+                      className="app-lnch-panel-item"
+                      onClick={() => { recordRecentApp(app.id); closeLauncher(); }}
+                    >
+                      <LauncherAppSvg
+                        id={app.id}
+                        color={appColor}
+                        logoUrl={branding.getAppLogo(app.id) || undefined}
+                        size={40}
+                      />
+                      <span className="app-lnch-panel-name">{appLabel}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+              <div className="app-lnch-section-label">All apps</div>
+            </>
+          )}
+
+          {/* 4-Column Apps Grid */}
           <div className={`app-lnch-panel-grid${editMode ? ' app-lnch-panel-grid--edit' : ''}`}>
             {orderedApps.map(app => {
               const meta = LAUNCHER_APP_META[app.id] ?? { icon: 'grid', color: app.color, label: app.name };
@@ -246,11 +269,14 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
                   onDragOver={editMode ? e => handleDragOver(e, app.id) : undefined}
                   onDrop={editMode ? e => handleDrop(e, app.id) : undefined}
                   onDragEnd={editMode ? handleDragEnd : undefined}
-                  onClick={e => { if (editMode) { e.preventDefault(); return; } closeLauncher(); }}
+                  onClick={e => { if (editMode) { e.preventDefault(); return; } recordRecentApp(app.id); closeLauncher(); }}
                 >
-                  <div className="app-lnch-icon-box" style={{ background: appColor }}>
-                    <Icon name={meta.icon || 'grid'} size={20} color="#ffffff" strokeWidth={2.2} />
-                  </div>
+                  <LauncherAppSvg
+                    id={app.id}
+                    color={appColor}
+                    logoUrl={branding.getAppLogo(app.id) || undefined}
+                    size={40}
+                  />
                   <span className="app-lnch-panel-name">{appLabel}</span>
                 </Link>
               );

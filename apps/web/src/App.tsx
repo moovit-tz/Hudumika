@@ -21,6 +21,9 @@ import { ConfirmHost } from './components/ConfirmHost.js';
 import { PromptHost } from './components/PromptHost.js';
 import { InAppBrowserHost } from './components/InAppBrowserHost.js';
 import { AppHeader } from './components/AppHeader.js';
+import { PageLayout } from './components/PageLayout.js';
+// Standalone routes use the same shell even when no sidebar has been loaded.
+import './components/AppSidebar.css';
 import { useLandingStyle } from './hooks/useLandingStyle.js';
 
 // Fast critical auth pages kept eagerly loaded for instant initial render
@@ -293,7 +296,9 @@ const CustomerShell: React.FC = () => {
             <Route path="/support/tickets" element={<CustomerSupport />} />
             <Route path="/support"         element={<CustomerSupport />} />
             <Route path="/chat"            element={<Chat />} />
-            <Route path="/profile"         element={<UserProfile />} />
+            <Route element={<PageLayout />}>
+              <Route path="/profile" element={<UserProfile />} />
+            </Route>
             <Route path="/clearance/:id"   element={<ShipmentDetail />} />
             <Route path="comply"      element={<CompliancePage />} />
             <Route path="penalty"     element={<PenaltyPage />} />
@@ -577,7 +582,9 @@ const AppContentBody: React.FC = () => {
                   listed '/escalations' in the Tools section's match prefixes,
                   just missing both this <Route> and the nav item itself. */}
               <Route path="/escalations"      element={<Escalations />} />
-              <Route path="/profile"          element={<UserProfile />} />
+              <Route element={<PageLayout />}>
+                <Route path="/profile" element={<UserProfile />} />
+              </Route>
               <Route path="/profile/privacy"  element={<PrivacyCenter />} />
               <Route path="/tools/overview"   element={<ToolsOverview />} />
               <Route path="/carbon-credits"   element={<CarbonCreditsPage />} />

@@ -1,4 +1,4 @@
-﻿// ─── SignEditor.tsx — Envelope Builder with drag-drop field placement ─────────
+// ─── SignEditor.tsx — Envelope Builder with drag-drop field placement ─────────
 // Layout: [Left: field palette + recipients] [Center: A4 page canvas] [Right: field properties]
 // Fields are placed on the page by clicking the field type then clicking on the page.
 // Coordinates stored as fractions (0–1) so they survive font/page-size changes.
@@ -43,6 +43,8 @@ import { StirlingPdfTools } from './StirlingPdfTools.js';
 import { VersionHistoryPanel } from './VersionHistoryPanel.js';
 import { draftKey, loadDraft, saveDraft, clearDraft, isMeaningfulDraft, type SignDraft } from './draftStore.js';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
+import { Card } from '../../components/ui/card.js';
+import './SignManagement.css';
 import { PageHeader } from '../../components/PageHeader.js';
 import './Sign.css';
 
@@ -417,7 +419,7 @@ export function SignEditor() {
 
   // ── File upload ───────────────────────────────────────────────────────────
   // Suggests a title from the file's own name (strip extension, turn
-  // separators into spaces) rather than leaving "Envelope title…" empty —
+  // separators into spaces) rather than leaving "Document title…" empty —
   // purely a starting point: setTitle below only fills an empty field, and
   // the title input stays a normal controlled input, so typing over it or
   // editing it after the fact works exactly as it always did.
@@ -442,7 +444,7 @@ export function SignEditor() {
   }
 
   // The processed PDF coming back from a Stirling-PDF tool run (or a
-  // reverted version from Version History) replaces the working document
+  // reverted version from Versions) replaces the working document
   // exactly the same way a fresh local upload does above — it's a new
   // binary now, no longer in sync with whichever Cloud file (if any) it
   // started from. summary/details, when given, become this change's
@@ -592,7 +594,7 @@ export function SignEditor() {
         // An existing draft's current title/recipients/fields must actually
         // be persisted before sending — this used to build `body` and then
         // never send it on this path, jumping straight to /send, so any
-        // edit made since the last "Save Draft" click was silently lost.
+        // edit made since the last "Save draft" click was silently lost.
         await apiFetch(`/v1/sign/envelopes/${envId}`, { method: 'PUT', body: JSON.stringify(body) });
       }
       await apiFetch(`/v1/sign/envelopes/${envId}/send`, { method: 'POST' });
@@ -666,23 +668,29 @@ export function SignEditor() {
   if (!previewSrc && !envelopeId && !skipUploadStep) {
     return (
       <main className="sign-new-envelope-page">
-        <section className="sign-new-envelope-card" aria-label="Create a new envelope">
+        <Card className="sign-new-envelope-card" aria-label="Create a new envelope">
           <PageHeader
             crumbs={['eSign', 'Create']}
             titlePlain="New"
             titleEm="envelope"
-            subtitle="Upload or scan a document, then place signature fields anywhere on each page."
+            subtitle="Add a document, choose recipients, and place signing fields."
             actions={
               <Tip label="Return to your eSign documents without creating an envelope">
-                <Button variant="outline" size="sm" onClick={() => navigate('/sign')}>
+                <Button variant="outline" size="default" onClick={() => navigate('/sign')}>
                   <Icon name="arrowLeft" size={14} /> Back
                 </Button>
               </Tip>
             }
           />
 
+          <div className="sign-editor-steps" aria-label="Preparation steps">
+            <span><Icon name="fileText" size={16} />1. Document</span>
+            <span><Icon name="users" size={16} />2. Recipients</span>
+            <span><Icon name="edit" size={16} />3. Fields</span>
+            <span><Icon name="send" size={16} />4. Send</span>
+          </div>
           <div className="sign-new-envelope-title-row">
-            <label htmlFor="envelope-title">Envelope title</label>
+            <label htmlFor="envelope-title">Document title</label>
             <Input
               id="envelope-title"
               value={title}
@@ -696,8 +704,8 @@ export function SignEditor() {
               <div className="sign-new-envelope-chooser-heading">
                 <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="fileText" size={20} /></FeaturedIcon>
                 <div>
-                  <h2>Choose how to start</h2>
-                  <p>Add the document your recipients need to review and sign.</p>
+                  <h2>Add your document</h2>
+                  <p>Choose a file or capture it with your camera.</p>
                 </div>
               </div>
               <div className="sign-new-envelope-actions">
@@ -719,16 +727,16 @@ export function SignEditor() {
 
               <div className="sign-new-envelope-divider"><span>or</span></div>
               <div className="sign-new-envelope-blank">
-                <div><strong>Start with a blank page</strong><span>Create an envelope and place fields without uploading a document.</span></div>
+                <div><strong>Start blank</strong><span>Prepare a page without uploading a file.</span></div>
                 <Tip label="Open a blank signing page without attaching a document">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setSkipUploadStep(true)}>
+                  <Button type="button" variant="outline" size="default" onClick={() => setSkipUploadStep(true)}>
                     Start blank <Icon name="arrowRight" size={14} />
                   </Button>
                 </Tip>
               </div>
             </div>
           </div>
-        </section>
+        </Card>
 
         <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" style={{ display: 'none' }} onChange={handleFile} />
         <input ref={scanInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFile} />
@@ -739,18 +747,18 @@ export function SignEditor() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--card-bg)' }}>
       {/* Top control bar with responsive flex wrapping */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+      <div className="sign-editor-control-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 250px' }}>
-          <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600, gap: 6, flexShrink: 0 }}>
+          <Button variant="outline" size="default" onClick={() => navigate('/sign')} style={{ fontWeight: 600, gap: 6, flexShrink: 0 }}>
             <Icon name="arrowLeft" size={14} /> Back
           </Button>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Envelope title…"
+          <Input aria-label="Document title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Document title…"
             style={{ flex: 1, minWidth: 120, fontSize: 14.5, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', letterSpacing: '-0.01em', textOverflow: 'ellipsis' }} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
           <Select value={orderMode} onValueChange={v => setOrderMode(v as 'sequential' | 'parallel')}>
-            <SelectTrigger className="w-40" style={{ height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="sequential">Sequential signing</SelectItem>
               <SelectItem value="parallel">Parallel signing</SelectItem>
@@ -768,15 +776,15 @@ export function SignEditor() {
 
           {isPdf && previewSrc && (
             <Tip label="Rotate, watermark, redact, OCR, compress">
-              <Button variant="outline" size="sm" onClick={() => { setShowPdfTools(true); if (isMobile) setMobileTab('right'); }} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
-                <Icon name="layers" size={13} /> PDF Tools
+              <Button variant="outline" size="default" onClick={() => { setShowPdfTools(true); if (isMobile) setMobileTab('right'); }}>
+                <Icon name="layers" size={13} /> PDF tools
               </Button>
             </Tip>
           )}
 
           {isPdf && previewSrc && (sourceFileId || documentData) && (
             <Tip label="Suggestions only — scans for blank fields and witness/notary blocks, never a validity check">
-              <Button variant="outline" size="sm" onClick={runAiAssist} disabled={aiAssistLoading} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
+              <Button variant="outline" size="default" onClick={runAiAssist} disabled={aiAssistLoading}>
                 <Icon name="sparkle" size={13} /> {aiAssistLoading ? 'Scanning…' : 'AI Scan'}
               </Button>
             </Tip>
@@ -784,8 +792,8 @@ export function SignEditor() {
 
           {envelopeId && (
             <Tip label="See every saved version of this document and what changed, with the ability to revert">
-              <Button variant="outline" size="sm" onClick={() => setShowVersionHistory(true)} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
-                <Icon name="clock" size={13} /> Version History
+              <Button variant="outline" size="default" onClick={() => setShowVersionHistory(true)}>
+                <Icon name="clock" size={13} /> Versions
               </Button>
             </Tip>
           )}
@@ -793,23 +801,23 @@ export function SignEditor() {
           {/* Unified Save Dropdown Button */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" style={{ height: 32, fontSize: 12, padding: '0 12px', gap: 5, fontWeight: 600 }}>
+              <Button variant="outline" size="default">
                 <Icon name="save" size={13} /> {saving ? 'Saving…' : 'Save'} <Icon name="chevronDown" size={11} style={{ opacity: 0.6 }} />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" style={{ width: 185, padding: 4 }}>
-              <Button variant="ghost" size="sm" onClick={handleSave} disabled={saving}
+              <Button variant="ghost" size="default" onClick={handleSave} disabled={saving}
                 style={{ width: '100%', justifyContent: 'flex-start', fontWeight: 600, gap: 8 }}>
-                <Icon name="fileText" size={14} color="var(--blue)" /> Save Draft
+                <Icon name="fileText" size={14} color="var(--blue)" /> Save draft
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleSaveAsTemplate}
+              <Button variant="ghost" size="default" onClick={handleSaveAsTemplate}
                 style={{ width: '100%', justifyContent: 'flex-start', fontWeight: 600, gap: 8 }}>
-                <Icon name="copy" size={14} color="var(--teal)" /> Save as Template
+                <Icon name="copy" size={14} color="var(--teal)" /> Save template
               </Button>
             </PopoverContent>
           </Popover>
 
-          <Button variant="default" size="sm" onClick={handleSend} disabled={sending} style={{ height: 32, fontSize: 12, fontWeight: 700, padding: '0 14px' }}>
+          <Button variant="default" size="default" onClick={handleSend} disabled={sending}>
             {sending ? 'Sending…' : 'Send'} <Icon name="send" size={13} style={{ marginLeft: 4 }} />
           </Button>
         </div>
@@ -819,7 +827,7 @@ export function SignEditor() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: 'var(--blue-l)', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--ink2)', flexShrink: 0 }}>
           <Icon name="clock" size={13} style={{ color: 'var(--blue)', flexShrink: 0 }} />
           <span>Restored your unsaved edits from {new Date(draftRestoredAt).toLocaleString()}.</span>
-          <Button variant="ghost" size="xs" onClick={() => { clearDraft(draftKey(envelopeId)); window.location.reload(); }} style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>
+          <Button variant="ghost" size="default" onClick={() => { clearDraft(draftKey(envelopeId)); window.location.reload(); }} style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>
             Discard and start fresh
           </Button>
         </div>
@@ -829,14 +837,14 @@ export function SignEditor() {
       {isMobile && (
         <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', padding: '4px 8px', gap: 4 }}>
           {[
-            { key: 'left', label: 'Recipients & Fields', icon: 'users' },
-            { key: 'center', label: 'Document Canvas', icon: 'fileText' },
-            showPdfTools ? { key: 'right', label: 'PDF Tools', icon: 'layers' } : { key: 'right', label: 'Field Options', icon: 'settings' },
+            { key: 'left', label: 'Recipients', icon: 'users' },
+            { key: 'center', label: 'Document', icon: 'fileText' },
+            showPdfTools ? { key: 'right', label: 'PDF tools', icon: 'layers' } : { key: 'right', label: 'Options', icon: 'settings' },
           ].map(tab => (
             <Button
               key={tab.key}
               variant="ghost"
-              size="sm"
+              size="default"
               onClick={() => setMobileTab(tab.key as any)}
               style={{
                 flex: 1,
@@ -917,7 +925,7 @@ export function SignEditor() {
           )}
 
           <div style={{ padding: '0 12px 8px' }}>
-            <Button variant="outline" size="sm" onClick={addRecipient} style={{ width: '100%', marginTop: 4, borderStyle: 'dashed' }}>
+            <Button variant="outline" size="default" onClick={addRecipient} style={{ width: '100%', marginTop: 4, borderStyle: 'dashed' }}>
               <Icon name="plus" size={13} /> Add Recipient
             </Button>
           </div>
@@ -1041,7 +1049,7 @@ export function SignEditor() {
           <div className="sign-panel-title">Fields — drag or click to place</div>
           <div className="sign-field-palette">
             {FIELD_TYPES.map(ft => (
-              <button key={ft.type} className="sign-field-type-btn"
+              <Button variant="outline" key={ft.type} className="sign-field-type-btn" aria-pressed={placingType === ft.type}
                 draggable
                 onDragStart={e => {
                   e.dataTransfer.setData('text/plain', ft.type);
@@ -1051,7 +1059,7 @@ export function SignEditor() {
                 <Icon name={ft.icon} size={15} style={{ marginRight: 8 }} />
                 <span>{ft.label}</span>
                 {placingType === ft.type && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700 }}>CLICK PAGE ↑</span>}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -1211,10 +1219,10 @@ export function SignEditor() {
                 <div style={{ fontSize: 12, color: 'var(--ink3)' }}>PDF, DOCX, PNG, JPG — every page will be loaded</div>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Button variant="outline" size="default" onClick={() => fileInputRef.current?.click()}>
                   <Icon name="upload" size={14} /> Upload File
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => scanInputRef.current?.click()}>
+                <Button variant="outline" size="default" onClick={() => scanInputRef.current?.click()}>
                   <Icon name="camera" size={14} /> Scan Document
                 </Button>
               </div>
@@ -1313,8 +1321,8 @@ export function SignEditor() {
           )}
         </div>
 
-        {/* RIGHT: Selected field properties — swapped out for PDF Tools
-            while a tool is active, rather than PDF Tools covering the whole
+        {/* RIGHT: Selected field properties — swapped out for PDF tools
+            while a tool is active, rather than PDF tools covering the whole
             screen. Same panel, same mobile "Field Options" tab, so it stays
             reachable exactly the same way on a phone as on desktop. */}
         <div className="sign-editor-right" style={{ display: isMobile && mobileTab !== 'right' ? 'none' : undefined }}>
@@ -1358,7 +1366,7 @@ export function SignEditor() {
                   onCheckedChange={c => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, required: c === true } : f))} />
                 <span style={{ fontSize: 13 }}>Required field</span>
               </label>
-              <Button variant="outline" size="sm" onClick={() => removeField(selectedFieldData.id)}
+              <Button variant="outline" size="default" onClick={() => removeField(selectedFieldData.id)}
                 style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)' }}>
                 <Icon name="trash" size={13} /> Remove Field
               </Button>

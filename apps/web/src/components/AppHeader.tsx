@@ -774,7 +774,7 @@ export function AppHeader({
               title={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'}
               aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
             >
-              <span className="app-header-mode-pill-sparkle">✨</span>
+              <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
               <span className="app-header-mode-pill-text">{isAgentic ? 'Normal View' : 'Agentic View'}</span>
             </button>
 

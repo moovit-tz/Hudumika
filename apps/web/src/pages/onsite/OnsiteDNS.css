@@ -1,0 +1,33 @@
+.onsite-dns-page { min-width: 0; }
+.onsite-dns-page .page-header-actions-wrap { display: flex; flex-wrap: wrap; gap: 10px; }
+.onsite-dns-records { overflow: hidden; padding: 0 !important; }
+.onsite-dns-toolbar { padding: 24px; display: flex; justify-content: space-between; align-items: center; gap: 24px; border-bottom: 1px solid var(--border); }
+.onsite-dns-toolbar h2 { font-size: 18px; font-weight: 700; margin: 0 0 6px; }
+.onsite-dns-toolbar h2 span { color: var(--ink3); font-size: 14px; margin-left: 8px; }
+.onsite-dns-toolbar p { color: var(--ink3); font-size: 13px; margin: 0; }
+.onsite-dns-filters { display: flex; gap: 12px; }
+.onsite-dns-filters > button { width: 140px; }
+.onsite-dns-filters input { width: 240px; }
+.onsite-dns-page button, .onsite-dns-filters input { min-height: 44px; }
+.onsite-dns-table th { background: var(--bg); }
+.onsite-dns-table td { padding-block: 18px; }
+.onsite-dns-value { max-width: 420px; overflow-wrap: anywhere; white-space: normal; }
+.onsite-dns-empty { padding: 48px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
+.onsite-dns-empty svg { color: var(--teal); }
+.onsite-dns-empty h3 { margin: 0; font-size: 18px; }
+.onsite-dns-empty p { color: var(--ink3); margin: 0; }
+.onsite-dns-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.onsite-dns-dialog button, .onsite-dns-dialog input { min-height: 44px; }
+@media(max-width: 900px) { .onsite-dns-toolbar { flex-direction: column; align-items: stretch; } .onsite-dns-filters input { width: 100%; } }
+@media(max-width: 640px) {
+ .onsite-dns-dialog form > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+ .onsite-dns-toolbar { padding: 16px; gap: 16px; }
+ .onsite-dns-filters { flex-direction: column; }
+ .onsite-dns-filters > button { width: 100%; }
+ .onsite-dns-table, .onsite-dns-table tbody { display: block; width: 100%; }
+ .onsite-dns-table thead { display: none; }
+ .onsite-dns-table tr { display: block; padding: 16px; border-bottom: 1px solid var(--border); }
+ .onsite-dns-table td { display: grid; grid-template-columns: 68px minmax(0,1fr); align-items: start; gap: 12px; padding: 8px 0; border: 0; max-width: none; overflow-wrap: anywhere; }
+ .onsite-dns-table td::before { content: attr(data-label); color: var(--ink3); font-family: var(--font); font-size: 12px; font-weight: 600; }
+ .onsite-dns-table td > .onsite-badge { justify-self: start; }
+}

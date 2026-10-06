@@ -27,16 +27,25 @@
   min-width: fit-content;
 }
 
-/* ── Dynamic App Brand Lockup in Header ── */
-.ah-header-brand-lockup {
+/* ── Platform Logo in Header ── */
+.ah-header-logo-wrap {
   display: flex;
   align-items: center;
-  gap: 9px;
-  cursor: default;
-  user-select: none;
   flex-shrink: 0;
 }
 
+.ah-header-logo {
+  height: 31px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.ah-header-logo--dark { display: none; }
+[data-theme="dark"] .ah-header-logo--dark { display: block; }
+[data-theme="dark"] .ah-header-logo--light { display: none; }
+
+/* Keep .ah-app-icon-wrapper available for other uses in this view */
 .ah-app-icon-wrapper {
   width: 32px;
   height: 32px;
@@ -46,36 +55,6 @@
   justify-content: center;
   flex-shrink: 0;
   transition: transform 0.15s ease;
-}
-
-.ah-brand-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.ah-brand-title {
-  font-family: var(--font);
-  font-size: 14.5px;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.015em;
-}
-
-.ah-brand-divider {
-  color: var(--ink3);
-  font-size: 13px;
-  font-weight: 400;
-  margin: 0 1px;
-  opacity: 0.6;
-}
-
-.ah-assignee-label {
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink2);
 }
 
 /* ── Dreams Core Navigation Group (Explore + Apps) ── */
@@ -824,12 +803,6 @@
     padding: 0 14px;
     gap: 10px;
   }
-  .ah-header-brand-lockup .ah-assignee-label {
-    display: none;
-  }
-  .ah-header-brand-lockup .ah-brand-divider {
-    display: none;
-  }
   .ah-header-search {
     flex: 0 1 200px;
   }
@@ -887,9 +860,6 @@
   }
   .ah-header-left {
     gap: 8px;
-  }
-  .ah-header-brand-lockup .ah-brand-title {
-    font-size: 13.5px;
   }
   .ah-header-center {
     order: 3;
