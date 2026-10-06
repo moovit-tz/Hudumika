@@ -290,11 +290,15 @@ export function BrandingAppsSection() {
   };
 
   const saveApp = async (appId: string) => {
-    localStorage.setItem(`hudumika_app_name_${appId}`, appNames[appId]);
-    localStorage.setItem(`hudumika_app_slogan_${appId}`, appSlogans[appId]);
-    localStorage.setItem(`hudumika_app_color_${appId}`, colors[appId]);
-    if (appLogos[appId]) localStorage.setItem(`hudumika_app_logo_${appId}`, appLogos[appId]);
-    else localStorage.removeItem(`hudumika_app_logo_${appId}`);
+    try {
+      localStorage.setItem(`hudumika_app_name_${appId}`, appNames[appId]);
+      localStorage.setItem(`hudumika_app_slogan_${appId}`, appSlogans[appId]);
+      localStorage.setItem(`hudumika_app_color_${appId}`, colors[appId]);
+      if (appLogos[appId]) localStorage.setItem(`hudumika_app_logo_${appId}`, appLogos[appId]);
+      else localStorage.removeItem(`hudumika_app_logo_${appId}`);
+    } catch {
+      // QuotaExceededError — logo too large for localStorage; skip local cache, API still saves
+    }
     window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
     try {
       await pushBranding({ apps: { [appId]: { name: appNames[appId], slogan: appSlogans[appId], color: colors[appId], logo: appLogos[appId] || undefined } } });
@@ -336,6 +340,7 @@ export function BrandingAppsSection() {
               Upload custom icon
               <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async e => {
                 const file = e.target.files?.[0]; if (!file) return;
+                if (file.size > 1_500_000) { flashError(app.id, { message: 'Image too large — please use a file under 1.5 MB.' }); return; }
                 const data = await readFile(file);
                 setAppLogos({...appLogos, [app.id]: data});
               }} />
