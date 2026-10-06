@@ -78,6 +78,36 @@ export async function platformRoutes(fastify: FastifyInstance) {
     return mergedBranding;
   });
 
+  // Public endpoint — serves the stored per-app icon bytes so the frontend can
+  // reference a real URL instead of embedding large base64 data URIs in
+  // localStorage (which has a ~5 MB quota and breaks multi-app logo propagation
+  // when any single logo nears that ceiling). Cache-Control is intentionally
+  // short (1 h) so a newly uploaded logo is visible quickly without a forced reload.
+  fastify.get('/branding/app-icon/:appId', async (request, reply) => {
+    const { appId } = (request.params as { appId: string });
+    if (!/^[a-z0-9_-]{1,32}$/.test(appId)) return reply.code(404).send();
+
+    const row = await dbPlatform.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const logo: string | undefined = settings.branding?.apps?.[appId]?.logo;
+    if (!logo) return reply.code(404).send();
+
+    if (logo.startsWith('data:')) {
+      const commaIdx = logo.indexOf(',');
+      const header   = logo.slice(0, commaIdx);
+      const data     = logo.slice(commaIdx + 1);
+      const mime     = header.match(/^data:([^;]+)/)?.[1] ?? 'image/png';
+      reply.header('content-type', mime);
+      reply.header('cache-control', 'public, max-age=3600');
+      return reply.send(Buffer.from(data, 'base64'));
+    }
+    // Plain URL stored (e.g. an http(s) link) — redirect the browser to it.
+    return reply.redirect(302, logo);
+  });
+
   // ── Design tokens — platform-wide, SuperAdmin-controlled design system.
   // Same sentinel-row pattern as branding above, stored under a sibling
   // 'design-tokens' key so the two never clobber each other (the settings

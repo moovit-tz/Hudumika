@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, BASE_URL } from '../lib/api.js';
 import { setTitleSuffix } from '../lib/seo.js';
 import { readDesignSystemVersion } from './useDesignSystem.js';
 import { useAuth } from './useAuth.js';
@@ -124,7 +124,15 @@ function readBranding(platformOnly = false): BrandingState {
         ?? localStorage.getItem('hudumika_tenant_accent');
       return currentBrandAccent(stored, fallback);
     },
-    getAppLogo:      (id) => localStorage.getItem(`hudumika_app_logo_${id}`) ?? '',
+    // Returns the API URL for logos served from the backend so that large
+    // images never have to live in localStorage (whose ~5 MB quota they bust).
+    // A timestamp token stored on successful save busts the browser cache when
+    // a new image is uploaded; absence of the token means no logo is set.
+    getAppLogo: (id) => {
+      const ts = localStorage.getItem(`hudumika_app_logo_ts_${id}`);
+      if (ts) return `${BASE_URL}/v1/platform/branding/app-icon/${id}?t=${ts}`;
+      return '';
+    },
     getAppName:      (id, fallback = '') => localStorage.getItem(`hudumika_app_name_${id}`) ?? fallback,
     getAppSlogan:    (id, fallback = '') => localStorage.getItem(`hudumika_app_slogan_${id}`) ?? fallback,
   };
@@ -236,10 +244,18 @@ export function useBranding(platformOnly = false): BrandingState {
 
       if (data.apps) {
         for (const [appId, cfg] of Object.entries(data.apps as Record<string, AppBrandingConfig>)) {
-          if (cfg.name)   localStorage.setItem(`hudumika_app_name_${appId}`, cfg.name);
-          if (cfg.slogan) localStorage.setItem(`hudumika_app_slogan_${appId}`, cfg.slogan);
-          if (cfg.color)  localStorage.setItem(`hudumika_app_color_${appId}`, cfg.color);
-          if (cfg.logo)   localStorage.setItem(`hudumika_app_logo_${appId}`, cfg.logo);
+          if (cfg.name)   try { localStorage.setItem(`hudumika_app_name_${appId}`, cfg.name); } catch {}
+          if (cfg.slogan) try { localStorage.setItem(`hudumika_app_slogan_${appId}`, cfg.slogan); } catch {}
+          if (cfg.color)  try { localStorage.setItem(`hudumika_app_color_${appId}`, cfg.color); } catch {}
+          // Store a timestamp token so getAppLogo() returns the API URL, rather
+          // than writing raw base64 bytes into localStorage (blows the ~5 MB quota).
+          if (cfg.logo) {
+            try { localStorage.setItem(`hudumika_app_logo_ts_${appId}`, String(Date.now())); } catch {}
+          } else if (cfg.logo === null || cfg.logo === '') {
+            localStorage.removeItem(`hudumika_app_logo_ts_${appId}`);
+          }
+          // Clean up any stale base64 blob written by an older build.
+          localStorage.removeItem(`hudumika_app_logo_${appId}`);
         }
       }
 

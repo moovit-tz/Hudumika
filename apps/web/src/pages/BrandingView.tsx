@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Icon } from '../components/Icon.js';
 import { pushBranding, BRAND_ACCENT } from '../hooks/useBranding.js';
+import { BASE_URL } from '../lib/api.js';
 import { pushDesignTokens, readDesignTokens } from '../hooks/useDesignSystem.js';
 import { LauncherAppSvg } from '../components/LauncherApps.js';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
@@ -263,7 +264,10 @@ export function BrandingAppsSection() {
     Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor]))
   );
   const [appLogos, setAppLogos] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? '']))
+    Object.fromEntries(APP_META_BRAND_LIST.map(a => {
+      const ts = localStorage.getItem(`hudumika_app_logo_ts_${a.id}`);
+      return [a.id, ts ? `${BASE_URL}/v1/platform/branding/app-icon/${a.id}?t=${ts}` : ''];
+    }))
   );
   const [appView, setAppView] = useState<'grid' | 'list'>('grid');
   const [savedSection, setSavedSection] = useState<string | null>(null);
@@ -274,7 +278,10 @@ export function BrandingAppsSection() {
       setAppNames(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_name_${a.id}`) ?? a.name])));
       setAppSlogans(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_slogan_${a.id}`) ?? a.slogan])));
       setColors(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor])));
-      setAppLogos(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? ''])));
+      setAppLogos(Object.fromEntries(APP_META_BRAND_LIST.map(a => {
+        const ts = localStorage.getItem(`hudumika_app_logo_ts_${a.id}`);
+        return [a.id, ts ? `${BASE_URL}/v1/platform/branding/app-icon/${a.id}?t=${ts}` : ''];
+      })));
     };
     window.addEventListener('hudumika-brand-updated', resync);
     return () => window.removeEventListener('hudumika-brand-updated', resync);
@@ -290,18 +297,34 @@ export function BrandingAppsSection() {
   };
 
   const saveApp = async (appId: string) => {
+    // Save the small fields optimistically so color/name changes appear instantly.
     try {
       localStorage.setItem(`hudumika_app_name_${appId}`, appNames[appId]);
       localStorage.setItem(`hudumika_app_slogan_${appId}`, appSlogans[appId]);
       localStorage.setItem(`hudumika_app_color_${appId}`, colors[appId]);
-      if (appLogos[appId]) localStorage.setItem(`hudumika_app_logo_${appId}`, appLogos[appId]);
-      else localStorage.removeItem(`hudumika_app_logo_${appId}`);
-    } catch {
-      // QuotaExceededError — logo too large for localStorage; skip local cache, API still saves
-    }
+      // Clean up any stale base64 blob — logos are now served from the API.
+      localStorage.removeItem(`hudumika_app_logo_${appId}`);
+    } catch {}
     window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+
+    // Only send the logo bytes when this is a new upload (base64 data URI).
+    // If appLogos[appId] already points at the API URL (after a prior save +
+    // resync) we skip it so we don't re-upload the same image unnecessarily.
+    const logoPayload = appLogos[appId]?.startsWith('data:') ? appLogos[appId] : undefined;
+    // An empty string means the user clicked "Remove" — send '' to clear it.
+    const logoField: string | undefined = !appLogos[appId] ? '' : logoPayload;
+
     try {
-      await pushBranding({ apps: { [appId]: { name: appNames[appId], slogan: appSlogans[appId], color: colors[appId], logo: appLogos[appId] || undefined } } });
+      await pushBranding({ apps: { [appId]: { name: appNames[appId], slogan: appSlogans[appId], color: colors[appId], logo: logoField } } });
+      // Register the timestamp token AFTER the API has the bytes; getAppLogo()
+      // returns the API URL from now on and no base64 ever enters localStorage.
+      if (appLogos[appId]) {
+        const ts = String(Date.now());
+        try { localStorage.setItem(`hudumika_app_logo_ts_${appId}`, ts); } catch {}
+      } else {
+        localStorage.removeItem(`hudumika_app_logo_ts_${appId}`);
+      }
+      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
       flashSaved(appId);
     } catch (err: any) {
       flashError(appId, err);
