@@ -8,8 +8,7 @@ import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Switch } from '../../components/ui/switch.js';
-import { Input } from '../../components/ui/input.js';
-import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
+import { SearchToolbar, SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import type { WorkflowStudioApp, WorkflowStudioTriggerDef, WorkflowStudioActionDef } from '@hudumika/types';
 import { PageHeader } from '../../components/PageHeader.js';
@@ -38,6 +37,11 @@ export function WorkflowList() {
   const [actions, setActions] = useState<WorkflowStudioActionDef[]>([]);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>('ALL');
+  const [activity, setActivity] = useState('ALL');
+  const [sort, setSort] = useState('updated');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  useEffect(() => { setPage(1); }, [app, status, q, activity, sort, pageSize]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -99,9 +103,17 @@ export function WorkflowList() {
   const visible = useMemo(() => workflows.filter(w => {
     if (app !== '__all__' && !appsTouched.get(w.id)?.has(app)) return false;
     if (status !== 'ALL' && w.status !== status) return false;
+    if (activity === 'never' && w.run_count > 0) return false;
+    if (activity === 'ran' && !w.run_count) return false;
+    if (activity === 'recent' && (!w.last_run_at || Date.now() - new Date(w.last_run_at).getTime() > 30 * 86400000)) return false;
+    if (activity === 'unrunnable' && triggerById.has(w.trigger_event)) return false;
     if (q && !`${w.name} ${w.description ?? ''}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  }), [workflows, app, status, q, appsTouched]);
+  }).sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : sort === 'runs' ? b.run_count - a.run_count : sort === 'lastRun' ? (Date.parse(b.last_run_at ?? '') || 0) - (Date.parse(a.last_run_at ?? '') || 0) : Date.parse(b.updated_at) - Date.parse(a.updated_at)), [workflows, app, status, q, activity, sort, appsTouched, triggerById]);
+  const pages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const currentPage = Math.min(page, pages);
+  const paged = visible.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  function clearFilters() { setApp('__all__'); setStatus('ALL'); setActivity('ALL'); setQ(''); setPage(1); }
 
   const counts = useMemo(() => ({
     total: workflows.length,
@@ -132,8 +144,8 @@ export function WorkflowList() {
   );
 
   return (
-    <div className="workflow-list-page">
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
+    <div className="studio-page workflow-list-page">
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <PageHeader
             crumbs={['Studio', 'Workflows']}
@@ -181,17 +193,37 @@ export function WorkflowList() {
             { value: 'PAUSED', label: 'Paused' },
           ]}
         />
-        <div className="workflow-search"><Input aria-label="Search workflows" value={q} onChange={e => setQ(e.target.value)} placeholder="Search workflows…" /></div>
+        <SingleSelectFilter label="Activity" value={activity} onChange={v => setActivity(v ?? 'ALL')} options={[{value:'ALL',label:'All'},{value:'never',label:'Never run'},{value:'ran',label:'Has runs'},{value:'recent',label:'Last 30 days'},{value:'unrunnable',label:'Cannot run'}]} />
+        <SingleSelectFilter label="Sort" value={sort} onChange={v => setSort(v ?? 'updated')} options={[{value:'updated',label:'Recently updated'},{value:'name',label:'Name'},{value:'runs',label:'Most runs'},{value:'lastRun',label:'Last run'}]} />
+        <div className="workflow-search"><SearchToolbar search={q} onSearch={setQ} placeholder="Search workflows" /></div>
+        {(app !== '__all__' || status !== 'ALL' || activity !== 'ALL' || q) && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+        )}
+        {!loading && visible.length > 0 && (
+          <>
+            <div className="workflow-toolbar-sep" />
+            <span className="workflow-count" aria-live="polite">
+              {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, visible.length)} of {visible.length}
+            </span>
+            <SingleSelectFilter label="Per page" value={String(pageSize)} onChange={v => setPageSize(Number(v ?? 5))} options={[5, 10, 20].map(n => ({value: String(n), label: String(n)}))} />
+            <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Previous page">
+              <Icon name="chevronLeft" size={14} />
+            </Button>
+            <span className="workflow-page-label">Page {currentPage} of {pages}</span>
+            <Button variant="outline" size="sm" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
+              <Icon name="chevronRight" size={14} />
+            </Button>
+          </>
+        )}
       </Card>
 
       {error && <Banner variant="error" className="mb-3">{error}</Banner>}
       {loading && <SectionLoading />}
       {!loading && visible.length === 0 && (
-        <Card className="workflow-empty"><FeaturedIcon><Icon name="gitBranch" size={24} /></FeaturedIcon><h2>{workflows.length ? 'No matching workflows' : 'Build your first workflow'}</h2><p>{workflows.length ? 'Try a different search or status.' : 'Choose an event, connect actions, and review the flow before activating it.'}</p><Button variant="outline" onClick={() => workflows.length ? (setQ(''), setStatus('ALL')) : navigate('/studio/new')}>{workflows.length ? 'Clear filters' : 'Create workflow'}</Button></Card>
+        <Card className="workflow-empty"><FeaturedIcon><Icon name="gitBranch" size={24} /></FeaturedIcon><h2>{workflows.length ? 'No matching workflows' : 'Build your first workflow'}</h2><p>{workflows.length ? 'Try a different search or status.' : 'Choose an event, connect actions, and review the flow before activating it.'}</p><Button variant="outline" onClick={() => workflows.length ? clearFilters() : navigate('/studio/new')}>{workflows.length ? 'Clear filters' : 'Create workflow'}</Button></Card>
       )}
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {visible.map(w => {
+        {paged.map(w => {
           const trig = triggerById.get(w.trigger_event);
           return (
             <Card key={w.id}
