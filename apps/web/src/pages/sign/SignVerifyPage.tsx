@@ -204,6 +204,7 @@ export function SignVerifyPage() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
   const [manualCodeNeeded, setManualCodeNeeded] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const pendingFileRef = useRef<{ base64: string; mediaType: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -380,10 +381,16 @@ export function SignVerifyPage() {
                 onClick={() => fileInputRef.current?.click()}
                 role="button" tabIndex={0}
                 onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInputRef.current?.click(); } }}
-                style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg)' }}>
-                <Icon name="upload" size={22} style={{ color: 'var(--ink3)', marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Upload a photo, scan, or PDF</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>We'll read the QR or the printed serial automatically.</div>
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragEnter={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
+                style={{ border: `2px dashed ${dragOver ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'var(--teal-l)' : 'var(--bg)', transition: 'background 0.15s, border-color 0.15s' }}>
+                <Icon name="upload" size={22} style={{ color: dragOver ? 'var(--teal)' : 'var(--ink3)', marginBottom: 8 }} />
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                  {dragOver ? 'Drop file here' : 'Click to upload or drag & drop'}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>Photo, scan, or PDF · We'll read the QR or serial automatically.</div>
               </div>
 
               {uploadStage !== 'idle' && (
