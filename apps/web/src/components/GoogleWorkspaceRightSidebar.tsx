@@ -16,6 +16,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useAgentChat, canDecideAgentApproval } from '../hooks/useAgentChat.js';
 import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
+import { useBranding } from '../hooks/useBranding.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu.js';
 import { NotificationListItem } from './NotificationListItem.js';
 import { ReminderPicker } from './ReminderPicker.js';
@@ -39,7 +40,7 @@ interface RailApp {
 const RAIL_APPS: RailApp[] = [
   { id: 'notes', label: 'Notes', icon: 'fileText', color: '#16a34a' },
   { id: 'tasks', label: 'Tasks', icon: 'tasks', color: '#0d9488' },
-  { id: 'sms', label: 'SMS', icon: 'smartphone', color: '#dc2626', entitlementKey: 'sms' },
+  { id: 'sms', label: 'SMS', icon: 'smartphone', color: '#1257c6', entitlementKey: 'sms' },
   { id: 'email', label: 'Email', icon: 'mail', color: '#ea4335', entitlementKey: 'email' },
   { id: 'chat', label: 'Teams & Discussions', icon: 'messageSquare', color: '#7c3aed' },
   { id: 'notifications', label: 'Notifications', icon: 'bell', color: '#ef4444' },
@@ -123,6 +124,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const currentDate = useCurrentCalendarDate();
   const enabledApps = useEnabledApps();
   const { user } = useAuth();
+  const branding = useBranding();
 
   const activeTodos = todos.filter(t => !t.completed && !t.deletedAt);
 
@@ -715,7 +717,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               {activePanel === 'notifications' && <><Icon name="bell" size={17} style={{ color: '#ef4444' }} /> Notifications</>}
               {activePanel === 'analytics' && <><Icon name="barChart" size={17} style={{ color: '#ea580c' }} /> Workspace Stats</>}
               {activePanel === 'notes' && <><Icon name="fileText" size={17} style={{ color: '#16a34a' }} /> Notes</>}
-              {activePanel === 'sms' && <><Icon name="smartphone" size={17} style={{ color: '#dc2626' }} /> SMS</>}
+              {activePanel === 'sms' && <><Icon name="smartphone" size={17} style={{ color: branding.getAppColor('sms', '#1257c6') }} /> SMS</>}
               {activePanel === 'email' && <><Icon name="mail" size={17} style={{ color: '#ea4335' }} /> Email</>}
               {activePanel === 'contacts' && <><Icon name="contact" size={17} style={{ color: '#2563eb' }} /> Contacts</>}
               {activePanel === 'ai' && <><Icon name="sparkle" size={17} style={{ color: 'var(--teal)' }} /> AI Assistant</>}

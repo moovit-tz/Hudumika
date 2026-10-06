@@ -30,7 +30,7 @@ export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; 
   sign:         { icon: 'edit',          color: '#2563eb', label: 'eSign' },
   store:        { icon: 'shoppingCart',  color: '#8b5cf6', label: 'Store' },
   studio:       { icon: 'zap',           color: '#4361ee', label: 'Studio' },
-  sms:          { icon: 'message',       color: '#dc2626', label: 'SMS' },
+  sms:          { icon: 'message',       color: '#1257c6', label: 'SMS' },
   projects:     { icon: 'columns',       color: '#f59e0b', label: 'Projects' },
   developer:    { icon: 'terminal',      color: '#0f766e', label: 'Developer' },
   hudubi:       { icon: 'barChart',      color: '#18181b', label: 'HuduBI' },
