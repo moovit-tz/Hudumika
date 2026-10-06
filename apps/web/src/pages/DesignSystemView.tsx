@@ -529,9 +529,9 @@ export function DesignSystemView() {
 
                 <div className="ds-version-grid">
                   {[
-                    { id: 'v1', title: 'v1 â€” Per-App Colors', desc: 'Active multi-hue palette with unique colors per application.' },
-                    { id: 'v2', title: 'Mellon â€” Unified Brand', desc: 'Locks all applications to a single unified corporate brand color.' },
-                    { id: 'v3', title: 'Dreams Core â€” Bento & Logistics', desc: 'Activates modern bento grid cards, Plus Jakarta Sans typography, ambient diffuse surfaces, and vibrant badges.' },
+                    { id: 'v1', title: 'v1 — Per-App Colors', desc: 'Active multi-hue palette with unique colors per application.' },
+                    { id: 'v2', title: 'Mellon — Unified Brand', desc: 'Locks all applications to a single unified corporate brand color.' },
+                    { id: 'v3', title: 'Dreams Core — Bento & Logistics', desc: 'Activates modern bento grid cards, Plus Jakarta Sans typography, ambient diffuse surfaces, and vibrant badges.' },
                   ].map(ver => {
                     const isSelected = designSystemVersion.version === ver.id;
                     return (
