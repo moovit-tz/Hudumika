@@ -14,6 +14,8 @@ import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import type { WorkflowStudioApp, WorkflowStudioTriggerDef, WorkflowStudioActionDef } from '@hudumika/types';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Tip } from '../../components/ui/tooltip.js';
+import { Card } from '../../components/ui/card.js';
+import './WorkflowList.css';
 
 /**
  * The workflow list.
@@ -27,8 +29,9 @@ import { Tip } from '../../components/ui/tooltip.js';
 export function WorkflowList() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const scopeApp = params.get('app');
   const returnTo = params.get('return');
+  // app filter — initialised from ?app= so old sidebar links still work
+  const [app, setApp] = useState<string>(params.get('app') ?? '__all__');
 
   const [workflows, setWorkflows] = useState<WorkflowStudioApp[]>([]);
   const [triggers, setTriggers] = useState<WorkflowStudioTriggerDef[]>([]);
@@ -62,6 +65,14 @@ export function WorkflowList() {
   const triggerById = useMemo(() => new Map(triggers.map(t => [t.id, t])), [triggers]);
   const actionById = useMemo(() => new Map(actions.map(a => [a.id, a])), [actions]);
 
+  const appOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const t of triggers) seen.set(t.app, t.appName);
+    for (const a of actions) seen.set(a.app, a.appName);
+    const sorted = [...seen.entries()].sort((x, y) => x[1].localeCompare(y[1]));
+    return [{ value: '__all__', label: 'All apps' }, ...sorted.map(([value, label]) => ({ value, label }))];
+  }, [triggers, actions]);
+
   /**
    * Which apps a workflow touches — the trigger's app plus every app it acts on.
    * Scoping by the trigger alone was wrong: "Released declaration releases bonded
@@ -86,11 +97,11 @@ export function WorkflowList() {
   }, [workflows, triggerById, actionById]);
 
   const visible = useMemo(() => workflows.filter(w => {
-    if (scopeApp && !appsTouched.get(w.id)?.has(scopeApp)) return false;
+    if (app !== '__all__' && !appsTouched.get(w.id)?.has(app)) return false;
     if (status !== 'ALL' && w.status !== status) return false;
     if (q && !`${w.name} ${w.description ?? ''}`.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  }), [workflows, scopeApp, status, q, appsTouched]);
+  }), [workflows, app, status, q, appsTouched]);
 
   const counts = useMemo(() => ({
     total: workflows.length,
@@ -111,26 +122,25 @@ export function WorkflowList() {
   }
 
   const stat = (label: string, value: number, tone: 'brand' | 'success' | 'gray' | 'error') => (
-    <div className="studio-tile studio-tile-row">
+    <Card className="workflow-metric">
       <FeaturedIcon variant={tone} size="sm"><Icon name={tone === 'error' ? 'alertCircle' : 'zap'} size={15} /></FeaturedIcon>
       <div>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--ink3)' }}>{label}</div>
         <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{value}</div>
       </div>
-    </div>
+    </Card>
   );
 
   return (
-    <div>
+    <div className="workflow-list-page">
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <PageHeader
-            crumbs={['Studio', 'Studio']}
+            crumbs={['Studio', 'Workflows']}
             titlePlain="Workflow"
             titleEm="automations"
-            subtitle={<>{scopeApp
-              ? <>Automations belonging to <strong>{scopeApp}</strong>. <a href="/studio" style={{ color: 'var(--teal)' }}>Show every app</a>.</>
-              : 'Every automation across the platform — what fires it, what it does, and whether it ran.'}</>}
+            actions={<Button size="lg" onClick={() => navigate('/studio/new')}><Icon name="plus" size={16} />New workflow</Button>}
+            subtitle="Connect workspace events to actions. Monitor what is active and what has run."
           />
         </div>
         {returnTo && (
@@ -140,7 +150,7 @@ export function WorkflowList() {
         )}
       </div>
 
-      <div className="studio-tiles">
+      <div className="workflow-metrics">
         {stat('Workflows', counts.total, 'brand')}
         {stat('Active', counts.active, 'success')}
         {stat('Draft', counts.draft, 'gray')}
@@ -153,10 +163,13 @@ export function WorkflowList() {
         </Banner>
       )}
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-        <div style={{ flex: '1 1 260px' }}>
-          <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search workflows…" />
-        </div>
+      <Card className="workflow-toolbar">
+        <SingleSelectFilter
+          label="App"
+          value={app}
+          onChange={v => setApp(v ?? '__all__')}
+          options={appOptions}
+        />
         <SingleSelectFilter
           label="Status"
           value={status}
@@ -168,31 +181,28 @@ export function WorkflowList() {
             { value: 'PAUSED', label: 'Paused' },
           ]}
         />
-      </div>
+        <div className="workflow-search"><Input aria-label="Search workflows" value={q} onChange={e => setQ(e.target.value)} placeholder="Search workflows…" /></div>
+      </Card>
 
       {error && <Banner variant="error" className="mb-3">{error}</Banner>}
       {loading && <SectionLoading />}
       {!loading && visible.length === 0 && (
-        <div style={{ padding: 36, textAlign: 'center', color: 'var(--ink3)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 'var(--card-radius)' }}>
-          No workflows match.
-        </div>
+        <Card className="workflow-empty"><FeaturedIcon><Icon name="gitBranch" size={24} /></FeaturedIcon><h2>{workflows.length ? 'No matching workflows' : 'Build your first workflow'}</h2><p>{workflows.length ? 'Try a different search or status.' : 'Choose an event, connect actions, and review the flow before activating it.'}</p><Button variant="outline" onClick={() => workflows.length ? (setQ(''), setStatus('ALL')) : navigate('/studio/new')}>{workflows.length ? 'Clear filters' : 'Create workflow'}</Button></Card>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {visible.map(w => {
           const trig = triggerById.get(w.trigger_event);
           return (
-            <div key={w.id}
-              className="studio-card-interactive studio-workflow-item-mobile"
-              style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', cursor: 'pointer' }}
-              onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)}
+            <Card key={w.id}
+              className="workflow-list-item"
             >
               <div className="studio-workflow-item-header">
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <Tip label={w.supersedes_subscriber ? `Activating stands down the ${w.supersedes_subscriber} code subscriber` : 'Toggle workflow status'}><div onClick={e => e.stopPropagation()}>
-                    <Switch checked={w.status === 'ACTIVE'} disabled={busyId === w.id || !trig} onCheckedChange={v => toggle(w, v)} />
+                    <Switch aria-label={`Activate ${w.name}`} checked={w.status === 'ACTIVE'} disabled={busyId === w.id || !trig} onCheckedChange={v => toggle(w, v)} />
                   </div></Tip>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{w.name}</span>
+                  <button className="workflow-name" onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)}>{w.name}</button>
                   <Badge variant={w.status === 'ACTIVE' ? 'success' : w.status === 'PAUSED' ? 'warning' : 'gray'}>{w.status}</Badge>
                   {!trig && <Badge variant="error">Trigger not registered</Badge>}
                   {w.supersedes_subscriber && <Badge variant="info">Replaces code</Badge>}
@@ -214,10 +224,10 @@ export function WorkflowList() {
                     {w.run_count} run{w.run_count === 1 ? '' : 's'}
                     {w.last_run_at ? ` · ${new Date(w.last_run_at).toLocaleDateString()}` : ' · never run'}
                   </span>
-                  <Icon name="arrowRight" size={14} color="var(--ink3)" />
+                  <Button variant="outline" onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)}>Open<Icon name="arrowRight" size={16} /></Button>
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
