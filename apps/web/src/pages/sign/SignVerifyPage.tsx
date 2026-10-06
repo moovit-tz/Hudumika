@@ -25,6 +25,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { Icon } from '../../components/Icon.js';
 import { BASE_URL, apiFetch } from '../../lib/api.js';
+import { Card } from '../../components/ui/card.js';
+import { Input } from '../../components/ui/input.js';
+import { useBranding } from '../../hooks/useBranding.js';
+import { PageHeader } from '../../components/PageHeader.js';
+import './SignManagement.css';
 import { Button } from '../../components/ui/button.js';
 import { Banner } from '../../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
@@ -107,8 +112,8 @@ const CONTENT_VERDICT_CFG: Record<string, { label: string; tone: 'green' | 'gold
 };
 
 function getCodeFromUrl(): string {
-  const parts = window.location.pathname.split('/');
-  return parts[parts.length - 1]?.toUpperCase() ?? '';
+  const match = window.location.pathname.match(/^\/sign\/verify\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]).toUpperCase() : '';
 }
 
 /** Pulls a Hudumika verification code out of any string a QR might decode
@@ -186,6 +191,7 @@ function SealBadge({ seal }: { seal: SealVerdict | null }) {
 }
 
 export function SignVerifyPage() {
+  const branding = useBranding(true);
   const urlCode = getCodeFromUrl();
   const [code, setCode] = useState(urlCode);
   const [result, setResult] = useState<VerifyResult | null>(null);
@@ -313,31 +319,23 @@ export function SignVerifyPage() {
 
   return (
     <div className="sign-verify-page" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      {/* Public Branded Header */}
-      <header style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: 'hsl(var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--primary-foreground))' }}>
-            <Icon name="edit" size={16} />
-          </div>
+      <header className="sign-verify-header">
+        <div className="sign-verify-back">
+          <Button variant="link" className="sign-verify-back-link" aria-label="Back" onClick={() => canGoBack ? window.history.back() : window.location.assign('/sign')}>
+            <Icon name="chevronLeft" size={16} /><span className="sign-verify-back-label">Back</span>
+          </Button>
+        </div>
+        <div className="sign-verify-brand">
+          <img src={branding.favicon} alt="Hudumika logo" />
           <span>Hudumika eSign</span>
         </div>
-        {canGoBack && (
-          <Button variant="outline" size="sm" onClick={() => window.history.back()} style={{ fontWeight: 600 }}>
-            <Icon name="arrowLeft" size={14} /> Back
-          </Button>
-        )}
+        <div aria-hidden="true" />
       </header>
-
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ maxWidth: 560, width: '100%', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '32px', boxShadow: 'var(--elev-sm)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textAlign: 'center' }}>Verify a Document</h2>
-          <p style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20, textAlign: 'center' }}>
-            Check a Digital Execution Seal's record, or upload a printed/scanned copy to compare it against the original.
-          </p>
-
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-            <Tabs value={mode} onValueChange={(v) => { setMode(v as 'code' | 'upload'); setError(null); }} variant="segmented">
+      <main className="sign-verify-main">
+        <PageHeader crumbs={['eSign', 'Verification']} titlePlain="Verify" titleEm="document" subtitle="Look up a seal record or compare a document with its original." />
+        <Card className="sign-verify-card">          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <Tabs className="sign-verify-modes" value={mode} onValueChange={(v) => { setMode(v as 'code' | 'upload'); setError(null); }} variant="segmented">
               <TabsList>
                 <TabsTrigger value="code">Enter code</TabsTrigger>
                 <TabsTrigger value="upload">Upload document</TabsTrigger>
@@ -349,26 +347,19 @@ export function SignVerifyPage() {
             const isCurrentlyVerified = !!result && result.verification_code === code.trim().toUpperCase();
             return (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className="sign-verify-form-row">
                   <div style={{ position: 'relative', flex: 1 }}>
-                    <input
+                    <Input aria-label="Verification code"
                       value={code}
                       onChange={e => setCode(e.target.value.toUpperCase())}
                       onKeyDown={e => e.key === 'Enter' && verify(code)}
-                      placeholder="e.g. HSGN-A1B2C3-D4E5F6"
-                      style={{
-                        width: '100%', padding: isCurrentlyVerified ? '10px 36px 10px 14px' : '10px 14px', borderRadius: 'var(--r-sm)',
-                        border: `1px solid ${isCurrentlyVerified ? 'var(--sign-green)' : 'var(--border)'}`,
-                        fontSize: 14, fontFamily: 'monospace', fontWeight: 600,
-                        color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
-                      }}
+                      placeholder="e.g. HSGN-A1B2C3-D4E5F6" className="font-mono"
                     />
                     {isCurrentlyVerified && (
                       <Icon name="checkCircle" size={16} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--sign-green)' }} />
                     )}
                   </div>
-                  <Button variant="default" onClick={() => verify(code)} disabled={loading || !code.trim()}
-                    style={{ background: isCurrentlyVerified ? 'var(--sign-green)' : 'var(--blue)', color: isCurrentlyVerified ? 'hsl(var(--green-foreground))' : 'hsl(var(--blue-foreground))', padding: '0 20px', borderRadius: 'var(--r-sm)', fontSize: 13.5, fontWeight: 600 }}>
+                  <Button size="lg" variant="default" onClick={() => verify(code)} disabled={loading || !code.trim()}>
                     {loading ? 'Verifying...' : isCurrentlyVerified ? 'Re-verify' : 'Verify'}
                   </Button>
                 </div>
@@ -388,6 +379,7 @@ export function SignVerifyPage() {
               <div
                 onClick={() => fileInputRef.current?.click()}
                 role="button" tabIndex={0}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInputRef.current?.click(); } }}
                 style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg)' }}>
                 <Icon name="upload" size={22} style={{ color: 'var(--ink3)', marginBottom: 8 }} />
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Upload a photo, scan, or PDF</div>
@@ -406,10 +398,10 @@ export function SignVerifyPage() {
                   <Banner variant="warning" title="Couldn't read the QR or serial automatically">
                     Enter the verification code printed on the document, and we'll compare your file against that record.
                   </Banner>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                    <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. HSGN-A1B2C3-D4E5F6"
+                  <div className="sign-verify-form-row" style={{ marginTop: 12 }}>
+                    <Input aria-label="Verification code" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. HSGN-A1B2C3-D4E5F6"
                       style={{ flex: 1, padding: '10px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 14, fontFamily: 'monospace', fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box' }} />
-                    <Button variant="default" disabled={!code.trim() || !pendingFileRef.current}
+                    <Button size="lg" variant="default" disabled={!code.trim() || !pendingFileRef.current}
                       onClick={() => pendingFileRef.current && runCompare(code, pendingFileRef.current.base64, pendingFileRef.current.mediaType)}
                       style={{ padding: '0 20px', borderRadius: 'var(--r-sm)', fontSize: 13.5, fontWeight: 600 }}>
                       Compare
@@ -522,11 +514,15 @@ export function SignVerifyPage() {
 
           {mode === 'code' && result && (
             <div style={{ marginTop: 24 }}>
-              {/* Status Banner */}
-              <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Icon name="checkCircle" size={18} style={{ color: 'var(--green)' }} />
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--green)' }}>
-                  This document is authentic and verified.
+              {/* Status Banner — colour keyed on result.valid, not just
+                  "a result arrived". An envelope record can exist (200 OK)
+                  without being validly completed: draft, voided, expired. */}
+              <div style={{ background: result.valid ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${result.valid ? 'var(--green)' : 'var(--gold)'}`, borderRadius: 'var(--r-sm)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <Icon name={result.valid ? 'checkCircle' : 'alertCircle'} size={18} style={{ color: result.valid ? 'var(--green)' : 'var(--gold)' }} />
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: result.valid ? 'var(--green)' : 'var(--gold)' }}>
+                  {result.valid
+                    ? 'This document is authentic and verified.'
+                    : `This record exists but is not fully executed — status: ${result.status}.`}
                 </div>
               </div>
 
@@ -628,18 +624,22 @@ export function SignVerifyPage() {
 
               {result.has_signed_pdf && (
                 <a href={`${BASE_URL}/v1/sign/public/verify/${result.verification_code}/download`} download
-                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 'var(--r-sm)', background: 'var(--blue)', color: 'hsl(var(--blue-foreground))', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
+                  style={{ display: 'block', textAlign: 'center', marginTop: 24, padding: '10px 16px', borderRadius: 'var(--r-sm)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13.5, fontWeight: 600, textDecoration: 'none', transition: 'background 0.15s' }}>
                   Download Signed PDF
                 </a>
               )}
             </div>
           )}
-        </div>
+          <aside className="sign-verify-help">
+            <div><strong>Check a record</strong><p>A code confirms the stored seal and signing record. It does not prove that a separate copy is unchanged.</p></div>
+            <div><strong>Compare a copy</strong><p>Upload a PDF, scan, or photo to compare its content with the original document.</p></div>
+          </aside>
+        </Card>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
           Powered by <strong>Hudumika eSign</strong> · Electronic signature verification
         </div>
-      </div>
+      </main>
     </div>
   );
 }

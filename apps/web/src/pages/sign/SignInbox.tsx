@@ -4,7 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch, apiFetchBlob, apiDownload, BASE_URL } from '../../lib/api.js';
 import type { SignEnvelope, SignRecipient } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
-import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs.js';
+import { PageLoading, SectionLoading } from '../../components/ui/spinner.js';
+import { Progress } from '../../components/ui/progress.js';
+import { Card } from '../../components/ui/card.js';
+import { SkeletonCardsGrid, SkeletonTable } from '../../components/ui/skeleton.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../components/ui/dropdown-menu.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -20,7 +25,6 @@ import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showPrompt } from '../../lib/prompt.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
-import { SlidersHorizontal, Check, Calendar } from 'lucide-react';
 // Same real-canvas PDF render Cloud's Lightbox and the envelope editor both
 // use — this page used to show only a filename chip, with no way to
 // actually see the document without downloading it first.
@@ -78,7 +82,7 @@ function PerPageSelect({ value, onChange }: { value: number; onChange: (n: numbe
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
       <span>Show</span>
       <Select value={String(value)} onValueChange={v => onChange(Number(v))}>
-        <SelectTrigger style={{ height: 30, fontSize: 12, padding: '0 8px', width: 72 }}><SelectValue /></SelectTrigger>
+        <SelectTrigger aria-label="Documents per page" className="w-20"><SelectValue /></SelectTrigger>
         <SelectContent>
           {[10, 20, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
         </SelectContent>
@@ -90,10 +94,10 @@ function PerPageSelect({ value, onChange }: { value: number; onChange: (n: numbe
 
 const VIEW_TABS = [
   { key: 'documents', label: 'Documents',    icon: 'fileText'    as const,
-    subtitle: 'All your envelopes — created, sent, received and completed — in one place.' },
-  { key: 'inbox',     label: 'My Inbox',     icon: 'download'    as const,
+    subtitle: 'Create, send, and track your signing documents.' },
+  { key: 'inbox',     label: 'Inbox',     icon: 'download'    as const,
     emWord: 'inbox', titlePlain: 'My',
-    subtitle: 'Documents requiring your signature, approval, or other action.' },
+    subtitle: 'Documents ready for your signature or approval.' },
   { key: 'sent',      label: 'Sent',         icon: 'send'        as const,
     subtitle: 'Everything you have sent out, at every stage from just-sent to fully signed.' },
   { key: 'drafts',    label: 'Drafts',       icon: 'edit'        as const,
@@ -346,7 +350,8 @@ export function SignInbox({ view }: { view: ViewKey }) {
     else if (view === 'declined') params.set('status', 'declined');
     else if (view === 'needs_rerouting') params.set('status', 'needs_rerouting');
     else if (view === 'expired') params.set('status', 'expired');
-    else params.set('view', view);
+    else params.set('view', view === 'documents' ? 'mine' : view);
+    if (view === 'documents') params.set('limit', '200');
     if (debouncedSearch) params.set('search', debouncedSearch);
 
     return apiFetch(`/v1/sign/envelopes?${params}`)
@@ -475,11 +480,11 @@ export function SignInbox({ view }: { view: ViewKey }) {
   // Inbox metrics — how many of my items are pending/viewed/signed
   const inboxMetrics = useMemo(() => {
     if (view !== 'inbox') return null;
-    const pending = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'pending')).length;
-    const viewed  = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'viewed')).length;
-    const signed  = filtered.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'signed')).length;
+    const pending = envelopes.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'pending')).length;
+    const viewed  = envelopes.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'viewed')).length;
+    const signed  = envelopes.filter(e => e.recipients?.find(r => (r.user_id === user?.id || r.matched_user_id === user?.id) && r.status === 'signed')).length;
     return { pending, viewed, signed };
-  }, [view, filtered, user?.id]);
+  }, [view, envelopes, user?.id]);
 
   return (
     <div className="sign-inbox-page">
@@ -488,46 +493,55 @@ export function SignInbox({ view }: { view: ViewKey }) {
         titlePlain={(currentTab as any)?.titlePlain ?? 'eSign'}
         titleEm={(currentTab as any)?.emWord ?? (currentTab?.label ?? view).toLowerCase()}
         subtitle={currentTab?.subtitle ?? 'Send documents for signature, track every recipient, and verify completed envelopes.'}
-        actions={view !== 'inbox' ? (
-          <Button onClick={() => navigate('/sign/editor')}>
+        actions={view === 'inbox' ? <Button variant="outline" onClick={() => navigate('/sign')}><Icon name="fileText" />Documents</Button> : (
+          <Button size="lg" onClick={() => navigate('/sign/editor')}>
             <Icon name="plus" size={14} /> New envelope
           </Button>
-        ) : undefined}
+        )}
       />
 
       {/* Inbox KPI strip — MetricsRow shows all 3 states at a glance */}
       {view === 'inbox' && (
         <MetricsRow cards={[
-          { title: 'AWAITING ACTION', value: String(inboxMetrics?.pending ?? 0), loading, icon: 'clock' as const, sub1Label: 'needs my signature' },
-          { title: 'OPENED NOT SIGNED', value: String(inboxMetrics?.viewed ?? 0), loading, icon: 'eye' as const, sub1Label: 'viewed but not signed' },
-          { title: 'SIGNED BY ME', value: String(inboxMetrics?.signed ?? 0), loading, icon: 'checkCircle' as const, sub1Label: 'completed my part' },
+          { title: 'Awaiting action', value: String(inboxMetrics?.pending ?? 0), loading, icon: 'clock' as const, sub1Label: 'Ready for your action' },
+          { title: 'Opened', value: String(inboxMetrics?.viewed ?? 0), loading, icon: 'eye' as const, sub1Label: 'Still awaiting a signature' },
+          { title: 'Signed', value: String(inboxMetrics?.signed ?? 0), loading, icon: 'checkCircle' as const, sub1Label: 'Your part is complete' },
         ]} />
       )}
 
-      <section className="sign-inbox-panel" aria-label={`${currentTab?.label ?? view} envelopes`}>
-        {/* Dedicated segmented tab strip — horizontal scrolling without wrapping */}
-        <div className="sign-inbox-header-tabs">
-          <Tabs value={view} onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
-            <TabsList>
-              {VIEW_TABS.map(tab => {
-                const count = counts[tab.key] ?? 0;
-                return (
-                  <TabsTrigger key={tab.key} value={tab.key}>
-                    {tab.label}
-                    {count > 0 && <span className="sign-inbox-tab-count">{count}</span>}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-          </Tabs>
+      {view === 'documents' && (
+        <MetricsRow cards={[
+          { title: 'Documents', value: String(envelopes.length), loading, icon: 'fileText', sub1Label: 'Created or shared with you' },
+          { title: 'Awaiting action', value: String(counts.inbox ?? 0), loading, icon: 'clock', sub1Label: 'Ready for your signature' },
+          { title: 'Completed', value: String(envelopes.filter(envelope => envelope.status === 'completed').length), loading, icon: 'checkCircle', sub1Label: 'All signatures collected' },
+        ]} />
+      )}
+      <Card className="sign-inbox-panel" role="region" aria-label={`${currentTab?.label ?? view} envelopes`}>
+        <div className="sign-inbox-navigation">
+          <div className="sign-inbox-nav-content">
+            <Tabs value={view} onValueChange={value => navigate(value === 'documents' ? '/sign' : `/sign/${value}`)}>
+              <TabsList>
+                {VIEW_TABS.slice(0, 5).map(tab => <TabsTrigger key={tab.key} value={tab.key}>
+                  {tab.label}{(counts[tab.key] ?? 0) > 0 && <Badge variant="gray">{counts[tab.key]}</Badge>}
+                </TabsTrigger>)}
+              </TabsList>
+            </Tabs>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="outline" aria-label="More document views">
+                {VIEW_TABS.slice(5).some(tab => tab.key === view) ? currentTab?.label : 'More'}<Icon name="chevronDown" />
+              </Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {VIEW_TABS.slice(5).map(tab => <DropdownMenuItem key={tab.key} onSelect={() => navigate(`/sign/${tab.key}`)}><Icon name={tab.icon} />{tab.label}{(counts[tab.key] ?? 0) > 0 && <Badge variant="gray">{counts[tab.key]}</Badge>}</DropdownMenuItem>)}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-
-        {/* Dreams Core Search & Filter Toolbar */}
-        <div className="sign-inbox-toolbar">
-          <SearchToolbar
+        <div className="sign-inbox-search-row">
+          <div className="sign-inbox-toolbar">
+            <SearchToolbar
             search={search}
             onSearch={setSearch}
-            placeholder="Search envelopes by title, recipient, or ID…"
+            placeholder="Search documents…"
             quickFilter={{
               label: 'Sort',
               value: sortBy,
@@ -548,7 +562,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                   {/* Header */}
                   <div className="sign-filter-header">
                     <div className="sign-filter-title">
-                      <SlidersHorizontal size={14} style={{ color: 'hsl(var(--primary))' }} />
+                      <Icon name="sliders" size={14} style={{ color: 'hsl(var(--primary))' }} />
                       <span>Filter Envelopes</span>
                       {activeFilterCount > 0 && (
                         <span className="stb-green-badge">
@@ -558,22 +572,14 @@ export function SignInbox({ view }: { view: ViewKey }) {
                       )}
                     </div>
                     {hasActive && (
-                      <button
+                      <Button variant="ghost"
                         type="button"
                         onClick={handleResetFilters}
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'hsl(var(--primary))',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '2px 6px',
-                        }}
-                        className="hover:underline"
+
+
                       >
                         Reset all
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -588,16 +594,16 @@ export function SignInbox({ view }: { view: ViewKey }) {
                         { id: '30days', label: 'Last 30 days' },
                         { id: '90days', label: 'Last 90 days' },
                       ].map(opt => (
-                        <button
+                        <Button variant={dateRange === opt.id ? 'secondary' : 'outline'} aria-pressed={dateRange === opt.id}
                           key={opt.id}
                           type="button"
-                          data-active={dateRange === opt.id}
-                          className="sign-filter-chip"
+
+
                           onClick={() => setDateRange(opt.id as DateRangeOption)}
                         >
                           {opt.label}
-                          {dateRange === opt.id && <Check size={12} />}
-                        </button>
+                          {dateRange === opt.id && <Icon name="check" size={12} />}
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -616,19 +622,19 @@ export function SignInbox({ view }: { view: ViewKey }) {
                         { id: 'needs_rerouting', label: 'Action needed', color: 'var(--amber)' },
                         { id: 'expired', label: 'Expired', color: 'var(--ink3)' },
                       ].map(opt => (
-                        <button
+                        <Button variant={statusFilter === opt.id ? 'secondary' : 'outline'} aria-pressed={statusFilter === opt.id}
                           key={opt.id}
                           type="button"
-                          data-active={statusFilter === opt.id}
-                          className="sign-filter-chip"
+
+
                           onClick={() => setStatusFilter(opt.id)}
                         >
                           {opt.color && (
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: opt.color, display: 'inline-block' }} />
                           )}
                           {opt.label}
-                          {statusFilter === opt.id && <Check size={12} />}
-                        </button>
+                          {statusFilter === opt.id && <Icon name="check" size={12} />}
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -644,16 +650,16 @@ export function SignInbox({ view }: { view: ViewKey }) {
                         { id: 'AFFIDAVIT', label: 'Affidavit' },
                         { id: 'NOTARIAL_CERTIFICATION', label: 'Notarial' },
                       ].map(opt => (
-                        <button
+                        <Button variant={execTypeFilter === opt.id ? 'secondary' : 'outline'} aria-pressed={execTypeFilter === opt.id}
                           key={opt.id}
                           type="button"
-                          data-active={execTypeFilter === opt.id}
-                          className="sign-filter-chip"
+
+
                           onClick={() => setExecTypeFilter(opt.id)}
                         >
                           {opt.label}
-                          {execTypeFilter === opt.id && <Check size={12} />}
-                        </button>
+                          {execTypeFilter === opt.id && <Icon name="check" size={12} />}
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -663,7 +669,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
+                      size="default"
                       onClick={() => {
                         handleResetFilters();
                         close();
@@ -674,37 +680,29 @@ export function SignInbox({ view }: { view: ViewKey }) {
                     </Button>
                     <Button
                       type="button"
-                      size="sm"
+                      size="default"
                       onClick={() => close()}
                       style={{ fontSize: 12, fontWeight: 600 }}
                     >
-                      Apply Filters
+                      Done
                     </Button>
                   </div>
                 </div>
               );
             }}
-            actions={
-              <>
-                <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
-                <div className="sign-view-toggle">
-                  {(['list', 'grid'] as const).map(m => (
-                    <Tip key={m} label={m === 'list' ? 'List view' : 'Grid view'}>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode(m)}
-                        className={`sign-view-toggle-btn${viewMode === m ? ' sign-view-toggle-btn--on' : ''}`}
-                      >
-                        <Icon name={m} size={15} />
-                      </button>
-                    </Tip>
-                  ))}
-                </div>
-              </>
-            }
-          />
+            />
+          </div>
         </div>
 
+        <div className="sign-inbox-list-meta">
+          <span role="status">{loading ? 'Loading…' : `${filtered.length} document${filtered.length === 1 ? '' : 's'}`}</span>
+          <div className="sign-inbox-list-options">
+            <PerPageSelect value={perPage} onChange={value => { setPerPage(value); setPage(1); }} />
+            <div className="sign-inbox-display" aria-label="Display">
+              {(['list', 'grid'] as const).map(mode => <Tip key={mode} label={mode === 'list' ? 'List view' : 'Grid view'}><Button variant={viewMode === mode ? 'secondary' : 'ghost'} size="icon" aria-label={mode === 'list' ? 'List view' : 'Grid view'} aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}><Icon name={mode} /></Button></Tip>)}
+            </div>
+          </div>
+        </div>
       {/* Bulk-select action bar — Void/Remind many envelopes from one
           multi-select, instead of opening each one. The backend reports
           per-item skip reasons (e.g. a completed envelope can't be voided),
@@ -713,16 +711,16 @@ export function SignInbox({ view }: { view: ViewKey }) {
         <div className="sign-inbox-bulk" role="status">
           <span>{selected.size} selected</span>
           {view !== 'inbox' && (
-            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')}>
+            <Button size="default" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')}>
               <Icon name="bell" size={13} /> Remind
             </Button>
           )}
           {view !== 'inbox' && (
-            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} className="sign-inbox-void-btn">
+            <Button size="default" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} className="sign-inbox-void-btn">
               <Icon name="xCircle" size={13} /> Void
             </Button>
           )}
-          <Button type="button" size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="sign-inbox-clear-btn">
+          <Button type="button" size="default" variant="ghost" onClick={() => setSelected(new Set())} className="sign-inbox-clear-btn">
             Clear
           </Button>
         </div>
@@ -731,31 +729,30 @@ export function SignInbox({ view }: { view: ViewKey }) {
       {/* List / grid */}
       <div className="sign-inbox-content">
         {loading ? (
-          <div className={viewMode === 'grid' ? 'sign-envelope-grid' : 'sign-envelope-list'}>
-            {Array.from({ length: viewMode === 'grid' ? 6 : 8 }).map((_, i) => (
-              <div key={i} style={{ height: viewMode === 'grid' ? 116 : 46, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
-            ))}
-          </div>
+          viewMode === 'grid' ? <SkeletonCardsGrid count={6} /> : <SkeletonTable rows={5} cols={view === 'inbox' ? 4 : 5} />
         ) : filtered.length === 0 ? (
           <div className="sign-inbox-empty">
             <FeaturedIcon variant={view === 'inbox' ? 'success' : 'gray'} size="lg" shape="circle">
               <Icon name={view === 'inbox' ? 'checkCircle' : 'edit'} size={22} />
             </FeaturedIcon>
             <div className="sign-inbox-empty-title">
-              {search ? 'No matching envelopes'
-                : view === 'inbox' ? 'All clear — nothing waiting for you'
+              {(search.trim() || activeFilterCount > 0) ? 'No matches'
+                : view === 'inbox' ? 'You’re all caught up'
                 : view === 'drafts' ? 'No drafts yet'
+                : view === 'documents' ? 'No documents yet'
                 : `No ${view} envelopes`}
             </div>
             <div className="sign-inbox-empty-copy">
-              {search ? 'Try adjusting your search terms.'
-                : view === 'inbox' ? 'When someone sends you a document to sign or approve, it will land here.'
+              {(search.trim() || activeFilterCount > 0) ? 'Try another search or clear your filters.'
+                : view === 'inbox' ? 'Documents sent to you for signing or approval will appear here.'
                 : view === 'voided' ? 'Envelopes only land here once you cancel one yourself — nothing to show yet.'
                 : view === 'declined' ? 'This fills up if a signer ever refuses to sign — nothing here means everyone has signed so far.'
                 : view === 'expired' ? 'Envelopes land here only after their deadline passes unsigned — none have yet.'
                 : 'Create a new envelope to get started.'}
             </div>
-            {view !== 'inbox' && !search && (
+            {(search.trim() || activeFilterCount > 0) && <Button variant="outline" onClick={handleResetFilters}>Clear filters</Button>}
+            {view === 'inbox' && !search.trim() && activeFilterCount === 0 && <Button variant="outline" onClick={() => navigate('/sign')}>View documents</Button>}
+            {view !== 'inbox' && !search.trim() && activeFilterCount === 0 && (
               <Button onClick={() => navigate('/sign/editor')}>
                 <Icon name="plus" size={14} /> Create envelope
               </Button>
@@ -807,7 +804,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                       </div>
                       {signUrl && (
                         <div className="sign-mobile-card-action" onClick={e => e.stopPropagation()}>
-                          <Button size="sm" className="w-full" onClick={() => window.open(signUrl, '_blank', 'noopener')}>
+                          <Button size="default" className="w-full" onClick={() => window.open(signUrl, '_blank', 'noopener')}>
                             <Icon name="edit" size={13} /> Sign Now
                           </Button>
                         </div>
@@ -889,7 +886,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
           </>
         )}
       </div>
-      </section>
+      </Card>
     </div>
   );
 }
@@ -934,7 +931,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                   value={verifyUrl}
                   style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
-                <Button variant="default" size="sm" onClick={() => copy(verifyUrl, 'verify')} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                <Button variant="default" size="default" onClick={() => copy(verifyUrl, 'verify')} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'verify' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'verify' ? 'Copied!' : 'Copy Link'}
                 </Button>
@@ -957,7 +954,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                   value={downloadUrl}
                   style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
-                <Button variant="outline" size="sm" onClick={() => copy(downloadUrl, 'download')} style={{ whiteSpace: 'nowrap' }}>
+                <Button variant="outline" size="default" onClick={() => copy(downloadUrl, 'download')} style={{ whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'download' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'download' ? 'Copied!' : 'Copy PDF Link'}
                 </Button>
@@ -975,7 +972,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 <div style={{ padding: '8px 14px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: 'var(--teal)', letterSpacing: '0.06em', flex: 1 }}>
                   {env.verification_code}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => copy(env.verification_code!, 'code')}>
+                <Button variant="outline" size="default" onClick={() => copy(env.verification_code!, 'code')}>
                   <Icon name={copiedKey === 'code' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'code' ? 'Copied!' : 'Copy Code'}
                 </Button>
@@ -1120,7 +1117,7 @@ function getAuditEventStyle(type: string) {
 
 export function SignEnvelopeDetail() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+
   const id = window.location.pathname.split('/').pop() ?? '';
   const [env, setEnv] = useState<EnvelopeWithRecipients | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1156,7 +1153,7 @@ export function SignEnvelopeDetail() {
 
   async function handleVoid() {
     if (!env) return;
-    const reason = await showPrompt("This stops the envelope for every recipient — it can't be un-voided.", { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void Envelope' });
+    const reason = await showPrompt("This stops the envelope for every recipient — it can't be un-voided.", { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void' });
     if (reason === null) return;
     await apiFetch(`/v1/sign/envelopes/${env.id}`, { method: 'DELETE', body: JSON.stringify({ reason }) });
     navigate('/sign');
@@ -1314,43 +1311,36 @@ export function SignEnvelopeDetail() {
   const previewH = Math.round(previewW * (previewNaturalSize ? previewNaturalSize.height / previewNaturalSize.width : DETAIL_A4_ASPECT));
   const previewScale = previewNaturalSize ? previewW / previewNaturalSize.width : 1;
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
-        <Icon name="clock" size={32} style={{ opacity: 0.4, animation: 'ds-spin 2s linear infinite' }} />
-        <div style={{ fontSize: 14, fontWeight: 600 }}>Loading envelope details…</div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading label="Loading document…" />;
 
   if (!env) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
         <Icon name="xCircle" size={36} style={{ color: 'var(--red)', opacity: 0.8 }} />
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Envelope Not Found</div>
-        <Button variant="outline" size="sm" onClick={() => navigate('/sign')}>Return to eSign Inbox</Button>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Document unavailable</div>
+        <Button variant="outline" size="default" onClick={() => navigate('/sign')}>View documents</Button>
       </div>
     );
   }
 
   return (
-    <div style={{ fontFamily: 'var(--font)', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="sign-envelope-detail">
       <PageHeader
         crumbs={['eSign', 'Envelopes']}
         title={env.title}
         subtitle={env.version_number > 1 ? `Version ${env.version_number}` : undefined}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
-              <Icon name="arrowLeft" size={14} /> Back to Inbox
+            <Button variant="outline" size="default" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
+              <Icon name="arrowLeft" size={14} /> Documents
             </Button>
-            <Badge variant={envelopeBadgeVariant(env.status)} style={{ textTransform: 'capitalize', padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+            <Badge variant={envelopeBadgeVariant(env.status)} className="capitalize">
               {env.status}
             </Badge>
             {/* Only shown for an advanced execution — an ordinary envelope's
                 header looks exactly as it did before migration 416. */}
             {env.execution_type && env.execution_type !== 'NORMAL_SIGN' && (
-              <Badge variant="warning" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+              <Badge variant="warning">
                 {EXECUTION_TYPE_LABEL[env.execution_type] ?? env.execution_type}
               </Badge>
             )}
@@ -1359,7 +1349,7 @@ export function SignEnvelopeDetail() {
                 matters view itself stays admin-only (see that route's own
                 gate), so this reads as plain text, not a link. */}
             {env.matter_reference && (
-              <Badge variant="gray" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+              <Badge variant="gray">
                 <Icon name="briefcase" size={11} /> {env.matter_reference}
               </Badge>
             )}
@@ -1368,14 +1358,14 @@ export function SignEnvelopeDetail() {
                 S6/S7's own column) and not already billed. */}
             {env.invoice_id ? (
               <a href={`/finance/invoices?id=${env.invoice_id}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                <Badge variant="success" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
+                <Badge variant="success">
                   <Icon name="invoice" size={11} /> Invoiced
                 </Badge>
               </a>
             ) : env.client_id && (
               <Tip label="Create a draft invoice for this document's customer in FinOps">
-                <Button variant="outline" size="sm" onClick={() => setShowBillModal(true)} style={{ height: 32, fontSize: 12, padding: '0 10px' }}>
-                  <Icon name="invoice" size={13} /> Bill Client
+                <Button variant="outline" size="default" onClick={() => setShowBillModal(true)}>
+                  <Icon name="invoice" size={13} /> Bill client
                 </Button>
               </Tip>
             )}
@@ -1385,58 +1375,58 @@ export function SignEnvelopeDetail() {
                 the public signing page. */}
             {env.meeting_url && (
               <a href={env.meeting_url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                <Badge variant="info" style={{ padding: '5px 12px', fontSize: 12.5, fontWeight: 700 }}>
-                  <Icon name="video" size={11} /> Join Notary Session
+                <Badge variant="info">
+                  <Icon name="video" size={11} /> Join session
                 </Badge>
               </a>
             )}
             {env.status === 'completed' ? (
               !env.next_version && (
                 <Tip label="This document has an issue — create an amended Version 2">
-                  <Button variant="outline" size="sm" onClick={handleAmend} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
-                    <Icon name="gitBranch" size={14} /> Amend Version
+                  <Button variant="outline" size="default" onClick={handleAmend} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
+                    <Icon name="gitBranch" size={14} /> Amend
                   </Button>
                 </Tip>
               )
             ) : (
               <Tip label="Rename this envelope">
-                <Button variant="ghost" size="sm" className="aspect-square px-0" onClick={handleRename} aria-label="Rename this envelope">
+                <Button variant="ghost" size="default" className="aspect-square px-0" onClick={handleRename} aria-label="Rename this envelope">
                   <Icon name="edit" size={14} />
                 </Button>
               </Tip>
             )}
             {env.status === 'draft' && (
               <>
-                <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>
-                  <Icon name="edit" size={14} /> Edit Studio
+                <Button variant="outline" size="default" onClick={() => navigate(`/sign/editor/${env.id}`)}>
+                  <Icon name="edit" size={14} /> Edit
                 </Button>
-                <Button variant="default" size="sm" onClick={handleSend} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
-                  <Icon name="send" size={14} /> Send for Signing
+                <Button variant="default" size="default" onClick={handleSend} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
+                  <Icon name="send" size={14} /> Send
                 </Button>
               </>
             )}
             {env.status === 'sent' && (
               <>
-                <Button variant="outline" size="sm" onClick={handleRemind}>
-                  <Icon name="mail" size={14} /> Remind All
+                <Button variant="outline" size="default" onClick={handleRemind}>
+                  <Icon name="mail" size={14} /> Remind
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleVoid}
+                <Button variant="outline" size="default" onClick={handleVoid}
                   style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', fontWeight: 600 }}>
-                  <Icon name="xCircle" size={14} /> Void Envelope
+                  <Icon name="xCircle" size={14} /> Void
                 </Button>
               </>
             )}
             {env.status === 'needs_rerouting' && (
               <>
                 {env.recipients?.filter(r => r.status === 'declined').map(r => (
-                  <Button key={r.id} variant="outline" size="sm" onClick={() => handleReroute(r.id, r.name, r.decline_reason ?? null)}
+                  <Button key={r.id} variant="outline" size="default" onClick={() => handleReroute(r.id, r.name, r.decline_reason ?? null)}
                     style={{ borderColor: 'var(--gold)', background: 'var(--gold-l)', color: 'var(--ink)', fontWeight: 600 }}>
                     <Icon name="refresh" size={14} /> Re-assign {r.name}
                   </Button>
                 ))}
-                <Button variant="outline" size="sm" onClick={handleVoid}
+                <Button variant="outline" size="default" onClick={handleVoid}
                   style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', fontWeight: 600 }}>
-                  <Icon name="xCircle" size={14} /> Void Envelope
+                  <Icon name="xCircle" size={14} /> Void
                 </Button>
               </>
             )}
@@ -1444,13 +1434,28 @@ export function SignEnvelopeDetail() {
         }
       />
 
-      {/* Sent by — the creator, so a shared workspace inbox reads as "who
-          actually raised this," not just what and when. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink3)' }}>
-        <PersonAvatar userId={env.created_by} name={env.created_by_name ?? ''} size={22} />
-        <span>Sent by <strong style={{ color: 'var(--ink2)' }}>{env.created_by_name ?? 'Unknown'}</strong> · {new Date(env.created_at).toLocaleDateString()}</span>
-      </div>
-
+      <Card className="sign-envelope-summary">
+        <div className="sign-envelope-identity">
+          <FeaturedIcon size="xl"><Icon name="fileText" size={26} /></FeaturedIcon>
+          <div className="sign-envelope-identity-text">
+            <strong>{env.file_name || env.title}</strong>
+            <div className="sign-envelope-owner">
+              <PersonAvatar userId={env.created_by} name={env.created_by_name ?? 'Unknown'} size={30} />
+              <span>Created by <strong>{env.created_by_name ?? 'Unknown'}</strong></span>
+            </div>
+          </div>
+          <div className="sign-envelope-progress">
+            <div><strong>Signing progress</strong><span>{env.recipients?.filter(r => r.status === 'signed').length ?? 0}/{env.recipients?.length ?? 0} signed</span></div>
+            <Progress value={env.recipients?.length ? env.recipients.filter(r => r.status === 'signed').length / env.recipients.length * 100 : 0} aria-label="Signing progress" />
+          </div>
+        </div>
+        <dl className="sign-envelope-facts">
+          <div><dt>Created</dt><dd>{new Date(env.created_at).toLocaleDateString()}</dd></div>
+          <div><dt>Updated</dt><dd>{new Date(env.updated_at).toLocaleDateString()}</dd></div>
+          <div><dt>Recipients</dt><dd>{env.recipients?.length ?? 0}</dd></div>
+          <div><dt>Version</dt><dd>{env.version_number || 1}</dd></div>
+        </dl>
+      </Card>
       {/* Version chain banners */}
       {env.previous_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.previous_version!.id}`)}
@@ -1472,61 +1477,49 @@ export function SignEnvelopeDetail() {
       )}
 
       {/* Main 2-column workspace layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.8fr) minmax(320px, 1fr)', gap: 24, alignItems: 'start' }}>
+      <div className="sign-envelope-workspace">
 
         {/* LEFT: Premium PDF / Document Preview Studio */}
-        <div style={{
-          background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 16,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0,
-          position: isMobile ? 'static' : 'sticky', top: isMobile ? undefined : 16
-        }}>
+        <Card className="sign-envelope-preview">
           {/* Top Dark Slate Studio Control Bar */}
-          <div style={{
-            background: '#0f172a', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            gap: 12, borderBottom: '1px solid #1e293b'
-          }}>
+          <div className="sign-envelope-preview-toolbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <Icon name="fileText" size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Icon name="fileText" size={16} style={{ color: 'var(--teal)', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {env.file_name || env.title}
               </span>
               {env.file_name && (
-                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--bg)', color: 'var(--ink3)', padding: '2px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase' }}>
                   {env.file_name.split('.').pop() || 'PDF'}
                 </span>
               )}
             </div>
 
             {previewIsPdf && previewNumPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
-                <button onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}
-                  style={{ background: 'none', border: 'none', cursor: previewPage <= 1 ? 'default' : 'pointer', opacity: previewPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
-                  <Icon name="chevronLeft" size={14} color="#f8fafc" />
-                </button>
-                <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
+                <Button variant="outline" size="icon" aria-label="Previous page" onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}>
+                  <Icon name="chevronLeft" size={14} color="var(--ink)" />
+                </Button>
+                <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
                   {previewPage} / {previewNumPages}
                 </span>
-                <button onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}
-                  style={{ background: 'none', border: 'none', cursor: previewPage >= previewNumPages ? 'default' : 'pointer', opacity: previewPage >= previewNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
-                  <Icon name="chevronRight" size={14} color="#f8fafc" />
-                </button>
+                <Button variant="outline" size="icon" aria-label="Next page" onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}>
+                  <Icon name="chevronRight" size={14} color="var(--ink)" />
+                </Button>
               </div>
             )}
           </div>
 
           {/* Document Canvas Container */}
-          <div style={{ padding: 20, background: 'var(--bg)', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 480 }}>
+          <div className="sign-envelope-canvas">
             <div ref={previewPaneRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
               <div style={{
                 width: previewW, height: previewH, maxWidth: '100%', background: '#ffffff', borderRadius: 'var(--r)',
-                overflow: 'hidden', boxShadow: '0 12px 36px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06)',
+                overflow: 'hidden', boxShadow: 'var(--elev)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative'
               }}>
                 {previewLoading || (previewIsPdf && !!previewUrl && previewPdfLoading) ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)' }}>
-                    <Icon name="clock" size={24} style={{ animation: 'ds-spin 2s linear infinite', color: 'var(--teal)' }} />
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>Loading document canvas…</div>
-                  </div>
+                  <SectionLoading label="Loading preview…" />
                 ) : !previewUrl ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--ink3)', padding: 24, textAlign: 'center' }}>
                     <Icon name="fileText" size={32} style={{ opacity: 0.3 }} />
@@ -1544,10 +1537,10 @@ export function SignEnvelopeDetail() {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* RIGHT: Status, Verification Certificate, Recipients, & Audit Trail */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+        <div className="sign-envelope-sidebar">
 
           {/* Void / Decline Reason Banner */}
           {(env.status === 'voided' || env.status === 'declined') && env.void_reason && (
@@ -1624,73 +1617,27 @@ export function SignEnvelopeDetail() {
               )}
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 600 }}>
-                  <Icon name="share" size={13} /> Share Link
+                <Button variant="outline" size="default" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 600 }}>
+                  <Icon name="share" size={13} /> Share link
                 </Button>
                 {env.stamped_file_url && (
-                  <Button variant="outline" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
+                  <Button variant="outline" size="default" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
                     <Icon name="download" size={13} /> Download PDF
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={handleCopyCode} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
-                  <Icon name={copiedCode ? 'check' : 'copy'} size={13} /> {copiedCode ? 'Copied!' : 'Copy Code'}
+                <Button variant="outline" size="default" onClick={handleCopyCode} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
+                  <Icon name={copiedCode ? 'check' : 'copy'} size={13} /> {copiedCode ? 'Copied!' : 'Copy code'}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Recipient Signing Links (when Sent) */}
-          {env.status === 'sent' && env.recipients && (
-            <SectionCard title="Recipient Signing Links" collapsible={false} action={
-              <Button variant="outline" size="xs" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--teal)', color: 'var(--teal)', fontWeight: 600 }}>
-                <Icon name="share" size={12} /> Share Links
-              </Button>
-            }>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {env.recipients.map(r => (
-                  // flexWrap, not a single fixed row: without it, a long
-                  // name had nowhere to go but wrap onto a second line
-                  // inside its own flex:1 column while the role badge and
-                  // the two buttons — plain siblings in the same unwrapped
-                  // row — stayed pinned in place, overlapping that second
-                  // line (confirmed live: "Viden Remmigius Clemmence"
-                  // wrapped under a "Superadmin" badge sitting on top of
-                  // it). The name/email column now truncates with an
-                  // ellipsis instead of wrapping its own text, and the
-                  // whole row wraps onto a second line — actions included —
-                  // once it runs out of room, on any width, not just below
-                  // a mobile breakpoint.
-                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, rowGap: 8, padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                    <Tip label={`${r.name} — ${r.email}`}>
-                      <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={30} />
-                    </Tip>
-                    <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
-                    <div style={{ flex: '1 1 140px', minWidth: 0 }}>
-                      <Tip label={r.name}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                      </Tip>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.email}</div>
-                    </div>
-                    {r.role_label && <Badge variant="gray">{r.role_label}</Badge>}
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(r.status === 'pending' || r.status === 'viewed') && (
-                        <Tip label="Open this recipient's signing link right now for in-person signing">
-                          <Button variant="outline" size="xs" onClick={() => window.open(`/sign/public/${r.token}`, '_blank', 'noopener')} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
-                            <Icon name="edit" size={11} /> Sign In Person
-                          </Button>
-                        </Tip>
-                      )}
-                      <Button variant="outline" size="xs" onClick={() => void handleCopySigningLink(r.id, r.token)}>
-                        <Icon name={copiedRecipientId === r.id ? 'check' : 'copy'} size={11} />
-                        {copiedRecipientId === r.id ? 'Copied' : 'Copy Link'}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          )}
-
+          <Tabs defaultValue="recipients" className="sign-envelope-sections">
+            <TabsList aria-label="Document details">
+              <TabsTrigger value="recipients">Recipients <Badge variant="gray">{env.recipients?.length ?? 0}</Badge></TabsTrigger>
+              <TabsTrigger value="activity">Activity <Badge variant="gray">{env.events?.length ?? 0}</Badge></TabsTrigger>
+            </TabsList>
+            <TabsContent value="recipients" className="sign-envelope-section-content">
           {/* Recipients — a legal certifier (Certified True Copy — an
               advocate/notary attesting the copy, not just another party
               signing it) gets its own section, separate from ordinary
@@ -1723,9 +1670,14 @@ export function SignEnvelopeDetail() {
                     <div style={{ fontSize: 11.5, color: 'var(--sign-red)', marginTop: 2 }}>Reason: {r.decline_reason}</div>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+                <div className="sign-envelope-recipient-status">
                   <Badge variant={recipientBadgeVariant(r.status)}>{r.status}</Badge>
-                  {r.signed_at && <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{new Date(r.signed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                  {env.status === 'sent' && (
+                    <div className="sign-envelope-recipient-actions">
+                      {(r.status === 'pending' || r.status === 'viewed') && <Button variant="outline" onClick={() => window.open(`/sign/public/${r.token}`, '_blank', 'noopener')}><Icon name="edit" size={16} />Open signing</Button>}
+                      <Button variant="outline" onClick={() => void handleCopySigningLink(r.id, r.token)}><Icon name={copiedRecipientId === r.id ? 'check' : 'copy'} size={16} />{copiedRecipientId === r.id ? 'Copied' : 'Copy link'}</Button>
+                    </div>
+                  )}                  {r.signed_at && <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{new Date(r.signed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
                 </div>
               </div>
             );
@@ -1734,24 +1686,26 @@ export function SignEnvelopeDetail() {
             return (
               <>
                 {certifiers.length > 0 && (
-                  <SectionCard title="Certification" collapsible={false}>
+                  <SectionCard title="Certification" collapsible={false} action={env.status === 'sent' ? <Button variant="outline" onClick={() => setShowShareModal(true)}><Icon name="share" size={16} />Share links</Button> : undefined}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {certifiers.map(renderRecipientRow)}
                     </div>
                   </SectionCard>
                 )}
-                <SectionCard title="Recipients & Approvers" collapsible={false}>
+                {signatories.length > 0 && <SectionCard title="Recipients" collapsible={false} action={env.status === 'sent' ? <Button variant="outline" onClick={() => setShowShareModal(true)}><Icon name="share" size={16} />Share links</Button> : undefined}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {signatories.map(renderRecipientRow)}
                   </div>
-                </SectionCard>
+                </SectionCard>}
               </>
             );
           })()}
 
+            </TabsContent>
+            <TabsContent value="activity" className="sign-envelope-section-content">
           {/* Audit Trail Timeline */}
           {env.events && env.events.length > 0 && (
-            <SectionCard title="Audit Trail Log" collapsible={false}>
+            <SectionCard title="Activity" collapsible={false}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingLeft: 4 }}>
                 {env.events.map((ev, i) => {
                   const styleCfg = getAuditEventStyle(ev.event_type);
@@ -1786,6 +1740,9 @@ export function SignEnvelopeDetail() {
             </SectionCard>
           )}
 
+            {!env.events?.length && <Card className="sign-inbox-empty"><div className="sign-inbox-empty-title">No activity yet</div></Card>}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
@@ -1808,168 +1765,7 @@ export function SignEnvelopeDetail() {
 type AdminEnvelope = EnvelopeWithRecipients & { owner: { name: string; email: string } | null };
 
 export function SignDocuments() {
-  const navigate = useNavigate();
-  const [envelopes, setEnvelopes] = useState<EnvelopeWithRecipients[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
-
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      apiFetch('/v1/sign/envelopes?view=mine&limit=200'),
-      apiFetch('/v1/sign/envelopes/counts'),
-    ]).then(([envs, cnts]) => {
-      setEnvelopes(envs);
-      setCounts(cnts);
-    }).catch(console.error).finally(() => setLoading(false));
-  }, []);
-
-  const stats = useMemo(() => {
-    const total = envelopes.length;
-    const sent = envelopes.filter(e => e.status === 'sent').length;
-    const completed = envelopes.filter(e => e.status === 'completed').length;
-    const drafts = envelopes.filter(e => e.status === 'draft').length;
-    return { total, sent, completed, drafts };
-  }, [envelopes]);
-
-  useEffect(() => { setPage(1); }, [perPage]);
-  const pageItems = useMemo(() => envelopes.slice((page - 1) * perPage, page * perPage), [envelopes, page, perPage]);
-
-  return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <PageHeader
-        crumbs={['eSign', 'DOCUMENTS']}
-        titlePlain="eSign"
-        titleEm="documents"
-        subtitle="All your envelopes — created, sent, received and completed — in one place."
-        actions={
-          <Button variant="default" onClick={() => navigate('/sign/editor')}
-            style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, padding: '8px 16px' }}>
-            <Icon name="plus" size={14} /> New Envelope
-          </Button>
-        }
-      />
-
-      {!loading && envelopes.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <MetricsRow cards={[
-            {
-              title: 'TOTAL ENVELOPES', value: String(stats.total),
-              sub1Label: 'SENT', sub1Value: String(stats.sent),
-              sub2Label: 'DRAFTS', sub2Value: String(stats.drafts), barHighlight: 'var(--teal)',
-            },
-            {
-              title: 'NEEDS MY SIGNATURE', value: String(counts.inbox ?? 0),
-              sub1Label: 'PENDING', sub1Value: String(counts.inbox ?? 0),
-              sub2Label: 'COMPLETED', sub2Value: String(stats.completed), barHighlight: 'var(--gold)',
-            },
-            {
-              title: 'COMPLETED', value: String(stats.completed),
-              sub1Label: 'VOIDED', sub1Value: String(counts.voided ?? 0),
-              sub2Label: 'DECLINED', sub2Value: String(counts.declined ?? 0), barHighlight: 'var(--green)',
-            },
-          ]} />
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-        <Tabs value="documents" onValueChange={(v) => navigate(v === 'documents' ? '/sign' : `/sign/${v}`)} variant="segmented">
-          <TabsList>
-            {VIEW_TABS.map(tab => {
-              const count = counts[tab.key] ?? 0;
-              return (
-                <TabsTrigger key={tab.key} value={tab.key}>
-                  {tab.label}
-                  {count > 0 && (
-                    <span style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 10, fontSize: 10.5, fontWeight: 700, padding: '1px 6px', minWidth: 18, textAlign: 'center', marginLeft: 4, lineHeight: 1.4 }}>
-                      {count}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
-        <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{ height: 46, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
-            ))}
-          </div>
-        ) : envelopes.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
-              <Icon name="fileText" size={24} style={{ color: 'var(--ink3)', opacity: 0.6 }} />
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>No documents yet</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 340, lineHeight: 1.5 }}>
-              Create your first envelope to send a document for signature.
-            </div>
-            <Button variant="default" onClick={() => navigate('/sign/editor')}
-              style={{ marginTop: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
-              <Icon name="plus" size={14} /> Create Envelope
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="rtbl-wrap">
-              <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th>Status</th>
-                    <th>Recipients</th>
-                    <th style={{ textAlign: 'right' }}>Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageItems.map(env => {
-                    const signerCount = env.recipients?.length ?? 0;
-                    const signedCount = env.recipients?.filter(r => r.status === 'signed').length ?? 0;
-                    return (
-                      <tr key={env.id} onClick={() => navigate(`/sign/envelope/${env.id}`)} role="button" tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && navigate(`/sign/envelope/${env.id}`)} style={{ cursor: 'pointer' }}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div className="sign-envelope-row-icon"><Icon name="fileText" size={14} style={{ color: 'var(--teal)' }} /></div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{env.title}</div>
-                              {env.file_name && (
-                                <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  <Icon name="paperclip" size={10} /> {env.file_name}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td><Badge variant={envelopeBadgeVariant(env.status)}>{env.status}</Badge></td>
-                        <td>
-                          {signerCount > 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <RecipientAvatarStack recipients={env.recipients} size={20} max={4} />
-                              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{signedCount}/{signerCount} signed</span>
-                            </div>
-                          ) : <span style={{ color: 'var(--ink3)' }}>—</span>}
-                        </td>
-                        <td style={{ textAlign: 'right', color: 'var(--ink3)', fontSize: 12.5, whiteSpace: 'nowrap' }}>{new Date(env.updated_at).toLocaleDateString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <Pagination total={envelopes.length} page={page} onPage={setPage} perPage={perPage} />
-          </>
-        )}
-      </div>
-    </div>
-  );
+  return <SignInbox view="documents" />;
 }
 
 export function SignAllDocuments() {
@@ -2009,66 +1805,71 @@ export function SignAllDocuments() {
   }, [envelopes]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="sign-inbox-page">
       <PageHeader
         crumbs={['eSign', 'Admin']}
         titlePlain="All"
         titleEm="documents"
-        subtitle="Every envelope in this workspace, regardless of who created it — for oversight and audit, not day-to-day signing."
+        subtitle="Review documents, owners, and signing progress across your workspace."
       />
 
-      {!loading && envelopes.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <MetricsRow cards={[
-            {
-              title: 'WORKSPACE TOTAL', value: String(stats.total),
-              sub1Label: 'SENT', sub1Value: String(stats.sent),
-              sub2Label: 'COMPLETED', sub2Value: String(stats.completed), barHighlight: 'var(--teal)',
-            },
-            {
-              title: 'NEEDS ATTENTION', value: String(stats.needsAttention),
-              sub1Label: 'VOIDED', sub1Value: String(envelopes.filter(e => e.status === 'voided').length),
-              sub2Label: 'DECLINED', sub2Value: String(envelopes.filter(e => e.status === 'declined').length), barHighlight: 'var(--red)',
-            },
-            {
-              title: 'ACTIVE SENDERS', value: String(stats.owners),
-              sub1Label: 'DRAFTS', sub1Value: String(envelopes.filter(e => e.status === 'draft').length),
-              sub2Label: 'EXPIRED', sub2Value: String(envelopes.filter(e => e.status === 'expired').length), barHighlight: 'var(--gold)',
-            },
-          ]} />
-        </div>
-      )}
+      <MetricsRow cards={[
+        { title: 'Documents', value: String(stats.total), loading, icon: 'fileText', sub1Label: 'Completed', sub1Value: String(stats.completed) },
+        { title: 'Needs review', value: String(stats.needsAttention), loading, icon: 'clock', sub1Label: 'Cancelled, declined, or expired' },
+        { title: 'Senders', value: String(stats.owners), loading, icon: 'users', sub1Label: 'Sent', sub1Value: String(stats.sent) },
+      ]} />
 
-      <SearchToolbar
+      <Card className="sign-inbox-panel" role="region" aria-label="Workspace documents">
+        <div className="sign-inbox-search-row">      <SearchToolbar
         search={search}
         onSearch={setSearch}
         placeholder="Search by title or owner"
-        style={{ marginBottom: 16 }}
+
         quickFilter={{
           label: 'Status', allLabel: 'All statuses', value: statusFilter === 'all' ? null : statusFilter,
           onChange: value => setStatusFilter((value || 'all') as typeof statusFilter),
-          options: (['draft', 'sent', 'completed', 'voided', 'declined', 'expired'] as const).map(status => ({ value: status, label: status.charAt(0).toUpperCase() + status.slice(1) })),
-          columns: 2,
+          options: (['draft', 'sent', 'completed', 'voided', 'needs_rerouting', 'declined', 'expired'] as const).map(status => ({ value: status, label: status === 'needs_rerouting' ? 'Action needed' : status.charAt(0).toUpperCase() + status.slice(1) })),
+          columns: 1,
         }}
-        actions={<PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />}
+
       />
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 20, display: 'flex', flexDirection: 'column' }}>
+        </div>
+        <div className="sign-inbox-list-meta">
+          <span>{loading ? 'Loading…' : `${filtered.length} document${filtered.length === 1 ? '' : 's'}`}</span>
+          <PerPageSelect value={perPage} onChange={v => { setPerPage(v); setPage(1); }} />
+        </div>
+        <div className="sign-inbox-content">
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{ height: 46, borderRadius: 'var(--r)', background: 'var(--border)', opacity: 0.4, animation: 'pulse 1.4s ease-in-out infinite' }} />
-            ))}
-          </div>
+          <SkeletonTable rows={6} cols={5} />
         ) : filtered.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: 12, color: 'var(--ink3)', textAlign: 'center', padding: 32 }}>
-            <Icon name="users" size={28} style={{ opacity: 0.4 }} />
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{search ? 'No matching documents' : 'No documents yet'}</div>
-          </div>
-        ) : (
+          <div className="sign-inbox-empty">
+            <FeaturedIcon size="lg"><Icon name="fileText" size={24} /></FeaturedIcon>
+            <div className="sign-inbox-empty-title">{search || statusFilter !== 'all' ? 'No matches' : 'No documents yet'}</div>
+            <div className="sign-inbox-empty-copy">{search || statusFilter !== 'all' ? 'Try another search or clear your filters.' : 'Workspace documents will appear here once an envelope is created.'}</div>
+            {(search || statusFilter !== 'all') && <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Clear filters</Button>}
+          </div>        ) : (
           <>
-            <div className="rtbl-wrap">
-              <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+            <div className="sign-mobile-cards">
+              {pageItems.map(env => (
+                <Card key={env.id} className="sign-mobile-card">
+                  <div className="sign-mobile-card-top">
+                    <FeaturedIcon><Icon name="fileText" size={20} /></FeaturedIcon>
+                    <div className="sign-mobile-card-info">
+                      <div className="sign-mobile-card-name">{env.title}</div>
+                      {env.owner && <div className="sign-mobile-card-sender"><PersonAvatar userId={env.created_by} name={env.owner.name} size={26} />{env.owner.name}</div>}
+                      <div className="sign-mobile-card-fname">{env.recipients?.filter(recipient => recipient.status === 'signed').length ?? 0}/{env.recipients?.length ?? 0} signed</div>
+                    </div>
+                  </div>
+                  <div className="sign-mobile-card-bottom">
+                    <Badge variant={envelopeBadgeVariant(env.status)}>{env.status === 'needs_rerouting' ? 'Action needed' : env.status}</Badge>
+                    <span>{new Date(env.updated_at).toLocaleDateString()}</span>
+                  </div>
+                  <Button variant="outline" onClick={() => navigate(`/sign/envelope/${env.id}`)}>View document</Button>
+                </Card>
+              ))}
+            </div>            <div className="sign-desktop-table rtbl-wrap">
+              <table className="rtbl">
                 <thead>
                   <tr>
                     <th>Document</th>
@@ -2131,6 +1932,7 @@ export function SignAllDocuments() {
           </>
         )}
       </div>
+      </Card>
     </div>
   );
 }
