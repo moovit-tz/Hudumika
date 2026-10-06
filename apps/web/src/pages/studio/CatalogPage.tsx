@@ -4,7 +4,8 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
-import { Input } from '../../components/ui/input.js';
+import { StudioPagination } from './StudioPagination.js';
+import { SearchToolbar, SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs.js';
 import type { WorkflowStudioTriggerDef, WorkflowStudioActionDef } from '@hudumika/types';
 import { PageHeader } from '../../components/PageHeader.js';
@@ -24,6 +25,10 @@ export function CatalogPage() {
   const [triggers, setTriggers] = useState<WorkflowStudioTriggerDef[]>([]);
   const [actions, setActions] = useState<WorkflowStudioActionDef[]>([]);
   const [q, setQ] = useState('');
+  const [app, setApp] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [tab, setTab] = useState('triggers');
+  useEffect(() => { setPage(1); }, [app, q, tab]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,14 +40,16 @@ export function CatalogPage() {
   }, []);
 
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
-  const shownTriggers = triggers.filter(t => match(`${t.label} ${t.id} ${t.appName} ${t.description}`));
-  const shownActions = actions.filter(a => match(`${a.label} ${a.id} ${a.appName} ${a.description}`));
+  const shownTriggers = triggers.filter(t => (!app || t.app === app) && match(`${t.label} ${t.id} ${t.appName} ${t.description}`));
+  const shownActions = actions.filter(a => (!app || a.app === app) && match(`${a.label} ${a.id} ${a.appName} ${a.description}`));
 
-  const byKind = (kind: string) => shownTriggers.filter(t => t.kind === kind);
+  const total = tab === 'triggers' ? shownTriggers.length : shownActions.length;
+  const current = Math.min(page, Math.max(1, Math.ceil(total / 6)));
+  const byKind = (kind: string) => shownTriggers.slice((current - 1) * 6, current * 6).filter(t => t.kind === kind);
 
   return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
+    <div className="studio-page">
+      <div>
         <PageHeader
           crumbs={['Studio', 'Triggers & actions']}
           titlePlain="Triggers &"
@@ -51,13 +58,15 @@ export function CatalogPage() {
         />
       </div>
 
-      <div style={{ maxWidth: 420, marginBottom: 14 }}>
-        <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search triggers and actions…" />
+      <div className="workflow-toolbar">
+        <SingleSelectFilter label="App" value={app} onChange={setApp} options={Array.from(new Map([...triggers, ...actions].map(t => [t.app,t.appName])).entries()).map(([value,label]) => ({value,label}))} />
+        <div className="workflow-search"><SearchToolbar search={q} onSearch={setQ} placeholder="Search triggers and actions" /></div>
       </div>
-
+      {!loading && <StudioPagination page={current} total={total} onChange={setPage} />}
+      {!loading && !total && <p>No matching entries. Clear your filters to see more.</p>}
       {loading && <SectionLoading />}
 
-      <Tabs defaultValue="triggers">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="triggers">Triggers ({shownTriggers.length})</TabsTrigger>
           <TabsTrigger value="actions">Actions ({shownActions.length})</TabsTrigger>
@@ -70,9 +79,9 @@ export function CatalogPage() {
             return (
               <div key={kind} style={{ marginTop: 16 }}>
                 <div className="studio-group-label" style={{ margin: '0 0 8px' }}>{KIND_LABEL[kind]}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 'var(--space-lg)' }}>
                   {rows.map(t => (
-                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 13, background: 'var(--card-bg, var(--white))' }}>
+                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--card-padding)', background: 'var(--card-bg, var(--white))' }}>
                       <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
                         <span style={{ width: 7, height: 7, borderRadius: 99, background: t.color }} />
                         <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: t.color }}>{t.appName}</span>
@@ -98,9 +107,9 @@ export function CatalogPage() {
         </TabsContent>
 
         <TabsContent value="actions">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: 10, marginTop: 16 }}>
-            {shownActions.map(a => (
-              <div key={a.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 13, background: 'var(--card-bg, var(--white))' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 310px), 1fr))', gap: 'var(--space-lg)', marginTop: 16 }}>
+            {shownActions.slice((current - 1) * 6, current * 6).map(a => (
+              <div key={a.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--card-padding)', background: 'var(--card-bg, var(--white))' }}>
                 <div style={{ display: 'flex', gap: 7, alignItems: 'center', marginBottom: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: 99, background: a.color }} />
                   <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: a.color }}>{a.appName}</span>

@@ -7,6 +7,9 @@ import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
+import { SingleSelectFilter, SearchToolbar } from '../../components/ui/filter-dropdown.js';
+import './WorkflowList.css';
+import { PageHeader } from '../../components/PageHeader.js';
 import { PageLoading } from '../../components/ui/spinner.js';
 
 interface Stats {
@@ -46,8 +49,14 @@ export function StudioDashboard() {
   const [runs, setRuns] = useState<RunRow[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [runFilter, setRunFilter] = useState<'all' | 'SUCCESS' | 'SIMULATED' | 'FAILED'>('all');
+  const [runFilter, setRunFilter] = useState<string>('all');
 
+  const [appFilter, setAppFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [runPage, setRunPage] = useState(1);
+  const [appPage, setAppPage] = useState(1);
+  const [duration, setDuration] = useState('all');
+  useEffect(() => { setRunPage(1); setAppPage(1); }, [runFilter, appFilter, search, duration]);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -69,9 +78,21 @@ export function StudioDashboard() {
   }, []);
 
   const filteredRuns = useMemo(() => {
-    if (runFilter === 'all') return runs;
-    return runs.filter(r => r.status === runFilter);
-  }, [runs, runFilter]);
+    return runs.filter(r => (runFilter === 'all' || r.status === runFilter)
+      && (!search || `${r.workflow_name ?? ''} ${r.trigger_source}`.toLowerCase().includes(search.toLowerCase()))
+      && (duration === 'all' || (duration === 'slow' ? r.duration_ms >= 1000 : r.duration_ms < 1000)));
+  }, [runs, runFilter, search, duration]);
+  const runPages = Math.max(1, Math.ceil(filteredRuns.length / 5));
+  const currentRunPage = Math.min(runPage, runPages);
+  const shownRuns = filteredRuns.slice((currentRunPage - 1) * 5, currentRunPage * 5);
+  const filteredApps = (stats?.byApp ?? []).filter(a => appFilter === 'all' || a.app === appFilter);
+  const appPages = Math.max(1, Math.ceil(filteredApps.length / 5));
+  const currentAppPage = Math.min(appPage, appPages);
+  const pager = (page: number, pages: number, change: (n: number) => void) => <div className="studio-pagination studio-panel-pagination">
+    <Button variant="outline" disabled={page === 1} onClick={() => change(page - 1)}>Previous</Button>
+    <span aria-live="polite">Page {page} of {pages}</span>
+    <Button variant="outline" disabled={page === pages} onClick={() => change(page + 1)}>Next</Button>
+  </div>;
 
   if (loading) {
     return <PageLoading label="Loading Workflow Studio dashboard…" />;
@@ -91,69 +112,23 @@ export function StudioDashboard() {
   const statuses = Object.entries(stats.runs.byStatusLast30d).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div style={{ maxWidth: 1360, margin: '0 auto', paddingBottom: 32 }}>
+    <div className="studio-page studio-overview-page">
 
       {/* ── Studio Premium Hero Command Banner ────────────────────────── */}
-      <div className="studio-dashboard-hero">
-        <div className="studio-dashboard-hero-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
-          <div style={{ maxWidth: 680 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <div className="studio-dashboard-hero-icon">
-                <Icon name="sparkle" size={18} />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', opacity: 0.85 }}>
-                Workflow Studio Engine
-              </span>
-            </div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'inherit' }}>
-              Automations and event workflows
-            </h1>
-            <p style={{ margin: '6px 0 0 0', fontSize: 13.5, color: 'inherit', opacity: 0.8, lineHeight: 1.5 }}>
-              One central canvas for every automation across your workspace — configure triggers, multi-step actions, and live execution monitors.
-            </p>
-          </div>
-
-          {/* Header Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="studio-hero-secondary"
-              onClick={() => navigate('/studio/catalog')}
-            >
-              <Icon name="layers" size={14} /> Browse Catalog
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="studio-hero-secondary"
-              onClick={() => navigate('/studio/templates')}
-            >
-              <Icon name="copy" size={14} /> Templates ({stats.catalogue.templates})
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              className="studio-hero-primary"
-              onClick={() => navigate('/studio/new')}
-            >
-              <Icon name="plus" size={14} /> Create Automation
-            </Button>
-          </div>
-        </div>
+      <PageHeader crumbs={['Studio', 'Overview']} titlePlain="Studio" titleEm="overview" subtitle="Monitor workflows and recent activity across your workspace." actions={<Button size="lg" onClick={() => navigate('/studio/new')}>New workflow</Button>} />
+      <div className="workflow-toolbar">
+        <SingleSelectFilter label="App" value={appFilter === 'all' ? null : appFilter} onChange={v => setAppFilter(v ?? 'all')} options={filteredApps.slice((currentAppPage - 1) * 5, currentAppPage * 5).map(a => ({value:a.app,label:a.name}))} />
+        <SingleSelectFilter label="Run status" value={runFilter === 'all' ? null : runFilter} onChange={v => setRunFilter(v ?? 'all')} options={Object.keys(VARIANT).map(v => ({value:v,label:v.charAt(0) + v.slice(1).toLowerCase()}))} />
+        <SingleSelectFilter label="Duration" value={duration === 'all' ? null : duration} onChange={v => setDuration(v ?? 'all')} options={[{value:'fast',label:'Under 1 second'},{value:'slow',label:'1 second or more'}]} />
+        <div className="workflow-search"><SearchToolbar search={search} onSearch={setSearch} placeholder="Search recent runs…" /></div>
       </div>
-
       {/* ── 4 KPI Stat Metric Cards Row ───────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
-        
+      <div className="studio-overview-metrics">
+
         {/* Workflows Total Card */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Workflows</span>
@@ -167,12 +142,13 @@ export function StudioDashboard() {
             <span>•</span>
             <span>{stats.workflows.draft} draft</span>
           </div>
+
         </div>
 
         {/* Active Automations Card */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Engines</span>
@@ -189,7 +165,7 @@ export function StudioDashboard() {
         {/* Total Runs Card */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Executions</span>
@@ -206,7 +182,7 @@ export function StudioDashboard() {
         {/* Building Blocks / Unrunnable Status */}
         <div className="studio-card-interactive" style={{
           background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
-          padding: '20px 22px', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+          padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Catalog Blocks</span>
@@ -244,8 +220,8 @@ export function StudioDashboard() {
       )}
 
       {/* ── Main Studio Grid ─────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 20, alignItems: 'start' }} className="studio-dash-grid">
-        
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 'var(--space-lg)', alignItems: 'start' }} className="studio-dash-grid">
+
         {/* ── LEFT COLUMN: Recent Execution Runs ─────────────────────── */}
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -256,18 +232,7 @@ export function StudioDashboard() {
 
             {/* Filter buttons */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Tabs value={runFilter} onValueChange={v => setRunFilter(v as typeof runFilter)} variant="segmented">
-                <TabsList>
-                  {(['all', 'SUCCESS', 'SIMULATED', 'FAILED'] as const).map(st => (
-                    <TabsTrigger
-                      key={st}
-                      value={st}
-                    >
-                      {st === 'all' ? 'All' : st}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+
 
               <button
                 type="button"
@@ -279,6 +244,7 @@ export function StudioDashboard() {
             </div>
           </div>
 
+          <p style={{padding:'0 20px',color:'var(--ink3)',fontSize:13}}>Latest 16 runs. App filter applies to the app list; status, duration and search apply to recent runs.</p>
           {/* Runs List */}
           <div>
             {filteredRuns.length === 0 ? (
@@ -286,14 +252,14 @@ export function StudioDashboard() {
                 Nothing has run under this filter. Open a workflow and use <strong>Dry run</strong> to test one safely.
               </div>
             ) : (
-              filteredRuns.map((r, idx) => (
+              shownRuns.map((r, idx) => (
                 <div
                   key={r.id}
                   className="studio-dashboard-row"
                   onClick={() => navigate(`/studio/w/${r.workflow_id}`)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
-                    borderBottom: idx < filteredRuns.length - 1 ? '1px solid var(--border)' : 'none',
+                    borderBottom: idx < shownRuns.length - 1 ? '1px solid var(--border)' : 'none',
                     cursor: 'pointer'
                   }}
                 >
@@ -327,11 +293,12 @@ export function StudioDashboard() {
               ))
             )}
           </div>
+          {filteredRuns.length > 0 && pager(currentRunPage, runPages, setRunPage)}
         </div>
 
         {/* ── RIGHT COLUMN: Outcomes, App Distribution & Clearance ───── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          
+
           {/* 1. Run Outcomes Distribution */}
           <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -368,7 +335,7 @@ export function StudioDashboard() {
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Automations By Workspace App</span>
             </div>
             <div style={{ padding: '12px 14px' }}>
-              {stats.byApp.map(a => (
+              {filteredApps.slice((currentAppPage - 1) * 5, currentAppPage * 5).map(a => (
                 <div
                   key={a.app}
                   className="studio-dashboard-row"
@@ -386,6 +353,8 @@ export function StudioDashboard() {
               ))}
             </div>
           </div>
+
+          {filteredApps.length > 0 && pager(currentAppPage, appPages, setAppPage)}
 
           {/* 3. Clearance Stage Workflows */}
           <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>

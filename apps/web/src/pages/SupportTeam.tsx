@@ -218,7 +218,7 @@ export const SupportTeam: React.FC = () => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{topChampion.name}</span>
-                  <Badge variant="brand">ðŸ† Top Support Champion</Badge>
+                  <Badge variant="brand">🏆 Top Support Champion</Badge>
                   {topChampion.isOnline && <Badge variant="success">Online Now</Badge>}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
@@ -259,8 +259,8 @@ export const SupportTeam: React.FC = () => {
                   <SelectTrigger className="input-field"><SelectValue placeholder="Filter By" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Agents ({agentStats.length})</SelectItem>
-                    <SelectItem value="online">ðŸŸ¢ Online Only ({summaryMetrics.onlineCount})</SelectItem>
-                    <SelectItem value="highLoad">ðŸ”´ High Load (&gt;3 Open)</SelectItem>
+                    <SelectItem value="online">🟢 Online Only ({summaryMetrics.onlineCount})</SelectItem>
+                    <SelectItem value="highLoad">🔴 High Load (&gt;3 Open)</SelectItem>
                     <SelectItem value="topCsat">⭐ Top CSAT (≥4.5)</SelectItem>
                   </SelectContent>
                 </Select>

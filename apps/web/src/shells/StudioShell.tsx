@@ -1,4 +1,5 @@
 import React from 'react';
+import '../pages/studio/StudioLayout.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';

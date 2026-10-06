@@ -20,26 +20,14 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
-      // Height comes from the SuperAdmin density setting (--ds-btn-py), not a
-      // fixed Tailwind h-9. Without this, ui/ buttons sat at 36px while every
-      // legacy .btn on the same screen — which does read the token — rendered
-      // at 49px. Two control systems, 13px apart, side by side.
-      //
-      // min-h keeps a floor so a density of 0 cannot collapse the control, and
-      // the icon variant stays square by tracking the same height.
-      // Text sizes match the .btn family step for step (xs 12 / sm 13 /
-      // default 14 / lg 15). `sm` was text-xs against .btn-sm's 13px, so the
-      // two "small" buttons differed by a line-height even once their padding
-      // agreed.
-      // min-h comes from --ctl-h, the same floor the legacy .btn family uses,
-      // rather than a fixed min-h-9. A stated height is what makes border
-      // width, line-height and font-size stop changing how tall a button is.
+      // Action controls share the roomy Studio footprint; typography keeps
+      // its existing size ladder and theme/density still supply the tokens.
       size: {
         xs: "min-h-[var(--ctl-h-xs)] py-[var(--ds-btn-py-xs,3px)] px-2.5 text-xs",
-        default: "min-h-[var(--ctl-h)] py-[var(--ds-btn-py,7px)] px-4",
-        sm: "min-h-[var(--ctl-h-sm)] py-[var(--ds-btn-py-sm,5px)] px-3 text-[13px]",
-        lg: "min-h-[var(--ctl-h-lg)] py-[var(--ds-btn-py-lg,10px)] px-8 text-[15px]",
-        icon: "min-h-[var(--ctl-h)] aspect-square py-[var(--ds-btn-py,7px)] px-0",
+        default: "min-h-[var(--action-h)] py-[var(--action-py)] px-8",
+        sm: "min-h-[var(--action-h)] py-[var(--action-py)] px-6 text-[13px]",
+        lg: "min-h-[var(--action-h)] py-[var(--action-py)] px-8 text-[15px]",
+        icon: "min-h-[var(--action-h)] aspect-square py-[var(--action-py)] px-0",
       },
     },
     defaultVariants: {
@@ -58,20 +46,13 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    // The vertical padding is set inline, which beats any class — so it has to
-    // respect `size` itself. It read --ds-btn-py unconditionally, which made
-    // every button the same height whatever size was asked for and silently
-    // overrode the size variants' own py- classes. sm and lg looked broken and
-    // the class was never the problem.
-    const padBlock =
-      size === 'xs' ? 'var(--ds-btn-py-xs, 3px)'
-      : size === 'sm' ? 'var(--ds-btn-py-sm, 5px)'
-      : size === 'lg' ? 'var(--ds-btn-py-lg, 10px)'
-      : 'var(--ds-btn-py)'
+    const padBlock = size === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : 'var(--action-py)'
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         style={{ paddingBlock: padBlock, borderWidth: 'var(--border-width, 1px)', ...style }}
+        data-ui-button=""
+        data-size={size ?? "default"}
         ref={ref}
         {...props}
       />

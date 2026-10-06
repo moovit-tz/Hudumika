@@ -33,15 +33,20 @@ interface SenderId {
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
+  beem: "Beem Africa (Leading East Africa SMS & Mobile Infrastructure)",
   africas_talking: "Africa's Talking (Direct Telco SMPP/REST)",
   twilio: 'Twilio Programmable SMS',
   nexmo: 'Vonage (Nexmo) Global SMS',
-  bongolive: 'BongoLive / Beem Africa',
+  bongolive: 'Beem Africa (Legacy BongoLive API)',
 };
 
-const SELECTABLE_PROVIDERS = ['africas_talking', 'twilio', 'nexmo'] as const;
+const SELECTABLE_PROVIDERS = ['beem', 'africas_talking', 'twilio', 'nexmo'] as const;
 
 const PROVIDER_FIELDS: Record<string, { key: string; label: string; secret?: boolean; placeholder?: string }[]> = {
+  beem: [
+    { key: 'apiKey', label: 'Beem API Key', placeholder: 'e.g. 7a8b9c... from Beem portal' },
+    { key: 'secretKey', label: 'Beem Secret Key', secret: true, placeholder: 'e.g. NTg1OD...' },
+  ],
   africas_talking: [
     { key: 'atUser', label: 'Username', placeholder: 'sandbox or live username' },
     { key: 'atKey', label: 'API Key', secret: true, placeholder: 'atsk_...' },
@@ -55,19 +60,19 @@ const PROVIDER_FIELDS: Record<string, { key: string; label: string; secret?: boo
     { key: 'apiSecret', label: 'API Secret', secret: true, placeholder: 'Vonage API Secret' },
   ],
   bongolive: [
-    { key: 'username', label: 'API Key / Username' },
-    { key: 'password', label: 'Secret Key', secret: true },
+    { key: 'apiKey', label: 'API Key / Username' },
+    { key: 'secretKey', label: 'Secret Key', secret: true },
   ],
 };
 
 export function SmsGateways() {
-  usePageSEO('SMS Gateways & Intelligent Routing', "Configure Africa's Talking, Twilio and global SMS carriers with automatic failover.");
+  usePageSEO('SMS Gateways & Intelligent Routing', "Configure Beem Africa, Africa's Talking, Twilio and global SMS carriers with automatic failover.");
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [provider, setProvider] = useState('africas_talking');
+  const [provider, setProvider] = useState('beem');
   const [label, setLabel] = useState('');
   const [senderId, setSenderId] = useState('');
   const [creds, setCreds] = useState<Record<string, string>>({});

@@ -8,6 +8,8 @@ import type { Workflow } from '@hudumika/types';
 import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
 import { showConfirm } from '../../lib/confirm.js';
+import { StudioPagination } from './StudioPagination.js';
+import { SearchToolbar, SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -51,6 +53,12 @@ function buildDefaultAssignment(wfs: Workflow[]): AssignmentMap {
 export function ClearanceWorkflowList() {
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [query, setQuery] = useState('');
+  const [modeFilter, setModeFilter] = useState<string | null>(null);
+  const [listPage, setListPage] = useState(1);
+  useEffect(() => { setListPage(1); }, [query, modeFilter]);
+  const filteredWorkflows = workflows.filter(w => (!query || w.name.toLowerCase().includes(query.toLowerCase())) && (!modeFilter || w.triggers.freightModes.includes(modeFilter)));
+  const currentListPage = Math.min(listPage, Math.max(1, Math.ceil(filteredWorkflows.length / 6)));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assignment, setAssignment] = useState<AssignmentMap>({});
@@ -212,7 +220,7 @@ export function ClearanceWorkflowList() {
   };
 
   return (
-    <div className="wf-page">
+    <div className="studio-page wf-page">
       {/* Header */}
       <div className="wf-page-header">
         <div>
@@ -234,6 +242,12 @@ export function ClearanceWorkflowList() {
         </div>
       </div>
 
+      <div className="workflow-toolbar">
+        <SingleSelectFilter label="Freight" value={modeFilter} onChange={setModeFilter} options={FREIGHT_MODES.map(label => ({value:label.toLowerCase(),label}))} />
+        <div className="workflow-search"><SearchToolbar search={query} onSearch={setQuery} placeholder="Search clearance workflows" /></div>
+      </div>
+      {!loading && <StudioPagination page={currentListPage} total={filteredWorkflows.length} onChange={setListPage} />}
+      {!loading && !filteredWorkflows.length && workflows.length > 0 && <p>No matching workflows. Clear your filters to see more.</p>}
       {error && (
         <Banner variant="error" className="mb-4">{error}</Banner>
       )}
@@ -344,7 +358,7 @@ export function ClearanceWorkflowList() {
                 </button>
               </div>
             ) : (
-              workflows.map(wf => (
+              filteredWorkflows.slice((currentListPage - 1) * 6, currentListPage * 6).map(wf => (
                 <div key={wf.id} className="wf-card">
                   <div className="wf-card-top">
                     <div>

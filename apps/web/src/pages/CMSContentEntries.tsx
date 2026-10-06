@@ -44,11 +44,11 @@ function toLocalInput(iso: string | null): string {
 }
 
 const SUPPORTED_LOCALES = [
-  { code: 'en', name: 'English', flag: 'ðŸ‡¬ðŸ‡§' },
-  { code: 'sw', name: 'Swahili (Kiswahili)', flag: 'ðŸ‡¹ðŸ‡¿' },
-  { code: 'fr', name: 'French', flag: 'ðŸ‡«ðŸ‡·' },
-  { code: 'pt', name: 'Portuguese', flag: 'ðŸ‡µðŸ‡¹' },
-  { code: 'ar', name: 'Arabic', flag: 'ðŸ‡¦ðŸ‡ª' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'sw', name: 'Swahili (Kiswahili)', flag: '🇹🇿' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'ar', name: 'Arabic', flag: '🇦🇪' },
 ];
 
 function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (evt: React.MouseEvent) => void }) {
@@ -336,7 +336,7 @@ export function CMSContentEntries() {
                   <SelectValue placeholder="All Sites" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">ðŸŒ All Sites</SelectItem>
+                  <SelectItem value="all">🌐 All Sites</SelectItem>
                   {sites.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -349,7 +349,7 @@ export function CMSContentEntries() {
                 <SelectValue placeholder="All Locales" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">ðŸŒ All Locales</SelectItem>
+                <SelectItem value="all">🌍 All Locales</SelectItem>
                 {SUPPORTED_LOCALES.map(l => (
                   <SelectItem key={l.code} value={l.code}>{l.flag} {l.name}</SelectItem>
                 ))}

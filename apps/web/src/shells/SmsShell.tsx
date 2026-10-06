@@ -20,7 +20,7 @@ import { SmsOptOuts } from '../pages/sms/SmsOptOuts.js';
 const NAV: SidebarSection[] = [
   {
     items: [
-      { label: 'Dashboard', icon: 'barChart2', path: '/sms', exact: true },
+      { label: 'Overview', icon: 'barChart2', path: '/sms', exact: true },
       { label: 'Compose', icon: 'edit', path: '/sms/compose' },
       { label: 'Inbox', icon: 'inbox', path: '/sms/inbox' },
       { label: 'Campaigns', icon: 'send', path: '/sms/campaigns' },

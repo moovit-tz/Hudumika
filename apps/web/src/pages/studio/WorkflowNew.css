@@ -1,0 +1,22 @@
+.workflow-new-page { display:flex; flex-direction:column; gap:24px; min-width:0; }
+.workflow-new-page .page-header { margin-bottom:0; }
+.workflow-new-progress { display:flex; align-items:center; gap:16px; flex-wrap:wrap; color:var(--ink3); font-size:13px; padding:16px 0; border-bottom:1px solid var(--border); }
+.workflow-new-progress .is-current { color:var(--teal); font-weight:700; }
+.workflow-new-details,.workflow-new-triggers,.workflow-new-footer { padding:24px !important; }
+.workflow-new-page h2 { margin:0 0 20px; font-size:18px; font-weight:700; }
+.workflow-new-details .studio-field { margin-top:20px; }
+.workflow-new-page input { min-height:44px; }
+.workflow-new-optional { color:var(--ink3); font-weight:400; margin-left:8px; }
+.workflow-new-trigger-heading { display:flex; justify-content:space-between; gap:24px; align-items:center; margin-bottom:24px; }
+.workflow-new-trigger-heading h2 { margin-bottom:8px; }
+.workflow-new-trigger-heading input { max-width:320px; }
+.workflow-new-page p { color:var(--ink3); line-height:1.6; font-size:14px; margin:0; }
+.workflow-new-trigger-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+.workflow-new-trigger { padding:20px !important; min-height:120px !important; border-width:var(--border-width,1px) !important; }
+.workflow-new-trigger > div:nth-child(2) { font-size:14px !important; margin-top:10px; }
+.workflow-new-trigger > div:last-child { font-size:13px !important; margin-top:8px !important; }
+.workflow-new-trigger:focus-visible { outline:2px solid var(--teal); outline-offset:3px; }
+.workflow-new-footer { display:flex; justify-content:space-between; align-items:center; gap:24px; }
+.workflow-new-footer strong { display:block; font-size:14px; margin-bottom:8px; }
+.workflow-new-empty { padding:24px 0; text-align:center; }
+@media(max-width:640px) { .workflow-new-details,.workflow-new-triggers,.workflow-new-footer { padding:16px !important; } .workflow-new-trigger-heading,.workflow-new-footer { flex-direction:column; align-items:stretch; } .workflow-new-trigger-heading input { max-width:none; } .workflow-new-trigger-grid { grid-template-columns:1fr; } .workflow-new-progress { gap:10px; } }

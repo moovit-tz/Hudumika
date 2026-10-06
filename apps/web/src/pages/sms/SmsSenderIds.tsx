@@ -37,10 +37,11 @@ interface SenderIdItem {
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
+  beem: 'Beem Africa',
   africas_talking: "Africa's Talking",
   twilio: 'Twilio',
   nexmo: 'Vonage (Nexmo)',
-  bongolive: 'BongoLive',
+  bongolive: 'Beem Africa (BongoLive)',
 };
 
 export function SmsSenderIds() {

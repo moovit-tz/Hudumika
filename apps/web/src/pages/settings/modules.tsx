@@ -765,7 +765,7 @@ export function AppLicensePanel({
 
                     {grants.length === 0 ? (
                       <div className="s-lic-empty-state">
-                        <div style={{ fontSize: 22, marginBottom: 4 }}>ðŸ”’</div>
+                        <div style={{ fontSize: 22, marginBottom: 4 }}>🔒</div>
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>No members granted access yet</div>
                         <div style={{ fontSize: 11.5, marginTop: 2 }}>With restricted access active and no members added, this app will remain hidden for everyone. Select a member above to grant access.</div>
                       </div>

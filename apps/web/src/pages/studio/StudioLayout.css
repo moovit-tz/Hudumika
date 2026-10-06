@@ -1,0 +1,36 @@
+/* PageLayout owns Studio's outer gutter; list pages only own their section rhythm. */
+[data-studio] .studio-page {
+  width: 100%; max-width: 100%; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--space-lg);
+  margin: 0; padding: 0;
+}
+[data-studio] .studio-page .page-header { margin-bottom: 0; }
+[data-studio] .studio-page > .workflow-toolbar {
+  padding: 0 !important; margin: 0; gap: var(--space-md);
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+}
+[data-studio] .studio-page .workflow-search { min-width: 0; }
+[data-studio] .studio-page > .studio-pagination { margin: 0; padding: 0; }
+[data-studio] .studio-page .studio-panel-pagination { padding: var(--card-padding); }
+[data-studio] .studio-page .workflow-metric,
+[data-studio] .studio-page .workflow-list-item,
+[data-studio] .studio-page .workflow-new-details,
+[data-studio] .studio-page .workflow-new-triggers,
+[data-studio] .studio-page .workflow-new-footer { padding: var(--card-padding) !important; }
+[data-studio] .studio-page .workflow-metrics,
+[data-studio] .studio-page .studio-overview-metrics { gap: var(--space-lg); margin: 0; }
+[data-studio] .studio-page.wf-page { height: auto; overflow: visible; }
+[data-studio] .studio-page .wf-page-header { padding: 0; border: 0; background: transparent; }
+[data-studio] .studio-page .wf-page-header > div:first-child { flex: 1; min-width: 0; }
+[data-studio] .studio-page .wf-body { overflow: visible; gap: var(--space-lg); }
+[data-studio] .studio-page .wf-list-panel { border: 0; background: transparent; overflow: visible; }
+[data-studio] .studio-page .wf-list-inner { padding: 0; gap: var(--space-md); }
+[data-studio] .studio-page .wf-matrix-panel { padding: 0; }
+[data-studio] .studio-page .studio-paged-run { padding: var(--space-md) var(--card-padding); }
+@media (max-width: 700px) {
+  [data-studio] .studio-page { gap: var(--space-md); }
+  [data-studio] .studio-page > .workflow-toolbar { align-items: stretch; }
+  [data-studio] .studio-page .workflow-search { width: 100%; margin-left: 0; }
+  [data-studio] .studio-page .studio-pagination { gap: var(--space-sm); }
+  [data-studio] .studio-page .wf-header-actions { flex-wrap: wrap; }
+}

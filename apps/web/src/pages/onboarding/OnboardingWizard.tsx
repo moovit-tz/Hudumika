@@ -149,7 +149,7 @@ export const OnboardingWizard: React.FC = () => {
     if (!success) return;
     const t = setTimeout(() => {
       completeOnboarding(success);
-      navigate('/');
+      navigate('/welcome');
     }, 1800);
     return () => clearTimeout(t);
   }, [success, completeOnboarding, navigate]);

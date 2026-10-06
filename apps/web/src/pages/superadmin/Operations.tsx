@@ -96,7 +96,7 @@ export function DomainsView() {
     unchecked:domains.filter(d=>d.never_checked).length,
   }),[domains]);
 
-  if (loading) return <div style={{ padding:30, color:'var(--ink3)' }}>Loading domainsâ€¦</div>;
+  if (loading) return <div style={{ padding:30, color:'var(--ink3)' }}>Loading domains…</div>;
 
   return (
     <div>
@@ -118,7 +118,7 @@ export function DomainsView() {
         <SearchToolbar
           search={search}
           onSearch={v => { setSearch(v); setDomPage(1); }}
-          placeholder="Search domainsâ€¦"
+          placeholder="Search domains…"
           quickFilter={{
             value: statusFilter === 'all' ? null : statusFilter,
             onChange: v => setStatusFilter((v ?? 'all') as DomainStatus | 'all'),
@@ -151,7 +151,7 @@ export function DomainsView() {
               options={tenants.map((t:any) => ({ value: t.id, label: t.name }))}
               value={newTenant}
               onChange={setNewTenant}
-              placeholder="Choose a companyâ€¦"
+              placeholder="Choose a company…"
             />
           </div>
           <button type="button" className="btn btn-primary" disabled={!newHost.trim() || !newTenant || !!busy}
@@ -159,10 +159,10 @@ export function DomainsView() {
               await apiFetch('/v1/superadmin/domains', { method:'POST', body: JSON.stringify({ tenant_id:newTenant, domain:newHost.trim() }) });
               setNewHost(''); setAdding(false);
             })}>
-            {busy==='add' ? 'Addingâ€¦' : 'Add domain'}
+            {busy==='add' ? 'Adding…' : 'Add domain'}
           </button>
           <div style={{ flexBasis:'100%', fontSize:11.5, color:'var(--ink3)' }}>
-            Added unverified. The company publishes the TXT token it is given, then Check confirms it â€” nothing is marked verified before that.
+            Added unverified. The company publishes the TXT token it is given, then Check confirms it — nothing is marked verified before that.
           </div>
         </div>
       )}
@@ -238,7 +238,7 @@ export function DomainsView() {
                   <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                     disabled={busy==='chk'+d.id}
                     onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
-                    {busy==='chk'+d.id ? 'Checkingâ€¦' : 'Check'}
+                    {busy==='chk'+d.id ? 'Checking…' : 'Check'}
                   </button>
                   <ActBtn icon="trash" color="var(--red)" title="Remove"
                     onClick={()=>act('del'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}`, { method:'DELETE' }))} />
@@ -265,9 +265,9 @@ export function DomainsView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    TRANSACTIONS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 export function TransactionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TxStatus|'all'>('all');
@@ -276,7 +276,7 @@ export function TransactionsView() {
   const [txPageSize, setTxPageSize] = useState(25);
 
   // Real platform_transactions. This screen previously rendered the hardcoded
-  // TRANSACTIONS sample array â€” eleven 2025 payments for companies that do not
+  // TRANSACTIONS sample array — eleven 2025 payments for companies that do not
   // exist, $43,346 of revenue that was never collected.
   const [rows, setRows] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>(null);
@@ -348,7 +348,7 @@ export function TransactionsView() {
         <SearchToolbar
           search={search}
           onSearch={v => { setSearch(v); setTxPage(1); }}
-          placeholder="Search company or Refâ€¦"
+          placeholder="Search company or Ref…"
           quickFilter={{
             value: statusFilter === 'all' ? null : statusFilter,
             onChange: v => setStatusFilter((v ?? 'all') as TxStatus | 'all'),
@@ -365,7 +365,7 @@ export function TransactionsView() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>Loading transactionsâ€¦</div>
+        <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>Loading transactions…</div>
       ) : filtered.length === 0 ? (
         <div className="card" style={{ padding:'34px 22px', textAlign:'center' }}>
           <div style={{ fontSize:14, fontWeight:650, color:'var(--ink)' }}>
@@ -405,10 +405,10 @@ export function TransactionsView() {
                 <span style={{ fontWeight:600, fontSize:13 }}>{tx.companyName || 'Deleted company'}</span>
                 {tx.payerName && <span style={{ display:'block', fontSize:11, color:'var(--ink3)' }}>{tx.payerName}</span>}
               </TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{tx.packageCode ?? 'â€”'}{tx.billingCycle ? ` Â· ${tx.billingCycle}` : ''}</span></TD>
+              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{tx.packageCode ?? '—'}{tx.billingCycle ? ` · ${tx.billingCycle}` : ''}</span></TD>
               <TD right><span style={{ fontWeight:700, fontFamily:'var(--font)' }}>{tx.currency} {Number(tx.amount).toLocaleString()}</span></TD>
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(tx.created)}</span></TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? 'â€”'}</span></TD>
+              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? '—'}</span></TD>
               <TD><Badge cfg={TX_CFG[tx.status as TxStatus] ?? TX_CFG.completed} /></TD>
             </TR>
           ))}
@@ -426,9 +426,9 @@ export function TransactionsView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    FINANCE VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 
 /**
  * Two different things live on this page and they used to be conflated:
@@ -472,7 +472,7 @@ export function FinanceView() {
     return [...m.values()].sort((a, b) => b.total - a.total);
   }, [tx]);
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading finance dataâ€¦</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading finance data…</div>;
   if (error)   return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--red)' }}>{error}</div>;
 
   const collected = tx?.totals?.completed ?? 0;
@@ -488,7 +488,7 @@ export function FinanceView() {
 
   return (
     <div>
-      <PageHdr title="Platform Finance" sub="Platform billing â€” what has been received, and what active plans would bill" />
+      <PageHdr title="Platform Finance" sub="Platform billing — what has been received, and what active plans would bill" />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Revenue Collected"      value={fmtCurrency(collected)} icon="dollarSign" color="var(--teal)"
@@ -498,7 +498,7 @@ export function FinanceView() {
         {/* Named an estimate on the card, because it is one: list price for
             every active tenant, whether or not they have ever paid. */}
         <KPICard title="Run Rate (list price)"  value={fmtCurrency(runRate)}   icon="trendingUp" color="var(--teal)"
-                 hint="estimate â€” active tenants at list price" />
+                 hint="estimate — active tenants at list price" />
         <KPICard title="Paying Companies"       value={String(new Set((tx?.data ?? []).filter((t: any) => t.status === 'completed').map((t: any) => t.companyId)).size)}
                  icon="building" color="var(--teal)" hint={`of ${stats?.kpis?.activeCompanies ?? 0} active`} />
       </div>
@@ -507,7 +507,7 @@ export function FinanceView() {
         <div className="card" style={{ padding:'22px 24px' }}>
           <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Revenue Received</div>
           <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:20 }}>
-            Completed payments by month{trend.length ? '' : ' â€” nothing recorded yet'}
+            Completed payments by month{trend.length ? '' : ' — nothing recorded yet'}
           </div>
           {trend.length > 0
             ? <BarChart data={trend} color="var(--teal)" height={100} />
@@ -551,15 +551,15 @@ export function FinanceView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    ACTIVITY VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 /**
  * The platform audit trail, from platform_activity_log.
  *
  * Rows are written by the superadmin routes as they act, so this is a record
  * of what was done rather than a description of what such a screen might show.
- * Actor and target names are the snapshots taken at the time â€” a company that
+ * Actor and target names are the snapshots taken at the time — a company that
  * has since been deleted is still named, which is exactly when an audit trail
  * earns its keep.
  */
@@ -638,7 +638,7 @@ export function ActivityView() {
 
   const visible = useMemo(() => filtered.slice(0, visCount), [filtered, visCount]);
 
-  // â”€â”€ stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const todayStr = new Date().toDateString();
     const weekAgo  = Date.now() - 7 * 24 * 3600_000;
@@ -697,7 +697,7 @@ export function ActivityView() {
 
   const catTotal = Object.values(stats.byCat).reduce((s, v) => s + v, 0) || 1;
 
-  // â”€â”€ card helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── card helper ────────────────────────────────────────────────────────────
   function MetricCard({ label, value, icon, color, bg }: { label: string; value: number|string; icon: string; color: string; bg: string }) {
     return (
       <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'18px 20px', boxShadow:'var(--elev-sm)', display:'flex', alignItems:'center', gap:14 }}>
@@ -727,7 +727,7 @@ export function ActivityView() {
       <SearchToolbar
         search={search}
         onSearch={v => { setSearch(v); setVisCount(15); }}
-        placeholder="Search by actor, action, companyâ€¦"
+        placeholder="Search by actor, action, company…"
         style={{ marginBottom:20 }}
       />
 
@@ -735,7 +735,7 @@ export function ActivityView() {
         <div style={{ padding:'10px 13px', borderRadius:'var(--r)', background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
       )}
 
-      {/* â”€â”€ Metric cards â”€â”€ */}
+      {/* ── Metric cards ── */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <MetricCard label="Changes Today"     value={stats.todayCount}     icon="activity"    color="var(--teal)" bg="var(--teal-l)" />
         <MetricCard label="High-Risk Changes" value={stats.highRiskCount}  icon="alertTriangle" color="var(--red)"  bg="var(--red-l)"  />
@@ -743,10 +743,10 @@ export function ActivityView() {
         <MetricCard label="Active Admins"     value={stats.activeAdmins}   icon="users"       color="var(--blue)" bg="var(--blue-l)" />
       </div>
 
-      {/* â”€â”€ Two-column layout â”€â”€ */}
+      {/* ── Two-column layout ── */}
       <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
 
-        {/* â”€â”€ Feed â”€â”€ */}
+        {/* ── Feed ── */}
         <div style={{ flex:1, minWidth:0 }}>
           {/* Tab pills */}
           <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
@@ -769,13 +769,13 @@ export function ActivityView() {
           {/* Activity list */}
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {loading && (
-              <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading audit logâ€¦</div>
+              <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading audit log…</div>
             )}
             {!loading && rows.length === 0 && (
               <div style={{ padding:'48px 22px', textAlign:'center' }}>
                 <div style={{ fontSize:13.5, color:'var(--ink2)' }}>Nothing has been recorded yet.</div>
                 <div style={{ fontSize:12, color:'var(--ink3)', marginTop:5 }}>
-                  Superadmin actions â€” creating a company, changing a plan, revoking a token â€” appear here as they happen.
+                  Superadmin actions — creating a company, changing a plan, revoking a token — appear here as they happen.
                 </div>
               </div>
             )}
@@ -803,10 +803,10 @@ export function ActivityView() {
                         <span style={{ fontWeight:700, color:'var(--ink)' }}>{a.actor_name}</span>
                         {' '}
                         <span style={{ color:'var(--ink2)' }}>{a.action}</span>
-                        {a.target_name && <span style={{ color:'var(--ink3)' }}> Â· {a.target_name}</span>}
+                        {a.target_name && <span style={{ color:'var(--ink3)' }}> · {a.target_name}</span>}
                       </div>
                       <div style={{ fontSize:11, color:'var(--ink3)', marginTop:3 }}>
-                        {a.tenant_name ? `${a.tenant_name} Â· ` : ''}{fmtDate(a.created_at)}
+                        {a.tenant_name ? `${a.tenant_name} · ` : ''}{fmtDate(a.created_at)}
                         {' '}
                         <span style={{ opacity:0.7 }}>({relTime(a.created_at)})</span>
                       </div>
@@ -825,13 +825,13 @@ export function ActivityView() {
                       <div style={{ background:'var(--red-l)', borderRadius:'var(--r-sm)', padding:'8px 12px' }}>
                         <div style={{ fontSize:10, fontWeight:700, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>Before</div>
                         <div style={{ fontSize:12.5, color:'var(--ink2)', wordBreak:'break-all' }}>
-                          {before !== undefined ? (typeof before === 'object' ? JSON.stringify(before) : String(before)) : 'â€”'}
+                          {before !== undefined ? (typeof before === 'object' ? JSON.stringify(before) : String(before)) : '—'}
                         </div>
                       </div>
                       <div style={{ background:'var(--green-l)', borderRadius:'var(--r-sm)', padding:'8px 12px' }}>
                         <div style={{ fontSize:10, fontWeight:700, color:'var(--green)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>After</div>
                         <div style={{ fontSize:12.5, color:'var(--ink2)', wordBreak:'break-all' }}>
-                          {after !== undefined ? (typeof after === 'object' ? JSON.stringify(after) : String(after)) : 'â€”'}
+                          {after !== undefined ? (typeof after === 'object' ? JSON.stringify(after) : String(after)) : '—'}
                         </div>
                       </div>
                     </div>
@@ -863,7 +863,7 @@ export function ActivityView() {
           )}
         </div>
 
-        {/* â”€â”€ Sidebar â”€â”€ */}
+        {/* ── Sidebar ── */}
         <div style={{ width:280, flexShrink:0, display:'flex', flexDirection:'column', gap:14 }}>
 
           {/* Changes by Module */}
@@ -902,7 +902,7 @@ export function ActivityView() {
             )}
           </div>
 
-          {/* AI Risk Summary â€” only shown when high-risk events exist */}
+          {/* AI Risk Summary — only shown when high-risk events exist */}
           {stats.highRiskCount > 0 && (
             <div style={{ background:'var(--teal-l)', border:'1px solid var(--teal-m)', borderRadius:'var(--r)', padding:'16px 18px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:8 }}>

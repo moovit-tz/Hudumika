@@ -47,7 +47,7 @@ export function DashboardView() {
       });
   }, []);
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statisticsâ€¦</div>;
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statistics…</div>;
   if (error || !stats) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Error loading dashboard stats. Check server connection.</div>;
 
   const { kpis, planDist, spark, monthlyRev, transactions, platformInsights } = stats;
@@ -57,14 +57,14 @@ export function DashboardView() {
 
   return (
     <div>
-      <PageHdr title="Super Admin Dashboard" sub="Platform overview â€” all companies, revenue and activity at a glance" />
+      <PageHdr title="Super Admin Dashboard" sub="Platform overview — all companies, revenue and activity at a glance" />
 
       {/* KPI row */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}       icon="building"   color="var(--teal)"   spark={spark.companies}   emptyHint={noHistory} />
         <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}      icon="check"      color="var(--teal)"  spark={spark.active}      emptyHint={noHistory} />
         <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  icon="users"      color="var(--teal)" spark={spark.subscribers} emptyHint={noHistory} />
-        {/* Money received, not a list-price run-rate â€” the run-rate estimate is
+        {/* Money received, not a list-price run-rate — the run-rate estimate is
             the smaller figure and was previously the one shown as "earnings". */}
         <KPICard title="Revenue Collected"  value={fmtCurrency(kpis.collectedRevenue ?? 0)} icon="dollarSign" color="var(--teal)" spark={spark.earnings}
                  hint={`${fmtCurrency(kpis.totalEarnings)} list-price run rate`} />
@@ -131,7 +131,7 @@ export function DashboardView() {
               <div style={{ fontSize:12, color:'var(--ink3)', padding:'14px 0' }}>No payments recorded yet.</div>
             )}
             {/* companyName comes from the join on tenants. This used to call
-                coByID(), which searches the mock COMPANIES array â€” a real
+                coByID(), which searches the mock COMPANIES array — a real
                 tenant id never matched, so every row read "Unknown Company". */}
             {transactions.map((tx: any)=>{
               const txcfg = TX_CFG[tx.status as TxStatus] || TX_CFG.completed;
@@ -139,7 +139,7 @@ export function DashboardView() {
                 <div key={tx.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tx.companyName || 'Deleted company'}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}{tx.payerName ? ` Â· ${tx.payerName}` : ''}</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}{tx.payerName ? ` · ${tx.payerName}` : ''}</div>
                   </div>
                   <div style={{ textAlign:'right' }}>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{fmtCurrency(tx.amount)}</div>
@@ -153,10 +153,10 @@ export function DashboardView() {
 
         {/* "Upcoming Renewals" used to live here, built by claiming every tenant
             renews in exactly 30 days. `tenants` has no expiry or renewal column
-            and there is no subscriptions table, so there is nothing to show â€”
+            and there is no subscriptions table, so there is nothing to show —
             the panel is gone rather than filled with a date nobody committed to.
             Rollup cards for the two domain "Insights" layers relocated out of
-            this shell (Decompose SuperAdmin M1/M3) take the slot instead â€” a
+            this shell (Decompose SuperAdmin M1/M3) take the slot instead — a
             real number, linking straight to where the detail now lives. */}
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Platform Insights</div>
@@ -165,9 +165,9 @@ export function DashboardView() {
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <Icon name="alertCircle" size={16} color={platformInsights.lens.critical > 0 ? 'var(--red)' : 'var(--ink3)'} />
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Lens â€” open engineering items</div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Lens — open engineering items</div>
                   <div style={{ fontSize:11, color:'var(--ink3)' }}>
-                    {platformInsights.lens.critical > 0 ? `${platformInsights.lens.critical} critical Â· ` : ''}across every part of the platform
+                    {platformInsights.lens.critical > 0 ? `${platformInsights.lens.critical} critical · ` : ''}across every part of the platform
                   </div>
                 </div>
               </div>
@@ -177,17 +177,17 @@ export function DashboardView() {
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <Icon name="fingerprint" size={16} color={platformInsights.devices.error > 0 ? 'var(--red)' : 'var(--ink3)'} />
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Attendance devices â€” all tenants</div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>Attendance devices — all tenants</div>
                   <div style={{ fontSize:11, color:'var(--ink3)' }}>
-                    {platformInsights.devices.online} online Â· {platformInsights.devices.offline} offline
-                    {platformInsights.devices.error > 0 ? ` Â· ${platformInsights.devices.error} error` : ''}
+                    {platformInsights.devices.online} online · {platformInsights.devices.offline} offline
+                    {platformInsights.devices.error > 0 ? ` · ${platformInsights.devices.error} error` : ''}
                   </div>
                 </div>
               </div>
               <div style={{ fontSize:18, fontWeight:800, color:'var(--ink)' }}>{platformInsights.devices.total}</div>
             </Link>
             <div style={{ fontSize:11, color:'var(--ink3)', textAlign:'center' }}>
-              Filterable, exportable detail for devices is in <Link to="/hudubi/reports" style={{ color:'var(--teal)', fontWeight:600 }}>HuduBI Reports</Link> â€” "Attendance devices by status".
+              Filterable, exportable detail for devices is in <Link to="/hudubi/reports" style={{ color:'var(--teal)', fontWeight:600 }}>HuduBI Reports</Link> — "Attendance devices by status".
             </div>
           </div>
         </div>
@@ -196,14 +196,14 @@ export function DashboardView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    COMPANIES VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 interface ApiTenant { id:string; name:string; slug:string; plan:string; active:boolean; created_at:string; logo_url?:string; primary_color?:string; users?:number; founder_personal_email_domain?:string|null; }
 interface CoForm { name:string; email:string; phone:string; plan:PlanId; owner:string; country:string; }
 const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', owner:'', country:'Tanzania' };
 
-// Each row already has a real checkbox + name â€” a different dot colour per
+// Each row already has a real checkbox + name — a different dot colour per
 // app added nothing but visual noise, since the checkbox state (not colour)
 // is what carries the actual information here.
 const TENANT_APPS: { id: string; name: string }[] = [
@@ -296,7 +296,7 @@ export function CompaniesView() {
   const displayed = useMemo(() => {
     // The mock COMPANIES fixture (including a fabricated "suspended" tenant)
     // is only an honest stand-in when the real list genuinely couldn't be
-    // fetched â€” the subtitle below says "(mock â€” API offline)" for that case.
+    // fetched — the subtitle below says "(mock — API offline)" for that case.
     // It used to also cover a real, successful, genuinely-empty result (a
     // fresh platform with zero tenants), silently presenting fake companies
     // as real ones with no disclosure at all. A truly empty tenant list now
@@ -503,7 +503,7 @@ export function CompaniesView() {
   }
 
   // A generic yes/no dialog was the only thing standing between a misclick
-  // and permanently, irreversibly deleting a live tenant's entire dataset â€”
+  // and permanently, irreversibly deleting a live tenant's entire dataset —
   // every shipment, invoice, user account and document, cascade-deleted with
   // no soft-delete or recovery path. This is the single most destructive
   // action in the whole SuperAdmin console, so it gets the one confirmation
@@ -528,10 +528,10 @@ export function CompaniesView() {
     <div>
       <PageHdr
         title="All Companies"
-        sub={apiLoaded ? `${displayed.length} registered ${apiError ? '(mock â€” API offline)' : 'companies'}` : 'Loadingâ€¦'}
+        sub={apiLoaded ? `${displayed.length} registered ${apiError ? '(mock — API offline)' : 'companies'}` : 'Loading…'}
         action={
           <div className="sa-toolbar-actions">
-            {apiError && <span className="sa-toolbar-offline">API offline â€” showing mock data</span>}
+            {apiError && <span className="sa-toolbar-offline">API offline — showing mock data</span>}
             <button type="button" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm"><Icon name="refresh" size={12}/>Refresh</button>
             <button type="button" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md"><Icon name="plus" size={13}/>Add Company</button>
           </div>
@@ -543,7 +543,7 @@ export function CompaniesView() {
         <SearchToolbar
           search={search}
           onSearch={setSearch}
-          placeholder="Search companiesâ€¦"
+          placeholder="Search companies…"
           quickFilter={{
             value: statusFilter === 'all' ? null : statusFilter,
             onChange: v => setStatusFilter((v ?? 'all') as any),
@@ -822,7 +822,7 @@ export function CompaniesView() {
       </div>
 
       {!apiLoaded && (
-        <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)', fontSize:13 }}>Loading tenantsâ€¦</div>
+        <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)', fontSize:13 }}>Loading tenants…</div>
       )}
 
       {apiLoaded && selected.size > 0 && (
@@ -868,7 +868,7 @@ export function CompaniesView() {
                         </Tip>
                       )}
                     </div>
-                    <div style={{ fontSize:11, color:'var(--ink3)', fontFamily:'var(--font)' }}>{co.id.length > 10 ? co.id.slice(0,8)+'â€¦' : co.id}</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)', fontFamily:'var(--font)' }}>{co.id.length > 10 ? co.id.slice(0,8)+'…' : co.id}</div>
                   </div>
                 </div>
               </TD>
@@ -883,14 +883,14 @@ export function CompaniesView() {
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
               <TD>
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <Tip label={`Sign in as ${co.name} â€” you'll see the platform exactly as their admin does`} side="top">
+                  <Tip label={`Sign in as ${co.name} — you'll see the platform exactly as their admin does`} side="top">
                     <button
                       type="button"
                       disabled={!!impersonating}
                       onClick={() => handleImpersonate(co)}
                       style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       <Icon name="eye" size={11} color="var(--teal)" />
-                      {impersonating === co.id ? 'Switchingâ€¦' : 'Login As'}
+                      {impersonating === co.id ? 'Switching…' : 'Login As'}
                     </button>
                   </Tip>
                   <ActBtn icon="users" title="View customers" onClick={()=>openCustomers(co)} />
@@ -1000,7 +1000,7 @@ export function CompaniesView() {
               </div>
             </div>
 
-            {/* Add-ons (376_package_addons.sql) â€” granted independent of the
+            {/* Add-ons (376_package_addons.sql) — granted independent of the
                 plan above, e.g. Onsite for an agency/web-host/IT-provider
                 tenant. Mirrors the Enabled Apps grid exactly. */}
             {addonsCatalog.length > 0 && (
@@ -1032,7 +1032,7 @@ export function CompaniesView() {
                   const available = summary.capabilities.filter(item => item.state === 'available').length;
                   const locked = summary.capabilities.filter(item => item.state === 'not_entitled').length;
                   const quota = summary.usage.limit == null
-                    ? `${summary.usage.used.toLocaleString()} actions Â· Unlimited`
+                    ? `${summary.usage.used.toLocaleString()} actions · Unlimited`
                     : `${summary.usage.used.toLocaleString()} / ${summary.usage.limit.toLocaleString()} actions`;
                   return (
                     <div style={{ display:'grid', gap:10 }}>
@@ -1056,7 +1056,7 @@ export function CompaniesView() {
                         {editFinance.configuration.industries.length
                           ? `Industries: ${editFinance.configuration.industries.join(', ')}`
                           : 'No industry profile selected'}
-                        {' Â· '}{editFinance.configuration.businessLines.length} business line{editFinance.configuration.businessLines.length === 1 ? '' : 's'}
+                        {' · '}{editFinance.configuration.businessLines.length} business line{editFinance.configuration.businessLines.length === 1 ? '' : 's'}
                       </div>
                     </div>
                   );
@@ -1078,19 +1078,19 @@ export function CompaniesView() {
         <div className="modal-overlay" onClick={()=>setCustomersCo(null)}>
           <div className="card" style={{ width:640, padding:28, maxHeight:'85vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18, gap:10 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{customersCo.name} â€” Customers</span>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{customersCo.name} — Customers</span>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <Tip label="Retag customer and shipment Cloud folders created before entity linking existed" side="top">
                   <button type="button" disabled={resyncingCloud}
                     onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm">
-                    {resyncingCloud ? 'Resyncingâ€¦' : 'Resync Cloud Links'}
+                    {resyncingCloud ? 'Resyncing…' : 'Resync Cloud Links'}
                   </button>
                 </Tip>
                 <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setCustomersCo(null)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
               </div>
             </div>
             {loadingCustomers ? (
-              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>Loading customersâ€¦</div>
+              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>Loading customers…</div>
             ) : tenantCustomers.length === 0 ? (
               <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>This company has no customers yet.</div>
             ) : (
@@ -1104,7 +1104,7 @@ export function CompaniesView() {
                       </span>
                     </TD>
                     <TD>
-                      <div style={{ fontSize:12 }}>{cust.email || 'â€”'}</div>
+                      <div style={{ fontSize:12 }}>{cust.email || '—'}</div>
                       <div style={{ fontSize:11, color:'var(--ink3)' }}>{cust.phone || cust.phone_wa || ''}</div>
                     </TD>
                     <TD><Badge cfg={cust.active ? { label: cust.account_status || 'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Inactive', color:'var(--ink3)', bg:'var(--bg)' }} /></TD>
@@ -1116,7 +1116,7 @@ export function CompaniesView() {
                         onClick={() => handleImpersonateCustomer(cust)}
                         style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                         <Icon name="eye" size={11} color="var(--teal)" />
-                        {impersonatingCustomerId === cust.id ? 'Switchingâ€¦' : 'Login As Customer'}
+                        {impersonatingCustomerId === cust.id ? 'Switching…' : 'Login As Customer'}
                       </button>
                     </TD>
                   </TR>
@@ -1136,7 +1136,7 @@ export function CompaniesView() {
               </DialogHeader>
               <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'4px 0' }}>
                 <p style={{ fontSize:13, color:'var(--ink2)', margin:0 }}>
-                  This permanently deletes every shipment, invoice, document and user account belonging to <strong>{deleteTarget.name}</strong>. This cannot be undone â€” there is no backup or recovery.
+                  This permanently deletes every shipment, invoice, document and user account belonging to <strong>{deleteTarget.name}</strong>. This cannot be undone — there is no backup or recovery.
                 </p>
                 <p style={{ fontSize:13, color:'var(--ink2)', margin:0 }}>
                   Type <strong>{deleteTarget.name}</strong> to confirm.
@@ -1155,7 +1155,7 @@ export function CompaniesView() {
                   disabled={deleteConfirmText !== deleteTarget.name || deleting}
                   onClick={confirmDeleteCompany}
                 >
-                  {deleting ? 'Deletingâ€¦' : 'Delete permanently'}
+                  {deleting ? 'Deleting…' : 'Delete permanently'}
                 </Button>
               </DialogFooter>
             </>

@@ -7,6 +7,8 @@ import { SectionLoading } from '../../components/ui/spinner.js';
 import { Banner } from '../../components/ui/alert.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
+import { StudioPagination } from './StudioPagination.js';
+import { SingleSelectFilter, SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { PageHeader } from '../../components/PageHeader.js';
 
 interface TemplateRow {
@@ -27,6 +29,13 @@ interface TemplateRow {
 export function TemplateGallery() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [app, setApp] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [readiness, setReadiness] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [app, q, readiness]);
+  const filtered = templates.filter(t => (!app || t.app === app) && (!q || `${t.name} ${t.description}`.toLowerCase().includes(q.toLowerCase())) && (!readiness || (readiness === 'registered' ? t.triggerRegistered : !t.triggerRegistered)));
+  const current = Math.min(page, Math.max(1, Math.ceil(filtered.length / 6)));
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -49,7 +58,7 @@ export function TemplateGallery() {
   }
 
   return (
-    <div style={{ maxWidth: 1320, }}>
+    <div className="studio-page studio-template-page">
       <PageHeader
         crumbs={['Studio', 'Templates']}
         titlePlain="Workflow"
@@ -57,12 +66,19 @@ export function TemplateGallery() {
         subtitle="Ready-made workflows built from real triggers and actions. Installing creates a <strong>draft</strong> you can edit — nothing runs until you switch it on."
       />
 
+      <div className="workflow-toolbar">
+        <SingleSelectFilter label="App" value={app} onChange={setApp} options={Array.from(new Map(templates.map(t => [t.app,t.appName])).entries()).map(([value,label]) => ({value,label}))} />
+        <SingleSelectFilter label="Trigger" value={readiness} onChange={setReadiness} options={[{value:'registered',label:'Registered'},{value:'missing',label:'Missing'}]} />
+        <div className="workflow-search"><SearchToolbar search={q} onSearch={setQ} placeholder="Search templates" /></div>
+      </div>
+      {!loading && <StudioPagination page={current} total={filtered.length} onChange={setPage} />}
+      {!loading && !filtered.length && <p>No matching templates. Clear your filters to see more.</p>}
       {error && <Banner variant="error" className="mb-3">{error}</Banner>}
       {loading && <SectionLoading />}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-        {templates.map(t => (
-          <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', padding: 15, display: 'flex', flexDirection: 'column', gap: 9 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 'var(--space-lg)' }}>
+        {filtered.slice((current - 1) * 6, current * 6).map(t => (
+          <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', padding: 'var(--card-padding)', display: 'flex', flexDirection: 'column', gap: 9 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: t.color }} />
               <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: t.color }}>{t.appName}</span>

@@ -323,7 +323,7 @@ export function PayrollPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
-      {/* ðŸŒŸ Header Bar matching WorkDo Image 4 */}
+      {/* 🌟 Header Bar matching WorkDo Image 4 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -410,7 +410,7 @@ export function PayrollPage() {
         );
       })()}
 
-      {/* ðŸ“Š Top Charts Row (Payroll Summary + Company Pay Donut) — both real,
+      {/* 📊 Top Charts Row (Payroll Summary + Company Pay Donut) — both real,
           computed from payroll_runs' own stored totals (set once a run is
           calculated), not a formula. Replaces a mock that generated bar
           heights from `50 + (idx % 4) * 10` and a donut whose 5 hardcoded
@@ -489,7 +489,7 @@ export function PayrollPage() {
         </div>
       </div>
 
-      {/* ðŸ“‹ Main Data Table Container (WorkDo Payroll Style) */}
+      {/* 📋 Main Data Table Container (WorkDo Payroll Style) */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>

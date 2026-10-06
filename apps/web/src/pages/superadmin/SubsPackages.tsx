@@ -22,9 +22,9 @@ import {
   Spark, PageHdr,
   DataTable, useSortState, sortedRows, TR, TD, ActBtn, StatCard,
 } from './shared.js';
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    SUBSCRIPTIONS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 export function SubscriptionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<SubStatus|'all'>('all');
@@ -90,7 +90,7 @@ export function SubscriptionsView() {
         <SearchToolbar
           search={search}
           onSearch={v => { setSearch(v); setSubPage(1); }}
-          placeholder="Search by companyâ€¦"
+          placeholder="Search by company…"
           quickFilter={{
             value: statusFilter === 'all' ? null : statusFilter,
             onChange: v => setStatusFilter((v ?? 'all') as SubStatus | 'all'),
@@ -169,18 +169,18 @@ export function SubscriptionsView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    PACKAGES VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-// Same id â†’ display-name map every app launcher tile and sidebar already
-// reads (LauncherApps.tsx) â€” reused here instead of a second, hand-guessed
+══════════════════════════════════════════════════ */
+// Same id → display-name map every app launcher tile and sidebar already
+// reads (LauncherApps.tsx) — reused here instead of a second, hand-guessed
 // label set that would drift from it.
 const APP_NAME_BY_ID: Record<string, string> = Object.fromEntries(LAUNCHER_APPS.map(a => [a.id, a.name]));
 function humanize(s: string): string {
   return s.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 /** A dotted key ('tracking.cargo-loading') is a sub-feature of its prefix
- *  ('tracking') â€” ALL_FEATURE_KEYS already lists each parent immediately
+ *  ('tracking') — ALL_FEATURE_KEYS already lists each parent immediately
  *  before its children, so rendering in array order and indenting whichever
  *  rows have a parent groups them correctly with no tree-building needed. */
 function featureLabel(key: string): { parent: string | null; label: string } {
@@ -190,7 +190,7 @@ function featureLabel(key: string): { parent: string | null; label: string } {
   return { parent: APP_NAME_BY_ID[parentKey] || humanize(parentKey), label: humanize(key.slice(dot + 1)) };
 }
 
-/** Real, wired editor for which entitlement feature keys a package grants â€” PATCHes
+/** Real, wired editor for which entitlement feature keys a package grants — PATCHes
  *  /v1/superadmin/packages/:code/features (backed by the package_features table), distinct
  *  from the still-local-only price/maxUsers/display-features fields in the parent modal. */
 function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
@@ -234,7 +234,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Feature Gates</div>
         <Button type="button" size="sm" variant="secondary" onClick={save} disabled={loading || saving}>
-          {saved ? 'Saved' : saving ? 'Savingâ€¦' : 'Save Gates'}
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save Gates'}
         </Button>
       </div>
       {loading ? (
@@ -248,7 +248,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
                 <TD>
                   {parent ? (
                     <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
-                      <span style={{ color:'var(--ink3)' }}>â€“</span> {label}
+                      <span style={{ color:'var(--ink3)' }}>–</span> {label}
                       <span style={{ fontSize:10.5, color:'var(--ink3)' }}>({parent})</span>
                     </span>
                   ) : (
@@ -267,7 +267,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
   );
 }
 
-/** Real, wired editor for per-app monthly item quotas on a package â€” PATCHes
+/** Real, wired editor for per-app monthly item quotas on a package — PATCHes
  *  /v1/superadmin/packages/:code/quotas (backed by package_app_quotas,
  *  migration 280). Layered on top of the blanket "Monthly item limit"
  *  field in the parent modal: both apply, whichever a tenant hits first
@@ -322,7 +322,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Per-app monthly quotas</div>
         <Button type="button" size="sm" variant="secondary" onClick={save} disabled={loading || saving}>
-          {saved ? 'Saved' : saving ? 'Savingâ€¦' : 'Save Quotas'}
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save Quotas'}
         </Button>
       </div>
       {loading ? (
@@ -336,7 +336,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
                 <TD>
                   {parent ? (
                     <span style={{ display:'inline-flex', alignItems:'baseline', gap:6, paddingLeft:18, fontSize:12.5, color:'var(--ink2)' }}>
-                      <span style={{ color:'var(--ink3)' }}>â€“</span> {label}
+                      <span style={{ color:'var(--ink3)' }}>–</span> {label}
                       <span style={{ fontSize:10.5, color:'var(--ink3)' }}>({parent})</span>
                     </span>
                   ) : (
@@ -345,7 +345,7 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
                 </TD>
                 <TD right>
                   <Input
-                    type="number" min={0} placeholder="âˆž"
+                    type="number" min={0} placeholder="∞"
                     value={quotas[key] ?? ''}
                     onChange={e => setLimit(key, e.target.value)}
                     style={{ width:90, textAlign:'right', display:'inline-flex' }}
@@ -362,19 +362,19 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
 
 export function PackagesView() {
   // null = still loading. Was seeded with the hardcoded PACKAGES sample
-  // array and only overwritten `if (mapped.length)` â€” so every load of this
+  // array and only overwritten `if (mapped.length)` — so every load of this
   // page first drew 4 fabricated cards with numbers that don't match any
   // real package (they haven't for a while: the real "scale" plan was
   // deactivated and its price changed to 299, and the real starter/growth/
   // enterprise prices are 3/10/50, not 6/18/0), then a moment later swapped
   // to whatever the real, *active* packages actually are (3 of them, not
-  // 4 â€” "scale" is real but inactive, so /v1/packages correctly omits it).
-  // That swap â€” a visibly different card count and different prices on
-  // every single page load â€” is exactly what "packages keep changing"
+  // 4 — "scale" is real but inactive, so /v1/packages correctly omits it).
+  // That swap — a visibly different card count and different prices on
+  // every single page load — is exactly what "packages keep changing"
   // describes. Loading state now, real data only, once. Now fetches
   // /v1/packages/all (every package, active or not) rather than the public
-  // /v1/packages, since this console is where a dormant tier â€” the free
-  // plan, legacy 'scale' â€” gets reactivated, not just where live ones get edited.
+  // /v1/packages, since this console is where a dormant tier — the free
+  // plan, legacy 'scale' — gets reactivated, not just where live ones get edited.
   const [packages, setPackages] = useState<Package[] | null>(null);
   const [packagesError, setPackagesError] = useState(false);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
@@ -385,10 +385,10 @@ export function PackagesView() {
   const [addonsError, setAddonsError] = useState(false);
   const [editingAddon, setEditingAddon] = useState<Addon|null>(null);
 
-  // Load the canonical catalog from the API â€” shows a real error state on failure, no fabricated fallback.
+  // Load the canonical catalog from the API — shows a real error state on failure, no fabricated fallback.
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
   // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
-  // endpoint (/v1/superadmin/packages/:code/features) â€” see FeatureGatesEditor below.
+  // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
   function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; price_per_seat:number|null; extra_seat_price:number|null; extra_seat_threshold:number|null; monthly_item_limit:number|null; storage_limit_bytes:number|null; monthly_ai_credits:number; byok_ai_allowed:boolean; features:string[]; color:string; popular:boolean; is_active:boolean }): Package {
     return {
       id: pkg.id,
@@ -406,7 +406,7 @@ export function PackagesView() {
       byokAiAllowed: pkg.byok_ai_allowed ?? false,
       active: 0,
       // A package with no color set (onsite-standalone, agency-managed) used
-      // to fall through to `${pkg.color}18` â†’ "null18" and an unset Icon
+      // to fall through to `${pkg.color}18` → "null18" and an unset Icon
       // color, which is exactly how one plan card ended up a different,
       // unintended colour from the other three. Same real brand accent every
       // other package already uses, not a fresh arbitrary pick.
@@ -417,7 +417,7 @@ export function PackagesView() {
     };
   }
 
-  // /all (not the public / ) â€” SuperAdmin needs to see and reactivate
+  // /all (not the public / ) — SuperAdmin needs to see and reactivate
   // dormant packages (the free tier, legacy 'scale', etc.), not just the
   // ones already live to signups.
   function reload() {
@@ -452,7 +452,7 @@ export function PackagesView() {
       />
 
       {packages === null && !packagesError && (
-        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading packagesâ€¦</div>
+        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading packages…</div>
       )}
       {packagesError && (
         <div style={{ padding:'32px 0', textAlign:'center', color:'var(--red)', fontSize:13 }}>
@@ -469,7 +469,7 @@ export function PackagesView() {
               <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
             )}
             {!pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE â€” hidden from signups</div>
+              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE — hidden from signups</div>
             )}
 
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
@@ -492,7 +492,7 @@ export function PackagesView() {
               )}
               {pkg.pricePerSeat != null && (
                 <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:6 }}>
-                  Billed at <strong style={{ color:'var(--ink2)' }}>${pkg.pricePerSeat}/seat/mo</strong> â€” the real per-tenant charge
+                  Billed at <strong style={{ color:'var(--ink2)' }}>${pkg.pricePerSeat}/seat/mo</strong> — the real per-tenant charge
                   {pkg.extraSeatThreshold != null && pkg.extraSeatPrice != null && (
                     <> (${pkg.extraSeatPrice}/seat past seat {pkg.extraSeatThreshold})</>
                   )}
@@ -519,22 +519,22 @@ export function PackagesView() {
         ))}
       </div>
 
-      {/* Get more with add-ons â€” purchasable independent of which of the
+      {/* Get more with add-ons — purchasable independent of which of the
           three base packages a tenant is on (376_package_addons.sql),
           the same idea as Google Workspace selling AI access or extra
           storage next to its own plan tiers rather than as a competing
-          tier. Onsite lives here now instead of being a fourth package â€”
+          tier. Onsite lives here now instead of being a fourth package —
           it's for a narrow slice of tenants (agencies, web hosts/cloud
           infra teams, IT providers), not a general-audience tier.
-          Used to render nothing at all â€” no header, no message â€” whenever
+          Used to render nothing at all — no header, no message — whenever
           `addons` was empty, which is indistinguishable on screen from
           "still loading" or "the fetch failed": always show the header now,
           and say which of those three states this actually is. */}
       <div style={{ marginTop:36 }}>
         <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Get more with add-ons</div>
-        <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above â€” not a separate tier.</div>
+        <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above — not a separate tier.</div>
         {addons === null && !addonsError && (
-          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>Loading add-onsâ€¦</div>
+          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>Loading add-ons…</div>
         )}
         {addonsError && (
           <div style={{ padding:'16px 0', color:'var(--red)', fontSize:13 }}>
@@ -572,14 +572,14 @@ export function PackagesView() {
         )}
       </div>
 
-      {/* Add-on edit modal â€” pricing/description only; an add-on has no
+      {/* Add-on edit modal — pricing/description only; an add-on has no
           user/storage tiers of its own to configure. */}
       <Dialog open={!!editingAddon} onOpenChange={o => { if (!o) setEditingAddon(null); }}>
         <DialogContent className="sm:max-w-md">
           {editingAddon && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit Add-on â€” {editingAddon.name}</DialogTitle>
+                <DialogTitle>Edit Add-on — {editingAddon.name}</DialogTitle>
               </DialogHeader>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -593,7 +593,7 @@ export function PackagesView() {
                 </div>
               </div>
               <div style={{ marginTop:14 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Description â€” who this is for</label>
+                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Description — who this is for</label>
                 <textarea
                   value={editingAddon.description}
                   onChange={e=>setEditingAddon(p=>p?({...p,description:e.target.value}):p)}
@@ -647,7 +647,7 @@ export function PackagesView() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit modal â€” one scrollable dialog body (not two nested mini-scroll
+      {/* Edit modal — one scrollable dialog body (not two nested mini-scroll
           boxes), sticky title + footer, so Save/Deactivate are always
           reachable regardless of how tall the feature/quota tables get. */}
       <Dialog open={!!editing} onOpenChange={o => { if (!o) setEditing(null); }}>
@@ -655,7 +655,7 @@ export function PackagesView() {
           {editing && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit Package â€” {editing.name}</DialogTitle>
+                <DialogTitle>Edit Package — {editing.name}</DialogTitle>
               </DialogHeader>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -677,7 +677,7 @@ export function PackagesView() {
               </div>
 
               {/* The real per-tenant charge (billing.routes.ts's computePlanAmount)
-                  reads price_per_seat, not the flat monthly/annual figures above â€”
+                  reads price_per_seat, not the flat monthly/annual figures above —
                   those were never editable anywhere in this console before now,
                   which is exactly why Subscription.tsx's own per-seat pricing has
                   had to be hand-migrated through SQL up to this point. */}
@@ -685,7 +685,7 @@ export function PackagesView() {
                 <FeatureToggleRow
                   icon={<Icon name="users" size={18} strokeWidth={1.75} />}
                   title="Per-seat pricing"
-                  description={editing.pricePerSeat != null ? 'Billed per active user, every month.' : 'Off â€” flat/custom pricing (e.g. "Talk to Sales" tiers).'}
+                  description={editing.pricePerSeat != null ? 'Billed per active user, every month.' : 'Off — flat/custom pricing (e.g. "Talk to Sales" tiers).'}
                   checked={editing.pricePerSeat != null}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({
                     ...p,
@@ -717,7 +717,7 @@ export function PackagesView() {
               <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
                 <FeatureToggleRow
                   icon={<Icon name="eye" size={18} strokeWidth={1.75} />}
-                  title="Active â€” visible to signups"
+                  title="Active — visible to signups"
                   description={editing.isActive ? 'Live: tenants can pick this plan today.' : 'Dormant: hidden from signup/pricing, but any tenant already on it keeps working.'}
                   checked={editing.isActive}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, isActive: checked }) : p)}
@@ -729,8 +729,8 @@ export function PackagesView() {
                   icon={<Icon name="sparkle" size={18} strokeWidth={1.75} />}
                   title="Bring your own AI key (BYOK)"
                   description={editing.byokAiAllowed
-                    ? 'On â€” a tenant on this tier can enter their own provider key in Settings, which always wins over the platform default and is billed to them directly, not against the AI-credits allowance above.'
-                    : 'Off â€” a tenant on this tier can only use the platform-billed AI key (see AI credits/month above); any key they type in Settings is ignored.'}
+                    ? 'On — a tenant on this tier can enter their own provider key in Settings, which always wins over the platform default and is billed to them directly, not against the AI-credits allowance above.'
+                    : 'Off — a tenant on this tier can only use the platform-billed AI key (see AI credits/month above); any key they type in Settings is ignored.'}
                   checked={editing.byokAiAllowed}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, byokAiAllowed: checked }) : p)}
                 />
@@ -747,10 +747,10 @@ export function PackagesView() {
                     onClick={async () => {
                       // Deactivating goes through the same PATCH as every other
                       // field now (the "Active" toggle above) instead of a
-                      // separate destructive action â€” one save, one confirm,
+                      // separate destructive action — one save, one confirm,
                       // and reactivating (flip it back on, Save) works the same way.
                       if (!editing.isActive && packages?.find(pk => pk.id === editing.id)?.isActive) {
-                        if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups â€” any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
+                        if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups — any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
                       }
                       try {
                         const updated = await apiFetch(`/v1/packages/${editing.code}`, {
@@ -794,7 +794,7 @@ export function PackagesView() {
             { label:'Monthly Price ($)', key:'monthly', type:'number' },
             { label:'Annual Price ($)',  key:'annual',  type:'number' },
             { label:'Max Users',         key:'maxUsers',type:'number' },
-            { label:'Price per seat ($/mo, optional â€” 0 = flat/custom pricing)', key:'pricePerSeat', type:'number' },
+            { label:'Price per seat ($/mo, optional — 0 = flat/custom pricing)', key:'pricePerSeat', type:'number' },
           ].map(f=>(
             <div key={f.key}>
               <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
@@ -830,9 +830,9 @@ export function PackagesView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    DOMAINS VIEW
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 /**
  * Custom domains, from platform_domains.
  *

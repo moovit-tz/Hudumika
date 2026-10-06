@@ -8,10 +8,13 @@ import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
+import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { apiFetch } from '../../lib/api.js';
 import { usePageSEO } from '../../hooks/usePageSEO.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showAlert } from '../../lib/alert.js';
+import { downloadSmsCsv, SmsFilterMenu, SmsListPagination, SmsListToolbar, useSmsList } from './SmsListControls.js';
 
 interface Template {
   id: string;
@@ -29,6 +32,7 @@ export function SmsTemplates() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'name' | 'segments'>('newest');
 
   const [form, setForm] = useState({ name: '', body: '' });
   const [testVars, setTestVars] = useState<Record<string, string>>({
@@ -114,14 +118,21 @@ export function SmsTemplates() {
   }, [form.body, testVars]);
 
   const filteredTemplates = useMemo(() => {
-    return templates.filter(t => {
+    const result = templates.filter(t => {
       const matchSearch =
         !search.trim() ||
         t.name.toLowerCase().includes(search.toLowerCase()) ||
         t.body.toLowerCase().includes(search.toLowerCase());
       return matchSearch;
     });
-  }, [templates, search]);
+    return result.sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : sortBy === 'segments' ? Math.ceil(b.body.length / 160) - Math.ceil(a.body.length / 160) : Date.parse(b.created_at) - Date.parse(a.created_at));
+  }, [templates, search, sortBy]);
+  const list = useSmsList(filteredTemplates);
+
+  function exportSelected() {
+    downloadSmsCsv(`sms-templates-${new Date().toISOString().slice(0, 10)}.csv`, ['Template', 'Message Pattern', 'Segments', 'Created At'],
+      list.selectedItems.map(t => [t.name, t.body, Math.ceil(t.body.length / 160) || 1, t.created_at]));
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -253,16 +264,15 @@ export function SmsTemplates() {
       )}
 
       {/* Templates Grid List */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>
-          {filteredTemplates.length} Saved Template(s)
-        </div>
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search templates…"
-          style={{ maxWidth: 280 }}
-        />
+      <div style={{ marginBottom: 16 }}>
+        <SmsListToolbar search={search} onSearch={setSearch} placeholder="Search templates…" total={filteredTemplates.length}
+          page={list.page} pageSize={list.pageSize} selectedCount={list.selectedIds.size} onPageSizeChange={list.setPageSize}
+          onExport={exportSelected} activeFilterCount={sortBy === 'newest' ? 0 : 1}
+          filterContent={() => <SmsFilterMenu showClear={sortBy !== 'newest'} onClear={() => setSortBy('newest')}>
+            <SingleSelectFilter label="Sort" value={sortBy} onChange={value => setSortBy((value ?? 'newest') as typeof sortBy)} options={[
+              { value: 'newest', label: 'Newest first' }, { value: 'name', label: 'Name A–Z' }, { value: 'segments', label: 'Most segments' },
+            ]} />
+          </SmsFilterMenu>} />
       </div>
 
       <SectionCard title="Template Library" padded={false} collapsible={false}>
@@ -277,6 +287,9 @@ export function SmsTemplates() {
             <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
+                  <th style={{ width: 44, padding: '10px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                    <Checkbox checked={list.allSelected ? true : list.someSelected ? 'indeterminate' : false} onCheckedChange={list.toggleAll} aria-label="Select all filtered templates" />
+                  </th>
                   {['Template Name', 'Template Pattern', 'Segments', 'Created', ''].map(h => (
                     <th
                       key={h}
@@ -298,8 +311,9 @@ export function SmsTemplates() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTemplates.map(t => (
+                {list.pageItems.map(t => (
                   <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 16px' }}><Checkbox checked={list.selectedIds.has(t.id)} onCheckedChange={() => list.toggle(t.id)} aria-label={`Select ${t.name}`} /></td>
                     <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>
                       {t.name}
                     </td>
@@ -348,6 +362,7 @@ export function SmsTemplates() {
             </table>
           </div>
         )}
+        <SmsListPagination page={list.page} totalPages={list.totalPages} onPage={list.setPage} />
       </SectionCard>
     </div>
   );

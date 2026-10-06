@@ -611,7 +611,7 @@ export function SettingsView() {
                   style={{ fontFamily: 'var(--font)', fontSize: 12 }}
                 />
                 <span className="sa-sso-provider-hint">
-                  From Google Cloud Console â–¸ Credentials (ends in .apps.googleusercontent.com)
+                  From Google Cloud Console ▸ Credentials (ends in .apps.googleusercontent.com)
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
@@ -648,7 +648,7 @@ export function SettingsView() {
                   style={{ fontFamily: 'var(--font)', fontSize: 12 }}
                 />
                 <span className="sa-sso-provider-hint">
-                  From Azure Portal â–¸ App registrations â–¸ Application (client) ID
+                  From Azure Portal ▸ App registrations ▸ Application (client) ID
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
@@ -685,7 +685,7 @@ export function SettingsView() {
                   style={{ fontFamily: 'var(--font)', fontSize: 12 }}
                 />
                 <span className="sa-sso-provider-hint">
-                  From developer.apple.com â–¸ Identifiers â–¸ Services ID (not Bundle ID)
+                  From developer.apple.com ▸ Identifiers ▸ Services ID (not Bundle ID)
                 </span>
               </div>
               <div className="sa-provider-card-footer sa-provider-card-footer--end">
@@ -832,7 +832,7 @@ export function SettingsView() {
             ['Database', String(serverInfo.database)],
             ['Job Scheduling', String(serverInfo.jobScheduling)],
             ['Platform', String(serverInfo.platform)],
-            ['CPU', `${serverInfo.cpuCount} Ã— ${serverInfo.cpuModel}`],
+            ['CPU', `${serverInfo.cpuCount} × ${serverInfo.cpuModel}`],
             ['System Memory', `${serverInfo.freeMemoryMb} MB free / ${serverInfo.totalMemoryMb} MB`],
             ['Process Heap', `${serverInfo.heapUsedMb} MB used / ${serverInfo.heapTotalMb} MB`],
             ['Server Timezone', String(serverInfo.timezone)],
@@ -854,9 +854,9 @@ export function SettingsView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    APP STATUS VIEW — per-app maintenance kill switch
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', ondi: 'Ondi',
@@ -1161,11 +1161,11 @@ export function AppStatusView() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════════════════
    DEVICES — cross-tenant Device Management oversight
    (379_attendance_devices.sql). Read-only: "monitor,
    troubleshoot, audit", same stance this console already
    takes toward tenant attendance/leave data — never a
    write action on another tenant's device from here.
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════════════════ */
 

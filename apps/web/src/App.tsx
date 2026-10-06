@@ -22,6 +22,7 @@ import { PromptHost } from './components/PromptHost.js';
 import { InAppBrowserHost } from './components/InAppBrowserHost.js';
 import { AppHeader } from './components/AppHeader.js';
 import { PageLayout } from './components/PageLayout.js';
+import { Welcome } from './pages/Welcome.js';
 // Standalone routes use the same shell even when no sidebar has been loaded.
 import './components/AppSidebar.css';
 import { useLandingStyle } from './hooks/useLandingStyle.js';
@@ -446,6 +447,7 @@ const AppContentBody: React.FC = () => {
           <Routes>
             {/* Hub — WorkspaceHome with shared search state */}
             <Route path="/" element={<HubPage />} />
+            <Route path="/welcome" element={<Welcome />} />
 
             {/* Public legal pages — self-contained layout */}
             <Route path="/maintenance"    element={<MaintenancePage />} />

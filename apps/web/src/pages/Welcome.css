@@ -1,0 +1,29 @@
+.welcome-scroll { overflow-y:auto; flex:1; min-height:0; background:var(--bg); }
+.welcome-page { padding:32px; display:flex; flex-direction:column; gap:28px; max-width:1500px; margin:auto; }
+.welcome-grid { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:24px; }
+.welcome-primary { min-width:0; display:flex; flex-direction:column; gap:28px; }
+.welcome-setup, .welcome-resource, .welcome-learning-card { padding:24px !important; }
+.welcome-page h2 { font-size:18px; font-weight:700; margin:0; }
+.welcome-section-head { display:flex; justify-content:space-between; gap:16px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+.welcome-section-head span,.welcome-kicker { color:var(--teal); font-size:13px; font-weight:600; }
+.welcome-setup-grid { display:grid; grid-template-columns:260px minmax(0,1fr); gap:32px; padding-top:24px; }
+.welcome-setup nav button { display:flex; align-items:center; gap:14px; width:100%; padding:16px 0; text-align:left; border:0; background:transparent; cursor:pointer; color:var(--ink3); }
+.welcome-setup nav button[aria-current] { color:var(--ink); }
+.welcome-setup nav button span { width:40px; height:40px; border-radius:50%; display:flex; justify-content:center; align-items:center; background:var(--bg); flex-shrink:0; }
+.welcome-setup nav button span.done { background:var(--green-l); color:var(--green); }
+.welcome-page h3 { font-size:17px; margin:14px 0 10px; font-weight:600; }
+.welcome-page p { font-size:14px; line-height:1.6; color:var(--ink3); margin:0; }
+.welcome-links { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
+.welcome-hint { font-size:12px !important; }
+.welcome-learning { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:20px; }
+.welcome-learning-card { display:flex; flex-direction:column; align-items:flex-start; }
+.welcome-learning-card svg,.welcome-resource-note > svg { color:var(--teal); }
+.welcome-learning-card > a { margin-top:auto; padding-inline:0; white-space:normal; }
+.welcome-resource > a { display:flex; justify-content:space-between; gap:12px; align-items:center; min-height:48px; color:var(--ink2); text-decoration:none; font-size:14px; }
+.welcome-resource-note { margin-top:24px; padding-top:24px; border-top:1px solid var(--border); }
+.welcome-resource-note a { margin-top:20px; }
+.welcome-page button,.welcome-page a { min-height:44px; }
+.welcome-page .page-footer { padding-inline:0; }
+.welcome-error { color:var(--red) !important; }
+@media(max-width:1100px) { .welcome-grid { grid-template-columns:1fr; } .welcome-setup-grid { grid-template-columns:240px minmax(0,1fr); } }
+@media(max-width:700px) { .welcome-page { padding:24px 16px; } .welcome-setup-grid,.welcome-learning { grid-template-columns:1fr; } .welcome-setup-grid { gap:24px; } .welcome-section-head { flex-wrap:wrap; } .welcome-links { flex-direction:column; } .welcome-setup,.welcome-resource,.welcome-learning-card { padding:20px !important; } }

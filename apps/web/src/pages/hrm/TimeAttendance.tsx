@@ -271,7 +271,7 @@ export function LeavesPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
-      {/* ðŸŒŸ Header Bar matching WorkDo Image 3 */}
+      {/* 🌟 Header Bar matching WorkDo Image 3 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -347,7 +347,7 @@ export function LeavesPage() {
         ))}
       </div>
 
-      {/* ðŸ“‹ Main Data Table Container (WorkDo Leaves Style) */}
+      {/* 📋 Main Data Table Container (WorkDo Leaves Style) */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -588,7 +588,7 @@ export function AttendancePage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 40 }}>
-      {/* ðŸŒŸ Header Bar matching WorkDo Image 1 */}
+      {/* 🌟 Header Bar matching WorkDo Image 1 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -609,7 +609,7 @@ export function AttendancePage() {
         </div>
       </div>
 
-      {/* ðŸ“Š Top Charts & KPI Row (Attendance Rate + Employee Type Donut) */}
+      {/* 📊 Top Charts & KPI Row (Attendance Rate + Employee Type Donut) */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
         {/* Left Card: real daily Present/Late/Absent for the visible month */}
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -676,7 +676,7 @@ export function AttendancePage() {
         </div>
       </div>
 
-      {/* ðŸ“‹ Main Data Table Container (WorkDo Style) */}
+      {/* 📋 Main Data Table Container (WorkDo Style) */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
         {/* Table Filter Controls Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>

@@ -663,8 +663,8 @@ export const OndiSSO: React.FC = () => {
           {/* Sub-tabs selection bar */}
           <Tabs value={subTab} onValueChange={v => setSubTab(v as typeof subTab)} variant="pill" style={{ margin: '0 4px' }}>
             <TabsList>
-              <TabsTrigger value="idps">ðŸ“¥ Inbound Identity Providers</TabsTrigger>
-              <TabsTrigger value="clients">ðŸ“¤ Outbound SSO Clients</TabsTrigger>
+              <TabsTrigger value="idps">📥 Inbound Identity Providers</TabsTrigger>
+              <TabsTrigger value="clients">📤 Outbound SSO Clients</TabsTrigger>
             </TabsList>
           </Tabs>
 

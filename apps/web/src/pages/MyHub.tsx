@@ -160,10 +160,10 @@ export function MyHubPage() {
         titleEm="hub"
         subtitle="Your attendance, leave, payslips, documents, and workplace updates in one place."
       />
-      {/* ðŸ“Š KPI Row */}
+      {/* 📊 KPI Row */}
       <MetricsRow cards={metrics} />
 
-      {/* ðŸš€ Main Split Dashboard Section */}
+      {/* 🚀 Main Split Dashboard Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginTop: 24 }}>
         {/* Left Primary Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

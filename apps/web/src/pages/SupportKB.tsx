@@ -309,7 +309,7 @@ export const SupportKB: React.FC = () => {
                   <SelectTrigger className="input-field"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Statuses</SelectItem>
-                    <SelectItem value="Published">ðŸŸ¢ Published</SelectItem>
+                    <SelectItem value="Published">🟢 Published</SelectItem>
                     <SelectItem value="Draft">⚪ Draft</SelectItem>
                   </SelectContent>
                 </Select>
@@ -541,7 +541,7 @@ export const SupportKB: React.FC = () => {
                   <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Published">ðŸŸ¢ Published (Live)</SelectItem>
+                      <SelectItem value="Published">🟢 Published (Live)</SelectItem>
                       <SelectItem value="Draft">⚪ Draft (Internal)</SelectItem>
                     </SelectContent>
                   </Select>

@@ -10,6 +10,9 @@ import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import type { WorkflowStudioTriggerDef } from '@hudumika/types';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Card } from '../../components/ui/card.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
+import './WorkflowNew.css';
 
 const KIND_LABEL: Record<string, string> = {
   DOMAIN_EVENT: 'When something happens in an app',
@@ -33,12 +36,15 @@ export function WorkflowNew() {
   const [triggerId, setTriggerId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let alive = true;
     apiFetch('/v1/workflow-studio/triggers')
       .then(r => { if (alive) setTriggers(r.data ?? []); })
-      .catch(e => { if (alive) setError(e?.message ?? 'Could not load triggers.'); });
+      .catch(e => { if (alive) setError(e?.message ?? 'Could not load triggers.'); })
+      .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, []);
 
@@ -67,44 +73,46 @@ export function WorkflowNew() {
   }
 
   const grouped = ['DOMAIN_EVENT', 'SCHEDULE', 'MANUAL']
-    .map(kind => ({ kind, rows: triggers.filter(t => t.kind === kind) }))
+    .map(kind => ({ kind, rows: triggers.filter(t => t.kind === kind && `${t.label} ${t.appName} ${t.description}`.toLowerCase().includes(search.toLowerCase())) }))
     .filter(g => g.rows.length > 0);
 
   return (
-    <div style={{ maxWidth: 820, }}>
-      <button type="button" className="studio-icon-btn" style={{ border: '1px solid var(--border)', marginBottom: 14 }} onClick={() => navigate('/studio/workflows')}>
-        <Icon name="arrowLeft" size={13} /> Workflows
-      </button>
-
+    <div className="studio-page workflow-new-page">
       <PageHeader
         crumbs={['Studio', 'New workflow']}
         titlePlain="New"
         titleEm="workflow"
+        variant="create"
+        backTo="/studio/workflows"
+        backLabel="Workflows"
+        subtitle="Name your workflow and choose its trigger. Add actions on the canvas next."
       />
-      <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3, marginBottom: 20 }}>
-        Name it and choose what sets it off. You will add the steps next, on the canvas.
-      </div>
+      <div className="workflow-new-progress"><span className="is-current">1 · Details & trigger</span><Icon name="chevronRight" size={16}/><span>2 · Connect actions</span><Icon name="chevronRight" size={16}/><span>3 · Review & activate</span></div>
 
       {error && <Banner variant="error" className="mb-3.5">{error}</Banner>}
 
+      <Card className="workflow-new-details"><h2>Workflow details</h2>
       <div className="studio-field">
-        <label className="studio-field-label">Name <span className="studio-req">*</span></label>
-        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alert the officer when a case is overdue" />
+        <label htmlFor="workflow-name" className="studio-field-label">Name <span className="studio-req">*</span></label>
+        <Input id="workflow-name" maxLength={200} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alert the officer when a case is overdue" />
       </div>
 
       <div className="studio-field">
-        <label className="studio-field-label">What it is for</label>
-        <Textarea rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder="A sentence your colleagues will read six months from now." />
+        <label htmlFor="workflow-description" className="studio-field-label">Description <span className="workflow-new-optional">Optional</span></label>
+        <Textarea id="workflow-description" rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Explain what this workflow helps your team do." />
       </div>
+      </Card>
 
-      <div className="studio-section" style={{ marginTop: 18 }}>
-        <div className="studio-section-title">What sets it off? <span className="studio-req">*</span></div>
+      <Card className="workflow-new-triggers">
+        <div className="workflow-new-trigger-heading"><div><h2>Choose a trigger <span className="studio-req">*</span></h2><p>Select the event that starts this workflow.</p></div><Input aria-label="Search triggers" placeholder="Search apps or events…" value={search} onChange={e => setSearch(e.target.value)} /></div>
+        {loading && <SectionLoading label="Loading triggers…" />}
+        {!loading && !grouped.length && <p className="workflow-new-empty">{search ? 'No triggers match your search.' : 'No triggers are available.'}</p>}
         {grouped.map(g => (
           <div key={g.kind} style={{ marginBottom: 14 }}>
             <div className="studio-group-label" style={{ margin: '0 0 7px' }}>{KIND_LABEL[g.kind]}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+            <div className="workflow-new-trigger-grid">
               {g.rows.map(t => (
-                <button key={t.id} type="button" onClick={() => setTriggerId(t.id)}
+                <button key={t.id} className="workflow-new-trigger" aria-pressed={triggerId === t.id} type="button" onClick={() => setTriggerId(t.id)}
                   style={{
                     textAlign: 'left', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', cursor: 'pointer',
                     border: `1.5px solid ${triggerId === t.id ? 'var(--teal)' : 'var(--border)'}`,
@@ -120,7 +128,7 @@ export function WorkflowNew() {
             </div>
           </div>
         ))}
-      </div>
+      </Card>
 
       {chosen && Object.keys(chosen.samplePayload).length > 0 && (
         <div style={{ padding: '11px 14px', borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', fontSize: 12, color: 'var(--ink2)', marginBottom: 18 }}>
@@ -130,12 +138,12 @@ export function WorkflowNew() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <Button type="button" disabled={!canCreate || busy} onClick={create}>
-          {busy ? 'Creating…' : 'Create draft'}
+      <Card className="workflow-new-footer">
+        <div><strong>{chosen ? chosen.label : 'Select a trigger to continue'}</strong><p>A draft is created first. Activate it after reviewing its actions.</p></div>
+        <Button size="lg" type="button" disabled={!canCreate || busy} onClick={create}>
+          {busy ? 'Creating…' : 'Create draft'}<Icon name="arrowRight" size={16}/>
         </Button>
-        <Badge variant="gray">Starts as a draft — nothing runs until you switch it on</Badge>
-      </div>
+      </Card>
     </div>
   );
 }
