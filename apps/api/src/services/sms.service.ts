@@ -9,6 +9,7 @@ export interface SendSmsInput {
   contactName?: string;
   campaignId?: string;
   templateId?: string;
+  gatewayId?: string;
 }
 
 export interface SmsSendResult {
@@ -45,7 +46,7 @@ export const SmsService = {
    *  `bypassOptOut` exists only for the STOP-reply confirmation SMS — see
    *  SmsIntegration.sendSms's own comment. */
   async sendNow(tenantId: string, userId: string | null, input: SendSmsInput, opts?: { bypassOptOut?: boolean }): Promise<SmsSendResult> {
-    const result = await SmsIntegration.sendSms(tenantId, input.to, input.body, opts);
+    const result = await SmsIntegration.sendSms(tenantId, input.to, input.body, { ...opts, gatewayId: input.gatewayId });
     return withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('sms_messages').values({
         tenant_id: tenantId, user_id: userId, to_number: input.to, body: input.body,

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { SmsService } from '../services/sms.service.js';
+import { SmsIntegration } from '../integrations/sms.js';
 import { formatTemplate } from '../lib/template.js';
 import { encryptJson, decryptJson } from '../services/onsite-secrets.service.js';
 import { env } from '../config/env.js';
@@ -16,7 +17,7 @@ const SMS_ADMIN_ROLES: readonly string[] = ['ADMIN', 'TENANT_ADMIN'];
 
 const uuidSchema = z.string().uuid();
 const gatewaySchema = z.object({
-  provider: z.enum(['africas_talking', 'twilio', 'nexmo', 'bongolive']),
+  provider: z.enum(['beem', 'africas_talking', 'twilio', 'nexmo', 'bongolive']),
   label: z.string().trim().min(1).max(100),
   credentials: z.record(z.string(), z.string()),
   senderId: z.string().trim().max(30).nullable().optional(),
@@ -50,6 +51,7 @@ const quickSendSchema = z.object({
   groupId: uuidSchema.optional(),
   body: z.string().trim().max(1600).optional(),
   templateId: uuidSchema.optional(),
+  gatewayId: uuidSchema.optional(),
 }).refine(b => (b.to && b.to.length > 0) || b.groupId, { message: 'to or groupId is required' })
   .refine(b => (b.body && b.body.trim()) || b.templateId, { message: 'body or templateId is required' });
 
@@ -165,6 +167,7 @@ export async function smsRoutes(fastify: FastifyInstance) {
       const result = await SmsService.sendNow(user.tenant_id, user.sub, {
         to: recipients[0].phone, body: messageBody, sourceApp: 'sms',
         contactName: recipients[0].name, templateId: body.templateId,
+        gatewayId: body.gatewayId,
       });
       reply.status(result.success ? 201 : 502);
       return { data: result };
@@ -513,51 +516,11 @@ export async function smsRoutes(fastify: FastifyInstance) {
       .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
     if (!gateway) return reply.status(404).send({ error: 'Gateway not found' });
 
-    let cfg: Record<string, any>;
-    try { cfg = decryptJson(gateway.credentials); } catch { return reply.status(500).send({ error: 'Could not decrypt this gateway\'s credentials' }); }
-
-    const result = gateway.provider === 'africas_talking'
-      ? await (async () => {
-          if (!cfg.atUser || !cfg.atKey) return { success: false, error: "Username/API key not configured" };
-          const res = await fetch('https://api.africastalking.com/version1/messaging', {
-            method: 'POST', headers: { apiKey: cfg.atKey, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ username: cfg.atUser, to: body.to, message: 'Hudumika SMS gateway test — if you received this, it works.', ...(gateway.sender_id ? { from: gateway.sender_id } : {}) }).toString(),
-          });
-          const data: any = await res.json().catch(() => ({}));
-          const recipient = data?.SMSMessageData?.Recipients?.[0];
-          return res.ok && recipient?.status === 'Success' ? { success: true } : { success: false, error: recipient?.status || data?.error || `HTTP ${res.status}` };
-        })()
-      : gateway.provider === 'twilio'
-      ? await (async () => {
-          if (!cfg.twilioSid || !cfg.twilioToken || !(gateway.sender_id || cfg.twilioFrom)) return { success: false, error: 'SID/token/from not configured' };
-          const auth = Buffer.from(`${cfg.twilioSid}:${cfg.twilioToken}`).toString('base64');
-          const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${cfg.twilioSid}/Messages.json`, {
-            method: 'POST', headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ To: body.to, From: gateway.sender_id || cfg.twilioFrom, Body: 'Hudumika SMS gateway test — if you received this, it works.' }).toString(),
-          });
-          const data: any = await res.json().catch(() => ({}));
-          return res.ok && data?.sid ? { success: true } : { success: false, error: data?.message || `HTTP ${res.status}` };
-        })()
-      : gateway.provider === 'nexmo'
-      ? await (async () => {
-          if (!cfg.apiKey || !cfg.apiSecret) return { success: false, error: 'Nexmo API key/secret not configured' };
-          const res = await fetch('https://rest.nexmo.com/sms/json', {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              api_key: cfg.apiKey, api_secret: cfg.apiSecret,
-              to: body.to, text: 'Hudumika SMS gateway test — if you received this, it works.',
-              ...(gateway.sender_id ? { from: gateway.sender_id } : {}),
-            }).toString(),
-          });
-          const data: any = await res.json().catch(() => ({}));
-          const msg = data?.messages?.[0];
-          return res.ok && msg?.status === '0' ? { success: true } : { success: false, error: msg?.['error-text'] || `Nexmo status ${msg?.status ?? res.status}` };
-        })()
-      : { success: false, error: `${gateway.provider} is not yet wired for live sending` };
+    const result = await SmsIntegration.testGateway(gateway as any, body.to);
 
     await withTenant(user.tenant_id, trx => trx.updateTable('sms_gateways')
-      .set({ last_used_at: new Date().toISOString(), last_error: result.success ? null : result.error }).where('id', '=', gateway.id).execute());
+      .set({ last_used_at: new Date().toISOString(), last_error: result.success ? null : (result.error ?? null) })
+      .where('id', '=', gateway.id).execute());
     return { data: result };
   });
 
@@ -654,8 +617,11 @@ export async function smsRoutes(fastify: FastifyInstance) {
   // webhooks below, in smsWebhookRoutes) ─────────────────────────────────
   fastify.get('/inbound', async (request) => {
     const user = request.user;
+    const q = request.query as { limit?: string; offset?: string };
+    const limit = Math.min(parseInt(q.limit ?? '100', 10) || 100, 500);
+    const offset = Math.max(parseInt(q.offset ?? '0', 10) || 0, 0);
     const rows = await withTenant(user.tenant_id, trx => trx.selectFrom('sms_inbound_messages').selectAll()
-      .where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').limit(100).execute());
+      .where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').limit(limit).offset(offset).execute());
     return { data: rows };
   });
 }
@@ -670,6 +636,10 @@ export async function smsRoutes(fastify: FastifyInstance) {
  * only which tenant to run the status UPDATE inside withTenant() for.
  */
 export async function smsWebhookRoutes(fastify: FastifyInstance) {
+  if (!env.SMS_WEBHOOK_SECRET) {
+    console.warn('[SMS] WARNING: SMS_WEBHOOK_SECRET is not set — inbound and delivery-status webhook endpoints are open to unauthenticated requests. Set this env var in production to enable the shared-secret ?token= guard.');
+  }
+
   // Neither Africa's Talking nor Twilio's classic status/inbound callbacks
   // carry any request-signing scheme, and the value that resolves which
   // tenant a callback belongs to (a registered sender ID) is public by
@@ -750,6 +720,31 @@ export async function smsWebhookRoutes(fastify: FastifyInstance) {
       await withTenant(owner.tenant_id, trx => trx.updateTable('sms_messages')
         .set({ status: mapped, delivered_at: mapped === 'delivered' ? new Date().toISOString() : null })
         .where('provider', '=', 'twilio').where('provider_message_id', '=', providerMessageId).execute());
+    }
+    return { ok: true };
+  });
+
+  fastify.post('/beem', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as Record<string, string>;
+    const providerMessageId = body.request_id || body.message_id || body.dest_addr;
+    const status = (body.status || '').toUpperCase();
+    if (!providerMessageId) return reply.status(400).send({ error: 'Missing request_id or message_id' });
+
+    const owner = await dbPlatform.selectFrom('sms_messages').select(['tenant_id'])
+      .where(eb => eb.or([eb('provider', '=', 'beem'), eb('provider', '=', 'bongolive')]))
+      .where('provider_message_id', '=', String(providerMessageId)).executeTakeFirst();
+    if (!owner) return reply.status(200).send({ ok: true });
+
+    const mapped = ['DELIVRD', 'DELIVERED', 'SUCCESS'].includes(status)
+      ? 'delivered'
+      : ['UNDELIV', 'REJECTD', 'FAILED', 'EXPIRED'].includes(status)
+      ? 'undelivered'
+      : null;
+    if (mapped) {
+      await withTenant(owner.tenant_id, trx => trx.updateTable('sms_messages')
+        .set({ status: mapped, delivered_at: mapped === 'delivered' ? new Date().toISOString() : null })
+        .where(eb => eb.or([eb('provider', '=', 'beem'), eb('provider', '=', 'bongolive')]))
+        .where('provider_message_id', '=', String(providerMessageId)).execute());
     }
     return { ok: true };
   });
@@ -875,6 +870,30 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
     if (!gateway) { console.warn(`[SMS inbound] No gateway matches Twilio "To"=${to} — cannot attribute tenant`); return { ok: true }; }
 
     await handleInboundMessage({ tenantId: gateway.tenant_id, gatewayId: gateway.id, from, text, providerMessageId: body.MessageSid || null });
+    return { ok: true };
+  });
+
+  fastify.post('/beem/inbound', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as Record<string, string>;
+    const to = body.to || body.dest_addr || '';
+    const from = body.from || body.source_addr || body.origin_addr || '';
+    const text = (body.text || body.message || '').trim();
+    if (!from || !text) return reply.status(400).send({ error: 'Missing from/text' });
+
+    const gateway = await dbPlatform.selectFrom('sms_gateways').select(['id', 'tenant_id'])
+      .where(eb => eb.or([eb('provider', '=', 'beem'), eb('provider', '=', 'bongolive')]))
+      .where('active', '=', true)
+      .where(eb => eb.or([eb('sender_id', '=', to), eb('sender_id', 'is', null)]))
+      .executeTakeFirst();
+    if (!gateway) { console.warn(`[SMS inbound] No gateway matches Beem Africa "to"=${to} — cannot attribute tenant`); return { ok: true }; }
+
+    await handleInboundMessage({
+      tenantId: gateway.tenant_id,
+      gatewayId: gateway.id,
+      from,
+      text,
+      providerMessageId: body.message_id || body.request_id || null,
+    });
     return { ok: true };
   });
 }

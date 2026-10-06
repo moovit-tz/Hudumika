@@ -51,6 +51,27 @@ const SOURCE_LABEL: Record<string, string> = {
   user: 'Staff',
 };
 
+/** RFC-4180 CSV row parser — handles quoted fields containing commas. */
+function parseCsvRow(line: string): string[] {
+  const fields: string[] = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cur += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { fields.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+  }
+  fields.push(cur.trim());
+  return fields;
+}
+
 // GSM 03.38 Basic Character Set regex check
 const NON_GSM_REGEX = /[^\u000a\u000c\u000d\u0020-\u007e\u00a0\u00a1\u00a3\u00a4\u00a5\u00a7\u00bf\u00c4\u00c5\u00c6\u00c7\u00c9\u00d1\u00d6\u00d8\u00dc\u00df\u00e0\u00e4\u00e5\u00e6\u00e7\u00e8\u00e9\u00ec\u00f1\u00f2\u00f6\u00f8\u00f9\u00fc]/;
 
@@ -170,7 +191,7 @@ export function SmsCompose() {
       const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
       if (lines.length < 2) return;
 
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+      const headers = parseCsvRow(lines[0]);
       setCsvHeaders(headers);
 
       const rows: CsvRow[] = [];
@@ -178,7 +199,7 @@ export function SmsCompose() {
       const nameIndex = headers.findIndex(h => /name|contact|customer/i.test(h));
 
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+        const cols = parseCsvRow(lines[i]);
         const rowObj: CsvRow = { phone: cols[phoneIndex >= 0 ? phoneIndex : 0] || '' };
         if (nameIndex >= 0) rowObj.name = cols[nameIndex];
         headers.forEach((h, idx) => {
@@ -244,7 +265,7 @@ export function SmsCompose() {
               }
               return apiFetch('/v1/sms/send', {
                 method: 'POST',
-                body: JSON.stringify({ to: [row.phone], body: rowBody }),
+                body: JSON.stringify({ to: [row.phone], body: rowBody, ...(selectedGatewayId ? { gatewayId: selectedGatewayId } : {}) }),
               });
             })
           );
@@ -263,6 +284,7 @@ export function SmsCompose() {
         const payload: Record<string, unknown> = { body: effectiveBody.trim() };
         if (mode === 'numbers') payload.to = numbers.map(n => n.phone);
         else payload.groupId = groupId;
+        if (selectedGatewayId) payload.gatewayId = selectedGatewayId;
 
         const res = await apiFetch('/v1/sms/send', { method: 'POST', body: JSON.stringify(payload) });
         if (recipientCount === 1) {

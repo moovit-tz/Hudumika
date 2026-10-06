@@ -71,20 +71,68 @@ async function sendViaNexmo(cfg: Record<string, any>, to: string, message: strin
   return { success: false, error: msg?.['error-text'] || `Nexmo rejected the request (status ${msg?.status ?? res.status})` };
 }
 
+/** Beem Africa (formerly BongoLive) — East Africa's leading SMS gateway
+ *  REST API: https://apisms.beem.africa/v1/send
+ *  Auth: Basic base64(apiKey:secretKey)
+ *  Credentials: apiKey / secretKey */
+async function sendViaBeem(cfg: Record<string, any>, to: string, message: string, senderId: string | null): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const apiKey = cfg.apiKey || cfg.username;
+  const secretKey = cfg.secretKey || cfg.password;
+  if (!apiKey || !secretKey) return { success: false, error: 'Beem Africa API key / Secret key not configured' };
+  const auth = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
+  const destAddr = to.replace(/^\+/, '');
+  const res = await fetch('https://apisms.beem.africa/v1/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      source_addr: senderId || cfg.senderId || 'INFO',
+      schedule_time: '',
+      encoding: 0,
+      message,
+      recipients: [
+        {
+          recipient_id: 1,
+          dest_addr: destAddr,
+        },
+      ],
+    }),
+  });
+  const data: any = await res.json().catch(() => ({}));
+  if (res.ok && (data?.successful || data?.code === 100 || (data?.valid && Number(data.valid) > 0))) {
+    const messageId = String(data.request_id || data.message_id || `beem-${Date.now()}`);
+    console.log(`📱 [SMS sent via Beem Africa] to=${to} messageId=${messageId}`);
+    return { success: true, messageId };
+  }
+  return { success: false, error: data?.message || data?.error || `Beem Africa rejected the request (HTTP ${res.status})` };
+}
+
 async function sendViaGateway(gateway: GatewayRow, to: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
   let cfg: Record<string, any>;
   try { cfg = decryptJson(gateway.credentials); } catch { return { success: false, error: 'Could not decrypt gateway credentials' }; }
 
+  if (gateway.provider === 'beem' || gateway.provider === 'bongolive') return sendViaBeem(cfg, to, message, gateway.sender_id);
   if (gateway.provider === 'africas_talking') return sendViaAfricasTalking(cfg, to, message, gateway.sender_id);
   if (gateway.provider === 'twilio') return sendViaTwilio(cfg, to, message, gateway.sender_id);
   if (gateway.provider === 'nexmo') return sendViaNexmo(cfg, to, message, gateway.sender_id);
-  // bongolive: offered as a provider choice but no verified API reference
-  // for it exists in this codebase — honestly reported rather than guessed
-  // at or faked. Real wiring needs BongoLive's own API docs.
   return { success: false, error: `SMS provider "${gateway.provider}" is configured but not yet wired for live sending` };
 }
 
 export class SmsIntegration {
+  /**
+   * Sends a test SMS through a specific named gateway — bypasses the
+   * priority-ordered fallback chain so the caller proves exactly this
+   * gateway's credentials work, not just that some gateway worked.
+   */
+  static async testGateway(gateway: GatewayRow, to: string): Promise<{ success: boolean; error?: string }> {
+    let cfg: Record<string, any>;
+    try { cfg = decryptJson(gateway.credentials); }
+    catch { return { success: false, error: 'Could not decrypt gateway credentials' }; }
+    return sendViaGateway(gateway, to, 'Hudumika SMS gateway test — if you received this, it works.');
+  }
+
   /**
    * Sends a real SMS via the tenant's active gateways (sms_gateways, tried in
    * priority order — a failure on one falls through to the next active one,
@@ -92,8 +140,11 @@ export class SmsIntegration {
    * sms_opt_outs list, in which case no gateway is ever contacted at all.
    * Mirrors EmailIntegration/WhatsAppIntegration: a real HTTP call when
    * credentials exist, an honest no-op (never a fake success) when they don't.
+   *
+   * Pass `gatewayId` to force a specific gateway instead of priority fallback —
+   * used by the Compose screen when the user explicitly picks one.
    */
-  static async sendSms(tenantId: string, to: string, message: string, opts?: { bypassOptOut?: boolean }): Promise<SendResult> {
+  static async sendSms(tenantId: string, to: string, message: string, opts?: { bypassOptOut?: boolean; gatewayId?: string }): Promise<SendResult> {
     return withTenant(tenantId, async (trx) => {
       // Matched on the normalized form (last 9 digits), not the raw string —
       // an exact-string match let "+255700111222" opted out one way get
@@ -116,13 +167,19 @@ export class SmsIntegration {
         return { success: false, error: 'This recipient has opted out of SMS and cannot be messaged.' };
       }
 
-      const gateways = await trx.selectFrom('sms_gateways').selectAll()
-        .where('tenant_id', '=', tenantId).where('active', '=', true)
-        .orderBy('priority', 'asc').execute();
+      let gatewayQuery = trx.selectFrom('sms_gateways').selectAll()
+        .where('tenant_id', '=', tenantId).where('active', '=', true);
+      if (opts?.gatewayId) {
+        gatewayQuery = gatewayQuery.where('id', '=', opts.gatewayId);
+      } else {
+        gatewayQuery = gatewayQuery.orderBy('priority', 'asc');
+      }
+      const gateways = await gatewayQuery.execute();
 
       if (gateways.length === 0) {
+        const reason = opts?.gatewayId ? `SMS gateway ${opts.gatewayId} not found or inactive` : 'No SMS gateway configured for this tenant';
         console.log(`📱 [SMS not configured] Would send to ${to}: ${message}`);
-        return { success: false, error: 'No SMS gateway configured for this tenant' };
+        return { success: false, error: reason };
       }
 
       let lastError = 'Unknown SMS delivery error';
