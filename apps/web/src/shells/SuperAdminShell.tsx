@@ -30,6 +30,7 @@ import { SuperAdminReferrals } from '../pages/SuperAdminReferrals.js';
 import { SuperAdminAnnouncements } from '../pages/SuperAdminAnnouncements.js';
 import { SuperAdminSigningCert } from '../pages/SuperAdminSigningCert.js';
 import { SuperAdminKyb } from '../pages/SuperAdminKyb.js';
+import { SmsGateways } from '../pages/sms/SmsGateways.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -57,6 +58,12 @@ const NAV: SidebarSection[] = [
       { label: 'SEO & Analytics',   icon: 'trendingUp', path: '/admin/seo'          },
       { label: 'Platform Settings', icon: 'settings', path: '/admin/settings'       },
       { label: 'Signing Certificate', icon: 'lock', path: '/admin/signing-cert'     },
+    ],
+  },
+  {
+    title: 'COMMUNICATIONS',
+    items: [
+      { label: 'SMS Gateways', icon: 'messageSquare', path: '/admin/sms-gateways' },
     ],
   },
 ];
@@ -102,6 +109,7 @@ function AdminContent() {
           <Route path="components"    element={<Navigate to="/admin/design-system?section=components" replace />} />
           <Route path="settings"      element={<SettingsView />} />
           <Route path="signing-cert"  element={<SuperAdminSigningCert />} />
+          <Route path="sms-gateways"  element={<SmsGateways />} />
         </Route>
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>
