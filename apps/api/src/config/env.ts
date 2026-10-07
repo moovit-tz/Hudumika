@@ -17,10 +17,8 @@ const envSchema = z.object({
   // RLS hardening (security checklist #4, see db/migrations/241_rls_restricted_roles.sql).
   // DATABASE_URL_APP is the app's real day-to-day connection once cutover
   // happens — ordinary read/write, but not a superuser/BYPASSRLS role, so
-  // FORCE ROW LEVEL SECURITY actually constrains it. Dormant until then:
-  // client.ts's `db`/`withTenant()` still point at DATABASE_URL (the
-  // superuser) until every tenant-scoped query in the app is verified to
-  // route through withTenant().
+  // FORCE ROW LEVEL SECURITY actually constrains it. client.ts uses this
+  // role for db/withTenant; DATABASE_URL remains the migration connection.
   DATABASE_URL_APP: z.string().url().default('postgresql://hudumika_app:hudumika_app_pass@localhost:5432/clearos'),
   // DATABASE_URL_PLATFORM is a narrow, explicitly-audited BYPASSRLS
   // exception for the small set of confirmed SUPER_ADMIN-gated /
@@ -65,7 +63,7 @@ const envSchema = z.object({
    * and for the same reason: this one decrypts every infrastructure credential
    * a tenant has entrusted to the platform.
    */
-  ONSITE_SECRETS_KEY: z.string().length(64, 'ONSITE_SECRETS_KEY must be 64 hex characters (32 bytes)')
+  ONSITE_SECRETS_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/, 'ONSITE_SECRETS_KEY must be 64 hex characters (32 bytes)')
     .default('6f6e73697465646576656c6f706d656e746b65796e6f74666f7270726f6475637469'.slice(0, 64)),
   
   META_WA_TOKEN: z.string().default('your-meta-whatsapp-token'),
@@ -116,7 +114,7 @@ const envSchema = z.object({
   MEETING_MAX_DURATION_DEFAULT_MINUTES: z.coerce.number().default(60),
   MEETING_MAX_DURATION_CEILING_MINUTES: z.coerce.number().default(480),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('debug'),
-  CORS_ORIGINS: z.string().default('http://localhost:5173'),
+  CORS_ORIGINS: z.string().default('http://localhost:5180,http://localhost:5173'),
 
   /** Public origin of the web app, used to build links that leave the system
    *  — currently the QR code printed on landed-cost estimates. Deliberately
@@ -126,7 +124,7 @@ const envSchema = z.object({
    *  CORS origin, which is already the frontend URL in every deployment. */
   PUBLIC_APP_URL: z.string().url().optional(),
 
-  OPS_BOARD_URL: z.string().url().default('http://localhost:5173'),
+  OPS_BOARD_URL: z.string().url().default('http://localhost:5180'),
 
   /** This API's own externally-resolvable base URL. Unlike PUBLIC_APP_URL
    *  above (the web app, used for links a person clicks), this is for a
@@ -302,6 +300,8 @@ if (env.APP_ENV === 'production') {
   const offenders = PUBLISHED_DEFAULTS
     .filter(([key, value]) => (env as Record<string, unknown>)[key] === value)
     .map(([key, , why]) => `  ${key} is still the default committed to this repository — ${why}.`);
+  if (env.JWT_SECRET.length < 32) offenders.push('  JWT_SECRET must contain at least 32 characters.');
+  if (env.SIGN_CERT_PASSWORD.length < 16) offenders.push('  SIGN_CERT_PASSWORD must contain at least 16 characters.');
 
   if (offenders.length) {
     console.error('❌ Refusing to start in production with published credentials:\n' + offenders.join('\n'));
