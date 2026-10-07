@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -25,6 +25,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
+import { VehicleSensorSnapshotsTab } from '../components/tracking/VehicleSensorSnapshotsTab.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -544,63 +545,7 @@ function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
   );
 }
 
-function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) {
-  const [snapshots, setSnapshots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    apiFetch(`/v1/tracking/vehicles/${vehicleId}/sensor_snapshots`)
-      .then(setSnapshots)
-      .catch(() => setSnapshots([]))
-      .finally(() => setLoading(false));
-  }, [vehicleId]);
-
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading sensor data...</div>;
-
-  return (
-    <div style={{ display: 'flex', gap: 24, flexDirection: 'column' }}>
-      {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="activity" size={14} /> Total Snapshots</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginTop: 8 }}>{snapshots.length}</div>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><Icon name="clock" size={14} /> Last Snapshot</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 8 }}>
-            {snapshots.length > 0 ? new Date(snapshots[0].recorded_at).toLocaleString() : 'N/A'}
-          </div>
-        </div>
-      </div>
-
-      <SectionCard title="Recent Sensor Data">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-              {['Type', 'Payload', 'Recorded At'].map(h => (
-                <th key={h} style={{ padding: '12px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {snapshots.map(s => (
-              <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--ink)' }}>{s.snapshot_type}</td>
-                <td style={{ padding: '12px 10px' }}>
-                  <pre style={{ margin: 0, fontSize: 11, background: 'var(--bg)', padding: 8, borderRadius: 'var(--r-sm)', color: 'var(--ink2)', maxWidth: 400, overflowX: 'auto' }}>
-                    {typeof s.payload === 'string' ? s.payload : JSON.stringify(s.payload, null, 2)}
-                  </pre>
-                </td>
-                <td style={{ padding: '12px 10px', color: 'var(--ink3)' }}>{new Date(s.recorded_at).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {snapshots.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No sensor snapshots recorded.</div>}
-      </SectionCard>
-    </div>
-  );
-}
 
 function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
   const [assignments, setAssignments] = useState<any[]>([]);

@@ -1,0 +1,44 @@
+.industry-page { display: grid; gap: var(--space-6, 24px); min-width: 0; }
+.industry-hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--space-6, 24px); }
+.industry-hub-grid [data-ui-card] { display: flex; flex-direction: column; }
+.industry-hub-grid [data-ui-card] > :last-child { display: grid; gap: var(--space-6, 24px); margin-top: auto; }
+.industry-tags, .industry-actions, .industry-form-actions { display: flex; flex-wrap: wrap; gap: var(--space-3, 12px); }
+.industry-actions button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.industry-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 320px); gap: var(--space-6, 24px); }
+.industry-workspace-grid aside { display: grid; align-content: start; gap: var(--space-6, 24px); }
+.industry-tools { display: grid; gap: var(--space-4, 16px); }
+.industry-tools a, .industry-record > div { display: grid; gap: var(--space-2, 8px); }
+.industry-tools a { color: var(--teal); text-decoration: none; padding-block: var(--space-2, 8px); }
+.industry-tools span, .industry-record small, .industry-record span, .industry-field > span { color: var(--text-muted); }
+.industry-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 220px); gap: var(--space-4, 16px); align-items: end; margin-bottom: var(--space-6, 24px); }
+.industry-field { display: grid; gap: var(--space-2, 8px); min-width: 0; }
+.industry-record { display: flex; justify-content: space-between; gap: var(--space-4, 16px); padding: var(--space-4, 16px); border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+.industry-record:last-child { border-bottom: 0; }
+.industry-record > div:last-child { text-align: right; justify-items: end; }
+.industry-records { border: var(--card-border); border-radius: var(--card-radius); overflow: hidden; }
+.industry-empty { padding: var(--space-8, 32px); text-align: center; display: grid; justify-items: center; gap: var(--space-4, 16px); }
+.industry-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-3, 12px); margin-top: var(--space-6, 24px); }
+.industry-pagination > span { margin-right: auto; }
+.industry-form-content { padding-top: var(--space-6, 24px); }
+.industry-form-grid, .industry-specifications { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6, 24px); }
+.industry-form-actions { justify-content: flex-end; margin-top: var(--space-6, 24px); }
+.industry-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4, 16px); }
+.industry-summary-grid [data-ui-card] { min-width: 0; overflow-wrap: anywhere; }
+.industry-specifications dt { color: var(--text-muted); }
+.industry-specifications dd { margin: var(--space-2, 8px) 0 0; overflow-wrap: anywhere; }
+.industry-line-form { border-top: 1px solid var(--border); margin-top: var(--space-6, 24px); padding-top: var(--space-6, 24px); display: grid; gap: var(--space-4, 16px); }
+.industry-check { display: flex; align-items: center; gap: var(--space-3, 12px); }
+.industry-material-row { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(90px, 1fr)) auto; gap: var(--space-4, 16px); align-items: end; margin-bottom: var(--space-6, 24px); }
+.industry-consulting .industry-workspace-grid, .industry-professional_services .industry-workspace-grid { grid-template-columns: minmax(250px, 320px) minmax(0, 1fr); }
+.industry-consulting .industry-register, .industry-professional_services .industry-register { order: 2; }
+.industry-printing .industry-records { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.industry-manufacturing .industry-record { border-left: 3px solid var(--teal); }
+@media (max-width: 1000px) { .industry-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .industry-workspace-grid, .industry-consulting .industry-workspace-grid, .industry-professional_services .industry-workspace-grid, .industry-form-grid, .industry-specifications, .industry-printing .industry-records { grid-template-columns: minmax(0, 1fr); }
+  .industry-consulting .industry-register, .industry-professional_services .industry-register { order: 0; }
+  .industry-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .industry-material-row { grid-template-columns: minmax(0, 1fr); }
+  .industry-record { flex-direction: column; }.industry-record > div:last-child { text-align: left; justify-items: start; }
+  .industry-actions, .industry-form-actions { width: 100%; }.industry-actions > *, .industry-form-actions > * { flex: 1; }
+}
