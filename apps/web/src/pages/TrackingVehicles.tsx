@@ -257,7 +257,7 @@ export const TrackingVehicles: React.FC = () => {
 
       {category === 'trailers' ? (
         <MetricsRow cards={[
-          { title: 'Trailers', value: String(trailerStats.all), icon: 'box', updatedLabel: 'Registered fleet', loading },
+          { title: 'Trailers', value: String(trailerStats.all), icon: 'box2', updatedLabel: 'Registered fleet', loading },
           { title: 'Active', value: String(trailerStats.active), icon: 'checkCircle', updatedLabel: 'Available or in operation', loading },
           { title: 'In use', value: String(trailerStats.inUse), icon: 'package', updatedLabel: 'Currently coupled to a trip', loading },
           { title: 'Unavailable', value: String(trailerStats.maintenance), icon: 'alertCircle', updatedLabel: 'Maintenance or out of service', loading, empty: !loading && trailerStats.maintenance === 0 },
@@ -297,7 +297,7 @@ export const TrackingVehicles: React.FC = () => {
               Horse transport <span className="trk-cat-count">{categoryCounts.horse}</span>
             </TabsTrigger>
             <TabsTrigger value="trailers">
-              <Icon name="box" size={13} />
+              <Icon name="box2" size={13} />
               Trailers <span className="trk-cat-count">{categoryCounts.trailers}</span>
             </TabsTrigger>
           </TabsList>
