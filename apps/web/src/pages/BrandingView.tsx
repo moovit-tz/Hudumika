@@ -84,7 +84,11 @@ export function BrandingIdentitySection() {
     setTimeout(() => setSavedSection(null), 2000);
   };
   const flashError = (section: string, err: any) => {
-    setSaveErrors(p => ({ ...p, [section]: err?.message || 'Save failed — check your connection and try again.' }));
+    const raw = err?.message ?? '';
+    const msg = raw === 'Failed to fetch'
+      ? 'Could not reach the server — make sure the API is running and you are signed in.'
+      : raw || 'Save failed — check your connection and try again.';
+    setSaveErrors(p => ({ ...p, [section]: msg }));
   };
 
   const saveIdentity = async () => {
@@ -293,7 +297,11 @@ export function BrandingAppsSection() {
     setTimeout(() => setSavedSection(null), 2000);
   };
   const flashError = (section: string, err: any) => {
-    setSaveErrors(p => ({ ...p, [section]: err?.message || 'Save failed — check your connection and try again.' }));
+    const raw = err?.message ?? '';
+    const msg = raw === 'Failed to fetch'
+      ? 'Could not reach the server — make sure the API is running and you are signed in.'
+      : raw || 'Save failed — check your connection and try again.';
+    setSaveErrors(p => ({ ...p, [section]: msg }));
   };
 
   const saveApp = async (appId: string) => {
