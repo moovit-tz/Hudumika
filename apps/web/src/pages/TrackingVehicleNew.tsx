@@ -33,6 +33,7 @@ export const TrackingVehicleNew: React.FC = () => {
   const [color, setColor] = useState('');
   const [ownership, setOwnership] = useState('OWNED');
   const [mileageKm, setMileageKm] = useState('');
+  const [speedLimitKmh, setSpeedLimitKmh] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,7 +49,7 @@ export const TrackingVehicleNew: React.FC = () => {
           device_id: deviceId, fuel_type: fuelType, group_name: groupName || undefined,
         }),
       });
-      const hasDetails = vin || year || make || model || trim || color || mileageKm;
+      const hasDetails = vin || year || make || model || trim || color || mileageKm || speedLimitKmh;
       if (hasDetails) {
         await apiFetch(`/v1/tracking/vehicles/${created.id}`, {
           method: 'PATCH',
@@ -56,6 +57,7 @@ export const TrackingVehicleNew: React.FC = () => {
             vin: vin || undefined, year: year ? Number(year) : undefined, make: make || undefined,
             model: model || undefined, trim: trim || undefined, color: color || undefined,
             ownership, mileage_km: mileageKm ? Number(mileageKm) : undefined,
+            speed_limit_kmh: speedLimitKmh ? Number(speedLimitKmh) : undefined,
           }),
         });
       }
@@ -136,6 +138,10 @@ export const TrackingVehicleNew: React.FC = () => {
             </Select>
           </div>
           <div style={{ flex: 1 }}><label style={labelStyle}>Mileage (km)</label><Input title="Mileage (km)" type="number" value={mileageKm} onChange={e => setMileageKm(e.target.value)} /></div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Speed limit (km/h)</label><Input title="Speed limit (km/h)" type="number" min={1} max={300} value={speedLimitKmh} onChange={e => setSpeedLimitKmh(e.target.value)} placeholder="e.g. 80" /></div>
+          <div style={{ flex: 1 }} />
         </div>
 
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}

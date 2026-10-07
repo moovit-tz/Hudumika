@@ -2669,6 +2669,7 @@ export interface PasswordResetTokensTable {
 }
 
 export interface SalesInvoicesTable {
+  industry_work_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   invoice_number: string;
@@ -5384,7 +5385,43 @@ export interface PlatformSigningIdentitiesTable {
   created_at: Generated<Date>;
 }
 
+export interface FinanceIndustryWorkTable {
+  id: Generated<string>; tenant_id: string; industry: import('@hudumika/types').FinanceIndustryKey;
+  reference: string; name: string; customer_id: string;
+  status: Generated<import('@hudumika/types').IndustryWorkStatus>;
+  currency: string; budget: number; due_date: string | null;
+  specifications: ColumnType<Record<string, string>, string, string>;
+  invoice_id: string | null; created_by: string;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface FinanceIndustryWorkLinesTable {
+  cost_journal_id: Generated<string | null>;
+  id: Generated<string>; tenant_id: string; work_id: string;
+  kind: import('@hudumika/types').IndustryLineKind;
+  description: string; quantity: number; unit: string; rate: number; cost_rate: number;
+  billable: boolean; approved: Generated<boolean>; work_date: string;
+  invoice_id: string | null; created_by: string; approved_by: string | null;
+  approved_at: Date | null; created_at: Generated<Date>;
+}
 export interface Database {
+  finance_stock_allocations: {
+    id: Generated<string>; tenant_id: string; work_id: string; item_id: string; location_id: string;
+    batch: string; quantity: number; dispatched_quantity: Generated<number>; released: Generated<boolean>;
+    created_by: string; created_at: Generated<Date>;
+  };
+  finance_production_orders: {
+    id: Generated<string>; tenant_id: string; work_id: string; output_item_id: string;
+    source_location_id: string; target_location_id: string; planned_quantity: number; actual_quantity: number | null;
+    output_batch: string; material_cost: Generated<number>; conversion_cost: number;
+    status: Generated<'draft' | 'released' | 'completed'>; created_by: string;
+    created_at: Generated<Date>; released_at: Date | null; completed_at: Date | null;
+  };
+  finance_production_materials: {
+    id: Generated<string>; tenant_id: string; production_id: string; item_id: string;
+    quantity: number; unit: string; batch: string;
+  };
+  finance_industry_work: FinanceIndustryWorkTable;
+  finance_industry_work_lines: FinanceIndustryWorkLinesTable;
   tenant_finance_capabilities: TenantFinanceCapabilitiesTable;
   tenant_finance_profiles: TenantFinanceProfilesTable;
   finance_business_lines: FinanceBusinessLinesTable;
@@ -7708,6 +7745,7 @@ export interface VehiclesTable {
   out_of_service_date: DateOnlyNull;
   out_of_service_odometer: number | null;
   lifecycle_notes: string | null;
+  speed_limit_kmh: number | null;
   transporter_id: string | null;
   device_secret: string | null;
   created_at: Generated<Date>;

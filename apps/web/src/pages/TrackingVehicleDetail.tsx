@@ -32,7 +32,7 @@ interface Vehicle {
   id: string; name: string; plate_number: string | null; type: string; status: string;
   vin: string | null; year: number | null; make: string | null; model: string | null;
   trim: string | null; color: string | null; ownership: string; mileage_km: number | null; device_id: string;
-  fuel_type: string | null; group_name: string | null;
+  fuel_type: string | null; group_name: string | null; speed_limit_kmh: number | null;
 }
 interface Driver { id: string; name: string; phone: string | null }
 interface Position {
@@ -124,6 +124,7 @@ export const TrackingVehicleDetail: React.FC = () => {
       ownership: vehicle.ownership || '',
       mileage_km: vehicle.mileage_km != null ? String(vehicle.mileage_km) : '',
       status: vehicle.status || 'ACTIVE',
+      speed_limit_kmh: vehicle.speed_limit_kmh != null ? String(vehicle.speed_limit_kmh) : '',
     });
     setEditing(true);
   }
@@ -134,6 +135,7 @@ export const TrackingVehicleDetail: React.FC = () => {
       const payload: Record<string, any> = { ...editForm };
       if (payload.year) payload.year = Number(payload.year);
       if (payload.mileage_km) payload.mileage_km = Number(payload.mileage_km);
+      if (payload.speed_limit_kmh) payload.speed_limit_kmh = Number(payload.speed_limit_kmh);
       // Remove empty strings to avoid overwriting with blanks
       Object.keys(payload).forEach(k => { if (payload[k] === '') delete payload[k]; });
       await apiFetch(`/v1/tracking/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -242,15 +244,15 @@ export const TrackingVehicleDetail: React.FC = () => {
           <SectionCard title="All Fields Details" action={
             !editing ? (
               <button type="button" onClick={startEdit}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="edit" size={13} /> Edit
               </button>
             ) : (
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" onClick={() => setEditing(false)}
-                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
                 <button type="button" onClick={saveEdit} disabled={saving}
-                  style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Saving…' : 'Save'}
                 </button>
               </div>
@@ -260,7 +262,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               ['name', 'Name'], ['mileage_km', 'Meter (km)'], ['status', 'Status'], ['group_name', 'Group'],
               ['type', 'Type'], ['fuel_type', 'Fuel'], ['vin', 'VIN/SN'], ['plate_number', 'License Plate'],
               ['year', 'Year'], ['make', 'Make'], ['model', 'Model'], ['trim', 'Trim'],
-              ['color', 'Color'], ['ownership', 'Ownership'],
+              ['color', 'Color'], ['ownership', 'Ownership'], ['speed_limit_kmh', 'Speed Limit (km/h)'],
             ] as [string, string][] : [
               ['Name', vehicle.name], ['Meter', vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : '—'],
               ['Status', vehicle.status], ['Group', vehicle.group_name || 'No Group'], ['Operator', driver?.name ?? '—'], ['Type', vehicle.type],
@@ -268,6 +270,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               ['VIN/SN', vehicle.vin || '—'], ['License Plate', vehicle.plate_number || '—'],
               ['Year', vehicle.year ?? '—'], ['Make', vehicle.make || '—'], ['Model', vehicle.model || '—'],
               ['Trim', vehicle.trim || '—'], ['Color', vehicle.color || '—'], ['Ownership', vehicle.ownership],
+              ['Speed Limit', vehicle.speed_limit_kmh != null ? `${vehicle.speed_limit_kmh} km/h` : '—'],
               ['Device ID', vehicle.device_id],
             ] as [string, any][]).map(([k, v]) => (
               <div key={k as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
@@ -430,7 +433,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
                 <Icon name="alertTriangle" size={14} color="var(--red)" />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{i.title}</div>
-                <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>
+                <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</button>
               </div>
             ))}
           </SectionCard>
@@ -504,7 +507,7 @@ export const TrackingVehicleDetail: React.FC = () => {
                 {i.title}
               </Link>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(i.created_at).toLocaleDateString()}</div>
-              {i.status !== 'RESOLVED' && <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>}
+              {i.status !== 'RESOLVED' && <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</button>}
             </div>
           ))}
         </SectionCard>
@@ -750,7 +753,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
       <div style={{ ...cardStyle, padding: '40px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 12 }}>No load plan yet for this vehicle.</div>
         <button type="button" onClick={createDefaultPlan} disabled={creating}
-          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           {creating ? 'Creating…' : 'Create load plan'}
         </button>
       </div>
@@ -782,7 +785,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               <input type="number" value={itemWeight} onChange={e => setItemWeight(e.target.value)} placeholder="kg" style={smallInput} />
               <input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="Qty" style={smallInput} />
             </div>
-            <button type="submit" style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add item</button>
+            <button type="submit" style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Add item</button>
           </form>
         </div>
 
@@ -793,13 +796,13 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                 <div style={{ width: 9, height: 9, borderRadius: 3, background: it.color || '#0891b2', flexShrink: 0 }} />
                 <div style={{ flex: 1, color: 'var(--ink)' }}>{it.label} × {it.quantity}</div>
-                <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={11} /></button>
+                <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={11} /></button>
               </div>
             ))}
             {items.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No items added yet.</div>}
           </div>
           <button type="button" onClick={pack} disabled={packing || items.length === 0}
-            style={{ marginTop: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ marginTop: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             {packing ? 'Packing…' : 'Pack load'}
           </button>
         </div>
@@ -834,7 +837,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
                 border: `1px solid ${cameraPreset === preset ? 'var(--teal)' : 'var(--border)'}`,
                 background: cameraPreset === preset ? 'var(--teal-l)' : 'var(--white)',
                 color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-            >
+             data-ui-native-button="">
               {label}
             </button>
           ))}

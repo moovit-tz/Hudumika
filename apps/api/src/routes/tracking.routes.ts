@@ -49,6 +49,7 @@ const vehicleFieldsSchema = z.object({
   out_of_service_odometer: z.number().min(0).optional(),
   lifecycle_notes: z.string().max(2000).optional(),
   status: z.string().max(30).optional(),
+  speed_limit_kmh: z.number().int().min(1).max(300).nullable().optional(),
 });
 const vehiclePatchSchema = vehicleFieldsSchema.partial();
 
@@ -336,6 +337,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         out_of_service_odometer: body.out_of_service_odometer ?? null,
         lifecycle_notes: body.lifecycle_notes ?? null,
         status: body.status ?? 'ACTIVE',
+        speed_limit_kmh: body.speed_limit_kmh ?? null,
       } as any).returningAll().executeTakeFirstOrThrow();
       // The one and only response that ever includes the raw device_secret.
       return created;
@@ -368,7 +370,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
       'fuel_type', 'group_name', 'purchase_vendor', 'purchase_date', 'purchase_price',
       'initial_odometer', 'financing_type', 'in_service_date', 'in_service_odometer',
       'est_life_months', 'est_life_meter', 'est_resale_value', 'out_of_service_date',
-      'out_of_service_odometer', 'lifecycle_notes',
+      'out_of_service_odometer', 'lifecycle_notes', 'speed_limit_kmh',
     ]);
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('vehicles').set({ ...patch, updated_at: new Date() } as any)

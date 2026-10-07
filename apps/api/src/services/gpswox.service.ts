@@ -154,7 +154,7 @@ export class GpswoxService {
 
     await withTenant(tenantId, async (trx) => {
       const vehicles = await trx.selectFrom('vehicles')
-        .select(['id', 'device_id', 'name'])
+        .select(['id', 'device_id', 'name', 'speed_limit_kmh'])
         .where('tenant_id', '=', tenantId)
         .where('device_id', 'is not', null)
         .execute();
@@ -193,6 +193,24 @@ export class GpswoxService {
         } as any).execute();
 
         await checkGeofenceTransitions(trx, tenantId, vehicleId, vehicleRow!.name, lat, lng);
+
+        const speedLimit = (vehicleRow as any).speed_limit_kmh as number | null;
+        const currentSpeed = device.speed != null ? Number(device.speed) : null;
+        if (speedLimit != null && currentSpeed != null && currentSpeed > speedLimit) {
+          const existingSpeedAlert = await trx.selectFrom('fleet_alerts').select('id')
+            .where('vehicle_id', '=', vehicleId).where('tenant_id', '=', tenantId)
+            .where('alert_type', '=', 'SPEEDING').where('acknowledged', '=', false)
+            .executeTakeFirst();
+          if (!existingSpeedAlert) {
+            await trx.insertInto('fleet_alerts').values({
+              tenant_id: tenantId, vehicle_id: vehicleId,
+              alert_type: 'SPEEDING', severity: 'WARNING',
+              message: `Vehicle travelling at ${Math.round(currentSpeed)} km/h, exceeding the ${speedLimit} km/h limit`,
+              acknowledged: false,
+            } as any).execute();
+          }
+        }
+
         onPosition?.(vehicleId, lat, lng);
         matched++;
       }
