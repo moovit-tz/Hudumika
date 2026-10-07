@@ -649,7 +649,7 @@ export const StaffDetail: React.FC = () => {
                     title="Change profile photo"
                     disabled={photoBusy}
                     onClick={() => photoInputRef.current?.click()}
-                  >
+                   data-ui-native-button="">
                     <Icon name={photoBusy ? 'clock' : 'camera'} size={11} />
                   </button>
                 </>
@@ -1523,6 +1523,115 @@ export const StaffDetail: React.FC = () => {
           )
         )}
 
+        {tab === 'Coaching' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Coaching ?? []}
+            empty="No goals or coaching records have been created for this person."
+            head={['Goal', 'Type', 'Progress', 'Due', 'Status']}
+            summary={rows => {
+              const active = rows.filter((r: any) => r.status === 'in_progress').length;
+              return `${rows.length} goal(s) — ${active} in progress`;
+            }}
+            row={(r: any) => [
+              r.title,
+              r.goal_type || '—',
+              r.target_value != null
+                ? `${r.current_value ?? 0} / ${r.target_value}${r.unit ? ' ' + r.unit : ''}`
+                : '—',
+              r.due_date ? formatDate(r.due_date) : '—',
+              <StatusChip key="s" value={r.status} />,
+            ]}
+          />
+        )}
+
+        {tab === 'Performance' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Performance ?? []}
+            empty="No performance review cycles have included this person yet."
+            head={['Cycle', 'Type', 'Period', 'Self', 'Manager', 'Final', 'Cycle Status']}
+            summary={rows => {
+              const avg = rows.length
+                ? (rows.reduce((s: number, r: any) => s + (Number(r.final_rating) || 0), 0) / rows.length).toFixed(1)
+                : null;
+              return rows.length ? `${rows.length} review(s) — avg final rating ${avg}` : '0 reviews';
+            }}
+            row={(r: any) => [
+              r.cycle_name,
+              r.cycle_type || '—',
+              r.start_date ? `${formatDate(r.start_date)} – ${r.end_date ? formatDate(r.end_date) : '…'}` : '—',
+              r.self_rating != null ? String(r.self_rating) : '—',
+              r.manager_rating != null ? String(r.manager_rating) : '—',
+              r.final_rating != null ? String(r.final_rating) : '—',
+              <StatusChip key="s" value={r.cycle_status} />,
+            ]}
+          />
+        )}
+
+        {tab === 'Learning & Dev' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows['Learning & Dev'] ?? []}
+            empty="This person has no training enrollments."
+            head={['Course', 'Cert?', 'Status', 'Enrolled', 'Completed', 'Score']}
+            summary={rows => {
+              const done = rows.filter((r: any) => r.status === 'completed').length;
+              return `${rows.length} enrollment(s) — ${done} completed`;
+            }}
+            row={(r: any) => [
+              r.course_title,
+              r.is_certification ? 'Yes' : 'No',
+              <StatusChip key="s" value={r.status} />,
+              formatDate(r.enrolled_at),
+              r.completed_at ? formatDate(r.completed_at) : '—',
+              r.score != null ? `${r.score}%` : '—',
+            ]}
+          />
+        )}
+
+        {tab === 'Compensation' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Compensation ?? []}
+            empty="No compensation records are on file for this person."
+            head={['Effective', 'Ends', 'Base Salary', 'Currency', 'Frequency']}
+            summary={rows => {
+              const current = rows.find((r: any) => !r.end_date || new Date(r.end_date) >= new Date());
+              return current
+                ? `Current: ${Number(current.base_salary).toLocaleString()} ${current.currency} / ${current.pay_frequency}`
+                : `${rows.length} historical record(s)`;
+            }}
+            row={(r: any) => [
+              formatDate(r.effective_date),
+              r.end_date ? formatDate(r.end_date) : 'Current',
+              Number(r.base_salary).toLocaleString(),
+              r.currency,
+              r.pay_frequency || '—',
+            ]}
+          />
+        )}
+
+        {tab === 'Benefits' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Benefits ?? []}
+            empty="No benefit enrollments found for this person."
+            head={['Plan', 'Type', 'Status', 'Enrolled', 'Terminated']}
+            summary={rows => {
+              const active = rows.filter((r: any) => r.status === 'enrolled').length;
+              return `${rows.length} enrollment(s) — ${active} active`;
+            }}
+            row={(r: any) => [
+              r.plan_name,
+              r.plan_type || '—',
+              <StatusChip key="s" value={r.status} />,
+              formatDate(r.enrolled_at),
+              r.terminated_at ? formatDate(r.terminated_at) : '—',
+            ]}
+          />
+        )}
+
         {WITHHELD_TABS[tab] && (
           <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
             <Icon name="lock" size={32} color="var(--border)" />
@@ -1562,7 +1671,7 @@ export const StaffDetail: React.FC = () => {
                 <Button variant="default" size="xs" onClick={() => fileInputRef.current?.click()}>
                   <Icon name="upload" size={12} /> Upload
                 </Button>
-                <button type="button" onClick={() => setDocumentsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                <button type="button" onClick={() => setDocumentsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                   <Icon name="close" size={18} />
                 </button>
               </div>
@@ -1623,7 +1732,7 @@ export const StaffDetail: React.FC = () => {
                 <Button variant="default" size="xs" onClick={() => showAlert('Asset assignment workflow opened', { variant: 'info' })}>
                   <Icon name="plus" size={12} /> Assign Asset
                 </Button>
-                <button type="button" onClick={() => setAssetsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                <button type="button" onClick={() => setAssetsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                   <Icon name="close" size={18} />
                 </button>
               </div>
@@ -1678,7 +1787,7 @@ export const StaffDetail: React.FC = () => {
                 <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Salary &amp; Compensation Structure</DialogTitle>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; Confidential Remuneration Ledger</div>
               </div>
-              <button type="button" onClick={() => setSalaryModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+              <button type="button" onClick={() => setSalaryModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                 <Icon name="close" size={18} />
               </button>
             </DialogHeader>
@@ -1766,7 +1875,7 @@ export const StaffDetail: React.FC = () => {
           <DialogContent hideClose steady className="w-full max-w-180 h-[min(760px,90vh)] flex flex-col p-0 gap-0">
             <DialogHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
               <DialogTitle style={{ fontSize: 18, fontWeight: 800 }}>Edit Employee Profile</DialogTitle>
-              <button type="button" onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={20} /></button>
+              <button type="button" onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={20} /></button>
             </DialogHeader>
 
             <DialogBody style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>

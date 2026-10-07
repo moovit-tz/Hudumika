@@ -45,8 +45,8 @@ export interface SaveDocumentInput {
   filename: string;
   content: Buffer;
   mimeType?: string;
-  /** Informational today (migration 499) — no retention-enforcement job
-   *  reads it yet. */
+  /** Drives the retention lock on the filed document. Enforced nightly by
+   *  `document-retention.job.ts` (registered in jobs/index.ts, 4:30 AM). */
   retentionClass?: string;
   actorId?: string | null;
   /** A caller-chosen key (e.g. `invoice:${id}:issued`) that makes a retried

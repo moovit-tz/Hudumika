@@ -152,7 +152,11 @@ export function invoiceGrandTotal(
   return Math.round(total * 100) / 100;
 }
 
-/** The same conversion as invoiceGrandTotal, split into its net and tax parts. */
+/** The same conversion as invoiceGrandTotal, split into its net and tax parts.
+ *
+ * Both functions must use the same per-line gross, or net+tax drifts from
+ * grandTotal. Derive tax as gross-net (not as net*rate) so that rounding
+ * on net and on gross never produces a gap. */
 export function invoiceNetAndTax(
   lines: { qty: unknown; rate: unknown; tax_pct: unknown; currency?: string | null }[],
   invoiceCurrency: string,
@@ -162,8 +166,10 @@ export function invoiceNetAndTax(
   const result = lines.reduce((acc, l) => {
     const cur = (l.currency || base).toUpperCase();
     const fx = cur === base ? 1 : exchangeRate;
-    const lineNet = Math.round(Number(l.qty) * Number(l.rate) * fx * 100) / 100;
-    const lineTax = Math.round(lineNet * (Number(l.tax_pct) / 100) * 100) / 100;
+    // Gross matches invoiceGrandTotal exactly — same formula, same rounding.
+    const lineGross = Math.round(Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100) * fx * 100) / 100;
+    const lineNet   = Math.round(Number(l.qty) * Number(l.rate) * fx * 100) / 100;
+    const lineTax   = Math.round((lineGross - lineNet) * 100) / 100;
     acc.net = Math.round((acc.net + lineNet) * 100) / 100;
     acc.tax = Math.round((acc.tax + lineTax) * 100) / 100;
     return acc;
