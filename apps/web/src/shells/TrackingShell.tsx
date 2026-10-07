@@ -60,7 +60,7 @@ export function TrackingShell() {
         { label: 'Dashboard',      icon: 'grid',    path: '/tracking', exact: true },
         { label: 'Live Map',       icon: 'mapPin',  path: '/tracking/map' },
         { label: 'Vehicles',       icon: 'truck',   path: '/tracking/vehicles' },
-        { label: 'Trailers',       icon: 'box3',    path: '/tracking/trailers' },
+        { label: 'Trailers',       icon: 'box3',    path: '/tracking/vehicles?cat=trailers' },
         { label: 'Drivers',        icon: 'user',    path: '/tracking/drivers' },
         { label: 'Trips',          icon: 'package', path: '/tracking/shipments' },
         { label: 'Operations Ledger', icon: 'clipboardList', path: '/tracking/ledger' },
@@ -144,7 +144,7 @@ export function TrackingShell() {
                 <Route path="vehicles/new" element={<TrackingNewVehicle />} />
                 <Route path="vehicles/:id" element={<TrackingVehicleDetail />} />
                 <Route path="vehicles/:id/add/:type" element={<TrackingVehicleAddEntry />} />
-                <Route path="trailers" element={<TrackingTrailers />} />
+                <Route path="trailers" element={<Navigate to="/tracking/vehicles?cat=trailers" replace />} />
                 <Route path="trailers/new" element={<TrackingTrailerNew />} />
                 <Route path="trailers/:id" element={<TrackingTrailerDetail />} />
                 <Route path="transporters" element={<TrackingTransporters />} />

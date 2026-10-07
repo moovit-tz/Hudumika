@@ -548,6 +548,16 @@
   .trk-primary-btn { justify-content: center; }
 }
 
+/* Asset-type category selector */
+.trk-category-tabs { margin-bottom: 20px; }
+.trk-cat-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--ink2); margin-left: 5px; }
+.trk-category-hint { font-size: 12px; color: var(--ink3); margin-top: 10px; }
+
+/* Trailers full-width section */
+.trk-trailers-section { display: flex; flex-direction: column; gap: 16px; }
+.trk-trailers-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+@media(max-width: 700px) { .trk-trailers-toolbar { flex-direction: column; align-items: stretch; } }
+
 /* PageHeader's actions slot (.trk-actions: search + date-range Select +
    refresh) has no room to sit on one row once the header's own title block
    also needs space — wraps as a block above, but the search bar itself
