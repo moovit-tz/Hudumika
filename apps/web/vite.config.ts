@@ -12,6 +12,11 @@ export default defineConfig({
   server: {
     port: 5180,
     host: true,
+    proxy: {
+      '/v1': { target: 'http://localhost:3001', changeOrigin: true },
+      '/auth': { target: 'http://localhost:3001', changeOrigin: true },
+      '/ws': { target: 'ws://localhost:3001', ws: true, changeOrigin: true },
+    },
   },
   build: {
     chunkSizeWarningLimit: 800,

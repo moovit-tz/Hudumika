@@ -1,11 +1,12 @@
 import { clearIdleLockState } from './idleLockKeys.js';
 
-// Production is normally reverse-proxied on the same origin. Hard-coding
-// localhost made every deployed browser call the visitor's own computer and
-// surface only "Failed to fetch". Development keeps the existing API port,
-// while deployments can override either shape explicitly.
-export const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '')
-  ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
+// Both dev and prod serve the API behind the same origin: in dev the Vite
+// proxy (vite.config.ts) rewrites /v1/* → http://localhost:3001/v1/* so the
+// browser never issues a cross-origin request and CORS is not involved at all.
+// In prod, nginx already reverse-proxies the same paths. An explicit
+// VITE_API_URL override keeps direct-to-server calls possible (e.g. a CI
+// smoke test that skips the proxy), but for normal dev nothing is needed.
+export const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 
 /** Reads the non-httpOnly CSRF cookie the server sets alongside every
  *  session cookie (double-submit pattern — see apps/api/src/middleware/csrf.ts).
