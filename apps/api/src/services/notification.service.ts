@@ -40,7 +40,14 @@ export class NotificationService {
   /** Create a single in-app notification directly (no matrix/channel routing) */
   static async createNotification(opts: CreateNotificationOptions): Promise<void> {
     const { withTenant } = await import('../db/client.js');
-    await withTenant(opts.tenantId, (trx) => trx
+    await withTenant(opts.tenantId, (trx) => NotificationService.createNotificationInTrx(trx, opts));
+  }
+
+  /** Same as createNotification but uses an already-open transaction — use
+   *  this when inserting from inside a withTenant() block to avoid opening a
+   *  second nested transaction for the same tenant. */
+  static async createNotificationInTrx(trx: any, opts: CreateNotificationOptions): Promise<void> {
+    await trx
       .insertInto('notifications')
       .values({
         tenant_id: opts.tenantId,
@@ -61,7 +68,7 @@ export class NotificationService {
         recipient: null,
         content: null,
       } as any)
-      .execute());
+      .execute();
   }
 
   /**

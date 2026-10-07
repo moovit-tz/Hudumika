@@ -20,6 +20,8 @@ import { computeAttendance, type Shift } from '../services/attendance.service.js
 import { createEvent, updateEvent, deleteEvent, type Guest } from '../services/calendar-events.service.js';
 import { renderOfferLetterPdf } from '../services/offer-letter-pdf.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { resolveDirectManager } from '../services/org-chart.service.js';
+import { NotificationService } from '../services/notification.service.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -1316,6 +1318,23 @@ export async function hrRoutes(fastify: FastifyInstance) {
         total_worked_minutes: totalWorked,
         session_count: sessions.length,
       }).returningAll().executeTakeFirstOrThrow();
+
+      // Notify the direct line manager so the submission appears in their
+      // queue immediately, without waiting for them to check the list.
+      const tsManager = await resolveDirectManager(trx, user.tenant_id, targetUserId);
+      if (tsManager?.user_id) {
+        const submitterName = await trx.selectFrom('users').select('name')
+          .where('id', '=', targetUserId).executeTakeFirst().then(u => u?.name ?? 'A team member');
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: tsManager.user_id,
+          app: 'nexushr', type: 'task',
+          title: 'Timesheet submitted for review',
+          message: `${submitterName} submitted their timesheet for ${periodStart} – ${periodEnd}`,
+          link: `/hr/timesheets?pending=1`,
+          entityType: 'timesheet_approval', entityId: created.id,
+        });
+      }
+
       return { ok: true, approval: created };
     });
   });
@@ -1340,12 +1359,21 @@ export async function hrRoutes(fastify: FastifyInstance) {
   });
 
   // Manager queue: every submission for the tenant, newest first.
+  // ?my_reports_only=true filters to the direct reports of the calling user
+  // (from the org chart), so a line manager sees only their own team's queue.
   fastify.get('/clock-in/timesheet/approvals',
     { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') },
     async (req) => {
       const user = req.user;
       const q = req.query as any;
       return withTenant(user.tenant_id, async (trx) => {
+        const { resolveDirectReports } = await import('../services/org-chart.service.js');
+        let reportUserIds: string[] | null = null;
+        if (q.my_reports_only === 'true' || q.my_reports_only === '1') {
+          reportUserIds = await resolveDirectReports(trx, user.tenant_id, user.sub);
+          if (reportUserIds.length === 0) return [];
+        }
+
         let query = trx.selectFrom('hr_timesheet_approvals as a')
           .innerJoin('users as u', 'u.id', 'a.user_id')
           .leftJoin('users as r', 'r.id', 'a.reviewed_by')
@@ -1358,6 +1386,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           ])
           .where('a.tenant_id', '=', user.tenant_id);
         if (q.status) query = query.where('a.status', '=', q.status);
+        if (reportUserIds) query = query.where('a.user_id', 'in', reportUserIds);
         return query.orderBy('a.submitted_at', 'desc').limit(200).execute();
       });
     });
@@ -1682,6 +1711,23 @@ export async function hrRoutes(fastify: FastifyInstance) {
         payload: { userId: row.user_id, leaveType: row.type, fromDate: isoDate(row.from_date),
                    toDate: isoDate(row.to_date), days: Number(row.days) },
       }).catch(err => console.error('[HR] leave_requested emit failed:', err?.message));
+
+      // Notify the direct line manager (org chart parent) so the request lands
+      // in their queue without them having to poll the approvals list. Falls
+      // through silently if the employee has no manager on the chart.
+      const manager = await resolveDirectManager(trx, user.tenant_id, subjectId);
+      if (manager?.user_id) {
+        const requesterName = await trx.selectFrom('users').select('name')
+          .where('id', '=', subjectId).executeTakeFirst().then(u => u?.name ?? 'A team member');
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: manager.user_id,
+          app: 'nexushr', type: 'task',
+          title: 'Leave request awaiting approval',
+          message: `${requesterName} requested ${Number(row.days)} day(s) of ${row.type.toLowerCase().replace(/_/g, ' ')} leave (${isoDate(row.from_date)} – ${isoDate(row.to_date)})`,
+          link: `/hr/leaves?pending=1`,
+          entityType: 'leave', entityId: row.id,
+        });
+      }
 
       // The days that were not counted, and why. A request for "20th to 24th"
       // coming back as 3 days needs to say which two were free, or it reads as

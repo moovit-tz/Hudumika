@@ -106,6 +106,7 @@ export function ClockInPage() {
   const isManager = !!user && MANAGER_ROLES.includes(user.role);
   const [myApproval, setMyApproval] = useState<TimesheetApproval | null>(null);
   const [approvals, setApprovals] = useState<TimesheetApproval[]>([]);
+  const [myReportsOnly, setMyReportsOnly] = useState(false);
   const [submittingSheet, setSubmittingSheet] = useState(false);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -283,12 +284,13 @@ export function ClockInPage() {
     } catch { /* no submission yet */ }
     if (isManager) {
       try {
-        const res = await apiFetch('/v1/hr/clock-in/timesheet/approvals?status=SUBMITTED');
+        const qs = myReportsOnly ? 'status=SUBMITTED&my_reports_only=true' : 'status=SUBMITTED';
+        const res = await apiFetch(`/v1/hr/clock-in/timesheet/approvals?${qs}`);
         if (Array.isArray(res)) setApprovals(res);
       } catch { /* not permitted / none */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isManager, periodStart]);
+  }, [isManager, myReportsOnly, periodStart]);
 
   useEffect(() => { loadApprovalState(); }, [loadApprovalState]);
 
@@ -568,8 +570,19 @@ export function ClockInPage() {
       </div>
 
       {/* Manager: timesheets awaiting approval (real submissions only) */}
-      {isManager && approvals.length > 0 && (
-        <SectionCard title={`Timesheets awaiting your approval (${approvals.length})`}>
+      {isManager && (approvals.length > 0 || myReportsOnly) && (
+        <SectionCard
+          title={`Timesheets awaiting your approval (${approvals.length})`}
+          action={
+            <button
+              type="button"
+              onClick={() => setMyReportsOnly(v => !v)}
+              style={{ fontSize: 12, fontWeight: 600, color: myReportsOnly ? 'hsl(var(--primary))' : 'var(--ink3)', border: '1px solid', borderColor: myReportsOnly ? 'hsl(var(--primary))' : 'var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 10px', background: myReportsOnly ? 'var(--teal-l)' : 'transparent', cursor: 'pointer' }}
+            >
+              {myReportsOnly ? 'My direct reports' : 'All team'}
+            </button>
+          }
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {approvals.map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', flexWrap: 'wrap' }}>

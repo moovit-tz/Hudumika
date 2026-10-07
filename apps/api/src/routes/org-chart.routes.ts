@@ -3,6 +3,7 @@ import { requireUuidParams } from '../middleware/uuid-params.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
+import { resolveDirectReports } from '../services/org-chart.service.js';
 
 export async function orgChartRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -254,6 +255,49 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
           department: parent.department,
           email: parent.user_email ?? parent.node_email,
         },
+      };
+    });
+  });
+
+  // GET /org-chart/direct-reports/:userId — all direct reports (one level) of
+  // a manager. Used by manager dashboards and the "my team" approval queue.
+  fastify.get('/direct-reports/:userId', async (req, reply) => {
+    const { userId } = req.params as { userId: string };
+    const { tenant_id } = req.user;
+
+    if (!userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      return reply.status(400).send({ error: 'userId must be a valid UUID' });
+    }
+
+    return withTenant(tenant_id, async (trx) => {
+      const managerNode = await trx.selectFrom('org_chart_nodes')
+        .select('id')
+        .where('tenant_id', '=', tenant_id)
+        .where('user_id', '=', userId)
+        .executeTakeFirst();
+
+      if (!managerNode) return { reports: [] };
+
+      const reports = await trx
+        .selectFrom('org_chart_nodes as n')
+        .leftJoin('users as u', 'u.id', 'n.user_id')
+        .select([
+          'n.id as node_id', 'n.user_id', 'n.label', 'n.job_title', 'n.department',
+          'n.email as node_email', 'u.name as user_name', 'u.email as user_email',
+        ])
+        .where('n.tenant_id', '=', tenant_id)
+        .where('n.parent_id', '=', managerNode.id)
+        .execute();
+
+      return {
+        reports: reports.map(r => ({
+          node_id: r.node_id,
+          user_id: r.user_id,
+          name: r.user_name ?? r.label,
+          job_title: r.job_title,
+          department: r.department,
+          email: r.user_email ?? r.node_email,
+        })),
       };
     });
   });
