@@ -16,6 +16,9 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Switch } from '../components/ui/switch.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Icon } from '../components/Icon.js';
 import './FinanceIndustries.css';
 
@@ -43,122 +46,171 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function money(amount: number | string | undefined, currency = 'TZS') { return new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(amount ?? 0)); }
 const writers = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'];
 
+const categoryLabels = { core: 'Core finance', accounting: 'Accounting', operations: 'Operations', reporting: 'Reporting' } as const;
+
 export function FinanceIndustries() {
   const { user } = useAuth();
   const canManage = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user?.role ?? '');
   const configuration = useFinanceConfiguration();
-  const { data: capData, setEnabled } = useFinanceCapabilities();
+  const { data: capData, loading: capLoading, error: capError, setEnabled } = useFinanceCapabilities();
   const [savingIndustries, setSavingIndustries] = useState(false);
   const [savingCap, setSavingCap] = useState<FinanceCapabilityKey | null>(null);
   const [message, setMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('workspaces');
+  const [newLine, setNewLine] = useState({ name: '', code: '' });
+  const [editingLine, setEditingLine] = useState<string | null>(null);
+  const [lineDraft, setLineDraft] = useState({ name: '', code: '' });
 
   const selectedIndustries = configuration.data?.industries ?? [];
-
   const recommendations = useMemo(() => new Set(
     configuration.data?.industryDefinitions
       .filter(ind => selectedIndustries.includes(ind.key))
       .flatMap(ind => ind.recommendedCapabilities) ?? []
   ), [configuration.data, selectedIndustries]);
-
   const recommendedCapabilities = useMemo(() =>
     capData?.capabilities.filter(item => item.status === 'available' && recommendations.has(item.key)) ?? [],
     [capData, recommendations]
   );
+  const advancedAccounting = capData?.capabilities.find(item => item.key === 'finance.accounting.advanced');
+  const canManageBusinessLines = canManage && advancedAccounting?.enabled === true;
 
   async function toggleIndustry(key: FinanceIndustryKey, checked: boolean) {
-    setSavingIndustries(true);
-    setMessage('');
-    const next = checked
-      ? [...selectedIndustries, key]
-      : selectedIndustries.filter(k => k !== key);
+    setSavingIndustries(true); setMessage('');
+    const next = checked ? [...selectedIndustries, key] : selectedIndustries.filter(k => k !== key);
     try { await configuration.saveIndustries(next as FinanceIndustryKey[]); }
-    catch (err: any) { setMessage(err.message ?? 'Unable to save the business profile.'); }
+    catch (err: any) { setMessage(err.message ?? 'Unable to save.'); }
     finally { setSavingIndustries(false); }
   }
 
-  async function enableCap(key: FinanceCapabilityKey) {
-    setSavingCap(key);
-    setMessage('');
-    try { await setEnabled(key, true); }
-    catch (err: any) { setMessage(err.message ?? 'Unable to enable capability.'); }
+  async function toggleCap(key: FinanceCapabilityKey, enabled: boolean) {
+    setSavingCap(key); setMessage('');
+    try { await setEnabled(key, enabled); }
+    catch (err: any) { setMessage(err.message ?? 'Unable to update capability.'); }
     finally { setSavingCap(null); }
   }
 
   return (
-    <div className="industry-page">
-      <PageHeader
-        crumbs={['Finance', 'Industries']}
-        titlePlain="Industry"
-        titleEm="workspaces"
-        subtitle="Open any workspace to create and manage work. Check the activities your business performs to configure your Finance workspace."
-      />
-      {message && <p role="alert" className="industry-hub-alert">{message}</p>}
-      <div className="industry-hub-grid">
-        {FINANCE_INDUSTRIES.map(industry => {
-          const isSelected = selectedIndustries.includes(industry.key);
-          const exp = experiences[industry.key];
-          return (
-            <Card key={industry.key} className={isSelected ? 'industry-hub-card--active' : ''}>
+    <div className="industry-page finance-capabilities-page">
+      <PageHeader crumbs={['Finance', 'Industries']} titlePlain="Industry" titleEm="workspaces" subtitle="Workspaces, capabilities and business lines — all in one place." />
+      {!canManage && <div className="finance-capabilities-alert">You can review this workspace. A tenant administrator manages activation and business lines.</div>}
+      {message && <div className="finance-capabilities-alert" role="alert">{message}</div>}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList aria-label="Finance workspace sections">
+          <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
+          <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
+          <TabsTrigger value="lines">Business lines</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="workspaces">
+          <div className="industry-hub-grid">
+            {FINANCE_INDUSTRIES.map(industry => {
+              const isSelected = selectedIndustries.includes(industry.key);
+              const exp = experiences[industry.key];
+              return (
+                <Card key={industry.key} className={isSelected ? 'industry-hub-card--active' : ''}>
+                  <CardHeader>
+                    <div className="industry-hub-card-top">
+                      <CardTitle>{industry.name}</CardTitle>
+                      {canManage ? (
+                        <label className="industry-hub-profile-toggle">
+                          <Checkbox checked={isSelected} disabled={savingIndustries} onCheckedChange={value => void toggleIndustry(industry.key, value === true)} />
+                          <span>Our business</span>
+                        </label>
+                      ) : isSelected ? <Badge variant="brand">Active</Badge> : null}
+                    </div>
+                    <CardDescription>{exp.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="industry-tags">{exp.fields.slice(0, 3).map(field => <Badge key={field} variant="gray">{field}</Badge>)}</div>
+                    <Button asChild><Link to={`/finance/industries/${industry.key}`}>Open workspace</Link></Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          {selectedIndustries.length > 0 && capData && recommendedCapabilities.length > 0 && (
+            <Card>
               <CardHeader>
-                <div className="industry-hub-card-top">
-                  <CardTitle>{industry.name}</CardTitle>
-                  {canManage ? (
-                    <label className="industry-hub-profile-toggle">
-                      <Checkbox
-                        checked={isSelected}
-                        disabled={savingIndustries}
-                        onCheckedChange={value => void toggleIndustry(industry.key, value === true)}
-                      />
-                      <span>Our business</span>
-                    </label>
-                  ) : isSelected ? (
-                    <Badge variant="brand">Active</Badge>
-                  ) : null}
-                </div>
-                <CardDescription>{exp.description}</CardDescription>
+                <CardTitle>Recommended tools</CardTitle>
+                <CardDescription>Capabilities that match the {selectedIndustries.length === 1 ? '1 activity' : `${selectedIndustries.length} activities`} you selected. Nothing here creates an additional subscription.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="industry-tags">
-                  {exp.fields.slice(0, 3).map(field => <Badge key={field} variant="gray">{field}</Badge>)}
-                </div>
-                <Button asChild>
-                  <Link to={`/finance/industries/${industry.key}`}>Open workspace</Link>
-                </Button>
+              <CardContent className="industry-recommendation-list">
+                {recommendedCapabilities.map(item => (
+                  <div className="industry-recommendation-row" key={item.key}>
+                    <span className="industry-recommendation-icon"><Icon name={item.enabled ? 'checkCircle' : item.entitled ? 'settings' : 'lock'} size={18} /></span>
+                    <div><strong>{item.name}</strong><small>{item.enabled ? 'Ready to use' : item.entitled ? 'Included — enable now' : 'Requires Finance Advanced'}</small></div>
+                    {item.enabled ? <Badge variant="success">Enabled</Badge> : item.entitled ? <Button size="sm" variant="outline" disabled={!canManage || savingCap === item.key} onClick={() => void toggleCap(item.key, true)}>Enable</Button> : <Button size="sm" variant="ghost" asChild><Link to="/workspace/billing">View plans</Link></Button>}
+                  </div>
+                ))}
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
-      {selectedIndustries.length > 0 && capData && recommendedCapabilities.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recommended tools</CardTitle>
-            <CardDescription>
-              Capabilities that match the {selectedIndustries.length === 1 ? '1 activity' : `${selectedIndustries.length} activities`} you selected. Enable included ones now — nothing here creates an additional subscription.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="industry-recommendation-list">
-            {recommendedCapabilities.map(item => (
-              <div className="industry-recommendation-row" key={item.key}>
-                <span className="industry-recommendation-icon">
-                  <Icon name={item.enabled ? 'checkCircle' : item.entitled ? 'settings' : 'lock'} size={18} />
-                </span>
-                <div>
-                  <strong>{item.name}</strong>
-                  <small>{item.enabled ? 'Ready to use' : item.entitled ? 'Included — enable now' : 'Requires Finance Advanced'}</small>
-                </div>
-                {item.enabled ? (
-                  <Badge variant="success">Enabled</Badge>
-                ) : item.entitled ? (
-                  <Button size="sm" variant="outline" disabled={!canManage || savingCap === item.key} onClick={() => void enableCap(item.key)}>Enable</Button>
-                ) : (
-                  <Button size="sm" variant="ghost" asChild><Link to="/workspace/billing">View plans</Link></Button>
-                )}
+          )}
+        </TabsContent>
+
+        <TabsContent value="capabilities">
+          {capLoading ? <SectionLoading label="Loading capabilities" /> : capError ? <div className="finance-capabilities-alert">{capError}</div> : capData && <>
+            <section className="finance-edition-card">
+              <div>
+                <span className="finance-capabilities-eyebrow">CURRENT EDITION</span>
+                <h2>Finance {capData.edition === 'advanced' ? 'Advanced' : 'Basic'}</h2>
+                <p>Your Hudumika Workspace package controls availability. Turning an available capability off only simplifies this workspace.</p>
+                <small>{capData.usage.limit == null ? `${capData.usage.used} Finance actions this month · Unlimited` : `${capData.usage.used.toLocaleString()} of ${capData.usage.limit.toLocaleString()} Finance actions this month`}</small>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <Badge variant={capData.edition === 'advanced' ? 'brand' : 'gray'}>{capData.edition === 'advanced' ? 'Advanced' : 'Basic'}</Badge>
+            </section>
+            {(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).map(category => {
+              const items = capData.capabilities.filter(item => item.category === category && item.status === 'available');
+              if (!items.length) return null;
+              return <section className="finance-capability-section" key={category}>
+                <header><h2>{categoryLabels[category]}</h2><span>{items.filter(item => item.enabled).length} enabled</span></header>
+                <div className="finance-capability-list">
+                  {items.map(item => <div className="finance-capability-row" key={item.key}>
+                    <div className="finance-capability-icon"><Icon name={item.entitled ? 'checkCircle' : 'lock'} size={18} /></div>
+                    <div className="finance-capability-copy">
+                      <div className="finance-capability-title"><strong>{item.name}</strong><Badge variant={item.state === 'enabled' ? 'success' : item.state === 'available' ? 'warning' : 'gray'}>{item.state === 'not_entitled' ? 'Requires upgrade' : item.state === 'available' ? 'Available' : 'Enabled'}</Badge>{recommendations.has(item.key) && <Badge variant="info">Recommended</Badge>}</div>
+                      <p>{item.description}</p>
+                      {item.dependencies.length > 0 && <small>Requires {item.dependencies.map(key => capData.capabilities.find(cap => cap.key === key)?.name ?? key).join(' and ')}</small>}
+                    </div>
+                    {item.configurable && <Switch aria-label={`${item.enabled ? 'Disable' : 'Enable'} ${item.name}`} checked={item.enabled} disabled={!canManage || !item.entitled || savingCap === item.key} onCheckedChange={checked => void toggleCap(item.key, checked)} />}
+                  </div>)}
+                </div>
+              </section>;
+            })}
+          </>}
+        </TabsContent>
+
+        <TabsContent value="lines">
+          <section className="finance-capability-section finance-configuration-section">
+            <header><div><h2>Business lines</h2><span>Management and reporting dimensions — not additional subscriptions.</span></div></header>
+            {!advancedAccounting?.entitled && <div className="finance-capabilities-alert">Business-line dimensions require Finance Advanced. Existing lines remain visible after a package change.</div>}
+            {advancedAccounting?.entitled && !advancedAccounting.enabled && <div className="finance-capabilities-alert">Enable Advanced accounting to create, rename, archive, or restore business lines.</div>}
+            {canManageBusinessLines && <form className="finance-line-form" onSubmit={async event => {
+              event.preventDefault();
+              if (!newLine.name.trim() || !newLine.code.trim()) return;
+              try { await configuration.createBusinessLine(newLine); setNewLine({ name: '', code: '' }); } catch (err: any) { setMessage(err.message); }
+            }}>
+              <Input aria-label="Business line name" placeholder="Business line name" value={newLine.name} onChange={event => setNewLine(current => ({ ...current, name: event.target.value }))} />
+              <Input aria-label="Business line code" placeholder="Code" value={newLine.code} onChange={event => setNewLine(current => ({ ...current, code: event.target.value }))} />
+              <Button type="submit"><Icon name="plus" size={16} /> Add line</Button>
+            </form>}
+            <div className="finance-business-lines">
+              {configuration.data?.businessLines.map(line => <div className="finance-business-line" key={line.id}>
+                {editingLine === line.id ? <>
+                  <Input value={lineDraft.name} onChange={event => setLineDraft(current => ({ ...current, name: event.target.value }))} />
+                  <Input value={lineDraft.code} onChange={event => setLineDraft(current => ({ ...current, code: event.target.value }))} />
+                  <Button size="sm" onClick={async () => { await configuration.updateBusinessLine(line.id, lineDraft); setEditingLine(null); }}>Save</Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditingLine(null)}>Cancel</Button>
+                </> : <>
+                  <div><strong>{line.name}</strong><small>{line.code}{!line.active ? ' · Archived' : ''}</small></div>
+                  {canManageBusinessLines && <Button size="sm" variant="outline" onClick={() => { setEditingLine(line.id); setLineDraft({ name: line.name, code: line.code }); }}>Rename</Button>}
+                  {canManageBusinessLines && <Button size="sm" variant="ghost" onClick={() => void configuration.updateBusinessLine(line.id, { active: !line.active })}>{line.active ? 'Archive' : 'Restore'}</Button>}
+                </>}
+              </div>)}
+              {!configuration.loading && configuration.data?.businessLines.length === 0 && <p className="finance-empty-copy">No business lines yet. Add one when you need segmented reporting.</p>}
+            </div>
+          </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

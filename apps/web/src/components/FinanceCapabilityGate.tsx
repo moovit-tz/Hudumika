@@ -125,7 +125,7 @@ export function FinanceCapabilityGate({ capability, children }: { capability: Fi
             </p>
             <div className="finance-upsell-cta-actions">
               <Button asChild>
-                <Link to="/finance/settings/capabilities">Open Finance Settings</Link>
+                <Link to="/finance/industries">Open Finance Settings</Link>
               </Button>
               <Button variant="outline" onClick={() => setViewingHistory(true)}>
                 View records read-only

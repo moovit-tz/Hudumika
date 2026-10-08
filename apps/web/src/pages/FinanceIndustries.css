@@ -59,3 +59,32 @@
   .industry-recommendation-row { grid-template-columns: 24px minmax(0,1fr); }
   .industry-recommendation-row > :last-child { grid-column: 2; justify-self: start; }
 }
+/* === Capabilities & business lines (merged from FinanceCapabilities.css) === */
+.finance-capabilities-page { display:flex; flex-direction:column; gap:18px; }
+.finance-edition-card,.finance-capability-section { background:var(--white); border:1px solid var(--border); border-radius:var(--r); box-shadow:var(--elev-sm); }
+.finance-edition-card { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:18px 20px; }
+.finance-edition-card h2 { margin:4px 0; color:var(--ink); font-size:20px; }
+.finance-edition-card p { margin:0; color:var(--ink3); font-size:13px; }
+.finance-capabilities-eyebrow { color:var(--teal); font-size:10px; font-weight:750; letter-spacing:.09em; }
+.finance-capability-section>header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+.finance-capability-section>header h2 { margin:0; color:var(--ink); font-size:15px; }
+.finance-capability-section>header span { color:var(--ink3); font-size:12px; }
+.finance-capability-list { display:flex; flex-direction:column; }
+.finance-capability-row { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); }
+.finance-capability-row:last-child { border-bottom:0; }
+.finance-capability-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:var(--r-sm); color:var(--teal); background:var(--teal-l); }
+.finance-capability-copy { min-width:0; }
+.finance-capability-title { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:var(--ink); }
+.finance-capability-copy p { margin:3px 0; color:var(--ink3); font-size:12.5px; }
+.finance-capability-copy small { color:var(--ink3); font-size:11px; }
+.finance-capabilities-alert { padding:12px 14px; border:1px solid var(--red-m); border-radius:var(--r-sm); background:var(--red-l); color:var(--red); font-size:12.5px; }
+.finance-capabilities-page [data-ds-tabs-content] { margin-top:16px; }
+.finance-capabilities-page>[data-ds-tabs-root]>.finance-capabilities-alert { margin-top:14px; }
+.finance-configuration-section>header>div { display:flex; flex-direction:column; gap:4px; }
+.finance-line-form { display:grid; grid-template-columns:minmax(220px,1fr) minmax(120px,.35fr) auto; gap:10px; padding:16px 18px; border-bottom:1px solid var(--border); }
+.finance-business-lines { display:flex; flex-direction:column; }
+.finance-business-line { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:12px 18px; border-bottom:1px solid var(--border); }
+.finance-business-line:last-child { border-bottom:0; }
+.finance-business-line>div { display:flex; flex-direction:column; gap:2px; }
+.finance-empty-copy { margin:0; padding:24px 18px; color:var(--ink3); text-align:center; }
+@media (max-width:640px) { .finance-edition-card { align-items:center; } .finance-capability-row { grid-template-columns:36px minmax(0,1fr); } .finance-capability-row>[role="switch"] { grid-column:2; justify-self:start; } .finance-line-form,.finance-business-line { grid-template-columns:1fr; } .finance-business-line .min-h-\[var\(--ctl-h-sm\)\] { width:100%; } }

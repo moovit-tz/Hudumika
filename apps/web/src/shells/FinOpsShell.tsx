@@ -15,12 +15,18 @@ import type { FinanceCapabilityKey, UserRole } from '@hudumika/types';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { FinanceCapabilityGate } from '../components/FinanceCapabilityGate.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { FinanceIndustries, FinanceIndustryWorkspace, FinanceIndustryNew, FinanceIndustryWorkDetail, FinanceIndustryProductionNew, FinanceIndustryAllocationNew } from '../pages/FinanceIndustries.js';
+import { FinanceWorkCosts } from '../pages/FinanceWorkCosts.js';
+import { FinanceCloseReview } from '../pages/FinanceCloseReview.js';
+import { FinanceTaxPreparation } from '../pages/FinanceTaxPreparation.js';
+import { FinanceExpenseReports, FinanceExpenseReportNew, FinanceExpenseReportDetail } from '../pages/FinanceExpenseReports.js';
 
 function buildNav(t: TFunction): SidebarSection[] {
   return [
     {
       items: [
         { label: t('finance.nav.dashboard'), icon: 'barChart', path: '/finance', exact: true },
+        { label: t('finance.nav.industries', { defaultValue: 'Industry workspaces' }), icon: 'building', path: '/finance/industries' },
       ],
     },
     {
@@ -39,6 +45,7 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.bills'),           icon: 'receipt',      path: '/finance/bills'           },
         { label: t('finance.nav.vendors'),         icon: 'building',     path: '/finance/vendors'         },
         { label: t('finance.nav.expenses'),        icon: 'creditCard',   path: '/finance/expenses'        },
+        { label: 'Expense claims', icon: 'creditCard', path: '/finance/expense-reports' },
       ],
     },
     {
@@ -120,7 +127,7 @@ function buildNav(t: TFunction): SidebarSection[] {
     },
     {
       title: 'Settings',
-      items: [{ label: 'Capabilities', icon: 'settings', path: '/finance/settings/capabilities' }],
+      items: [{ label: 'Capabilities', icon: 'settings', path: '/finance/industries' }],
     },
   ];
 }
@@ -202,7 +209,6 @@ import { Budgets }                     from '../pages/Budgets.js';
 import { BankReconciliation }          from '../pages/BankReconciliation.js';
 import { GlPeriods }                   from '../pages/GlPeriods.js';
 import { ApApprovalWorkflows }         from '../pages/ApApprovalWorkflows.js';
-import { FinanceCapabilities }         from '../pages/FinanceCapabilities.js';
 import { FinancePos }                  from '../pages/FinancePos.js';
 import { FinanceFxRevaluation }        from '../pages/FinanceFxRevaluation.js';
 
@@ -231,6 +237,13 @@ export function FinOpsShell() {
 
         <Route element={<PageLayout />}>
           <Route index element={<RequireRoles roles={FIN_ROLES}><FinanceDashboard /></RequireRoles>} />
+          <Route path="industries" element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustries /></RequireRoles>} />
+          <Route path="industries/:industry" element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryWorkspace /></RequireRoles>} />
+          <Route path="industries/:industry/new" element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryNew /></RequireRoles>} />
+          <Route path="industries/:industry/:id" element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryWorkDetail /></RequireRoles>} />
+          <Route path="industries/:industry/:id/costs" element={gated('finance.accounting.advanced', <RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceWorkCosts /></RequireRoles>)} />
+          <Route path="industries/:industry/:id/production/new" element={gated('finance.inventory', <RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryProductionNew /></RequireRoles>)} />
+          <Route path="industries/:industry/:id/allocation/new" element={gated('finance.inventory', <RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryAllocationNew /></RequireRoles>)} />
           {/* Receivables */}
           <Route path="invoices"       element={<RequireRoles roles={FIN_ROLES}><Billing /></RequireRoles>} />
           <Route path="invoices/recurring" element={<RequireRoles roles={FIN_ROLES}><RecurringInvoices /></RequireRoles>} />
@@ -245,6 +258,9 @@ export function FinOpsShell() {
           <Route path="bills"           element={<RequireRoles roles={FIN_ROLES}><Bills /></RequireRoles>} />
           <Route path="vendors"         element={<RequireRoles roles={FIN_ROLES}><FinanceVendors /></RequireRoles>} />
           <Route path="expenses"        element={<RequireRoles roles={FIN_ROLES}><Expenses /></RequireRoles>} />
+          <Route path="expense-reports" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReports /></RequireRoles>} />
+          <Route path="expense-reports/new" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReportNew /></RequireRoles>} />
+          <Route path="expense-reports/:id" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReportDetail /></RequireRoles>} />
           <Route path="expenses/new"    element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseNew /></RequireRoles>} />
           <Route path="expenses/categories" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseCategories /></RequireRoles>} />
 
@@ -257,6 +273,7 @@ export function FinOpsShell() {
           <Route path="tax-codes" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxCodes /></RequireRoles>} />
           <Route path="tax-codes/classify" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxClassify /></RequireRoles>} />
           <Route path="vat-periods" element={<RequireRoles roles={FIN_ROLES}><FinanceVatPeriods /></RequireRoles>} />
+          <Route path="vat-periods/:id/preparation" element={<RequireRoles roles={['SUPER_ADMIN','ADMIN','TENANT_ADMIN','FINANCE']}><FinanceTaxPreparation /></RequireRoles>} />
           <Route path="accounts">
             <Route index                  element={<RequireRoles roles={FIN_ROLES}><AccountsQuery /></RequireRoles>} />
             <Route path="chart-of-accounts" element={<RequireRoles roles={FIN_ROLES}><ChartOfAccounts /></RequireRoles>} />
@@ -273,6 +290,7 @@ export function FinOpsShell() {
             <Route path="budgets"         element={gated('finance.budgets', <Budgets />)} />
             <Route path="bank-reconciliation" element={gated('finance.accounting.advanced', <BankReconciliation />)} />
             <Route path="gl-periods"      element={gated('finance.accounting.advanced', <GlPeriods />)} />
+            <Route path="gl-periods/:id/review" element={gated('finance.accounting.advanced', <RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE']}><FinanceCloseReview /></RequireRoles>)} />
             <Route path="approval-workflows" element={gated('finance.accounting.advanced', <ApApprovalWorkflows />)} />
             <Route path="fx-revaluation" element={gated('finance.multi_currency', <FinanceFxRevaluation />)} />
           </Route>
@@ -291,7 +309,6 @@ export function FinOpsShell() {
 
           {/* Integrations */}
           <Route path="integrations" element={<RequireRoles roles={FIN_ROLES}><AccountingIntegrations /></RequireRoles>} />
-          <Route path="settings/capabilities" element={<RequireRoles roles={FIN_ROLES}><FinanceCapabilities /></RequireRoles>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/finance" replace />} />
