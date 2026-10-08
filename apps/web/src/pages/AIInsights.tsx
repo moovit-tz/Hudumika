@@ -41,7 +41,7 @@ export const AIInsights: React.FC = () => {
             subtitle="Generated from live operational and financial data"
           />
         </div>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={load} disabled={loading}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={load} disabled={loading} data-ui-native-button="">
           <Icon name="refresh" size={13} /> Refresh
         </button>
       </div>

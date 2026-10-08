@@ -95,7 +95,7 @@ export function SealZoneHeatGrid() {
     <TooltipProvider delayDuration={150}>
       <div className="seal-page">
         <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }} data-ui-native-button="">
             <Icon name="arrowLeft" size={13} />
             <span>Back to Compartments</span>
           </button>
@@ -105,7 +105,7 @@ export function SealZoneHeatGrid() {
             titleEm="grid"
             subtitle={<>Quick flat occupancy overview for <strong>{data.compartment.name}</strong> — lot count per location vs. capacity. For floor levels, vertical stacking, and a 3D view, use Warehouse Layout.</>}
             actions={
-              <button type="button" className="btn btn-primary" onClick={() => navigate(`/seal/compartments/${data.compartment.id}/layout`)}>
+              <button type="button" className="btn btn-primary" onClick={() => navigate(`/seal/compartments/${data.compartment.id}/layout`)} data-ui-native-button="">
                 <Icon name="warehouse" size={14} />
                 <span>Open Warehouse Layout</span>
               </button>
@@ -156,7 +156,7 @@ export function SealZoneHeatGrid() {
                       type="button"
                       className={`seal-mode-btn ${activeZoneId === z.id ? 'active' : ''}`}
                       onClick={() => setActiveZoneId(z.id)}
-                    >
+                     data-ui-native-button="">
                       <Icon name="layers" size={13} />
                       <span>{z.code}</span>
                     </button>
@@ -276,7 +276,7 @@ export function SealZoneHeatGrid() {
         <div className="seal-card" style={{ marginTop: 20 }}>
           <div className="seal-card-hdr">
             <h2 className="seal-card-title">Zone Sensors &amp; Cameras</h2>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowNewSensor(v => !v)}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowNewSensor(v => !v)} data-ui-native-button="">
               <Icon name="plus" size={13} /><span>Register Sensor</span>
             </button>
           </div>
@@ -297,7 +297,7 @@ export function SealZoneHeatGrid() {
                 <label className="seal-field-label">Name</label>
                 <input type="text" className="input-field" value={newSensorName} onChange={e => setNewSensorName(e.target.value)} placeholder="e.g. Zone A Overhead Cam" />
               </div>
-              <button type="button" className="btn btn-primary" disabled={savingSensor || !newSensorId.trim() || !newSensorName.trim()} onClick={handleAddSensor}>
+              <button type="button" className="btn btn-primary" disabled={savingSensor || !newSensorId.trim() || !newSensorName.trim()} onClick={handleAddSensor} data-ui-native-button="">
                 {savingSensor ? 'Registering…' : 'Register'}
               </button>
             </div>

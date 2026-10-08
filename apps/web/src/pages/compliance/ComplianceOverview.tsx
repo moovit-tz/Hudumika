@@ -237,10 +237,10 @@ export function ComplianceOverview() {
 
       {/* Quick actions */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => navigate('/clearos/compliance/quick')} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <button type="button" onClick={() => navigate('/clearos/compliance/quick')} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }} data-ui-native-button="">
           <Icon name="shield" size={14} color="currentColor" /> Run a Quick Check
         </button>
-        <button type="button" onClick={() => navigate('/clearos/compliance/advanced')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <button type="button" onClick={() => navigate('/clearos/compliance/advanced')} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }} data-ui-native-button="">
           <Icon name="compass" size={14} color="var(--teal)" /> Open Advanced Wizard
         </button>
       </div>

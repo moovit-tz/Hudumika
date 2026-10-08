@@ -8,6 +8,7 @@ const Card = React.forwardRef<
 >(({ className, style, ...props }, ref) => (
   <div
     ref={ref}
+    data-ui-card=""
     className={cn(
       "rounded-[var(--card-radius,8px)] text-card-foreground",
       className

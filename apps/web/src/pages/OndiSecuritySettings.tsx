@@ -729,7 +729,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                             showAlert('Secret key copied.', { variant: 'success' });
                           }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0 }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="copy" size={13} />
                         </button>
                       </div>
@@ -772,7 +772,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                           showAlert('Backup codes copied.', { variant: 'success' });
                         }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="copy" size={12} />
                         <span>Copy All</span>
                       </button>
@@ -959,7 +959,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                       onClick={sendPhoneCode}
                       disabled={phoneBusy}
                       style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}
-                    >
+                     data-ui-native-button="">
                       Resend code
                     </button>
                   </div>
@@ -1124,7 +1124,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                               type="button"
                               onClick={() => copyRecoveryLink(r.token)}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600 }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="copy" size={12} /> Copy link
                             </button>
                           )}
@@ -1160,7 +1160,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                           type="button"
                           onClick={() => removeRecoveryContact(c.id)}
                           style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                        >
+                         data-ui-native-button="">
                           Remove
                         </button>
                       </div>

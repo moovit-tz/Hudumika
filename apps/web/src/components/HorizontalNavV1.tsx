@@ -100,7 +100,7 @@ export const HorizontalNav: React.FC = () => {
               type="button"
               className={`hnav-cat${active?.id === cat.id ? ' hnav-cat--active' : ''}`}
               onClick={() => navigate(cat.root)}
-            >
+             data-ui-native-button="">
               <span className="hnav-cat-icon">
                 <Icon name={cat.icon} size={20} strokeWidth={1.6} />
               </span>
@@ -126,7 +126,7 @@ export const HorizontalNav: React.FC = () => {
                       type="button"
                       className={`hnav-sub${item.to === activeTo ? ' hnav-sub--active' : ''}`}
                       onClick={() => navigate(item.to)}
-                    >
+                     data-ui-native-button="">
                       <Icon name={item.icon} size={13} strokeWidth={2} className="hnav-sub-icon" />
                       {item.label}
                     </button>

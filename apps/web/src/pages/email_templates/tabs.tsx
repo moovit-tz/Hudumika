@@ -321,13 +321,13 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
               aria-label="Search template library"
             />
             {search && (
-              <button type="button" onClick={() => setSearch('')} aria-label="Clear search">
+              <button type="button" onClick={() => setSearch('')} aria-label="Clear search" data-ui-native-button="">
                 <Icon name="x" size={13} />
               </button>
             )}
           </div>
 
-          <button type="button" className="email-template-new-btn" onClick={initNewTemplate}>
+          <button type="button" className="email-template-new-btn" onClick={initNewTemplate} data-ui-native-button="">
             <Icon name="plus" size={14} /> <span>+ New template</span>
           </button>
 
@@ -335,7 +335,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
             type="button"
             className="email-template-new-btn email-template-new-btn--secondary email-template-new-btn--import"
             onClick={onGoToMarketplace}
-          >
+           data-ui-native-button="">
             <Icon name="download" size={14} /> <span>Import from Marketplace</span>
           </button>
 
@@ -349,7 +349,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
                 aria-selected={librarySource === src}
                 className={librarySource === src ? 'is-active' : ''}
                 onClick={() => setLibrarySource(src)}
-              >
+               data-ui-native-button="">
                 {src === 'all' ? 'All' : src === 'personal' ? 'Custom' : 'Imported'}
                 <span>{src === 'all' ? (totalTemplatesCount || 203) : src === 'personal' ? (templates.length || 1) : importedMkt.length}</span>
               </button>
@@ -403,7 +403,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
                               type="button"
                               onClick={() => selectPersonalTemplate(t)}
                               className={`email-template-nav-item${t.id === selectedId ? ' is-active' : ''}`}
-                            >
+                             data-ui-native-button="">
                               <div className="email-template-nav-title">
                                 <span>{t.name}</span>
                                 <Badge variant="brand">Custom</Badge>
@@ -455,7 +455,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
                               type="button"
                               className={`email-template-nav-item${selectedImportedKey === t.local_template_key ? ' is-active' : ''}`}
                               onClick={() => selectImportedTemplate(t)}
-                            >
+                             data-ui-native-button="">
                               <div className="email-template-nav-title">
                                 <span>{t.title}</span>
                                 <Badge variant={t.is_hudumika_official ? 'brand' : 'info'}>
@@ -496,7 +496,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
                   type="button"
                   onClick={initNewTemplate}
                   className="email-template-nav-item is-active"
-                >
+                 data-ui-native-button="">
                   <div className="email-template-nav-title">
                     <span>AI Insight Ready</span>
                     <Badge variant="brand">Official</Badge>

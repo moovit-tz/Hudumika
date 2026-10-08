@@ -103,7 +103,7 @@ export function AdminCMSPages() {
         title="CMS Pages"
         sub="Manage legal terms, privacy policies, and public content pages across the platform."
         action={
-          <button type="button" className="btn btn-primary btn-sm sa-btn-gap-md" onClick={() => setCreating(true)}>
+          <button type="button" className="btn btn-primary btn-sm sa-btn-gap-md" onClick={() => setCreating(true)} data-ui-native-button="">
             <Icon name="plus" size={13} /> Add Page
           </button>
         }
@@ -133,10 +133,10 @@ export function AdminCMSPages() {
             />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">
               {saving ? 'Creating…' : 'Create & Edit'}
             </button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
           </div>
         </SectionCard>
         </div>
@@ -155,10 +155,10 @@ export function AdminCMSPages() {
                   <SelectItem value="published">Published</SelectItem>
                 </SelectContent>
               </Select>
-              <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => handleSave(editing)}>
+              <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => handleSave(editing)} data-ui-native-button="">
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Close</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)} data-ui-native-button="">Close</button>
             </div>
           }
         >
@@ -224,9 +224,9 @@ export function AdminCMSPages() {
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button type="button" className="btn btn-secondary btn-xs" onClick={() => setEditing(page)}>Edit</button>
+                        <button type="button" className="btn btn-secondary btn-xs" onClick={() => setEditing(page)} data-ui-native-button="">Edit</button>
                         {!PUBLIC_ROUTES.has(page.slug) && (
-                          <button type="button" className="btn btn-secondary btn-xs" style={{ color: 'var(--red)' }} onClick={() => handleDelete(page.slug)}>Delete</button>
+                          <button type="button" className="btn btn-secondary btn-xs" style={{ color: 'var(--red)' }} onClick={() => handleDelete(page.slug)} data-ui-native-button="">Delete</button>
                         )}
                       </div>
                     </td>

@@ -228,7 +228,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
     <div className="space-y-6">
       {/* Sub-tab Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-ds-tabstrip="">
           <button
             onClick={() => setActiveTab('risks')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
@@ -236,7 +236,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'risks'} data-ui-native-button="" aria-pressed={activeTab === 'risks'}>
             5x5 Risk Register ({risks.length})
           </button>
           <button
@@ -246,7 +246,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'issues'} data-ui-native-button="" aria-pressed={activeTab === 'issues'}>
             Issues Log ({issues.length})
           </button>
           <button
@@ -256,7 +256,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'changes'} data-ui-native-button="" aria-pressed={activeTab === 'changes'}>
             Change Requests ({changeRequests.length})
           </button>
           <button
@@ -266,7 +266,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'approvals'} data-ui-native-button="" aria-pressed={activeTab === 'approvals'}>
             Multi-Step Approvals ({approvals.length})
           </button>
         </div>

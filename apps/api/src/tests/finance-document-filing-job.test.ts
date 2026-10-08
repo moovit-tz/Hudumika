@@ -43,7 +43,16 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
   beforeAll(async () => {
     await getApp();
     T = await createTestTenant('TENANT_ADMIN');
-    await enableApps(T.tenantId, { finops: true, cloud: true });
+    await enableApps(T.tenantId, { finops: true, cloud: true, 'finance.procurement': true, 'finance.fixed_assets': true, 'finance.accounting.advanced': true });
+    await withTenant(T.tenantId, trx => trx.insertInto('tenant_finance_capabilities')
+      .values({ tenant_id: T.tenantId, capability_key: 'finance.procurement', enabled: true })
+      .execute());
+    await withTenant(T.tenantId, trx => trx.insertInto('tenant_finance_capabilities')
+      .values({ tenant_id: T.tenantId, capability_key: 'finance.fixed_assets', enabled: true })
+      .execute());
+    await withTenant(T.tenantId, trx => trx.insertInto('tenant_finance_capabilities')
+      .values({ tenant_id: T.tenantId, capability_key: 'finance.accounting.advanced', enabled: true })
+      .execute());
     const app = await getApp();
 
     // Credit notes, bills, fixed assets and period close post to the GL, so the
@@ -61,7 +70,7 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
       method: 'POST', url: '/v1/purchase-orders', headers: authHeaders(T.token),
       payload: { status: 'SENT', supplier_name: 'Supplier Ltd', lines: [{ description: 'Pallets', qty: 10, unit_price: 50, tax_rate: 18 }] },
     });
-    expect(po.statusCode).toBe(201);
+    expect(po.statusCode, po.body).toBe(201);
     ids.purchase_order = po.json().id;
 
     const draftPo = await app.inject({
@@ -102,6 +111,8 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
       payload: { name: 'Test month', period_type: 'MONTH', period_start: prevStart, period_end: prevEnd },
     });
     expect(period.statusCode, period.body).toBe(201);
+    const signOff = await app.inject({ method: 'POST', url: `/v1/finance/gl-periods/${period.json().id}/review`, headers: authHeaders(T.token), payload: { checklist: { banking: true, receivables: true, payables: true, inventory: true, payroll: true, tax: true, adjustments: true }, note: 'Reviewed filing-job fixture' } });
+    expect(signOff.statusCode, signOff.body).toBe(201);
     const closed = await app.inject({ method: 'POST', url: `/v1/finance/gl-periods/${period.json().id}/close`, headers: authHeaders(T.token), payload: {} });
     expect(closed.statusCode, closed.body).toBe(200);
     ids.gl_period = period.json().id;
@@ -185,7 +196,10 @@ describe('Finance document filing sweep — credit notes, quotations, purchase o
   it('a tenant without finops gets nothing filed by the sweep', async () => {
     const app = await getApp();
     const B = await createTestTenant('TENANT_ADMIN');
-    await enableApps(B.tenantId, { finops: true, cloud: true });
+    await enableApps(B.tenantId, { finops: true, cloud: true, 'finance.procurement': true });
+    await withTenant(B.tenantId, trx => trx.insertInto('tenant_finance_capabilities')
+      .values({ tenant_id: B.tenantId, capability_key: 'finance.procurement', enabled: true })
+      .execute());
     const po = await app.inject({
       method: 'POST', url: '/v1/purchase-orders', headers: authHeaders(B.token),
       payload: { status: 'SENT', supplier_name: 'S', lines: [{ description: 'x', qty: 1, unit_price: 1, tax_rate: 0 }] },

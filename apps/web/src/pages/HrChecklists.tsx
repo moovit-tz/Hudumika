@@ -200,7 +200,7 @@ function Templates() {
             style={{
               padding: '6px 14px', borderRadius: 20, border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
               background: type === t ? 'hsl(var(--primary))' : 'var(--white)', color: type === t ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-            }}>
+            }} data-ui-native-button="">
             {t === 'onboarding' ? 'Onboarding' : 'Offboarding'}
           </button>
         ))}
@@ -221,9 +221,9 @@ function Templates() {
                 ) : items.map((label, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{label}</span>
-                    <button type="button" disabled={saving || i === 0} onClick={() => moveItem(i, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === 0 ? 0.3 : 1 }}><Icon name="chevronUp" size={14} /></button>
-                    <button type="button" disabled={saving || i === items.length - 1} onClick={() => moveItem(i, 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === items.length - 1 ? 0.3 : 1 }}><Icon name="chevronDown" size={14} /></button>
-                    <button type="button" disabled={saving} onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }}><Icon name="x" size={14} /></button>
+                    <button type="button" disabled={saving || i === 0} onClick={() => moveItem(i, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === 0 ? 0.3 : 1 }} data-ui-native-button=""><Icon name="chevronUp" size={14} /></button>
+                    <button type="button" disabled={saving || i === items.length - 1} onClick={() => moveItem(i, 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === items.length - 1 ? 0.3 : 1 }} data-ui-native-button=""><Icon name="chevronDown" size={14} /></button>
+                    <button type="button" disabled={saving} onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }} data-ui-native-button=""><Icon name="x" size={14} /></button>
                   </div>
                 ))}
               </div>

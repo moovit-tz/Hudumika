@@ -8,7 +8,10 @@ import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Button } from '../components/ui/button.js';
 
-const TRAILER_TYPES = ['FLATBED', 'CONTAINER_CHASSIS', 'TANKER', 'REEFER', 'LOWBED', 'CURTAIN_SIDE', 'OTHER'];
+const TRAILER_TYPES = [
+  'FLATBED', 'BOX_TRAILER', 'CONTAINER_CHASSIS', 'TANKER', 'REEFER', 'LOWBED', 'CURTAIN_SIDE',
+  'BUMPER_PULL_HORSE', 'GOOSENECK_HORSE', 'HORSEBOX', 'LIVESTOCK_TRAILER', 'UTILITY_TRAILER', 'OTHER',
+];
 const OWNERSHIP_TYPES = ['OWNED', 'LEASED', 'RENTED', 'SUBCONTRACTED'];
 
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
@@ -63,7 +66,7 @@ export const TrackingTrailerNew: React.FC = () => {
         title="Register a trailer"
         subtitle="Add a trailer and its operating details to your fleet."
         variant="create"
-        backTo="/tracking/trailers"
+        backTo="/tracking/vehicles?cat=trailers"
       />
 
       <SectionCard>
@@ -73,7 +76,7 @@ export const TrackingTrailerNew: React.FC = () => {
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Registration number</label><Input value={registration} onChange={e => setRegistration(e.target.value)} placeholder="e.g. T-778-TRL" /></div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Trailer type</label>
+              <label style={labelStyle}>Trailer or towable type</label>
               <Select value={trailerType} onValueChange={setTrailerType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>

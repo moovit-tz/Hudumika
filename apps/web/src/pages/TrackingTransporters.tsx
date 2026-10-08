@@ -79,7 +79,7 @@ export const TrackingTransporters: React.FC = () => {
         subtitle="Third-party haulage providers whose vehicles and trailers run in this fleet."
         actions={
           <button type="button" onClick={() => setAdding(a => !a)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)' }} data-ui-native-button="">
             <Icon name={adding ? 'x' : 'plus'} size={15} /> {adding ? 'Cancel' : 'Add transporter'}
           </button>
         }
@@ -116,7 +116,7 @@ export const TrackingTransporters: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     {t.contract_ref && <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Contract: {t.contract_ref}</span>}
-                    <button type="button" onClick={() => toggleStatus(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button type="button" onClick={() => toggleStatus(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                       <Badge variant={t.status === 'ACTIVE' ? 'success' : 'gray'}>{t.status}</Badge>
                     </button>
                   </div>

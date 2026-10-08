@@ -224,7 +224,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
       <div className="wfb-panel-head">
         <I n="settings" s={15} c="var(--ink3)"/>
         <span className="wfb-panel-title">Workflow Settings</span>
-        <button className="wf-icon-btn" onClick={onClose}><I n="x" s={13}/></button>
+        <button className="wf-icon-btn" onClick={onClose} data-ui-native-button=""><I n="x" s={13}/></button>
       </div>
       <div className="wfb-panel-body">
         <div className="wfb-panel-section">
@@ -306,8 +306,8 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
       <div className="wfb-panel-head">
         <div className="wfb-panel-step-dot" style={{background:step.color}}>{step.order}</div>
         <span className="wfb-panel-title">{step.name}</span>
-        <Tip label="Delete step"><button type="button" className="wf-icon-btn danger" aria-label="Delete step" onClick={()=>onDeleteStep(step.id)}><I n="trash" s={13}/></button></Tip>
-        <Tip label="Close panel"><button type="button" className="wf-icon-btn" aria-label="Close panel" onClick={onClose}><I n="x" s={13}/></button></Tip>
+        <Tip label="Delete step"><button type="button" className="wf-icon-btn danger" aria-label="Delete step" onClick={()=>onDeleteStep(step.id)} data-ui-native-button=""><I n="trash" s={13}/></button></Tip>
+        <Tip label="Close panel"><button type="button" className="wf-icon-btn" aria-label="Close panel" onClick={onClose} data-ui-native-button=""><I n="x" s={13}/></button></Tip>
       </div>
       <div className="wfb-panel-body">
 
@@ -380,7 +380,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                       {SHIPMENT_FIELDS.map(f=><SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <button className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)}><I n="trash" s={11}/></button>
+                  <button className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><I n="trash" s={11}/></button>
                 </div>
                 <Select value={cond.operator} onValueChange={v=>updCond(cond.id,{operator:v as FieldCondition['operator']})}>
                   <SelectTrigger className="h-11 text-sm" style={{fontSize:13.5}}>
@@ -395,7 +395,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 )}
               </div>
             ))}
-            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addCond}><I n="plus" s={12}/> Add Condition</button>
+            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addCond} data-ui-native-button=""><I n="plus" s={12}/> Add Condition</button>
           </div>}
         </div>
 
@@ -413,7 +413,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 <div className="wfb-comm-card-head">
                   <span className="wfb-comm-ch-badge" style={{background:ch?.color,display:'inline-flex',alignItems:'center',gap:4}}>{ch&&<Icon name={ch.icon} size={11} />} {ch?.label}</span>
                   <span style={{flex:1,fontSize:11,color:'var(--ink3)'}}>→ {RECIPIENTS.find(r=>r.value===comm.recipient)?.label}</span>
-                  <button className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)}><I n="trash" s={11}/></button>
+                  <button className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><I n="trash" s={11}/></button>
                 </div>
                 <div className="wfb-comm-card-body">
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
@@ -437,7 +437,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                   {comm.recipient==='custom_email'&&<input className="wfb-input" style={{fontSize:11,padding:'5px 8px'}} type="email" value={comm.customEmail??''} onChange={e=>updComm(comm.id,{customEmail:e.target.value})} placeholder="email@example.com"/>}
                   {comm.channel==='email'&&<input className="wfb-input" style={{fontSize:11,padding:'5px 8px'}} value={comm.subject} onChange={e=>updComm(comm.id,{subject:e.target.value})} placeholder="Email subject…"/>}
                   <textarea className="wfb-textarea" style={{fontSize:11,minHeight:64,padding:'6px 8px'}} rows={3} value={comm.template} onChange={e=>updComm(comm.id,{template:e.target.value})} placeholder="Message template…"/>
-                  <div className="wfb-var-chips">{TEMPLATE_VARS.map(v=><button key={v} className="wfb-var-chip" type="button" onClick={()=>updComm(comm.id,{template:comm.template+v})}>{v}</button>)}</div>
+                  <div className="wfb-var-chips">{TEMPLATE_VARS.map(v=><button key={v} className="wfb-var-chip" type="button" onClick={()=>updComm(comm.id,{template:comm.template+v})} data-ui-native-button="">{v}</button>)}</div>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:11,color:'var(--ink3)'}}>Delay:</span>
                     <input className="wfb-input" style={{fontSize:11,padding:'4px 8px',width:56}} type="number" min="0" value={comm.delayMinutes} onChange={e=>updComm(comm.id,{delayMinutes:Number(e.target.value)})}/>
@@ -446,7 +446,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 </div>
               </div>;
             })}
-            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addComm}><I n="plus" s={12}/> Add Communication</button>
+            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addComm} data-ui-native-button=""><I n="plus" s={12}/> Add Communication</button>
           </div>}
         </div>
       </div>
@@ -617,7 +617,7 @@ export function ClearanceWorkflowBuilder() {
     return (
       <div className="wfb-page" style={{alignItems:'center', justifyContent:'center', display:'flex', flexDirection:'column', gap:12}}>
         <div style={{color:'var(--red)'}}>{loadError}</div>
-        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')}><I n="arrowLeft" s={13}/> Back to clearance workflows</button>
+        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')} data-ui-native-button=""><I n="arrowLeft" s={13}/> Back to clearance workflows</button>
       </div>
     );
   }
@@ -628,7 +628,7 @@ export function ClearanceWorkflowBuilder() {
 
       {/* ── Top bar ── */}
       <div className="wfb-topbar">
-        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')}>
+        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')} data-ui-native-button="">
           <I n="arrowLeft" s={13}/> Workflows
         </button>
         <span className="wfb-topbar-sep">/</span>
@@ -648,18 +648,18 @@ export function ClearanceWorkflowBuilder() {
             since both read the saved version by id. */}
         {wf.id && (
           <>
-            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}}>
+            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}} data-ui-native-button="">
               <Icon name="play" size={13}/> Dry run
             </button>
-            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}}>
+            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}} data-ui-native-button="">
               <Icon name="clock" size={13}/> History
             </button>
           </>
         )}
-        <button className="btn btn-secondary btn-sm" onClick={()=>setPanel(p=>!p)}>
+        <button className="btn btn-secondary btn-sm" onClick={()=>setPanel(p=>!p)} data-ui-native-button="">
           <I n="layers" s={13}/> {panel?'Hide':'Panel'}
         </button>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving} data-ui-native-button="">
           <I n="save" s={13} c="white"/> {saving?'Saving\u2026':saved?'Saved \u2713':'Save'}
         </button>
       </div>
@@ -720,7 +720,7 @@ export function ClearanceWorkflowBuilder() {
                 const mx=(x1+x2)/2, my=(y1+y2)/2;
                 return <Tip key={`add-${from}-${to}`} label="Insert step here"><button type="button" className="wfb-add-between"
                   style={{left:mx-11, top:my-11}} aria-label="Insert step here"
-                  onClick={e=>{e.stopPropagation(); addStep(from,to);}}>+</button></Tip>;
+                  onClick={e=>{e.stopPropagation(); addStep(from,to);}} data-ui-native-button="">+</button></Tip>;
               })}
 
               {/* Append button after each terminal step */}
@@ -728,7 +728,7 @@ export function ClearanceWorkflowBuilder() {
                 const fp=positions[s.id]; if(!fp) return null;
                 return <button key={`app-${s.id}`} className="wfb-append-btn"
                   style={{left:fp.x+NW+28, top:fp.y+NH/2-14}}
-                  onClick={e=>{e.stopPropagation(); appendAfter(s.id);}}>
+                  onClick={e=>{e.stopPropagation(); appendAfter(s.id);}} data-ui-native-button="">
                   <I n="plus" s={11}/> Add step
                 </button>;
               })}
@@ -774,7 +774,7 @@ export function ClearanceWorkflowBuilder() {
               {wf.steps.length===0&&(
                 <div className="wfb-add-first">
                   <div style={{fontSize:13,color:'var(--ink3)'}}>No steps yet</div>
-                  <button className="btn btn-primary" onClick={()=>addStep()}><I n="plus" s={13} c="white"/> Add First Step</button>
+                  <button className="btn btn-primary" onClick={()=>addStep()} data-ui-native-button=""><I n="plus" s={13} c="white"/> Add First Step</button>
                 </div>
               )}
             </div>
@@ -782,13 +782,13 @@ export function ClearanceWorkflowBuilder() {
 
           {/* Zoom bar */}
           <div className="wfb-zoom-bar">
-            <Tip label="Zoom out"><button type="button" className="wfb-zoom-btn" onClick={zoomOut} aria-label="Zoom out"><I n="zoomOut" s={13}/></button></Tip>
+            <Tip label="Zoom out"><button type="button" className="wfb-zoom-btn" onClick={zoomOut} aria-label="Zoom out" data-ui-native-button=""><I n="zoomOut" s={13}/></button></Tip>
             <span className="wfb-zoom-label">{Math.round(zoom*100)}%</span>
-            <Tip label="Zoom in"><button type="button" className="wfb-zoom-btn" onClick={zoomIn} aria-label="Zoom in"><I n="zoomIn" s={13}/></button></Tip>
+            <Tip label="Zoom in"><button type="button" className="wfb-zoom-btn" onClick={zoomIn} aria-label="Zoom in" data-ui-native-button=""><I n="zoomIn" s={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
-            <Tip label="Reset to 100%"><button type="button" className="wfb-zoom-btn" onClick={()=>setZoom(1)} aria-label="Reset zoom to 100%"><I n="fit" s={13}/></button></Tip>
+            <Tip label="Reset to 100%"><button type="button" className="wfb-zoom-btn" onClick={()=>setZoom(1)} aria-label="Reset zoom to 100%" data-ui-native-button=""><I n="fit" s={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
-            <Tip label="Workflow settings"><button type="button" className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}}>
+            <Tip label="Workflow settings"><button type="button" className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} data-ui-native-button="">
               <I n="settings" s={12} c="var(--teal)"/>Settings
             </button></Tip>
           </div>

@@ -50,7 +50,7 @@ Final verification: eight real-database integration tests pass for tenant/role b
 
 The broader API run reported 417 passing assertions across 37 files, but six suites failed their 20-second database setup/cleanup hooks. All six passed on rerun with a bounded 120-second hook allowance (82 assertions). Existing Project OS smoke tests include expected-failure cases for documented schema discrepancies; their green result does not establish that those happy paths work. This verification is not a production-readiness certification.
 
-Local rollout uses `node scripts/apply-finance-industry-migrations.mjs`, limited to migrations 561–564 and 566. It does not run unrelated pending migrations, including 565. Deployment should use the normal ordered migration runner after reviewing the complete migration queue.
+Local rollout uses `node scripts/apply-finance-industry-migrations.mjs`, limited to migrations 561–564 and 566–571. It does not run unrelated pending migrations, including 565. Deployment should use the normal ordered migration runner after reviewing the complete migration queue.
 
 ## Completion sequence and acceptance gates
 

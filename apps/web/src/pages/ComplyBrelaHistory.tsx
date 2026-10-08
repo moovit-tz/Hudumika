@@ -103,7 +103,7 @@ export function ComplyBrelaHistory() {
                 Results for "{queryLabel(selected)}" — {formatWhen(selected.created_at)}
               </span>
             </h3>
-            <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={() => setSelected(null)}>
+            <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={() => setSelected(null)} data-ui-native-button="">
               <Icon name="x" size={16} />
             </button></Tip>
           </div>

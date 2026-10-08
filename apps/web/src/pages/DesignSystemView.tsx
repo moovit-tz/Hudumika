@@ -325,7 +325,7 @@ export function DesignSystemView() {
           onChange={(e) => setRailSearch(e.target.value)}
         />
         {railSearch && (
-          <button type="button" className="ds-sidebar-search-clear" onClick={() => setRailSearch('')}>
+          <button type="button" className="ds-sidebar-search-clear" onClick={() => setRailSearch('')} data-ui-native-button="">
             <Icon name="x" size={11} />
           </button>
         )}
@@ -351,7 +351,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-sidebar-item ${isActive ? 'active' : ''}`}
                       onClick={() => { setActiveSection(s.id); setMobileNavOpen(false); }}
-                    >
+                     data-ui-native-button="">
                       <Icon name={s.icon} size={15} className="ds-sidebar-item-icon" />
                       <span className="ds-sidebar-item-label">{s.label}</span>
                       {badgeText && (
@@ -368,7 +368,7 @@ export function DesignSystemView() {
         {isSearching && visibleSections.length === 0 && (
           <span className="ds-sidebar-empty">
             No section matches "{railSearch.trim()}" — try a different word, or{' '}
-            <button type="button" className="ds-sidebar-empty-clear" onClick={() => setRailSearch('')}>clear the search</button>.
+            <button type="button" className="ds-sidebar-empty-clear" onClick={() => setRailSearch('')} data-ui-native-button="">clear the search</button>.
           </span>
         )}
       </nav>
@@ -390,7 +390,7 @@ export function DesignSystemView() {
                 type="button"
                 className="btn btn-secondary ds-btn-reset"
                 onClick={() => resetToDefaults()}
-              >
+               data-ui-native-button="">
                 <Icon name="refresh" size={14} />
                 <span>Reset to defaults</span>
               </button>
@@ -411,8 +411,8 @@ export function DesignSystemView() {
         <div className="ds-global-control-group">
           <span className="ds-global-control-label">System</span>
           <div className="ds-top-switcher-pills">
-            <button type="button" className={`ds-top-pill ${designSystemVersion.version === 'v1' ? 'active' : ''}`} onClick={() => setVersion('v1')}>v1 Standard</button>
-            <button type="button" className={`ds-top-pill ${designSystemVersion.version === 'v2' ? 'active' : ''}`} onClick={() => setVersion('v2')}>v2 Mellon</button>
+            <button type="button" className={`ds-top-pill ${designSystemVersion.version === 'v1' ? 'active' : ''}`} onClick={() => setVersion('v1')} data-ui-native-button="">v1 Standard</button>
+            <button type="button" className={`ds-top-pill ${designSystemVersion.version === 'v2' ? 'active' : ''}`} onClick={() => setVersion('v2')} data-ui-native-button="">v2 Mellon</button>
           </div>
         </div>
 
@@ -443,7 +443,7 @@ export function DesignSystemView() {
           <span className="ds-global-control-label">Icon library</span>
           <div className="ds-top-switcher-pills">
             {(['stroke', 'twotone', 'hugeicons'] as const).map((lib) => (
-              <button key={lib} type="button" className={`ds-top-pill ${tokens.iconLibrary === lib ? 'active' : ''}`} onClick={() => updateTokens({ iconLibrary: lib })}>
+              <button key={lib} type="button" className={`ds-top-pill ${tokens.iconLibrary === lib ? 'active' : ''}`} onClick={() => updateTokens({ iconLibrary: lib })} data-ui-native-button="">
                 {lib === 'stroke' ? 'Stroke' : lib === 'twotone' ? 'Twotone' : 'Hugeicons'}
               </button>
             ))}
@@ -452,7 +452,7 @@ export function DesignSystemView() {
 
         {/* Opens the same nav below in a drawer — the permanent sidebar is
             hidden below the mobile breakpoint. */}
-        <button type="button" className="ds-mobile-nav-trigger" onClick={() => setMobileNavOpen(true)}>
+        <button type="button" className="ds-mobile-nav-trigger" onClick={() => setMobileNavOpen(true)} data-ui-native-button="">
           <Icon name="menu" size={14} />
           <span>Browse sections</span>
         </button>
@@ -500,7 +500,7 @@ export function DesignSystemView() {
                   type="button"
                   className={`ds-related-section ${section.id === activeSection ? 'active' : ''}`}
                   onClick={() => setActiveSection(section.id)}
-                >
+                 data-ui-native-button="">
                   {section.label}
                 </button>
               ))}
@@ -540,7 +540,7 @@ export function DesignSystemView() {
                         type="button"
                         className={`ds-version-card${isSelected ? ' ds-version-card--active' : ''}`}
                         onClick={() => setVersion(ver.id as DesignSystemVersion)}
-                      >
+                       data-ui-native-button="">
                         <div className="ds-version-top">
                           <span className="ds-version-name">{ver.title}</span>
                           {isSelected && (
@@ -580,7 +580,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-theme-card${isActive ? ' ds-theme-card--active' : ''}`}
                       onClick={() => applyPlatformTheme(theme.id)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-theme-card-top">
                         <div className="ds-theme-avatar-wrap">
                           <span className="ds-theme-swatch" style={{ background: theme.tokens.brand?.primary }} />
@@ -633,7 +633,7 @@ export function DesignSystemView() {
                       type="button"
                       className="btn btn-primary ds-btn-generate"
                       onClick={handleGenerateFromSeed}
-                    >
+                     data-ui-native-button="">
                       <Icon name="sparkle" size={14} />
                       <span>Generate Tonal Scale</span>
                     </button>
@@ -659,7 +659,7 @@ export function DesignSystemView() {
                     type="button"
                     className={`ds-mode-tab${themeTab === 'light' ? ' ds-mode-tab--active' : ''}`}
                     onClick={() => setThemeTab('light')}
-                  >
+                   data-ui-native-button="">
                     <Icon name="sun" size={13} />
                     <span>Light Mode</span>
                   </button>
@@ -667,7 +667,7 @@ export function DesignSystemView() {
                     type="button"
                     className={`ds-mode-tab${themeTab === 'dark' ? ' ds-mode-tab--active' : ''}`}
                     onClick={() => setThemeTab('dark')}
-                  >
+                   data-ui-native-button="">
                     <Icon name="moon" size={13} />
                     <span>Dark Mode</span>
                   </button>
@@ -713,7 +713,7 @@ export function DesignSystemView() {
                     type="button"
                     className={`ds-mode-tab${themeTab === 'light' ? ' ds-mode-tab--active' : ''}`}
                     onClick={() => setThemeTab('light')}
-                  >
+                   data-ui-native-button="">
                     <Icon name="sun" size={13} />
                     <span>Light Mode</span>
                   </button>
@@ -721,7 +721,7 @@ export function DesignSystemView() {
                     type="button"
                     className={`ds-mode-tab${themeTab === 'dark' ? ' ds-mode-tab--active' : ''}`}
                     onClick={() => setThemeTab('dark')}
-                  >
+                   data-ui-native-button="">
                     <Icon name="moon" size={13} />
                     <span>Dark Mode</span>
                   </button>
@@ -840,7 +840,7 @@ export function DesignSystemView() {
                         type="button"
                         className={`ds-variant-card${isSelected ? ' ds-variant-card--active' : ''}`}
                         onClick={() => save('shape', { shape: { ...tokens.shape, rSm: p.rSm, r: p.r, rLg: p.rLg, badgeRadius: p.badgeRadius, borderWidth: p.bw } })}
-                      >
+                       data-ui-native-button="">
                         <div className="ds-variant-top">
                           <span className="ds-variant-title">{p.title}</span>
                           {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -883,12 +883,21 @@ export function DesignSystemView() {
                 />
                 <NumberField
                   label="Border Width"
-                  description="Input and card outline thickness"
+                  description="Input and button outline thickness"
                   suffix="px"
                   step={0.5}
                   min={0}
                   value={tokens.shape.borderWidth}
                   onChange={v => save('shape', { shape: { ...tokens.shape, borderWidth: v } })}
+                />
+                <NumberField
+                  label="Card Border Width"
+                  description="All card outlines; colour follows Border Default and corners follow Large Radius"
+                  suffix="px"
+                  step={0.5}
+                  min={0}
+                  value={tokens.shape.cardBorderWidth ?? 1}
+                  onChange={v => save('shape', { shape: { ...tokens.shape, cardBorderWidth: v } })}
                 />
                 <NumberField
                   label="Icon Stroke Weight"
@@ -947,7 +956,7 @@ export function DesignSystemView() {
             <section className="ds-card-section">
               <div className="ds-section-header-block">
                 <h3 className="ds-section-heading">Tabs &amp; Navigation Strips</h3>
-                <p className="ds-section-sub">Configure platform tab styling variants, corner radius, track height, and typography.</p>
+                <p className="ds-section-sub">One format for tabs and navigation strips across apps. CRM customer navigation keeps its own format. Tab targets are at least 44px.</p>
               </div>
 
               <div className="ds-variant-cards-grid">
@@ -966,7 +975,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-variant-card${isSelected ? ' ds-variant-card--active' : ''}`}
                       onClick={() => save('tabs', { tabs: { ...tokens.tabs, variant: v.id as any } })}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-variant-top">
                         <span className="ds-variant-title">{v.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -986,10 +995,10 @@ export function DesignSystemView() {
                   onChange={v => save('tabs', { tabs: { ...tokens.tabs, radius: v } })}
                 />
                 <NumberField
-                  label="Track Height"
+                  label="Tab Height"
                   suffix="px"
-                  min={24}
-                  value={tokens.tabs.height}
+                  min={44}
+                  value={Math.max(44, tokens.tabs.height)}
                   onChange={v => save('tabs', { tabs: { ...tokens.tabs, height: v } })}
                 />
                 <NumberField
@@ -1035,7 +1044,7 @@ export function DesignSystemView() {
                   makes it collapse to icon-only under 560px — resize the
                   window (or view on a phone) to see it happen. */}
               <div className="ds-interactive-preview-card">
-                <span className="ds-preview-mini-label">FILTER ROW WITH COUNT BADGES — SAME CONTROL, NOT A SEPARATE COMPONENT (RESIZE BELOW 560PX TO SEE THE LABEL COLLAPSE)</span>
+                <span className="ds-preview-mini-label">FILTER ROW WITH COUNT BADGES — SAME CONTROL, NOT A SEPARATE COMPONENT (LONG ROWS SCROLL ON MOBILE WITHOUT HIDING LABELS)</span>
                 <Tabs value={tabsBadgeDemo} onValueChange={setTabsBadgeDemo}>
                   <TabsList>
                     {[
@@ -1076,7 +1085,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-shadow-card${isSelected ? ' ds-shadow-card--active' : ''}`}
                       onClick={() => save('elevation', { elevation: id })}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-shadow-sample" style={{ boxShadow: shadowCss }} />
                       <div className="ds-shadow-meta">
                         <span className="ds-shadow-title">{SHADOW_LABELS[id]}</span>
@@ -1112,7 +1121,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-variant-card${isSelected ? ' ds-variant-card--active' : ''}`}
                       onClick={() => save('density', { density: id })}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-variant-top">
                         <span className="ds-variant-title">{DENSITY_LABELS[id]}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1176,7 +1185,7 @@ export function DesignSystemView() {
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={() => setMotionTrigger(c => c + 1)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="zap" size={13} />
                     <span>Trigger Animation Test</span>
                   </button>
@@ -1220,7 +1229,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
                       onClick={() => setMenuDefault(opt.id as any)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1254,7 +1263,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
                       onClick={() => setNavbarType(opt.id as any)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1287,7 +1296,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
                       onClick={() => setContentWidth(opt.id as any)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1320,7 +1329,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
                       onClick={() => setSkin(opt.id as any)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1366,7 +1375,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
                       onClick={() => setSidebarStyle(opt.id)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1399,7 +1408,7 @@ export function DesignSystemView() {
                       type="button"
                       className={`ds-layout-option-card${isSelected ? ' ds-layout-option-card--active' : ''}`}
                       onClick={() => setDirection(opt.id as any)}
-                    >
+                     data-ui-native-button="">
                       <div className="ds-layout-option-top">
                         <span className="ds-layout-option-title">{opt.title}</span>
                         {isSelected && <span className="ds-version-check"><Icon name="check" size={11} /></span>}
@@ -1554,7 +1563,7 @@ export function DesignSystemView() {
                   type="button"
                   className={`ds-tab${previewTheme === 'light' ? ' ds-tab--active' : ''}`}
                   onClick={() => setPreviewTheme('light')}
-                >
+                 data-ui-native-button="">
                   <Icon name="sun" size={12} />
                   <span>Light</span>
                 </button>
@@ -1562,7 +1571,7 @@ export function DesignSystemView() {
                   type="button"
                   className={`ds-tab${previewTheme === 'dark' ? ' ds-tab--active' : ''}`}
                   onClick={() => setPreviewTheme('dark')}
-                >
+                 data-ui-native-button="">
                   <Icon name="moon" size={12} />
                   <span>Dark</span>
                 </button>
@@ -1575,10 +1584,10 @@ export function DesignSystemView() {
               <div className="ds-playground-block">
                 <span className="ds-playground-label">BUTTON PRIMITIVES</span>
                 <div className="ds-preview-row">
-                  <button type="button" className="btn btn-primary">Primary</button>
-                  <button type="button" className="btn btn-secondary">Secondary</button>
-                  <button type="button" className="btn btn-ghost">Ghost</button>
-                  <button type="button" className="btn btn-danger">Danger</button>
+                  <button type="button" className="btn btn-primary" data-ui-native-button="">Primary</button>
+                  <button type="button" className="btn btn-secondary" data-ui-native-button="">Secondary</button>
+                  <button type="button" className="btn btn-ghost" data-ui-native-button="">Ghost</button>
+                  <button type="button" className="btn btn-danger" data-ui-native-button="">Danger</button>
                 </div>
               </div>
 
@@ -1671,7 +1680,7 @@ export function DesignSystemView() {
           type="button"
           className="ds-mobile-preview-fab"
           onClick={() => setMobilePreviewOpen(true)}
-        >
+         data-ui-native-button="">
           <Icon name="sparkle" size={16} />
           <span>Live Playground</span>
         </button>
@@ -1692,10 +1701,10 @@ export function DesignSystemView() {
             <div className="ds-playground-block">
               <span className="ds-playground-label">BUTTON PRIMITIVES</span>
               <div className="ds-preview-row">
-                <button type="button" className="btn btn-primary">Primary</button>
-                <button type="button" className="btn btn-secondary">Secondary</button>
-                <button type="button" className="btn btn-ghost">Ghost</button>
-                <button type="button" className="btn btn-danger">Danger</button>
+                <button type="button" className="btn btn-primary" data-ui-native-button="">Primary</button>
+                <button type="button" className="btn btn-secondary" data-ui-native-button="">Secondary</button>
+                <button type="button" className="btn btn-ghost" data-ui-native-button="">Ghost</button>
+                <button type="button" className="btn btn-danger" data-ui-native-button="">Danger</button>
               </div>
             </div>
 

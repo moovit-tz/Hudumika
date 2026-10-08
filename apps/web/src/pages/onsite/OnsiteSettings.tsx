@@ -51,7 +51,7 @@ function AgencyRelationshipCard() {
         <p style={{ color: 'var(--ink3)', margin: 0 }}>
           Onsite is currently managed by <strong style={{ color: 'var(--ink)' }}>{agency.agency_name}</strong> under their package.
         </p>
-        <button className="btn btn-sm btn-secondary" style={{ color: 'var(--red)' }} disabled={leaving} onClick={handleLeave}>
+        <button className="btn btn-sm btn-secondary" style={{ color: 'var(--red)' }} disabled={leaving} onClick={handleLeave} data-ui-native-button="">
           {leaving ? 'Leaving…' : 'Leave this agency'}
         </button>
       </div>
@@ -117,7 +117,7 @@ export function OnsiteSettings() {
         titlePlain="Provider"
         titleEm="connections"
         subtitle="Connect your GitHub org, CircleCI account, and Cloudflare tokens for continuous deployment."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                     <Icon name="plus" size={16} /> Connect Provider
                   </button></>}
       />
@@ -174,7 +174,7 @@ export function OnsiteSettings() {
                   <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Repository triggers & webhooks</div>
                 </div>
               </div>
-              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('github'); setShowAddModal(true); }}>Connect</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('github'); setShowAddModal(true); }} data-ui-native-button="">Connect</button>
             </div>
 
             <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -185,7 +185,7 @@ export function OnsiteSettings() {
                   <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>CI/CD pipelines & build notifications</div>
                 </div>
               </div>
-              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('circleci'); setShowAddModal(true); }}>Connect</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('circleci'); setShowAddModal(true); }} data-ui-native-button="">Connect</button>
             </div>
 
             <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -196,7 +196,7 @@ export function OnsiteSettings() {
                   <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Static/JAMstack deployments</div>
                 </div>
               </div>
-              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('cloudflare'); setShowAddModal(true); }}>Connect</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('cloudflare'); setShowAddModal(true); }} data-ui-native-button="">Connect</button>
             </div>
 
             <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -207,7 +207,7 @@ export function OnsiteSettings() {
                   <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Managed app deployments</div>
                 </div>
               </div>
-              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('digitalocean'); setShowAddModal(true); }}>Connect</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => { setProvider('digitalocean'); setShowAddModal(true); }} data-ui-native-button="">Connect</button>
             </div>
           </div>
         </div>
@@ -218,7 +218,7 @@ export function OnsiteSettings() {
         <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Connect Infrastructure Provider</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -269,10 +269,10 @@ export function OnsiteSettings() {
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
                   {submitting ? 'Connecting…' : 'Save Connection'}
                 </button>
               </div>

@@ -102,13 +102,13 @@ export function MeetingLinkPanel({ title, value, onChange, disabled }: {
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{isBliss ? 'Bliss video call' : 'Video call'}</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.meetingUrl}</div>
         </div>
-        <button type="button" title="Copy link" onClick={copyLink} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+        <button type="button" title="Copy link" onClick={copyLink} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
           <Icon name="copy" size={15} />
         </button>
         <a href={value.meetingUrl} target="_blank" rel="noreferrer" title="Open" style={{ color: 'var(--ink3)', padding: 4, display: 'flex' }}>
           <Icon name="externalLink" size={15} />
         </a>
-        <button type="button" title="Remove" onClick={removeLink} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}>
+        <button type="button" title="Remove" onClick={removeLink} disabled={disabled} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }} data-ui-native-button="">
           <Icon name="x" size={15} />
         </button>
       </div>

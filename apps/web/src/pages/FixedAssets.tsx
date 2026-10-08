@@ -217,7 +217,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 style={{ width: '100%', justifyContent: 'center' }}
                 disabled={saving}
                 onClick={submit}
-              >
+               data-ui-native-button="">
                 <Icon name="save" size={14} /> {saving ? 'Saving…' : 'Add Fixed Asset'}
               </button>
             </div>
@@ -341,7 +341,7 @@ export function FixedAssets() {
         <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button"
             onClick={() => setShowForm(true)}
-            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
             <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Asset
           </button>
         </div>
@@ -378,9 +378,9 @@ export function FixedAssets() {
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <Tip label="View schedule"><button type="button" aria-label="View schedule" className="finance-icon-action" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }}><Icon name="fileText" size={14} /></button></Tip>
-                      {!readOnly && a.status === 'ACTIVE' && <Tip label="Dispose"><button type="button" aria-label="Dispose" className="finance-icon-action" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }}><Icon name="logOut" size={14} /></button></Tip>}
-                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <Tip label="Delete"><button type="button" aria-label="Delete" className="finance-icon-action" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /></button></Tip>}
+                      <Tip label="View schedule"><button type="button" aria-label="View schedule" className="finance-icon-action" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="fileText" size={14} /></button></Tip>
+                      {!readOnly && a.status === 'ACTIVE' && <Tip label="Dispose"><button type="button" aria-label="Dispose" className="finance-icon-action" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }} data-ui-native-button=""><Icon name="logOut" size={14} /></button></Tip>}
+                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <Tip label="Delete"><button type="button" aria-label="Delete" className="finance-icon-action" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>}
                     </div>
                   </td>
                 </tr>
@@ -420,8 +420,8 @@ export function FixedAssets() {
               <label style={lbl}>Disposal Proceeds</label>
               <input type="number" min={0} style={inp} value={disposalProceeds} onChange={e => setDisposalProceeds(parseFloat(e.target.value) || 0)} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDisposing(null)}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={handleDispose}>Confirm Disposal</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDisposing(null)} data-ui-native-button="">Cancel</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={handleDispose} data-ui-native-button="">Confirm Disposal</button>
               </div>
             </>
           )}

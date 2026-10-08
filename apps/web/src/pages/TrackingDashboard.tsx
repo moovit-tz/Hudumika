@@ -161,7 +161,6 @@ export const TrackingDashboard: React.FC = () => {
 
   // Drawers
   const [copilotOpen, setCopilotOpen] = useState(false);
-  const [selectedShipment, setSelectedShipment] = useState<ShipmentItem | null>(null);
   const [copilotInput, setCopilotInput] = useState('');
   const [copilotMessages, setCopilotMessages] = useState<Array<{ role: 'ai' | 'user'; text: string; time: string }>>([
     {
@@ -363,7 +362,7 @@ export const TrackingDashboard: React.FC = () => {
             type="button"
             className={`logistics-tab-btn ${activeTab === 'all' ? 'is-active' : ''}`}
             onClick={() => handleTabChange('all')}
-          >
+           data-ui-native-button="">
             <Icon name="grid" size={14} />
             <span>All Operations</span>
           </button>
@@ -371,7 +370,7 @@ export const TrackingDashboard: React.FC = () => {
             type="button"
             className={`logistics-tab-btn ${activeTab === 'fleet' ? 'is-active' : ''}`}
             onClick={() => handleTabChange('fleet')}
-          >
+           data-ui-native-button="">
             <Icon name="truck" size={14} />
             <span>Fleet & Telematics</span>
           </button>
@@ -379,7 +378,7 @@ export const TrackingDashboard: React.FC = () => {
             type="button"
             className={`logistics-tab-btn ${activeTab === 'warehouse' ? 'is-active' : ''}`}
             onClick={() => handleTabChange('warehouse')}
-          >
+           data-ui-native-button="">
             <Icon name="layers" size={14} />
             <span>Warehouse & Docks</span>
           </button>
@@ -387,7 +386,7 @@ export const TrackingDashboard: React.FC = () => {
             type="button"
             className={`logistics-tab-btn ${activeTab === 'ledger' ? 'is-active' : ''}`}
             onClick={() => handleTabChange('ledger')}
-          >
+           data-ui-native-button="">
             <Icon name="clipboardList" size={14} />
             <span>Operations Ledger</span>
           </button>
@@ -690,7 +689,7 @@ export const TrackingDashboard: React.FC = () => {
                         cursor: 'pointer',
                         fontFamily: 'var(--font)',
                       }}
-                    >
+                     data-ui-native-button="">
                       {mode}
                     </button>
                   ))}
@@ -714,28 +713,28 @@ export const TrackingDashboard: React.FC = () => {
                 </svg>
 
                 {/* Animated Interactive Pins */}
-                <div className="logistics-map-pin" style={{ top: '62%', left: '48%' }} onClick={() => setSelectedShipment(allShipments[0])}>
+                <div className="logistics-map-pin" style={{ top: '62%', left: '48%' }} onClick={() => allShipments[0] && navigate(`/tracking/shipments/${allShipments[0].id}`)}>
                   <div className="logistics-pin-dot" style={{ background: 'var(--green)' }}>
                     <div className="logistics-pin-ping" style={{ background: 'var(--green)' }} />
                   </div>
                   <div className="logistics-pin-label">Dar es Salaam Port (Hub)</div>
                 </div>
 
-                <div className="logistics-map-pin" style={{ top: '72%', left: '40%' }} onClick={() => setSelectedShipment(allShipments[0])}>
+                <div className="logistics-map-pin" style={{ top: '72%', left: '40%' }} onClick={() => allShipments[0] && navigate(`/tracking/shipments/${allShipments[0].id}`)}>
                   <div className="logistics-pin-dot" style={{ background: 'var(--gold)' }}>
                     <div className="logistics-pin-ping" style={{ background: 'var(--gold)' }} />
                   </div>
                   <div className="logistics-pin-label">Tunduma Border (Delayed +3h)</div>
                 </div>
 
-                <div className="logistics-map-pin" style={{ top: '35%', left: '75%' }} onClick={() => setSelectedShipment(allShipments[2])}>
+                <div className="logistics-map-pin" style={{ top: '35%', left: '75%' }} onClick={() => allShipments[2] && navigate(`/tracking/shipments/${allShipments[2].id}`)}>
                   <div className="logistics-pin-dot" style={{ background: 'var(--blue)' }}>
                     <div className="logistics-pin-ping" style={{ background: 'var(--blue)' }} />
                   </div>
                   <div className="logistics-pin-label">Shanghai Container Port</div>
                 </div>
 
-                <div className="logistics-map-pin" style={{ top: '28%', left: '32%' }} onClick={() => setSelectedShipment(allShipments[4])}>
+                <div className="logistics-map-pin" style={{ top: '28%', left: '32%' }} onClick={() => allShipments[4] && navigate(`/tracking/shipments/${allShipments[4].id}`)}>
                   <div className="logistics-pin-dot" style={{ background: 'var(--red)' }}>
                     <div className="logistics-pin-ping" style={{ background: 'var(--red)' }} />
                   </div>
@@ -775,7 +774,7 @@ export const TrackingDashboard: React.FC = () => {
                 <Button
                   size="sm"
                   variant="default"
-                  onClick={() => setSelectedShipment(allShipments[0])}
+                  onClick={() => allShipments[0] && navigate(`/tracking/shipments/${allShipments[0].id}`)}
                   style={{ position: 'absolute', top: 12, right: 12, fontSize: 11, gap: 4 }}
                 >
                   <span>Inspect Live Shipment</span>
@@ -1358,7 +1357,7 @@ export const TrackingDashboard: React.FC = () => {
                     <td style={{ padding: '10px 8px' }}>
                       <button
                         type="button"
-                        onClick={() => setSelectedShipment(item)}
+                        onClick={() => navigate(`/tracking/shipments/${item.id}`)}
                         style={{
                           background: 'none',
                           border: 'none',
@@ -1370,8 +1369,8 @@ export const TrackingDashboard: React.FC = () => {
                           fontSize: 12.5,
                           textAlign: 'left',
                         }}
-                        title="Inspect trip details"
-                      >
+                        title="Open trip detail"
+                       data-ui-native-button="">
                         {item.code}
                       </button>
                     </td>
@@ -1451,10 +1450,10 @@ export const TrackingDashboard: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedShipment(item)}
+                        onClick={() => navigate(`/tracking/shipments/${item.id}`)}
                         style={{ padding: '4px 8px', fontSize: 11 }}
                       >
-                        Inspect
+                        Open
                       </Button>
                     </td>
                   </tr>
@@ -1503,7 +1502,7 @@ export const TrackingDashboard: React.FC = () => {
                 type="button"
                 onClick={() => setCopilotOpen(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
-              >
+               data-ui-native-button="">
                 <Icon name="close" size={18} />
               </button>
             </div>
@@ -1550,7 +1549,7 @@ export const TrackingDashboard: React.FC = () => {
                     cursor: 'pointer',
                     fontFamily: 'var(--font)',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name="alertTriangle" size={15} />
                   <span>Which shipments are currently at risk of SLA breach?</span>
                 </button>
@@ -1568,7 +1567,7 @@ export const TrackingDashboard: React.FC = () => {
                     cursor: 'pointer',
                     fontFamily: 'var(--font)',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name="package" size={15} />
                   <span>Suggest a rebalancing plan for warehouse container overflow</span>
                 </button>
@@ -1586,7 +1585,7 @@ export const TrackingDashboard: React.FC = () => {
                     cursor: 'pointer',
                     fontFamily: 'var(--font)',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name="tool" size={15} />
                   <span>Summarize fleet maintenance needs for high-risk vehicles</span>
                 </button>
@@ -1611,120 +1610,6 @@ export const TrackingDashboard: React.FC = () => {
         </>
       )}
 
-      {/* ── INTERACTIVE DRAWER: Shipment Quickview Details ── */}
-      {selectedShipment && (
-        <>
-          <div className="logistics-drawer-overlay" onClick={() => setSelectedShipment(null)} />
-          <div className="logistics-drawer">
-            <div className="logistics-drawer-header">
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>{selectedShipment.code}</h3>
-                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{selectedShipment.customer}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedShipment(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
-              >
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-
-            <div className="logistics-drawer-body">
-              {/* Status Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>Transit Status</div>
-                  <Badge variant={selectedShipment.status === 'Delivered' ? 'success' : selectedShipment.status === 'Delayed' ? 'warning' : 'brand'}>
-                    {selectedShipment.status}
-                  </Badge>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>Priority</div>
-                  <span style={{ fontWeight: 800, color: selectedShipment.priority === 'P1' ? 'var(--red)' : 'var(--gold)' }}>
-                    {selectedShipment.priority}
-                  </span>
-                </div>
-              </div>
-
-              {/* Specs Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'var(--bg)', padding: '10px', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Carrier</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 2 }}>{selectedShipment.carrier}</div>
-                </div>
-                <div style={{ background: 'var(--bg)', padding: '10px', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Cargo Weight</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 2 }}>{selectedShipment.weight}</div>
-                </div>
-                <div style={{ background: 'var(--bg)', padding: '10px', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Vehicle ID</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 2 }}>{selectedShipment.vehicle}</div>
-                </div>
-                <div style={{ background: 'var(--bg)', padding: '10px', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>ETA Destination</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 2 }}>{selectedShipment.eta}</div>
-                </div>
-              </div>
-
-              {/* Assigned Driver */}
-              <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <PersonAvatar name={selectedShipment.driverName} userId={selectedShipment.driverId} size={40} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{selectedShipment.driverName}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Primary Transit Operator · Verified</div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => navigate('/chat')}>
-                  <Icon name="message" size={14} />
-                </Button>
-              </div>
-
-              {/* Milestone Tracker Timeline */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>Live Corridor Milestones</div>
-                <div className="logistics-timeline">
-                  <div className="logistics-timeline-item">
-                    <div className="logistics-timeline-dot" style={{ background: 'var(--green)' }} />
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>Origin Terminal Handover</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{selectedShipment.origin} · Completed</div>
-                  </div>
-                  <div className="logistics-timeline-item">
-                    <div className="logistics-timeline-dot" style={{ background: 'var(--teal)' }} />
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>Corridor Transit in Progress</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>GPS Telemetry Active · Speed 62 km/h</div>
-                  </div>
-                  <div className="logistics-timeline-item">
-                    <div className="logistics-timeline-dot" style={{ background: 'var(--border2)' }} />
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Destination Depot Intake</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{selectedShipment.destination} · Estimated {selectedShipment.eta}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="logistics-drawer-footer" style={{ display: 'flex', gap: 8 }}>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => {
-                  setSelectedShipment(null);
-                  navigate(`/tracking/shipments`);
-                }}
-                style={{ flex: 1 }}
-              >
-                Open in Full Clearance
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedShipment(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 };

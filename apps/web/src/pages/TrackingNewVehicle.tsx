@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { useVehicleMakes, useVehicleModels } from '../hooks/useVehicleMakeModel.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectLabel, SelectItem } from '../components/ui/select.js';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
@@ -13,11 +13,41 @@ import { SectionCard } from '../components/SectionCard.js';
 // Rough mapping from this form's vehicle Type to NHTSA vPIC's vehicle-type
 // categories — used only to seed the Make picker with relevant suggestions.
 function vpicTypeFor(type: string): string {
-  if (type === 'VAN') return 'multipurpose passenger vehicle (mpv)';
+  if (['SUV', 'MINIVAN', 'VAN', 'PASSENGER_VAN', 'HORSE_TOW_SUV', 'HORSE_VAN'].includes(type)) return 'multipurpose passenger vehicle (mpv)';
   if (type === 'MOTORBIKE') return 'motorcycle';
-  if (type === 'Car') return 'car';
+  if (['CAR', 'SEDAN'].includes(type)) return 'car';
   return 'truck';
 }
+
+const VEHICLE_TYPE_GROUPS = [
+  { label: 'Commercial trucks', options: [
+    ['TRUCK', 'General truck'], ['FLATBED_TRUCK', 'Flatbed truck'], ['BOX_TRUCK', 'Box truck'],
+    ['TANKER_TRUCK', 'Tanker truck'], ['DUMP_TRUCK', 'Dump truck'], ['SEMI_TRACTOR', 'Semi-trailer tractor unit'],
+    ['RIGID_LORRY', 'Rigid lorry'],
+  ] },
+  { label: 'Shuttle & passenger', options: [
+    ['SUV', 'SUV'], ['MINIVAN', 'Minivan'], ['PASSENGER_VAN', 'Passenger van'],
+    ['SHUTTLE_BUS', 'Shuttle bus'], ['COACH', 'Coach'], ['SEDAN', 'Sedan / car'],
+  ] },
+  { label: 'Horse transport', options: [
+    ['HORSE', 'Horse (individual tracked asset)'],
+    ['HEAVY_DUTY_PICKUP', 'Heavy-duty pickup (F-250/F-350, Ram 2500/3500)'],
+    ['HORSE_TOW_SUV', 'Tow-rated SUV for horse trailer'], ['HORSE_LORRY', 'Horse lorry'],
+    ['HORSE_VAN', 'Specialized horse van'], ['LIVESTOCK_TRUCK', 'Livestock truck'],
+  ] },
+  { label: 'Other powered assets', options: [['MOTORBIKE', 'Motorbike'], ['OTHER', 'Other']] },
+] as const;
+
+const TYPE_HELP: Record<string, string> = {
+  HORSE: 'Register an individual horse when ownership, leasing, availability, and tracker assignment are managed per animal.',
+  HEAVY_DUTY_PICKUP: 'Heavy-duty pickup configured to pull a bumper-pull or gooseneck horse trailer.',
+  HORSE_TOW_SUV: 'Frame-based, tow-rated SUV used with a smaller horse trailer.',
+  HORSE_LORRY: 'Rigid vehicle with stalls built into the main body.',
+  HORSE_VAN: 'Converted or purpose-built van that transports horses inside the vehicle body.',
+  MINIVAN: 'Passenger asset suitable for shuttle operations and per-vehicle leasing.',
+  SUV: 'Passenger or shuttle SUV; use “Tow-rated SUV” when assigned to horse transport.',
+  SEMI_TRACTOR: 'Powered tractor unit; register its detachable trailer separately under Trailers & towables.',
+};
 
 const SECTIONS = ['Details', 'Maintenance', 'Lifecycle', 'Financial', 'Specifications', 'Settings'];
 
@@ -27,7 +57,7 @@ export const TrackingNewVehicle: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<Record<string, any>>({
-    name: '', type: 'Car', status: 'ACTIVE', ownership: 'OWNED',
+    name: '', type: 'TRUCK', status: 'ACTIVE', ownership: 'OWNED',
     vin: '', year: '', make: '', model: '', trim: '', color: '',
     plate_number: '', device_id: '',
     purchase_vendor: '', purchase_date: '', purchase_price: '', initial_odometer: '', financing_type: 'NONE',
@@ -97,10 +127,10 @@ export const TrackingNewVehicle: React.FC = () => {
         variant="create"
         onBack={() => navigate(-1)}
         actions={<div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             + Multiple Vehicles
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             {saving ? 'Saving...' : 'Save Vehicle'}
           </button>
         </div>}
@@ -115,7 +145,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
                 background: activeSection === sec ? 'var(--teal-l)' : 'transparent',
                 color: activeSection === sec ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name={sec === 'Details' ? 'fileText' : sec === 'Maintenance' ? 'tool' : sec === 'Lifecycle' ? 'refresh' : sec === 'Financial' ? 'dollarSign' : sec === 'Specifications' ? 'settings' : 'sliders'} size={16} />
               {sec}
             </button>
@@ -135,31 +165,34 @@ export const TrackingNewVehicle: React.FC = () => {
                   <input style={inputStyle} placeholder="Vehicle Identification Number or Serial Number" value={form.vin} onChange={e => handleChange('vin', e.target.value)} />
                 </div>
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Identification</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Identification</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Register powered vehicles or an individually managed horse here. Detachable trailers and towables are registered separately but appear on the same Fleet Assets page.</div>
                   
                   <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>Vehicle Name <span style={{color: 'var(--red)'}}>*</span></label>
+                    <label style={labelStyle}>Asset name <span style={{color: 'var(--red)'}}>*</span></label>
                     <input style={inputStyle} placeholder="Enter a nickname to distinguish this vehicle in fleet" value={form.name} onChange={e => handleChange('name', e.target.value)} />
                   </div>
 
                   <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>Device ID <span style={{color: 'var(--red)'}}>*</span></label>
-                    <input style={inputStyle} placeholder="GPS/Telematics Device ID" value={form.device_id} onChange={e => handleChange('device_id', e.target.value)} />
+                    <label style={labelStyle}>Tracker / device ID <span style={{color: 'var(--red)'}}>*</span></label>
+                    <input style={inputStyle} placeholder="GPS, telematics or asset-tracker ID" value={form.device_id} onChange={e => handleChange('device_id', e.target.value)} />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div>
-                      <label style={labelStyle}>Type <span style={{color: 'var(--red)'}}>*</span></label>
+                      <label style={labelStyle}>Operational asset type <span style={{color: 'var(--red)'}}>*</span></label>
                       <Select value={form.type} onValueChange={v => handleChange('type', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Car">Car</SelectItem>
-                          <SelectItem value="TRUCK">Truck</SelectItem>
-                          <SelectItem value="VAN">Van</SelectItem>
-                          <SelectItem value="MOTORBIKE">Motorbike</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
+                          {VEHICLE_TYPE_GROUPS.map(group => (
+                            <SelectGroup key={group.label}>
+                              <SelectLabel>{group.label}</SelectLabel>
+                              {group.options.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                            </SelectGroup>
+                          ))}
                         </SelectContent>
                       </Select>
+                      {TYPE_HELP[form.type] && <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.4, marginTop: 5 }}>{TYPE_HELP[form.type]}</div>}
                     </div>
                     <div>
                       <label style={labelStyle}>Status <span style={{color: 'var(--red)'}}>*</span></label>
@@ -358,14 +391,14 @@ export const TrackingNewVehicle: React.FC = () => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 Cancel
               </button>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Save & Add Another
                 </button>
-                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Saving...' : 'Save Vehicle'}
                 </button>
               </div>

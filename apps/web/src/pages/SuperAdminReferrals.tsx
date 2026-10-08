@@ -134,12 +134,12 @@ export const SuperAdminReferrals: React.FC = () => {
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     {(r.status === 'pending' || r.status === 'flagged') && (
                       <div style={{ display: 'inline-flex', gap: 6 }}>
-                        <button className="btn btn-sm btn-primary" disabled={acting === r.id} onClick={() => decide(r.id, 'approved')}>Approve</button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === r.id} onClick={() => decide(r.id, 'rejected')}>Reject</button>
+                        <button className="btn btn-sm btn-primary" disabled={acting === r.id} onClick={() => decide(r.id, 'approved')} data-ui-native-button="">Approve</button>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === r.id} onClick={() => decide(r.id, 'rejected')} data-ui-native-button="">Reject</button>
                       </div>
                     )}
                     {r.status === 'approved' && (
-                      <button className="btn btn-sm btn-secondary" disabled={acting === r.id} onClick={() => recordManualPayout(r.id)}>Record payout</button>
+                      <button className="btn btn-sm btn-secondary" disabled={acting === r.id} onClick={() => recordManualPayout(r.id)} data-ui-native-button="">Record payout</button>
                     )}
                   </td>
                 </tr>

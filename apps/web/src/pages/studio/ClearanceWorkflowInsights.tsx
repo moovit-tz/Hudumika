@@ -132,7 +132,7 @@ function DryRunTab({ workflowId, unsaved }: { workflowId: string; unsaved: boole
             className="z-1100"
           />
         </div>
-        <button className="btn btn-primary" onClick={run} disabled={busy}>
+        <button className="btn btn-primary" onClick={run} disabled={busy} data-ui-native-button="">
           <Icon name="play" size={13} color="white" /> {busy ? 'Testing…' : 'Run test'}
         </button>
       </div>
@@ -269,11 +269,11 @@ function HistoryTab({ workflowId }: { workflowId: string }) {
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <button type="button" className={`wfb-tag-pill ${!filter ? 'sel' : ''}`} onClick={() => setFilter('')}>
+        <button type="button" className={`wfb-tag-pill ${!filter ? 'sel' : ''}`} onClick={() => setFilter('')} data-ui-native-button="">
           All {total > 0 && `(${total})`}
         </button>
         {['SUCCESS', 'PARTIAL', 'BLOCKED', 'FAILED', 'SIMULATED'].filter(s => counts[s]).map(s => (
-          <button key={s} type="button" className={`wfb-tag-pill ${filter === s ? 'sel' : ''}`} onClick={() => setFilter(s)}>
+          <button key={s} type="button" className={`wfb-tag-pill ${filter === s ? 'sel' : ''}`} onClick={() => setFilter(s)} data-ui-native-button="">
             {s.charAt(0) + s.slice(1).toLowerCase()} ({counts[s]})
           </button>
         ))}
@@ -379,17 +379,17 @@ export function ClearanceWorkflowInsights({
     <div className="wfb-insights-backdrop" onClick={onClose}>
       <aside className="wfb-insights" onClick={e => e.stopPropagation()} role="dialog" aria-label="Workflow test and history">
         <div className="wfb-insights-head">
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 4 }} data-ds-tabstrip="">
             {(['test', 'history'] as const).map(t => (
               <button key={t} type="button"
                       className={`wfb-insights-tab ${tab === t ? 'sel' : ''}`}
-                      onClick={() => setTab(t)}>
+                      onClick={() => setTab(t)} data-ds-selected={tab === t} data-ui-native-button="" aria-pressed={tab === t}>
                 <Icon name={t === 'test' ? 'play' : 'clock'} size={13} />
                 {t === 'test' ? 'Dry run' : 'History'}
               </button>
             ))}
           </div>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close" data-ui-native-button="">
             <Icon name="x" size={14} />
           </button>
         </div>

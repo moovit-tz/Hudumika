@@ -186,7 +186,7 @@ export const ApiKeysPage: React.FC = () => {
           type="button"
           onClick={() => navigate('/settings')}
           className="api-keys-privacy-btn"
-        >
+         data-ui-native-button="">
           Privacy Settings
         </button>
       </div>
@@ -225,7 +225,7 @@ export const ApiKeysPage: React.FC = () => {
                   title="Copy API Key"
                   onClick={() => handleCopy(publicApiKey, true)}
                   className="api-key-copy-btn"
-                >
+                 data-ui-native-button="">
                   <Icon name={copiedMaster ? 'check' : 'copy'} size={15} />
                 </button>
               </div>
@@ -256,14 +256,14 @@ export const ApiKeysPage: React.FC = () => {
                   type="button"
                   onClick={() => navigate('/workspace/billing')}
                   className="api-btn-renew"
-                >
+                 data-ui-native-button="">
                   Renew Plan
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate('/developer?tab=marketplace')}
                   className="api-btn-docs"
-                >
+                 data-ui-native-button="">
                   Docs
                 </button>
               </div>
@@ -295,12 +295,12 @@ export const ApiKeysPage: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddModalOpen(true)}
                   className="api-btn-add"
-                >
+                 data-ui-native-button="">
                   <Icon name="plus" size={13} />
                   Add New
                 </button>
 
-                <button type="button" className="api-btn-filter">
+                <button type="button" className="api-btn-filter" data-ui-native-button="">
                   <Icon name="sliders" size={13} />
                   Columns
                 </button>
@@ -345,7 +345,7 @@ export const ApiKeysPage: React.FC = () => {
                             title="Copy API Key"
                             onClick={() => handleCopy(item.keyMasked, false, item.id)}
                             style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer' }}
-                          >
+                           data-ui-native-button="">
                             <Icon name={copiedKeyId === item.id ? 'check' : 'copy'} size={13} color={copiedKeyId === item.id ? 'var(--teal)' : 'currentColor'} />
                           </button>
                         </div>
@@ -368,7 +368,7 @@ export const ApiKeysPage: React.FC = () => {
                           title="Edit Settings"
                           onClick={() => showAlert(`Managing configuration for ${item.name}`)}
                           style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="edit" size={13} />
                         </button>
                       </td>
@@ -433,7 +433,7 @@ export const ApiKeysPage: React.FC = () => {
                 disabled={savingWebhook}
                 onClick={handleSaveWebhook}
                 className="api-btn-add"
-              >
+               data-ui-native-button="">
                 <Icon name="save" size={13} />
                 {savingWebhook ? 'Saving…' : 'Save Changes'}
               </button>
@@ -456,7 +456,7 @@ export const ApiKeysPage: React.FC = () => {
                 type="button"
                 onClick={() => navigate('/developer?tab=marketplace')}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-bold bg-[var(--bg)] border border-[var(--border)] text-[var(--ink)] hover:border-teal-500 transition-colors"
-              >
+               data-ui-native-button="">
                 <Icon name="fileText" size={12} color="var(--teal)" />
                 Client Docs
               </button>
@@ -528,7 +528,7 @@ export const ApiKeysPage: React.FC = () => {
                   type="button"
                   onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
                   className="api-faq-trigger"
-                >
+                 data-ui-native-button="">
                   <span>{faq.q}</span>
                   <Icon
                     name="chevronDown"
@@ -594,7 +594,7 @@ export const ApiKeysPage: React.FC = () => {
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="text-[var(--ink3)] hover:text-[var(--ink)]"
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -632,13 +632,13 @@ export const ApiKeysPage: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--ink2)] font-bold"
-                >
+                 data-ui-native-button="">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-[var(--teal)] text-white font-bold hover:opacity-90"
-                >
+                 data-ui-native-button="">
                   Create Key
                 </button>
               </div>

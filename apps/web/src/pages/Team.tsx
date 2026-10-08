@@ -55,10 +55,10 @@ export function Team() {
       />
 
       <div className="team-tabs" role="tablist">
-        <button type="button" className="team-tab" onClick={() => navigate('/ondi')}>
+        <button type="button" className="team-tab" onClick={() => navigate('/ondi')} data-ui-native-button="">
           People <Icon name="externalLink" size={12} />
         </button>
-        <button type="button" className="team-tab" onClick={() => navigate('/ondi?tab=invites')}>
+        <button type="button" className="team-tab" onClick={() => navigate('/ondi?tab=invites')} data-ui-native-button="">
           Invitations <Icon name="externalLink" size={12} />
         </button>
         {LOCAL_TABS.map(([id, label]) => (
@@ -69,7 +69,7 @@ export function Team() {
             aria-selected={tab === id}
             className={`team-tab${tab === id ? ' team-tab--on' : ''}`}
             onClick={() => setTab(id)}
-          >
+           data-ui-native-button="">
             {label}
           </button>
         ))}
@@ -307,7 +307,7 @@ function NoticesTab({ canManage }: { canManage: boolean }) {
             <input id="notice-body" value={body} onChange={e => setBody(e.target.value)}
               placeholder="Clearance desk reopens Monday at 8am" />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={posting}>
+          <button type="submit" className="btn btn-primary" disabled={posting} data-ui-native-button="">
             {posting ? 'Posting…' : 'Post to the workspace'}
           </button>
         </form>
@@ -335,10 +335,10 @@ function NoticesTab({ canManage }: { canManage: boolean }) {
                 </div>
                 {canManage && (
                   <div className="team-notice-actions">
-                    <button type="button" className="team-access team-access--off" onClick={() => setActive(n, !n.active)}>
+                    <button type="button" className="team-access team-access--off" onClick={() => setActive(n, !n.active)} data-ui-native-button="">
                       {n.active ? 'Stop showing' : 'Show again'}
                     </button>
-                    <button type="button" className="team-access" onClick={() => remove(n)}>Delete</button>
+                    <button type="button" className="team-access" onClick={() => remove(n)} data-ui-native-button="">Delete</button>
                   </div>
                 )}
               </li>

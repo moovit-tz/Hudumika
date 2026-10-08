@@ -174,7 +174,7 @@ export const TrackingDriverDetail: React.FC = () => {
     <div className="dd-layout">
       {/* Back Navigation Bar */}
       <div className="dd-top-bar">
-        <button type="button" className="dd-back-btn" onClick={() => navigate('/tracking/drivers')}>
+        <button type="button" className="dd-back-btn" onClick={() => navigate('/tracking/drivers')} data-ui-native-button="">
           <Icon name="arrowLeft" size={16} /> Back to Drivers
         </button>
         <span style={{ fontSize: 13, color: 'var(--ink3)' }}>|</span>
@@ -188,13 +188,13 @@ export const TrackingDriverDetail: React.FC = () => {
         subtitle={`Full record for ${driver.name} — dispatch history, vehicle assignment, compliance & messaging.`}
         actions={
           <div className="dd-header-actions">
-            <button type="button" className="dd-action-btn" onClick={() => setActiveTab('Dispatch Messaging')}>
+            <button type="button" className="dd-action-btn" onClick={() => setActiveTab('Dispatch Messaging')} data-ui-native-button="">
               <Icon name="messageSquare" size={14} /> WhatsApp / Chat
             </button>
-            <button type="button" className="dd-action-btn" onClick={startEditDriver}>
+            <button type="button" className="dd-action-btn" onClick={startEditDriver} data-ui-native-button="">
               <Icon name="edit" size={14} /> Edit Driver Details
             </button>
-            <button type="button" className="dd-action-btn dark" onClick={() => window.print()}>
+            <button type="button" className="dd-action-btn dark" onClick={() => window.print()} data-ui-native-button="">
               <Icon name="download" size={14} /> Download Report
             </button>
           </div>
@@ -231,7 +231,7 @@ export const TrackingDriverDetail: React.FC = () => {
               <div className="dd-alert-text">{driver.name}'s driving license needs renewal: <strong>{expiryNotice}</strong>.</div>
             </div>
           </div>
-          <button type="button" className="dd-alert-action-btn" onClick={startEditDriver}>Update License</button>
+          <button type="button" className="dd-alert-action-btn" onClick={startEditDriver} data-ui-native-button="">Update License</button>
         </div>
       )}
 
@@ -244,7 +244,7 @@ export const TrackingDriverDetail: React.FC = () => {
               <Icon name="user" size={18} color="var(--teal)" />
               <div className="dd-card-title">Driver Profile & License</div>
             </div>
-            <button type="button" onClick={startEditDriver} className="dd-link-btn">
+            <button type="button" onClick={startEditDriver} className="dd-link-btn" data-ui-native-button="">
               <Icon name="edit" size={13} /> Edit Profile
             </button>
           </div>
@@ -317,7 +317,7 @@ export const TrackingDriverDetail: React.FC = () => {
               <Icon name="truck" size={18} color="var(--teal)" />
               <div className="dd-card-title">Assigned Fleet Vehicle</div>
             </div>
-            <button type="button" onClick={() => setReassigningVehicle(true)} className="dd-link-btn">
+            <button type="button" onClick={() => setReassigningVehicle(true)} className="dd-link-btn" data-ui-native-button="">
               <Icon name="refresh" size={13} /> Reassign Vehicle
             </button>
           </div>
@@ -362,7 +362,7 @@ export const TrackingDriverDetail: React.FC = () => {
               <Icon name="truck" size={28} color="var(--ink3)" />
               <div style={{ fontSize: 14, fontWeight: 700, marginTop: 8 }}>No Vehicle Currently Assigned</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 2 }}>Assign a heavy truck or cargo vessel to enable instant dispatching.</div>
-              <button type="button" onClick={() => setReassigningVehicle(true)} className="dd-action-btn" style={{ marginTop: 14 }}>
+              <button type="button" onClick={() => setReassigningVehicle(true)} className="dd-action-btn" style={{ marginTop: 14 }} data-ui-native-button="">
                 <Icon name="plus" size={14} /> Assign Vehicle Now
               </button>
             </div>
@@ -542,7 +542,7 @@ export const TrackingDriverDetail: React.FC = () => {
           <div className="dd-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dd-modal-header">
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Edit Driver Profile & Lifecycle</div>
-              <button type="button" className="dd-sb-close-btn" onClick={() => setEditingDriver(false)}><Icon name="x" size={16} /></button>
+              <button type="button" className="dd-sb-close-btn" onClick={() => setEditingDriver(false)} data-ui-native-button=""><Icon name="x" size={16} /></button>
             </div>
 
             <div className="dd-modal-body">
@@ -622,8 +622,8 @@ export const TrackingDriverDetail: React.FC = () => {
             </div>
 
             <div className="dd-modal-footer">
-              <button type="button" className="dd-action-btn" onClick={() => setEditingDriver(false)}>Cancel</button>
-              <button type="button" className="dd-action-btn dark" onClick={saveDriver} disabled={savingDriver}>
+              <button type="button" className="dd-action-btn" onClick={() => setEditingDriver(false)} data-ui-native-button="">Cancel</button>
+              <button type="button" className="dd-action-btn dark" onClick={saveDriver} disabled={savingDriver} data-ui-native-button="">
                 {savingDriver ? 'Saving Details…' : 'Save Driver Changes'}
               </button>
             </div>
@@ -637,7 +637,7 @@ export const TrackingDriverDetail: React.FC = () => {
           <div className="dd-modal-content" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
             <div className="dd-modal-header">
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Reassign Fleet Vehicle</div>
-              <button type="button" className="dd-sb-close-btn" onClick={() => setReassigningVehicle(false)}><Icon name="x" size={16} /></button>
+              <button type="button" className="dd-sb-close-btn" onClick={() => setReassigningVehicle(false)} data-ui-native-button=""><Icon name="x" size={16} /></button>
             </div>
 
             <div className="dd-modal-body">
@@ -656,8 +656,8 @@ export const TrackingDriverDetail: React.FC = () => {
             </div>
 
             <div className="dd-modal-footer">
-              <button type="button" className="dd-action-btn" onClick={() => setReassigningVehicle(false)}>Cancel</button>
-              <button type="button" className="dd-action-btn dark" onClick={handleVehicleReassign}>Confirm Assignment</button>
+              <button type="button" className="dd-action-btn" onClick={() => setReassigningVehicle(false)} data-ui-native-button="">Cancel</button>
+              <button type="button" className="dd-action-btn dark" onClick={handleVehicleReassign} data-ui-native-button="">Confirm Assignment</button>
             </div>
           </div>
         </div>

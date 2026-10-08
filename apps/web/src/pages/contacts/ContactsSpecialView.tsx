@@ -99,7 +99,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                 aria-label="Search directory"
               />
               {searchTerm && (
-                <button type="button" onClick={() => { setSearchTerm(''); setPage(1); }} aria-label="Clear">
+                <button type="button" onClick={() => { setSearchTerm(''); setPage(1); }} aria-label="Clear" data-ui-native-button="">
                   <Icon name="x" size={13} />
                 </button>
               )}
@@ -163,7 +163,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                               type="button"
                               className="cts-dir-email-btn"
                               onClick={e => { e.stopPropagation(); navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`); }}
-                            >
+                             data-ui-native-button="">
                               {row.email}
                             </button>
                           ) : <span className="cts-dir-dash">—</span>}
@@ -185,7 +185,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                                 type="button"
                                 className="cts-dir-action-btn"
                                 onClick={e => { e.stopPropagation(); navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`); }}
-                              >
+                               data-ui-native-button="">
                                 <Icon name="mail" size={15} />
                               </button>
                             </Tip>
@@ -207,7 +207,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                               type="button"
                               className="cts-dir-action-btn"
                               onClick={e => { e.stopPropagation(); navigate(`/bliss/calls?call=${row.id}&kind=VOICE`); }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="headphones" size={15} />
                             </button>
                           </Tip>
@@ -216,7 +216,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                               type="button"
                               className="cts-dir-action-btn"
                               onClick={e => { e.stopPropagation(); navigate(`/bliss/calls?call=${row.id}&kind=VIDEO`); }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="video" size={15} />
                             </button>
                           </Tip>
@@ -429,7 +429,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
           <div className="cts-special-bulk-bar">
             <div className="cts-special-bulk-left">
               <span className="cts-special-bulk-count">{selectedEmails.size} selected</span>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={clearSelection}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={clearSelection} data-ui-native-button="">
                 Deselect all
               </button>
             </div>
@@ -479,14 +479,14 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
               type="button"
               className={`cts-special-filter-tab${filterType === 'all' ? ' cts-special-filter-tab--active' : ''}`}
               onClick={() => { setFilterType('all'); setPage(1); }}
-            >
+             data-ui-native-button="">
               All ({allRows.length})
             </button>
             <button
               type="button"
               className={`cts-special-filter-tab${filterType === 'contact' ? ' cts-special-filter-tab--active' : ''}`}
               onClick={() => { setFilterType('contact'); setPage(1); }}
-            >
+             data-ui-native-button="">
               <Icon name="user" size={12} />
               Contacts ({contactCounts})
             </button>
@@ -494,7 +494,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
               type="button"
               className={`cts-special-filter-tab${filterType === 'company' ? ' cts-special-filter-tab--active' : ''}`}
               onClick={() => { setFilterType('company'); setPage(1); }}
-            >
+             data-ui-native-button="">
               <Icon name="building" size={12} />
               Companies ({companyCounts})
             </button>
@@ -510,7 +510,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                 aria-label="Search contacts"
               />
               {searchTerm && (
-                <button type="button" onClick={() => { setSearchTerm(''); setPage(1); }} aria-label="Clear">
+                <button type="button" onClick={() => { setSearchTerm(''); setPage(1); }} aria-label="Clear" data-ui-native-button="">
                   <Icon name="x" size={12} />
                 </button>
               )}
@@ -614,7 +614,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                             className="cts-dir-email-btn"
                             onClick={() => navigate(`/email?compose=1&to=${encodeURIComponent(row.email)}`)}
                             title={`Compose email to ${row.email}`}
-                          >
+                           data-ui-native-button="">
                             {row.email}
                           </button>
                         </td>
@@ -640,7 +640,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                               type="button"
                               className={`cts-type-pill cts-type-pill--${currentType}`}
                               onClick={() => toggleType(row.email)}
-                            >
+                             data-ui-native-button="">
                               <Icon name={currentType === 'company' ? 'building' : 'user'} size={11} />
                               {currentType === 'company' ? 'Company' : 'Contact'}
                             </button>
@@ -666,7 +666,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                                 <DropdownMenu>
                                   <Tip label="More actions">
                                     <DropdownMenuTrigger asChild>
-                                      <button type="button" className="cts-special-action-btn" aria-label="More actions">
+                                      <button type="button" className="cts-special-action-btn" aria-label="More actions" data-ui-native-button="">
                                         <Icon name="moreVertical" size={13} />
                                       </button>
                                     </DropdownMenuTrigger>
@@ -728,7 +728,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                   selectedRows.forEach(r => { next[r.email] = 'contact'; });
                   setEntityTypeOverrides(next);
                 }}
-              >
+               data-ui-native-button="">
                 All as Contacts
               </button>
               <button
@@ -739,7 +739,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                   selectedRows.forEach(r => { next[r.email] = 'company'; });
                   setEntityTypeOverrides(next);
                 }}
-              >
+               data-ui-native-button="">
                 All as Companies
               </button>
               <button
@@ -750,7 +750,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                   selectedRows.forEach(r => { delete next[r.email]; });
                   setEntityTypeOverrides(next);
                 }}
-              >
+               data-ui-native-button="">
                 Reset to Auto-detect
               </button>
             </div>
@@ -819,7 +819,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
               className="btn btn-secondary btn-sm"
               onClick={() => setShowReviewModal(false)}
               disabled={bulkBusy}
-            >
+             data-ui-native-button="">
               Cancel
             </button>
             <Button

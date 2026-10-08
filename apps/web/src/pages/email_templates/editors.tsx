@@ -334,8 +334,8 @@ export function SimpleWysiwygEditor({
                         <small>{v.label} (e.g. {v.sample})</small>
                       </div>
                       <div className="simple-wysiwyg-var-menu-actions">
-                        <button type="button" onClick={() => insertSubjectTag(v.tag)} title="Insert into Subject">Subject</button>
-                        <button type="button" onClick={() => insertMergeTag(v.tag)} title="Insert into Body">Body</button>
+                        <button type="button" onClick={() => insertSubjectTag(v.tag)} title="Insert into Subject" data-ui-native-button="">Subject</button>
+                        <button type="button" onClick={() => insertMergeTag(v.tag)} title="Insert into Body" data-ui-native-button="">Body</button>
                       </div>
                     </div>
                   ))}
@@ -349,34 +349,34 @@ export function SimpleWysiwygEditor({
       {/* ── WYSIWYG Toolbar ── */}
       <div className="simple-wysiwyg-toolbar">
         <div className="simple-wysiwyg-toolgroup">
-          <button type="button" onClick={() => execCmd('undo')} title="Undo (Ctrl+Z)" className="simple-wysiwyg-btn"><Icon name="arrowLeft" size={13} /></button>
-          <button type="button" onClick={() => execCmd('redo')} title="Redo (Ctrl+Y)" className="simple-wysiwyg-btn"><Icon name="arrowRight" size={13} /></button>
+          <button type="button" onClick={() => execCmd('undo')} title="Undo (Ctrl+Z)" className="simple-wysiwyg-btn" data-ui-native-button=""><Icon name="arrowLeft" size={13} /></button>
+          <button type="button" onClick={() => execCmd('redo')} title="Redo (Ctrl+Y)" className="simple-wysiwyg-btn" data-ui-native-button=""><Icon name="arrowRight" size={13} /></button>
         </div>
 
         <div className="simple-wysiwyg-tool-divider" />
 
         <div className="simple-wysiwyg-toolgroup">
-          <button type="button" onClick={() => execCmd('bold')} title="Bold" className="simple-wysiwyg-btn simple-wysiwyg-btn--bold"><strong>B</strong></button>
-          <button type="button" onClick={() => execCmd('italic')} title="Italic" className="simple-wysiwyg-btn simple-wysiwyg-btn--italic"><em>I</em></button>
-          <button type="button" onClick={() => execCmd('underline')} title="Underline" className="simple-wysiwyg-btn simple-wysiwyg-btn--underline"><u>U</u></button>
-          <button type="button" onClick={() => execCmd('strikeThrough')} title="Strikethrough" className="simple-wysiwyg-btn"><s>S</s></button>
+          <button type="button" onClick={() => execCmd('bold')} title="Bold" className="simple-wysiwyg-btn simple-wysiwyg-btn--bold" data-ui-native-button=""><strong>B</strong></button>
+          <button type="button" onClick={() => execCmd('italic')} title="Italic" className="simple-wysiwyg-btn simple-wysiwyg-btn--italic" data-ui-native-button=""><em>I</em></button>
+          <button type="button" onClick={() => execCmd('underline')} title="Underline" className="simple-wysiwyg-btn simple-wysiwyg-btn--underline" data-ui-native-button=""><u>U</u></button>
+          <button type="button" onClick={() => execCmd('strikeThrough')} title="Strikethrough" className="simple-wysiwyg-btn" data-ui-native-button=""><s>S</s></button>
         </div>
 
         <div className="simple-wysiwyg-tool-divider" />
 
         <div className="simple-wysiwyg-toolgroup">
-          <button type="button" onClick={() => execCmd('formatBlock', '<h2>')} title="Heading 2" className="simple-wysiwyg-btn">H2</button>
-          <button type="button" onClick={() => execCmd('formatBlock', '<h3>')} title="Heading 3" className="simple-wysiwyg-btn">H3</button>
-          <button type="button" onClick={() => execCmd('formatBlock', '<p>')} title="Paragraph" className="simple-wysiwyg-btn">P</button>
+          <button type="button" onClick={() => execCmd('formatBlock', '<h2>')} title="Heading 2" className="simple-wysiwyg-btn" data-ui-native-button="">H2</button>
+          <button type="button" onClick={() => execCmd('formatBlock', '<h3>')} title="Heading 3" className="simple-wysiwyg-btn" data-ui-native-button="">H3</button>
+          <button type="button" onClick={() => execCmd('formatBlock', '<p>')} title="Paragraph" className="simple-wysiwyg-btn" data-ui-native-button="">P</button>
         </div>
 
         <div className="simple-wysiwyg-tool-divider" />
 
         <div className="simple-wysiwyg-toolgroup">
-          <button type="button" onClick={() => execCmd('justifyLeft')} title="Align Left" className="simple-wysiwyg-btn"><Icon name="alignLeft" size={13} /></button>
-          <button type="button" onClick={() => execCmd('justifyCenter')} title="Align Center" className="simple-wysiwyg-btn"><Icon name="alignCenter" size={13} /></button>
-          <button type="button" onClick={() => execCmd('justifyRight')} title="Align Right" className="simple-wysiwyg-btn"><Icon name="alignRight" size={13} /></button>
-          <button type="button" onClick={() => execCmd('insertUnorderedList')} title="Bullet List" className="simple-wysiwyg-btn"><Icon name="list" size={13} /></button>
+          <button type="button" onClick={() => execCmd('justifyLeft')} title="Align Left" className="simple-wysiwyg-btn" data-ui-native-button=""><Icon name="alignLeft" size={13} /></button>
+          <button type="button" onClick={() => execCmd('justifyCenter')} title="Align Center" className="simple-wysiwyg-btn" data-ui-native-button=""><Icon name="alignCenter" size={13} /></button>
+          <button type="button" onClick={() => execCmd('justifyRight')} title="Align Right" className="simple-wysiwyg-btn" data-ui-native-button=""><Icon name="alignRight" size={13} /></button>
+          <button type="button" onClick={() => execCmd('insertUnorderedList')} title="Bullet List" className="simple-wysiwyg-btn" data-ui-native-button=""><Icon name="list" size={13} /></button>
         </div>
 
         <div className="simple-wysiwyg-tool-divider" />
@@ -391,7 +391,7 @@ export function SimpleWysiwygEditor({
               className={`simple-wysiwyg-color-swatch${selectedColor === color ? ' is-selected' : ''}`}
               style={{ backgroundColor: color }}
               title={`Color ${color}`}
-            />
+             data-ui-native-button=""/>
           ))}
         </div>
 
@@ -399,22 +399,22 @@ export function SimpleWysiwygEditor({
 
         {/* Insert Elements */}
         <div className="simple-wysiwyg-toolgroup">
-          <button type="button" onClick={() => setButtonModalOpen(true)} title="Insert Action Button" className="simple-wysiwyg-insert-btn">
+          <button type="button" onClick={() => setButtonModalOpen(true)} title="Insert Action Button" className="simple-wysiwyg-insert-btn" data-ui-native-button="">
             <Icon name="mousePointerClick" size={13} /> Button
           </button>
-          <button type="button" onClick={() => handleInsertCallout('info')} title="Insert Callout Box" className="simple-wysiwyg-insert-btn">
+          <button type="button" onClick={() => handleInsertCallout('info')} title="Insert Callout Box" className="simple-wysiwyg-insert-btn" data-ui-native-button="">
             <Icon name="alertCircle" size={13} /> Callout
           </button>
-          <button type="button" onClick={() => setLinkModalOpen(true)} title="Insert Link" className="simple-wysiwyg-insert-btn">
+          <button type="button" onClick={() => setLinkModalOpen(true)} title="Insert Link" className="simple-wysiwyg-insert-btn" data-ui-native-button="">
             <Icon name="externalLink" size={13} /> Link
           </button>
-          <button type="button" onClick={() => setImageModalOpen(true)} title="Insert Image" className="simple-wysiwyg-insert-btn">
+          <button type="button" onClick={() => setImageModalOpen(true)} title="Insert Image" className="simple-wysiwyg-insert-btn" data-ui-native-button="">
             <Icon name="image" size={13} /> Image
           </button>
-          <button type="button" onClick={() => execCmd('insertHorizontalRule')} title="Insert Horizontal Rule" className="simple-wysiwyg-insert-btn">
+          <button type="button" onClick={() => execCmd('insertHorizontalRule')} title="Insert Horizontal Rule" className="simple-wysiwyg-insert-btn" data-ui-native-button="">
             <Icon name="minus" size={13} /> Divider
           </button>
-          <button type="button" onClick={() => execCmd('removeFormat')} title="Clear Formatting" className="simple-wysiwyg-btn">
+          <button type="button" onClick={() => execCmd('removeFormat')} title="Clear Formatting" className="simple-wysiwyg-btn" data-ui-native-button="">
             <Icon name="trash" size={12} />
           </button>
         </div>
@@ -426,7 +426,7 @@ export function SimpleWysiwygEditor({
             className={`simple-wysiwyg-device-btn${deviceMode === 'desktop' ? ' is-active' : ''}`}
             onClick={() => setDeviceMode('desktop')}
             title="Desktop View (600px)"
-          >
+           data-ui-native-button="">
             <Icon name="monitor" size={13} />
           </button>
           <button
@@ -434,7 +434,7 @@ export function SimpleWysiwygEditor({
             className={`simple-wysiwyg-device-btn${deviceMode === 'mobile' ? ' is-active' : ''}`}
             onClick={() => setDeviceMode('mobile')}
             title="Mobile View (375px)"
-          >
+           data-ui-native-button="">
             <Icon name="smartphone" size={13} />
           </button>
           <button
@@ -442,7 +442,7 @@ export function SimpleWysiwygEditor({
             className={`simple-wysiwyg-device-btn${previewMode ? ' is-active' : ''}`}
             onClick={() => setPreviewMode(!previewMode)}
             title={previewMode ? 'Switch to Edit' : 'Live Preview'}
-          >
+           data-ui-native-button="">
             <Icon name="eye" size={13} />
           </button>
         </div>

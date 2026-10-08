@@ -265,7 +265,7 @@ export const DutyCheckPage: React.FC = () => {
           <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 }}>
             {!showSuggester ? (
               <button type="button" onClick={() => setShowSuggester(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }} data-ui-native-button="">
                 <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="sparkle" size={14} /></FeaturedIcon>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Don't know the HS code?</div>
@@ -279,7 +279,7 @@ export const DutyCheckPage: React.FC = () => {
                   <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="sparkle" size={14} /></FeaturedIcon>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>HS code finder</div>
                   <button type="button" onClick={() => { setShowSuggester(false); setSuggestions([]); setSuggestError(''); setAiPick(null); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
                     <Icon name="x" size={15} />
                   </button>
                 </div>
@@ -311,7 +311,7 @@ export const DutyCheckPage: React.FC = () => {
                         <button key={s.code} type="button" onClick={() => acceptCode(s.code)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{s.code}</span>
                           <span style={{ fontSize: 12.5, color: 'var(--ink2)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.description}</span>
                           <Badge variant="gray">{s.matchPct}% match</Badge>
@@ -407,7 +407,7 @@ export const DutyCheckPage: React.FC = () => {
                         <button key={a.code} type="button" onClick={() => runCheck(a.code)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{a.code}</span>
                           <span style={{ fontSize: 12.5, color: 'var(--ink2)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</span>
                           <span style={{ fontSize: 11.5, color: 'var(--ink3)', flexShrink: 0 }}>Duty {pct(a.import_duty_rate)}</span>

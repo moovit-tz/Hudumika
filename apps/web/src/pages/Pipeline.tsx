@@ -301,7 +301,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
               {quotationId && (
                 <button type="button" onClick={() => { setQuotationId(null); setLinkedQuotation(null); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: '0 4px' }}
-                  title="Unlink quotation">×</button>
+                  title="Unlink quotation" data-ui-native-button="">×</button>
               )}
             </div>
             {linkedQuotation && quotationId && (
@@ -343,7 +343,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                         onClick={async () => {
                           setTasks(prev => prev.filter(x => x.id !== t.id));
                           await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'DELETE' }).catch(() => {});
-                        }}>×</button>
+                        }} data-ui-native-button="">×</button>
                     </div>
                   ))}
                 </div>
@@ -375,7 +375,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                       setNewTaskTitle(''); setNewTaskDue('');
                     } catch (err: any) { showAlert(err.message || 'Failed to add task'); }
                     finally { setAddingTask(false); }
-                  }}>
+                  }} data-ui-native-button="">
                   {addingTask ? '…' : 'Add'}
                 </button>
               </div>
@@ -388,12 +388,12 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Activity</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <ComposeEmailButton subjectType="deal" subjectId={deal.id} onSent={() => setActivityRefresh(n => n + 1)}>
-                    <button type="button" className="btn btn-secondary btn-xs">
+                    <button type="button" className="btn btn-secondary btn-xs" data-ui-native-button="">
                       <Icon name="mail" size={11} /> Email
                     </button>
                   </ComposeEmailButton>
                   <StartCallButton subjectType="deal" subjectId={deal.id} onLogged={() => setActivityRefresh(n => n + 1)}>
-                    <button type="button" className="btn btn-secondary btn-xs">
+                    <button type="button" className="btn btn-secondary btn-xs" data-ui-native-button="">
                       <Icon name="phone" size={11} /> Call
                     </button>
                   </StartCallButton>
@@ -406,12 +406,12 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
 
         <DialogFooter>
           {deal && (
-            <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)', marginRight: 'auto' }} disabled={saving} onClick={remove}>
+            <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)', marginRight: 'auto' }} disabled={saving} onClick={remove} data-ui-native-button="">
               <Icon name="trash" size={13} /> Delete
             </button>
           )}
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary btn-sm" disabled={saving || !name.trim()} onClick={save}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} data-ui-native-button="">Cancel</button>
+          <button type="button" className="btn btn-primary btn-sm" disabled={saving || !name.trim()} onClick={save} data-ui-native-button="">
             {saving ? 'Saving…' : deal ? 'Save changes' : 'Create deal'}
           </button>
         </DialogFooter>
@@ -501,7 +501,7 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
             </SelectContent>
           </Select>
           <button type="button" onClick={() => setSelected(new Set())}
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
             Clear
           </button>
         </div>
@@ -580,7 +580,7 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
                   <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
                     <Tip label="Open deal">
                       <button type="button" onClick={() => onOpen(d)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', lineHeight: 1 }}>
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', lineHeight: 1 }} data-ui-native-button="">
                         <Icon name="externalLink" size={13} />
                       </button>
                     </Tip>
@@ -708,13 +708,13 @@ export function Pipeline() {
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--surface)' }}>
               <Tip label="Kanban board">
                 <button type="button" onClick={() => setBoardView('kanban')}
-                  style={{ padding: '6px 10px', background: boardView === 'kanban' ? 'hsl(var(--primary))' : 'none', color: boardView === 'kanban' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }}>
+                  style={{ padding: '6px 10px', background: boardView === 'kanban' ? 'hsl(var(--primary))' : 'none', color: boardView === 'kanban' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }} data-ui-native-button="">
                   <Icon name="columns" size={14} />
                 </button>
               </Tip>
               <Tip label="List view">
                 <button type="button" onClick={() => setBoardView('list')}
-                  style={{ padding: '6px 10px', background: boardView === 'list' ? 'hsl(var(--primary))' : 'none', color: boardView === 'list' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderLeft: '1px solid var(--border)', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }}>
+                  style={{ padding: '6px 10px', background: boardView === 'list' ? 'hsl(var(--primary))' : 'none', color: boardView === 'list' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderLeft: '1px solid var(--border)', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }} data-ui-native-button="">
                   <Icon name="list" size={14} />
                 </button>
               </Tip>
@@ -792,7 +792,7 @@ export function Pipeline() {
           {[null, ...savedViews].map(v => (
             <button key={v?.id ?? '__all__'} type="button"
               onClick={() => setActiveView(v?.id ?? null)}
-              style={{ padding: '5px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: activeView === (v?.id ?? null) ? 'hsl(var(--primary))' : 'var(--white)', color: activeView === (v?.id ?? null) ? 'hsl(var(--primary-foreground))' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', lineHeight: 1.25 }}>
+              style={{ padding: '5px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: activeView === (v?.id ?? null) ? 'hsl(var(--primary))' : 'var(--white)', color: activeView === (v?.id ?? null) ? 'hsl(var(--primary-foreground))' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', lineHeight: 1.25 }} data-ui-native-button="">
               {v ? `${v.name} (${v.count})` : 'All deals'}
             </button>
           ))}

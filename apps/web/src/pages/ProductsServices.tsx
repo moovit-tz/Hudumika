@@ -300,7 +300,7 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
           Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <button type="button" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
           <Button type="button" variant="destructive" onClick={onConfirm}>Delete</Button>
         </div>
       </DialogContent>
@@ -431,8 +431,8 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
       onCancel={onClose}
       actions={
         <>
-          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
-          <button type="button" onClick={submit} disabled={saving} className="btn btn-primary">
+          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+          <button type="button" onClick={submit} disabled={saving} className="btn btn-primary" data-ui-native-button="">
             <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? `Update ${typeName}` : `Add ${typeName}`}
           </button>
         </>
@@ -546,12 +546,12 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
                 {url && <img src={url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
                 {i === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>COVER</span>}
                 <Tip label="Remove image">
-                  <button type="button" aria-label="Remove image" onClick={() => removeImageSlot(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}><Icon name="trash" size={14} /></button>
+                  <button type="button" aria-label="Remove image" onClick={() => removeImageSlot(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }} data-ui-native-button=""><Icon name="trash" size={14} /></button>
                 </Tip>
               </div>
             ))}
             {f.image_urls.length < 5 && (
-              <button type="button" onClick={addImageSlot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--teal)', background: 'none', border: '1px dashed var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer' }}>
+              <button type="button" onClick={addImageSlot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--teal)', background: 'none', border: '1px dashed var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="plus" size={12} /> Add image URL
               </button>
             )}
@@ -603,11 +603,11 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
                 <input type="text" title="Option name" placeholder="e.g. Color" value={v.name} onChange={e => setF(p => ({ ...p, variants: p.variants.map((vv, idx) => idx === i ? { ...vv, name: e.target.value } : vv) }))} style={{ ...inp, padding: '7px 10px' }} />
                 <input type="text" title="Option values" placeholder="e.g. Black, White, Silver" value={v.values.join(', ')} onChange={e => setVariantValues(i, e.target.value)} style={{ ...inp, padding: '7px 10px' }} />
                 <Tip label="Remove variant">
-                  <button type="button" aria-label="Remove variant" onClick={() => removeVariant(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4, display: 'flex', justifyContent: 'center' }}><Icon name="trash" size={14} /></button>
+                  <button type="button" aria-label="Remove variant" onClick={() => removeVariant(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4, display: 'flex', justifyContent: 'center' }} data-ui-native-button=""><Icon name="trash" size={14} /></button>
                 </Tip>
               </div>
             ))}
-            <button type="button" onClick={addVariant} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--teal)', background: 'none', border: '1px dashed var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer', marginTop: 4 }}>
+            <button type="button" onClick={addVariant} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--teal)', background: 'none', border: '1px dashed var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer', marginTop: 4 }} data-ui-native-button="">
               <Icon name="plus" size={12} /> Add option
             </button>
           </div>
@@ -695,7 +695,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Inactive {typeName.toLowerCase()}s don't appear in the invoice line-item picker</div>
             </div>
             <button type="button" onClick={() => set('status', f.status === 'active' ? 'inactive' : 'active')}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }} />
               {f.status === 'active' ? 'Active' : 'Inactive'}
             </button>
@@ -727,7 +727,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
                     <input type="text" title="Note" placeholder="Contract ref / note" value={p.note} onChange={e => setPriceRow(i, { note: e.target.value })} style={{ ...inp, padding: '7px 10px' }} />
                     <Tip label="Remove agreed price">
                       <button type="button" aria-label="Remove agreed price" onClick={() => setPrices(prev => prev.filter((_, idx) => idx !== i))}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex', justifyContent: 'center', padding: 4 }}>
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex', justifyContent: 'center', padding: 4 }} data-ui-native-button="">
                         <Icon name="trash" size={15} />
                       </button>
                     </Tip>
@@ -830,16 +830,16 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
         <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button type="button" onClick={onEdit}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="edit" size={14} /> Edit Service
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={onToggleStatus}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }} data-ui-native-button="">
               <Icon name="eye" size={13} /> {product.status === 'active' ? 'Set Inactive' : 'Set Active'}
             </button>
             <button type="button" onClick={onDelete}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--red)', borderRadius: 'var(--r)', background: 'var(--red-l)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--red)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--red)', borderRadius: 'var(--r)', background: 'var(--red-l)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--red)' }} data-ui-native-button="">
               <Icon name="trash" size={13} /> Delete
             </button>
           </div>
@@ -1131,7 +1131,7 @@ export const ProductsServices: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tariffSelected.size} selected</span>
               <button type="button" disabled={tariffSelected.size === 0 || tariffImporting} onClick={handleImportSelectedTariff}
-                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 {tariffImporting ? 'Adding…' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
               </button>
             </div>
@@ -1153,21 +1153,21 @@ export const ProductsServices: React.FC = () => {
 
         <div className="products-action-bar">
           {!loading && products.length === 0 && (
-            <button type="button" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm">
+            <button type="button" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm" data-ui-native-button="">
               <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
             </button>
           )}
-          <button type="button" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm">
+          <button type="button" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm" data-ui-native-button="">
             <Icon name="layers" size={13} /> Import from Tariff
           </button>
-          <button type="button" onClick={() => navigate(`${baseRoute}/products/categories`)} className="btn btn-secondary btn-sm">
+          <button type="button" onClick={() => navigate(`${baseRoute}/products/categories`)} className="btn btn-secondary btn-sm" data-ui-native-button="">
             <Icon name="tag" size={13} /> Categories
           </button>
-          <button type="button" onClick={() => navigate(`${baseRoute}/products/reviews`)} className="btn btn-secondary btn-sm">
+          <button type="button" onClick={() => navigate(`${baseRoute}/products/reviews`)} className="btn btn-secondary btn-sm" data-ui-native-button="">
             <Icon name="star" size={13} /> Reviews
           </button>
           <button type="button" onClick={() => setEditing('new')}
-            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
             <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Item
           </button>
         </div>
@@ -1205,14 +1205,14 @@ export const ProductsServices: React.FC = () => {
               <div style={{ marginBottom: 12 }}><Icon name="alertCircle" size={44} color="var(--red)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Couldn't load the catalog</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{loadError}</div>
-              <button type="button" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="refresh" size={13} /> Retry</button>
+              <button type="button" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="refresh" size={13} /> Retry</button>
             </div>
           ) : displayed.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center' }}>
               <div style={{ marginBottom: 12 }}><Icon name="package" size={44} color="var(--border)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>No services found</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{search ? 'Try a different search.' : 'Add your first service to the catalog.'}</div>
-              {!search && <button type="button" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13} /> New Service</button>}
+              {!search && <button type="button" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13} /> New Service</button>}
             </div>
           ) : (
             <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
@@ -1270,7 +1270,7 @@ export const ProductsServices: React.FC = () => {
                               <button type="button" aria-label={a.title} onClick={a.fn}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: a.red ? 'var(--red)' : 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}
                                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                                 <Icon name={a.icon} size={14} />
                               </button>
                             </Tip>

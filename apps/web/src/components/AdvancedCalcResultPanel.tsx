@@ -139,21 +139,21 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
         {onAmend && (
           <button type="button" onClick={onAmend} className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, fontSize: 13, fontWeight: 700 }}>
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, fontSize: 13, fontWeight: 700 }} data-ui-native-button="">
             <Icon name="edit" size={14} color="var(--ink2)" /> Amend details
           </button>
         )}
         <button type="button" onClick={() => printAdvancedCalcReport(result, meta)}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--white)', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--white)', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }} data-ui-native-button="">
           <Icon name="download" size={14} color="var(--teal)" /> Export PDF
         </button>
         <button type="button" onClick={() => navigate('/clearos/report-issue')} className="btn btn-secondary"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, fontSize: 13, fontWeight: 600 }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, fontSize: 13, fontWeight: 600 }} data-ui-native-button="">
           <Icon name="alertCircle" size={14} color="var(--ink2)" /> Report an issue
         </button>
         {onNewCalculation && (
           <button type="button" onClick={onNewCalculation} className="btn btn-secondary"
-            style={{ height: 42, fontSize: 13, fontWeight: 600 }}>
+            style={{ height: 42, fontSize: 13, fontWeight: 600 }} data-ui-native-button="">
             New Calculation
           </button>
         )}
@@ -186,7 +186,7 @@ function AiAnalysisCard({ result }: { result: AdvancedCalcResult }) {
   if (summary) {
     return (
       <SectionCard title="AI Analysis" action={
-        <button type="button" onClick={() => { setSummary(''); runAi(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}>
+        <button type="button" onClick={() => { setSummary(''); runAi(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }} data-ui-native-button="">
           <Icon name="refresh" size={12} color="var(--teal)" /> Re-run
         </button>
       }>
@@ -207,7 +207,7 @@ function AiAnalysisCard({ result }: { result: AdvancedCalcResult }) {
         </div>
       )}
       <button type="button" onClick={runAi} disabled={pending} className="btn btn-primary"
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, fontSize: 13.5, fontWeight: 700 }}>
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, fontSize: 13.5, fontWeight: 700 }} data-ui-native-button="">
         <Icon name="sparkle" size={14} color="#fff" />
         {pending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
       </button>

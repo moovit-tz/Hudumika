@@ -663,19 +663,19 @@ export const CalendarApp: React.FC = () => {
       <div className="cal-topbar-root">
         {/* Left Section: Today, Prev/Next, Month/Year label */}
         <div className="cal-topbar-left">
-          <button onClick={handleToday} className="cal-topbar-today-btn">
+          <button onClick={handleToday} className="cal-topbar-today-btn" data-ui-native-button="">
             Today
           </button>
 
           <div className="cal-topbar-nav-group">
             <Tip label="Previous">
-              <button onClick={handlePrev} aria-label="Previous" className="cal-topbar-nav-btn">
+              <button onClick={handlePrev} aria-label="Previous" className="cal-topbar-nav-btn" data-ui-native-button="">
                 <Icon name="chevronLeft" size={18} />
               </button>
             </Tip>
 
             <Tip label="Next">
-              <button onClick={handleNext} aria-label="Next" className="cal-topbar-nav-btn">
+              <button onClick={handleNext} aria-label="Next" className="cal-topbar-nav-btn" data-ui-native-button="">
                 <Icon name="chevronRight" size={18} />
               </button>
             </Tip>
@@ -717,7 +717,7 @@ export const CalendarApp: React.FC = () => {
             onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             title="Manage Cal.com style booking pages & shareable links"
-          >
+           data-ui-native-button="">
             <Icon name="link" size={14} color="var(--teal)" />
             <span>Booking Links</span>
           </button>
@@ -735,7 +735,7 @@ export const CalendarApp: React.FC = () => {
             onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             title="Connect Google Calendar / Outlook sync"
-          >
+           data-ui-native-button="">
             <Icon name="globe" size={14} color="var(--teal)" />
             <span>Sync</span>
           </button>
@@ -746,7 +746,7 @@ export const CalendarApp: React.FC = () => {
             className="cal-topbar-nav-btn"
             title="Support & Keyboard Shortcuts"
             onClick={() => showAlert('Google Calendar Help & Shortcuts: Press D (Day), W (Week), M (Month), A (Schedule)')}
-          >
+           data-ui-native-button="">
             <Icon name="helpCircle" size={18} />
           </button>
 
@@ -757,7 +757,7 @@ export const CalendarApp: React.FC = () => {
                 type="button"
                 className="cal-topbar-nav-btn"
                 title="Calendar settings"
-              >
+               data-ui-native-button="">
                 <Icon name="settings" size={18} />
               </button>
             </DropdownMenuTrigger>
@@ -775,7 +775,7 @@ export const CalendarApp: React.FC = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
+               data-ui-native-button="">
                 <Icon name="download" size={15} color="var(--ink3)" /> Export calendar (.ics)
               </button>
               <button
@@ -785,7 +785,7 @@ export const CalendarApp: React.FC = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
-              >
+               data-ui-native-button="">
                 <Icon name="upload" size={15} color="var(--ink3)" /> {icsImporting ? 'Importing…' : 'Import calendar (.ics)'}
               </button>
               <DropdownMenuItem asChild onSelect={() => setBookingPagesOpen(true)}>
@@ -794,7 +794,7 @@ export const CalendarApp: React.FC = () => {
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
+                 data-ui-native-button="">
                   <Icon name="link" size={15} color="var(--ink3)" /> Booking pages…
                 </button>
               </DropdownMenuItem>
@@ -804,7 +804,7 @@ export const CalendarApp: React.FC = () => {
                   style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
+                 data-ui-native-button="">
                   <Icon name="globe" size={15} color="var(--ink3)" /> Google/Outlook sync…
                 </button>
               </DropdownMenuItem>
@@ -823,7 +823,7 @@ export const CalendarApp: React.FC = () => {
                   fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
                   transition: 'background 0.15s ease'
                 }}
-              >
+               data-ui-native-button="">
                 <span>{viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</span>
                 <Icon name="chevronDown" size={14} color="var(--ink3)" />
               </button>
@@ -1334,13 +1334,13 @@ export const CalendarApp: React.FC = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40 p-1">
-                      <button onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 13, fontWeight: 500, borderRadius: 'var(--r-sm)'}}>
+                      <button onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 13, fontWeight: 500, borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                         <Icon name="trash" size={14} /> Delete event
                       </button>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}}>
+                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                   <Icon name="close" size={18} />
                 </button>
               </div>
@@ -1509,7 +1509,7 @@ export const CalendarApp: React.FC = () => {
                             background: c.hex ?? CATEGORY_MAP[eventCategory].color,
                             border: eventColorChoice === c.id ? '2px solid var(--ink)' : '2px solid transparent',
                           }}
-                        />
+                         data-ui-native-button=""/>
                       ))}
                     </div>
 
@@ -1679,7 +1679,7 @@ export const CalendarApp: React.FC = () => {
                   Edit action for them. */}
               {ev.category !== 'holiday' && ev.isOrganizer && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Edit</button>
+                  <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Edit</button>
                 </div>
               )}
               {/* A guest's only action on someone else's event: accept or
@@ -1693,7 +1693,7 @@ export const CalendarApp: React.FC = () => {
                     <button
                       onClick={() => { respondToInvite(ev.id, 'declined'); setPopover(null); }}
                       style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 10px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}
-                    >
+                     data-ui-native-button="">
                       Decline
                     </button>
                   )}
@@ -1701,7 +1701,7 @@ export const CalendarApp: React.FC = () => {
                     <button
                       onClick={() => { respondToInvite(ev.id, 'accepted'); setPopover(null); }}
                       style={{ background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r-sm)', color: 'hsl(var(--primary-foreground))', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 10px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}
-                    >
+                     data-ui-native-button="">
                       Accept
                     </button>
                   )}
@@ -1762,7 +1762,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
             border: `1px solid ${value ? 'var(--teal)' : 'var(--border)'}`, background: value ? 'var(--teal-l)' : 'var(--white)',
             color: value ? 'var(--teal)' : 'var(--ink2)',
           }}
-        >
+         data-ui-native-button="">
           <Icon name="refresh" size={13} /> {summary}
         </button>
       </PopoverAnchor>
@@ -1798,7 +1798,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
                     background: draft.byWeekday?.includes(i) ? 'var(--teal)' : 'var(--bg)',
                     color: draft.byWeekday?.includes(i) ? '#fff' : 'var(--ink2)',
                   }}
-                >
+                 data-ui-native-button="">
                   {lbl}
                 </button>
               ))}
@@ -1872,7 +1872,7 @@ const EventReminderPicker: React.FC<{ value: number[]; onChange: (v: number[]) =
             border: `1px solid ${value.length ? 'var(--teal)' : 'var(--border)'}`, background: value.length ? 'var(--teal-l)' : 'var(--white)',
             color: value.length ? 'var(--teal)' : 'var(--ink2)',
           }}
-        >
+         data-ui-native-button="">
           <Icon name="bell" size={13} /> {label}
         </button>
       </PopoverAnchor>
@@ -1927,7 +1927,7 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
                 type="button"
                 onClick={() => { onAdd(p); setQuery(''); setResults([]); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-              >
+               data-ui-native-button="">
                 <PersonAvatar userId={p.id} name={p.name} size={20} />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
@@ -1944,7 +1944,7 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
           {guests.map(g => (
             <span key={g.userId ?? g.email} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, padding: '4px 6px 4px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)' }}>
               {g.name || g.email}
-              <button type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
+              <button type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }} data-ui-native-button="">
                 <Icon name="x" size={11} />
               </button>
             </span>
@@ -2043,7 +2043,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
       <DialogContent hideClose className="max-w-140 w-[94vw] max-h-[88vh] overflow-y-auto" style={{ padding: isMobile ? 18 : 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <DialogTitle style={{ fontSize: 18, fontWeight: 600 }}>{creating ? (editing ? 'Edit booking page' : 'New booking page') : 'Booking pages'}</DialogTitle>
-          <button onClick={creating ? () => setCreating(false) : onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }}>
+          <button onClick={creating ? () => setCreating(false) : onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
             <Icon name={creating ? 'chevronLeft' : 'x'} size={18} />
           </button>
         </div>
@@ -2066,13 +2066,13 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                   <Switch checked={p.active} onCheckedChange={() => handleToggleActive(p)} />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => copyLink(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }}>
+                  <button type="button" onClick={() => copyLink(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
                     <Icon name={copiedId === p.id ? 'check' : 'link'} size={13} /> {copiedId === p.id ? 'Copied' : 'Copy link'}
                   </button>
-                  <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }}>
+                  <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
                     <Icon name="edit" size={13} /> Edit
                   </button>
-                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }}>
+                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }} data-ui-native-button="">
                     <Icon name="trash" size={13} />
                   </button>
                 </div>
@@ -2081,7 +2081,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             <button
               type="button" onClick={startCreate}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 14px', border: '1px dashed var(--border2)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'var(--teal)', marginTop: 4 }}
-            >
+             data-ui-native-button="">
               <Icon name="plus" size={14} /> New booking page
             </button>
           </div>
@@ -2121,7 +2121,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                         border: `1px solid ${on ? 'var(--teal)' : 'var(--border)'}`,
                         background: on ? 'hsl(var(--primary))' : 'var(--white)', color: on ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
                       }}
-                    >
+                     data-ui-native-button="">
                       {label}
                     </button>
                   );
@@ -2145,8 +2145,8 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Timezone: {form.timezone}</div>
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={() => setCreating(false)} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>Cancel</button>
-              <button onClick={handleSaveForm} disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', cursor: saving ? 'default' : 'pointer', fontWeight: 600, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, opacity: saving ? 0.7 : 1 }}>
+              <button onClick={() => setCreating(false)} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">Cancel</button>
+              <button onClick={handleSaveForm} disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', cursor: saving ? 'default' : 'pointer', fontWeight: 600, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, opacity: saving ? 0.7 : 1 }} data-ui-native-button="">
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
@@ -2232,7 +2232,7 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
       <DialogContent hideClose className="max-w-130 w-[94vw] max-h-[88vh] overflow-y-auto" style={{ padding: isMobile ? 18 : 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <DialogTitle style={{ fontSize: 18, fontWeight: 600 }}>Google/Outlook sync</DialogTitle>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} aria-label="Close"><Icon name="x" size={18} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} aria-label="Close" data-ui-native-button=""><Icon name="x" size={18} /></button>
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>
           One-way import — events on your Google or Outlook calendar show up here. Nothing is ever written back.
@@ -2276,7 +2276,7 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             <button
               type="button" onClick={openConfig}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', padding: 0 }}
-            >
+             data-ui-native-button="">
               <Icon name={configOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink3)" />
               App credentials (admin)
             </button>

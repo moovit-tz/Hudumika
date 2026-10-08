@@ -129,7 +129,7 @@ export function SealExWarehouseEntryDetail() {
         subtitle={`${SEAL_DECLARATION_PROCEDURE_LABELS[entry.procedureCode] ?? entry.procedureCode} · HS ${entry.hsCode}`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/ex-warehouse')}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/ex-warehouse')} data-ui-native-button="">
               <Icon name="arrowLeft" size={13} /> Back
             </button>
             <Badge variant={STATUS_VARIANT[entry.status]}>{SEAL_DECLARATION_STATUS_LABELS[entry.status]}</Badge>
@@ -150,7 +150,7 @@ export function SealExWarehouseEntryDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4 }}>
             {entry.status === 'DRAFT' && (
               <>
-                <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRecompute}>
+                <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRecompute} data-ui-native-button="">
                   <Icon name="calculator" size={13} /> Verify Reproducibility
                 </button>
                 {recomputeResult && (
@@ -174,12 +174,12 @@ export function SealExWarehouseEntryDetail() {
                           <SelectItem value="RED">RED — physical exam</SelectItem>
                         </SelectContent>
                       </Select>
-                      <button type="button" className="btn btn-primary" disabled={busy || !submissionReference.trim() || !selectivityChannel} onClick={handleSubmitDeclaration}>{busy ? 'Submitting…' : 'Confirm Submission'}</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)}>Cancel</button>
+                      <button type="button" className="btn btn-primary" disabled={busy || !submissionReference.trim() || !selectivityChannel} onClick={handleSubmitDeclaration} data-ui-native-button="">{busy ? 'Submitting…' : 'Confirm Submission'}</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)} data-ui-native-button="">Cancel</button>
                     </div>
                   </div>
                 ) : (
-                  <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowSubmit(true)}>
+                  <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowSubmit(true)} data-ui-native-button="">
                     <Icon name="send" size={13} /> Submit Declaration
                   </button>
                 )}
@@ -189,12 +189,12 @@ export function SealExWarehouseEntryDetail() {
             {(entry.status === 'SUBMITTED' || entry.status === 'QUERIED') && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {entry.legalNextStatuses.includes('ASSESSED') && (
-                  <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleAdvance('ASSESSED')}>
+                  <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleAdvance('ASSESSED')} data-ui-native-button="">
                     <Icon name="checkCircle" size={13} /> Mark Assessed
                   </button>
                 )}
                 {entry.legalNextStatuses.includes('QUERIED') && (
-                  <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => handleAdvance('QUERIED')}>Query</button>
+                  <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => handleAdvance('QUERIED')} data-ui-native-button="">Query</button>
                 )}
               </div>
             )}
@@ -203,24 +203,24 @@ export function SealExWarehouseEntryDetail() {
               showPay ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <input type="text" className="input-field" style={{ width: 220 }} value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Payment reference" />
-                  <button type="button" className="btn btn-primary" disabled={busy || !paymentReference.trim()} onClick={() => handleAdvance('PAID', paymentReference.trim())}>{busy ? 'Recording…' : 'Confirm Payment'}</button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowPay(false)}>Cancel</button>
+                  <button type="button" className="btn btn-primary" disabled={busy || !paymentReference.trim()} onClick={() => handleAdvance('PAID', paymentReference.trim())} data-ui-native-button="">{busy ? 'Recording…' : 'Confirm Payment'}</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowPay(false)} data-ui-native-button="">Cancel</button>
                 </div>
               ) : (
-                <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowPay(true)}>
+                <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowPay(true)} data-ui-native-button="">
                   <Icon name="creditCard" size={13} /> Record Payment
                 </button>
               )
             )}
 
             {entry.status === 'PAID' && (
-              <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRelease}>
+              <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRelease} data-ui-native-button="">
                 <Icon name="unlock" size={13} /> {busy ? 'Releasing…' : 'Release Lot'}
               </button>
             )}
 
             {['DRAFT', 'SUBMITTED', 'QUERIED', 'ASSESSED'].includes(entry.status) && entry.legalNextStatuses.includes('CANCELLED') && (
-              <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => handleAdvance('CANCELLED')}>Cancel Declaration</button>
+              <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => handleAdvance('CANCELLED')} data-ui-native-button="">Cancel Declaration</button>
             )}
 
             {entry.status === 'RELEASED' && (
@@ -297,11 +297,11 @@ export function SealExWarehouseEntryDetail() {
                         </SelectContent>
                       </Select>
                       <input type="text" className="input-field" style={{ width: 240 }} value={examFindings} onChange={e => setExamFindings(e.target.value)} placeholder="Officer's notes" />
-                      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleCompleteExamination(ex.id)}>{busy ? 'Recording…' : 'Complete Examination'}</button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setCompletingExamId(null)}>Cancel</button>
+                      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleCompleteExamination(ex.id)} data-ui-native-button="">{busy ? 'Recording…' : 'Complete Examination'}</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setCompletingExamId(null)} data-ui-native-button="">Cancel</button>
                     </div>
                   ) : (
-                    <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} onClick={() => setCompletingExamId(ex.id)}>Complete Examination</button>
+                    <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} onClick={() => setCompletingExamId(ex.id)} data-ui-native-button="">Complete Examination</button>
                   )
                 )}
               </div>

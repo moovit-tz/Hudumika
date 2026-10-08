@@ -96,7 +96,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
               type="button"
               onClick={() => setQuery('')}
               style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', alignItems: 'center' }}
-            >
+             data-ui-native-button="">
               <Icon name="close" size={14} color="var(--ink3)" />
             </button>
           )}
@@ -124,7 +124,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   background: isActive ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
                   color: isActive ? 'var(--teal)' : 'var(--ink2)',
                   transition: 'all 0.15s ease', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-              >
+               data-ui-native-button="">
                 {tab.label}
               </button>
             );
@@ -220,7 +220,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-              >
+               data-ui-native-button="">
                 <Icon name="chevronLeft" size={13} /> Prev
               </button>
 
@@ -248,7 +248,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer'
                     }}
-                  >
+                   data-ui-native-button="">
                     {pNum}
                   </button>
                 );
@@ -270,7 +270,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-              >
+               data-ui-native-button="">
                 Next <Icon name="chevronRight" size={13} />
               </button>
             </div>

@@ -745,7 +745,7 @@ function CaseDetailView({ id }: { id: string }) {
                         className="sfc-copy-btn"
                         onClick={() => copyToClipboard(kase.canonical_hash!, 'canonical_hash')}
                         title="Copy Canonical Hash"
-                      >
+                       data-ui-native-button="">
                         <Icon name={copiedKey === 'canonical_hash' ? 'check' : 'copy'} size={12} />
                       </button>
                     </div>
@@ -761,7 +761,7 @@ function CaseDetailView({ id }: { id: string }) {
                         className="sfc-copy-btn"
                         onClick={() => copyToClipboard(kase.manifest_hash!, 'manifest_hash')}
                         title="Copy Manifest Hash"
-                      >
+                       data-ui-native-button="">
                         <Icon name={copiedKey === 'manifest_hash' ? 'check' : 'copy'} size={12} />
                       </button>
                     </div>
@@ -805,7 +805,7 @@ function CaseDetailView({ id }: { id: string }) {
                             className="sfc-copy-btn"
                             onClick={() => copyToClipboard(findingText, `finding_${i}`)}
                             title="Copy snippet"
-                          >
+                           data-ui-native-button="">
                             <Icon name={copiedKey === `finding_${i}` ? 'check' : 'copy'} size={12} />
                           </button>
                         )}
@@ -888,7 +888,7 @@ function CaseDetailView({ id }: { id: string }) {
                           className="sfc-copy-btn"
                           onClick={() => copyToClipboard(e.sha256, `ev_${e.id}`)}
                           title="Copy Full SHA256 Hash"
-                        >
+                         data-ui-native-button="">
                           <Icon name={copiedKey === `ev_${e.id}` ? 'check' : 'copy'} size={11} />
                         </button>
                       </div>

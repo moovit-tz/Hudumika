@@ -166,7 +166,7 @@ export function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose
                 : results.length === 0 ? <div style={{ padding: 10, fontSize: 12.5, color: 'var(--ink3)' }}>No matching colleagues or customers. Only people in this workspace can be added.</div>
                 : results.map(r => (
                   <button key={`${r.type}:${r.id}`} type="button" onClick={() => add(r.type, r.id, r.label)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border)' }} data-ui-native-button="">
                     <PersonAvatar name={r.label} size={24} />
                     <span style={{ flex: 1, fontSize: 13 }}>{r.label}</span>
                     {r.sub && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.sub}</span>}

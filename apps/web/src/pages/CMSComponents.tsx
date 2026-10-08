@@ -63,7 +63,7 @@ export function CMSComponentsList() {
         titlePlain="Reusable"
         titleEm="components"
         subtitle="A block group you define once — CTA banner, team grid, feature strip — and place inside any Content Model entry. Edit it here, every place it's used updates."
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New component</button>}
+        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)} data-ui-native-button=""><Icon name="plus" size={13} /> New component</button>}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
@@ -79,8 +79,8 @@ export function CMSComponentsList() {
                 <input className="input-field" style={{ fontFamily: 'var(--font)' }} value={form.key} placeholder="cta-banner" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create component'}</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create component'}</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
           </div>
@@ -183,8 +183,8 @@ export function CMSComponentDetail() {
         subtitle="Whatever you build here appears everywhere this component is placed."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
-            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
+            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave} data-ui-native-button="">{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
           </div>
         }
       />
@@ -207,7 +207,7 @@ export function CMSComponentDetail() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }}>Delete this component</button>
+          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this component</button>
         </div>
       </div>
     </div>

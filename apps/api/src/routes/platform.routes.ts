@@ -105,7 +105,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
       return reply.send(Buffer.from(data, 'base64'));
     }
     // Plain URL stored (e.g. an http(s) link) — redirect the browser to it.
-    return reply.redirect(302, logo);
+    return reply.redirect(logo, 302);
   });
 
   // ── Design tokens — platform-wide, SuperAdmin-controlled design system.

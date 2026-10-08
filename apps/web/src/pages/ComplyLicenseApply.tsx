@@ -141,7 +141,7 @@ export function ComplyLicenseApply() {
                 <Icon name="fileText" size={13} color="var(--comply)" />
                 <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{r}</span>
                 <Tip label="Remove requirement">
-                  <button type="button" className="comply-close-btn" aria-label="Remove requirement" onClick={() => removeRequirement(i)}>
+                  <button type="button" className="comply-close-btn" aria-label="Remove requirement" onClick={() => removeRequirement(i)} data-ui-native-button="">
                     <Icon name="x" size={14} />
                   </button>
                 </Tip>
@@ -158,7 +158,7 @@ export function ComplyLicenseApply() {
               onChange={e => setNewReq(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRequirement(); } }}
             />
-            <button type="button" className="comply-btn-secondary" onClick={addRequirement}>
+            <button type="button" className="comply-btn-secondary" onClick={addRequirement} data-ui-native-button="">
               <Icon name="plus" size={13} /> Add
             </button>
           </div>

@@ -65,8 +65,8 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </div>
         <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={sending} onClick={handleSend}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={sending} onClick={handleSend} data-ui-native-button="">
             {sending ? 'Opening…' : 'Open Application'}
           </button>
         </DialogFooter>
@@ -242,8 +242,8 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </div>
         <DialogFooter style={{ padding: '14px 20px', borderTop: '1px solid var(--border)' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving} data-ui-native-button="">Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave} data-ui-native-button="">
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </DialogFooter>
@@ -301,7 +301,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
           <DropdownMenu>
             <Tip label="More options">
               <DropdownMenuTrigger asChild>
-                <button type="button" className="spt-bedesk-icon-btn">
+                <button type="button" className="spt-bedesk-icon-btn" data-ui-native-button="">
                   <Icon name="moreVertical" size={16} />
                 </button>
               </DropdownMenuTrigger>
@@ -319,7 +319,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
           </DropdownMenu>
           {onClose && (
             <Tip label="Close details">
-              <button type="button" className="spt-bedesk-icon-btn" onClick={onClose}>
+              <button type="button" className="spt-bedesk-icon-btn" onClick={onClose} data-ui-native-button="">
                 <Icon name="dockRight" size={15} />
               </button>
             </Tip>
@@ -450,7 +450,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
               {tags.map(t => (
                 <span key={t} className="spt-bedesk-tag-chip">
                   <span>{t}</span>
-                  <button type="button" onClick={() => removeTag(t)}>
+                  <button type="button" onClick={() => removeTag(t)} data-ui-native-button="">
                     <Icon name="x" size={10} />
                   </button>
                 </span>
@@ -472,7 +472,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
           headerAction={canEdit && (
             <Tip label="Edit subject, category & priority">
               <button type="button" onClick={() => setEditOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginRight: 2 }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginRight: 2 }} data-ui-native-button="">
                 <Icon name="edit" size={13} />
               </button>
             </Tip>

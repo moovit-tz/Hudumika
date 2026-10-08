@@ -149,7 +149,7 @@ export const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void; 
     className={`s-tog${value ? ' s-tog--on' : ''}`}
     title={value ? 'Disable' : 'Enable'}
     disabled={disabled}
-  >
+   data-ui-native-button="">
     <span className="s-tog-label"><span>{value ? 'On' : 'Off'}</span></span>
     <span className="s-tog-thumb" />
   </button>
@@ -192,7 +192,7 @@ export const SaveRow: React.FC<{ extra?: React.ReactNode; onSave?: () => void; s
   <div className="s-save-row">
     {saved && <span className="s-save-ok"><Icon name="check" size={13} color="var(--green)" /> Saved</span>}
     {extra}
-    <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
+    <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving} data-ui-native-button="">
       {saving ? 'Saving…' : 'Save Changes'}
     </button>
   </div>

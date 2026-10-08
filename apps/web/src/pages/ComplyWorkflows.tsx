@@ -283,7 +283,7 @@ export function ComplyWorkflows() {
                     <StatusBadge status={selected.status as CompRenewalStatus} />
                   </div>
                 </div>
-                <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={closeDrawer}>
+                <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={closeDrawer} data-ui-native-button="">
                   <Icon name="x" size={16} />
                 </button></Tip>
               </div>

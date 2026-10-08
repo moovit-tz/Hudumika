@@ -158,7 +158,7 @@ export const TrackingGeofences: React.FC = () => {
                   <Badge variant={g.active ? 'success' : 'gray'}>{g.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                  <button type="button" onClick={() => remove(g.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                  <button type="button" onClick={() => remove(g.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                     <Icon name="close" size={14} />
                   </button>
                 </td>

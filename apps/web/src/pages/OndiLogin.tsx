@@ -119,7 +119,7 @@ export const OndiLogin: React.FC = () => {
             toggleThemeWithAnimation(e, next === 'dark');
           }}
           className="login-toggle"
-        >
+         data-ui-native-button="">
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>

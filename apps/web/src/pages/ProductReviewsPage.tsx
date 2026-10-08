@@ -113,7 +113,7 @@ function ReplyModal({ review, onSave, onClose }: { review: ProductReview; onSave
           </div>
         </DialogBody>
         <DialogFooter>
-          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
           <Button onClick={submit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
         </DialogFooter>
       </DialogContent>
@@ -192,7 +192,7 @@ export const ProductReviewsPage: React.FC = () => {
         titleEm="reviews"
         subtitle="Moderate customer reviews — approve, reject, or reply on behalf of the store."
         actions={
-          <button type="button" onClick={() => navigate('/finance/products')} className="btn btn-secondary btn-sm">
+          <button type="button" onClick={() => navigate('/finance/products')} className="btn btn-secondary btn-sm" data-ui-native-button="">
             <Icon name="arrowLeft" size={13} /> Back to Catalog
           </button>
         }
@@ -262,21 +262,21 @@ export const ProductReviewsPage: React.FC = () => {
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {r.status === 'pending' && (<>
                       <button type="button" onClick={() => quickStatus(r, 'approved')}
-                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', cursor: 'pointer' }}>
+                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', cursor: 'pointer' }} data-ui-native-button="">
                         Approve
                       </button>
                       <button type="button" onClick={() => quickStatus(r, 'rejected')}
-                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }}>
+                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
                         Reject
                       </button>
                     </>)}
                     <button type="button" onClick={() => setModerating(r)}
-                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', cursor: 'pointer' }}>
+                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', cursor: 'pointer' }} data-ui-native-button="">
                       <Icon name="messageSquare" size={12} /> Reply
                     </button>
                     <Tip label="Delete review">
                       <button type="button" aria-label="Delete review" onClick={() => handleDelete(r)}
-                        style={{ padding: '4px 8px', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }}>
+                        style={{ padding: '4px 8px', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
                         <Icon name="trash" size={12} />
                       </button>
                     </Tip>

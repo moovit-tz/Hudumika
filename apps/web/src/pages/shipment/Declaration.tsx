@@ -464,7 +464,7 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
       <div style={embedded ? {} : { maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Advance Stage</div>
-          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }} aria-label="Close"><Icon name="x" size={16} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }} aria-label="Close" data-ui-native-button=""><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: 20 }}>
           <div style={{ marginBottom: 14 }}>
@@ -510,7 +510,7 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
               {(['internal', 'whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
                 const cfg = CH_CFG[ch]; const on = chans.includes(ch);
                 return (
-                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     {cfg.label}
                   </button>
                 );
@@ -518,8 +518,8 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'hsl(var(--primary))' : 'var(--border)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'hsl(var(--primary))' : 'var(--border)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Update Stage →
             </button>
           </div>
@@ -588,7 +588,7 @@ export function DocVerifyList({ job, shipmentId, isLive, onRefresh }: { job: Cle
           {d.status === 'VERIFIED' ? (
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
           ) : canVerify ? (
-            <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               {verifying === d.id ? '…' : 'Verify'}
             </button>
           ) : <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{d.status === 'RECEIVED' ? 'Received' : ''}</span>}
@@ -1188,10 +1188,10 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
-                <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill} data-ui-native-button="">
                   Fill the form
                 </button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrefill(null)}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrefill(null)} data-ui-native-button="">
                   Start blank
                 </button>
               </div>
@@ -1213,11 +1213,11 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button type="button" onClick={() => { localStorage.removeItem(`ocrDecl_${job.id}`); setOcrBanner(null); }}
-              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Dismiss
             </button>
             <button type="button" onClick={applyOcrData}
-              style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Apply OCR data
             </button>
           </div>
@@ -1429,7 +1429,7 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>HS Code Lines — {items.length} item(s)</span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setItems(p => [...p, emptyHsLine()])} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setItems(p => [...p, emptyHsLine()])} style={{ display: 'flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
               <Icon name="plus" size={12} /> Add Line
             </button>
           </div>
@@ -1438,7 +1438,7 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em' }}>ITEM {i + 1}</span>
                 {items.length > 1 && (
-                  <button type="button" onClick={() => setItems(p => p.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 0 }}><Icon name="close" size={12} /></button>
+                  <button type="button" onClick={() => setItems(p => p.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 0 }} data-ui-native-button=""><Icon name="close" size={12} /></button>
                 )}
               </div>
               <div className="decl-grid">
@@ -1475,7 +1475,7 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
 
       {/* Save button */}
       <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 20px', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 20px', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="save" size={14} />
           {!loadedDeclaration ? 'Loading…' : saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
         </button>

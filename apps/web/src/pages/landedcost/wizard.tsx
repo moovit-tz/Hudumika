@@ -148,7 +148,7 @@ export function OverrideField({ label, suffix, value, onChange, placeholder, hin
         <span style={{ fontSize: 11.5, color: 'var(--ink3)', flexShrink: 0 }}>{suffix}</span>
         {active && (
           <button type="button" onClick={() => onChange('')} title="Clear override"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }} data-ui-native-button="">
             <Icon name="x" size={13} />
           </button>
         )}

@@ -190,7 +190,7 @@ export function CMSWorkflow() {
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ui-native-button="">
               <Icon name="refresh" size={14} />
               Reset to Standard
             </button>
@@ -212,7 +212,7 @@ export function CMSWorkflow() {
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ui-native-button="">
               <Icon name="plus" size={14} />
               Add State
             </button>
@@ -234,7 +234,7 @@ export function CMSWorkflow() {
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ui-native-button="">
               <Icon name="gitBranch" size={16} />
               Add Transition
             </button>
@@ -288,7 +288,7 @@ export function CMSWorkflow() {
                         onClick={() => handleDeleteState(st)}
                         style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
                         title="Delete state"
-                      >
+                       data-ui-native-button="">
                         <Icon name="trash" size={14} />
                       </button>
                     )}
@@ -380,7 +380,7 @@ export function CMSWorkflow() {
                           onClick={() => handleDeleteTransition(tr.id)}
                           style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
                           title="Remove transition"
-                        >
+                         data-ui-native-button="">
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
@@ -456,14 +456,14 @@ export function CMSWorkflow() {
               <button
                 onClick={() => setStateModalOpen(false)}
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleCreateState}
                 disabled={saving}
                 style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 {saving ? 'Creating...' : 'Create State'}
               </button>
             </div>
@@ -553,14 +553,14 @@ export function CMSWorkflow() {
               <button
                 onClick={() => setTransitionModalOpen(false)}
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleCreateTransition}
                 disabled={saving}
                 style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 {saving ? 'Adding...' : 'Add Transition'}
               </button>
             </div>

@@ -93,7 +93,7 @@ export const BlissInbox: React.FC = () => {
                 onClick={() => setSearchOpen(true)}
                 className="bliss-inbox-action-btn"
                 aria-label="Search Bliss"
-              >
+               data-ui-native-button="">
                 <Icon name="search" size={15} />
               </button>
             </Tip>
@@ -106,7 +106,7 @@ export const BlissInbox: React.FC = () => {
                   aria-label="Chat layout"
                   onClick={() => setViewMode('chat')}
                   className={`bliss-inbox-layout-btn ${viewMode === 'chat' ? 'is-active' : ''}`}
-                >
+                 data-ui-native-button="">
                   <Icon name="layoutSplit" size={14} />
                 </button>
               </Tip>
@@ -116,7 +116,7 @@ export const BlissInbox: React.FC = () => {
                   aria-label="Table layout"
                   onClick={() => setViewMode('table')}
                   className={`bliss-inbox-layout-btn ${viewMode === 'table' ? 'is-active' : ''}`}
-                >
+                 data-ui-native-button="">
                   <Icon name="layoutTable" size={14} />
                 </button>
               </Tip>

@@ -45,10 +45,19 @@ export function Tip({ label, children, side = 'top', delayDuration = 200, classN
   delayDuration?: number;
   className?: string;
 }) {
+  // A hover tooltip is not an accessible name until its content is mounted.
+  const trigger = React.isValidElement<React.HTMLAttributes<HTMLButtonElement>>(children)
+    && children.type === 'button'
+    && typeof label === 'string'
+    && !children.props['aria-label']
+    && !children.props['aria-labelledby']
+    && !React.Children.toArray(children.props.children).some(child => typeof child === 'string' || typeof child === 'number')
+      ? React.cloneElement(children, { 'aria-label': label })
+      : children;
   return (
     <TooltipProvider delayDuration={delayDuration}>
       <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
         <TooltipContent side={side} className={className}>{label}</TooltipContent>
       </Tooltip>
     </TooltipProvider>

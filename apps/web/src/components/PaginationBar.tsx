@@ -104,7 +104,7 @@ export function PaginationBar({
             disabled={safePage <= 1}
             onClick={() => onPageChange(1)}
             aria-label="First page"
-          >
+           data-ui-native-button="">
             <Icon name="chevronsLeft" size={14} />
           </button>
         </Tip>
@@ -116,7 +116,7 @@ export function PaginationBar({
             disabled={safePage <= 1}
             onClick={() => onPageChange(safePage - 1)}
             aria-label="Previous page"
-          >
+           data-ui-native-button="">
             <Icon name="chevronLeft" size={14} />
           </button>
         </Tip>
@@ -129,7 +129,7 @@ export function PaginationBar({
                 className="pagination-bar-ellipsis pagination-bar-ellipsis--btn"
                 onClick={openJump}
                 aria-label="Jump to page"
-              >
+               data-ui-native-button="">
                 …
               </button>
             </Tip>
@@ -141,7 +141,7 @@ export function PaginationBar({
               onClick={() => onPageChange(p)}
               aria-label={`Page ${p}`}
               aria-current={p === safePage ? 'page' : undefined}
-            >
+             data-ui-native-button="">
               {p}
             </button>
           )
@@ -154,7 +154,7 @@ export function PaginationBar({
             disabled={safePage >= totalPages}
             onClick={() => onPageChange(safePage + 1)}
             aria-label="Next page"
-          >
+           data-ui-native-button="">
             <Icon name="chevronRight" size={14} />
           </button>
         </Tip>
@@ -166,7 +166,7 @@ export function PaginationBar({
             disabled={safePage >= totalPages}
             onClick={() => onPageChange(totalPages)}
             aria-label="Last page"
-          >
+           data-ui-native-button="">
             <Icon name="chevronsRight" size={14} />
           </button>
         </Tip>
@@ -191,7 +191,7 @@ export function PaginationBar({
               aria-label={`Go to page (1–${totalPages})`}
               placeholder={String(safePage)}
             />
-            <button type="submit" className="pagination-bar-jump-go" aria-label="Go">
+            <button type="submit" className="pagination-bar-jump-go" aria-label="Go" data-ui-native-button="">
               <Icon name="arrowRight" size={13} />
             </button>
           </form>

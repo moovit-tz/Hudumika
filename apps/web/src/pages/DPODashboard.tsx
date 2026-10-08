@@ -150,7 +150,7 @@ export function DPODashboard() {
         subtitle="DSR queue, PII access audit, processing register and consent analytics."
       />
 
-      <div style={{ display: 'flex', gap: 4, padding: '0 28px 20px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 4, padding: '0 28px 20px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }} data-ds-tabstrip="">
         {TABS.map(t => (
           <button
             key={t}
@@ -166,7 +166,7 @@ export function DPODashboard() {
               cursor: 'pointer',
               transition: 'background 0.15s, color 0.15s',
             }}
-          >
+           data-ds-selected={tab === t} data-ui-native-button="" aria-pressed={tab === t}>
             {t}
             {t === 'DSR Queue' && overdue.length > 0 && (
               <span style={{

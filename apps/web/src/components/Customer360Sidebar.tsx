@@ -63,7 +63,7 @@ function TabBtn({ id, label, icon, active, onClick }: { id: Tab; label: string; 
       data-active={active ? 'true' : undefined}
       onClick={onClick}
       title={label}
-    >
+     data-ui-native-button="">
       <Icon name={icon} size={15} strokeWidth={1.75} />
       <span className="c360-tab-label">{label}</span>
     </button>
@@ -208,7 +208,7 @@ export function Customer360Sidebar({
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Contact Profile Details</span>
           </div>
           {onClose && (
-            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close details">
+            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close details" data-ui-native-button="">
               <Icon name="x" size={16} />
             </button>
           )}
@@ -247,7 +247,7 @@ export function Customer360Sidebar({
               border: '1px solid var(--border)', background: isMuted ? 'var(--red-l)' : 'var(--white)',
               color: isMuted ? 'var(--red)' : 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               transition: 'all 0.15s'
-            }}>
+            }} data-ui-native-button="">
             <Icon name="bell" size={13} />
             {isMuted ? 'Muted' : 'Mute Contact'}
           </button>
@@ -259,7 +259,7 @@ export function Customer360Sidebar({
               borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)',
               color: 'var(--ink2)', cursor: 'pointer'
             }}
-            title="Copy Contact Info">
+            title="Copy Contact Info" data-ui-native-button="">
             <Icon name="copy" size={13} />
           </button>
         </div>
@@ -369,7 +369,7 @@ export function Customer360Sidebar({
                     marginTop: 6, padding: '9px 16px', background: 'var(--ink)', color: 'var(--white)',
                     border: 'none', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s'
-                  }}>
+                  }} data-ui-native-button="">
                   {savingProps ? 'Saving…' : savedToast ? '✓ Properties Saved!' : '✓ Save Properties'}
                 </button>
               </div>
@@ -388,7 +388,7 @@ export function Customer360Sidebar({
                     fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)'
                   }}>
                     {tag}
-                    <button type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
+                    <button type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                       <Icon name="x" size={11} />
                     </button>
                   </span>
@@ -537,14 +537,14 @@ export function Customer360Sidebar({
                     <button
                       type="button"
                       onClick={() => onUseAiReply(aiSuggestion)}
-                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       ✓ Use This Reply
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={fetchAI}
-                    style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--white)', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--white)', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     ↺ Regenerate
                   </button>
                 </div>
@@ -554,7 +554,7 @@ export function Customer360Sidebar({
                 <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Icon name="sparkle" size={36} color="var(--teal)" strokeWidth={1.25} /></div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Draft a reply based on this conversation</div>
                 <button type="button" onClick={fetchAI}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Generate Suggestion
                 </button>
               </div>

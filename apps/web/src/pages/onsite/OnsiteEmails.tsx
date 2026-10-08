@@ -89,7 +89,7 @@ export function OnsiteEmails() {
                 : 'No mailbox is connected yet. Connecting one lets this workspace send and receive real mail — the same account used across the platform, not a separate inbox per domain.'}
             </p>
             <div>
-              <button className="btn btn-primary btn-sm" onClick={() => navigate('/workspace/settings?s=email')}>
+              <button className="btn btn-primary btn-sm" onClick={() => navigate('/workspace/settings?s=email')} data-ui-native-button="">
                 {isConnected ? 'Manage connection' : 'Connect a mailbox'}
               </button>
             </div>
@@ -102,7 +102,7 @@ export function OnsiteEmails() {
               <p style={{ margin: '0.4rem 0 1rem', fontSize: '0.875rem', color: 'var(--ink2)' }}>
                 Add a domain to see and manage its mail DNS records here.
               </p>
-              <button className="btn btn-primary" onClick={() => navigate('/onsite/domains')}>
+              <button className="btn btn-primary" onClick={() => navigate('/onsite/domains')} data-ui-native-button="">
                 <Icon name="plus" size={14} /> Add a domain
               </button>
             </div>

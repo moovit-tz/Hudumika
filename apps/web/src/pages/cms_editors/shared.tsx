@@ -134,11 +134,11 @@ export function BulkBar({ count, onClear, actions }: { count: number; onClear: (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', marginBottom: 12, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal)' }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal-deep, var(--teal))' }}>{count} selected</span>
       {actions.map(a => (
-        <button key={a.label} type="button" onClick={a.onClick} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: a.danger ? 'var(--red)' : undefined }}>
+        <button key={a.label} type="button" onClick={a.onClick} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: a.danger ? 'var(--red)' : undefined }} data-ui-native-button="">
           {a.label}
         </button>
       ))}
-      <button type="button" onClick={onClear} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12.5, cursor: 'pointer' }}>Clear</button>
+      <button type="button" onClick={onClear} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12.5, cursor: 'pointer' }} data-ui-native-button="">Clear</button>
     </div>
   );
 }
@@ -187,10 +187,10 @@ export function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClos
       <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', width: 'min(640px, 94vw)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Media Library</div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={16} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
-          <button type="button" className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+          <button type="button" className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()} data-ui-native-button="">
             {uploading ? 'Uploading…' : 'Upload image'}
           </button>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -206,7 +206,7 @@ export function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClos
                   style={{ position: 'relative', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', cursor: 'pointer', aspectRatio: '1', background: 'var(--bg)' }}>
                   <img src={m.url} alt={m.filename} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   <button type="button" onClick={e => handleDelete(m.id, e)} title="Delete"
-                    style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} data-ui-native-button="">
                     <Icon name="x" size={11} />
                   </button>
                 </div>

@@ -22,10 +22,8 @@ import {
 import { SkeletonPage } from '../../components/ui/skeleton.js';
 import { SwitchRow } from '../../components/ui/list-item-row.js';
 import { getCompany } from '../../data/companyStore.js';
-import { ActivityTimeline } from '../../components/crm/ActivityTimeline.js';
 import { ComposeEmailButton } from '../../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../../components/crm/StartCallButton.js';
-import { CustomFieldsPanel } from '../../components/crm/CustomFieldsPanel.js';
 import type { Customer } from './customer-types.js';
 import { fmtDateShort, maskTin } from './customer-types.js';
 import './CustomerDetailPage.css';
@@ -52,11 +50,11 @@ function openStatementPrintWindow(
 <title>Statement of Account — ${customer.name}</title><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
-.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #0b1e3a}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #d5dde8}
 .from strong{font-size:15px;color:#111}
 .from div{color:#555;line-height:1.6;margin-top:4px}
 .title{text-align:right}
-.title h1{font-size:18px;color:#0b1e3a}
+.title h1{font-size:18px;color:#111827}
 .title .sub{color:#9ca3af;font-size:10px;margin-top:4px}
 .to{margin-bottom:16px}
 .to .lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:4px}
@@ -66,10 +64,10 @@ body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
 .totals .lbl{font-size:8px;font-weight:800;text-transform:uppercase;color:#9ca3af;margin-bottom:2px}
 .totals .val{font-size:14px;font-weight:800;font-family:monospace}
 table{width:100%;border-collapse:collapse}
-thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
+thead tr{background:#f9fafb;border-bottom:1px solid #d5dde8}
 th{padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase}
 th:nth-child(4),th:nth-child(5){text-align:right}
-td{padding:7px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
+td{padding:7px 8px;border-bottom:1px solid #edf0f4;font-size:10.5px}
 @media print{body{padding:10px 16px}}
 </style></head><body>
 <div class="top">
@@ -757,7 +755,7 @@ export const CustomerDetailPage: React.FC = () => {
       </div>
 
       {/* ── Sub-Navigation Tabs Strip ── */}
-      <div className="cust-tab-nav">
+      <div className="cust-tab-nav" data-ds-tabs-exempt="crm-customers">
         {MAIN_TABS.map(t => {
           const isActive = mainTab === t.key;
           let badgeCount: number | null = null;
@@ -774,7 +772,7 @@ export const CustomerDetailPage: React.FC = () => {
               className="cust-nav-btn"
               data-active={isActive ? 'true' : undefined}
               onClick={() => handleTabChange(t.key)}
-            >
+             data-ui-native-button="">
               <Icon name={t.icon} size={15} />
               <span>{t.label}</span>
               {badgeCount !== null && badgeCount > 0 && (
@@ -922,18 +920,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Card 4: Custom Fields */}
-            <div className="cust-widget-card">
-              <div className="cust-widget-header">
-                <h3 className="cust-widget-title">
-                  <Icon name="layers" size={15} style={{ color: 'var(--ink3)' }} />
-                  <span>Custom Attributes</span>
-                </h3>
-              </div>
-              <div className="cust-widget-body">
-                <CustomFieldsPanel entityType="customer" subjectId={sel.id} />
-              </div>
-            </div>
+
 
           </div>
 
@@ -1070,18 +1057,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Widget 4: Comprehensive Activity Stream */}
-            <div className="cust-widget-card">
-              <div className="cust-widget-header">
-                <h3 className="cust-widget-title">
-                  <Icon name="clock" size={15} style={{ color: 'var(--ink3)' }} />
-                  <span>Interaction Timeline & Audit Stream</span>
-                </h3>
-              </div>
-              <div className="cust-widget-body">
-                <ActivityTimeline subjectType="customer" subjectId={sel.id} />
-              </div>
-            </div>
+
 
           </div>
         </div>
@@ -1961,7 +1937,7 @@ export const CustomerDetailPage: React.FC = () => {
                 type="button"
                 onClick={() => linkDocInputRef.current?.click()}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '32px 16px', border: '2px dashed var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink3)', fontFamily: 'var(--font)', transition: 'background 120ms' }}
-              >
+               data-ui-native-button="">
                 <Icon name="upload" size={22} style={{ color: 'var(--teal)' }} />
                 <span style={{ fontSize: 13, fontWeight: 600 }}>Click to select a file</span>
                 <span style={{ fontSize: 11 }}>PDF, Word, Excel, images — up to 50 MB</span>
@@ -2033,7 +2009,7 @@ export const CustomerDetailPage: React.FC = () => {
                     type="button"
                     onClick={() => setDispatchEmail(sel.email!)}
                     style={{ marginTop: 5, fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}
-                  >
+                   data-ui-native-button="">
                     Use {sel.email}
                   </button>
                 )}

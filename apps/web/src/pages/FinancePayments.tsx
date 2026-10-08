@@ -54,7 +54,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="fileText" size={18} color="var(--blue)" /> Payment
         </h2>
-        <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink3)' }}>
+        <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
           <Icon name="x" size={16} strokeWidth={2} />
         </button>
       </div>
@@ -267,8 +267,8 @@ export const FinancePayments: React.FC = () => {
         onCancel={() => setShowAdd(false)}
         actions={
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</button>
-            <button type="submit" form="payment-form" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Payment'}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)} disabled={saving} data-ui-native-button="">Cancel</button>
+            <button type="submit" form="payment-form" className="btn btn-primary" disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Save Payment'}</button>
           </>
         }
       >
@@ -320,7 +320,7 @@ export const FinancePayments: React.FC = () => {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Proof of Payment (Receipt / Docs)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="file" id="fFile" style={{ display: 'none' }} onChange={e => setFFile(e.target.files?.[0] || null)} />
-                  <button type="button" onClick={() => document.getElementById('fFile')?.click()} style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  <button type="button" onClick={() => document.getElementById('fFile')?.click()} style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     <Icon name="upload" size={14} /> {fFile ? 'Change File' : 'Upload File'}
                   </button>
                   {fFile && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fFile.name}</span>}

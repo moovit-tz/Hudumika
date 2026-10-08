@@ -186,7 +186,7 @@ export function CMSReleases() {
               fontSize: 13,
               cursor: 'pointer',
             }}
-          >
+           data-ui-native-button="">
             <Icon name="package" size={16} />
             New Release
           </button>
@@ -208,7 +208,7 @@ export function CMSReleases() {
               <button
                 onClick={() => setCreateModalOpen(true)}
                 style={{ padding: '8px 16px', borderRadius: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Create Release
               </button>
             </div>
@@ -259,7 +259,7 @@ export function CMSReleases() {
                         openReleaseDetail(rel);
                       }}
                       style={{ fontSize: 12, color: 'var(--teal)', background: 'transparent', border: 'none', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                    >
+                     data-ui-native-button="">
                       View Items &rarr;
                     </button>
 
@@ -283,7 +283,7 @@ export function CMSReleases() {
                           fontWeight: 600,
                           cursor: 'pointer',
                         }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="zap" size={12} />
                         {publishing === rel.id ? 'Publishing...' : 'Publish Release'}
                       </button>
@@ -315,7 +315,7 @@ export function CMSReleases() {
               <button
                 onClick={() => setSelectedRelease(null)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -341,7 +341,7 @@ export function CMSReleases() {
                       fontWeight: 600,
                       cursor: 'pointer',
                     }}
-                  >
+                   data-ui-native-button="">
                     <Icon name="plus" size={12} /> Add Item
                   </button>
                 )}
@@ -380,7 +380,7 @@ export function CMSReleases() {
                           onClick={() => handleRemoveItem(it.id)}
                           style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
                           title="Remove from release"
-                        >
+                         data-ui-native-button="">
                           <Icon name="x" size={14} />
                         </button>
                       )}
@@ -406,7 +406,7 @@ export function CMSReleases() {
                     fontSize: 13,
                     cursor: 'pointer',
                   }}
-                >
+                 data-ui-native-button="">
                   {publishing === selectedRelease.id ? 'Publishing...' : 'Publish Release Now'}
                 </button>
               )}
@@ -421,7 +421,7 @@ export function CMSReleases() {
                   cursor: 'pointer',
                 }}
                 title="Delete release"
-              >
+               data-ui-native-button="">
                 <Icon name="trash" size={16} />
               </button>
             </div>
@@ -483,13 +483,13 @@ export function CMSReleases() {
               <button
                 onClick={() => setCreateModalOpen(false)}
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleCreateRelease}
                 style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Create Release
               </button>
             </div>
@@ -534,7 +534,7 @@ export function CMSReleases() {
                       fontSize: 13,
                       cursor: 'pointer',
                     }}
-                  >
+                   data-ui-native-button="">
                     Page ({availablePages.length})
                   </button>
                   <button
@@ -554,7 +554,7 @@ export function CMSReleases() {
                       fontSize: 13,
                       cursor: 'pointer',
                     }}
-                  >
+                   data-ui-native-button="">
                     Blog Post ({availablePosts.length})
                   </button>
                 </div>
@@ -581,13 +581,13 @@ export function CMSReleases() {
               <button
                 onClick={() => setAddItemModalOpen(false)}
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleAddItem}
                 style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Add to Bundle
               </button>
             </div>

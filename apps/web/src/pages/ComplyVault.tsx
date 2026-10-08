@@ -179,10 +179,10 @@ export function ComplyVault() {
         </TabsList>
         </Tabs>
         <div className="comply-view-toggle">
-          <Tip label="Grid view"><button type="button" aria-label="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
+          <Tip label="Grid view"><button type="button" aria-label="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} data-ui-native-button="">
             <Icon name="grid" size={15} />
           </button></Tip>
-          <Tip label="List view"><button type="button" aria-label="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')}>
+          <Tip label="List view"><button type="button" aria-label="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} data-ui-native-button="">
             <Icon name="list" size={15} />
           </button></Tip>
         </div>
@@ -313,7 +313,7 @@ export function ComplyVault() {
                 <div className="comply-panel-hdr-title">{selected.name}</div>
                 <span className={`comply-agency comply-agency--${selected.agency_class}`}>{selected.agency_code}</span>
               </div>
-              <Tip label="Close"><button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
+              <Tip label="Close"><button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)} data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button></Tip>
             </div>

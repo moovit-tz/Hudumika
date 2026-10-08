@@ -62,7 +62,7 @@ export const ContactsOutlookCallback: React.FC = () => {
         <>
           <Icon name="alertCircle" size={32} color="var(--red)" />
           <div style={{ fontSize: 13.5, color: 'var(--ink)', maxWidth: 380, textAlign: 'center' }}>{message}</div>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/contacts')}>Back to Contacts</button>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/contacts')} data-ui-native-button="">Back to Contacts</button>
         </>
       )}
     </div>

@@ -53,7 +53,7 @@ export const ForgotPassword: React.FC = () => {
               className="auth-link"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
               onClick={() => { setSent(false); setLoading(false); }}
-            >
+             data-ui-native-button="">
               try again
             </button>.
           </p>
@@ -87,7 +87,7 @@ export const ForgotPassword: React.FC = () => {
               />
             </AuthField>
 
-            <button type="submit" disabled={loading} className="auth-btn-primary">
+            <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
               {loading ? <><span className="auth-spinner" /> Sending…</> : 'Send reset link'}
             </button>
           </form>

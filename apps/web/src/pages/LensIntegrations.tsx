@@ -211,17 +211,17 @@ export function LensIntegrations() {
 
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <button type="button" className="btn btn-primary" style={{ height: 'var(--ctl-h-sm)' }}
-                        disabled={busy === p.provider} onClick={() => save(p)}>
+                        disabled={busy === p.provider} onClick={() => save(p)} data-ui-native-button="">
                         {busy === p.provider ? 'Testing…' : 'Save & Test'}
                       </button>
                       <button type="button" className="btn btn-secondary" style={{ height: 'var(--ctl-h-sm)' }}
-                        disabled={busy === p.provider || !p.has_credential} onClick={() => test(p)}>
+                        disabled={busy === p.provider || !p.has_credential} onClick={() => test(p)} data-ui-native-button="">
                         Test Connection
                       </button>
                       {/* The one worth running. "Test connection" only proves the
                           token authenticates; this proves it can do the job. */}
                       <button type="button" className="btn btn-secondary" style={{ height: 'var(--ctl-h-sm)' }}
-                        disabled={busy === p.provider || !p.has_credential} onClick={() => runPreflight(p)}>
+                        disabled={busy === p.provider || !p.has_credential} onClick={() => runPreflight(p)} data-ui-native-button="">
                         Run full check
                       </button>
                     </div>

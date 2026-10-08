@@ -62,7 +62,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
         onClick={() => { setCompartmentId(null); setIsOpen(false); }}
         className="seal-switcher-item"
         data-selected={compartmentId === null}
-      >
+       data-ui-native-button="">
         <CompartmentAvatar compartment={null} />
         <span style={{ fontSize: 13, fontWeight: compartmentId === null ? 700 : 500, flex: 1, textAlign: 'left' }}>
           All Compartments
@@ -79,7 +79,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
             onClick={() => { setCompartmentId(c.id); setIsOpen(false); }}
             className="seal-switcher-item"
             data-selected={selected}
-          >
+           data-ui-native-button="">
             <CompartmentAvatar compartment={c} />
             <span style={{
               fontSize: 13, fontWeight: selected ? 700 : 500, flex: 1, textAlign: 'left',
@@ -111,7 +111,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
                 cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               title="Warehouse Selection Menu"
-            >
+             data-ui-native-button="">
               <Icon name="menu" size={18} style={{ color: 'var(--seal)' }} />
             </button>
           </PopoverTrigger>
@@ -146,7 +146,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
               background: 'var(--white)', border: isOpen ? '1.5px solid var(--seal)' : '1px solid var(--border)',
               borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
             }}
-          >
+           data-ui-native-button="">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
               <CompartmentAvatar compartment={currentCompartment} size={24} />
               <span style={{ color: 'var(--ink)', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

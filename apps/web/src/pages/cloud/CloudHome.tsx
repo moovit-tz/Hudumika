@@ -41,7 +41,7 @@ function SectionLabel({ children, action }: { children: React.ReactNode; action?
 // ── Quick-action pill button ───────────────────────────────────────────────
 function QuickActionBtn({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="cloud-home-action-btn">
+    <button onClick={onClick} className="cloud-home-action-btn" data-ui-native-button="">
       <span className="cloud-home-action-icon"><Icon name={icon} size={16} /></span>
       <span className="cloud-home-action-label">{label}</span>
     </button>
@@ -146,7 +146,7 @@ export function CloudHome() {
           <section className="cloud-home-section">
             <SectionLabel
               action={
-                <button onClick={() => goToView('all')} className="cloud-home-see-all">
+                <button onClick={() => goToView('all')} className="cloud-home-see-all" data-ui-native-button="">
                   {t('home.section.seeAll')} <Icon name="arrowRight" size={12} />
                 </button>
               }
@@ -174,7 +174,7 @@ export function CloudHome() {
           <section className="cloud-home-section">
             <SectionLabel
               action={
-                <button onClick={() => goToView('recent')} className="cloud-home-see-all">
+                <button onClick={() => goToView('recent')} className="cloud-home-see-all" data-ui-native-button="">
                   {t('home.section.viewMore')} <Icon name="arrowRight" size={12} />
                 </button>
               }

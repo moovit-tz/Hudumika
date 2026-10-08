@@ -322,7 +322,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed – retry')
               : 'Submit this invoice to TRA EFDMS for fiscalization'
             }
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
             {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>
@@ -331,19 +331,19 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           stampedFileUrl ? (
             <button type="button" onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}
               title="Download the company-stamped copy"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               <Icon name="checkCircle" size={12} color="var(--green)" /> Stamped
             </button>
           ) : stampAllowed === true ? (
             <button type="button" onClick={handleSignAndStamp} disabled={stamping}
               title="Apply the company stamp to this invoice"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: stamping ? 'default' : 'pointer', background: 'var(--blue-l)', color: 'var(--blue)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: stamping ? 'default' : 'pointer', background: 'var(--blue-l)', color: 'var(--blue)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               <Icon name="stamp" size={12} color="var(--blue)" /> {stamping ? 'Stamping…' : 'Sign & Stamp'}
             </button>
           ) : stampAllowed === false ? (
             <button type="button" onClick={() => setShowRequestStamp(true)}
               title="Your role doesn't have direct stamp access – tag someone who can approve it"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--bg)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--bg)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               <Icon name="stamp" size={12} color="var(--ink3)" /> Request Stamping
             </button>
           ) : null
@@ -581,7 +581,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             />
             <div className="inv-tab-compose-foot">
               <span className="inv-tab-hint">⌘↵ to save</span>
-              <button type="button" className="inv-tab-submit" onClick={addNote} disabled={!newNote.trim()}>Add Note</button>
+              <button type="button" className="inv-tab-submit" onClick={addNote} disabled={!newNote.trim()} data-ui-native-button="">Add Note</button>
             </div>
           </div>
           <div className="inv-tab-list">
@@ -590,7 +590,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <div key={n.id} className="inv-note-item">
                 <div className="inv-note-meta">{n.author_name} · {new Date(n.created_at).toLocaleString('en-GB')}</div>
                 <div className="inv-note-text">{n.content}</div>
-                <Tip label="Delete note"><button type="button" className="inv-note-del" aria-label="Delete note" onClick={() => deleteNote(n.id)}>
+                <Tip label="Delete note"><button type="button" className="inv-note-del" aria-label="Delete note" onClick={() => deleteNote(n.id)} data-ui-native-button="">
                   <Icon name="x" size={12} color="var(--ink3)" />
                 </button></Tip>
               </div>
@@ -608,13 +608,13 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 <DatePicker date={parseDateOnly(newTaskDue)} onChange={d => setNewTaskDue(toDateOnlyString(d))} />
               </div>
               <div className="inv-tab-compose-foot">
-                <button type="button" className="inv-tab-cancel" onClick={() => setShowTaskForm(false)}>Cancel</button>
-                <button type="button" className="inv-tab-submit" onClick={addTask} disabled={!newTaskDesc.trim()}>Add Task</button>
+                <button type="button" className="inv-tab-cancel" onClick={() => setShowTaskForm(false)} data-ui-native-button="">Cancel</button>
+                <button type="button" className="inv-tab-submit" onClick={addTask} disabled={!newTaskDesc.trim()} data-ui-native-button="">Add Task</button>
               </div>
             </div>
           ) : (
             <div className="inv-tab-toolbar">
-              <button type="button" className="inv-tab-submit" onClick={() => setShowTaskForm(true)}>
+              <button type="button" className="inv-tab-submit" onClick={() => setShowTaskForm(true)} data-ui-native-button="">
                 <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Task
               </button>
             </div>
@@ -629,7 +629,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   {t.assignee && <span className="inv-task-assignee">→ {t.assignee}</span>}
                   {t.due_date && <span className="inv-task-due">Due {t.due_date}</span>}
                 </div>
-                <Tip label="Delete task"><button type="button" className="inv-note-del" aria-label="Delete task" onClick={() => deleteTask(t.id)}>
+                <Tip label="Delete task"><button type="button" className="inv-note-del" aria-label="Delete task" onClick={() => deleteTask(t.id)} data-ui-native-button="">
                   <Icon name="x" size={12} color="var(--ink3)" />
                 </button></Tip>
               </div>
@@ -646,13 +646,13 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 <input className="inv-tab-input" placeholder="Reminder message…" value={newRemMsg} onChange={e => setNewRemMsg(e.target.value)} />
               </div>
               <div className="inv-tab-compose-foot">
-                <button type="button" className="inv-tab-cancel" onClick={() => setShowRemForm(false)}>Cancel</button>
-                <button type="button" className="inv-tab-submit" onClick={addReminder} disabled={!newRemDate || !newRemMsg.trim()}>Set Reminder</button>
+                <button type="button" className="inv-tab-cancel" onClick={() => setShowRemForm(false)} data-ui-native-button="">Cancel</button>
+                <button type="button" className="inv-tab-submit" onClick={addReminder} disabled={!newRemDate || !newRemMsg.trim()} data-ui-native-button="">Set Reminder</button>
               </div>
             </div>
           ) : (
             <div className="inv-tab-toolbar">
-              <button type="button" className="inv-tab-submit" onClick={() => setShowRemForm(true)}>
+              <button type="button" className="inv-tab-submit" onClick={() => setShowRemForm(true)} data-ui-native-button="">
                 <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> New Reminder
               </button>
             </div>
@@ -666,7 +666,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   <span className="inv-task-due">{r.remind_date}</span>
                   <span className="inv-task-desc">{r.message}</span>
                 </div>
-                <Tip label="Delete reminder"><button type="button" className="inv-note-del" aria-label="Delete reminder" onClick={() => deleteReminder(r.id)}>
+                <Tip label="Delete reminder"><button type="button" className="inv-note-del" aria-label="Delete reminder" onClick={() => deleteReminder(r.id)} data-ui-native-button="">
                   <Icon name="x" size={12} color="var(--ink3)" />
                 </button></Tip>
               </div>

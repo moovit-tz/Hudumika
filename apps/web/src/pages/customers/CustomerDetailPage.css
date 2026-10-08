@@ -69,7 +69,7 @@
 /* ── Unified Company Master Hero Card ── */
 .cust-master-hero {
   background: var(--card-bg, var(--white));
-  border: 1px solid var(--border);
+  border: var(--card-border);
   border-radius: var(--card-radius, var(--r));
   box-shadow: var(--card-shadow, var(--elev-sm));
   overflow: hidden;
@@ -402,7 +402,7 @@
 /* ── Card Widgets & Panels ── */
 .cust-widget-card {
   background: var(--card-bg, var(--white));
-  border: 1px solid var(--border);
+  border: var(--card-border);
   border-radius: var(--card-radius, var(--r));
   box-shadow: var(--card-shadow, var(--elev-sm));
   overflow: hidden;
@@ -492,7 +492,7 @@
 /* ── Activity Composer Bar ── */
 .cust-composer-card {
   background: var(--card-bg, var(--white));
-  border: 1px solid var(--border);
+  border: var(--card-border);
   border-radius: var(--card-radius, var(--r));
   box-shadow: var(--card-shadow, var(--elev-sm));
   overflow: hidden;

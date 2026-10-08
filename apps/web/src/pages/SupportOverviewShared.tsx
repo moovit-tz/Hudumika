@@ -73,7 +73,7 @@ export function PeriodSwitcher({ period, setPeriod }: { period: '7d' | '30d' | '
     <>
       {(['7d', '30d', '90d'] as const).map(p => (
         <button key={p} type="button" onClick={() => setPeriod(p)}
-          className={`sov-period-btn${period === p ? ' sov-period-btn--active' : ''}`}>
+          className={`sov-period-btn${period === p ? ' sov-period-btn--active' : ''}`} data-ui-native-button="">
           {p}
         </button>
       ))}

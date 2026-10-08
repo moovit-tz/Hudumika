@@ -52,8 +52,8 @@ export const StepCompany: React.FC<StepProps> = ({ draft, update, onNext, onBack
       </div>
 
       <div className="login-form-actions">
-        <button type="button" onClick={onBack} className="login-back-btn">Back</button>
-        <button type="submit" className="login-submit-btn">Continue</button>
+        <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
+        <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue</button>
       </div>
     </form>
   );

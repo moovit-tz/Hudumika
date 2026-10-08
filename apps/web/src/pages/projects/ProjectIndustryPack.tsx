@@ -234,7 +234,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 12, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 12, overflowX: 'auto' }} data-ds-tabstrip="">
         {isConstruction && (
           <>
             <button
@@ -253,7 +253,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ds-selected={subTab === 'boq'} data-ui-native-button="" aria-pressed={subTab === 'boq'}>
               <Icon name="fileText" size={15} /> Bill of Quantities (BOQ)
             </button>
             <button
@@ -272,7 +272,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ds-selected={subTab === 'rfis'} data-ui-native-button="" aria-pressed={subTab === 'rfis'}>
               <Icon name="helpCircle" size={15} /> Request For Information (RFI)
             </button>
             <button
@@ -291,7 +291,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ds-selected={subTab === 'site_diary'} data-ui-native-button="" aria-pressed={subTab === 'site_diary'}>
               <Icon name="calendar" size={15} /> Daily Site Diary & Incidents
             </button>
           </>
@@ -312,7 +312,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ds-selected={subTab === 'bom'} data-ui-native-button="" aria-pressed={subTab === 'bom'}>
               Bill of Materials (BOM)
             </button>
           </>
@@ -333,7 +333,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ds-selected={subTab === 'units'} data-ui-native-button="" aria-pressed={subTab === 'units'}>
               Unit Inventory & Sales Matrix
             </button>
           </>
@@ -354,7 +354,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ds-selected={subTab === 'logframe'} data-ui-native-button="" aria-pressed={subTab === 'logframe'}>
               Results Framework (Logframe)
             </button>
           </>
@@ -375,7 +375,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ds-selected={subTab === 'sprints'} data-ui-native-button="" aria-pressed={subTab === 'sprints'}>
               Sprint Cockpit & DORA Metrics
             </button>
           </>
@@ -751,7 +751,7 @@ export const ProjectIndustryPack: React.FC<ProjectIndustryPackProps> = ({
                 type="button"
                 onClick={() => setShowAddModal(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>

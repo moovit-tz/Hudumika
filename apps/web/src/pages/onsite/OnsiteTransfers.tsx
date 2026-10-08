@@ -62,11 +62,11 @@ export function OnsiteTransfers() {
           Transfer a domain you have registered elsewhere or move a domain to another Onsite account.
         </p>
 
-        <button className="onsite-btn-purple" style={{ marginTop: '0.5rem', padding: '0.65rem 1.75rem', fontSize: '0.875rem' }} onClick={() => setShowModal(true)}>
+        <button className="onsite-btn-purple" style={{ marginTop: '0.5rem', padding: '0.65rem 1.75rem', fontSize: '0.875rem' }} onClick={() => setShowModal(true)} data-ui-native-button="">
           Transfer to Onsite
         </button>
 
-        <button className="btn btn-ghost" style={{ fontSize: '0.8125rem', color: 'hsl(var(--primary))', fontWeight: 600 }} onClick={() => setShowModal(true)}>
+        <button className="btn btn-ghost" style={{ fontSize: '0.8125rem', color: 'hsl(var(--primary))', fontWeight: 600 }} onClick={() => setShowModal(true)} data-ui-native-button="">
           Move to another account
         </button>
       </div>
@@ -76,7 +76,7 @@ export function OnsiteTransfers() {
         <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Transfer Domain to Onsite</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowModal(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowModal(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleInitiateTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -101,10 +101,10 @@ export function OnsiteTransfers() {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="onsite-btn-purple" disabled={submitting}>
+                <button type="submit" className="onsite-btn-purple" disabled={submitting} data-ui-native-button="">
                   {submitting ? 'Transferring…' : 'Initiate Transfer'}
                 </button>
               </div>

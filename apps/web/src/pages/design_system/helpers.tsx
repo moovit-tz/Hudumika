@@ -123,7 +123,7 @@ function StrokeIconGrid() {
                 className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {sz}px
               </button>
             ))}
@@ -191,7 +191,7 @@ function TwotoneIconGrid() {
                     selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
                   }`}
                   style={{ backgroundColor: colorMap[c], borderColor: 'transparent' }}
-                />
+                 data-ui-native-button=""/>
               </Tip>
             ))}
           </div>
@@ -207,7 +207,7 @@ function TwotoneIconGrid() {
                 className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {sz}px
               </button>
             ))}
@@ -292,7 +292,7 @@ function HugeiconsIconGrid() {
                     selectedColor === c ? 'scale-110 ring-2 ring-primary ring-offset-2' : 'hover:scale-105'
                   }`}
                   style={{ backgroundColor: colorMap[c], borderColor: 'transparent' }}
-                />
+                 data-ui-native-button=""/>
               </Tip>
             ))}
           </div>
@@ -308,7 +308,7 @@ function HugeiconsIconGrid() {
                 className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {sz}px
               </button>
             ))}
@@ -363,7 +363,7 @@ export function IconSystemSection() {
         </p>
       </div>
 
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit" data-ds-tabstrip="">
         {ICON_LIBRARY_IDS.map(id => (
           <button
             key={id}
@@ -374,7 +374,7 @@ export function IconSystemSection() {
                 ? 'bg-card shadow-sm text-foreground border border-border'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
-          >
+           data-ds-selected={tab === id} data-ui-native-button="" aria-pressed={tab === id}>
             {id === 'twotone'
               ? <TwotoneIcon name="sparkle" size={14} color="var(--teal)" secondaryColor="var(--teal)" />
               : <Icon name="sparkle" size={14} />}
@@ -402,7 +402,7 @@ export function IconSystemSection() {
             type="button"
             onClick={() => updateTokens({ iconLibrary: tab })}
             className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          >
+           data-ui-native-button="">
             Use {ICON_TAB_META[tab].label} platform-wide
           </button>
         )}

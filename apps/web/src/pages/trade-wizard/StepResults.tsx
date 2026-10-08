@@ -70,7 +70,7 @@ export function StepResults({ draft, onBack }: StepProps) {
 
   return (
     <div>
-      <button type="button" onClick={onBack} className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }}>
+      <button type="button" onClick={onBack} className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} data-ui-native-button="">
         <Icon name="chevronLeft" size={13} /> Back
       </button>
 
@@ -106,7 +106,7 @@ export function StepResults({ draft, onBack }: StepProps) {
             type="button"
             onClick={() => setShowDetails(v => !v)}
             className="btn btn-secondary btn-sm"
-          >
+           data-ui-native-button="">
             <Icon name={showDetails ? 'chevronUp' : 'chevronDown'} size={13} />
             {showDetails ? 'Hide' : 'View'} certificates, timing & offices
           </button>
@@ -229,7 +229,7 @@ export function StepResults({ draft, onBack }: StepProps) {
                 <Icon name="checkCircle" size={15} /> Draft invoice created — find it in Billing to review and send.
               </div>
             ) : !showRequestForm ? (
-              <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowRequestForm(true)}>
+              <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowRequestForm(true)} data-ui-native-button="">
                 <Icon name="fileText" size={15} /> Request Consultation Invoice
               </button>
             ) : (
@@ -237,8 +237,8 @@ export function StepResults({ draft, onBack }: StepProps) {
                 <EntityPicker label="Customer" value={customer} onChange={setCustomer} search={searchCustomers} placeholder="Search customers…" />
                 {postError && <div style={{ color: 'var(--red)', fontSize: 12.5 }}>{postError}</div>}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowRequestForm(false)}>Cancel</button>
-                  <button type="button" className="btn btn-primary" onClick={requestConsultation} disabled={posting}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowRequestForm(false)} data-ui-native-button="">Cancel</button>
+                  <button type="button" className="btn btn-primary" onClick={requestConsultation} disabled={posting} data-ui-native-button="">
                     {posting ? 'Creating…' : 'Send Request'}
                   </button>
                 </div>

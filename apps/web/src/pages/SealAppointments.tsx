@@ -163,7 +163,7 @@ export function SealAppointments() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowNew(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNew(false)} data-ui-native-button="">Cancel</button>
                 <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Appointment'}</Button>
               </DialogFooter>
             </form>
@@ -242,14 +242,14 @@ export function SealAppointments() {
                     <td>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {a.status === 'SCHEDULED' && (
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(a.id, 'CHECKED_IN')}>Check In</button>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(a.id, 'CHECKED_IN')} data-ui-native-button="">Check In</button>
                         )}
                         {a.status === 'CHECKED_IN' && (
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(a.id, 'COMPLETED')}>Complete</button>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(a.id, 'COMPLETED')} data-ui-native-button="">Complete</button>
                         )}
                         {['SCHEDULED', 'CHECKED_IN'].includes(a.status) && (
                           <button type="button" className="btn btn-sm" style={{ background: 'var(--red-l)', color: 'var(--red)', border: 'none' }}
-                            onClick={() => updateStatus(a.id, 'CANCELLED')}>
+                            onClick={() => updateStatus(a.id, 'CANCELLED')} data-ui-native-button="">
                             Cancel
                           </button>
                         )}

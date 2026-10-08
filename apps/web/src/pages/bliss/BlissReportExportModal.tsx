@@ -108,7 +108,7 @@ export const BlissReportExportModal: React.FC<BlissReportExportModalProps> = ({
                       fontSize: 12,
                       transition: 'all 0.15s ease',
                     }}
-                  >
+                   data-ui-native-button="">
                     <Icon name={f.icon as any} size={18} />
                     <span>{f.label}</span>
                   </button>

@@ -246,7 +246,7 @@ export function AgentWorkspace() {
   return (
     <main className="agent-workspace" aria-label="Hudumika agent workspace">
       <header className="agent-topbar">
-        <button type="button" className="agent-brand" onClick={() => navigate('/')} aria-label="Return to workspace">
+        <button type="button" className="agent-brand" onClick={() => navigate('/')} aria-label="Return to workspace" data-ui-native-button="">
           <span className="agent-brand-mark"><Icon name="zap" size={17} /></span>
           <span>Hudumika</span>
           <span className="agent-brand-divider" />
@@ -262,7 +262,7 @@ export function AgentWorkspace() {
               fontSize: 12, fontWeight: 700, background: viewMode === 'stage' ? 'hsl(var(--primary))' : 'transparent', color: viewMode === 'stage' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
               transition: 'all 0.15s ease',
             }}
-          >
+           data-ui-native-button="">
             <Icon name="sparkle" size={13} />
             <span>Interactive Flow</span>
           </button>
@@ -274,7 +274,7 @@ export function AgentWorkspace() {
               fontSize: 12, fontWeight: 700, background: viewMode === 'console' ? 'var(--nav-header-bg)' : 'transparent', color: viewMode === 'console' ? 'var(--ink)' : 'var(--ink3)',
               transition: 'all 0.15s ease',
             }}
-          >
+           data-ui-native-button="">
             <Icon name="terminal" size={13} />
             <span>Console Audit</span>
           </button>
@@ -301,7 +301,7 @@ export function AgentWorkspace() {
           </div>
           <div className="agent-example-list" aria-label="Example tasks">
             {EXAMPLES.map(example => (
-              <button key={example} type="button" onClick={() => { setPrompt(example); composerRef.current?.focus(); }}>
+              <button key={example} type="button" onClick={() => { setPrompt(example); composerRef.current?.focus(); }} data-ui-native-button="">
                 {example}<Icon name="arrowUpRight" size={14} />
               </button>
             ))}
@@ -388,7 +388,7 @@ const Composer = React.forwardRef<HTMLTextAreaElement, { value: string; onChange
   ({ value, onChange, onSubmit, busy, error, compact }, ref) => (
     <div className={`agent-composer-wrap${compact ? ' is-compact' : ''}`}>
       <div className="agent-composer">
-        <Tooltip><TooltipTrigger asChild><button type="button" className="agent-attach" aria-label="Attach context" disabled><Icon name="plus" size={20} /></button></TooltipTrigger><TooltipContent>Attachments are coming next</TooltipContent></Tooltip>
+        <Tooltip><TooltipTrigger asChild><button type="button" className="agent-attach" aria-label="Attach context" disabled data-ui-native-button=""><Icon name="plus" size={20} /></button></TooltipTrigger><TooltipContent>Attachments are coming next</TooltipContent></Tooltip>
         <Textarea
           ref={ref}
           value={value}

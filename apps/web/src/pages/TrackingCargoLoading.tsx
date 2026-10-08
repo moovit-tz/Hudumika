@@ -394,7 +394,7 @@ export const TrackingCargoLoading: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <SectionCard title={manifest.name} action={
               <Tip label="Delete load plan">
-                <button type="button" onClick={deleteManifest} aria-label="Delete load plan" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={14} /></button>
+                <button type="button" onClick={deleteManifest} aria-label="Delete load plan" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={14} /></button>
               </Tip>
             }>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>
@@ -420,7 +420,7 @@ export const TrackingCargoLoading: React.FC = () => {
 
             {isDraft && (
               <SectionCard title="Add cargo item" action={
-                <button onClick={() => setShowImportModal(true)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>Import</button>
+                <button onClick={() => setShowImportModal(true)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">Import</button>
               }>
                 <form onSubmit={addItem} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Input required value={itemLabel} onChange={e => setItemLabel(e.target.value)} placeholder="Label" />
@@ -444,13 +444,13 @@ export const TrackingCargoLoading: React.FC = () => {
                   <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                     <div style={{ width: 10, height: 10, borderRadius: 3, background: it.color || '#0891b2', flexShrink: 0 }} />
                     <div style={{ flex: 1, color: 'var(--ink)' }}>{it.label} × {it.quantity}</div>
-                    {isDraft && <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="close" size={12} /></button>}
+                    {isDraft && <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={12} /></button>}
                   </div>
                 ))}
                 {items.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No items added yet.</div>}
               </div>
               <button type="button" onClick={pack} disabled={packing || items.length === 0 || !isDraft}
-                style={{ marginTop: 12, width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: items.length === 0 || !isDraft ? 'default' : 'pointer', opacity: items.length === 0 || !isDraft ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ marginTop: 12, width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: items.length === 0 || !isDraft ? 'default' : 'pointer', opacity: items.length === 0 || !isDraft ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 {packing ? 'Packing…' : 'Pack load'}
               </button>
             </SectionCard>
@@ -484,7 +484,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     border: `1px solid ${cameraPreset === preset ? 'var(--teal)' : 'var(--border)'}`,
                     background: cameraPreset === preset ? 'var(--teal-l)' : 'var(--white)',
                     color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
+                 data-ui-native-button="">
                   {label}
                 </button>
               ))}

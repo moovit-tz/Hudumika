@@ -312,7 +312,7 @@ export function Seg({ active, onClick, label, icon, fullWidth, grow }: { active:
         background: active ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
         color: active ? 'var(--teal)' : 'var(--ink2)',
         fontWeight: active ? 700 : 500, fontSize: 13, cursor: 'pointer',
-        transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
       {icon && <Icon name={icon as IconName} size={15} color={active ? 'var(--teal)' : 'var(--ink3)'} />}
       {label}
     </button>
@@ -757,7 +757,7 @@ export function FormattedLandedCostBreakdown({
                   style={{ width: 56, height: 30, textAlign: 'center', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5 }} />
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', minWidth: 90, textAlign: 'right' }}>TZS {fmt(extraLineTzs(e))}</div>
                 <button type="button" onClick={() => onRemoveExtra(e.key)} title="Remove"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={14} /></button>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="x" size={14} /></button>
               </div>
             ))}
             <Image1TotalStrip label="Total Additional Charges" value={`TZS ${fmt(extraTotalTzs)}`} />

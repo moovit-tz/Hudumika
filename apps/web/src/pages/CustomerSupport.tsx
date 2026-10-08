@@ -117,7 +117,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
         boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
         opacity: ticket.status === 'CLOSED' ? 0.7 : 1,
       }}
-    >
+     data-ui-native-button="">
       {/* Row 1: ref + status */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--font)', letterSpacing: '0.03em' }}>
@@ -206,7 +206,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 0',
               display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)',
-              fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="chevronLeft" size={18} color="var(--teal)" />
             Back
           </button>

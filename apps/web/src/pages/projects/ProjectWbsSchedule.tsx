@@ -227,7 +227,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
     <div className="space-y-6">
       {/* Sub-tab Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-ds-tabstrip="">
           <button
             onClick={() => setActiveSubTab('wbs')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
@@ -235,7 +235,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeSubTab === 'wbs'} data-ui-native-button="" aria-pressed={activeSubTab === 'wbs'}>
             WBS Tree ({workPackages.length})
           </button>
           <button
@@ -245,7 +245,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeSubTab === 'phases'} data-ui-native-button="" aria-pressed={activeSubTab === 'phases'}>
             Phases & Stage Gates ({phases.length})
           </button>
           <button
@@ -255,7 +255,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeSubTab === 'deliverables'} data-ui-native-button="" aria-pressed={activeSubTab === 'deliverables'}>
             Deliverables & Signoffs ({deliverables.length})
           </button>
         </div>

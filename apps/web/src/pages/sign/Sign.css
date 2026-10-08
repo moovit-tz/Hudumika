@@ -209,8 +209,6 @@
 .sign-inbox-navigation { padding: 20px 24px; border-bottom: var(--border-width, 1px) solid var(--border); }
 .sign-inbox-nav-content { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; min-width: 0; }
 .sign-inbox-nav-content > [data-ds-tabs-root] { min-width: 0; flex: 1; }
-.sign-inbox-navigation .ds-tabs-list { display: flex; flex-wrap: wrap; gap: 8px; width: auto; max-width: 100%; }
-.sign-inbox-navigation .ds-tabs-trigger { min-height: var(--ctl-h); height: auto; padding: var(--ds-btn-py) 16px; font-size: 14px; gap: 8px; }
 .sign-inbox-search-row { padding: 20px 24px 0; }
 .sign-inbox-toolbar { min-width: 0; width: 100%; }
 .sign-inbox-toolbar .stb { width: 100%; }
@@ -986,7 +984,6 @@
   .sign-inbox-toolbar .stb-dropdown-btn, .sign-inbox-toolbar .stb-btn { min-height: var(--ctl-h); }
   .sign-inbox-empty { min-height: 280px; padding: 24px 16px; }
   .sign-inbox-nav-content > [data-ds-tabs-root] { flex-basis: 100%; }
-  .sign-inbox-navigation .ds-tabs-trigger { flex: 1 1 auto; }
 }
 .sign-envelope-detail { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .sign-envelope-summary { overflow: hidden; }

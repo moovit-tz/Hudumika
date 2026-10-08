@@ -70,11 +70,11 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <button type="button" className="dd-item" onClick={onView}><Icon name="user" size={13} /> View Profile</button>
-        <button type="button" className="dd-item" onClick={onEdit}><Icon name="edit" size={13} /> Edit</button>
-        <button type="button" className="dd-item" onClick={onSuspend}><Icon name="pause" size={13} /> Toggle Status</button>
+        <button type="button" className="dd-item" onClick={onView} data-ui-native-button=""><Icon name="user" size={13} /> View Profile</button>
+        <button type="button" className="dd-item" onClick={onEdit} data-ui-native-button=""><Icon name="edit" size={13} /> Edit</button>
+        <button type="button" className="dd-item" onClick={onSuspend} data-ui-native-button=""><Icon name="pause" size={13} /> Toggle Status</button>
         <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-        <button type="button" className="dd-item dd-item-danger" onClick={onDelete}><Icon name="trash" size={13} /> Delete</button>
+        <button type="button" className="dd-item dd-item-danger" onClick={onDelete} data-ui-native-button=""><Icon name="trash" size={13} /> Delete</button>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -94,7 +94,7 @@ function Avatar({ name }: { name: string }) {
 function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'hsl(var(--primary))' : disabled ? 'var(--bg)' : 'var(--card-bg, var(--white))', color: active ? 'hsl(var(--primary-foreground))' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
+      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'hsl(var(--primary))' : disabled ? 'var(--bg)' : 'var(--card-bg, var(--white))', color: active ? 'hsl(var(--primary-foreground))' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
       {label}
     </button>
   );
@@ -335,7 +335,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             {selectedIds.length > 0 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
                 <span>{selectedIds.length} selected</span>
-                <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }}>×</button>
+                <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }} data-ui-native-button="">×</button>
               </div>
             )}
 
@@ -372,7 +372,7 @@ export const CustomerDirectoryPage: React.FC = () => {
               />
               {search && (
                 <button type="button" onClick={() => { setSearch(''); setPage(1); }}
-                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 14, padding: 0 }}>
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 14, padding: 0 }} data-ui-native-button="">
                   ×
                 </button>
               )}
@@ -383,7 +383,7 @@ export const CustomerDirectoryPage: React.FC = () => {
               {[{ mode: 'table', icon: 'list' }, { mode: 'grid', icon: 'grid' }].map(v => (
                 <Tip key={v.mode} label={`${v.mode.charAt(0).toUpperCase() + v.mode.slice(1)} View`} side="bottom">
                   <button type="button" onClick={() => setViewMode(v.mode as 'table' | 'grid')}
-                    style={{ padding: '6px 10px', border: 'none', background: viewMode === v.mode ? 'var(--card-bg, var(--white))' : 'transparent', color: viewMode === v.mode ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', boxShadow: viewMode === v.mode ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center' }}>
+                    style={{ padding: '6px 10px', border: 'none', background: viewMode === v.mode ? 'var(--card-bg, var(--white))' : 'transparent', color: viewMode === v.mode ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', boxShadow: viewMode === v.mode ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                     <Icon name={v.icon as IconName} size={15} />
                   </button>
                 </Tip>
@@ -451,7 +451,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                               <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="users" size={24} /></FeaturedIcon>
                               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No customers found</div>
                               <div style={{ fontSize: 13, maxWidth: 360 }}>No client accounts match your current filters. Try changing your search query or add a new customer.</div>
-                              <Button size="sm" onClick={() => setShowCreate(true)} style={{ marginTop: 6 }}>
+                              <Button onClick={() => setShowCreate(true)} style={{ marginTop: 6 }}>
                                 <Icon name="plus" size={14} /> Add Customer
                               </Button>
                             </div>

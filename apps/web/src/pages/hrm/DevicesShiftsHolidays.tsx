@@ -552,7 +552,7 @@ export function ShiftsPage() {
                               setAssignments(prev => [...prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)), { id: `A_${Date.now()}`, employeeId: emp.id, date: dStr, shiftId: st.id }]);
                               setActiveCell(null);
                               try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch (error: any) { loadAssignments(); showAlert(error?.message || 'Could not assign the shift.', { variant: 'error' }); }
-                            }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
+                            }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg" data-ui-native-button="">
                               <div style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: st.color }} />
                               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{st.name}</span>
                             </button>
@@ -563,7 +563,7 @@ export function ShiftsPage() {
                             setAssignments(prev => prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)));
                             setActiveCell(null);
                             try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch (error: any) { loadAssignments(); showAlert(error?.message || 'Could not clear the shift.', { variant: 'error' }); }
-                          }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg">
+                          }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} className="hover-bg" data-ui-native-button="">
                             <Icon name="x" size={12} />
                             <span style={{ fontSize: 12, fontWeight: 600 }}>Clear Shift</span>
                           </button>

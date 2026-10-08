@@ -217,7 +217,7 @@ export const OndiVault: React.FC = () => {
                       type="button"
                       onClick={() => setSearch('')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="close" size={12} />
                     </button>
                   )}

@@ -217,14 +217,14 @@ export function Lens() {
                   padding: '6px 12px', border: 'none', background: viewMode === m ? 'var(--teal)' : 'var(--white)',
                   color: viewMode === m ? '#fff' : 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center',
                   fontWeight: 600, fontSize: 12
-                }}>
+                }} data-ui-native-button="">
                   <Icon name={m === 'board' ? 'columns' : 'list'} size={14} style={{ marginRight: 6 }} color={viewMode === m ? '#fff' : 'var(--ink3)'} />
                   {m === 'board' ? 'Board' : 'List'}
                 </button>
               ))}
             </div>
 
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setComposing(true)}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setComposing(true)} data-ui-native-button="">
               <Icon name="plus" size={14} color="#fff" /> New item
             </button>
           </div>
@@ -372,7 +372,7 @@ export function Lens() {
                       display: 'block', width: '100%', textAlign: 'left', background: 'none',
                       border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
                       padding: '12px 16px', fontFamily: 'var(--font)',
-                    }}>
+                    }} data-ui-native-button="">
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                       <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{it.ref}</span>
                       <Badge variant={KIND_VARIANT[it.kind]}>{it.kind}</Badge>
@@ -400,14 +400,14 @@ export function Lens() {
               </span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  onClick={() => setPage(p => Math.max(1, p - 1))} data-ui-native-button="">
                   <Icon name="chevronLeft" size={14} /> Prev
                 </button>
                 <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600 }}>
                   Page {page} of {Math.max(1, Math.ceil(total / PAGE_SIZE))}
                 </span>
                 <button type="button" className="btn btn-secondary btn-sm" disabled={page * PAGE_SIZE >= total}
-                  onClick={() => setPage(p => p + 1)}>
+                  onClick={() => setPage(p => p + 1)} data-ui-native-button="">
                   Next <Icon name="chevronRight" size={14} />
                 </button>
               </div>
@@ -439,8 +439,8 @@ export function Lens() {
                 style={{ ...input, width: '100%', minHeight: 80, marginBottom: 16, resize: 'vertical' }}
               />
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setClosing(null)}>Cancel</button>
-                <button type="button" className="btn btn-primary" disabled={!resolution.trim()} onClick={confirmClose}>Close {closing.card.ref}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setClosing(null)} data-ui-native-button="">Cancel</button>
+                <button type="button" className="btn btn-primary" disabled={!resolution.trim()} onClick={confirmClose} data-ui-native-button="">Close {closing.card.ref}</button>
               </div>
             </>
           )}
@@ -551,8 +551,8 @@ function Compose({ areas, onClose, onSaved }: {
         </div>
 
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={saving || !f.title.trim()} onClick={save}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={saving || !f.title.trim()} onClick={save} data-ui-native-button="">
             {saving ? 'Saving…' : 'Open item'}
           </button>
         </div>
@@ -627,7 +627,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
               {CONFIDENCES.map(c => (
                 <button key={c} type="button"
                   className={item.confidence === c ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-                  onClick={() => onPatch(item.ref, { confidence: c })}>{c}</button>
+                  onClick={() => onPatch(item.ref, { confidence: c })} data-ui-native-button="">{c}</button>
               ))}
             </div>
           </div>
@@ -643,7 +643,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
                     // enforces, asked here rather than rejected later.
                     if (st === 'DONE' || st === 'WONTFIX') { setClosing(st); return; }
                     onPatch(item.ref, { status: st });
-                  }}>{st.replace('_', ' ')}</button>
+                  }} data-ui-native-button="">{st.replace('_', ' ')}</button>
               ))}
             </div>
           </div>
@@ -658,10 +658,10 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
                 placeholder="e.g. Fixed in a1b2c3d; verified by re-running the period close." />
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button type="button" className="btn btn-primary btn-sm" disabled={!resolution.trim()}
-                  onClick={() => { onPatch(item.ref, { status: closing, resolution }); setClosing(null); }}>
+                  onClick={() => { onPatch(item.ref, { status: closing, resolution }); setClosing(null); }} data-ui-native-button="">
                   Close as {closing}
                 </button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setClosing(null)}>Cancel</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setClosing(null)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
           )}
@@ -680,7 +680,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
               placeholder="Add an observation — kept forever, never overwritten."
               style={{ ...input, resize: 'vertical', marginBottom: 8 } as React.CSSProperties} />
             <button type="button" className="btn btn-secondary btn-sm" disabled={!note.trim()}
-              onClick={async () => { await onNote(note.trim()); setNote(''); }}>Add note</button>
+              onClick={async () => { await onNote(note.trim()); setNote(''); }} data-ui-native-button="">Add note</button>
 
             <div style={{ marginTop: 12 }}>
               {(item.events ?? []).map(e => (

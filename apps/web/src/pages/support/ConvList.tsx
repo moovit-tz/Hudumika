@@ -272,8 +272,9 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
             <button
               type="button"
               className="spt-bedesk-icon-btn"
+              aria-label="Search conversations"
               onClick={() => setSearchOpen(o => !o)}
-            >
+             data-ui-native-button="">
               <Icon name="search" size={15} />
             </button>
           </Tip>
@@ -282,7 +283,8 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
               type="button"
               className="spt-bedesk-icon-btn"
               onClick={onNew}
-            >
+              aria-label="New ticket"
+             data-ui-native-button="">
               <Icon name="plus" size={16} />
             </button>
           </Tip>
@@ -300,7 +302,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
               autoFocus
             />
             {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}>
+              <button type="button" aria-label="Clear conversation search" onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }} data-ui-native-button="">
                 <Icon name="x" size={12} />
               </button>
             )}
@@ -317,7 +319,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
             return (
               <button key={item.key} type="button"
                 className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                onClick={() => setSel({ kind: 'fixed', key: item.key })}>
+                onClick={() => setSel({ kind: 'fixed', key: item.key })} data-ui-native-button="">
                 <Icon name={item.icon} size={15} strokeWidth={active ? 2.2 : 1.75} />
                 <span className="spt-inbox-label">{item.label}</span>
                 {count > 0 && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{count}</span>}
@@ -332,7 +334,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
             <span>Views</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Tip label="New view">
-                <button type="button" className="spt-nav-add" onClick={e => { e.stopPropagation(); setNewViewOpen(o => !o); }}>
+                <button type="button" aria-label="New view" className="spt-nav-add" onClick={e => { e.stopPropagation(); setNewViewOpen(o => !o); }} data-ui-native-button="">
                   <Icon name="plus" size={12} />
                 </button>
               </Tip>
@@ -351,11 +353,11 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                     </SelectContent>
                   </Select>
                   <div className="spt-nav-new-actions">
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)}>Cancel</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)} data-ui-native-button="">Cancel</button>
                     <button type="button" className="btn btn-primary btn-sm" disabled={!newViewName.trim()} onClick={() => {
                       onCreateView(newViewName.trim(), { category: newViewCategory });
                       setNewViewName(''); setNewViewOpen(false);
-                    }}>Save</button>
+                    }} data-ui-native-button="">Save</button>
                   </div>
                 </div>
               )}
@@ -365,7 +367,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                   return (
                     <button key={v.id} type="button"
                       className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                      onClick={() => setSel({ kind: 'view', id: v.id })}>
+                      onClick={() => setSel({ kind: 'view', id: v.id })} data-ui-native-button="">
                       <Icon name="filter" size={13} strokeWidth={active ? 2.2 : 1.75} />
                       <span className="spt-inbox-label">{v.name}</span>
                       <span className="spt-nav-item-remove" onClick={e => { e.stopPropagation(); onDeleteView(v.id); if (active) setSel({ kind: 'fixed', key: 'all' }); }}>
@@ -385,7 +387,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
             <span>Groups</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Tip label="New group">
-                <button type="button" className="spt-nav-add" onClick={e => { e.stopPropagation(); setNewGroupOpen(o => !o); }}>
+                <button type="button" aria-label="New group" className="spt-nav-add" onClick={e => { e.stopPropagation(); setNewGroupOpen(o => !o); }} data-ui-native-button="">
                   <Icon name="plus" size={12} />
                 </button>
               </Tip>
@@ -398,11 +400,11 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                 <div className="spt-nav-new-form">
                   <input className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
                   <div className="spt-nav-new-actions">
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)}>Cancel</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)} data-ui-native-button="">Cancel</button>
                     <button type="button" className="btn btn-primary btn-sm" disabled={!newGroupName.trim()} onClick={() => {
                       onCreateGroup(newGroupName.trim());
                       setNewGroupName(''); setNewGroupOpen(false);
-                    }}>Save</button>
+                    }} data-ui-native-button="">Save</button>
                   </div>
                 </div>
               )}
@@ -415,7 +417,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                     return (
                       <button key={g.id} type="button"
                         className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                        onClick={() => setSel({ kind: 'group', id: g.id })}>
+                        onClick={() => setSel({ kind: 'group', id: g.id })} data-ui-native-button="">
                         <span className="spt-bedesk-group-dot" style={{ background: g.color || '#06b6d4' }} />
                         <span className="spt-inbox-label">{g.name}</span>
                         {!!g.ticket_count && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{g.ticket_count}</span>}
@@ -443,7 +445,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                 return (
                   <button key={ch} type="button"
                     className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
-                    onClick={() => setChannelFilter(ch)}>
+                    onClick={() => setChannelFilter(ch)} data-ui-native-button="">
                     <Icon name={cfg?.icon ?? 'globe'} size={14} strokeWidth={active ? 2.2 : 1.75} style={cfg ? { color: cfg.color } : undefined} />
                     <span className="spt-inbox-label">{cfg?.label ?? 'All channels'}</span>
                     {count > 0 && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{count}</span>}
@@ -556,7 +558,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
           {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
         </SelectContent>
       </Select>
-      <button type="button" onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+      <button type="button" onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
         Clear selection
       </button>
     </div>
@@ -582,10 +584,10 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
               <div
                 key={t.id}
                 className={`spt-bedesk-conv-card${isSel ? ' spt-bedesk-conv-card--active' : ''}`}
-                onClick={() => onSelect(t)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                   <Checkbox
+                    aria-label={`Select conversation with ${t.customer}`}
                     className="spt-row-checkbox"
                     checked={isChecked}
                     onClick={e => toggleSelectOne(t.id, e)}
@@ -597,7 +599,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                   </div>
                 </div>
 
-                <div className="spt-conv-row-body" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                <button type="button" aria-label={`Open conversation with ${t.customer}`} onClick={() => onSelect(t)} className="spt-conv-row-body" style={{ minWidth: 0, flex: 1, overflow: 'hidden', border: 0, background: 'transparent', textAlign: 'left', color: 'inherit', cursor: 'pointer' }} data-ui-native-button="">
                   <div className="spt-conv-row-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
                     <span className="spt-conv-row-name" title={t.customer}>
                       {t.customer}
@@ -617,7 +619,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                   <div className="spt-conv-row-preview" title={preview}>
                     {preview}
                   </div>
-                </div>
+                </button>
               </div>
             );
           })}
@@ -631,6 +633,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                 <th style={{ width: 38, minWidth: 38, textAlign: 'center', padding: '8px 6px' }}>
                   <Checkbox
                     className="mx-auto"
+                    aria-label="Select all conversations on this page"
                     checked={paged.length > 0 && selectedIds.size === paged.length}
                     onCheckedChange={toggleSelectAll}
                   />
@@ -668,7 +671,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                   <DropdownMenu>
                     <Tip label="Show/hide columns">
                       <DropdownMenuTrigger asChild>
-                        <button type="button" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex' }}>
+                        <button type="button" aria-label="Show or hide columns" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex' }} data-ui-native-button="">
                           <Icon name="settings" size={13} />
                         </button>
                       </DropdownMenuTrigger>
@@ -727,13 +730,13 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
       {totalConvPages > 1 && (
         <div className="spt-conv-pager">
           <Tip label="Previous page">
-            <button type="button" disabled={safePage <= 1} onClick={() => setConvPage(p => p - 1)}>
+            <button type="button" aria-label="Previous page" disabled={safePage <= 1} onClick={() => setConvPage(p => p - 1)} data-ui-native-button="">
               <Icon name="arrowLeft" size={11} strokeWidth={2} />
             </button>
           </Tip>
           <span>{safePage} / {totalConvPages}</span>
           <Tip label="Next page">
-            <button type="button" disabled={safePage >= totalConvPages} onClick={() => setConvPage(p => p + 1)}>
+            <button type="button" aria-label="Next page" disabled={safePage >= totalConvPages} onClick={() => setConvPage(p => p + 1)} data-ui-native-button="">
               <Icon name="arrowRight" size={11} strokeWidth={2} />
             </button>
           </Tip>

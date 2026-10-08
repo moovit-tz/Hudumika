@@ -351,7 +351,7 @@ export function SmsCompose() {
                     background: mode === tab.id ? 'var(--teal-l)' : 'var(--white)',
                     color: mode === tab.id ? 'var(--teal)' : 'var(--ink2)',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name={tab.icon} size={14} />
                   {tab.label}
                 </button>
@@ -402,7 +402,7 @@ export function SmsCompose() {
                           type="button"
                           onClick={() => removeNumber(n.phone)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="x" size={11} />
                         </button>
                       </span>
@@ -528,7 +528,7 @@ export function SmsCompose() {
                     color: 'var(--ink)',
                     cursor: 'pointer',
                   }}
-                >
+                 data-ui-native-button="">
                   {tag}
                 </button>
               ))}
@@ -567,7 +567,7 @@ export function SmsCompose() {
                     cursor: 'pointer',
                     textDecoration: 'underline',
                   }}
-                >
+                 data-ui-native-button="">
                   Convert to Standard GSM
                 </button>
               )}

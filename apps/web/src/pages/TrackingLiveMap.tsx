@@ -239,12 +239,12 @@ export const TrackingLiveMap: React.FC = () => {
 
       {/* FLOATING MAP CONTROLS */}
       <div className="trk-map-controls">
-        <Tip label="Zoom in"><button className="trk-mc-btn" aria-label="Zoom in" onClick={() => leafletMap?.zoomIn()}><Icon name="plus" size={16} /></button></Tip>
-        <Tip label="Zoom out"><button className="trk-mc-btn" aria-label="Zoom out" onClick={() => leafletMap?.zoomOut()}><Icon name="minus" size={16} /></button></Tip>
+        <Tip label="Zoom in"><button className="trk-mc-btn" aria-label="Zoom in" onClick={() => leafletMap?.zoomIn()} data-ui-native-button=""><Icon name="plus" size={16} /></button></Tip>
+        <Tip label="Zoom out"><button className="trk-mc-btn" aria-label="Zoom out" onClick={() => leafletMap?.zoomOut()} data-ui-native-button=""><Icon name="minus" size={16} /></button></Tip>
         <DropdownMenu>
           <Tip label="Map layers">
             <DropdownMenuTrigger asChild>
-            <button className="trk-mc-btn" aria-label="Map layers">
+            <button className="trk-mc-btn" aria-label="Map layers" data-ui-native-button="">
               <Icon name="layers" size={16} />
             </button>
             </DropdownMenuTrigger>
@@ -326,7 +326,7 @@ export const TrackingLiveMap: React.FC = () => {
           <>
             <div className="trk-detail-hero">
               <img src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=80&w=800" alt="Truck" className="trk-hero-img" />
-              <button className="trk-close-btn" onClick={() => setSelectedId(null)}>
+              <button className="trk-close-btn" onClick={() => setSelectedId(null)} data-ui-native-button="">
                 <Icon name="x" size={20} />
               </button>
               <div className="trk-hero-overlay">

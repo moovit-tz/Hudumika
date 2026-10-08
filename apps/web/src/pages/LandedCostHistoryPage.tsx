@@ -371,7 +371,7 @@ export const LandedCostHistoryPage: React.FC = () => {
                     <td>
                       <div className="lch-acts">
                         <Tip label="View calculation">
-                          <button type="button" className="lch-act" aria-label="View calculation" onClick={() => openDetail(r.id)}>
+                          <button type="button" className="lch-act" aria-label="View calculation" onClick={() => openDetail(r.id)} data-ui-native-button="">
                             <Icon name="eye" size={14} />
                           </button>
                         </Tip>
@@ -381,13 +381,13 @@ export const LandedCostHistoryPage: React.FC = () => {
                         <button type="button" className="lch-act" disabled={!r.has_payload || busyId === r.id}
                           title={busyId === r.id ? 'Opening…' : r.has_payload ? 'Report' : 'Saved before full results were kept — totals only'}
                           aria-label="Report"
-                          onClick={() => openReport(r.id)}>
+                          onClick={() => openReport(r.id)} data-ui-native-button="">
                           <Icon name={busyId === r.id ? 'refresh' : 'download'} size={14} className={busyId === r.id ? 'lch-act-spin' : undefined} />
                         </button>
                         <button type="button" className="lch-act" disabled={!r.has_payload}
                           title={r.has_payload ? 'Customise' : 'Cannot be amended — no saved inputs'}
                           aria-label="Customise"
-                          onClick={() => customise(r)}>
+                          onClick={() => customise(r)} data-ui-native-button="">
                           <Icon name="edit" size={14} />
                         </button>
                       </div>
@@ -484,16 +484,16 @@ export const LandedCostHistoryPage: React.FC = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 22 }}>
                   <button type="button" className="lch-act" style={{ justifyContent: 'center', padding: 'var(--ds-btn-py) 0', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    disabled={!detail.payload} onClick={() => openReport(detail.id)}>
+                    disabled={!detail.payload} onClick={() => openReport(detail.id)} data-ui-native-button="">
                     <Icon name="download" size={13} /> Open report
                   </button>
                   <button type="button" className="lch-act" style={{ justifyContent: 'center', padding: 'var(--ds-btn-py) 0', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    disabled={!detail.payload} onClick={() => customise(detail)}>
+                    disabled={!detail.payload} onClick={() => customise(detail)} data-ui-native-button="">
                     <Icon name="edit" size={13} /> Customise
                   </button>
                 </div>
                 <button type="button" className="lch-act" style={{ width: '100%', justifyContent: 'center', padding: 'var(--ds-btn-py) 0', marginTop: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  onClick={() => navigate(`/clearos/report-issue?record=${detail.id}`)}>
+                  onClick={() => navigate(`/clearos/report-issue?record=${detail.id}`)} data-ui-native-button="">
                   <Icon name="alertCircle" size={13} /> Report an issue with this calculation
                 </button>
               </>

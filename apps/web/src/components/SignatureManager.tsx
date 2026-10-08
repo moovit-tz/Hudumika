@@ -144,7 +144,7 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
                   onClick={e => { e.stopPropagation(); toggleExpand(sig.id); }}
                   aria-expanded={isExpanded}
                   title={isExpanded ? 'Collapse signature' : 'Expand signature'}
-                >
+                 data-ui-native-button="">
                   <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} size={15} />
                 </button>
 
@@ -157,10 +157,10 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
                 </div>
 
                 <div className="em-sig-header-actions" onClick={e => e.stopPropagation()}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEdit(sig)}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEdit(sig)} data-ui-native-button="">
                     Edit
                   </button>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteSig(sig.id)} title="Delete signature">
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteSig(sig.id)} title="Delete signature" data-ui-native-button="">
                     <Icon name="trash" size={14} />
                   </button>
                 </div>
@@ -181,7 +181,7 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
                       className={`btn btn-sm ${sig.is_default_new ? 'btn-outline disabled' : 'btn-secondary'}`}
                       onClick={() => !sig.is_default_new && setDefault(sig.id, 'new')}
                       disabled={sig.is_default_new}
-                    >
+                     data-ui-native-button="">
                       {sig.is_default_new ? '✓ Default for new emails' : 'Set as default for new emails'}
                     </button>
                     <button
@@ -189,7 +189,7 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
                       className={`btn btn-sm ${sig.is_default_reply ? 'btn-outline disabled' : 'btn-secondary'}`}
                       onClick={() => !sig.is_default_reply && setDefault(sig.id, 'reply')}
                       disabled={sig.is_default_reply}
-                    >
+                     data-ui-native-button="">
                       {sig.is_default_reply ? '✓ Default for replies' : 'Set as default for replies'}
                     </button>
                   </div>
@@ -213,7 +213,7 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
             <span className="em-sig-editor-title">
               {editingId === 'new' ? 'Create New Signature' : `Edit Signature: ${draftName || 'Untitled'}`}
             </span>
-            <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setEditingId(null)} title="Close editor">
+            <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setEditingId(null)} title="Close editor" data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           </div>
@@ -269,10 +269,10 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
             </div>
 
             <div className="em-form-actions">
-              <button type="button" className="btn btn-primary btn-sm" onClick={saveDraft} disabled={saving}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={saveDraft} disabled={saving} data-ui-native-button="">
                 {saving ? 'Saving…' : 'Save Signature'}
               </button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingId(null)}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingId(null)} data-ui-native-button="">
                 Cancel
               </button>
             </div>
@@ -280,7 +280,7 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
         </div>
       ) : (
         <div className="em-sig-add-bar">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={startNew}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={startNew} data-ui-native-button="">
             <Icon name="plus" size={14} />
             <span>Create New Signature</span>
           </button>

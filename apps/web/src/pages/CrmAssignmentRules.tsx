@@ -349,7 +349,7 @@ export function CrmAssignmentRules() {
                         ? 'border-(--teal) bg-(--teal-l) text-(--teal)'
                         : 'border-border bg-card text-muted-foreground hover:text-foreground'
                     }`}
-                  >
+                   data-ui-native-button="">
                     Match {mt === 'all' ? 'ALL conditions' : 'ANY condition'}
                   </button>
                 ))}

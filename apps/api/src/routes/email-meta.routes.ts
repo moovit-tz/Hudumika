@@ -155,7 +155,7 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
         for (const m of msgs) {
           const arr = Array.isArray(m.labels) ? m.labels : [];
           if (arr.includes(oldRow.name)) {
-            await trx.updateTable('email_messages').set({ labels: JSON.stringify(arr.map((l: string) => l === oldRow.name ? b.name : l)) }).where('id', '=', m.id).execute();
+            await trx.updateTable('email_messages').set({ labels: JSON.stringify(arr.map((l: string) => l === oldRow.name ? b.name : l)) }).where('tenant_id', '=', user.tenant_id).where('id', '=', m.id).execute();
           }
         }
       }
@@ -175,7 +175,7 @@ export async function emailMetaRoutes(fastify: FastifyInstance) {
       for (const m of msgs) {
         const arr = Array.isArray(m.labels) ? m.labels : [];
         if (arr.includes(row.name)) {
-          await trx.updateTable('email_messages').set({ labels: JSON.stringify(arr.filter((l: string) => l !== row.name)) }).where('id', '=', m.id).execute();
+          await trx.updateTable('email_messages').set({ labels: JSON.stringify(arr.filter((l: string) => l !== row.name)) }).where('tenant_id', '=', user.tenant_id).where('id', '=', m.id).execute();
         }
       }
       reply.status(204);

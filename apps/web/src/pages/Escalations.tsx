@@ -123,7 +123,7 @@ function EscCard({ esc, canResolve, onResolve }: {
             onClick={() => onResolve(esc.id)}
             style={{
               fontSize: 12, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', cursor: 'pointer',
-              background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             {esc.status === 'PENDING' ? 'Accept & Work' : 'Mark Resolved'}
           </button>
         </div>
@@ -196,11 +196,11 @@ function EscalateModal({ onClose, onSubmit }: {
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose}
-              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Cancel
             </button>
             <button type="submit"
-              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Escalate
             </button>
           </div>
@@ -280,7 +280,7 @@ export const Escalations: React.FC = () => {
             <button type="button" onClick={() => setShowModal(true)}
               style={{
                 background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)',
-                padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               + Escalate Case
             </button>
           ) : undefined}
@@ -295,7 +295,7 @@ export const Escalations: React.FC = () => {
             style={{
               background: filter === status ? cfg.bg : 'var(--white)',
               border: `1px solid ${filter === status ? cfg.color : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-lg) 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-lg) 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <div style={{ fontSize: 22, fontWeight: 800, color: cfg.color }}>{counts[status]}</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 500, marginTop: 2 }}>{cfg.label}</div>
           </button>

@@ -157,7 +157,7 @@ export const FinanceBalanceSheet: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <DatePicker date={parseDateOnly(asOf)} onChange={d => setAsOf(toDateOnlyString(d))} triggerClassName="w-auto" />
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }} data-ui-native-button="">
               <Icon name="download" size={13} /> Export
             </button>
           </div>

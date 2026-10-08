@@ -140,7 +140,7 @@ export const OndiOrgActivity: React.FC = () => {
               opacity: exporting ? 0.6 : 1,
               boxShadow: '0 2px 8px var(--teal-m)'
             }}
-          >
+           data-ui-native-button="">
             <Icon name="download" size={15} /> {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
         }
@@ -211,7 +211,7 @@ export const OndiOrgActivity: React.FC = () => {
               aria-selected={categoryTab === 'all'}
               className={`ondi-tab-btn ${categoryTab === 'all' ? 'active' : ''}`}
               onClick={() => setCategoryTab('all')}
-            >
+             data-ui-native-button="">
               All Events <span className="ondi-tab-badge">{events ? events.length : 0}</span>
             </button>
 
@@ -221,7 +221,7 @@ export const OndiOrgActivity: React.FC = () => {
               aria-selected={categoryTab === 'auth'}
               className={`ondi-tab-btn ${categoryTab === 'auth' ? 'active' : ''}`}
               onClick={() => setCategoryTab('auth')}
-            >
+             data-ui-native-button="">
               Sign-Ins &amp; Auth <span className="ondi-tab-badge">{authEventCount}</span>
             </button>
 
@@ -231,7 +231,7 @@ export const OndiOrgActivity: React.FC = () => {
               aria-selected={categoryTab === 'security'}
               className={`ondi-tab-btn ${categoryTab === 'security' ? 'active' : ''}`}
               onClick={() => setCategoryTab('security')}
-            >
+             data-ui-native-button="">
               Security Warnings <span className="ondi-tab-badge" style={{ background: 'var(--red-l)', color: 'var(--red)' }}>{failedCount}</span>
             </button>
           </div>

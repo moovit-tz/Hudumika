@@ -441,7 +441,7 @@ export const OndiPersonalActivity: React.FC = () => {
               className="opa-action-btn"
               onClick={reload}
               title="Refresh activity feed"
-            >
+             data-ui-native-button="">
               <Icon name="refresh" size={14} />
               <span>Refresh</span>
             </button>
@@ -452,7 +452,7 @@ export const OndiPersonalActivity: React.FC = () => {
                 className="opa-action-btn opa-action-btn-primary"
                 onClick={exportCsv}
                 title="Export filtered security log to CSV"
-              >
+               data-ui-native-button="">
                 <Icon name="download" size={14} />
                 <span>Export Audit Log</span>
               </button>
@@ -606,7 +606,7 @@ export const OndiPersonalActivity: React.FC = () => {
               className={`opa-view-btn ${viewMode === 'timeline' ? 'active' : ''}`}
               onClick={() => setViewMode('timeline')}
               title="Chronological timeline view"
-            >
+             data-ui-native-button="">
               <Icon name="activity" size={13} />
               <span>Timeline</span>
             </button>
@@ -615,7 +615,7 @@ export const OndiPersonalActivity: React.FC = () => {
               className={`opa-view-btn ${viewMode === 'table' ? 'active' : ''}`}
               onClick={() => setViewMode('table')}
               title="Dense security data grid table"
-            >
+             data-ui-native-button="">
               <Icon name="grid" size={13} />
               <span>Data Grid</span>
             </button>
@@ -639,7 +639,7 @@ export const OndiPersonalActivity: React.FC = () => {
                 className="opa-search-clear"
                 onClick={() => setSearchQuery('')}
                 title="Clear search"
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={12} />
               </button>
             )}
@@ -682,7 +682,7 @@ export const OndiPersonalActivity: React.FC = () => {
                 setFilterCategory('all');
                 setTimeframe('all');
               }}
-            >
+             data-ui-native-button="">
               Reset All Filters
             </button>
           )}
@@ -884,7 +884,7 @@ export const OndiPersonalActivity: React.FC = () => {
                           setSelectedEvent(r);
                         }}
                         title="View complete telemetry payload"
-                      >
+                       data-ui-native-button="">
                         Inspect
                       </button>
                     </td>
@@ -909,7 +909,7 @@ export const OndiPersonalActivity: React.FC = () => {
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
               title="Previous page"
-            >
+             data-ui-native-button="">
               <Icon name="chevronLeft" size={15} />
             </button>
             <span className="opa-pagination-page">
@@ -921,7 +921,7 @@ export const OndiPersonalActivity: React.FC = () => {
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
               title="Next page"
-            >
+             data-ui-native-button="">
               <Icon name="chevronRight" size={15} />
             </button>
           </div>
@@ -1004,7 +1004,7 @@ export const OndiPersonalActivity: React.FC = () => {
                           gap: 4,
                           padding: 0,
                         }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="copy" size={11} />
                         <span>{copiedId ? 'ID Copied!' : selectedEvent.id}</span>
                       </button>
@@ -1020,7 +1020,7 @@ export const OndiPersonalActivity: React.FC = () => {
                     aria-selected={activeModalTab === 'specs'}
                     className={`opa-modal-tab ${activeModalTab === 'specs' ? 'active' : ''}`}
                     onClick={() => setActiveModalTab('specs')}
-                  >
+                   data-ui-native-button="">
                     Overview Telemetry
                   </button>
                   <button
@@ -1029,7 +1029,7 @@ export const OndiPersonalActivity: React.FC = () => {
                     aria-selected={activeModalTab === 'json'}
                     className={`opa-modal-tab ${activeModalTab === 'json' ? 'active' : ''}`}
                     onClick={() => setActiveModalTab('json')}
-                  >
+                   data-ui-native-button="">
                     Raw Header & JSON
                   </button>
                 </div>
@@ -1081,7 +1081,7 @@ export const OndiPersonalActivity: React.FC = () => {
                               setCopiedHash(true);
                               setTimeout(() => setCopiedHash(false), 2000);
                             }}
-                          >
+                           data-ui-native-button="">
                             <Icon name="copy" size={11} />
                             <span>{copiedHash ? 'Hash Copied!' : 'Copy Hash'}</span>
                           </button>
@@ -1109,7 +1109,7 @@ export const OndiPersonalActivity: React.FC = () => {
                               setTimeout(() => setCopiedUa(false), 2000);
                             }
                           }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="copy" size={12} />
                           <span>{copiedUa ? 'Copied!' : 'Copy'}</span>
                         </button>
@@ -1148,7 +1148,7 @@ export const OndiPersonalActivity: React.FC = () => {
                   type="button"
                   className="opa-btn-action"
                   onClick={() => setSelectedEvent(null)}
-                >
+                 data-ui-native-button="">
                   Done
                 </button>
               </DialogFooter>

@@ -19,8 +19,8 @@ import { Tip } from '../components/ui/tooltip.js';
 function InlineEditActions({ saving, onSave, onCancel }: { saving: boolean; onSave: () => void; onCancel: () => void }) {
   return (
     <>
-      <Tip label="Save"><button type="button" aria-label="Save" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button></Tip>
-      <Tip label="Cancel"><button type="button" aria-label="Cancel" onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button></Tip>
+      <Tip label="Save"><button type="button" aria-label="Save" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }} data-ui-native-button=""><Icon name="check" size={15} /></button></Tip>
+      <Tip label="Cancel"><button type="button" aria-label="Cancel" onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="x" size={15} /></button></Tip>
     </>
   );
 }
@@ -278,7 +278,7 @@ export const CustomsReference: React.FC = () => {
             Imported {importResult.summary.total} rows — {importResult.summary.updated} updated, {importResult.summary.inserted} new
             {importResult.summary.skipped > 0 ? `, ${importResult.summary.skipped} skipped (missing required fields)` : ''}.
           </span>
-          <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)' }}><Icon name="x" size={14} /></button>
+          <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)' }} data-ui-native-button=""><Icon name="x" size={14} /></button>
         </div>
       )}
       {importError && (
@@ -375,7 +375,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12 }}>{o.license_no ?? '—'}</td>
                           <td style={td}>{fmtDate(o.license_exp)}</td>
                           <td style={{ ...td, fontSize: 12 }}>{o.email ?? '—'}{o.tel ? <div style={{ color: 'var(--ink3)' }}>{o.tel}</div> : null}</td>
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(o)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(o)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>
@@ -416,7 +416,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={{ ...td, fontWeight: 600 }}>{a.name}</td>
                           <td style={td}>{a.region ?? '—'}</td>
                           <td style={{ ...td, fontSize: 12 }}>{a.email ?? '—'}</td>
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(a)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(a)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>
@@ -457,7 +457,7 @@ export const CustomsReference: React.FC = () => {
                           {[x.tz_rate, x.ke_rate, x.ug_rate, x.rw_rate, x.bi_rate].map((r, i) => (
                             <td key={i} style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, whiteSpace: 'nowrap', color: r ? 'var(--ink)' : 'var(--ink3)' }}>{r ?? '—'}</td>
                           ))}
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(x)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(x)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>
@@ -513,7 +513,7 @@ export const CustomsReference: React.FC = () => {
                             {fmtRate(t)}
                             {t.min_charge != null && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 400 }}>min {t.rate_currency} {Number(t.min_charge).toLocaleString('en-US')}</div>}
                           </td>
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(t)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(t)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>

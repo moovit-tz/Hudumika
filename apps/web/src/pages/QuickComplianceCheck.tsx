@@ -73,7 +73,7 @@ function ComplyOSPromoCard() {
         onClick={() => navigate('/complyos')}
         className="btn btn-primary"
         style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700, marginTop: 20 }}
-      >
+       data-ui-native-button="">
         <span>{enabled ? 'Open ComplyOS' : 'Explore ComplyOS'}</span>
         <Icon name="arrowRight" size={15} color="#fff" />
       </button>
@@ -306,7 +306,7 @@ export const QuickComplianceCheck: React.FC = () => {
             )}
 
             <button type="button" onClick={runCheck} disabled={loading} className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700 }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700 }} data-ui-native-button="">
               <Icon name="shield" size={15} color="#fff" />
               {loading ? 'Checking…' : 'Check Compliance'}
             </button>
@@ -374,11 +374,11 @@ export const QuickComplianceCheck: React.FC = () => {
                           <>
                             <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Cleared this cargo? What actually happened:</span>
                             <button type="button" onClick={() => reportOutcome(c, c.required ? 'applied' : 'unexpected')}
-                              style={outcomeBtn}>
+                              style={outcomeBtn} data-ui-native-button="">
                               {c.required ? 'It was required' : 'It was enforced anyway'}
                             </button>
                             <button type="button" onClick={() => reportOutcome(c, c.required ? 'not_applied' : 'applied')}
-                              style={outcomeBtn}>
+                              style={outcomeBtn} data-ui-native-button="">
                               {c.required ? 'Nothing was required' : 'Correct — not required'}
                             </button>
                           </>

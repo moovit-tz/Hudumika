@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-07",
+  "releaseReady": false,
+  "api": { "fullSuiteFiles": 35, "fullSuiteChecksPassed": 407, "skipped": 0, "additionalPrivacyChecksPassed": 3, "typecheckPassed": true },
+  "web": { "typecheckPassed": true, "productionBuildPassed": true, "circularChunkWarnings": 0, "largeChunkWarningsRemain": true, "designSystemContractChecksPassed": 13, "encodingPassed": true },
+  "studio": { "registeredDomainTriggers": 92, "observedLiteralEmittedEvents": 92, "registryAndPayloadCheckPassed": true },
+  "database": { "auditMigration": "560_audit_retention_and_tenant_rls.sql", "appliedLocally": true, "rlsRegressionChecksPassed": 7, "productionDeploymentNotVerified": true },
+  "dependencyAudit": { "productionEntries": 14, "critical": 2, "high": 3, "moderate": 8, "low": 1, "unresolved": true },
+  "typography": { "selectedFontVerified": "Atlassian Sans", "sharedFontToken": "--page-title-font -> --font", "plainAndAccentSameFont": true, "plainAndAccentWeight": 700, "accentStyle": "normal", "brandColourRetained": true, "verifiedViewportWidths": [390, 1280], "productionPublicRouteConsoleErrors": 0 },
+  "coverageLimit": "Repository-wide inventory and representative shared-shell/browser checks; not a completed manual walkthrough of every page, component, role or business workflow."
+}

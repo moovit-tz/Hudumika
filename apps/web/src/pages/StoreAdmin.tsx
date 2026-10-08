@@ -83,15 +83,15 @@ export const StoreAdmin: React.FC = () => {
                 <td style={{ padding: '16px' }}>
                   {app.status === 'pending' && (
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="btn btn-primary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')}>Approve</button>
-                      <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')}>Reject</button>
+                      <button className="btn btn-primary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')} data-ui-native-button="">Approve</button>
+                      <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')} data-ui-native-button="">Reject</button>
                     </div>
                   )}
                   {app.status === 'approved' && (
-                    <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')}>Revoke</button>
+                    <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')} data-ui-native-button="">Revoke</button>
                   )}
                   {app.status === 'rejected' && (
-                    <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')}>Approve</button>
+                    <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: '12px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')} data-ui-native-button="">Approve</button>
                   )}
                 </td>
               </tr>

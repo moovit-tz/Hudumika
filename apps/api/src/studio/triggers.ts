@@ -17,7 +17,7 @@ import { z } from 'zod';
 export type AppId =
   | 'clearos' | 'finops' | 'nexushr' | 'bliss' | 'complyos' | 'crm'
   | 'tracking' | 'cargotracker' | 'seal' | 'inventory' | 'studio' | 'ondi'
-  | 'cloud' | 'onsite' | 'tasks' | 'workspace';
+  | 'cloud' | 'email' | 'onsite' | 'tasks' | 'workspace';
 
 export type TriggerKind = 'DOMAIN_EVENT' | 'SCHEDULE' | 'MANUAL';
 
@@ -43,6 +43,68 @@ export interface TriggerDef {
  * an unexpected extra field must never drop an event on the floor.
  */
 export const TRIGGERS: TriggerDef[] = [
+  {
+    id: 'cloud.file.quarantined', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'File quarantined', description: 'Malware scanning quarantined a stored file.', entityType: 'document',
+    payloadSchema: z.object({ name: z.string(), signature: z.string().nullable() }).passthrough(),
+    samplePayload: { name: 'document.pdf', signature: 'Malware signature' },
+  },
+  {
+    id: 'cloud.file.missing_from_storage', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'File missing', description: 'Storage verification could not locate a registered file.', entityType: 'document',
+    payloadSchema: z.object({ name: z.string() }).passthrough(), samplePayload: { name: 'document.pdf' },
+  },
+  {
+    id: 'cloud.file.retention_expired', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'File retention expired', description: 'A file reached the end of its retention period.', entityType: 'document',
+    payloadSchema: z.object({ name: z.string(), retentionClass: z.string().nullable(), expiredAt: z.string() }).passthrough(),
+    samplePayload: { name: 'document.pdf', retentionClass: 'STANDARD', expiredAt: '2026-10-07T00:00:00Z' },
+  },
+  {
+    id: 'cloud.drive.admin_override', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'Drive admin override', description: 'An administrator accessed a drive using a recorded override reason.', entityType: 'cloud_drive',
+    payloadSchema: z.object({ reason: z.string() }).passthrough(), samplePayload: { reason: 'Support investigation' },
+  },
+  {
+    id: 'file.link.revoked', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'File link revoked', description: 'A public file link was revoked.', entityType: 'document',
+    payloadSchema: z.object({ name: z.string() }).passthrough(), samplePayload: { name: 'document.pdf' },
+  },
+  {
+    id: 'file.invite.created', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'File invitation created', description: 'An email invitation to a file was created.', entityType: 'document',
+    payloadSchema: z.object({ name: z.string(), email: z.string(), expires_days: z.number() }).passthrough(),
+    samplePayload: { name: 'document.pdf', email: 'recipient@example.com', expires_days: 7 },
+  },
+  {
+    id: 'file.invite.revoked', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'File invitation revoked', description: 'An email invitation to a file was revoked.', entityType: 'document',
+    payloadSchema: z.object({ email: z.string() }).passthrough(), samplePayload: { email: 'recipient@example.com' },
+  },
+  {
+    id: 'document.saved', kind: 'DOMAIN_EVENT', app: 'cloud',
+    label: 'Document saved', description: 'An application saved or replaced a managed document.', entityType: null,
+    payloadSchema: z.object({ fileId: z.string(), filename: z.string(), documentType: z.string(), replaced: z.boolean() }).passthrough(),
+    samplePayload: { fileId: 'document-id', filename: 'document.pdf', documentType: 'REPORT', replaced: false },
+  },
+  {
+    id: 'email.attachment.saved_to_drive', kind: 'DOMAIN_EVENT', app: 'email',
+    label: 'Attachment saved to Drive', description: 'An email attachment was saved into Cloud Drive.', entityType: 'email',
+    payloadSchema: z.object({ fileId: z.string(), filename: z.string(), driveId: z.string().nullable() }).passthrough(),
+    samplePayload: { fileId: 'document-id', filename: 'attachment.pdf', driveId: null },
+  },
+  {
+    id: 'finance.industries.updated', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'Finance industries updated', description: 'The workspace changed its finance industry configuration.', entityType: 'finance_configuration',
+    payloadSchema: z.object({ previousIndustries: z.array(z.string()), industries: z.array(z.string()) }).passthrough(),
+    samplePayload: { previousIndustries: [], industries: ['logistics'] },
+  },
+  {
+    id: 'finance.business_line.created', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'Business line created', description: 'A finance business line was created.', entityType: 'finance_business_line',
+    payloadSchema: z.object({ name: z.string(), code: z.string().nullable() }).passthrough(),
+    samplePayload: { name: 'Operations', code: 'OPS' },
+  },
   {
     id: 'shipment.case_opened',
     kind: 'DOMAIN_EVENT',
@@ -593,7 +655,10 @@ export const TRIGGERS: TriggerDef[] = [
     label: 'File sharing changed', description: 'A file\'s sharing list was replaced.',
     entityType: 'document',
     payloadSchema: z.object({
-      shared: z.array(z.object({ name: z.string(), role: z.string() })),
+      shared: z.array(z.object({ name: z.string(), role: z.string() })).optional(),
+      added: z.array(z.object({ name: z.string(), role: z.string(), type: z.string() })).optional(),
+      removed: z.array(z.object({ name: z.string(), role: z.string(), type: z.string() })).optional(),
+      changed: z.array(z.object({ name: z.string(), from: z.string(), to: z.string() })).optional(),
     }).passthrough(),
     samplePayload: { shared: [{ name: 'Grace Osei', role: 'Editor' }] },
   },

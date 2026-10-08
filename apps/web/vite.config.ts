@@ -23,38 +23,28 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react-router') || id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) {
-              return 'vendor-react';
-            }
-            if (id.includes('pdfjs-dist')) {
-              return 'vendor-pdf';
-            }
-            if (id.includes('three') || id.includes('@react-three')) {
-              return 'vendor-three';
-            }
-            if (id.includes('@xyflow') || id.includes('dagre')) {
-              return 'vendor-flow';
-            }
-            if (id.includes('leaflet') || id.includes('react-leaflet')) {
-              return 'vendor-maps';
-            }
-            if (id.includes('lucide-react') || id.includes('@hugeicons')) {
-              return 'vendor-icons';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-radix';
-            }
-            if (id.includes('recharts') || id.includes('chart.js') || id.includes('react-chartjs-2') || id.includes('d3')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('date-fns') || id.includes('react-day-picker')) {
-              return 'vendor-dates';
-            }
+          // React core — loaded by everything, must be separate and cached
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'react-vendor';
+          }
+          // Radix UI headless primitives
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'radix-vendor';
+          }
+          // Charting libraries (Recharts + D3 internals) — large, only needed on analytics pages
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-') || id.includes('node_modules/victory-') || id.includes('generateCategoricalChart')) {
+            return 'charts-vendor';
+          }
+          // Three.js — only needed for 3D visualisation; 900 KB on its own
+          if (id.includes('node_modules/three/') || id.includes('OrbitControls')) {
+            return 'three-vendor';
+          }
+          // PDF generation (pdfkit, pdf.js canvas)
+          if (id.includes('node_modules/pdfkit') || id.includes('node_modules/pdfjs-dist') || id.includes('PdfPageCanvas')) {
+            return 'pdf-vendor';
           }
         },
       },
     },
   },
 });
-

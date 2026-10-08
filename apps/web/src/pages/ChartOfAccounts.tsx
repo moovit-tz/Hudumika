@@ -342,8 +342,8 @@ export const ChartOfAccounts: React.FC = () => {
         onCancel={() => setShowForm(false)}
         actions={
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={handleSaveAccount} disabled={saving}>{saving ? 'Saving…' : 'Save Account'}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} disabled={saving} data-ui-native-button="">Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={handleSaveAccount} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Save Account'}</button>
           </>
         }
       >
@@ -422,19 +422,19 @@ export const ChartOfAccounts: React.FC = () => {
             Read-only · Enable Advanced Accounting to customize accounts
           </span>
         )}
-        <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll} data-ui-native-button="">
           <Icon name="chevronDown" size={13} /> Expand All
         </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll} data-ui-native-button="">
           <Icon name="chevronUp" size={13} /> Collapse All
         </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} data-ui-native-button="">
           <Icon name="download" size={13} /> Export CSV
         </button>
         <Tip label={canManageAccounts ? 'Create account' : 'Requires Advanced Accounting'}>
           <span>
             <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts}
-              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Account
             </button>
           </span>
@@ -541,12 +541,12 @@ export const ChartOfAccounts: React.FC = () => {
             </span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button type="button" className="btn btn-secondary btn-sm"
-                disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))} data-ui-native-button="">
                 <Icon name="arrowLeft" size={12} /> Previous
               </button>
               <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
               <button type="button" className="btn btn-secondary btn-sm"
-                disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))} data-ui-native-button="">
                 Next <Icon name="arrowRight" size={12} />
               </button>
             </div>
@@ -578,7 +578,7 @@ export const ChartOfAccounts: React.FC = () => {
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</span>
             </div>
             <button type="button" onClick={() => setSelected(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           </div>
@@ -602,11 +602,11 @@ export const ChartOfAccounts: React.FC = () => {
               </div>
             )}
             {canManageAccounts && <div style={{ display: 'flex', gap: 8, marginTop: 4, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditForm(selected)}>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditForm(selected)} data-ui-native-button="">
                 <Icon name="edit" size={12} /> Edit
               </button>
               {!selected.is_system && (
-                <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)}>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)} data-ui-native-button="">
                   <Icon name="trash2" size={12} />
                 </button>
               )}

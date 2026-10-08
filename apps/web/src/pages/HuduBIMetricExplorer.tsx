@@ -119,10 +119,10 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
           {!r.enabled && <Badge variant="gray">Disabled</Badge>}
           {canManage && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <button type="button" onClick={() => toggle(r.id, !r.enabled)} style={{ fontSize: 11, color: 'var(--teal-d)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <button type="button" onClick={() => toggle(r.id, !r.enabled)} style={{ fontSize: 11, color: 'var(--teal-d)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                 {r.enabled ? 'Disable' : 'Enable'}
               </button>
-              <button type="button" onClick={() => remove(r.id)} style={{ fontSize: 11, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <button type="button" onClick={() => remove(r.id)} style={{ fontSize: 11, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                 Delete
               </button>
             </div>
@@ -145,7 +145,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
             <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
           </div>
         ) : (
-          <button type="button" onClick={() => setCreating(true)} style={{ fontSize: 11.5, color: 'var(--teal-d)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }}>
+          <button type="button" onClick={() => setCreating(true)} style={{ fontSize: 11.5, color: 'var(--teal-d)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }} data-ui-native-button="">
             + Add alert
           </button>
         )
@@ -271,7 +271,7 @@ export function HuduBIMetricExplorer() {
             background: appFilter === 'all' ? 'var(--teal)' : 'transparent',
             color: appFilter === 'all' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
           }}
-        >
+         data-ui-native-button="">
           All apps
         </button>
         {apps.map(a => (
@@ -286,7 +286,7 @@ export function HuduBIMetricExplorer() {
               color: appFilter === a ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
               textTransform: 'capitalize',
             }}
-          >
+           data-ui-native-button="">
             {a}
           </button>
         ))}

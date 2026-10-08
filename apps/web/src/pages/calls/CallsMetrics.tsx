@@ -87,7 +87,7 @@ export function CallsMetrics() {
               color: days === d ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
               boxShadow: days === d ? 'var(--elev)' : 'none',
             }}
-          >
+           data-ui-native-button="">
             {d} Days
           </button>
         ))}

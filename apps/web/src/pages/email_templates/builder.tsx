@@ -212,7 +212,7 @@ export function AdvancedBuilderDialog({
             type="button"
             className={`adv-builder-nav-tab${activeTab === 'blocks' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('blocks')}
-          >
+           data-ui-native-button="">
             <Icon name="grid" size={14} />
             <span>Block Builder</span>
           </button>
@@ -221,7 +221,7 @@ export function AdvancedBuilderDialog({
             type="button"
             className={`adv-builder-nav-tab${activeTab === 'html' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('html')}
-          >
+           data-ui-native-button="">
             <Icon name="terminal" size={14} />
             <span>HTML & Code Editor</span>
           </button>
@@ -230,7 +230,7 @@ export function AdvancedBuilderDialog({
             type="button"
             className={`adv-builder-nav-tab${activeTab === 'css' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('css')}
-          >
+           data-ui-native-button="">
             <Icon name="color" size={14} />
             <span>Custom CSS & Styles</span>
           </button>
@@ -239,7 +239,7 @@ export function AdvancedBuilderDialog({
             type="button"
             className={`adv-builder-nav-tab${activeTab === 'import' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('import')}
-          >
+           data-ui-native-button="">
             <Icon name="upload" size={14} />
             <span>HTML / File Import</span>
           </button>
@@ -248,7 +248,7 @@ export function AdvancedBuilderDialog({
             type="button"
             className={`adv-builder-nav-tab${activeTab === 'simulator' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('simulator')}
-          >
+           data-ui-native-button="">
             <Icon name="play" size={14} />
             <span>Logic & Merge Simulator</span>
           </button>
@@ -257,7 +257,7 @@ export function AdvancedBuilderDialog({
             type="button"
             className={`adv-builder-nav-tab${activeTab === 'export' ? ' is-active' : ''}`}
             onClick={() => setActiveTab('export')}
-          >
+           data-ui-native-button="">
             <Icon name="download" size={14} />
             <span>Export Clean HTML</span>
           </button>
@@ -422,14 +422,14 @@ export function AdvancedBuilderDialog({
                       type="button"
                       className={`adv-sim-device-btn${simDevice === 'desktop' ? ' is-active' : ''}`}
                       onClick={() => setSimDevice('desktop')}
-                    >
+                     data-ui-native-button="">
                       <Icon name="monitor" size={13} /> Desktop
                     </button>
                     <button
                       type="button"
                       className={`adv-sim-device-btn${simDevice === 'mobile' ? ' is-active' : ''}`}
                       onClick={() => setSimDevice('mobile')}
-                    >
+                     data-ui-native-button="">
                       <Icon name="smartphone" size={13} /> Mobile
                     </button>
                   </div>

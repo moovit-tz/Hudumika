@@ -107,15 +107,15 @@ export const SuperAdminKyb: React.FC = () => {
                 <td style={{ padding: '10px 14px' }}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <button type="button" onClick={() => viewDocument(row.id)} disabled={previewLoading === row.id}
-                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: '1px solid var(--border)', cursor: 'pointer', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)' }}>
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: '1px solid var(--border)', cursor: 'pointer', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)' }} data-ui-native-button="">
                       {previewLoading === row.id ? '…' : 'View'}
                     </button>
                     <button type="button" onClick={() => approve(row)} disabled={busyId === row.id}
-                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)' }}>
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)' }} data-ui-native-button="">
                       Verify
                     </button>
                     <button type="button" onClick={() => reject(row)} disabled={busyId === row.id}
-                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--red-l)', color: 'var(--red)' }}>
+                      style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 10px', border: 'none', cursor: 'pointer', background: 'var(--red-l)', color: 'var(--red)' }} data-ui-native-button="">
                       Reject
                     </button>
                   </div>
@@ -134,7 +134,7 @@ export const SuperAdminKyb: React.FC = () => {
           {previewUrl && <>
             <img src={previewUrl} alt="KYB document" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', display: 'block' }} />
             <button type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
-              style={{ position: 'absolute', top: 24, right: 24, background: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' }}>
+              style={{ position: 'absolute', top: 24, right: 24, background: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer' }} data-ui-native-button="">
               <Icon name="x" size={18} />
             </button>
           </>}

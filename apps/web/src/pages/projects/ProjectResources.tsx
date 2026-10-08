@@ -162,7 +162,7 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
     <div className="space-y-6">
       {/* Sub-tab Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-ds-tabstrip="">
           {projectId && (
             <button
               onClick={() => setActiveTab('allocations')}
@@ -171,7 +171,7 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                   ? 'bg-teal-600 text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
-            >
+             data-ds-selected={activeTab === 'allocations'} data-ui-native-button="" aria-pressed={activeTab === 'allocations'}>
               Project Asset Allocations ({allocations.length})
             </button>
           )}
@@ -182,7 +182,7 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'fleet'} data-ui-native-button="" aria-pressed={activeTab === 'fleet'}>
             Enterprise Machinery & Fleet ({resources.length})
           </button>
         </div>

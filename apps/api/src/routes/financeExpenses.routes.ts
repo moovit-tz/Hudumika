@@ -124,7 +124,7 @@ const OTHER_REVENUE_ACCOUNT = '4500';
  * Other Revenue. Keyed by source ('EXPENSE', id) so it can be reversed and
  * re-posted cleanly when the row is edited or deleted.
  */
-async function postExpenseToGl(tenantId: string, row: any, userId: string | null): Promise<void> {
+export async function postExpenseToGl(tenantId: string, row: any, userId: string | null, transaction?: Transaction<Database>): Promise<void> {
   const amount = Number(row.amount) || 0;
   if (amount <= 0) return;
   const entryDate = row.expense_date ? new Date(row.expense_date).toISOString() : new Date().toISOString();
@@ -137,7 +137,7 @@ async function postExpenseToGl(tenantId: string, row: any, userId: string | null
       ]
     : [
         { accountCode: expenseAccount, debit: amount, credit: 0, description: row.name || 'Expense', dimensions },
-        { accountCode: CASH_ACCOUNT, debit: 0, credit: amount, description: 'Cash paid', dimensions },
+        { accountCode: row.report_id ? '2100' : CASH_ACCOUNT, debit: 0, credit: amount, description: row.report_id ? 'Employee reimbursement payable' : 'Cash paid', dimensions },
       ];
   await GLService.post(tenantId, {
     entryDate,
@@ -147,7 +147,7 @@ async function postExpenseToGl(tenantId: string, row: any, userId: string | null
     sourceId: row.id,
     createdBy: userId ?? undefined,
     lines,
-  });
+  }, transaction);
 }
 
 interface FinanceExpenseListItem {
@@ -366,7 +366,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       // database given its id, and RLS does not stop it: the connection owns
       // the table, and Postgres lets an owner bypass row-level policies.
       return trx.updateTable('finance_expenses').set(patch)
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('report_id', 'is', null)
         .returningAll().executeTakeFirst();
     });
     if (!row) return reply.status(404).send({ error: 'Expense not found' });
@@ -396,19 +396,15 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
   fastify.post('/expenses/:id/approve', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const row = await withTenant(user.tenant_id, (trx) =>
-      trx.selectFrom('finance_expenses').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
-    );
-    if (!row) return reply.status(404).send({ error: 'Expense not found' });
-    if (row.status !== 'SUBMITTED') return reply.status(409).send({ error: 'This expense is not pending approval.' });
-
-    try { await postExpenseToGl(user.tenant_id, row, user.sub); }
-    catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL post failed'); }
-
-    return withTenant(user.tenant_id, (trx) =>
-      trx.updateTable('finance_expenses').set({ status: 'APPROVED', reviewed_by: user.sub, reviewed_at: new Date() })
-        .where('id', '=', id).returningAll().executeTakeFirstOrThrow()
-    );
+    return withTenant(user.tenant_id, async trx => {
+      const row = await trx.selectFrom('finance_expenses').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Expense not found' });
+      if (row.status !== 'SUBMITTED') return reply.status(409).send({ error: 'This expense is not pending approval.' });
+      if (Number(row.amount) <= 0) return reply.status(422).send({ error: 'Approval requires a positive expense amount.' });
+      await postExpenseToGl(user.tenant_id, row, user.sub, trx);
+      return trx.updateTable('finance_expenses').set({ status: 'APPROVED', reviewed_by: user.sub, reviewed_at: new Date() })
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+    });
   });
 
   /**
@@ -419,12 +415,12 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().min(1).max(1000) }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.selectFrom('finance_expenses').select(['id', 'status']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const row = await trx.selectFrom('finance_expenses').select(['id', 'status']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Expense not found' });
       if (row.status !== 'SUBMITTED') return reply.status(409).send({ error: 'This expense is not pending approval.' });
       return trx.updateTable('finance_expenses')
         .set({ status: 'REJECTED', reviewed_by: user.sub, reviewed_at: new Date(), rejection_reason: reason })
-        .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
     });
   });
 
@@ -474,7 +470,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
 
     const deleted = await withTenant(user.tenant_id, async (trx) => {
       return trx.deleteFrom('finance_expenses')
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('report_id', 'is', null)
         .returningAll().executeTakeFirst();
     });
     if (!deleted) return reply.status(404).send({ error: 'Expense not found' });

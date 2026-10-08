@@ -161,7 +161,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           <DropdownMenu>
             <Tip label="Map layers">
               <DropdownMenuTrigger asChild>
-              <button className="rp-mc-btn" aria-label="Map layers">
+              <button className="rp-mc-btn" aria-label="Map layers" data-ui-native-button="">
                 <Icon name="layers" size={16} />
               </button>
               </DropdownMenuTrigger>
@@ -275,7 +275,7 @@ export const TrackingRoutePlanner: React.FC = () => {
             </div>
           </div>
 
-          <button className="rp-btn-generate" onClick={planRoute} disabled={waypoints.length < 2 || loading}>
+          <button className="rp-btn-generate" onClick={planRoute} disabled={waypoints.length < 2 || loading} data-ui-native-button="">
             <Icon name="map" size={16} /> {loading ? 'Optimizing Route...' : 'Generate Route'}
           </button>
           
@@ -335,7 +335,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                 ))}
               </div>
 
-              <button className="rp-btn-clear" onClick={clear}>Clear route</button>
+              <button className="rp-btn-clear" onClick={clear} data-ui-native-button="">Clear route</button>
             </div>
           )}
         </div>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useLocale } from '../hooks/useLocale.js';
 import { BackButton } from './ui/BackButton.js';
 
 /** A crumb is a bare label, or a label with an explicit destination when the
@@ -10,15 +9,15 @@ export type Crumb = string | { label: string; to?: string };
 interface PageHeaderProps {
   /** e.g. ['Finance', 'Dashboard'] → "Finance / Dashboard" */
   crumbs: Crumb[];
-  /** Plain part before the italic word, e.g. "Finance" */
+  /** Plain part before the accent word, e.g. "Finance" */
   titlePlain?: string;
-  /** Italic brand-colored word, e.g. "overview" */
+  /** Brand-colored word in the same selected product font, e.g. "overview" */
   titleEm?: string;
   /**
    * A whole title to split on its last word, for pages whose title is only
    * known at runtime — a task view's name, a CMS page's name, a shipment's
    * own title. Prefer titlePlain/titleEm for static titles: the split is a
-   * guess, and a one-word value leaves nothing to pair the italic against.
+   * guess, and a one-word value leaves the whole title accented.
    */
   title?: string;
   /** Optional subtitle. ReactNode, not string: several pages need a link or
@@ -57,8 +56,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     plain = words.join(' ');
   }
 
-  const { language } = useLocale();
-  const nonLatin = language === 'ar' || language === 'zh';
   const { pathname } = useLocation();
   const segments = pathname.split('/').filter(Boolean);
 
@@ -100,8 +97,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {variant === 'create' ? (
             <h1 className="page-header-title page-header-title--create">{[plain, em].filter(Boolean).join(' ')}</h1>
           ) : (
-            <h1 className={`page-header-title${nonLatin ? ' ph-cjk' : ''}`}>
-              {plain}{plain && em ? ' ' : ''}<span className="ph-em">{em}</span>
+            <h1 className="page-header-title">
+              {plain}{plain && em ? ' ' : ''}<span className="ph-em">{em.replace(/\.$/, '')}</span>.
             </h1>
           )}
           {liveStatus && (

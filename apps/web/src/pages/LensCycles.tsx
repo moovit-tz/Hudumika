@@ -28,7 +28,7 @@ export default function LensCycles() {
         titlePlain="Planning"
         titleEm="cycles"
         subtitle="Time-boxed iterations for execution."
-        actions={<button className="btn btn-primary" onClick={() => alert('New cycle modal')}>New Cycle</button>}
+        actions={<button className="btn btn-primary" onClick={() => alert('New cycle modal')} data-ui-native-button="">New Cycle</button>}
       />
 
       <div style={{ maxWidth: 900, margin: '0 auto', paddingTop: 20 }}>

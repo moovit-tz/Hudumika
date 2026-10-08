@@ -120,7 +120,7 @@ export const SharedLandedCostReport: React.FC = () => {
         </div>
       </div>
       <button type="button" onClick={download}
-        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
         <Icon name="download" size={16} color="hsl(var(--clearos-foreground))" /> Download the PDF
       </button>
       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 12, lineHeight: 1.6 }}>
@@ -184,7 +184,7 @@ export const SharedLandedCostReport: React.FC = () => {
         )}
 
         <button type="submit" disabled={submitting}
-          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: submitting ? 'var(--border)' : 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: submitting ? 'var(--border)' : 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           {submitting ? 'Unlocking…' : 'Get the full report'}
         </button>
 

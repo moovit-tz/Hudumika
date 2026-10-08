@@ -126,7 +126,7 @@ export function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: Cleara
                 ))}
               </div>
               {msg.reactions?.map(r => (
-                <button key={r.emoji} type="button" style={{ marginTop: 6, padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button key={r.emoji} type="button" style={{ marginTop: 6, padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {r.emoji} {r.count}
                 </button>
               ))}
@@ -142,7 +142,7 @@ export function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: Cleara
         <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 12 }}>
           <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Set Stage — click to update</span>
-            <button type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="x" size={13} color="var(--teal)" /></button>
+            <button type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }} data-ui-native-button=""><Icon name="x" size={13} color="var(--teal)" /></button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 14px' }}>
             {(() => { const uiSteps = jobUiSteps(job); const curIdx = jobCurrentIdx(job); return uiSteps.map((s, i) => {
@@ -150,7 +150,7 @@ export function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: Cleara
               const past = i < curIdx;
               return (
                 <button key={s.id} type="button" onClick={() => handleSetStage(s.id)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   <span style={{ fontFamily: 'var(--font)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
                 </button>
               );
@@ -162,11 +162,11 @@ export function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: Cleara
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Post to:</span>
-          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="lock" size={11} /> Internal Note</button>
-          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>↗ Share Update</button>
+          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="lock" size={11} /> Internal Note</button>
+          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">↗ Share Update</button>
           {!isInternal && (['whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
             const cfg = CH_CFG[ch]; const on = chans.includes(ch);
-            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>{cfg.label}</button>;
+            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">{cfg.label}</button>;
           })}
         </div>
         <div style={{ padding: '12px 16px' }}>
@@ -178,11 +178,11 @@ export function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: Cleara
               <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Ctrl+Enter to send</span>
               <button type="button" onClick={() => setShowStageBar(s => !s)}
                 title="Set shipment stage"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', background: showStageBar ? 'var(--teal-l)' : 'var(--bg)', color: showStageBar ? 'var(--teal)' : 'var(--ink3)', border: `1px solid ${showStageBar ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .12s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', background: showStageBar ? 'var(--teal-l)' : 'var(--bg)', color: showStageBar ? 'var(--teal)' : 'var(--ink3)', border: `1px solid ${showStageBar ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .12s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="flag" size={13} color={showStageBar ? 'var(--teal)' : 'var(--ink3)'} /> Set Stage
               </button>
             </div>
-            <button type="button" onClick={handleSend} disabled={sending || !text.trim()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', background: text.trim() && !sending ? 'var(--teal)' : 'var(--border)', color: text.trim() && !sending ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: text.trim() && !sending ? 'pointer' : 'default', transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" onClick={handleSend} disabled={sending || !text.trim()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', background: text.trim() && !sending ? 'var(--teal)' : 'var(--border)', color: text.trim() && !sending ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: text.trim() && !sending ? 'pointer' : 'default', transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="send" size={14} /> {sending ? 'Sending…' : 'Send'}
             </button>
           </div>

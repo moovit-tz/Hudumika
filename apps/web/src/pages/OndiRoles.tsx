@@ -256,7 +256,7 @@ export const OndiRoles: React.FC = () => {
                 </SelectContent>
               </Select>
               <button type="button" onClick={submitAccessRequest} disabled={!requestRoleId || requesting}
-                style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px var(--teal-m)' }}>
+                style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
                 {requesting ? 'Sending…' : 'Request'}
               </button>
             </div>
@@ -325,7 +325,7 @@ export const OndiRoles: React.FC = () => {
                 </div>
               </div>
               <button type="submit" disabled={!newRoleName.trim() || creating}
-                style={{ width: '100%', padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!newRoleName.trim() || creating) ? 0.6 : 1 }}>
+                style={{ width: '100%', padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!newRoleName.trim() || creating) ? 0.6 : 1 }} data-ui-native-button="">
                 {creating ? 'Creating…' : 'Create Role'}
               </button>
             </form>
@@ -355,11 +355,11 @@ export const OndiRoles: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={() => decide(r.id, false)}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
                       Deny
                     </button>
                     <button type="button" onClick={() => decide(r.id, true)} disabled={r.my_decision === 'approve'}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }}>
+                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }} data-ui-native-button="">
                       {r.my_decision === 'approve' ? 'Approved' : 'Approve'}
                     </button>
                   </div>
@@ -384,7 +384,7 @@ export const OndiRoles: React.FC = () => {
                     {r.description && <div className="ondi-entity-sub">{r.description}</div>}
                   </div>
                   <button type="button" onClick={() => deleteRole(r.id, r.name)} title="Delete Role"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }} data-ui-native-button="">
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
@@ -415,7 +415,7 @@ export const OndiRoles: React.FC = () => {
                             <span className={`ondi-status-pill ${expiry === 'Expired' ? 'error' : 'warning'}`} style={{ fontSize: 10, padding: '2px 6px' }}>{expiry}</span>
                           )}
                           <button type="button" onClick={() => removeMember(r.id, m.user_id)} title="Remove Member"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                             <Icon name="x" size={13} />
                           </button>
                         </div>

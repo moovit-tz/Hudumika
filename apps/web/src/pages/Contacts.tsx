@@ -725,7 +725,7 @@ export function Contacts() {
                   display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none',
                   color: 'var(--cts-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: 0
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="arrowLeft" size={16} color="var(--cts-accent)" />
                 Back to contacts
               </button>
@@ -738,7 +738,7 @@ export function Contacts() {
                   onClick={() => handleToggleFavorite(activeContact)}
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
+                 data-ui-native-button="">
                   <Icon name="star" size={14} color={activeContact.is_favorite ? 'var(--gold)' : 'var(--ink2)'} />
                   {activeContact.is_favorite ? 'Favorited' : 'Favorite'}
                 </button>
@@ -747,14 +747,14 @@ export function Contacts() {
                   onClick={() => openContactModal(activeContact)}
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                >
+                 data-ui-native-button="">
                   <Icon name="edit" size={14} color="var(--ink2)" />
                   Edit
                 </button>
-                <button type="button" onClick={() => setAccessOpen(true)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button type="button" onClick={() => setAccessOpen(true)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
                   <Icon name="lock" size={14} color="var(--ink2)" /> Access
                 </button>
-                <button type="button" onClick={shareContact} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button type="button" onClick={shareContact} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
                   <Icon name="share" size={14} color="var(--ink2)" /> Share
                 </button>
                 {activeContact && (
@@ -766,7 +766,7 @@ export function Contacts() {
                   onClick={() => handleDeleteContact(activeContact.id, activeContact.status === 'TRASHED')}
                   className="btn btn-secondary btn-sm"
                   style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--red)', color: 'var(--red)' }}
-                >
+                 data-ui-native-button="">
                   <Icon name="trash" size={14} color="var(--red)" />
                   Delete
                 </button>
@@ -827,10 +827,10 @@ export function Contacts() {
                   )}
 
                   <div className="cts-quick-actions" aria-label="Contact actions">
-                    <button type="button" onClick={composeEmail} disabled={!activeContact.email}><Icon name="mail" size={17} /><span>Email</span></button>
-                    <button type="button" onClick={() => scheduleWithContact(false)} disabled={!activeContact.email}><Icon name="calendar" size={17} /><span>Schedule</span></button>
-                    <button type="button" onClick={chatWithContact} disabled={!relationship?.internal_user}><Icon name="message" size={17} /><span>Chat</span></button>
-                    <button type="button" onClick={() => scheduleWithContact(true)} disabled={!activeContact.email}><Icon name="video" size={17} /><span>Video</span></button>
+                    <button type="button" onClick={composeEmail} disabled={!activeContact.email} data-ui-native-button=""><Icon name="mail" size={17} /><span>Email</span></button>
+                    <button type="button" onClick={() => scheduleWithContact(false)} disabled={!activeContact.email} data-ui-native-button=""><Icon name="calendar" size={17} /><span>Schedule</span></button>
+                    <button type="button" onClick={chatWithContact} disabled={!relationship?.internal_user} data-ui-native-button=""><Icon name="message" size={17} /><span>Chat</span></button>
+                    <button type="button" onClick={() => scheduleWithContact(true)} disabled={!activeContact.email} data-ui-native-button=""><Icon name="video" size={17} /><span>Video</span></button>
                   </div>
 
                   {/* Sidebar Quick Info */}
@@ -888,7 +888,7 @@ export function Contacts() {
               <div className="cts-detail-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
                 
                 {/* Tabs Header */}
-                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--white)', borderRadius: `var(--r) var(--r) 0 0`, padding: '0 16px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--white)', borderRadius: `var(--r) var(--r) 0 0`, padding: '0 16px', border: '1px solid var(--border)' }} data-ds-tabstrip="">
                   {[
                     { key: 'overview', label: 'Overview', icon: 'user' as IconName },
                     { key: 'notes', label: 'Notes', icon: 'fileText' as IconName },
@@ -906,7 +906,7 @@ export function Contacts() {
                           borderBottom: active ? '3px solid var(--cts-accent)' : '3px solid transparent',
                           color: active ? 'var(--cts-accent)' : 'var(--ink2)',
                           fontWeight: 600, fontSize: 14, transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
-                      >
+                       data-ds-selected={activeTab === tab.key as any} data-ui-native-button="" aria-pressed={activeTab === tab.key as any}>
                         <Icon name={tab.icon} size={15} color={active ? 'var(--cts-accent)' : 'var(--ink2)'} />
                         {tab.label}
                       </button>
@@ -1013,7 +1013,7 @@ export function Contacts() {
                           </div>
                           {relationshipLoading ? <div className="cts-card-empty">Loading interactions…</div>
                             : relationship?.interactions?.length ? relationship.interactions.slice(0, 8).map((item: any) => (
-                              <button key={item.id} type="button" className="cts-interaction-row" onClick={() => navigate(item.href)}>
+                              <button key={item.id} type="button" className="cts-interaction-row" onClick={() => navigate(item.href)} data-ui-native-button="">
                                 <span className="cts-interaction-icon"><Icon name={item.kind === 'email' ? 'mail' : item.kind === 'video' ? 'video' : 'calendar'} size={14} /></span>
                                 <span><strong>{item.title}</strong><small>{new Date(item.occurred_at).toLocaleString()}{item.detail ? ` · ${item.detail}` : ''}</small></span>
                               </button>
@@ -1029,7 +1029,7 @@ export function Contacts() {
                           </div>
                           {relationshipLoading ? <div className="cts-card-empty">Loading files…</div>
                             : relationship?.files?.length ? relationship.files.slice(0, 8).map((file: any) => (
-                              <button key={file.id} type="button" className="cts-file-row" onClick={() => apiDownload(`/v1/files/${file.id}/download`, file.name).catch((err: any) => showAlert(err.message || 'Could not download file.'))}>
+                              <button key={file.id} type="button" className="cts-file-row" onClick={() => apiDownload(`/v1/files/${file.id}/download`, file.name).catch((err: any) => showAlert(err.message || 'Could not download file.'))} data-ui-native-button="">
                                 <Icon name="fileText" size={15} /><span><strong>{file.name}</strong><small>{file.owner_name} · {new Date(file.created_at).toLocaleDateString()}</small></span>
                               </button>
                             )) : <div className="cts-card-empty">No Drive files attached to this contact.</div>}
@@ -1048,7 +1048,7 @@ export function Contacts() {
                           type="button"
                           className="btn btn-primary btn-sm"
                           onClick={() => openContactModal(activeContact)}
-                        >
+                         data-ui-native-button="">
                           Edit Notes
                         </button>
                       </div>
@@ -1069,7 +1069,7 @@ export function Contacts() {
                       {activityLoading ? (
                         <div style={{ fontSize: 13, color: 'var(--ink2)', fontStyle: 'italic' }}>Loading activity…</div>
                       ) : activityError ? (
-                        <div style={{ fontSize: 13, color: 'var(--red)' }}>Couldn't load activity — <button type="button" style={{ font: 'inherit', color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={retryActivity}>retry</button>.</div>
+                        <div style={{ fontSize: 13, color: 'var(--red)' }}>Couldn't load activity — <button type="button" style={{ font: 'inherit', color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={retryActivity} data-ui-native-button="">retry</button>.</div>
                       ) : activityLog.length === 0 ? (
                         <div style={{ fontSize: 13, color: 'var(--ink2)', fontStyle: 'italic' }}>No activity recorded yet.</div>
                       ) : (
@@ -1179,7 +1179,7 @@ export function Contacts() {
 
             {currentView === 'contacts' && (loadErrors.contacts || loadErrors.labels || loadErrors.smartGroups || loadErrors.duplicates || loadErrors.companies || birthdaysError) && (
               <div style={{ padding: '0 20px 16px' }}>
-                <Banner variant="error" action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { loadData(); if (birthdaysError) apiFetch('/v1/contacts/birthdays?within=30').then((rows: any) => { setUpcomingBirthdays(Array.isArray(rows) ? rows : []); setBirthdaysError(false); }).catch(() => setBirthdaysError(true)); }}>Retry</button>}>
+                <Banner variant="error" action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { loadData(); if (birthdaysError) apiFetch('/v1/contacts/birthdays?within=30').then((rows: any) => { setUpcomingBirthdays(Array.isArray(rows) ? rows : []); setBirthdaysError(false); }).catch(() => setBirthdaysError(true)); }} data-ui-native-button="">Retry</button>}>
                   {loadErrors.contacts
                     ? "Some contacts couldn't load — this list may be incomplete."
                     : [
@@ -1255,7 +1255,7 @@ export function Contacts() {
                         className="cts-chip cts-chip--clear"
                         onClick={() => setFilterLabelIds([])}
                         title="Clear label filters"
-                      >Clear</button>
+                       data-ui-native-button="">Clear</button>
                     )}
                     {labels.map(l => {
                       const on = filterLabelIds.includes(l.id);
@@ -1268,7 +1268,7 @@ export function Contacts() {
                             on ? filterLabelIds.filter(id => id !== l.id) : [...filterLabelIds, l.id]
                           )}
                           title={l.name}
-                        >{l.name}</button>
+                         data-ui-native-button="">{l.name}</button>
                       );
                     })}
                   </div>
@@ -1292,7 +1292,7 @@ export function Contacts() {
                     className="cts-list-bar-badge cts-list-bar-badge--label"
                     onClick={() => setFilterLabelIds([])}
                     title="Clear label filters"
-                  >
+                   data-ui-native-button="">
                     {filterLabelIds.length} label filter{filterLabelIds.length > 1 ? 's' : ''} ×
                   </button>
                 )}
@@ -1302,7 +1302,7 @@ export function Contacts() {
                     className="cts-list-bar-badge cts-list-bar-badge--search"
                     onClick={() => setSearchQuery('')}
                     title="Clear search"
-                  >
+                   data-ui-native-button="">
                     "{searchQuery}" ×
                   </button>
                 )}
@@ -1316,14 +1316,14 @@ export function Contacts() {
               {selectedIds.size > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', background: 'var(--cts-accent-bg)', borderRadius: 'var(--r)', marginBottom: 16 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--cts-accent)' }}>{selectedIds.size} selected</span>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={toggleSelectAll}>Deselect all</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={toggleSelectAll} data-ui-native-button="">Deselect all</button>
                   
                   <div style={{ flex: 1 }} />
 
                   {/* Bulk Label Trigger */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         Apply Label…
                       </button>
                     </DropdownMenuTrigger>
@@ -1337,7 +1337,7 @@ export function Contacts() {
                   {/* Export selection */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         Export…
                       </button>
                     </DropdownMenuTrigger>
@@ -1352,7 +1352,7 @@ export function Contacts() {
                     className="btn btn-secondary btn-sm"
                     style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
                     onClick={() => handleBulkDelete(currentView === 'trash')}
-                  >
+                   data-ui-native-button="">
                     {currentView === 'trash' ? 'Delete Permanently' : 'Move to Trash'}
                   </button>
                 </div>
@@ -1457,7 +1457,7 @@ export function Contacts() {
                                           type="button"
                                           onClick={() => handleToggleFavorite(contact)}
                                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon
                                             name="star"
                                             size={18}
@@ -1471,7 +1471,7 @@ export function Contacts() {
                                           type="button"
                                           onClick={() => openContactModal(contact)}
                                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon name="edit" size={18} color="var(--ink2)" />
                                         </button>
                                       </Tip>
@@ -1481,7 +1481,7 @@ export function Contacts() {
                                           type="button"
                                           onClick={() => handleDeleteContact(contact.id, false)}
                                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon name="trash" size={18} color="var(--ink2)" />
                                         </button>
                                       </Tip>
@@ -1494,7 +1494,7 @@ export function Contacts() {
                                           type="button"
                                           onClick={() => handleRestoreContact(contact.id)}
                                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon name="refresh2" size={18} color="var(--cts-accent)" />
                                         </button>
                                       </Tip>
@@ -1504,7 +1504,7 @@ export function Contacts() {
                                           type="button"
                                           onClick={() => handleDeleteContact(contact.id, true)}
                                           style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon name="trash" size={18} color="var(--red)" />
                                         </button>
                                       </Tip>
@@ -1538,7 +1538,7 @@ export function Contacts() {
                           }
                           showAlert('All duplicates merged!');
                         }}
-                      >
+                       data-ui-native-button="">
                         Merge all
                       </button>
                     )}
@@ -1580,7 +1580,7 @@ export function Contacts() {
                               type="button"
                               className="btn btn-primary btn-sm"
                               onClick={() => handleMerge(group.contacts[0].id, group.contacts.slice(1).map(c => c.id))}
-                            >
+                             data-ui-native-button="">
                               Merge
                             </button>
                           </div>
@@ -1622,7 +1622,7 @@ export function Contacts() {
                         borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
                         color: on ? 'var(--cts-accent)' : 'var(--ink2)',
                         fontWeight: 600, fontSize: 13, marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    >
+                     data-ui-native-button="">
                       <Icon name={step.icon} size={14} color={on ? 'var(--cts-accent)' : 'var(--ink2)'} />
                       {step.label}
                     </button>
@@ -1693,7 +1693,7 @@ export function Contacts() {
                       background: 'none', border: 'none', color: 'var(--cts-accent)', fontSize: 12,
                       fontWeight: 600, cursor: 'pointer', marginTop: 8
                     }}
-                  >
+                   data-ui-native-button="">
                     Set Profile Picture
                   </button>
 
@@ -1712,7 +1712,7 @@ export function Contacts() {
                             padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
                             fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
                           }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="upload" size={14} color="var(--ink2)" />
                           Upload Photo
                         </button>
@@ -1731,7 +1731,7 @@ export function Contacts() {
                             style={{
                               width: '100%', border: 'none', background: 'none', color: 'var(--red)',
                               fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                          >
+                           data-ui-native-button="">
                             Remove Photo
                           </button>
                         )}
@@ -1806,12 +1806,12 @@ export function Contacts() {
                       </SelectContent>
                     </Select>
                     <input className="input-field" type="email" placeholder="Additional email" value={row.email} onChange={e => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} />
-                    <button type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                    <button type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={() => setFormExtraEmails(prev => [...prev, emptyEmailRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                <button type="button" onClick={() => setFormExtraEmails(prev => [...prev, emptyEmailRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                   + Add another email
                 </button>
               </div>
@@ -1828,12 +1828,12 @@ export function Contacts() {
                       </SelectContent>
                     </Select>
                     <input className="input-field" placeholder="Additional phone" value={row.phone} onChange={e => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, phone: e.target.value } : r))} />
-                    <button type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                    <button type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={() => setFormExtraPhones(prev => [...prev, emptyPhoneRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                <button type="button" onClick={() => setFormExtraPhones(prev => [...prev, emptyPhoneRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                   + Add another phone
                 </button>
               </div>
@@ -1902,7 +1902,7 @@ export function Contacts() {
                           title={formCompanyId ? 'Unlink company' : 'Clear'}
                           onClick={handleClearCompany}
                           style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex' }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="x" size={13} />
                         </button>
                       )}
@@ -1915,7 +1915,7 @@ export function Contacts() {
                         type="button"
                         onClick={() => handleSelectCompany(c)}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
+                       data-ui-native-button="">
                         <Icon name="building" size={13} color="var(--ink2)" />
                         {c.name}
                       </button>
@@ -2021,7 +2021,7 @@ export function Contacts() {
                           color: selected ? 'var(--cts-accent)' : 'var(--ink)',
                           fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6,
                           transition: 'all 0.15s', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                      >
+                       data-ui-native-button="">
                         {label.name}
                         {selected && <Icon name="check" size={11} color="var(--cts-accent)" />}
                       </button>
@@ -2050,7 +2050,7 @@ export function Contacts() {
                     background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 600,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyItems: 'center', boxSizing: 'border-box'
                   }}
-                >
+                 data-ui-native-button="">
                   Create Label
                 </button>
               </div>
@@ -2065,14 +2065,14 @@ export function Contacts() {
 
             {/* Footer — Back / Continue walk through steps; Save works from any step */}
             <DialogFooter className="justify-between">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(null)}>Cancel</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(null)} data-ui-native-button="">Cancel</button>
               <div style={{ display: 'flex', gap: 10 }}>
                 {MODAL_STEPS.findIndex(s => s.key === formStep) > 0 && (
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => setFormStep(MODAL_STEPS[MODAL_STEPS.findIndex(s => s.key === formStep) - 1].key)}
-                  >
+                   data-ui-native-button="">
                     Back
                   </button>
                 )}
@@ -2081,11 +2081,11 @@ export function Contacts() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => setFormStep(MODAL_STEPS[MODAL_STEPS.findIndex(s => s.key === formStep) + 1].key)}
-                  >
+                   data-ui-native-button="">
                     Continue
                   </button>
                 )}
-                <button type="submit" className="btn btn-primary">Save contact</button>
+                <button type="submit" className="btn btn-primary" data-ui-native-button="">Save contact</button>
               </div>
             </DialogFooter>
           </form>

@@ -157,7 +157,7 @@ export const TrackingDocuments: React.FC = () => {
                     {st && <Badge variant={st.variant}>{st.label}</Badge>}
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                    <button type="button" onClick={() => remove(d.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                    <button type="button" onClick={() => remove(d.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                       <Icon name="close" size={14} />
                     </button>
                   </td>

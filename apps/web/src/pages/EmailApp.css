@@ -222,6 +222,20 @@
 }
 
 /* ── Full-Width / Single Pane Mode (Default) ─────────────────────────── */
+.em-row-open {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.em-row-open:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
 .em-row {
   display: flex;
   align-items: center;
@@ -1283,8 +1297,6 @@
 [data-theme="dark"] .em-settings-content,
 [data-theme="dark"] .em-settings-body,
 [data-theme="dark"] .em-settings-layout { background: var(--bg) !important; }
-[data-theme="dark"] .em-settings-nav .ds-tabs-trigger:hover:not([data-state="active"]) { background: color-mix(in srgb, var(--email-night-brand) 8%, var(--email-night-surface)) !important; }
-[data-theme="dark"] .em-settings-nav .ds-tabs-trigger[data-state="active"] { background: color-mix(in srgb, var(--email-night-brand) 15%, var(--email-night-surface)) !important; border-color: var(--email-night-edge-strong) !important; }
 [data-theme="dark"] .em-root :is(button, a, [role="button"]):focus-visible,
 [data-theme="dark"] .em-settings-dialog :is(button, a, [role="button"]):focus-visible {
   outline: 2px solid var(--email-night-brand);
@@ -1706,53 +1718,18 @@
 }
 
 .em-settings-nav.ds-tabs-list {
-  display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
-  gap: 4px !important;
-  width: 100% !important;
-  height: auto !important;
-  min-height: 0;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
   overflow: visible !important;
 }
 
 .em-settings-nav .ds-tabs-trigger {
-  display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 10px !important;
-  width: 100% !important;
-  height: 38px !important;
-  min-height: 38px !important;
-  padding: 0 12px !important;
-  font-size: 13px !important;
-  font-weight: 550 !important;
-  color: var(--ink2) !important;
-  border-radius: var(--nav-item-r, 8px) !important;
   white-space: nowrap !important;
-  border: 1px solid transparent !important;
-  background: transparent !important;
   text-align: left !important;
   transition: all 0.15s ease !important;
   cursor: pointer !important;
-  font-family: var(--font) !important;
-}
-
-.em-settings-nav .ds-tabs-trigger:hover:not([data-state="active"]) {
-  color: var(--ink) !important;
-  background: var(--card-sunken) !important;
-}
-
-.em-settings-nav .ds-tabs-trigger[data-state="active"] {
-  background: var(--teal-l) !important;
-  color: var(--teal) !important;
-  font-weight: 700 !important;
-  border-color: var(--teal-m) !important;
-  box-shadow: none !important;
 }
 
 /* Right Content Area */
@@ -2306,14 +2283,10 @@
     display: none;
   }
   .em-settings-nav.ds-tabs-list {
-    display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px !important;
   }
   .em-settings-nav .ds-tabs-trigger {
     justify-content: center !important;
-    padding: 6px 8px !important;
-    font-size: 12px !important;
     text-align: center;
   }
   .em-settings-pane {
@@ -3386,5 +3359,4 @@
 .em-test-mail-input-wrap .em-settings-input {
   flex: 1;
 }
-
 

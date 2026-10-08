@@ -103,7 +103,7 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{engagement.engagement_type}{engagement.agency_code ? ` · ${engagement.agency_code}` : ''}{engagement.customer_name ? ` · ${engagement.customer_name}` : ''}</div>
           </div>
           <Tip label="Close">
-            <button type="button" aria-label="Close" className="comply-close-btn" onClick={onClose}><Icon name="x" size={18} /></button>
+            <button type="button" aria-label="Close" className="comply-close-btn" onClick={onClose} data-ui-native-button=""><Icon name="x" size={18} /></button>
           </Tip>
         </div>
         <div className="comply-panel-body">
@@ -332,7 +332,7 @@ export function ComplyLegal() {
                       <td><EngagementStepper status={e.status} /></td>
                       <td className="comply-td-muted">{new Date(e.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                       <td onClick={ev => ev.stopPropagation()}>
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setOpenEngagement(e)}>Open</button>
+                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setOpenEngagement(e)} data-ui-native-button="">Open</button>
                       </td>
                     </tr>
                   ))}
@@ -385,7 +385,7 @@ export function ComplyLegal() {
                     </div>
                   ))}
                 </div>
-                <button type="button" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => { const id = selected.id; setSelected(null); navigate(engageUrl(id)); }}>
+                <button type="button" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => { const id = selected.id; setSelected(null); navigate(engageUrl(id)); }} data-ui-native-button="">
                   <Icon name="briefcase" size={13} /> Engage this Firm
                 </button>
               </div>
@@ -457,7 +457,7 @@ export function EngageFirmPage() {
     return (
       <div className="comply-page">
         <div className="comply-note comply-note--error">Firm not found.</div>
-        <button type="button" className="comply-btn-secondary" style={{ marginTop: 12 }} onClick={() => navigate('/complyos/legal')}>
+        <button type="button" className="comply-btn-secondary" style={{ marginTop: 12 }} onClick={() => navigate('/complyos/legal')} data-ui-native-button="">
           <Icon name="chevronLeft" size={13} /> Back to Legal Marketplace
         </button>
       </div>

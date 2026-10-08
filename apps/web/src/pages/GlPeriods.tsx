@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
@@ -122,7 +124,7 @@ export function GlPeriods() {
       {!readOnly && <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button"
           onClick={() => setShowNew(true)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
           <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Period
         </button>
       </div>}
@@ -144,7 +146,7 @@ export function GlPeriods() {
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--ink3)', fontStyle: 'italic' }}>No periods defined yet.</td></tr>
               ) : periods.map(p => (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '9px 12px', fontWeight: 600 }}>{p.name}</td>
+                  <td style={{ padding: '9px 12px', fontWeight: 600 }}>{p.name}<Button asChild variant="link"><Link to={`/finance/accounts/gl-periods/${p.id}/review`}>Review close</Link></Button></td>
                   <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{p.period_type === 'YEAR' ? 'Fiscal Year' : 'Month'}</td>
                   <td style={{ padding: '9px 12px' }}>{new Date(p.period_start).toLocaleDateString('en-GB')} – {new Date(p.period_end).toLocaleDateString('en-GB')}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'center' }}>
@@ -153,11 +155,11 @@ export function GlPeriods() {
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     {!readOnly && (p.status === 'open' ? (
                       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                        <button type="button" onClick={() => closePeriod(p)} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Close</button>
-                        {!p.closed_at && <button type="button" onClick={() => deletePeriod(p)} style={{ fontSize: 12, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Delete</button>}
+                        <button type="button" onClick={() => closePeriod(p)} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Close</button>
+                        {!p.closed_at && <button type="button" onClick={() => deletePeriod(p)} style={{ fontSize: 12, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Delete</button>}
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setReopening(p)} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Reopen…</button>
+                      <button type="button" onClick={() => setReopening(p)} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Reopen…</button>
                     ))}
                   </td>
                 </tr>
@@ -185,8 +187,8 @@ export function GlPeriods() {
             <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>End</label><DatePicker date={parseDateOnly(end)} onChange={d => setEnd(toDateOnlyString(d) ?? '')} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)}>Cancel</button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={createPeriod}>Create</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)} data-ui-native-button="">Cancel</button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={createPeriod} data-ui-native-button="">Create</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -201,8 +203,8 @@ export function GlPeriods() {
               <textarea value={reopenReason} onChange={e => setReopenReason(e.target.value)} rows={3}
                 style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReopening(null)}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={reopenPeriod}>Reopen</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReopening(null)} data-ui-native-button="">Cancel</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={reopenPeriod} data-ui-native-button="">Reopen</button>
               </div>
             </>
           )}

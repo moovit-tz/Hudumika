@@ -310,7 +310,7 @@ export function ComplyLicenseAutomation() {
                 onClick={() => setIframeKey(k => k + 1)}
                 style={{ border: 'none', background: '#334155', color: '#f8fafc', width: 30, height: 30, borderRadius: 'var(--r-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Reload portal"
-              >
+               data-ui-native-button="">
                 <Icon name="refresh" size={14} />
               </button>
 
@@ -319,7 +319,7 @@ export function ComplyLicenseAutomation() {
                 onClick={openNativeTausi}
                 style={{ border: 'none', background: '#334155', color: '#f8fafc', width: 30, height: 30, borderRadius: 'var(--r-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Open in new browser tab"
-              >
+               data-ui-native-button="">
                 <Icon name="externalLink" size={14} />
               </button>
 
@@ -329,7 +329,7 @@ export function ComplyLicenseAutomation() {
                 onClick={handleCaptureInAppBrowser}
                 disabled={uploading}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
+               data-ui-native-button="">
                 <span style={uploading ? { display: 'inline-flex', animation: 'ds-spin 1s linear infinite' } : { display: 'inline-flex' }}>
                   <Icon name={uploading ? 'refresh' : 'zap'} size={13} />
                 </span>

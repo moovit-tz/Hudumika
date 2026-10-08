@@ -1,0 +1,76 @@
+{
+  "sourceCoverage": {
+    "pages": 562,
+    "components": 182,
+    "sharedTabLists": 104,
+    "semanticStrips": 14,
+    "explicitStrips": 26,
+    "nativeButtonsLinked": 2742
+  },
+  "browser": {
+    "viewports": [
+      {
+        "width": 1280,
+        "height": 900
+      },
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "variants": [
+      "underline",
+      "pill",
+      "segmented",
+      "boxed",
+      "outline",
+      "lifted"
+    ],
+    "previewTabHeight": 44,
+    "savedTabRadius": 8,
+    "restoredVariant": "outline",
+    "eSignMobile": {
+      "viewportWidth": 390,
+      "documentScrollWidth": 390,
+      "tabStripClientWidth": 306,
+      "tabStripScrollWidth": 484
+    },
+    "eSignMenu": {
+      "radius": 10,
+      "rowHeight": 44
+    },
+    "customerException": {
+      "class": "cust-tab-nav",
+      "radius": 0,
+      "height": 45.5
+    },
+    "smsMobile": {
+      "documentScrollWidth": 390,
+      "stripWidth": 311,
+      "inputRight": 350.67,
+      "keyboardFocusOnly": true,
+      "enterActivatesSelection": true
+    },
+    "dark": {
+      "attribute": "data-theme",
+      "bodyBackground": "rgb(11, 11, 12)",
+      "tabBackground": "rgb(17, 18, 19)",
+      "tabHeight": 44
+    },
+    "themeRestored": "light"
+  },
+  "verification": {
+    "rootTypecheck": "passed outside sandbox",
+    "designContract": {
+      "passed": 18
+    },
+    "triggerEvents": {
+      "registered": 92,
+      "emitted": 92
+    },
+    "encoding": "passed",
+    "diffCheck": "passed",
+    "productionBuild": "passed; existing bundle-size and API-import warnings"
+  },
+  "limits": "Complete source inventory; representative browser checks, not every business action on every route."
+}

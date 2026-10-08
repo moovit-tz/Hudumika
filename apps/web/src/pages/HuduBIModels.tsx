@@ -37,7 +37,7 @@ export function HuduBIModels() {
       <SectionCard
         title="Board digest"
         action={
-          <button type="button" className="btn btn-primary btn-sm" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={generate}>
+          <button type="button" className="btn btn-primary btn-sm" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={generate} data-ui-native-button="">
             <Icon name="sparkle" size={14} /> {loading ? 'Analysing…' : (digest ? 'Regenerate' : 'Generate analysis')}
           </button>
         }

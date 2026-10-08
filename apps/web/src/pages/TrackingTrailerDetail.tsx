@@ -98,7 +98,7 @@ export const TrackingTrailerDetail: React.FC = () => {
           title="Documents"
           action={
             <button type="button" onClick={() => setAddingDoc(a => !a)}
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
               <Icon name={addingDoc ? 'x' : 'plus'} size={13} /> {addingDoc ? 'Cancel' : 'Add document'}
             </button>
           }

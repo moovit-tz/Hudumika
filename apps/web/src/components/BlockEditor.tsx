@@ -119,7 +119,7 @@ export function BlockEditor({ value, onChange, components, componentBlocks, allo
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {a11yIssues.map(issue => (
               <button key={issue.blockId} type="button" onClick={() => setEditingId(issue.blockId)}
-                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', color: 'inherit', font: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', color: 'inherit', font: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2 }} data-ui-native-button="">
                 {issue.message}
               </button>
             ))}
@@ -131,12 +131,12 @@ export function BlockEditor({ value, onChange, components, componentBlocks, allo
         return (
           <div key={block.id} className={`be-block${editing ? ' be-block-editing' : ''}`}>
             <div className="be-block-controls">
-              <button type="button" title="Move up" disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrowUp" size={12} /></button>
-              <button type="button" title="Move down" disabled={i === blocks.length - 1} onClick={() => move(i, 1)}><Icon name="arrowDown" size={12} /></button>
-              <button type="button" title="Duplicate" onClick={() => duplicateBlock(i)}><Icon name="copy" size={12} /></button>
-              <button type="button" title="Delete" onClick={() => removeBlock(i)}><Icon name="trash2" size={12} /></button>
+              <button type="button" title="Move up" disabled={i === 0} onClick={() => move(i, -1)} data-ui-native-button=""><Icon name="arrowUp" size={12} /></button>
+              <button type="button" title="Move down" disabled={i === blocks.length - 1} onClick={() => move(i, 1)} data-ui-native-button=""><Icon name="arrowDown" size={12} /></button>
+              <button type="button" title="Duplicate" onClick={() => duplicateBlock(i)} data-ui-native-button=""><Icon name="copy" size={12} /></button>
+              <button type="button" title="Delete" onClick={() => removeBlock(i)} data-ui-native-button=""><Icon name="trash2" size={12} /></button>
               {editing && !isPlaceholder && (
-                <button type="button" title="Done editing this block" className="be-done-btn" onClick={() => setEditingId(null)}><Icon name="check" size={12} /></button>
+                <button type="button" title="Done editing this block" className="be-done-btn" onClick={() => setEditingId(null)} data-ui-native-button=""><Icon name="check" size={12} /></button>
               )}
             </div>
             <div className="be-block-body">
@@ -148,13 +148,13 @@ export function BlockEditor({ value, onChange, components, componentBlocks, allo
                 : <CollapsedBlock block={block} components={components} componentBlocks={componentBlocks} onClick={() => setEditingId(block.id)} />}
             </div>
             <div className="be-add-row">
-              <button type="button" className="be-add-btn" onClick={() => setPickerAt(pickerAt === i ? null : i)}>
+              <button type="button" className="be-add-btn" onClick={() => setPickerAt(pickerAt === i ? null : i)} data-ui-native-button="">
                 <Icon name="plus" size={11} /> Add block
               </button>
               {pickerAt === i && (
                 <div className="be-picker">
                   {blockOrder.map(t => (
-                    <button key={t} type="button" onClick={() => insertBlock(i, t)}>
+                    <button key={t} type="button" onClick={() => insertBlock(i, t)} data-ui-native-button="">
                       <span className="be-picker-glyph">{BLOCK_META[t].glyph}</span> {BLOCK_META[t].label}
                     </button>
                   ))}
@@ -250,7 +250,7 @@ function PersonalizeControl({ visibility, onChange }: { visibility?: CmsBlockVis
 
   if (!open) {
     return (
-      <button type="button" className="be-personalize-toggle" onClick={() => setOpen(true)}>
+      <button type="button" className="be-personalize-toggle" onClick={() => setOpen(true)} data-ui-native-button="">
         <Icon name="target" size={11} /> Personalize (optional)
       </button>
     );
@@ -259,7 +259,7 @@ function PersonalizeControl({ visibility, onChange }: { visibility?: CmsBlockVis
     <div className="be-personalize">
       <div className="be-personalize-hdr">
         <span><Icon name="target" size={11} /> Personalize</span>
-        <button type="button" onClick={() => { onChange(undefined); setOpen(false); }}>Remove</button>
+        <button type="button" onClick={() => { onChange(undefined); setOpen(false); }} data-ui-native-button="">Remove</button>
       </div>
       <select className="be-select" value={visibility?.visitorType || ''} onChange={e => set({ visitorType: (e.target.value || undefined) as CmsBlockVisibility['visitorType'] })}>
         {VISITOR_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -328,9 +328,9 @@ function TextFormatToolbar({ textareaRef, value, onChange }: {
 
   return (
     <div className="be-format-toolbar">
-      <button type="button" title="Bold selected text" onMouseDown={e => e.preventDefault()} onClick={() => wrap('**')}><strong>B</strong></button>
-      <button type="button" title="Italic selected text" onMouseDown={e => e.preventDefault()} onClick={() => wrap('_')}><em>i</em></button>
-      <button type="button" title="Rewrite this text with AI" disabled={rewriting || !value.trim()} onClick={rewrite} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <button type="button" title="Bold selected text" onMouseDown={e => e.preventDefault()} onClick={() => wrap('**')} data-ui-native-button=""><strong>B</strong></button>
+      <button type="button" title="Italic selected text" onMouseDown={e => e.preventDefault()} onClick={() => wrap('_')} data-ui-native-button=""><em>i</em></button>
+      <button type="button" title="Rewrite this text with AI" disabled={rewriting || !value.trim()} onClick={rewrite} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
         <Icon name="sparkle" size={11} /> {rewriting ? 'Rewriting…' : 'Rewrite'}
       </button>
     </div>
@@ -414,7 +414,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input className="be-input" style={{ flex: 1 }} placeholder="Alt text" value={p.alt || ''} onChange={e => onChange({ alt: e.target.value })} />
             {p.url && (
-              <button type="button" className="be-add-btn" disabled={altLoading} title="Generate alt text with AI" onClick={() => generateAltText(p.url)} style={{ flexShrink: 0 }}>
+              <button type="button" className="be-add-btn" disabled={altLoading} title="Generate alt text with AI" onClick={() => generateAltText(p.url)} style={{ flexShrink: 0 }} data-ui-native-button="">
                 <Icon name="sparkle" size={11} /> {altLoading ? 'Generating…' : 'Generate'}
               </button>
             )}
@@ -432,10 +432,10 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
             <div key={idx} className="be-list-row">
               <span className="be-list-marker">{p.ordered ? `${idx + 1}.` : '•'}</span>
               <input className="be-input" value={item} onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange({ items: next }); }} />
-              <button type="button" onClick={() => onChange({ items: items.filter((_, i2) => i2 !== idx) })}><Icon name="x" size={11} /></button>
+              <button type="button" onClick={() => onChange({ items: items.filter((_, i2) => i2 !== idx) })} data-ui-native-button=""><Icon name="x" size={11} /></button>
             </div>
           ))}
-          <button type="button" className="be-add-btn" onClick={() => onChange({ items: [...items, ''] })}><Icon name="plus" size={11} /> Add item</button>
+          <button type="button" className="be-add-btn" onClick={() => onChange({ items: [...items, ''] })} data-ui-native-button=""><Icon name="plus" size={11} /> Add item</button>
         </div>
       );
     }

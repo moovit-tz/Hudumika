@@ -297,7 +297,7 @@ export function CrmChainPartners() {
                     aria-label="Clear partner search"
                     onClick={() => setSearch('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-0.5 text-muted-foreground hover:text-foreground"
-                  >
+                   data-ui-native-button="">
                     <Icon name="x" size={13} />
                   </button>
                 </Tip>
@@ -375,7 +375,7 @@ export function CrmChainPartners() {
                               type="button"
                               className="partner-name-button"
                               onClick={() => goToPartner(p.id)}
-                            >
+                             data-ui-native-button="">
                               {p.name}
                             </button>
                           </div>
@@ -918,7 +918,7 @@ function PartnerDetailPageView({
                         className={`partner-category-card-select ${isSelected ? 'selected' : ''}`}
                         onClick={() => updateCategory(category)}
                         disabled={categorySaving}
-                      >
+                       data-ui-native-button="">
                         <div className="partner-category-card-header">
                           <FeaturedIcon variant={info.variant} size="md" shape="square">
                             <Icon name={info.icon} size={18} />

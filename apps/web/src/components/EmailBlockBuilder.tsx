@@ -313,7 +313,7 @@ function ColorRow({ value, onChange, label }: { value: string; onChange: (v: str
             <button key={c} type="button"
               className={`ebb-color-dot${value.toLowerCase() === c.toLowerCase() ? ' ebb-color-dot--active' : ''}`}
               style={{ background: c, border: c === '#ffffff' || c === '#f3f4f6' || c === '#e5e7eb' ? '1px solid #d1d5db' : 'none' }}
-              title={c} onClick={() => onChange(c)} />
+              title={c} onClick={() => onChange(c)}  data-ui-native-button=""/>
           ))}
         </div>
         <div className="ebb-color-custom">
@@ -395,7 +395,7 @@ function AlignGroup({ value, onChange, options }: {
         <Tip key={opt} label={opt.charAt(0).toUpperCase() + opt.slice(1)}>
           <button type="button"
             className={`ebb-align-btn${value === opt ? ' ebb-align-btn--active' : ''}`}
-            onClick={() => onChange(opt)}>
+            onClick={() => onChange(opt)} data-ui-native-button="">
             <Icon name={ICON_MAP[opt]} size={13} />
           </button>
         </Tip>
@@ -441,16 +441,16 @@ function ImageUploader({ src, onSrc, label = 'image' }: {
         <div className="ebb-image-preview">
           <img src={src} alt="Preview" className="ebb-image-preview-img" />
           <div className="ebb-image-preview-actions">
-            <button type="button" className="ebb-image-preview-btn" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <button type="button" className="ebb-image-preview-btn" onClick={() => fileRef.current?.click()} disabled={uploading} data-ui-native-button="">
               <Icon name="image" size={12} /> {uploading ? 'Uploading…' : 'Replace'}
             </button>
-            <button type="button" className="ebb-image-preview-btn ebb-image-preview-btn--remove" onClick={() => onSrc('')}>
+            <button type="button" className="ebb-image-preview-btn ebb-image-preview-btn--remove" onClick={() => onSrc('')} data-ui-native-button="">
               <Icon name="x" size={12} /> Remove
             </button>
           </div>
         </div>
       ) : (
-        <button type="button" className="ebb-image-drop" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        <button type="button" className="ebb-image-drop" onClick={() => fileRef.current?.click()} disabled={uploading} data-ui-native-button="">
           {uploading ? (
             <>
               <span className="ebb-image-drop-spin"><Icon name="refresh" size={18} /></span>
@@ -526,15 +526,15 @@ function BlockItem({ block, isSelected, onSelect, onDelete, onDuplicate, onMoveU
       <div className="ebb-block-toolbar">
         <span className="ebb-block-label">{label}</span>
         <div className="ebb-block-actions">
-          <Tip label="Move up"><button type="button" className="ebb-action-btn" onClick={e => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst}><Icon name="chevronUp" size={13} /></button></Tip>
-          <Tip label="Move down"><button type="button" className="ebb-action-btn" onClick={e => { e.stopPropagation(); onMoveDown(); }} disabled={isLast}><Icon name="chevronDown" size={13} /></button></Tip>
-          <Tip label="Duplicate"><button type="button" className="ebb-action-btn" onClick={e => { e.stopPropagation(); onDuplicate(); }}><Icon name="copy" size={13} /></button></Tip>
-          <Tip label="Delete"><button type="button" className="ebb-action-btn ebb-action-btn--danger" onClick={e => { e.stopPropagation(); onDelete(); }}><Icon name="trash" size={13} /></button></Tip>
+          <Tip label="Move up"><button type="button" className="ebb-action-btn" onClick={e => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst} data-ui-native-button=""><Icon name="chevronUp" size={13} /></button></Tip>
+          <Tip label="Move down"><button type="button" className="ebb-action-btn" onClick={e => { e.stopPropagation(); onMoveDown(); }} disabled={isLast} data-ui-native-button=""><Icon name="chevronDown" size={13} /></button></Tip>
+          <Tip label="Duplicate"><button type="button" className="ebb-action-btn" onClick={e => { e.stopPropagation(); onDuplicate(); }} data-ui-native-button=""><Icon name="copy" size={13} /></button></Tip>
+          <Tip label="Delete"><button type="button" className="ebb-action-btn ebb-action-btn--danger" onClick={e => { e.stopPropagation(); onDelete(); }} data-ui-native-button=""><Icon name="trash" size={13} /></button></Tip>
         </div>
       </div>
       {hasNoSrc ? (
         <button type="button" className="ebb-canvas-media-placeholder"
-          onClick={e => { e.stopPropagation(); onSelect(); canvasFileRef.current?.click(); }}>
+          onClick={e => { e.stopPropagation(); onSelect(); canvasFileRef.current?.click(); }} data-ui-native-button="">
           <Icon name="image" size={22} className="ebb-canvas-media-icon" />
           <span>Click to upload {block.type}</span>
           <input ref={canvasFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCanvasUpload} />
@@ -600,7 +600,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
           <div className="ebb-props-vars-group-label">{g.label}</div>
           {g.vars.map(v => (
             <button key={v.key} type="button" className="ebb-props-var-chip" title={v.example}
-              onClick={() => insertVar(v.key)}>
+              onClick={() => insertVar(v.key)} data-ui-native-button="">
               {v.label}
             </button>
           ))}
@@ -716,7 +716,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
                   onClick={() => {
                     const links = block.links.filter((_, j) => j !== i);
                     onChange({ ...block, links: links.length ? links : [{ platform: 'website', url: '#', label: 'Website' }] });
-                  }}><Icon name="x" size={13} /></button>
+                  }} data-ui-native-button=""><Icon name="x" size={13} /></button>
               </div>
               <Input value={link.url} placeholder="https://…" onChange={e => {
                 const links = [...block.links];
@@ -776,7 +776,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
             {[80, 120, 160, 240].map(size => (
               <button key={size} type="button"
                 className={widthValue === size ? 'ebb-size-preset ebb-size-preset--active' : 'ebb-size-preset'}
-                onClick={() => onChange({ ...block, width: `${size}px` })}>{size}px</button>
+                onClick={() => onChange({ ...block, width: `${size}px` })} data-ui-native-button="">{size}px</button>
             ))}
           </div>
           <label className="ebb-props-label">Alignment</label>
@@ -860,7 +860,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
               <button type="button" className="ebb-action-btn ebb-action-btn--danger" onClick={() => {
                 const rows = block.rows.filter((_, j) => j !== i);
                 onChange({ ...block, rows: rows.length ? rows : [{ label: '', value: '' }] });
-              }}><Icon name="x" size={13} /></button>
+              }} data-ui-native-button=""><Icon name="x" size={13} /></button>
             </div>
           ))}
           <Button size="sm" variant="outline" onClick={() => onChange({ ...block, rows: [...block.rows, { label: '', value: '' }] })}>
@@ -1098,7 +1098,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
             className="ebb-palette-search-input"
           />
           {search && (
-            <button type="button" className="ebb-palette-search-clear" onClick={() => setSearch('')}>
+            <button type="button" className="ebb-palette-search-clear" onClick={() => setSearch('')} data-ui-native-button="">
               <Icon name="x" size={11} />
             </button>
           )}
@@ -1112,7 +1112,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
               : filteredPalette.map(p => (
                   <button key={p.type} type="button" className="ebb-palette-item"
                     draggable onDragStart={() => { dragPaletteType.current = p.type; dragIndex.current = null; }}
-                    onClick={() => addBlock(p.type)}>
+                    onClick={() => addBlock(p.type)} data-ui-native-button="">
                     <Icon name={p.icon as any} size={15} className="ebb-palette-icon" />
                     <div className="ebb-palette-info">
                       <div className="ebb-palette-label">{p.label}</div>
@@ -1128,7 +1128,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
             const collapsed = collapsedCats.has(cat);
             return (
               <div key={cat} className="ebb-palette-cat">
-                <button type="button" className="ebb-palette-cat-hdr" onClick={() => toggleCat(cat)}>
+                <button type="button" className="ebb-palette-cat-hdr" onClick={() => toggleCat(cat)} data-ui-native-button="">
                   <span>{cat}</span>
                   <Icon name={collapsed ? 'chevronRight' : 'chevronDown'} size={11} />
                 </button>
@@ -1137,7 +1137,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
                     {items.map(p => (
                       <button key={p.type} type="button" className="ebb-palette-item"
                         draggable onDragStart={() => { dragPaletteType.current = p.type; dragIndex.current = null; }}
-                        onClick={() => addBlock(p.type)}>
+                        onClick={() => addBlock(p.type)} data-ui-native-button="">
                         <Icon name={p.icon as any} size={15} className="ebb-palette-icon" />
                         <div className="ebb-palette-info">
                           <div className="ebb-palette-label">{p.label}</div>
@@ -1157,10 +1157,10 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
       <div className="ebb-canvas-wrap">
         <div className="ebb-canvas-toolbar">
           <div className="ebb-canvas-preview-toggle">
-            <button type="button" className={`ebb-preview-btn${previewMode === 'desktop' ? ' ebb-preview-btn--active' : ''}`} onClick={() => setPreviewMode('desktop')}>
+            <button type="button" className={`ebb-preview-btn${previewMode === 'desktop' ? ' ebb-preview-btn--active' : ''}`} onClick={() => setPreviewMode('desktop')} data-ui-native-button="">
               <Icon name="monitor" size={14} /> Desktop
             </button>
-            <button type="button" className={`ebb-preview-btn${previewMode === 'mobile' ? ' ebb-preview-btn--active' : ''}`} onClick={() => setPreviewMode('mobile')}>
+            <button type="button" className={`ebb-preview-btn${previewMode === 'mobile' ? ' ebb-preview-btn--active' : ''}`} onClick={() => setPreviewMode('mobile')} data-ui-native-button="">
               <Icon name="smartphone" size={14} /> Mobile
             </button>
           </div>
@@ -1199,7 +1199,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
                   style={{ borderBottomColor: accent, textAlign: headerLogo?.align ?? 'left' }}
                   onClick={event => { event.stopPropagation(); selectHeaderLogo(); }}
                   title={headerLogo?.src ? 'Edit company logo' : 'Upload company logo'}
-                >
+                 data-ui-native-button="">
                   {headerLogo?.src ? (
                     <img src={headerLogo.src} alt={headerLogo.alt || 'Company logo'} style={{ width: headerLogo.width, maxWidth: '100%', height: 'auto', maxHeight: 120 }} />
                   ) : (

@@ -38,7 +38,7 @@ export function CreateFolderModal({ onClose, onCreate }: { onClose: () => void; 
             <div style={{ display: 'flex', gap: 8 }}>
               {FOLDER_COLORS.map(c => (
                 <button key={c} type="button" onClick={() => setColor(c)} disabled={busy}
-                  style={{ width: 26, height: 26, borderRadius: 'var(--badge-radius)', background: c, border: color === c ? '3px solid var(--ink)' : '2px solid transparent', cursor: busy ? 'default' : 'pointer', transition: 'border .1s', outline: 'none' }} />
+                  style={{ width: 26, height: 26, borderRadius: 'var(--badge-radius)', background: c, border: color === c ? '3px solid var(--ink)' : '2px solid transparent', cursor: busy ? 'default' : 'pointer', transition: 'border .1s', outline: 'none' }}  data-ui-native-button=""/>
               ))}
             </div>
           </div>

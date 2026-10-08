@@ -51,7 +51,7 @@ export const TermsOfService: React.FC = () => {
     <div ref={rootRef} className="lp-page">
       <header className="lp-topbar">
         <div className="lp-topbar-inner">
-          <button type="button" className="lp-back-btn" onClick={() => navigate('/')}>
+          <button type="button" className="lp-back-btn" onClick={() => navigate('/')} data-ui-native-button="">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
           </button>

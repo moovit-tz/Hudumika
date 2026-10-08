@@ -1,0 +1,971 @@
+{
+  "generatedAt": "2026-10-08T05:31:39.729Z",
+  "caveat": "Static inventory, not certification. API calls may also live in imported hooks or components. Native controls require manual review; presence alone does not prove a defect.",
+  "pages": [
+    {
+      "file": "apps/web/src/pages/FinanceIndustries.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/industries?industry=${industry}&page=${page}&search=${encodeURIComponent(search)}${status === 'all' ? '' : ",
+        "/v1/customers",
+        "/v1/finance/industries",
+        "/v1/finance/industries/${id}",
+        "/v1/invoices",
+        "/v1/finance/industries/stock-options",
+        "/v1/finance/industries/recipes",
+        "/v1/finance/industries/${id}/production",
+        "/v1/finance/industries/${id}/allocations"
+      ],
+      "importedHooks": [
+        "useAuth.js",
+        "useFinanceCapabilities.js",
+        "useFinanceConfiguration.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceWorkCosts.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/industries/${id}",
+        "/v1/finance/industries/${id}/costs?search=${encodeURIComponent(search)}&page=${page}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceCloseReview.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/gl-periods/${id}/review"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceTaxPreparation.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/vat-periods/${id}/preparation",
+        "/v1/vat-periods/${id}/preparation${suffix}"
+      ],
+      "importedHooks": [
+        "useAuth.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceExpenseReports.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "${base}?page=${page}&status=${status}",
+        "/v1/customers?limit=20&search=${encodeURIComponent(search)}",
+        "/v1/suppliers?limit=20&status=active&search=${encodeURIComponent(search)}",
+        "${base}/${id}",
+        "${base}/${id}/${suffix}",
+        "${base}/${id}/items/${item.id}/receipt"
+      ],
+      "importedHooks": [
+        "useAuth.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceDashboard.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/dashboard-snapshot"
+      ],
+      "importedHooks": [
+        "useFinanceCapabilities.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/Billing.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": true,
+      "nativeControls": {
+        "button": 8,
+        "input": 1
+      },
+      "apiCalls": [
+        "/v1/invoices",
+        "/v1/customers/${customerId}",
+        "/v1/shipments/${shipmentId}",
+        "/v1/invoices/${selectedInvoice._dbId}",
+        "/v1/invoices/${selectedInvoice._dbId}/payment",
+        "/v1/tra/invoices/${selectedInvoice._dbId}/submit"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => setInvoices([]))",
+        ".catch(() => {});",
+        ".catch(() => {});",
+        ".catch(() => {});",
+        ".catch(() => {});",
+        ".catch(() => {});"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/Quotations.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "textarea": 4,
+        "button": 17,
+        "input": 16
+      },
+      "apiCalls": [
+        "/v1/quotations${qs}",
+        "/v1/quotations/${id}",
+        "/v1/customers",
+        "/v1/leads",
+        "/v1/quotations/${id}/status",
+        "/v1/quotations/${id}/convert",
+        "/v1/quotations/${id}/send",
+        "/v1/quotations/${id}/duplicate",
+        "/v1/quotations"
+      ],
+      "importedHooks": [
+        "useIsMobile.js",
+        "useIsDarkMode.js",
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/PurchaseOrders.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 28,
+        "input": 4,
+        "textarea": 1
+      },
+      "apiCalls": [
+        "/v1/products",
+        "/v1/inventory/warehouses",
+        "/v1/purchase-orders",
+        "/v1/purchase-orders/${po.id}",
+        "/v1/suppliers",
+        "/v1/purchase-orders/${selectedPoId}",
+        "/v1/purchase-orders/${id}/status",
+        "/v1/purchase-orders/${id}"
+      ],
+      "importedHooks": [
+        "useIsDarkMode.js",
+        "useCurrency.js",
+        "useIsMobile.js",
+        "useFinanceCapabilities.js",
+        "useFinanceConfiguration.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/Expenses.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 11,
+        "input": 1,
+        "textarea": 2
+      },
+      "apiCalls": [
+        "/v1/tra/verify-receipt",
+        "/v1/finance/expenses/${expense.id}",
+        "/v1/finance/expenses/${expense.id}/retire",
+        "/v1/finance/expenses",
+        "/v1/shipments",
+        "/v1/customers",
+        "/v1/suppliers",
+        "/v1/finance/expenses/${item.id}",
+        "/v1/finance/expenses/${selectedDetail.id}"
+      ],
+      "importedHooks": [
+        "useIsMobile.js",
+        "useCurrency.js",
+        "useFinanceConfiguration.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => {});"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinanceExpenseNew.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "input": 1
+      },
+      "apiCalls": [
+        "/v1/shipments",
+        "/v1/customers",
+        "/v1/settings",
+        "/v1/suppliers${q.trim() ? ",
+        "/v1/suppliers",
+        "/v1/finance/expenses"
+      ],
+      "importedHooks": [
+        "useFinanceConfiguration.js",
+        "useFinanceCapabilities.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceExpenseCategories.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/settings"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": [
+        ".catch(() => setCats([]))"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/Bills.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {
+        "input": 10,
+        "button": 23,
+        "textarea": 2
+      },
+      "apiCalls": [
+        "/v1/purchase-orders",
+        "/v1/suppliers",
+        "/v1/shipments${qs}",
+        "/v1/bills/${bill.id}/activity",
+        "/v1/bills",
+        "/v1/bills/recurring",
+        "/v1/bills/payments",
+        "/v1/bills/${bill.id}/${action}",
+        "/v1/bills/${bill.id}/void",
+        "/v1/tra/verify-receipt",
+        "/v1/bills/${bill.id}/payment",
+        "/v1/bills/recurring/${r.id}/generate",
+        "/v1/bills/recurring/${r.id}"
+      ],
+      "importedHooks": [
+        "useIsMobile.js",
+        "useCurrency.js",
+        "useFinanceConfiguration.js",
+        "useFinanceCapabilities.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => setPurchaseOrders([]));",
+        ".catch(() => ({ data: [] }));",
+        ".catch(() => setActivity([]));"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinanceVendors.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 6,
+        "input": 10,
+        "textarea": 1
+      },
+      "apiCalls": [
+        "/v1/finance/expenses",
+        "/v1/suppliers",
+        "/v1/bills",
+        "/v1/purchase-orders",
+        "/v1/bills/payments",
+        "/v1/suppliers/${v.id}",
+        "/v1/suppliers/${id}"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => { /* expenses are supplementary vendor context; don't interrupt the page */ });",
+        ".catch(() => []),",
+        ".catch(() => ({ purchase_orders: [] })),",
+        ".catch(() => []),"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/ProductsServices.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 21,
+        "input": 20,
+        "textarea": 3
+      },
+      "apiCalls": [
+        "/v1/products/${initial.id}/customer-prices",
+        "/v1/customers${q.trim() ? ",
+        "/v1/products/${saved.id}/customer-prices",
+        "/v1/products",
+        "/v1/products/${target.id}",
+        "/v1/products/${product.id}",
+        "/v1/reference/tariff?q=${encodeURIComponent(tariffQuery)}&limit=100"
+      ],
+      "importedHooks": [
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => {});",
+        ".catch(() => []);",
+        ".catch(() => setTariffResults([]))"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/ProductCategoriesPage.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "input": 4,
+        "textarea": 1,
+        "button": 4
+      },
+      "apiCalls": [
+        "/v1/products/categories",
+        "/v1/products/categories/${(editing as ProductCategory).id}",
+        "/v1/products/categories/${cat.id}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": [
+        ".catch(() => {})"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/ProductReviewsPage.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "textarea": 1,
+        "button": 6
+      },
+      "apiCalls": [
+        "/v1/products/reviews",
+        "/v1/products/reviews/${review.id}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": [
+        ".catch(() => {})"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinanceTaxCodes.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "input": 4,
+        "textarea": 1
+      },
+      "apiCalls": [
+        "/v1/tax-codes/${taxCodeId}/components",
+        "/v1/tax-codes/component-templates?jurisdiction=${encodeURIComponent(jurisdiction || '')}",
+        "/v1/tax-codes/${code.id}",
+        "/v1/tax-codes",
+        "/v1/tax-codes/jurisdiction",
+        "/v1/tax-codes/registration",
+        "/v1/tax-codes/usage",
+        "/v1/tax-codes/${c.id}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": [
+        ".catch(() => setUsage(null));",
+        ".catch(() => setReg(null));"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinanceTaxClassify.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 8
+      },
+      "apiCalls": [
+        "/v1/tax-codes/unclassified?target=${target}&limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}",
+        "/v1/tax-codes/unclassified/groups?target=${target}",
+        "/v1/tax-codes/classify"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceVatPeriods.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/vat-periods",
+        "/v1/vat-periods/${p.id}",
+        "/v1/vat-periods/${p.id}/close",
+        "/v1/vat-periods/${p.id}/reopen"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinancePayments.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {
+        "button": 4,
+        "input": 2,
+        "textarea": 1
+      },
+      "apiCalls": [
+        "/v1/payments",
+        "/v1/invoices",
+        "/v1/invoices/${fInvoice}/payment",
+        "/v1/files",
+        "/v1/files/folder",
+        "/v1/files/upload?parent_id=${encodeURIComponent(blFolder.id)}"
+      ],
+      "importedHooks": [
+        "useIsMobile.js",
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceLedger.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {
+        "button": 1
+      },
+      "apiCalls": [
+        "/v1/finance/trial-balance?from=${period.from}&to=${period.to}",
+        "/v1/finance/dashboard-snapshot",
+        "/v1/finance/aged-receivables",
+        "/v1/finance/aged-payables",
+        "/v1/finance/ledger?account=${code}&from=${period.from}&to=${period.to}"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => null),",
+        ".catch(() => null),",
+        ".catch(() => null),",
+        ".catch(() => null),"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinanceTrialBalance.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/trial-balance?from=${period.from}&to=${period.to}"
+      ],
+      "importedHooks": [
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceBalanceSheet.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 1
+      },
+      "apiCalls": [
+        "/v1/finance/balance-sheet?date=${asOf}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceProfitLoss.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 1
+      },
+      "apiCalls": [
+        "/v1/finance/profit-loss?from=${range.from}&to=${range.to}${businessLineQuery}"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useFinanceConfiguration.js",
+        "useFinanceCapabilities.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceEquityStatement.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/equity-statement?from=${from}&to=${to}",
+        "/v1/dividends",
+        "/v1/dividends/${id}/pay"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceAgedReceivables.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/aged-receivables",
+        "/v1/customers"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceAgedPayables.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/aged-payables"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/MultiEntityAccounting.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/entities",
+        "/v1/finance/intercompany-transactions",
+        "/v1/finance/consolidated-profit-loss?from=${plFrom}&to=${plTo}"
+      ],
+      "importedHooks": [
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => []),",
+        ".catch(() => []),",
+        ".catch(() => setConsolidated(null))"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinanceReportsHub.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [],
+      "importedHooks": [
+        "useAuth.js",
+        "useFinanceCapabilities.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceSalesReport.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/invoices"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceExpensesReport.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/expenses"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceIncomeVsExpenses.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/profit-loss?from=${from}&to=${to}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceTaxReport.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/vat-return?from=${range.from}&to=${range.to}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceCashFlow.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/finance/cash-flow?from=${from}&to=${to}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/AccountsQuery.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 3,
+        "input": 1
+      },
+      "apiCalls": [
+        "/v1/invoices/report?${params.toString()}"
+      ],
+      "importedHooks": [],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/ChartOfAccounts.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": true,
+      "nativeControls": {
+        "button": 11,
+        "input": 4
+      },
+      "apiCalls": [
+        "/v1/finance/chart-of-accounts",
+        "/v1/finance/chart-of-accounts/${editing.id}",
+        "/v1/finance/chart-of-accounts/${a.id}"
+      ],
+      "importedHooks": [
+        "useFullLayout.js",
+        "useIsMobile.js",
+        "useFinanceCapabilities.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/JournalEntries.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 7,
+        "input": 6
+      },
+      "apiCalls": [
+        "/v1/finance/journal-entries",
+        "/v1/finance/chart-of-accounts",
+        "/v1/finance/journal-entries/${id}/void"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useFinanceConfiguration.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/DeliveryDocumentsPage.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 1
+      },
+      "apiCalls": [
+        "/v1/delivery-documents",
+        "/v1/delivery-documents/${id}",
+        "/v1/delivery-documents/${id}/issue",
+        "/v1/delivery-documents/${id}/mark-used",
+        "/v1/delivery-documents/${id}/status"
+      ],
+      "importedHooks": [
+        "usePageSEO.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => showAlert('Could not open this document.', { variant: 'error' }))",
+        ".catch(() => showAlert('Could not open the document.', { variant: 'error' }));"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/AccountingIntegrations.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {
+        "input": 1
+      },
+      "apiCalls": [
+        "/v1/accounting-integrations",
+        "/v1/accounting-integrations/${provider}/authorize",
+        "/v1/accounting-integrations/${providerName}/disconnect",
+        "/v1/accounting-integrations/${providerName}/test-connection",
+        "/v1/accounting-integrations/${providerName}/sync",
+        "/v1/accounting-integrations/marketplace/${item.id}/request"
+      ],
+      "importedHooks": [
+        "useIsDarkMode.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/RecurringInvoices.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/customers?search=${encodeURIComponent(q)}",
+        "/v1/customers",
+        "/v1/invoices/recurring",
+        "/v1/invoices/recurring/${editing.id}",
+        "/v1/invoices/recurring/${r.id}/generate",
+        "/v1/invoices/recurring/${r.id}"
+      ],
+      "importedHooks": [
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => []);"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/CreditNotes.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 2
+      },
+      "apiCalls": [
+        "/v1/credit-notes",
+        "/v1/credit-notes/${id}/void",
+        "/v1/customers?search=${encodeURIComponent(q)}"
+      ],
+      "importedHooks": [
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => []);"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FixedAssets.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "input": 5,
+        "button": 7
+      },
+      "apiCalls": [
+        "/v1/fixed-assets",
+        "/v1/fixed-assets/${a.id}/schedule",
+        "/v1/fixed-assets/${disposing.id}/dispose",
+        "/v1/fixed-assets/${a.id}"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/Budgets.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": true,
+      "nativeControls": {
+        "input": 3,
+        "button": 1
+      },
+      "apiCalls": [
+        "/v1/budgets",
+        "/v1/finance/chart-of-accounts",
+        "/v1/budgets/${id}",
+        "/v1/budgets/${selectedId}/lines",
+        "/v1/budgets/${selectedId}/vs-actuals"
+      ],
+      "importedHooks": [
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/BankReconciliation.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "input": 1,
+        "button": 1
+      },
+      "apiCalls": [
+        "/v1/bank-reconciliation/statements",
+        "/v1/bank-reconciliation/statements/${id}",
+        "/v1/bank-reconciliation/statements/import?${qs.toString()}",
+        "/v1/bank-reconciliation/statements/${selectedId}/lines/${lineId}/match",
+        "/v1/bank-reconciliation/statements/${selectedId}/lines/${line.id}/match",
+        "/v1/bank-reconciliation/statements/${selectedId}/lines/${lineId}/unmatch",
+        "/v1/bank-reconciliation/statements/${s.id}"
+      ],
+      "importedHooks": [
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/GlPeriods.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 8,
+        "input": 1,
+        "textarea": 1
+      },
+      "apiCalls": [
+        "/v1/finance/gl-periods",
+        "/v1/finance/gl-periods/${p.id}/close",
+        "/v1/finance/gl-periods/${reopening.id}/reopen",
+        "/v1/finance/gl-periods/${p.id}"
+      ],
+      "importedHooks": [
+        "useCurrency.js",
+        "useIsMobile.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/ApApprovalWorkflows.tsx",
+      "sharedHeader": true,
+      "sharedButton": false,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 6,
+        "input": 2
+      },
+      "apiCalls": [
+        "/v1/settings",
+        "/v1/ap-approval-workflows",
+        "/v1/hr/staff",
+        "/v1/ap-approval-workflows/${editing.id}",
+        "/v1/ap-approval-workflows/${w.id}"
+      ],
+      "importedHooks": [
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": [
+        ".catch(() => []),"
+      ]
+    },
+    {
+      "file": "apps/web/src/pages/FinancePos.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {
+        "button": 10
+      },
+      "apiCalls": [
+        "/v1/finance/pos/bootstrap",
+        "/v1/finance/pos/analytics",
+        "/v1/finance/pos/holds",
+        "/v1/finance/pos/shifts?limit=30",
+        "/v1/finance/pos/usage",
+        "/v1/finance/pos/sales?${params}",
+        "/v1/finance/pos/availability?location_id=${encodeURIComponent(locationId)}",
+        "/v1/finance/pos/holds/${held.id}",
+        "/v1/finance/pos/shifts/open",
+        "/v1/finance/pos/shifts/${data.shift.id}/close",
+        "/v1/finance/pos/shifts/${data.shift.id}/movements",
+        "/v1/finance/pos/sales",
+        "/v1/finance/pos/sales/${sale.id}",
+        "/v1/finance/pos/sales/${refundedId}/refund",
+        "/v1/finance/pos/sales/${refundedId}",
+        "/v1/finance/pos/sales/${receipt.id}/retry-posting",
+        "/v1/finance/pos/sales/${receipt.id}"
+      ],
+      "importedHooks": [
+        "useAuth.js"
+      ],
+      "silentEmptyFallbacks": []
+    },
+    {
+      "file": "apps/web/src/pages/FinanceFxRevaluation.tsx",
+      "sharedHeader": true,
+      "sharedButton": true,
+      "sharedTabs": false,
+      "nativeControls": {},
+      "apiCalls": [
+        "/v1/fx-revaluations",
+        "/v1/fx-revaluations/run"
+      ],
+      "importedHooks": [
+        "useCurrency.js"
+      ],
+      "silentEmptyFallbacks": []
+    }
+  ]
+}

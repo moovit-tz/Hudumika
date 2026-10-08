@@ -61,11 +61,11 @@ export function DriverChatPanel({ driverId, driverName, driverPhone }: { driverI
           placeholder="Type a message…"
           style={{ flex: 1, padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }} />
         <button type="button" onClick={send} disabled={sending || !input.trim()}
-          style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: input.trim() ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: input.trim() ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           Send
         </button>
         <button type="button" onClick={notifyWhatsApp} disabled={waSending || !input.trim() || !driverPhone} title={driverPhone ? 'Send via WhatsApp' : 'No phone on file'}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: input.trim() && driverPhone ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: input.trim() && driverPhone ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="message" size={14} /> WhatsApp
         </button>
       </div>

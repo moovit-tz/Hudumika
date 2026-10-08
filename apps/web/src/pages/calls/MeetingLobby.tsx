@@ -173,7 +173,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                       type="button"
                       onClick={() => setAudioEnabled(v => !v)}
                       style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: audioEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: audioEnabled ? '#fff' : 'hsl(var(--red-foreground))', transition: 'all 0.15s ease' }}
-                    >
+                     data-ui-native-button="">
                       <Icon name={audioEnabled ? 'mic' : ('micOff' as IconName)} size={16} color="#ffffff" />
                     </button>
                   </PopoverTrigger>
@@ -190,7 +190,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                         type="button"
                         onClick={() => setVideoEnabled(v => !v)}
                         style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: videoEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: videoEnabled ? '#fff' : 'hsl(var(--red-foreground))', transition: 'all 0.15s ease' }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="camera" size={16} color="#ffffff" />
                       </button>
                     </PopoverTrigger>

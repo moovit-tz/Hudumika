@@ -1,0 +1,227 @@
+{
+  "note": "Raw shared-shell observations; missing headings may indicate content was still loading. Do not treat these as completed app audits.",
+  "observations": [
+    {
+      "path": "/crm",
+      "alerts": [],
+      "footer": true,
+      "headings": [],
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390,
+      "snapshotLength": 2615
+    },
+    {
+      "path": "/sms",
+      "alerts": [],
+      "footer": true,
+      "headings": [
+        "SMS Overview"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390,
+      "snapshotLength": 3860
+    },
+    {
+      "path": "/sign",
+      "alerts": [],
+      "footer": true,
+      "headings": [
+        "eSign documents"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390,
+      "snapshotLength": 3601
+    },
+    {
+      "path": "/onsite",
+      "alerts": [],
+      "footer": true,
+      "headings": [
+        "Infrastructure overview"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390,
+      "snapshotLength": 3995
+    },
+    {
+      "path": "/finance",
+      "alerts": [],
+      "footer": true,
+      "headings": [],
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390,
+      "snapshotLength": 2612
+    },
+    {
+      "path": "/nexushr",
+      "alerts": [],
+      "footer": true,
+      "headings": [
+        "Workforce overview"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390,
+      "snapshotLength": 6278
+    },
+    {
+      "path": "/ondi/personal",
+      "footer": true,
+      "headings": [
+        "My identity"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 8930
+    },
+    {
+      "path": "/tracking",
+      "footer": true,
+      "headings": [
+        "Logistics & Fleet overview"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 24020
+    },
+    {
+      "path": "/workspace",
+      "footer": true,
+      "headings": [
+        "Company Information"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 7430
+    },
+    {
+      "path": "/calendar",
+      "footer": false,
+      "headings": [],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 5276
+    },
+    {
+      "path": "/tasks",
+      "footer": false,
+      "headings": [
+        "Today"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 3788
+    },
+    {
+      "path": "/cargotracker",
+      "footer": true,
+      "headings": [],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 3883
+    },
+    {
+      "path": "/seal",
+      "footer": true,
+      "headings": [
+        "Warehouse dashboard"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 11725
+    },
+    {
+      "path": "/notes",
+      "footer": true,
+      "headings": [
+        "Keep notes"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 3556
+    },
+    {
+      "path": "/cms",
+      "footer": true,
+      "headings": [
+        "Content dashboard"
+      ],
+      "nestedButtons": 0,
+      "scrollWidth": 1280,
+      "width": 1280,
+      "snapshotLength": 5858
+    },
+    {
+      "path": "/bliss",
+      "footer": false,
+      "scrollWidth": 390,
+      "unnamedButtons": 6,
+      "width": 390
+    },
+    {
+      "path": "/complyos",
+      "footer": true,
+      "heading": "Compliance overview.",
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/contacts",
+      "footer": true,
+      "heading": "All contacts.",
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "path": "/store",
+      "footer": true,
+      "heading": "App marketplace.",
+      "nestedButtons": 0,
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "footer": true,
+      "nestedButtons": 0,
+      "path": "/cloud",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "footer": false,
+      "nestedInteractive": 0,
+      "path": "/crm",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "footer": false,
+      "nestedInteractive": 0,
+      "path": "/finance",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "footer": false,
+      "nestedInteractive": 0,
+      "path": "/hudubi",
+      "scrollWidth": 390,
+      "width": 390
+    }
+  ]
+}

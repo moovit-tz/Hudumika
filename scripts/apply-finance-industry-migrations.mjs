@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 // Local rollout is deliberately limited to this feature's migrations.
 // Normal deployment continues to use the repository migration runner.
-const files = ['561_finance_industry_work.sql', '562_finance_production.sql', '563_finance_stock_allocations.sql', '564_finance_work_accounting.sql', '566_finance_production_recipes.sql'];
+const files = ['561_finance_industry_work.sql', '562_finance_production.sql', '563_finance_stock_allocations.sql', '564_finance_work_accounting.sql', '566_finance_production_recipes.sql', '567_finance_work_cost_allocations.sql', '568_finance_close_reviews.sql', '569_finance_expense_reports.sql', '570_finance_claim_crm_links.sql', '571_finance_tax_preparation.sql'];
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const client = await pool.connect();
 try {

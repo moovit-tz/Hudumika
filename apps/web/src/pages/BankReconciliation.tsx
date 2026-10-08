@@ -73,7 +73,7 @@ export function BankReconciliation() {
   const loadDetail = (id: string) =>
     apiFetch(`/v1/bank-reconciliation/statements/${id}`)
       .then((d: any) => setDetail({ lines: d.lines, candidates: d.candidates }))
-      .catch(() => setDetail(null));
+      .catch((error: unknown) => { setDetail(null); showAlert(error instanceof Error ? error.message : 'Unable to load statement detail.', { variant: 'error' }); });
 
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
@@ -532,7 +532,7 @@ export function BankReconciliation() {
                             alignItems: 'center',
                             transition: 'all 0.15s ease',
                           }}
-                        >
+                         data-ui-native-button="">
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.description}</div>
                             <div style={{ fontSize: 11, color: 'var(--ink3)' }}>

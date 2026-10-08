@@ -81,7 +81,7 @@ export function OnsiteSupport() {
         titleEm="support"
         subtitle="Contact Hudumika support about your hosting, domains, or infrastructure — routed to a priority queue for Onsite."
         actions={
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)} data-ui-native-button="">
             <Icon name="plus" size={16} /> New request
           </button>
         }
@@ -96,7 +96,7 @@ export function OnsiteSupport() {
           <p style={{ margin: '0.4rem 0 1rem', fontSize: '0.875rem', color: 'var(--ink2)' }}>
             Something not working? File a request and Hudumika support will pick it up.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)} data-ui-native-button="">
             <Icon name="plus" size={14} /> New request
           </button>
         </div>
@@ -135,7 +135,7 @@ export function OnsiteSupport() {
         <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">New support request</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowForm(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowForm(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -182,10 +182,10 @@ export function OnsiteSupport() {
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+                <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
                   {submitting ? 'Sending…' : 'Send request'}
                 </button>
               </div>

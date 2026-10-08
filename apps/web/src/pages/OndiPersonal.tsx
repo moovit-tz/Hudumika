@@ -342,7 +342,7 @@ export const OndiPersonal: React.FC = () => {
                     className="op-copy-id-btn"
                     onClick={copyUserId}
                     title="Copy User ID UUID"
-                  >
+                   data-ui-native-button="">
                     <Icon name={copiedId ? 'check' : 'copy'} size={11} color={copiedId ? 'var(--green)' : 'currentColor'} />
                     <span>{copiedId ? 'Copied UUID' : 'Copy ID'}</span>
                   </button>

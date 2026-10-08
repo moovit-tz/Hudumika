@@ -211,7 +211,7 @@ export const OnboardingWizard: React.FC = () => {
           type="button"
           onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
           className="login-toggle"
-        >
+         data-ui-native-button="">
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>
@@ -265,7 +265,7 @@ export const OnboardingWizard: React.FC = () => {
       <div className="login-footer">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="login-lang-trigger">
+            <button type="button" className="login-lang-trigger" data-ui-native-button="">
               <Icon name="globe" size={13} />
               {LANGUAGES.find(l => l.code === language)?.nativeLabel ?? 'English'}
             </button>

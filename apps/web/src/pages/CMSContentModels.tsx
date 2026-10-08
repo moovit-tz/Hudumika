@@ -66,7 +66,7 @@ export function CMSContentModelsList() {
         titlePlain="Content"
         titleEm="models"
         subtitle="Define your own content types — Product, Employee, Event, Property — beyond Pages and Posts."
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New model</button>}
+        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)} data-ui-native-button=""><Icon name="plus" size={13} /> New model</button>}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
@@ -90,8 +90,8 @@ export function CMSContentModelsList() {
                 </Select>
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create model'}</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create model'}</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
           </div>
@@ -246,7 +246,7 @@ export function CMSContentModelDetail() {
         subtitle={model.description || `Define the fields every ${model.name} entry will have.`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
             <Link to={`/cms/models/${model.id}/entries`} className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Icon name="list" size={13} /> View {model.name_plural.toLowerCase()}
             </Link>
@@ -270,11 +270,11 @@ export function CMSContentModelDetail() {
                   <tr key={f.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 4px', whiteSpace: 'nowrap' }}>
                       <button onClick={() => handleMoveField(f.id, 'up')} disabled={i === 0} title="Move up"
-                        style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.3 : 1, padding: 2 }}>
+                        style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.3 : 1, padding: 2 }} data-ui-native-button="">
                         <Icon name="arrowUp" size={13} />
                       </button>
                       <button onClick={() => handleMoveField(f.id, 'down')} disabled={i === (model.fields ?? []).length - 1} title="Move down"
-                        style={{ background: 'none', border: 'none', cursor: i === (model.fields ?? []).length - 1 ? 'default' : 'pointer', opacity: i === (model.fields ?? []).length - 1 ? 0.3 : 1, padding: 2 }}>
+                        style={{ background: 'none', border: 'none', cursor: i === (model.fields ?? []).length - 1 ? 'default' : 'pointer', opacity: i === (model.fields ?? []).length - 1 ? 0.3 : 1, padding: 2 }} data-ui-native-button="">
                         <Icon name="arrowDown" size={13} />
                       </button>
                     </td>
@@ -309,7 +309,7 @@ export function CMSContentModelDetail() {
                       </label>
                     </td>
                     <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                      <button onClick={() => handleDeleteField(f.id, f.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)' }}>Remove</button>
+                      <button onClick={() => handleDeleteField(f.id, f.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)' }} data-ui-native-button="">Remove</button>
                     </td>
                   </tr>
                 ))}
@@ -375,18 +375,18 @@ export function CMSContentModelDetail() {
               </label>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleAddField}>{saving ? 'Adding…' : 'Add field'}</button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setAddingField(false)}>Cancel</button>
+              <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleAddField} data-ui-native-button="">{saving ? 'Adding…' : 'Add field'}</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setAddingField(false)} data-ui-native-button="">Cancel</button>
             </div>
           </div>
         ) : (
-          <button className="btn btn-secondary btn-sm" style={{ marginTop: 14 }} onClick={() => setAddingField(true)}>
+          <button className="btn btn-secondary btn-sm" style={{ marginTop: 14 }} onClick={() => setAddingField(true)} data-ui-native-button="">
             <Icon name="plus" size={13} /> Add field
           </button>
         )}
 
         <div style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-          <button onClick={handleDeleteModel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }}>Delete this model</button>
+          <button onClick={handleDeleteModel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this model</button>
         </div>
       </div>
     </div>

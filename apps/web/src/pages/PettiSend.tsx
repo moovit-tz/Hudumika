@@ -186,10 +186,10 @@ export function PettiSend() {
               
               {/* Preset Chips */}
               <div className="petti-amount-chips">
-                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(0.25)}>25%</button>
-                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(0.5)}>50%</button>
-                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(0.75)}>75%</button>
-                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(1.0)}>100% Max</button>
+                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(0.25)} data-ui-native-button="">25%</button>
+                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(0.5)} data-ui-native-button="">50%</button>
+                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(0.75)} data-ui-native-button="">75%</button>
+                <button type="button" className="petti-amount-chip" onClick={() => setPercentageAmount(1.0)} data-ui-native-button="">100% Max</button>
               </div>
             </div>
 

@@ -68,7 +68,7 @@ export function OnsiteProjects() {
         titlePlain="Infrastructure"
         titleEm="projects"
         subtitle="Organize infrastructure resources into client or team project containers."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                     <Icon name="plus" size={16} /> New Project
                   </button></>}
       />
@@ -88,7 +88,7 @@ export function OnsiteProjects() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Create a project to group your domains, servers, and applications together.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="plus" size={16} /> Create First Project
           </button>
         </div>
@@ -98,7 +98,7 @@ export function OnsiteProjects() {
             <div key={p.id} className="onsite-card" style={{ borderLeft: `4px solid ${p.color || '#4361ee'}` }}>
               <div className="onsite-card-header">
                 <h3 className="onsite-card-title">{p.name}</h3>
-                <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteProject(p.id, p.name)}>
+                <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteProject(p.id, p.name)} data-ui-native-button="">
                   <Icon name="trash2" size={14} />
                 </button>
               </div>
@@ -118,7 +118,7 @@ export function OnsiteProjects() {
         <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Create Project</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -147,10 +147,10 @@ export function OnsiteProjects() {
                 <ColorSwatchPicker value={color} onChange={setColor} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
                   {submitting ? 'Creating…' : 'Create Project'}
                 </button>
               </div>

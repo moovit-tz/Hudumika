@@ -38,7 +38,7 @@ export function ComplyTopbar({ onMenuToggle }: Props) {
           className="comply-topbar-hamburger"
           onClick={onMenuToggle}
           title="Toggle sidebar"
-        >
+         data-ui-native-button="">
           <Icon name="menu" size={18} strokeWidth={1.8} />
         </button>
         <div className="comply-topbar-greeting">
@@ -66,11 +66,11 @@ export function ComplyTopbar({ onMenuToggle }: Props) {
 
       {/* ── Right: icon actions + avatar ── */}
       <div className="comply-topbar-actions">
-        <button type="button" className="comply-topbar-action-btn" title="Notifications">
+        <button type="button" className="comply-topbar-action-btn" title="Notifications" data-ui-native-button="">
           <Icon name="bell" size={16} strokeWidth={1.8} />
           <span className="comply-topbar-notif-dot" aria-hidden="true" />
         </button>
-        <button type="button" className="comply-topbar-action-btn" title="Settings">
+        <button type="button" className="comply-topbar-action-btn" title="Settings" data-ui-native-button="">
           <Icon name="settings" size={16} strokeWidth={1.8} />
         </button>
         <div title={`Signed in as ${name}`}>

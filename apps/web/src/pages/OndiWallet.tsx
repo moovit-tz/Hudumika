@@ -250,11 +250,11 @@ export const OndiWallet: React.FC = () => {
             <EditableFields label={label} setLabel={setLabel} username={username} setUsername={setUsername} url={url} setUrl={setUrl} secret={secret} setSecret={setSecret} secretRequired={false} />
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <button type="button" disabled={saving} onClick={() => saveEdit(item.id)}
-                style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
+                style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }} data-ui-native-button="">
                 {saving ? 'Saving…' : 'Save changes'}
               </button>
               <button type="button" onClick={() => { setEditingId(null); resetForm(); }}
-                style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
+                style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }} data-ui-native-button="">
                 Cancel
               </button>
             </div>
@@ -277,24 +277,24 @@ export const OndiWallet: React.FC = () => {
               <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>Updated {fmtDate(item.updated_at)}</div>
             </div>
             <Tip label={revealed[item.id] !== undefined ? 'Hide' : 'Reveal'}><button type="button" aria-label={revealed[item.id] !== undefined ? 'Hide' : 'Reveal'} disabled={revealing === item.id} onClick={() => reveal(item)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button="">
               <Icon name={revealed[item.id] !== undefined ? 'eyeOff' : 'eye'} size={16} />
             </button></Tip>
-            <Tip label="Copy"><button type="button" aria-label="Copy" onClick={() => copySecret(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+            <Tip label="Copy"><button type="button" aria-label="Copy" onClick={() => copySecret(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button="">
               <Icon name="copy" size={16} />
             </button></Tip>
             {opts.canShare && (
-              <Tip label="Share"><button type="button" aria-label="Share" onClick={() => toggleSharePanel(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: shareOpenFor === item.id ? 'var(--teal)' : 'var(--ink3)', padding: 6 }}>
+              <Tip label="Share"><button type="button" aria-label="Share" onClick={() => toggleSharePanel(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: shareOpenFor === item.id ? 'var(--teal)' : 'var(--ink3)', padding: 6 }} data-ui-native-button="">
                 <Icon name="userPlus" size={16} />
               </button></Tip>
             )}
             {opts.canEdit && (
-              <Tip label="Edit"><button type="button" aria-label="Edit" onClick={() => startEdit(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+              <Tip label="Edit"><button type="button" aria-label="Edit" onClick={() => startEdit(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button="">
                 <Icon name="edit" size={16} />
               </button></Tip>
             )}
             {opts.canDelete && (
-              <Tip label="Delete"><button type="button" aria-label="Delete" onClick={() => remove(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}>
+              <Tip label="Delete"><button type="button" aria-label="Delete" onClick={() => remove(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }} data-ui-native-button="">
                 <Icon name="trash2" size={16} />
               </button></Tip>
             )}
@@ -312,7 +312,7 @@ export const OndiWallet: React.FC = () => {
                 <div style={{ flex: 1, fontSize: 12.5, color: 'var(--ink)' }}>{g.grantee_name} <span style={{ color: 'var(--ink3)' }}>· {g.grantee_email}</span></div>
                 <Badge variant={g.permission === 'edit' ? 'brand' : 'gray'}>{g.permission === 'edit' ? 'Can edit' : 'Can view'}</Badge>
                 <button type="button" onClick={() => revokeShare(item.id, g.id)}
-                  style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 9px', cursor: 'pointer' }}>
+                  style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--red)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 9px', cursor: 'pointer' }} data-ui-native-button="">
                   Revoke
                 </button>
               </div>
@@ -329,7 +329,7 @@ export const OndiWallet: React.FC = () => {
                 </SelectContent>
               </Select>
               <button type="button" disabled={sharing} onClick={() => addShare(item.id)}
-                style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', opacity: sharing ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', whiteSpace: 'nowrap' }}>
+                style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12.5, fontFamily: 'var(--font)', cursor: 'pointer', opacity: sharing ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', whiteSpace: 'nowrap' }} data-ui-native-button="">
                 {sharing ? 'Sharing…' : 'Share'}
               </button>
             </div>
@@ -348,7 +348,7 @@ export const OndiWallet: React.FC = () => {
         subtitle="Your own logins and secrets — encrypted at rest, never shown until you ask."
         actions={!showNew ? (
           <button type="button" onClick={() => { setShowNew(true); setEditingId(null); resetForm(); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }} data-ui-native-button="">
             <Icon name="plus" size={15} /> Add item
           </button>
         ) : undefined}
@@ -360,11 +360,11 @@ export const OndiWallet: React.FC = () => {
             <EditableFields label={label} setLabel={setLabel} username={username} setUsername={setUsername} url={url} setUrl={setUrl} secret={secret} setSecret={setSecret} secretRequired />
             <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
               <button type="button" disabled={saving} onClick={createItem}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }} data-ui-native-button="">
                 {saving ? 'Saving…' : 'Save item'}
               </button>
               <button type="button" onClick={() => { setShowNew(false); resetForm(); }}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }} data-ui-native-button="">
                 Cancel
               </button>
             </div>

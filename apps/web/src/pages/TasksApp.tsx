@@ -305,7 +305,7 @@ export const TasksApp: React.FC = () => {
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'none' ? 'all' : 'none')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'none' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }}>
+            }} data-ui-native-button="">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase' }}>Not Started</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>{counts.notStarted}</div>
             </button>
@@ -313,7 +313,7 @@ export const TasksApp: React.FC = () => {
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_progress' ? 'all' : 'in_progress')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_progress' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }}>
+            }} data-ui-native-button="">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase' }}>In Progress</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--blue)', marginTop: 2 }}>{counts.inProgress}</div>
             </button>
@@ -321,7 +321,7 @@ export const TasksApp: React.FC = () => {
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_review' ? 'all' : 'in_review')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'in_review' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }}>
+            }} data-ui-native-button="">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase' }}>Testing / Review</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', marginTop: 2 }}>{counts.inReview}</div>
             </button>
@@ -329,7 +329,7 @@ export const TasksApp: React.FC = () => {
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'waiting' ? 'all' : 'waiting')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'waiting' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }}>
+            }} data-ui-native-button="">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--purple)', textTransform: 'uppercase' }}>Awaiting Feedback</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--purple)', marginTop: 2 }}>{counts.waiting}</div>
             </button>
@@ -337,7 +337,7 @@ export const TasksApp: React.FC = () => {
             <button type="button" onClick={() => setFilterStatus(prev => prev === 'completed' ? 'all' : 'completed')} style={{
               background: 'var(--white)', border: `1px solid ${filterStatus === 'completed' ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }}>
+            }} data-ui-native-button="">
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase' }}>Completed</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', marginTop: 2 }}>{counts.complete}</div>
             </button>
@@ -381,7 +381,7 @@ export const TasksApp: React.FC = () => {
           {completed.length > 0 && view !== 'trash' && displayMode === 'list' && (
             <div style={{ marginTop: 24 }}>
               <button type="button" onClick={() => setShowCompleted(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 13, fontWeight: 600, padding: '6px 0' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 13, fontWeight: 600, padding: '6px 0' }} data-ui-native-button="">
                 <Icon name={showCompleted ? 'chevronDown' : 'chevronRight'} size={13} />
                 Completed ({completed.length})
               </button>
@@ -567,7 +567,7 @@ function TaskTimerWidget({ todo }: { todo: Todo }) {
         border: 'none', background: isTimerActive ? 'var(--red-l)' : 'var(--bg)',
         color: isTimerActive ? 'var(--red)' : 'var(--ink2)', fontSize: 11, fontWeight: 700, cursor: 'pointer'
       }}
-    >
+     data-ui-native-button="">
       <Icon name={isTimerActive ? 'clock' : 'play'} size={10} />
       <span>{isTimerActive ? fmtStopwatch(elapsedSec) : formatMinutes(todo.timeLoggedMinutes)}</span>
     </button>
@@ -839,7 +839,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               cursor: readOnly ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               opacity: readOnly ? 0.5 : 1,
             }}
-          >
+           data-ui-native-button="">
             {todo.completed && <Icon name="check" size={12} color="hsl(var(--primary-foreground))" />}
           </button>
         )}
@@ -893,7 +893,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                   <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
                 </button>
               </DropdownMenuTrigger>
@@ -904,7 +904,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
         {!trashed && !readOnly && todo.status === 'none' && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--badge-radius)', cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
+              <button type="button" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--badge-radius)', cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }} data-ui-native-button="">+ Status</button>
             </DropdownMenuTrigger>
             <StatusMenuItems todoId={todo.id} />
           </DropdownMenu>
@@ -913,8 +913,8 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
         {trashed ? (
           todo.isOwner ? (
             <div style={{ display: 'flex', gap: 4 }}>
-              <Tip label="Restore"><button type="button" aria-label="Restore" onClick={() => restoreTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}><Icon name="refresh" size={15} /></button></Tip>
-              <Tip label="Delete forever"><button type="button" aria-label="Delete forever" onClick={() => purgeTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }}><Icon name="trash" size={15} /></button></Tip>
+              <Tip label="Restore"><button type="button" aria-label="Restore" onClick={() => restoreTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button=""><Icon name="refresh" size={15} /></button></Tip>
+              <Tip label="Delete forever"><button type="button" aria-label="Delete forever" onClick={() => purgeTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }} data-ui-native-button=""><Icon name="trash" size={15} /></button></Tip>
             </div>
           ) : (
             <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Deleted by owner</span>
@@ -923,7 +923,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
           <DropdownMenu>
             <Tip label="More actions">
               <DropdownMenuTrigger asChild>
-                <button type="button" aria-label="More actions" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}><Icon name="moreVertical" size={16} /></button>
+                <button type="button" aria-label="More actions" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button=""><Icon name="moreVertical" size={16} /></button>
               </DropdownMenuTrigger>
             </Tip>
             <DropdownMenuContent align="end">
@@ -1062,7 +1062,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                 <span key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '3px 8px', borderRadius: 'var(--r)'}}>
                   #{tag}
                   {!readOnly && (
-                    <button type="button" onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', display: 'flex', padding: 0 }}><Icon name="x" size={10} /></button>
+                    <button type="button" onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', display: 'flex', padding: 0 }} data-ui-native-button=""><Icon name="x" size={10} /></button>
                   )}
                 </span>
               ))}
@@ -1092,12 +1092,12 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             {todo.subtasks.map(s => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button type="button" disabled={readOnly} onClick={() => !readOnly && updateSubtask(todo.id, s.id, { completed: !s.completed })}
-                  style={{ width: 16, height: 16, borderRadius: '50%', border: s.completed ? 'none' : '2px solid var(--border2)', background: s.completed ? 'var(--teal)' : 'transparent', cursor: readOnly ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: readOnly ? 0.6 : 1 }}>
+                  style={{ width: 16, height: 16, borderRadius: '50%', border: s.completed ? 'none' : '2px solid var(--border2)', background: s.completed ? 'var(--teal)' : 'transparent', cursor: readOnly ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: readOnly ? 0.6 : 1 }} data-ui-native-button="">
                   {s.completed && <Icon name="check" size={10} color="hsl(var(--primary-foreground))" />}
                 </button>
                 <span style={{ flex: 1, fontSize: 13, color: s.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: s.completed ? 'line-through' : 'none' }}>{s.title}</span>
                 {!readOnly && (
-                  <button type="button" onClick={() => deleteSubtask(todo.id, s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={12} /></button>
+                  <button type="button" onClick={() => deleteSubtask(todo.id, s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={12} /></button>
                 )}
               </div>
             ))}
@@ -1186,7 +1186,7 @@ function CommentsSection({ taskId, readOnly }: { taskId: string; readOnly: boole
             </div>
             {c.authorId === user?.id && (
               <button type="button" onClick={() => remove(c.id)} title="Delete comment"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }} data-ui-native-button="">
                 <Icon name="x" size={11} />
               </button>
             )}

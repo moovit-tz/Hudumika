@@ -116,7 +116,7 @@ export function CMSMedia() {
         subtitle="Every image uploaded through this CMS — browse, organize into folders, copy a link, or upload something new. Insert one into a page or post from its own editor."
         actions={
           <>
-            <button className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            <button className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()} data-ui-native-button="">
               <Icon name="upload" size={13} /> {uploading ? 'Uploading…' : 'Upload'}
             </button>
             <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
@@ -134,7 +134,7 @@ export function CMSMedia() {
                 border: `1px solid ${activeFolder === opt.value ? 'var(--teal)' : 'var(--border)'}`,
                 background: activeFolder === opt.value ? 'var(--teal-l, var(--bg))' : 'var(--white)',
                 color: activeFolder === opt.value ? 'var(--teal)' : 'var(--ink2)', fontWeight: activeFolder === opt.value ? 700 : 500,
-              }}>
+              }} data-ui-native-button="">
               {opt.label}
             </button>
           ))}
@@ -157,18 +157,18 @@ export function CMSMedia() {
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.filename}>{m.filename}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtSize(m.size)} · {fmtDate(m.created_at)}</div>
                   <button onClick={() => handleEditFolder(m)} title="Move to folder"
-                    style={{ fontSize: 10.5, color: m.folder ? 'var(--teal)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
+                    style={{ fontSize: 10.5, color: m.folder ? 'var(--teal)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }} data-ui-native-button="">
                     <Icon name="folder" size={10} /> {m.folder || 'Unfiled'}
                   </button>
                   <button onClick={() => handleEditTags(m)} title="Edit tags"
-                    style={{ fontSize: 10.5, color: m.tags ? 'var(--ink2)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    style={{ fontSize: 10.5, color: m.tags ? 'var(--ink2)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} data-ui-native-button="">
                     <Icon name="tag" size={10} /> {m.tags || 'Add tags'}
                   </button>
                   <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                    <button onClick={() => handleCopyUrl(m)} title="Copy URL" className="btn btn-secondary btn-xs" style={{ flex: 1, justifyContent: 'center' }}>
+                    <button onClick={() => handleCopyUrl(m)} title="Copy URL" className="btn btn-secondary btn-xs" style={{ flex: 1, justifyContent: 'center' }} data-ui-native-button="">
                       <Icon name="link" size={12} />
                     </button>
-                    <button onClick={() => handleDelete(m)} title="Delete" className="btn btn-secondary btn-xs" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)' }}>
+                    <button onClick={() => handleDelete(m)} title="Delete" className="btn btn-secondary btn-xs" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)' }} data-ui-native-button="">
                       <Icon name="trash2" size={12} />
                     </button>
                   </div>

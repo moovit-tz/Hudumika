@@ -247,7 +247,7 @@ function LegalHoldTab() {
           onChange={e => { setQuery(e.target.value); search(e.target.value); }}
           placeholder={t('compliance.hold.search')}
         />
-        {query && <button type="button" className="cc-clear-btn" onClick={() => { setQuery(''); search(''); }}><Icon name="x" size={13} /></button>}
+        {query && <button type="button" className="cc-clear-btn" onClick={() => { setQuery(''); search(''); }} data-ui-native-button=""><Icon name="x" size={13} /></button>}
       </div>
 
       {searching ? <SectionLoading /> : (

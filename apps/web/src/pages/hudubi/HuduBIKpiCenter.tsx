@@ -201,7 +201,7 @@ export function HuduBIKpiCenter() {
                 setShowModal(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-teal-600 hover:bg-teal-700 text-white shadow-xs transition-colors"
-            >
+             data-ui-native-button="">
               <Icon name="plus" size={16} />
               Set KPI Target
             </button>
@@ -294,7 +294,7 @@ export function HuduBIKpiCenter() {
             onClick={loadData}
             disabled={loading}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border border-border bg-card hover:bg-muted text-foreground transition-colors"
-          >
+           data-ui-native-button="">
             <Icon name="refresh" size={14} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
@@ -321,7 +321,7 @@ export function HuduBIKpiCenter() {
                   setShowModal(true);
                 }}
                 className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 transition-colors shadow-xs"
-              >
+               data-ui-native-button="">
                 <Icon name="plus" size={14} />
                 Set First KPI Target
               </button>
@@ -425,14 +425,14 @@ export function HuduBIKpiCenter() {
                         onClick={() => openEditModal(t)}
                         className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                         title="Edit target threshold"
-                      >
+                       data-ui-native-button="">
                         <Icon name="edit" size={14} />
                       </button>
                       <button
                         onClick={() => handleDelete(t.id)}
                         className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-600 transition-colors"
                         title="Delete target"
-                      >
+                       data-ui-native-button="">
                         <Icon name="trash" size={14} />
                       </button>
                     </div>
@@ -461,7 +461,7 @@ export function HuduBIKpiCenter() {
               <button
                 onClick={() => setShowModal(false)}
                 className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -567,14 +567,14 @@ export function HuduBIKpiCenter() {
                   onClick={() => setShowModal(false)}
                   disabled={saving}
                   className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-muted transition-colors"
-                >
+                 data-ui-native-button="">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !selectedMetricKey || !targetValue}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-xs"
-                >
+                 data-ui-native-button="">
                   {saving ? 'Saving...' : 'Save KPI Target'}
                 </button>
               </div>

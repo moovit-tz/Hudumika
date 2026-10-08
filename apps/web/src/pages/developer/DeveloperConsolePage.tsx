@@ -121,7 +121,7 @@ export function DeveloperConsolePage() {
                 type="button"
                 className={`dev-env-btn ${activeEnvironment === env ? 'dev-env-btn--active' : ''} ${env === 'PRODUCTION' ? 'dev-env-btn--prod' : env === 'SANDBOX' ? 'dev-env-btn--sand' : ''}`}
                 onClick={() => setActiveEnvironment(env)}
-              >
+               data-ui-native-button="">
                 <Icon
                   name={env === 'PRODUCTION' ? 'shield' : env === 'SANDBOX' ? 'terminal' : 'tool'}
                   size={12}
@@ -278,7 +278,7 @@ function DeveloperOverviewTab({
               type="button"
               onClick={() => onNavigateTab('billing')}
               style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 700, cursor: 'pointer', padding: 0 }}
-            >
+             data-ui-native-button="">
               + Top up credits
             </button>
           </div>
@@ -327,7 +327,7 @@ function DeveloperOverviewTab({
 
         {/* cURL Code Snippet */}
         <div className="dev-code-box">
-          <button type="button" className="dev-code-copy-btn" onClick={copySnippet}>
+          <button type="button" className="dev-code-copy-btn" onClick={copySnippet} data-ui-native-button="">
             <Icon name={copied ? 'check' : 'copy'} size={12} />
             {copied ? 'Copied!' : 'Copy cURL'}
           </button>
@@ -466,7 +466,7 @@ function DeveloperProjectsTab({
           <div className="dev-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dev-modal-hdr">
               <span style={{ fontWeight: 800, fontSize: 15 }}>Create Developer Project</span>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -659,7 +659,7 @@ function DeveloperCredentialsTab({
               <span style={{ fontWeight: 800, fontSize: 15 }}>
                 {newKeyRevealed ? 'API Key Generated' : `Create ${environment} API Key`}
               </span>
-              <button type="button" onClick={() => setIsCreateOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button type="button" onClick={() => setIsCreateOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -678,7 +678,7 @@ function DeveloperCredentialsTab({
                       setCopiedKey(true);
                       setTimeout(() => setCopiedKey(false), 2000);
                     }}
-                  >
+                   data-ui-native-button="">
                     <Icon name={copiedKey ? 'check' : 'copy'} size={12} />
                     {copiedKey ? 'Copied!' : 'Copy Key'}
                   </button>
@@ -934,7 +934,7 @@ function DeveloperMarketplaceTab({
               textTransform: 'capitalize',
               cursor: 'pointer',
             }}
-          >
+           data-ui-native-button="">
             {cat}
           </button>
         ))}
@@ -1103,7 +1103,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
           <div className="dev-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dev-modal-hdr">
               <span style={{ fontWeight: 800, fontSize: 15 }}>Top Up Prepaid API Balance</span>
-              <button type="button" onClick={() => setIsTopUpOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button type="button" onClick={() => setIsTopUpOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1125,7 +1125,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
                           fontWeight: 700,
                           cursor: 'pointer',
                         }}
-                      >
+                       data-ui-native-button="">
                         {amt.toLocaleString()} TZS
                       </button>
                     ))}
@@ -1235,7 +1235,7 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
           <div className="dev-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dev-modal-hdr">
               <span style={{ fontWeight: 800, fontSize: 15 }}>Add Organization Member</span>
-              <button type="button" onClick={() => setIsInviteOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button type="button" onClick={() => setIsInviteOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>

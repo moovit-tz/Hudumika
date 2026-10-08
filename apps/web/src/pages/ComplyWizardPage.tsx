@@ -33,7 +33,7 @@ export function ComplyWizardPage({
   return (
     <div className="comply-page">
       <div style={{ marginBottom: 12 }}>
-        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate(backTo)}>
+        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate(backTo)} data-ui-native-button="">
           <Icon name="chevronLeft" size={13} /> Back
         </button>
       </div>
@@ -68,15 +68,15 @@ export function ComplyWizardPage({
         <div className="comply-wizard-footer">
           <div className="comply-wizard-footer-back">
             {step > 0 && onBack && (
-              <button type="button" className="comply-btn-secondary" onClick={onBack} disabled={busy}>
+              <button type="button" className="comply-btn-secondary" onClick={onBack} disabled={busy} data-ui-native-button="">
                 <Icon name="chevronLeft" size={13} /> Back
               </button>
             )}
           </div>
           <div className="comply-wizard-footer-actions">
-            <button type="button" className="comply-btn-secondary" onClick={() => navigate(backTo)} disabled={busy}>Cancel</button>
+            <button type="button" className="comply-btn-secondary" onClick={() => navigate(backTo)} disabled={busy} data-ui-native-button="">Cancel</button>
             {onNext && (
-              <button type="button" className="comply-btn-primary" onClick={onNext} disabled={nextDisabled || busy}>
+              <button type="button" className="comply-btn-primary" onClick={onNext} disabled={nextDisabled || busy} data-ui-native-button="">
                 {busy ? 'Working…' : (nextLabel ?? (isLast ? 'Finish' : 'Next'))}
                 {!busy && !isLast && <Icon name="chevronRight" size={13} />}
               </button>

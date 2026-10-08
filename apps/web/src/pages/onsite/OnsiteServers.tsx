@@ -96,7 +96,7 @@ export function OnsiteServers() {
         titlePlain="Compute"
         titleEm="servers"
         subtitle="Track reachability for your Virtual Private Servers (VPS), bare metal, and cloud instances."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                     <Icon name="plus" size={16} /> Add Server
                   </button></>}
       />
@@ -116,7 +116,7 @@ export function OnsiteServers() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Add your cloud VPS or bare metal server to track whether it's reachable. Live CPU/RAM/disk usage needs an agent installed on the box, which isn't available yet.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="plus" size={16} /> Add Compute Instance
           </button>
         </div>
@@ -165,11 +165,11 @@ export function OnsiteServers() {
                           disabled={checking === s.id}
                           onClick={() => handleCheckNow(s.id)}
                           title="Check reachability now"
-                        >
+                         data-ui-native-button="">
                           <Icon name="refresh" size={14} className={checking === s.id ? 'onsite-spin' : ''} />
                         </button>
                       )}
-                      <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(s.id, s.name)}>
+                      <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(s.id, s.name)} data-ui-native-button="">
                         <Icon name="trash2" size={14} />
                       </button>
                     </td>
@@ -186,7 +186,7 @@ export function OnsiteServers() {
         <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Connect Server</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleAddServer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -235,10 +235,10 @@ export function OnsiteServers() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
                   {submitting ? 'Connecting…' : 'Add Server'}
                 </button>
               </div>

@@ -197,7 +197,7 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
               display: 'flex',
               alignItems: 'center',
               gap: 3,
-            }}>
+            }} data-ui-native-button="">
             <Icon name="plus" size={10} color="var(--teal)" /> Report
           </button>
         )}
@@ -365,7 +365,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {palette.map(c => (
               <button key={c} type="button" aria-label={`Use ${c} accent color`} onClick={() => setForm(f => ({ ...f, color: c }))}
-                style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: form.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer', transition: 'border-color 0.15s' }} />
+                style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: form.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer', transition: 'border-color 0.15s' }}  data-ui-native-button=""/>
             ))}
           </div>
         </div>
@@ -648,7 +648,7 @@ export const OrgChart: React.FC = () => {
           <span style={{ fontSize: 12.5, color: 'var(--red)', flex: 1 }}>{error}</span>
           <Tip label="Dismiss">
           <button type="button" aria-label="Dismiss" onClick={() => setError(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }} data-ui-native-button="">
             <Icon name="x" size={14} color="var(--red)" />
           </button>
           </Tip>
@@ -806,7 +806,7 @@ export const OrgChart: React.FC = () => {
               <div style={{ display: 'flex', gap: 8 }}>
                 {palette.map(c => (
                   <button key={c} type="button" aria-label={`Use ${c} accent color`} onClick={() => setAddForm(f => ({ ...f, color: c }))}
-                    style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: addForm.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer' }} />
+                    style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: addForm.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer' }}  data-ui-native-button=""/>
                 ))}
               </div>
             </div>

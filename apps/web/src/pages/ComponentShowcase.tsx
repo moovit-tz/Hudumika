@@ -126,7 +126,7 @@ export default function ComponentShowcase() {
               <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Search shipment mode (combobox)</label>
               <Popover open={comboOpen} onOpenChange={setComboOpen}>
                 <PopoverTrigger asChild>
-                  <button type="button" className="flex w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm font-medium">
+                  <button type="button" className="flex w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm font-medium" data-ui-native-button="">
                     {comboValue ? SHIPMENT_MODES.find(o => o.value === comboValue)?.label : 'Select mode…'}
                     <ChevronsUpDown className="h-4 w-4 opacity-50" />
                   </button>
@@ -158,7 +158,7 @@ export default function ComponentShowcase() {
           <div className={SECTION_DESC}>Icons, keyboard shortcuts, checkmark selection, submenu, dividers.</div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="rounded-lg border border-input px-4 py-2 text-sm font-semibold hover:border-primary/40">
+              <button type="button" className="rounded-lg border border-input px-4 py-2 text-sm font-semibold hover:border-primary/40" data-ui-native-button="">
                 Actions ▾
               </button>
             </DropdownMenuTrigger>
@@ -187,10 +187,10 @@ export default function ComponentShowcase() {
           <div className={SECTION_TITLE}>Tooltip &amp; document actions</div>
           <div className={SECTION_DESC}>The one platform tooltip (<code>Tip</code>, same style as the header) on the icon-only document actions — view, share, download, replace/upload, verified. Hover any icon.</div>
           <div className="flex flex-wrap items-center gap-2">
-            <Tip label="View document"><button type="button" aria-label="View document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Eye className="h-4 w-4" /></button></Tip>
-            <Tip label="Share document"><button type="button" aria-label="Share document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Send className="h-4 w-4" /></button></Tip>
-            <Tip label="Download document"><button type="button" aria-label="Download document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Download className="h-4 w-4" /></button></Tip>
-            <Tip label="Replace / upload"><button type="button" aria-label="Replace or upload document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Upload className="h-4 w-4" /></button></Tip>
+            <Tip label="View document"><button type="button" aria-label="View document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40" data-ui-native-button=""><Eye className="h-4 w-4" /></button></Tip>
+            <Tip label="Share document"><button type="button" aria-label="Share document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40" data-ui-native-button=""><Send className="h-4 w-4" /></button></Tip>
+            <Tip label="Download document"><button type="button" aria-label="Download document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40" data-ui-native-button=""><Download className="h-4 w-4" /></button></Tip>
+            <Tip label="Replace / upload"><button type="button" aria-label="Replace or upload document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40" data-ui-native-button=""><Upload className="h-4 w-4" /></button></Tip>
             <Tip label="Verified"><span className="inline-flex items-center gap-1 rounded-full bg-(--teal) px-2.5 py-1 text-[10px] font-bold text-white"><Check className="h-3 w-3" strokeWidth={3} /> Verified</span></Tip>
           </div>
         </section>
@@ -227,7 +227,7 @@ export default function ComponentShowcase() {
           <div className={SECTION_DESC}>Avatar + name + shortcut + checkmark rows, composed from DropdownMenu.</div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" className="flex w-64 items-center gap-2.5 rounded-lg border border-input px-3 py-2.5 text-left hover:border-primary/40">
+              <button type="button" className="flex w-64 items-center gap-2.5 rounded-lg border border-input px-3 py-2.5 text-left hover:border-primary/40" data-ui-native-button="">
                 <WorkspaceAvatar color={WORKSPACES.find(w => w.id === activeWorkspace)!.color} size={24} />
                 <span className="flex-1 truncate text-sm font-bold">{WORKSPACES.find(w => w.id === activeWorkspace)!.name}</span>
                 <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
@@ -519,7 +519,7 @@ function TwotoneShowcaseGrid() {
                 }`}
                 style={{ backgroundColor: colorMap[c], borderColor: 'var(--border)' }}
                 title={`Select ${c}`}
-              />
+               data-ui-native-button=""/>
             ))}
           </div>
         </div>
@@ -535,7 +535,7 @@ function TwotoneShowcaseGrid() {
                 className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {sz}px
               </button>
             ))}

@@ -103,7 +103,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
       <div className="seal-card-hdr">
         <h2 className="seal-card-title">Documents</h2>
         {cloudLinked && (
-          <button type="button" className="btn btn-secondary" disabled={resolvingFolder} onClick={openCloudFolder}>
+          <button type="button" className="btn btn-secondary" disabled={resolvingFolder} onClick={openCloudFolder} data-ui-native-button="">
             <Icon name="externalLink" size={13} />
             <span>{resolvingFolder ? 'Opening…' : 'Open Drive'}</span>
           </button>
@@ -138,7 +138,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
                 <Icon name="fileText" size={16} color="var(--ink3)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <button type="button" onClick={() => handleDownloadClick(d.id)}
-                     style={{ fontWeight: 600, color: 'var(--ink)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                     style={{ fontWeight: 600, color: 'var(--ink)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }} data-ui-native-button="">
                     {d.filename}
                   </button>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
@@ -149,11 +149,11 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
                 <Badge variant={d.status === 'VERIFIED' ? 'success' : d.status === 'REJECTED' ? 'error' : 'gray'}>{d.status}</Badge>
                 {d.status === 'UPLOADED' && (
                   <>
-                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'VERIFIED')}>Verify</button>
-                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'REJECTED')}>Reject</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'VERIFIED')} data-ui-native-button="">Verify</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'REJECTED')} data-ui-native-button="">Reject</button>
                   </>
                 )}
-                <button type="button" className="btn btn-secondary" onClick={() => handleDelete(d.id)}><Icon name="trash" size={12} /></button>
+                <button type="button" className="btn btn-secondary" onClick={() => handleDelete(d.id)} data-ui-native-button=""><Icon name="trash" size={12} /></button>
               </div>
             ))}
           </div>

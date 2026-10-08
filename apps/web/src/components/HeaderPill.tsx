@@ -117,7 +117,7 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
         onClick={onExpandSearch}
         title="Search (/)"
         aria-label="Search"
-      >
+       data-ui-native-button="">
         <Icon name="search" size={15} />
       </button>
 
@@ -137,7 +137,7 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
               type="button"
               className="app-header-pill-body"
               onClick={() => onOpen(item)}
-            >
+             data-ui-native-button="">
               <span className="app-header-pill-badge">{item.badge || 'NEW'}</span>
               <span className="app-header-pill-title">{item.title}</span>
               {item.message && <span className="app-header-pill-sub">{item.message}</span>}
@@ -165,13 +165,13 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
               onClick={() => setPaused(p => !p)}
               title={paused ? 'Resume' : 'Pause'}
               aria-pressed={paused}
-            >
+             data-ui-native-button="">
               <Icon name={paused ? 'play' : 'pause'} size={12} />
             </button>
-            <button type="button" className="app-header-pill-icon" onClick={() => go(-1)} title="Previous" aria-label="Previous notification">
+            <button type="button" className="app-header-pill-icon" onClick={() => go(-1)} title="Previous" aria-label="Previous notification" data-ui-native-button="">
               <Icon name="chevronLeft" size={13} />
             </button>
-            <button type="button" className="app-header-pill-icon" onClick={() => go(1)} title="Next" aria-label="Next notification">
+            <button type="button" className="app-header-pill-icon" onClick={() => go(1)} title="Next" aria-label="Next notification" data-ui-native-button="">
               <Icon name="chevronRight" size={13} />
             </button>
           </>
@@ -182,7 +182,7 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
           onClick={() => onDismiss(item)}
           title="Dismiss"
           aria-label="Dismiss notification"
-        >
+         data-ui-native-button="">
           <Icon name="x" size={13} />
         </button>
       </div>

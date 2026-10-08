@@ -64,6 +64,9 @@ export interface RecordMovementInput {
   unitCost?: number | null;
   /** Optional Finance reporting dimension inherited from the source document. */
   businessLineId?: string | null;
+  /** Internal production routing; never accepted by the public stock movement endpoint. */
+  productionId?: string;
+  workId?: string;
 }
 
 export class InventoryService {
@@ -80,7 +83,7 @@ export class InventoryService {
 
   static async recordMovement(trx: Transaction<Database>, tenantId: string, input: RecordMovementInput) {
     const item = await trx.selectFrom('inventory_items').select(['id', 'base_uom', 'is_batch_tracked', 'avg_cost'])
-      .where('tenant_id', '=', tenantId).where('id', '=', input.itemId).executeTakeFirst();
+      .where('tenant_id', '=', tenantId).where('id', '=', input.itemId).forUpdate().executeTakeFirst();
     if (!item) throw new InvalidMovement(`Item not found: ${input.itemId}`);
 
     const batchNo = (input.batchNo?.trim() || '');
@@ -177,6 +180,13 @@ export class InventoryService {
     }).returningAll().executeTakeFirstOrThrow();
 
     async function applyDelta(locationId: string, delta: number) {
+      const location = await trx.selectFrom('inventory_locations').select('id').where('tenant_id', '=', tenantId).where('id', '=', locationId).executeTakeFirst();
+      if (!location) throw new InvalidMovement('Location not found in this workspace.');
+      const current = await trx.selectFrom('inventory_stock_levels').select('qty_on_hand')
+        .where('tenant_id', '=', tenantId).where('item_id', '=', input.itemId).where('location_id', '=', locationId).where('batch_no', '=', batchNo).forUpdate().executeTakeFirst();
+      const reserved = await trx.selectFrom('finance_stock_allocations').select(eb => eb.fn.sum<number>(sql<number>`quantity - dispatched_quantity`).as('qty'))
+        .where('tenant_id', '=', tenantId).where('item_id', '=', input.itemId).where('location_id', '=', locationId).where('batch', '=', batchNo).where('released', '=', false).executeTakeFirst();
+      if (delta < 0 && Number(current?.qty_on_hand ?? 0) + delta - Number(reserved?.qty ?? 0) < -0.000001) throw new InvalidMovement('Insufficient unreserved stock for this movement.');
       await trx.insertInto('inventory_stock_levels').values({
         tenant_id: tenantId, item_id: input.itemId, location_id: locationId, batch_no: batchNo,
         expiry_date: input.expiryDate ? new Date(input.expiryDate) : null,
@@ -214,7 +224,7 @@ export class InventoryService {
     if (totalCost != null && totalCost > 0) {
       const entryDate = new Date().toISOString().slice(0, 10);
       const common = { entryDate, reference: String(movement.id), sourceModule: 'EXPENSE' as const, createdBy: input.actorId ?? undefined };
-      const dimensions = input.businessLineId ? { business_line_id: input.businessLineId } : undefined;
+      const dimensions = { ...(input.businessLineId ? { business_line_id: input.businessLineId } : {}), ...(input.productionId ? { production_id: input.productionId } : {}), ...(input.workId ? { work_id: input.workId } : {}) };
 
       if (input.movementType === 'issue') {
         // COGS at the average cost as it stood the moment stock left.
@@ -222,10 +232,10 @@ export class InventoryService {
           ...common,
           description: `COGS: issue of ${baseQty} ${item.base_uom}`,
           lines: [
-            { accountCode: COGS_ACCOUNT, debit: totalCost, credit: 0, description: 'Cost of goods sold', dimensions },
+            { accountCode: input.productionId ? '1310' : COGS_ACCOUNT, debit: totalCost, credit: 0, description: input.productionId ? 'Production material consumed' : 'Cost of goods sold', dimensions },
             { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced', dimensions },
           ],
-        });
+        }, trx);
       } else if (input.movementType === 'return') {
         // A customer return restores the original asset and reverses COGS. It
         // is not a supplier receipt, so GRNI must never be touched here.
@@ -236,7 +246,7 @@ export class InventoryService {
             { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory returned', dimensions },
             { accountCode: COGS_ACCOUNT, debit: 0, credit: totalCost, description: 'Cost of goods sold reversed', dimensions },
           ],
-        });
+        }, trx);
       } else if (input.movementType === 'receipt') {
         // Not yet an Accounts Payable line — the supplier's bill hasn't
         // necessarily arrived yet (procurement→Inventory wiring is a
@@ -247,9 +257,9 @@ export class InventoryService {
           description: `Goods received: ${baseQty} ${item.base_uom} @ ${unitCost}`,
           lines: [
             { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory received', dimensions },
-            { accountCode: GRNI_ACCOUNT, debit: 0, credit: totalCost, description: 'Goods received, not yet invoiced', dimensions },
+            { accountCode: input.productionId ? '1310' : GRNI_ACCOUNT, debit: 0, credit: totalCost, description: input.productionId ? 'Production completed' : 'Goods received, not yet invoiced', dimensions },
           ],
-        });
+        }, trx);
       } else if (input.movementType === 'adjust' || input.movementType === 'count_correction') {
         // qtyDelta < 0: stock is physically missing — an expense, debited.
         // qtyDelta > 0: stock is physically found — a recovery, credited
@@ -269,7 +279,7 @@ export class InventoryService {
                 { accountCode: INVENTORY_ASSET_ACCOUNT, debit: totalCost, credit: 0, description: 'Inventory increased', dimensions },
                 { accountCode: SHRINKAGE_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory found (shrinkage recovery)', dimensions },
               ],
-        });
+        }, trx);
       }
     }
 

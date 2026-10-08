@@ -194,7 +194,7 @@ export function SmartGroupEditor({ group, onDone }: Props) {
                 onClick={() => setRules(prev => prev.filter((_, j) => j !== i))}
                 disabled={rules.length === 1}
                 title={rules.length === 1 ? 'A group needs at least one rule' : 'Remove rule'}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={14} />
               </button>
             </div>
@@ -205,7 +205,7 @@ export function SmartGroupEditor({ group, onDone }: Props) {
           type="button"
           className="cts-sg-add-rule"
           onClick={() => setRules(prev => [...prev, defaultRule()])}
-        >
+         data-ui-native-button="">
           <Icon name="plus" size={14} /> Add rule
         </button>
       </div>

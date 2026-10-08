@@ -122,7 +122,7 @@ export const SupportTicket: React.FC = () => {
       {/* Top bar */}
       <header className="lp-topbar">
         <div className="lp-topbar-inner">
-          <button type="button" className="lp-back-btn" onClick={() => navigate('/')}>
+          <button type="button" className="lp-back-btn" onClick={() => navigate('/')} data-ui-native-button="">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back
           </button>
@@ -166,7 +166,7 @@ export const SupportTicket: React.FC = () => {
               Your support ticket has been received. You will get a confirmation email at <strong>{form.email}</strong> shortly. Our team will respond based on the priority level you selected.
             </p>
             <div className="st-success-actions">
-              <button type="button" className="st-btn-primary" onClick={() => { setSubmitted(false); setForm(f => ({ ...f, subject: '', message: '', category: '' })); setFiles([]); }}>
+              <button type="button" className="st-btn-primary" onClick={() => { setSubmitted(false); setForm(f => ({ ...f, subject: '', message: '', category: '' })); setFiles([]); }} data-ui-native-button="">
                 Submit Another Ticket
               </button>
               <Link to="/" className="st-btn-secondary">Back to Dashboard</Link>
@@ -230,7 +230,7 @@ export const SupportTicket: React.FC = () => {
                       type="button"
                       className={`st-priority-btn ${form.priority === p.key ? `selected ${p.key}` : ''}`}
                       onClick={() => handleChange('priority', p.key)}
-                    >
+                     data-ui-native-button="">
                       <span className="st-priority-icon"><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: p.color }} /></span>
                       <span style={{ fontWeight: 700 }}>{p.label}</span>
                       <span style={{ fontSize: 10, opacity: 0.7 }}>{p.sub}</span>
@@ -268,7 +268,7 @@ export const SupportTicket: React.FC = () => {
                       {files.map((f, i) => (
                         <div className="st-upload-file-chip" key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <Icon name="file" size={13} /> {f.name}
-                          <button type="button" className="st-upload-file-remove" onClick={() => removeFile(i)} title="Remove">
+                          <button type="button" className="st-upload-file-remove" onClick={() => removeFile(i)} title="Remove" data-ui-native-button="">
                             <Icon name="x" size={12} />
                           </button>
                         </div>
@@ -291,7 +291,7 @@ export const SupportTicket: React.FC = () => {
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                 Your information is encrypted and handled per our <Link to="/privacy" style={{ color: 'var(--green)' }}>Privacy Policy</Link>
               </div>
-              <button type="submit" className="st-submit-btn" disabled={!canSubmit || submitting}>
+              <button type="submit" className="st-submit-btn" disabled={!canSubmit || submitting} data-ui-native-button="">
                 {submitting ? (
                   <>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'ds-spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity="0.3"/><path d="M21 12a9 9 0 00-9-9"/></svg>

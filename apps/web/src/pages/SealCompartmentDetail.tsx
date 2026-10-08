@@ -159,27 +159,27 @@ export function SealCompartmentDetail() {
 
           {/* Action Toolbar */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/layout`)} data-ui-native-button="">
               <Icon name="warehouse" size={14} /><span>Warehouse Layout</span>
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)} data-ui-native-button="">
               <Icon name="grid" size={14} /><span>Heat Grid</span>
             </button>
             {c.warehouse_type === 'sorting_centre' && (
-              <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)} data-ui-native-button="">
                 <Icon name="arrowUpDown" size={14} /><span>Sorting Dashboard</span>
               </button>
             )}
-            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/edit`)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/edit`)} data-ui-native-button="">
               <Icon name="edit" size={14} /><span>Edit</span>
             </button>
-            <button type="button" className="btn btn-secondary" onClick={handleDuplicate}>
+            <button type="button" className="btn btn-secondary" onClick={handleDuplicate} data-ui-native-button="">
               <Icon name="copy" size={14} /><span>Duplicate</span>
             </button>
-            <button type="button" className="btn btn-secondary" onClick={handleToggleStatus} style={{ color: isSuspended ? 'var(--seal)' : 'var(--red)' }}>
+            <button type="button" className="btn btn-secondary" onClick={handleToggleStatus} style={{ color: isSuspended ? 'var(--seal)' : 'var(--red)' }} data-ui-native-button="">
               <Icon name={isSuspended ? 'play' : 'pause'} size={14} /><span>{isSuspended ? 'Reactivate' : 'Suspend'}</span>
             </button>
-            <button type="button" className="btn btn-secondary" onClick={handleDelete} style={{ color: 'var(--red)' }}>
+            <button type="button" className="btn btn-secondary" onClick={handleDelete} style={{ color: 'var(--red)' }} data-ui-native-button="">
               <Icon name="trash" size={14} /><span>Delete</span>
             </button>
           </div>
@@ -213,7 +213,7 @@ export function SealCompartmentDetail() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', marginBottom: 20 }} data-ds-tabstrip="">
         <button
           type="button"
           style={{
@@ -221,7 +221,7 @@ export function SealCompartmentDetail() {
             borderBottom: activeTab === 'overview' ? '2px solid var(--seal)' : '2px solid transparent',
             color: activeTab === 'overview' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           onClick={() => setActiveTab('overview')}
-        >
+         data-ds-selected={activeTab === 'overview'} data-ui-native-button="" aria-pressed={activeTab === 'overview'}>
           Overview & Zones
         </button>
         <button
@@ -231,7 +231,7 @@ export function SealCompartmentDetail() {
             borderBottom: activeTab === 'lots' ? '2px solid var(--seal)' : '2px solid transparent',
             color: activeTab === 'lots' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           onClick={() => setActiveTab('lots')}
-        >
+         data-ds-selected={activeTab === 'lots'} data-ui-native-button="" aria-pressed={activeTab === 'lots'}>
           Lots On Hand ({lots.length})
         </button>
       </div>
@@ -264,7 +264,7 @@ export function SealCompartmentDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <button type="submit" className="btn btn-primary">Add Zone</button>
+              <button type="submit" className="btn btn-primary" data-ui-native-button="">Add Zone</button>
             </div>
           </form>
 

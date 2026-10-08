@@ -21,7 +21,7 @@ const SLA_DEFAULTS: Record<string, number> = {
 
 function TabBtn({ id, label, active, onClick }: { id: Tab; label: string; active: boolean; onClick: (t: Tab) => void }) {
   return (
-    <button type="button" role="tab" aria-selected={active} className={`dpt${active ? ' on' : ''}`} onClick={() => onClick(id)}>{label}</button>
+    <button type="button" role="tab" aria-selected={active} className={`dpt${active ? ' on' : ''}`} onClick={() => onClick(id)} data-ui-native-button="">{label}</button>
   );
 }
 
@@ -47,7 +47,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
         background: value ? 'var(--teal)' : 'var(--border2)', position: 'relative',
         transition: 'background 0.2s',
       }}
-    >
+     data-ui-native-button="">
       <div style={{
         position: 'absolute', top: 3, left: value ? 22 : 3,
         width: 18, height: 18, borderRadius: '50%', background: 'var(--white)',
@@ -88,7 +88,7 @@ export const Setup: React.FC = () => {
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>System configuration and preferences</div>
         </div>
         <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-primary btn-sm" onClick={save}>
+        <button type="button" className="btn btn-primary btn-sm" onClick={save} data-ui-native-button="">
           {saved ? '✓ Saved' : 'Save Changes'}
         </button>
       </div>

@@ -91,7 +91,7 @@ export function FinanceIndustries() {
 
   return (
     <div className="industry-page finance-capabilities-page">
-      <PageHeader crumbs={['Finance', 'Industries']} titlePlain="Industry" titleEm="workspaces" subtitle="Workspaces, capabilities and business lines — all in one place." />
+      <PageHeader crumbs={['Finance', 'Industries']} titlePlain="Finance" titleEm="industries" subtitle="Choose industries, manage capabilities and organise business lines." />
       {!canManage && <div className="finance-capabilities-alert">You can review this workspace. A tenant administrator manages activation and business lines.</div>}
       {message && <div className="finance-capabilities-alert" role="alert">{message}</div>}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

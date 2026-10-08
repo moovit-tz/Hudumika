@@ -99,7 +99,7 @@ export const AcceptCustomerInvite: React.FC = () => {
               onChange={e => { setPassword(e.target.value); setFieldErr(p => ({ ...p, password: undefined })); }}
               autoComplete="new-password"
             />
-            <button type="button" className="auth-eye-btn" aria-label={showPass ? 'Hide password' : 'Show password'} onClick={() => setShowPass(p => !p)} tabIndex={-1}>
+            <button type="button" className="auth-eye-btn" aria-label={showPass ? 'Hide password' : 'Show password'} onClick={() => setShowPass(p => !p)} tabIndex={-1} data-ui-native-button="">
               <Icon name={showPass ? 'eyeOff' : 'eye'} size={15} />
             </button>
           </div>
@@ -116,7 +116,7 @@ export const AcceptCustomerInvite: React.FC = () => {
           />
         </AuthField>
 
-        <button type="submit" disabled={loading} className="auth-btn-primary">
+        <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
           {loading ? <><span className="auth-spinner" /> Creating account…</> : 'Create account'}
         </button>
       </form>

@@ -37,7 +37,7 @@ export function DocumentDetailShell({ backLabel, onBack, backTo, docNumber, isMo
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
         {backTo
           ? <Link to={backTo} style={backStyle}><Icon name="arrowLeft" size={14} /> {backLabel}</Link>
-          : <button type="button" title={backLabel} onClick={onBack} style={backStyle}><Icon name="arrowLeft" size={14} /> {backLabel}</button>}
+          : <button type="button" title={backLabel} onClick={onBack} style={backStyle} data-ui-native-button=""><Icon name="arrowLeft" size={14} /> {backLabel}</button>}
         {docNumber != null && <>
           <span style={{ color: 'var(--ink3)', fontSize: 13 }}>/</span>
           <span style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>{docNumber}</span>

@@ -126,7 +126,7 @@ export function CMSApprovals() {
         </div>
 
         {/* Tab Selector */}
-        <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 20 }} data-ds-tabstrip="">
           {[
             { id: 'pending', label: 'Pending Queue', badge: pendingCount },
             { id: 'my_reviews', label: 'Assigned to Me', badge: myActionCount },
@@ -149,7 +149,7 @@ export function CMSApprovals() {
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ds-selected={filterTab === tab.id as any} data-ui-native-button="" aria-pressed={filterTab === tab.id as any}>
               {tab.label}
               {tab.badge !== undefined && tab.badge > 0 && (
                 <span
@@ -255,7 +255,7 @@ export function CMSApprovals() {
                           fontSize: 12,
                           cursor: 'pointer',
                         }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="check" size={14} />
                         Approve
                       </button>
@@ -274,7 +274,7 @@ export function CMSApprovals() {
                           fontSize: 12,
                           cursor: 'pointer',
                         }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="close" size={14} />
                         Reject
                       </button>
@@ -293,7 +293,7 @@ export function CMSApprovals() {
                         fontSize: 12,
                         cursor: 'pointer',
                       }}
-                    >
+                     data-ui-native-button="">
                       Cancel Request
                     </button>
                   )}
@@ -353,7 +353,7 @@ export function CMSApprovals() {
               <button
                 onClick={() => setDecisionModal(d => ({ ...d, open: false }))}
                 style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
@@ -369,7 +369,7 @@ export function CMSApprovals() {
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
-              >
+               data-ui-native-button="">
                 {decisionModal.submitting ? 'Submitting...' : decisionModal.decision === 'approved' ? 'Confirm Approval' : 'Return to Draft'}
               </button>
             </div>

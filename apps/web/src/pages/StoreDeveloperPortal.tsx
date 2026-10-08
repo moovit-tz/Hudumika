@@ -61,7 +61,7 @@ export const StoreDeveloperPortal: React.FC = () => {
         <Icon name="checkCircle" size={48} color="var(--green)" style={{ marginBottom: '20px' }} />
         <h2>Submission Successful!</h2>
         <p style={{ color: 'var(--ink3)', marginTop: '10px' }}>Your app has been submitted and is pending review by the Hudumika Admin team. You will be notified once it is approved.</p>
-        <button className="btn btn-primary" onClick={() => navigate('/store')} style={{ marginTop: '30px' }}>
+        <button className="btn btn-primary" onClick={() => navigate('/store')} style={{ marginTop: '30px' }} data-ui-native-button="">
           Back to Store
         </button>
       </div>
@@ -140,8 +140,8 @@ export const StoreDeveloperPortal: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/store')}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/store')} data-ui-native-button="">Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={loading} data-ui-native-button="">
               {loading ? 'Submitting...' : 'Submit App for Review'}
             </button>
           </div>

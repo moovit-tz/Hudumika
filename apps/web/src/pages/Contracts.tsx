@@ -95,7 +95,7 @@ export const Contracts: React.FC = () => {
           ['trash', 'Trash', stats.trash, 'gray'],
         ] as const).map(([key, label, count, variant]) => (
           <button key={key} type="button" onClick={() => setShowTrash(key === 'trash')}
-            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${(key === 'trash') === showTrash ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: `1px solid ${(key === 'trash') === showTrash ? 'var(--teal)' : 'var(--border)'}`, background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
             <Badge variant={variant}>{count}</Badge>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)' }}>{label}</span>
           </button>

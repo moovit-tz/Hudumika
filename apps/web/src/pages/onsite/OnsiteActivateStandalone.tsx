@@ -51,7 +51,7 @@ export function OnsiteActivateStandalone() {
           <li>Uptime monitoring</li>
         </ul>
 
-        <button className="btn btn-primary" style={{ width: '100%' }} disabled={activating} onClick={handleActivate}>
+        <button className="btn btn-primary" style={{ width: '100%' }} disabled={activating} onClick={handleActivate} data-ui-native-button="">
           {activating ? 'Activating…' : 'Activate'}
         </button>
       </div>

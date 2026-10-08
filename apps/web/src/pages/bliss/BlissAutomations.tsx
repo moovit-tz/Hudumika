@@ -286,7 +286,7 @@ export const BlissAutomations: React.FC = () => {
                         {canManage && (
                           <Tip label="Delete rule">
                             <button type="button" aria-label="Delete rule" onClick={e => { e.stopPropagation(); handleDelete(rule); }}
-                              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}>
+                              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button>
                           </Tip>

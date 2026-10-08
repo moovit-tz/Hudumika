@@ -25,7 +25,10 @@ const trailerFieldsSchema = z.object({
   name: z.string().trim().min(1).max(200),
   registration_number: z.string().max(50).optional(),
   vin: z.string().max(50).optional(),
-  trailer_type: z.enum(['FLATBED', 'CONTAINER_CHASSIS', 'TANKER', 'REEFER', 'LOWBED', 'CURTAIN_SIDE', 'OTHER']).optional(),
+  trailer_type: z.enum([
+    'FLATBED', 'BOX_TRAILER', 'CONTAINER_CHASSIS', 'TANKER', 'REEFER', 'LOWBED', 'CURTAIN_SIDE',
+    'BUMPER_PULL_HORSE', 'GOOSENECK_HORSE', 'HORSEBOX', 'LIVESTOCK_TRAILER', 'UTILITY_TRAILER', 'OTHER',
+  ]).optional(),
   capacity_kg: z.number().min(0).optional(),
   axles: z.number().int().min(1).max(12).optional(),
   ownership: z.enum(['OWNED', 'LEASED', 'RENTED', 'SUBCONTRACTED']).optional(),

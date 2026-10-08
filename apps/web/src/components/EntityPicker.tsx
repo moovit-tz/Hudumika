@@ -133,7 +133,7 @@ export function EntityPicker({
             />
             {value && !open ? (
               <button type="button" onClick={clearSelection} title="Clear selection"
-                style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}>
+                style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }} data-ui-native-button="">
                 <Icon name="x" size={13} color="var(--ink3)" />
               </button>
             ) : (
@@ -159,7 +159,7 @@ export function EntityPicker({
           )}
           {!loading && items.map((item) => (
             <button key={item.id} type="button" onClick={() => selectItem(item)}
-              className="flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent">
+              className="flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent" data-ui-native-button="">
               <span className="text-sm font-semibold text-foreground">{item.label}</span>
               {item.sublabel && <span className="text-xs text-muted-foreground">{item.sublabel}</span>}
             </button>
@@ -169,7 +169,7 @@ export function EntityPicker({
               className={cn(
                 "mt-0.5 flex w-full items-center gap-2 rounded-lg bg-accent px-3 py-2 text-left text-sm font-bold text-primary",
                 creating ? "cursor-default" : "cursor-pointer"
-              )}>
+              )} data-ui-native-button="">
               <Icon name="plusCircle" size={13} color="var(--teal)" />
               {creating ? 'Creating…' : (createLabel ? createLabel(query.trim()) : `Create new "${query.trim()}"`)}
             </button>

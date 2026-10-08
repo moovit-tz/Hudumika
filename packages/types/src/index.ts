@@ -10,6 +10,7 @@ export * from './comply.js';
 export * from './onboarding.js';
 export * from './entitlements.js';
 export * from './finance-capabilities.js';
+export * from './finance-industry-work.js';
 export * from './pos.js';
 export * from './cms.js';
 export * from './workflow.js';
@@ -24,4 +25,8 @@ export * from './lens.js';
 export * from './developer.js';
 export * from './project-os.js';
 export * from './agent.js';
+export * from './finance-expense-reports.js';
+export * from './vendor-master.js';
+export * from './finance-tax-preparation.js';
 
+export * from './finance-dashboard.js';

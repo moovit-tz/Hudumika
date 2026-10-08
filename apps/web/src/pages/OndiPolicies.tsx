@@ -169,7 +169,7 @@ export const OndiPolicies: React.FC = () => {
                 opacity: canManagePolicies ? 1 : 0.6,
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
               }}
-            >
+             data-ui-native-button="">
               <Icon name="plusCircle" size={16} /> Create Custom Policy
             </button>
 
@@ -193,7 +193,7 @@ export const OndiPolicies: React.FC = () => {
                 opacity: (saving || !loaded || !canManagePolicies) ? 0.6 : 1,
                 boxShadow: '0 2px 10px var(--teal-m)'
               }}
-            >
+             data-ui-native-button="">
               <Icon name="check" size={16} />
               {saving ? 'Saving…' : saved ? 'Saved Policies ✓' : 'Save Policies'}
             </button>
@@ -315,7 +315,7 @@ export const OndiPolicies: React.FC = () => {
                       color: timeoutMinutes === mins ? 'var(--teal)' : 'var(--ink3)',
                       transition: 'all 0.15s ease'
                     }}
-                  >
+                   data-ui-native-button="">
                     {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
                   </button>
                 ))}
@@ -380,7 +380,7 @@ export const OndiPolicies: React.FC = () => {
                   cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                   opacity: canManagePolicies ? 1 : 0.6
                 }}
-              >
+               data-ui-native-button="">
                 + New Policy Rule
               </button>
             </div>
@@ -525,7 +525,7 @@ export const OndiPolicies: React.FC = () => {
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Create Custom Policy Rule</div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Define target scopes, enforcement levels, and security requirements.</div>
               </div>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -599,14 +599,14 @@ export const OndiPolicies: React.FC = () => {
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   style={{ padding: '9px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-                >
+                 data-ui-native-button="">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!newPolicyName.trim()}
                   style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: !newPolicyName.trim() ? 0.6 : 1 }}
-                >
+                 data-ui-native-button="">
                   Create Policy Rule
                 </button>
               </div>

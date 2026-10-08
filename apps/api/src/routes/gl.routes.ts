@@ -3,6 +3,7 @@ import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { NoResultError } from 'kysely';
 import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { withTenant } from '../db/client.js';
@@ -682,14 +683,15 @@ export async function glRoutes(fastify: FastifyInstance) {
       const tenantId = request.user.tenant_id;
       const today = new Date();
       const todayStr = today.toISOString().slice(0, 10);
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
-      const yearStart = new Date(today.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      const monthStart = `${todayStr.slice(0, 7)}-01`;
+      const yearStart = `${todayStr.slice(0, 4)}-01-01`;
+      const currency = await withTenant(tenantId, trx => reportingCurrency(trx, tenantId));
 
       const safeBalance = async (code: string): Promise<number> => {
         try {
           const r = await GLService.ledger(tenantId, code, yearStart, todayStr);
           return r.closing_balance;
-        } catch { return 0; }
+        } catch (error) { if (error instanceof NoResultError) return 0; throw error; }
       };
 
       const [
@@ -751,6 +753,7 @@ export async function glRoutes(fastify: FastifyInstance) {
 
       return {
         asOf: todayStr,
+        currency,
         cash: { tzs: cashTZS, usd: cashUSD, onHand: cashOnHand, total: cashTZS + cashOnHand },
         receivables: { total: receivables.totals.total, overdue: receivables.totals.total - receivables.totals.current, count: receivables.rows.length },
         payables: { total: payables.totals.total, overdue: payables.totals.total - payables.totals.current, count: payables.rows.length },

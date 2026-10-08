@@ -163,7 +163,7 @@ export const GpswoxSection: React.FC = () => {
           <input className="input-field" type="password" placeholder="••••••••" value={f.password} onChange={e => set('password', e.target.value)} />
         </Field>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-          <button type="button" className="btn btn-outline btn-sm" onClick={handleTest} disabled={testing || !f.base_url || !f.email || !f.password}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={handleTest} disabled={testing || !f.base_url || !f.email || !f.password} data-ui-native-button="">
             {testing ? 'Testing…' : 'Test Connection'}
           </button>
           {testResult === 'ok' && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>Connected</span>}
@@ -410,8 +410,8 @@ export const TRASection: React.FC = () => {
         </Card>
         <Card title="Manual Actions" desc="Z-reports submit automatically every night. Use these only to test the connection or recover from a missed run.">
           <div className="s-fld--full" style={{ display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={refreshToken} disabled={tokenRefreshing}>{tokenRefreshing ? 'Refreshing…' : 'Refresh Token'}</button>
-            <button type="button" className="btn btn-secondary" onClick={runZReport} disabled={zReporting}>{zReporting ? 'Submitting…' : 'Submit Z-Report Now'}</button>
+            <button type="button" className="btn btn-secondary" onClick={refreshToken} disabled={tokenRefreshing} data-ui-native-button="">{tokenRefreshing ? 'Refreshing…' : 'Refresh Token'}</button>
+            <button type="button" className="btn btn-secondary" onClick={runZReport} disabled={zReporting} data-ui-native-button="">{zReporting ? 'Submitting…' : 'Submit Z-Report Now'}</button>
           </div>
           {actionMsg && <div className="s-fld--full" style={{ marginTop: 10, fontSize: 12.5, color: 'var(--ink2)' }}>{actionMsg}</div>}
         </Card>
@@ -439,7 +439,7 @@ export const TRASection: React.FC = () => {
         </Field>
         <Field label="Certificate Password"><input title="Certificate Password" placeholder="Certificate password" className="input-field" type="password" value={pfxPassword} onChange={e => setPfxPassword(e.target.value)} /></Field>
         <div className="s-fld--full" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button type="button" className="btn btn-secondary" onClick={uploadCert} disabled={!pfxFile || uploading}>
+          <button type="button" className="btn btn-secondary" onClick={uploadCert} disabled={!pfxFile || uploading} data-ui-native-button="">
             {uploading ? 'Uploading…' : pfxPath ? 'Re-upload Certificate' : 'Upload Certificate'}
           </button>
           {pfxPath && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={12} color="var(--green)" /> Uploaded</span>}
@@ -447,7 +447,7 @@ export const TRASection: React.FC = () => {
       </Card>
       {error && <div className="s-fld--full" style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 4 }}>{error}</div>}
       <div className="s-save-row">
-        <button type="button" className="btn btn-primary" onClick={register} disabled={registering || !pfxPath}>
+        <button type="button" className="btn btn-primary" onClick={register} disabled={registering || !pfxPath} data-ui-native-button="">
           {registering ? 'Registering…' : 'Register with TRA'}
         </button>
       </div>

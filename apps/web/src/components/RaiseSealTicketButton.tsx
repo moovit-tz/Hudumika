@@ -60,7 +60,7 @@ export function RaiseSealTicketButton({ customerId, defaultSubject, contextNote,
 
   if (!open) {
     return (
-      <button type="button" className={buttonClassName} onClick={() => setOpen(true)}>
+      <button type="button" className={buttonClassName} onClick={() => setOpen(true)} data-ui-native-button="">
         <Icon name="helpCircle" size={13} /><span>Raise Support Ticket</span>
       </button>
     );
@@ -78,10 +78,10 @@ export function RaiseSealTicketButton({ customerId, defaultSubject, contextNote,
           <SelectItem value="URGENT">Urgent</SelectItem>
         </SelectContent>
       </Select>
-      <button type="button" className="btn btn-primary" disabled={saving || !subject.trim()} onClick={handleCreate}>
+      <button type="button" className="btn btn-primary" disabled={saving || !subject.trim()} onClick={handleCreate} data-ui-native-button="">
         {saving ? 'Raising…' : 'Raise Ticket'}
       </button>
-      <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
+      <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)} data-ui-native-button="">Cancel</button>
     </div>
   );
 }

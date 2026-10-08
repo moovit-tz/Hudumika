@@ -80,7 +80,7 @@ function OfficerMentionInput({
             <>
               <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
-              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>×</button>
+              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }} data-ui-native-button="">×</button>
             </>
           ) : (
             <input
@@ -106,7 +106,7 @@ function OfficerMentionInput({
             onClick={() => select(o)}
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-          >
+           data-ui-native-button="">
             <PersonAvatar userId={o.user_id || o.id} name={o.name} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
@@ -679,7 +679,7 @@ export const CommandCenter: React.FC = () => {
         aria-pressed={active}
         onClick={() => setSelectedMetric(m => (m === cell.metric ? null : cell.metric))}
         title={active ? 'Filtering — click to clear' : 'Click to filter'}
-      >
+       data-ui-native-button="">
         {inner}
       </button>
     ) : (
@@ -719,7 +719,7 @@ export const CommandCenter: React.FC = () => {
                 onClick={() => setExpanded(!expanded)}
                 title={expanded ? 'Collapse summary' : 'Expand summary'}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}
-              >
+               data-ui-native-button="">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {expanded ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="18 15 12 9 6 15"></polyline>}
                 </svg>
@@ -729,7 +729,7 @@ export const CommandCenter: React.FC = () => {
                   <button key={m} type="button"
                     title={m === 'list' ? 'List view' : 'Board view'}
                     className={`cc-view-btn${viewMode === m ? ' active' : ''}`}
-                    onClick={() => { setViewMode(m); localStorage.setItem('ops_viewMode', m); }}>
+                    onClick={() => { setViewMode(m); localStorage.setItem('ops_viewMode', m); }} data-ui-native-button="">
                     {m === 'list'
                       ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>List</>
                       : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Board</>
@@ -768,7 +768,7 @@ export const CommandCenter: React.FC = () => {
                       className="ds-tabs-trigger"
                       data-state={selectedMetric === 'active' ? 'active' : 'inactive'}
                       onClick={() => setSelectedMetric(m => m === 'active' ? null : 'active')}
-                    >
+                     data-ui-native-button="">
                       Active
                       <span style={{
                         fontSize: 10,
@@ -787,7 +787,7 @@ export const CommandCenter: React.FC = () => {
                       className="ds-tabs-trigger"
                       data-state={selectedMetric === 'checked_in' ? 'active' : 'inactive'}
                       onClick={() => setSelectedMetric(m => m === 'checked_in' ? null : 'checked_in')}
-                    >
+                     data-ui-native-button="">
                       Checked In
                       <span style={{
                         fontSize: 10,
@@ -806,7 +806,7 @@ export const CommandCenter: React.FC = () => {
                       className="ds-tabs-trigger"
                       data-state={selectedMetric === 'pending' ? 'active' : 'inactive'}
                       onClick={() => setSelectedMetric(m => m === 'pending' ? null : 'pending')}
-                    >
+                     data-ui-native-button="">
                       Pending
                       <span style={{
                         fontSize: 10,
@@ -829,7 +829,7 @@ export const CommandCenter: React.FC = () => {
                   className="ds-tabs-trigger"
                   data-state={showOnlyMyCases ? 'active' : 'inactive'}
                   onClick={() => setShowOnlyMyCases(!showOnlyMyCases)}
-                >
+                 data-ui-native-button="">
                   My Cases
                 </button>
 
@@ -839,7 +839,7 @@ export const CommandCenter: React.FC = () => {
                   data-state={selectedRiskOnly ? 'active' : 'inactive'}
                   onClick={() => setSelectedRiskOnly(!selectedRiskOnly)}
                   style={selectedRiskOnly ? { color: 'var(--red)' } : {}}
-                >
+                 data-ui-native-button="">
                   At Risk
                 </button>
               </div>
@@ -870,7 +870,7 @@ export const CommandCenter: React.FC = () => {
                         className="cc-search-clear"
                         aria-label="Clear search"
                         onClick={() => setSearchQuery('')}
-                      >
+                       data-ui-native-button="">
                         <Icon name="x" size={12} />
                       </button>
                     )}
@@ -879,7 +879,7 @@ export const CommandCenter: React.FC = () => {
                   {/* Sort — shared so it works on Board and List alike. */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className="fc fc-filterby">
+                      <button type="button" className="fc fc-filterby" data-ui-native-button="">
                         <Icon name="arrowUpDown" size={12} />
                         {SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? 'Sort'}
                         <Icon name="chevronDown" size={11} />
@@ -895,7 +895,7 @@ export const CommandCenter: React.FC = () => {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className={`fc fc-filterby${declFiltersActive ? ' on' : ''}`}>
+                      <button type="button" className={`fc fc-filterby${declFiltersActive ? ' on' : ''}`} data-ui-native-button="">
                         <Icon name="sliders" size={12} />
                         Filter by
                         {declFiltersActive && (
@@ -1057,7 +1057,7 @@ export const CommandCenter: React.FC = () => {
             {aiError && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex justify-between items-center">
                 <span>{aiError}</span>
-                <button type="button" onClick={() => setAiError(null)} className="font-bold">×</button>
+                <button type="button" onClick={() => setAiError(null)} className="font-bold" data-ui-native-button="">×</button>
               </div>
             )}
 

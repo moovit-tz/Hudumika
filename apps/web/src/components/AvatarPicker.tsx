@@ -135,7 +135,7 @@ export function AvatarPicker({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 0, lineHeight: 1,
           }}
-        >
+         data-ui-native-button="">
           <Icon name="camera" size={Math.max(11, Math.round(size * 0.16))} color="#fff" />
         </button>}
         <input
@@ -151,7 +151,7 @@ export function AvatarPicker({
       {hasPicture && controls === 'compact' && (
         <button type="button" onClick={remove} disabled={busy}
           style={{ background: 'none', border: 'none', padding: 0, cursor: busy ? 'wait' : 'pointer',
-                   color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)' }}>
+                   color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)' }} data-ui-native-button="">
           Remove
         </button>
       )}

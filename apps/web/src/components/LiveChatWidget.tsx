@@ -132,7 +132,7 @@ export const LiveChatWidget: React.FC = () => {
           transition: 'transform 0.2s',
           transform: isOpen ? 'scale(0.8)' : 'scale(1)'
         }}
-      >
+       data-ui-native-button="">
         <Icon name={isOpen ? 'x' : 'chatBubble'} size={28} />
       </button>
 
@@ -221,7 +221,7 @@ export const LiveChatWidget: React.FC = () => {
                   border: 'none', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: input.trim() && !sending ? 'pointer' : 'not-allowed', transition: 'background 0.2s'
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="send" size={16} />
               </button>
             </div>

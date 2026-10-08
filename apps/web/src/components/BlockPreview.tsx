@@ -193,7 +193,7 @@ function FormBlockRenderer({ formKey, tenantSlug, interactive, buttonClassName }
         tabIndex={-1} autoComplete="off" aria-hidden="true"
         style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
       {status === 'error' && <p className="block-preview-form-error">{errorMsg}</p>}
-      <button type="submit" className={buttonClassName} disabled={status === 'submitting'}>{status === 'submitting' ? 'Sending…' : 'Submit'}</button>
+      <button type="submit" className={buttonClassName} disabled={status === 'submitting'} data-ui-native-button="">{status === 'submitting' ? 'Sending…' : 'Submit'}</button>
     </form>
   );
 }

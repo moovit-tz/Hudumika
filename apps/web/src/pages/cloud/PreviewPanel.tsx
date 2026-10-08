@@ -222,7 +222,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
     <div style={{ width: 300, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--white)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
         <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>Details</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }} aria-label="Close"><Icon name="close" size={16} /></button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }} aria-label="Close" data-ui-native-button=""><Icon name="close" size={16} /></button>
       </div>
 
       <div style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
@@ -249,22 +249,22 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
 
       <div style={{ padding: '12px 16px', display: 'flex', gap: 8, borderBottom: '1px solid var(--border)' }}>
         {item.type !== 'folder' && kind && (
-          <button onClick={() => onExpand(item)} title="View" style={{ ...actionBtnStyle, flex: 1 }}>
+          <button onClick={() => onExpand(item)} title="View" style={{ ...actionBtnStyle, flex: 1 }} data-ui-native-button="">
             <Icon name="eye" size={15} color="var(--teal)" />
           </button>
         )}
         {item.type !== 'folder' && (
-          <button onClick={() => onDownload(item)} title="Download" style={{ ...actionBtnStyle, flex: 1 }}>
+          <button onClick={() => onDownload(item)} title="Download" style={{ ...actionBtnStyle, flex: 1 }} data-ui-native-button="">
             <Icon name="download" size={15} color="var(--ink2)" />
           </button>
         )}
-        <button onClick={() => onShare(item)} title="Share" style={{ ...actionBtnStyle, flex: item.type === 'folder' ? 1 : undefined }}>
+        <button onClick={() => onShare(item)} title="Share" style={{ ...actionBtnStyle, flex: item.type === 'folder' ? 1 : undefined }} data-ui-native-button="">
           <Icon name="userPlus" size={15} color="var(--teal)" />
         </button>
-        <button onClick={() => onStar(item)} title={item.starred ? 'Unstar' : 'Star'} style={{ ...actionBtnStyle, background: item.starred ? 'var(--gold-l)' : 'var(--bg)' }}>
+        <button onClick={() => onStar(item)} title={item.starred ? 'Unstar' : 'Star'} style={{ ...actionBtnStyle, background: item.starred ? 'var(--gold-l)' : 'var(--bg)' }} data-ui-native-button="">
           <Icon name="star" size={15} color={item.starred ? 'var(--gold)' : 'var(--ink3)'} />
         </button>
-        <button onClick={() => onDelete(item)} title="Delete" style={actionBtnStyle}>
+        <button onClick={() => onDelete(item)} title="Delete" style={actionBtnStyle} data-ui-native-button="">
           <Icon name="trash" size={15} color="var(--red)" />
         </button>
       </div>
@@ -304,7 +304,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
                   onClick={() => versionInputRef.current?.click()}
                   disabled={uploadingVersion}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--teal)', padding: 0 }}
-                >
+                 data-ui-native-button="">
                   {uploadingVersion ? 'Uploading…' : '+ Upload new version'}
                 </button>
                 <input ref={versionInputRef} type="file" onChange={handleVersionFileChosen} style={{ display: 'none' }} />
@@ -327,13 +327,13 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
                       onClick={() => apiDownload(`/v1/files/${item.id}/versions/${v.id}/download`, item.name)}
                       title="Download this version"
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}
-                    ><Icon name="download" size={13} /></button>
+                     data-ui-native-button=""><Icon name="download" size={13} /></button>
                     <button
                       onClick={() => restoreVersion(v.id)}
                       disabled={restoringId === v.id}
                       title="Restore this version"
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--teal)', padding: '0 2px' }}
-                    >{restoringId === v.id ? '…' : 'Restore'}</button>
+                     data-ui-native-button="">{restoringId === v.id ? '…' : 'Restore'}</button>
                   </div>
                 ))}
               </div>
@@ -436,8 +436,8 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
                           style={{ fontSize: 12.5, padding: '6px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', resize: 'vertical', minHeight: 50, fontFamily: 'inherit' }}
                         />
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => saveEdit(c.id)} className="btn btn-primary btn-xs">Save</button>
-                          <button onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--ink3)' }}>Cancel</button>
+                          <button onClick={() => saveEdit(c.id)} className="btn btn-primary btn-xs" data-ui-native-button="">Save</button>
+                          <button onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--ink3)' }} data-ui-native-button="">Cancel</button>
                         </div>
                       </div>
                     ) : (
@@ -445,8 +445,8 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
                         <div style={{ fontSize: 12.5, color: 'var(--ink)', marginTop: 3, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{c.content}</div>
                         {canModify && (
                           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                            <button onClick={() => { setEditingId(c.id); setEditingContent(c.content); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)', padding: 0 }}>Edit</button>
-                            <button onClick={() => deleteComment(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', padding: 0 }}>Delete</button>
+                            <button onClick={() => { setEditingId(c.id); setEditingContent(c.content); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)', padding: 0 }} data-ui-native-button="">Edit</button>
+                            <button onClick={() => deleteComment(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', padding: 0 }} data-ui-native-button="">Delete</button>
                           </div>
                         )}
                       </>
@@ -463,7 +463,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
               placeholder="Add a comment…"
               style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
             />
-            <button onClick={postComment} disabled={!newComment.trim() || posting} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }}>
+            <button onClick={postComment} disabled={!newComment.trim() || posting} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }} data-ui-native-button="">
               {posting ? 'Posting…' : 'Comment'}
             </button>
           </div>

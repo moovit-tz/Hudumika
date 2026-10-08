@@ -204,7 +204,7 @@ export const CommunicationsSection: React.FC = () => {
                       disabled={ev.is_required || saving === ev.event_key}
                       onClick={() => !ev.is_required && toggle(ev.event_key, !ev.is_enabled)}
                       aria-label={ev.is_enabled ? 'Enabled' : 'Disabled'}
-                    >
+                     data-ui-native-button="">
                       <span className="etab-toggle-thumb" />
                     </button>
                   </div>

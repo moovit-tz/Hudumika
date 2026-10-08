@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { FINANCE_INDUSTRY_KEYS } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
@@ -9,7 +10,8 @@ import { createProduction, progressProduction, saveProductionRecipe } from '../s
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { InvalidMovement, UnknownUom } from '../services/inventory.service.js';
 import { allocateStock, dispatchAllocation, releaseAllocation } from '../services/finance-stock-allocation.service.js';
-import { accrueWorkCost, getWorkPostedResults } from '../services/finance-work-accounting.service.js';
+import { accrueWorkCost, allocatePostedWorkCost, getWorkPostedResults, listWorkCostSources } from '../services/finance-work-accounting.service.js';
+import { GLService } from '../services/gl.service.js';
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const date = new Date(`${value}T00:00:00Z`);
@@ -108,6 +110,31 @@ export async function financeIndustryWorkRoutes(server: FastifyInstance) {
       const posted = await getWorkPostedResults(trx, request.user.tenant_id, id);
       return { ...work, ...posted, lines, production, allocations, estimated_revenue: lines.filter(line => line.billable).reduce((sum, line) => sum + Number(line.quantity) * Number(line.rate), 0),
         estimated_cost: lines.reduce((sum, line) => sum + Number(line.quantity) * Number(line.cost_rate), 0) };
+    });
+  });
+  server.get('/:id/costs', { preHandler: requireFinanceCapability('finance.accounting.advanced') }, async request => {
+    const { id } = paramsSchema.parse(request.params);
+    const query = z.object({ search: z.string().max(160).default(''), page: z.coerce.number().int().min(1).max(100000).default(1) }).parse(request.query);
+    return withTenant(request.user.tenant_id, async trx => {
+      await getIndustryWork(trx, request.user.tenant_id, id);
+      const sources = await listWorkCostSources(trx, request.user.tenant_id, query.search, query.page);
+      const allocations = await trx.selectFrom('finance_work_cost_allocations').selectAll().where('tenant_id', '=', request.user.tenant_id).where('work_id', '=', id).orderBy('created_at', 'desc').limit(100).execute();
+      return { ...sources, allocations };
+    });
+  });
+  server.post('/:id/costs', { preHandler: [writers, requireFinanceCapability('finance.accounting.advanced')] }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const body = z.object({ source_journal_line_id: z.string().uuid(), amount: z.number().finite().positive().max(1e12), reason: z.string().trim().min(1).max(500) }).parse(request.body);
+    return reply.status(201).send(await allocatePostedWorkCost(request.user.tenant_id, request.user.sub, id, body.source_journal_line_id, body.amount, body.reason));
+  });
+  server.post('/:id/costs/:allocationId/reverse', { preHandler: [writers, requireFinanceCapability('finance.accounting.advanced')] }, async request => {
+    const { id, allocationId } = paramsSchema.extend({ allocationId: z.string().uuid() }).parse(request.params);
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
+    return withTenant(request.user.tenant_id, async trx => {
+      await sql`select pg_advisory_xact_lock(hashtextextended(${`gl:${request.user.tenant_id}`}, 0))`.execute(trx);
+      const allocation = await trx.selectFrom('finance_work_cost_allocations').selectAll().where('tenant_id', '=', request.user.tenant_id).where('work_id', '=', id).where('id', '=', allocationId).where('reversed_at', 'is', null).executeTakeFirst();
+      if (!allocation) throw new IndustryWorkError('Active allocation not found.', 404);
+      return { journal_id: await GLService.voidEntry(request.user.tenant_id, allocation.allocation_journal_id, request.user.sub, reason, trx) };
     });
   });
   server.patch('/:id/status', { preHandler: writers }, async request => {

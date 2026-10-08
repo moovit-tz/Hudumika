@@ -177,8 +177,8 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Expense Details</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Tip label="Delete"><button type="button" aria-label="Delete" onClick={handleDelete} disabled={deleting} style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="trash" size={14} /></button></Tip>
-          <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="x" size={14} /></button></Tip>
+          <Tip label="Delete"><button type="button" aria-label="Delete" onClick={handleDelete} disabled={deleting} style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>
+          <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="x" size={14} /></button></Tip>
         </div>
       </div>
 
@@ -218,7 +218,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               ) : (
                 <div>
                   <button type="button" onClick={verifyEfdReceipt} disabled={efdChecking}
-                    style={{ padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     {efdChecking ? 'Checking with TRA…' : 'Verify with TRA'}
                   </button>
                   {expense.efd_error && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{expense.efd_error}</div>}
@@ -294,15 +294,15 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
                 />
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button type="button" disabled={retiring} onClick={() => markRetired('retired')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     Mark retired
                   </button>
                   <button type="button" disabled={retiring} onClick={() => markRetired('short')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     Mark short
                   </button>
                   <button type="button" disabled={retiring} onClick={() => markRetired('written_off')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     Write off
                   </button>
                 </div>
@@ -555,10 +555,10 @@ export const Expenses: React.FC = () => {
           filtersOpen={showFilters}
           actions={
             <>
-              <button type="button" className="stb-icon-btn" onClick={() => setShowBulkUpload(true)} title="Bulk Upload" aria-label="Bulk Upload">
+              <button type="button" className="stb-icon-btn" onClick={() => setShowBulkUpload(true)} title="Bulk Upload" aria-label="Bulk Upload" data-ui-native-button="">
                 <Icon name="upload" size={14} />
               </button>
-              <Tip label="Export CSV"><button type="button" className="stb-icon-btn" onClick={exportCsv} aria-label="Export CSV"><Icon name="download" size={14} /></button></Tip>
+              <Tip label="Export CSV"><button type="button" className="stb-icon-btn" onClick={exportCsv} aria-label="Export CSV" data-ui-native-button=""><Icon name="download" size={14} /></button></Tip>
             </>
           }
         />
@@ -670,7 +670,7 @@ export const Expenses: React.FC = () => {
                   fontSize: 12, fontWeight: 600, cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                   opacity: currentPage === 1 ? 0.5 : 1
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="chevronLeft" size={13} /> Previous
               </button>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', minWidth: 80, textAlign: 'center' }}>
@@ -687,7 +687,7 @@ export const Expenses: React.FC = () => {
                   fontSize: 12, fontWeight: 600, cursor: currentPage === pageCount ? 'not-allowed' : 'pointer',
                   opacity: currentPage === pageCount ? 0.5 : 1
                 }}
-              >
+               data-ui-native-button="">
                 Next <Icon name="chevronRight" size={13} />
               </button>
             </div>
@@ -714,7 +714,7 @@ export const Expenses: React.FC = () => {
           <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Bulk Upload Expenses</h2>
-              <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>×</button>
+              <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)} data-ui-native-button="">×</button>
             </div>
 
             <form onSubmit={handleBulkUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

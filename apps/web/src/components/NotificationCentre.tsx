@@ -56,7 +56,7 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
           </div>
           <div className="notif-panel-hdr-right">
             {unreadCount > 0 && (
-              <button type="button" className="notif-panel-mark-all" onClick={onMarkAllRead}>
+              <button type="button" className="notif-panel-mark-all" onClick={onMarkAllRead} data-ui-native-button="">
                 {t('notif.markAllRead')}
               </button>
             )}
@@ -65,7 +65,7 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
               className="notif-panel-close"
               onClick={onClose}
               title={t('notif.title')}
-            >
+             data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           </div>

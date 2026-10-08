@@ -158,7 +158,7 @@ export const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
             type="button"
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
-          >
+           data-ui-native-button="">
             <Icon name="x" size={20} />
           </button>
         </div>

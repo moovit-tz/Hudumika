@@ -279,7 +279,7 @@ function Btn({ label, icon, onClick, variant = 'ghost', disabled = false }: { la
     danger:  { background: 'var(--white)', color: 'var(--red)', border: '1.5px solid var(--border)' },
   };
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant], minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant], minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
       {icon && <Icon name={icon} size={13} strokeWidth={2} />}
       {label}
     </button>
@@ -525,7 +525,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button onClick={cancelSubscription} style={{ padding: 'var(--ds-btn-py) 18px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--red)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel Subscription</button>
+              <button onClick={cancelSubscription} style={{ padding: 'var(--ds-btn-py) 18px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--red)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel Subscription</button>
             </div>
           </div>
         </Card>
@@ -546,7 +546,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               </div>
             ))}
             {current && current.status !== 'paid' ? (
-              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 {paying === current.id ? 'Processing…' : 'Pay Now'}
               </button>
             ) : (
@@ -554,7 +554,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                 {current ? 'Paid' : 'No invoice yet'}
               </div>
             )}
-            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Download Statement</button>
+            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Download Statement</button>
           </div>
         </Card>
       </div>
@@ -787,7 +787,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                       onClick={() => setMethodType(t.value)}
                       className="pm-type-card"
                       data-active={methodType === t.value}
-                    >
+                     data-ui-native-button="">
                       <Icon name={t.icon} size={20} strokeWidth={1.75} />
                       <span className="pm-type-card-label">{t.label}</span>
                       <span className="pm-type-card-sub">{t.sub}</span>
@@ -906,7 +906,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                     <a href="/petti" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>Top up →</a>
                   </div>
                 )}
-                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {payingUpcoming ? 'Processing…' : 'Pay Now'}
                 </button>
               </>
@@ -1150,7 +1150,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
         <div className="sub-billing-toggle">
           {(['monthly', 'yearly'] as const).map(b => (
             <button key={b} className={`sub-toggle-btn${billing === b ? ' active' : ''}`}
-               onClick={() => setBilling(b)}>
+               onClick={() => setBilling(b)} data-ui-native-button="">
               {b.charAt(0).toUpperCase() + b.slice(1)}
               {b === 'yearly' && <span className="sub-toggle-badge">2 months free</span>}
             </button>
@@ -1224,7 +1224,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                   style={isCurrent ? undefined : { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
                   disabled={isCurrent}
                   onClick={() => handleSelectPlan(k)}
-                >
+                 data-ui-native-button="">
                   {isCurrent ? 'Current Plan' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Get Started <Icon name="arrowRight" size={13} strokeWidth={2.5} /></span>}
                 </button>
               )}
@@ -1691,7 +1691,7 @@ export const Subscription: React.FC = () => {
               className="btn btn-primary"
               onClick={() => setTab('plans')}
               style={{ fontSize: 12.5, fontWeight: 600, padding: '7px 16px' }}
-            >
+             data-ui-native-button="">
               <Icon name="layers" size={14} />
               <span>Change Plan</span>
             </button>

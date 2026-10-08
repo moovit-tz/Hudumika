@@ -365,8 +365,8 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
                 <td style={{ padding: '7px 12px', color: 'var(--ink2)', textAlign: 'right' }}>${r.transport_40ft_usd}</td>
                 <td style={{ padding: '7px 12px', color: 'var(--ink2)', textAlign: 'right' }}>{r.weighbridge_count}</td>
                 <td style={{ padding: '7px 12px', whiteSpace: 'nowrap' }}>
-                  <button type="button" onClick={() => startEdit(r)} style={iconBtnStyle}><Icon name="edit" size={13} color="var(--ink3)" /></button>
-                  <button type="button" onClick={() => remove(r.id, r.destination)} style={iconBtnStyle}><Icon name="trash" size={13} color="var(--red)" /></button>
+                  <button type="button" onClick={() => startEdit(r)} style={iconBtnStyle} data-ui-native-button=""><Icon name="edit" size={13} color="var(--ink3)" /></button>
+                  <button type="button" onClick={() => remove(r.id, r.destination)} style={iconBtnStyle} data-ui-native-button=""><Icon name="trash" size={13} color="var(--red)" /></button>
                 </td>
               </tr>
             ))}
@@ -380,8 +380,8 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
 function RowActions({ onSave, onCancel, saving }: { onSave: () => void; onCancel: () => void; saving: boolean }) {
   return (
     <>
-      <button type="button" onClick={onSave} disabled={saving} aria-label="Save" style={{ ...iconBtnStyle, color: 'var(--teal)' }}><Icon name="check" size={14} color="var(--teal)" /></button>
-      <button type="button" onClick={onCancel} aria-label="Cancel" style={iconBtnStyle}><Icon name="x" size={14} color="var(--ink3)" /></button>
+      <button type="button" onClick={onSave} disabled={saving} aria-label="Save" style={{ ...iconBtnStyle, color: 'var(--teal)' }} data-ui-native-button=""><Icon name="check" size={14} color="var(--teal)" /></button>
+      <button type="button" onClick={onCancel} aria-label="Cancel" style={iconBtnStyle} data-ui-native-button=""><Icon name="x" size={14} color="var(--ink3)" /></button>
     </>
   );
 }

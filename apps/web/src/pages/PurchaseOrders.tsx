@@ -783,7 +783,7 @@ export const PurchaseOrders: React.FC = () => {
           <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--ink)' }}>
             {currentDetailsPo && `PO #${currentDetailsPo.po_number}`}
           </div>
-          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="arrowLeft" size={13} /> Back
           </button>
         </div>
@@ -865,7 +865,7 @@ export const PurchaseOrders: React.FC = () => {
                         justifyContent: 'center'
                       }}
                       title="List View"
-                    >
+                     data-ui-native-button="">
                       <Icon name="list" size={14} />
                     </button>
                     <button
@@ -882,7 +882,7 @@ export const PurchaseOrders: React.FC = () => {
                         justifyContent: 'center'
                       }}
                       title="Card View"
-                    >
+                     data-ui-native-button="">
                       <Icon name="grid" size={14} />
                     </button>
                   </div>
@@ -914,14 +914,14 @@ export const PurchaseOrders: React.FC = () => {
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
+                   data-ui-native-button="">
                     <Icon name="filter" size={13} />
                     Filters
                     <Icon name={showFiltersPanel ? 'chevronUp' : 'chevronDown'} size={11} />
                   </button>
 
                   {!readOnly && <button type="button" onClick={handleCreateInit}
-                    style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                    style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Purchase Order
                   </button>}
                 </div>
@@ -972,7 +972,7 @@ export const PurchaseOrders: React.FC = () => {
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    >
+                     data-ui-native-button="">
                       Reset Filters
                     </button>
                   </div>
@@ -1004,7 +1004,7 @@ export const PurchaseOrders: React.FC = () => {
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
+                 data-ui-native-button="">
                   Clear Filters
                 </button>
               </div>
@@ -1042,7 +1042,7 @@ export const PurchaseOrders: React.FC = () => {
                             color: 'var(--blue)',
                             cursor: 'pointer'
                           }}
-                        >
+                         data-ui-native-button="">
                           {po.po_number}
                         </button>
                         <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, borderRadius: 'var(--r-sm)', padding: '2px 8px' }}>
@@ -1103,7 +1103,7 @@ export const PurchaseOrders: React.FC = () => {
                             justifyContent: 'center'
                           }}
                           title="Download PDF"
-                        >
+                         data-ui-native-button="">
                           <Icon name="download" size={13} />
                         </button>
                         <button
@@ -1121,7 +1121,7 @@ export const PurchaseOrders: React.FC = () => {
                             justifyContent: 'center'
                           }}
                           title="View Details"
-                        >
+                         data-ui-native-button="">
                           <Icon name="eye" size={13} />
                         </button>
                         {!readOnly && po.status === 'Draft' && (
@@ -1141,7 +1141,7 @@ export const PurchaseOrders: React.FC = () => {
                                 justifyContent: 'center'
                               }}
                               title="Duplicate"
-                            >
+                             data-ui-native-button="">
                               <Icon name="copy" size={13} />
                             </button>
                             <button
@@ -1159,7 +1159,7 @@ export const PurchaseOrders: React.FC = () => {
                                 justifyContent: 'center'
                               }}
                               title="Edit"
-                            >
+                             data-ui-native-button="">
                               <Icon name="edit" size={13} />
                             </button>
                             <button
@@ -1177,7 +1177,7 @@ export const PurchaseOrders: React.FC = () => {
                                 justifyContent: 'center'
                               }}
                               title="Delete"
-                            >
+                             data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button>
                           </>
@@ -1260,7 +1260,7 @@ export const PurchaseOrders: React.FC = () => {
                                   cursor: 'pointer',
                                   outline: 'none'
                                 }}
-                              >
+                               data-ui-native-button="">
                                 {po.po_number}
                               </button>
                             </td>
@@ -1340,7 +1340,7 @@ export const PurchaseOrders: React.FC = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                   }}
-                                >
+                                 data-ui-native-button="">
                                   <Icon name="download" size={12.5} />
                                 </button>
                                 </Tip>
@@ -1359,7 +1359,7 @@ export const PurchaseOrders: React.FC = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                   }}
-                                >
+                                 data-ui-native-button="">
                                   <Icon name="eye" size={12.5} />
                                 </button>
                                 </Tip>
@@ -1380,7 +1380,7 @@ export const PurchaseOrders: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                       }}
-                                    >
+                                     data-ui-native-button="">
                                       <Icon name="copy" size={12.5} />
                                     </button>
                                     </Tip>
@@ -1399,7 +1399,7 @@ export const PurchaseOrders: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                       }}
-                                    >
+                                     data-ui-native-button="">
                                       <Icon name="edit" size={12.5} />
                                     </button>
                                     </Tip>
@@ -1418,7 +1418,7 @@ export const PurchaseOrders: React.FC = () => {
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                       }}
-                                    >
+                                     data-ui-native-button="">
                                       <Icon name="trash" size={12.5} />
                                     </button>
                                     </Tip>
@@ -1455,7 +1455,7 @@ export const PurchaseOrders: React.FC = () => {
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
+                 data-ui-native-button="">
                   Previous
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
@@ -1473,7 +1473,7 @@ export const PurchaseOrders: React.FC = () => {
                       fontWeight: 600,
                       cursor: 'pointer'
                     }}
-                  >
+                   data-ui-native-button="">
                     {pageNum}
                   </button>
                 ))}
@@ -1489,7 +1489,7 @@ export const PurchaseOrders: React.FC = () => {
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
+                 data-ui-native-button="">
                   Next
                 </button>
               </div>
@@ -1646,7 +1646,7 @@ export const PurchaseOrders: React.FC = () => {
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
+                   data-ui-native-button="">
                     <Icon name="download" size={13} />
                     Download PDF
                   </button>
@@ -1666,7 +1666,7 @@ export const PurchaseOrders: React.FC = () => {
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    >
+                     data-ui-native-button="">
                       <Icon name="checkCircle" size={13} />
                       Send to Vendor
                     </button>
@@ -1770,8 +1770,8 @@ export const PurchaseOrders: React.FC = () => {
             onCancel={() => setViewMode('LIST')}
             actions={
               <>
-                <button type="button" onClick={() => setViewMode('LIST')} className="btn btn-secondary">Cancel</button>
-                <button type="submit" form="po-form" className="btn btn-primary">{viewMode === 'CREATE' ? 'Create' : 'Save Changes'}</button>
+                <button type="button" onClick={() => setViewMode('LIST')} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+                <button type="submit" form="po-form" className="btn btn-primary" data-ui-native-button="">{viewMode === 'CREATE' ? 'Create' : 'Save Changes'}</button>
               </>
             }
           >
@@ -1880,7 +1880,7 @@ export const PurchaseOrders: React.FC = () => {
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
+                 data-ui-native-button="">
                   <Icon name="plus" size={12} strokeWidth={2.5} /> Add Item
                 </button>
               }
@@ -2003,7 +2003,7 @@ export const PurchaseOrders: React.FC = () => {
                                 borderRadius: 'var(--r)'
                               }}
                               title="Remove item"
-                            >
+                             data-ui-native-button="">
                               <Icon name="trash" size={15} />
                             </button>
                           </td>

@@ -182,17 +182,17 @@ export const OndiIntegrations: React.FC = () => {
                   Delivering
                 </span>
                 <button type="button" disabled={busy === app.id} onClick={() => toggle(app)}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '6px 12px', cursor: 'pointer' }}>
+                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '6px 12px', cursor: 'pointer' }} data-ui-native-button="">
                   Pause
                 </button>
                 <button type="button" disabled={busy === app.id} onClick={() => revoke(app)}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 12px', cursor: 'pointer' }}>
+                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 12px', cursor: 'pointer' }} data-ui-native-button="">
                   Revoke
                 </button>
               </div>
             ) : (
               <button type="button" disabled={busy === app.id} onClick={() => enable(app)}
-                style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: '8px 16px', cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }}>
+                style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: '8px 16px', cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
                 {busy === app.id ? 'Enabling…' : 'Enable Webhook Delivery'}
               </button>
             )}

@@ -79,7 +79,7 @@ export const OrgLogin: React.FC = () => {
                 className="login-input"
                 autoComplete="current-password"
               />
-              <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" title={showPass ? 'Hide password' : 'Show password'}>
+              <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" title={showPass ? 'Hide password' : 'Show password'} data-ui-native-button="">
                 <Icon name={showPass ? 'eyeOff' : 'eye'} size={16} />
               </button>
             </div>
@@ -87,7 +87,7 @@ export const OrgLogin: React.FC = () => {
 
           <div className="login-form-actions">
             <span />
-            <button type="submit" disabled={loading || !email || !password} className="login-submit-btn">
+            <button type="submit" disabled={loading || !email || !password} className="login-submit-btn" data-ui-native-button="">
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </div>

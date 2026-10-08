@@ -279,7 +279,7 @@ export function WorkflowEditor() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
       <div className="studio-topbar">
-        <button type="button" onClick={() => navigate(returnTo ?? '/studio')} className="studio-icon-btn" style={{ border: '1px solid var(--border)' }}>
+        <button type="button" onClick={() => navigate(returnTo ?? '/studio')} className="studio-icon-btn" style={{ border: '1px solid var(--border)' }} data-ui-native-button="">
           <Icon name="arrowLeft" size={14} /> {returnTo ? 'Back' : 'Workflows'}
         </button>
         <input
@@ -325,7 +325,7 @@ export function WorkflowEditor() {
       <div className="studio-panes" role="tablist" aria-label="Editor panes">
         {([['steps', 'Add a step'], ['canvas', 'Canvas'], ['details', selectedNode ? 'Step' : 'Workflow']] as const).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={pane === id}
-            className="studio-pane-btn" onClick={() => setPane(id)}>
+            className="studio-pane-btn" onClick={() => setPane(id)} data-ui-native-button="">
             {label}
           </button>
         ))}
@@ -337,11 +337,11 @@ export function WorkflowEditor() {
           <div className="studio-panel-head"><span className="studio-panel-title">Add a step</span></div>
           <div className="studio-scroll">
             <div className="studio-group-label">Logic</div>
-            <button type="button" className="studio-item" onClick={() => addNode('condition', undefined, 'Only continue if…')}>
+            <button type="button" className="studio-item" onClick={() => addNode('condition', undefined, 'Only continue if…')} data-ui-native-button="">
               <Icon name="gitBranch" size={15} color="var(--blue)" />
               <span><span className="studio-item-name">Condition</span><span className="studio-item-desc">Stop unless a field matches.</span></span>
             </button>
-            <button type="button" className="studio-item" onClick={() => addNode('forEach', undefined, 'For each…')}>
+            <button type="button" className="studio-item" onClick={() => addNode('forEach', undefined, 'For each…')} data-ui-native-button="">
               <Icon name="layers" size={15} color="var(--purple)" />
               <span><span className="studio-item-name">For each</span><span className="studio-item-desc">Repeat the steps below for every item in a collection.</span></span>
             </button>
@@ -349,7 +349,7 @@ export function WorkflowEditor() {
             <div className="studio-group-label">Actions</div>
             {actions.length === 0 && <div className="studio-item-desc" style={{ padding: '0 4px' }}>No actions available.</div>}
             {actions.map(a => (
-              <button key={a.id} type="button" className="studio-item" onClick={() => addNode('action', a.id, a.label)}>
+              <button key={a.id} type="button" className="studio-item" onClick={() => addNode('action', a.id, a.label)} data-ui-native-button="">
                 <Icon name="play" size={15} color={a.color} />
                 <span>
                   <span className="studio-item-app" style={{ color: a.color }}>{a.appName}</span>
@@ -448,7 +448,7 @@ export function WorkflowEditor() {
           <div className="studio-panel-head">
             <span className="studio-panel-title">{selectedNode ? 'Step' : 'Workflow'}</span>
             {selectedNode && (
-              <button type="button" className="studio-icon-btn" style={{ color: 'var(--red)' }} onClick={() => removeNode(selectedNode.id)}>
+              <button type="button" className="studio-icon-btn" style={{ color: 'var(--red)' }} onClick={() => removeNode(selectedNode.id)} data-ui-native-button="">
                 <Icon name="trash" size={13} color="var(--red)" /> Remove
               </button>
             )}
@@ -492,7 +492,7 @@ export function WorkflowEditor() {
                         const on = (workflow.targeting?.freightModes ?? []).includes(m);
                         return (
                           <button key={m} type="button" className={`studio-chip ${on ? 'sel' : ''}`}
-                            onClick={() => patchTargeting('freightModes', m)}>{m}</button>
+                            onClick={() => patchTargeting('freightModes', m)} data-ui-native-button="">{m}</button>
                         );
                       })}
                     </div>
@@ -505,7 +505,7 @@ export function WorkflowEditor() {
                         const on = (workflow.targeting?.consignmentTypes ?? []).includes(c);
                         return (
                           <button key={c} type="button" className={`studio-chip ${on ? 'sel' : ''}`}
-                            onClick={() => patchTargeting('consignmentTypes', c)}>{c}</button>
+                            onClick={() => patchTargeting('consignmentTypes', c)} data-ui-native-button="">{c}</button>
                         );
                       })}
                     </div>

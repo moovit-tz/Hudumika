@@ -187,7 +187,7 @@ export function SmsTemplates() {
                             cursor: 'pointer',
                             fontWeight: 600,
                           }}
-                        >
+                         data-ui-native-button="">
                           + {tag}
                         </button>
                       ))}

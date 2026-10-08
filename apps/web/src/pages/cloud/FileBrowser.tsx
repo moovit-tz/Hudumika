@@ -421,7 +421,7 @@ export const FileBrowser: React.FC = () => {
               <div ref={loadMoreSentinelRef} className="fb-load-more">
                 {folderLoading
                   ? <span className="fb-load-more-label">{t('fb.loadingMore')}</span>
-                  : <button className="btn btn-secondary btn-sm" onClick={() => void loadMoreFolderContents()}>
+                  : <button className="btn btn-secondary btn-sm" onClick={() => void loadMoreFolderContents()} data-ui-native-button="">
                       {t('fb.loadMore')}
                     </button>
                 }
@@ -458,7 +458,7 @@ export const FileBrowser: React.FC = () => {
           };
           input.click();
         }}
-      >
+       data-ui-native-button="">
         <Icon name="plus" size={24} color="#ffffff" />
       </button>
 

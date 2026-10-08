@@ -402,11 +402,11 @@ export function BrandingAppsSection() {
         </p>
         <div className="flex items-center gap-1 bg-muted/60 border border-border rounded-full p-1 shrink-0" role="group" aria-label="Layout">
           <button type="button" onClick={() => setAppView('grid')} title="Grid view" aria-pressed={appView === 'grid'}
-            className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer ${appView === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer ${appView === 'grid' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`} data-ui-native-button="">
             <Icon name="grid" size={15} />
           </button>
           <button type="button" onClick={() => setAppView('list')} title="List view" aria-pressed={appView === 'list'}
-            className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer ${appView === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer ${appView === 'list' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`} data-ui-native-button="">
             <Icon name="list" size={15} />
           </button>
         </div>

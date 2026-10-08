@@ -565,7 +565,7 @@ export function Calls() {
 
       {/* ── Tab Navigation Strip ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', minHeight: 48, padding: '0 6px', overflowX: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} data-ds-tabstrip="">
           {([
             { key: 'overview',   label: 'Overview',            icon: 'activity' as const },
             { key: 'directory',  label: `Directory (${filteredStaff.length})`, icon: 'users' as const },
@@ -586,7 +586,7 @@ export function Calls() {
                 cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font)',
                 transition: 'all 120ms ease',
               }}
-            >
+             data-ds-selected={activeTab === t.key as any} data-ui-native-button="" aria-pressed={activeTab === t.key as any}>
               <Icon name={t.icon} size={14} />
               <span>{t.label}</span>
             </button>
@@ -650,7 +650,7 @@ export function Calls() {
                           setRoleFilter(null);
                         }}
                         style={{ fontSize: 12, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                      >
+                       data-ui-native-button="">
                         Reset
                       </button>
                     </div>
@@ -672,7 +672,7 @@ export function Calls() {
                             color: !roleFilter ? 'hsl(var(--primary))' : 'var(--ink2)',
                             border: !roleFilter ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
                           }}
-                        >
+                         data-ui-native-button="">
                           All Roles
                         </button>
                         {availableRoles.map((r) => (
@@ -689,7 +689,7 @@ export function Calls() {
                               color: roleFilter === r ? 'hsl(var(--primary))' : 'var(--ink2)',
                               border: roleFilter === r ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
                             }}
-                          >
+                           data-ui-native-button="">
                             {r}
                           </button>
                         ))}
@@ -904,7 +904,7 @@ export function Calls() {
                         setHistoryStatusFilter(null);
                       }}
                       style={{ fontSize: 12, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                    >
+                     data-ui-native-button="">
                       Reset
                     </button>
                   </div>
@@ -937,7 +937,7 @@ export function Calls() {
                                 ? '1px solid hsl(var(--primary))'
                                 : '1px solid var(--border)',
                           }}
-                        >
+                         data-ui-native-button="">
                           {m === 'ALL' ? 'All Modes' : m === 'VIDEO' ? 'HD Video' : 'Voice'}
                         </button>
                       ))}
@@ -1096,7 +1096,7 @@ export function Calls() {
                   type="button"
                   onClick={() => setDialpadNumber('')}
                   style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
-                >
+                 data-ui-native-button="">
                   <Icon name="x" size={16} />
                 </button>
               )}
@@ -1133,7 +1133,7 @@ export function Calls() {
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
-                  >
+                   data-ui-native-button="">
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.name}</span>
                     <span style={{ fontSize: 11, color: 'hsl(var(--primary))' }}>Call Now ↗</span>
                   </button>
@@ -1175,7 +1175,7 @@ export function Calls() {
                     transition: 'all 0.1s ease',
                   }}
                   className="active:scale-95 hover:border-[var(--teal)]"
-                >
+                 data-ui-native-button="">
                   <span style={{ fontSize: 18, fontWeight: 800, lineHeight: 1 }}>{k.digit}</span>
                   {k.sub && (
                     <span style={{ fontSize: 9, color: 'var(--ink3)', letterSpacing: '0.1em', marginTop: 2 }}>
@@ -1469,7 +1469,7 @@ export function Calls() {
                 backdropFilter: 'blur(8px)',
                 transition: 'all 0.15s ease',
               }}
-            >
+             data-ui-native-button="">
               <Icon name="volume2" size={20} />
             </button>
 
@@ -1491,7 +1491,7 @@ export function Calls() {
                   backdropFilter: 'blur(8px)',
                   transition: 'all 0.15s ease',
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="camera" size={20} />
               </button>
             )}
@@ -1513,7 +1513,7 @@ export function Calls() {
                 boxShadow: '0 4px 18px rgba(239,68,68,0.4)',
                 transition: 'all 0.15s ease',
               }}
-            >
+             data-ui-native-button="">
               <Icon name="x" size={24} />
             </button>
           </div>

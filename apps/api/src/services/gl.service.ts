@@ -38,6 +38,7 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // existing tenants by migration 333.
   { code: '1250', name: 'Deferred Tax Asset', type: 'ASSET', subtype: 'DEFERRED_TAX', normalBalance: 'DEBIT' },
   { code: '1300', name: 'Inventory', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  { code: '1310', name: 'Production work in progress', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1500', name: 'Fixed Assets (net)', type: 'ASSET', subtype: 'FIXED_ASSET', normalBalance: 'DEBIT' },
   { code: '1501', name: 'Office Equipment', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'DEBIT' },
   { code: '1502', name: 'Motor Vehicles', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'DEBIT' },
@@ -86,6 +87,7 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // Posts against 1300 Inventory (already seeded, unused until this) on
   // every 'issue' movement, at the item's running weighted-average cost.
   { code: '5010', name: 'Cost of Goods Sold', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  { code: '5020', name: 'Direct engagement costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   // A negative count correction (stock physically missing) debits this and
   // credits 1300; a positive one (stock physically found) does the reverse —
   // one account for both directions, same convention as 5202 below.
@@ -148,8 +150,10 @@ export class GLService {
   }
 
   /** Core posting engine — the ONLY path that writes to journal_lines */
-  static async post(tenantId: string, req: PostingRequest): Promise<string> {
-    return withTenant(tenantId, async (trx) => {
+  static async post(tenantId: string, req: PostingRequest, transaction?: Transaction<Database>): Promise<string> {
+    const execute = async (trx: Transaction<Database>) => {
+      // Serialize numbering, including callers posting inside a larger business transaction.
+      await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`gl:${tenantId}`}, 0))`.execute(trx);
       // 1. Validate: lines must balance
       const totalDebit  = req.lines.reduce((s, l) => s + (l.debit || 0), 0);
       const totalCredit = req.lines.reduce((s, l) => s + (l.credit || 0), 0);
@@ -246,7 +250,8 @@ export class GLService {
         .execute();
 
       return entry.id;
-    });
+    };
+    return transaction ? execute(transaction) : withTenant(tenantId, execute);
   }
 
   /**
@@ -291,17 +296,25 @@ export class GLService {
    * POST /journal-entries/:id/void uses: a manually-posted entry had no way
    * to be undone through the API at all before this existed.
    */
-  static async voidEntry(tenantId: string, entryId: string, actorId: string | null, reason: string): Promise<string> {
-    return withTenant(tenantId, async (trx) => {
+  static async voidEntry(tenantId: string, entryId: string, actorId: string | null, reason: string, transaction?: Transaction<Database>): Promise<string> {
+    const execute = async (trx: Transaction<Database>) => {
+      await sql`select pg_advisory_xact_lock(hashtextextended(${`gl:${tenantId}`}, 0))`.execute(trx);
       const entry = await trx.selectFrom('journal_entries')
         .select(['id', 'entry_number', 'reference', 'description', 'source_module', 'source_id', 'voided_at'])
-        .where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirst();
+        .where('tenant_id', '=', tenantId).where('id', '=', entryId).forUpdate().executeTakeFirst();
       if (!entry) throw new Error('Journal entry not found');
       if (entry.voided_at) throw new Error('This entry has already been voided');
 
+      const allocations = await trx.selectFrom('finance_work_cost_allocations as c')
+        .innerJoin('journal_lines as l', 'l.id', 'c.source_journal_line_id')
+        .select('c.allocation_journal_id').where('c.tenant_id', '=', tenantId)
+        .where('l.journal_entry_id', '=', entryId).where('c.reversed_at', 'is', null).execute();
+      for (const allocation of allocations) await this.voidEntry(tenantId, allocation.allocation_journal_id, actorId, `Source reversed: ${reason}`, trx);
+
       const lines = await trx.selectFrom('journal_lines as jl')
         .innerJoin('chart_of_accounts as a', 'a.id', 'jl.account_id')
-        .select(['a.code', 'jl.debit', 'jl.credit', 'jl.description'])
+        .select(['a.code', 'jl.debit', 'jl.credit', 'jl.description', 'jl.currency', 'jl.exchange_rate', 'jl.dimensions'])
+        .where('a.tenant_id', '=', tenantId)
         .where('jl.journal_entry_id', '=', entry.id)
         .execute();
 
@@ -316,13 +329,16 @@ export class GLService {
           accountCode: l.code,
           debit: Number(l.credit) || 0,
           credit: Number(l.debit) || 0,
+          currency: l.currency,
+          exchangeRate: Number(l.exchange_rate),
+          dimensions: l.dimensions,
           description: `Reversal: ${l.description ?? ''}`.trim(),
         })),
-      });
+      }, trx);
 
       await trx.updateTable('journal_entries')
         .set({ voided_at: new Date(), voided_by: actorId, void_reason: reason, status: 'VOIDED', updated_at: new Date() })
-        .where('id', '=', entry.id).execute();
+        .where('tenant_id', '=', tenantId).where('id', '=', entry.id).execute();
 
       // Tag the reversal so reverseBySource() can tell it apart from a real
       // source-tagged entry on a future edit of the same document — without
@@ -331,18 +347,22 @@ export class GLService {
       // on the next edit, cascading indefinitely.
       await trx.updateTable('journal_entries')
         .set({ reverses_entry_id: entry.id })
-        .where('id', '=', reversalId).execute();
+        .where('tenant_id', '=', tenantId).where('id', '=', reversalId).execute();
+
+      await trx.updateTable('finance_work_cost_allocations').set({ reversed_at: new Date() })
+        .where('tenant_id', '=', tenantId).where('allocation_journal_id', '=', entryId).where('reversed_at', 'is', null).execute();
 
       return reversalId;
-    });
+    };
+    return transaction ? execute(transaction) : withTenant(tenantId, execute);
   }
 
   /** Trial balance — net movement per account for the period */
-  static async trialBalance(tenantId: string, fromStr: string, toStr: string): Promise<TrialBalanceReport> {
+  static async trialBalance(tenantId: string, fromStr: string, toStr: string, transaction?: Transaction<Database>): Promise<TrialBalanceReport> {
     const from = new Date(fromStr);
     const to = new Date(toStr);
 
-    return withTenant(tenantId, async (trx) => {
+    const execute = async (trx: Transaction<Database>) => {
       // Get all accounts
       const accounts = await trx
         .selectFrom('chart_of_accounts')
@@ -417,7 +437,8 @@ export class GLService {
         rows,
         totals
       };
-    });
+    };
+    return transaction ? execute(transaction) : withTenant(tenantId, execute);
   }
 
   /** Balance sheet — cumulative balances as at a date */

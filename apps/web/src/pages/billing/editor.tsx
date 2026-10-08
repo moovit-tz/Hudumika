@@ -148,7 +148,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImp
       <DialogContent hideClose className="max-w-130 flex flex-col max-h-[90vh] p-0 gap-0 overflow-hidden">
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)' }}>
           <DialogTitle style={{ fontSize: 14 }}>Import Timesheets</DialogTitle>
-          <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }} aria-label="Close"><Icon name="x" size={16} color="var(--ink2)" /></button>
+          <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }} aria-label="Close" data-ui-native-button=""><Icon name="x" size={16} color="var(--ink2)" /></button>
         </div>
         <div style={{ padding: 20, overflowY: 'auto' }}>
           <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>
@@ -301,7 +301,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                     <button type="button" onClick={() => remove(item.uid)}
                       style={{ width: 24, height: 24, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                       <Icon name="trash" size={12} color="var(--red)" />
                     </button>
                   )}
@@ -317,7 +317,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                 <button type="button" onClick={add}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                   <Icon name="plus" size={12} color={color} /> Add Line Item
                 </button>
                 <div style={{ width: 220 }}>
@@ -559,9 +559,9 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
       onCancel={onCancel}
       actions={
         <>
-          <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
-          <button type="button" onClick={() => handleSave(true)} className="btn btn-secondary">Save Draft</button>
-          <button type="button" onClick={() => handleSave(false)} className="btn btn-primary">
+          <button type="button" onClick={onCancel} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+          <button type="button" onClick={() => handleSave(true)} className="btn btn-secondary" data-ui-native-button="">Save Draft</button>
+          <button type="button" onClick={() => handleSave(false)} className="btn btn-primary" data-ui-native-button="">
             <Icon name="send" size={13} color="hsl(var(--primary-foreground))" /> Save &amp; Send
           </button>
         </>
@@ -597,7 +597,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 Today's rate: <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{todayFxRate.rate.toLocaleString()}</span>
                 <button type="button" onClick={() => setExRate(String(todayFxRate.rate))}
-                  style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 700, fontSize: 11, padding: 0 }}>
+                  style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 700, fontSize: 11, padding: 0 }} data-ui-native-button="">
                   Use this
                 </button>
               </div>
@@ -665,7 +665,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <ChargeSectionEditor title="Shipping Line Charges – Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} customerId={customer?.id || undefined} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
-            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}

@@ -257,7 +257,7 @@ export const FinanceProfitLoss: React.FC = () => {
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }} data-ui-native-button="">
               <Icon name="download" size={13} /> Export
             </button>
           </div>

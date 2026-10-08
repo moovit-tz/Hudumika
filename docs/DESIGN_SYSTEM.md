@@ -1,5 +1,36 @@
 # Hudumika design system
 
+## Global controls contract (7 October 2026)
+
+- The `Tabs & Strips` setting chooses the format for shared tabs, semantic
+  legacy tab lists and reviewed `data-ds-tabstrip` rows. Page-level variants
+  cannot override it. CRM customer profile navigation explicitly carries
+  `data-ds-tabs-exempt="crm-customers"` and retains its existing format.
+- `--tab-radius` controls tab corners; `--tab-hit-height` resolves the saved
+  height with a 44px minimum. No variant subtracts height or forces 999px
+  corners. Underline baselines and lifted bottom corners remain square by
+  design. Long rows scroll without hiding their labels.
+- Buttons use `--r-sm`, cards use `--card-radius`, menus/popovers use `--r`,
+  and dialogs use `--r-lg`. Cards use `--card-border-width`; other controls
+  use `--border-width`. These rules are
+  authoritative over local radius utilities and inline shape values.
+- Existing native page/component buttons carry `data-ui-native-button` to
+  inherit global shape tokens and focus feedback without changing their handlers,
+  submit types, label sizes or semantic colours. New work should use `Button`.
+  Radio, switch and checkbox controls and avatar identities keep their own
+  component geometry. Menu rows and filters have a 44px minimum target.
+- Compact shared buttons (`sm` and `icon`) follow `--ctl-h`, matching inputs
+  and selects. Primary actions retain `--action-h`; text sizes do not change.
+  Native controls preserve their authored heights instead of receiving a
+  universal minimum width/height. Header mode and sidebar toggles use
+  `data-ui-chrome-button` to retain their original pill/circle geometry.
+- Shared Radix tabs keep their own keyboard handling. Reviewed legacy strips
+  support Left/Right/Home/End focus movement; Enter/Space activates the existing
+  button. Moving focus alone does not trigger a page action.
+- Run `node scripts/audit-ui-controls.mjs` for the complete source inventory
+  and `npm run check:design-system` to guard the shared contract.
+
+
 The live design system is `apps/web/src/components/ui/`, backed by the
 runtime tokens written by `useDesignSystem()` and scoped per app by
 `WorkspaceApp`.
@@ -12,6 +43,25 @@ runtime tokens written by `useDesignSystem()` and scoped per app by
 - Use `Button`, `Input`, `Select`, `Combobox`, `DatePicker`, `Badge`,
   `FeaturedIcon`, `Dialog`, `Switch` / `SwitchRow`, and filter components for
   their named jobs.
+
+### Page title typography
+
+All words in a `PageHeader` use the font selected globally in Hudumika's
+design-system settings. `--page-title-font` inherits `--font`; both the plain
+text and the accented final word share the same weight and normal style.
+The accent keeps `var(--teal)`, so app and tenant branding still applies.
+Do not use a separate serif font or italics in a page title.
+
+The shared tokens are `--page-title-font`, `--page-title-weight` (700), and
+`--page-title-size` (a responsive 1.25–1.625rem). Create/edit titles use the
+same font and weight with their compact responsive size. Ordinary pages
+have one semantic `h1`; use `h2` for sections and keep actions in the
+`PageHeader` action slot so mobile wrapping follows the shared layout.
+
+This follows the cohesive product-font and heading-token approach described
+in [Atlassian typography](https://atlassian.design/foundations/typography),
+with the compact heading hierarchy of the supplied
+[Dreams Core analytics reference](https://dreamscore.dreamstechnologies.com/tailwind/ai-analytics.html).
 
 ### Icon shape
 
@@ -355,3 +405,11 @@ Run it, fix what's clearly real (an off-brand hex where `var(--teal)` was
 obviously meant, a radius that should just be `--r-sm`), and leave what
 turns out to be a legitimate palette or a genuinely distinct intent — same
 discipline as the duplicate-CTA check above already had to apply to itself.
+
+## Card outlines
+
+All shared and legacy card containers use `--card-border` and `--card-radius`.
+Card Border Width in Shape settings controls `--card-border-width` (1px default),
+Border Default controls the theme-aware colour, and Large Radius controls corners.
+Input/button border width is independent; local card overrides cannot make card
+perimeters heavier or change their colour/radius.

@@ -389,17 +389,17 @@ export const Chat: React.FC = () => {
           <h2 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Messages</h2>
           <div style={{ display: 'flex', gap: 4 }}>
             <Tip label="Browse channels">
-              <button type="button" onClick={openBrowse} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={openBrowse} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                 <Icon name={"compass" as IconName} size={15} />
               </button>
             </Tip>
             <Tip label="New Direct Message">
-              <button type="button" onClick={() => setCreating('dm')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={() => setCreating('dm')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                 <Icon name="edit" size={15} />
               </button>
             </Tip>
             <Tip label="New Channel">
-              <button type="button" onClick={() => setCreating('channel')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button type="button" onClick={() => setCreating('channel')} style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', color: 'var(--ink2)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                 <Icon name="plus" size={15} />
               </button>
             </Tip>
@@ -442,7 +442,7 @@ export const Chat: React.FC = () => {
                   alignItems: 'center',
                   padding: 2,
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="close" size={12} />
               </button>
             )}
@@ -469,7 +469,7 @@ export const Chat: React.FC = () => {
                     flexShrink: 0,
                     transition: 'all 0.15s ease',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon
                     name={
                       activeTab === 'favorites' ? 'star' :
@@ -573,7 +573,7 @@ export const Chat: React.FC = () => {
             type="button"
             onClick={() => setCreating('dm')}
             style={{ width: '100%', height: 34, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: '1px solid var(--border2)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-          >
+           data-ui-native-button="">
             <Icon name="plus" size={14} /> New direct message
           </button>
         </div>
@@ -594,7 +594,7 @@ export const Chat: React.FC = () => {
             <header style={{ height: 50, padding: '0 16px', background: 'var(--card-bg, var(--white))', borderBottom: '1px solid var(--border)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 {isMobile && (
-                  <button type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }}>
+                  <button type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }} data-ui-native-button="">
                     <Icon name="arrowLeft" size={18} />
                   </button>
                 )}
@@ -610,7 +610,7 @@ export const Chat: React.FC = () => {
                   <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.2 }}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeCh.name}</span>
                     <Tip label="Favorite">
-                      <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)', fontSize: 13, padding: 0, lineHeight: 1 }}>
+                      <button type="button" onClick={(e) => toggleFav(activeCh.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: activeCh.is_favorite ? 'var(--gold)' : 'var(--ink3)', fontSize: 13, padding: 0, lineHeight: 1 }} data-ui-native-button="">
                         ★
                       </button>
                     </Tip>
@@ -624,17 +624,17 @@ export const Chat: React.FC = () => {
               {/* Header Right Action Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Tip label="Start Voice Call">
-                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VOICE')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VOICE')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                     <Icon name="phone" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Start Video Call">
-                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VIDEO')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" onClick={() => startCallWith(activeCh.type === 'dm' ? activeCh.other_user_id : null, 'VIDEO')} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--card-sunken)', border: 'none', color: 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                     <Icon name="camera" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Toggle Info Drawer">
-                  <button type="button" onClick={() => setShowDetails(v => !v)} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: showDetails ? 'var(--teal-l)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" onClick={() => setShowDetails(v => !v)} style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: showDetails ? 'var(--teal-l)' : 'var(--card-sunken)', border: 'none', color: showDetails ? 'var(--teal)' : 'var(--ink2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                     <Icon name="info" size={15} />
                   </button>
                 </Tip>
@@ -713,7 +713,7 @@ export const Chat: React.FC = () => {
                                   background: r.mine ? 'var(--teal-l)' : 'var(--card-sunken)', border: r.mine ? '1px solid var(--teal)' : '1px solid var(--border2)',
                                   color: r.mine ? 'var(--teal)' : 'var(--ink2)', fontSize: 12, cursor: 'pointer'
                                 }}
-                              >
+                               data-ui-native-button="">
                                 {r.emoji} <span>{r.count}</span>
                               </button>
                             ))}
@@ -741,14 +741,14 @@ export const Chat: React.FC = () => {
                       {/* Hover Action Bar */}
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ position: 'absolute', right: 10, top: -6, background: 'var(--white)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '2px 6px', display: 'flex', gap: 4, alignItems: 'center', boxShadow: 'var(--elev)' }}>
                         {QUICK_REACTIONS.map(em => (
-                          <button key={em} type="button" onClick={() => react(msg.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>{em}</button>
+                          <button key={em} type="button" onClick={() => react(msg.id, em)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }} data-ui-native-button="">{em}</button>
                         ))}
                         {!ESCALATION_RESOLVE_ROLES.has(user?.role || '') && !msg.escalation && (
                           <>
                             <div style={{ width: 1, height: 16, background: 'var(--border2)' }} />
                             <Tip label="Escalate to a manager/senior">
                               <button type="button" onClick={() => { setEscalating(msg); setEscalateNote(''); }}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', padding: 2 }}>
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', padding: 2 }} data-ui-native-button="">
                                 <Icon name="siren" size={14} />
                               </button>
                             </Tip>
@@ -783,7 +783,7 @@ export const Chat: React.FC = () => {
                     <Popover open={showEmoji} onOpenChange={setShowEmoji}>
                       <Tip label="Emoji">
                         <PopoverTrigger asChild>
-                          <button type="button" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <button type="button" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                             <Icon name="smile" size={16} />
                           </button>
                         </PopoverTrigger>
@@ -791,7 +791,7 @@ export const Chat: React.FC = () => {
                       <PopoverContent align="start" side="top" className="w-auto p-2">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 4 }}>
                           {EMOJIS.map(em => (
-                            <button key={em} type="button" onClick={() => { setInput(i => i + em); setShowEmoji(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>
+                            <button key={em} type="button" onClick={() => { setInput(i => i + em); setShowEmoji(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }} data-ui-native-button="">
                               {em}
                             </button>
                           ))}
@@ -812,7 +812,7 @@ export const Chat: React.FC = () => {
                       transition: 'background 0.15s',
                       boxShadow: input.trim() ? 'var(--elev-sm)' : 'none'
                     }}
-                  >
+                   data-ui-native-button="">
                     <Icon name="send" size={14} /> Send
                   </button>
                 </div>
@@ -833,7 +833,7 @@ export const Chat: React.FC = () => {
           {/* Header */}
           <div style={{ height: 50, padding: '0 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, boxSizing: 'border-box', background: 'var(--card-bg, var(--white))' }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{activeCh.type === 'dm' ? 'User Details' : 'Channel Details'}</span>
-            <button type="button" onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button type="button" onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
               <Icon name="close" size={16} />
             </button>
           </div>
@@ -903,7 +903,7 @@ export const Chat: React.FC = () => {
                       style={{ width: '100%', height: 28, background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', paddingLeft: 26, paddingRight: 8, color: 'var(--ink)', fontSize: 11.5, outline: 'none' }}
                     />
                     {memberSearch && (
-                      <button type="button" onClick={() => setMemberSearch('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}>
+                      <button type="button" onClick={() => setMemberSearch('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }} data-ui-native-button="">
                         <Icon name="close" size={11} />
                       </button>
                     )}
@@ -952,7 +952,7 @@ export const Chat: React.FC = () => {
                             color: 'var(--ink3)', padding: 4, display: 'flex', alignItems: 'center',
                             borderRadius: 'var(--r-sm)', transition: 'color 0.12s'
                           }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="message" size={13} />
                         </button>
                       )}
@@ -995,14 +995,14 @@ export const Chat: React.FC = () => {
                     type="button"
                     onClick={() => startCallWith(activeCh.other_user_id, 'VOICE')}
                     style={{ flex: 1, height: 32, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  >
+                   data-ui-native-button="">
                     <Icon name="phone" size={13} /> Call
                   </button>
                   <button
                     type="button"
                     onClick={() => startCallWith(activeCh.other_user_id, 'VIDEO')}
                     style={{ flex: 1, height: 32, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--card-sunken)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  >
+                   data-ui-native-button="">
                     <Icon name="camera" size={13} /> Video
                   </button>
                 </div>
@@ -1042,7 +1042,7 @@ export const Chat: React.FC = () => {
                       type="button"
                       onClick={() => setNewMemberIds(p => sel ? p.filter(x => x !== s.id) : [...p, s.id])}
                       style={{ width: '100%', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10, background: sel ? 'var(--teal-m)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border2)' }}
-                    >
+                     data-ui-native-button="">
                       <PersonAvatar name={s.name} userId={s.id} size={26} />
                       <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{s.name}</span>
                       {sel && <Icon name="check" size={14} color="var(--teal)" />}
@@ -1073,7 +1073,7 @@ export const Chat: React.FC = () => {
                 type="button"
                 onClick={() => startDm(s.id)}
                 style={{ width: '100%', padding: 10, display: 'flex', alignItems: 'center', gap: 10, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border2)' }}
-              >
+               data-ui-native-button="">
                 <PersonAvatar name={s.name} userId={s.id} size={32} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.name}</div>
@@ -1112,7 +1112,7 @@ export const Chat: React.FC = () => {
                   onClick={() => joinChannel(c.id)}
                   disabled={joiningId === c.id}
                   style={{ height: 28, padding: '0 12px', borderRadius: 'var(--r-sm)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontSize: 11.5, fontWeight: 700, cursor: joiningId === c.id ? 'default' : 'pointer', opacity: joiningId === c.id ? 0.6 : 1, flexShrink: 0 }}
-                >
+                 data-ui-native-button="">
                   {joiningId === c.id ? 'Joining…' : 'Join'}
                 </button>
               </div>
@@ -1153,11 +1153,11 @@ export const Chat: React.FC = () => {
           )}
           <DialogFooter>
             <button type="button" onClick={() => setEscalating(null)}
-              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               Cancel
             </button>
             <button type="button" onClick={submitEscalation} disabled={escalateSubmitting}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--red)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: escalateSubmitting ? 'default' : 'pointer', opacity: escalateSubmitting ? 0.7 : 1, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--red)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: escalateSubmitting ? 'default' : 'pointer', opacity: escalateSubmitting ? 0.7 : 1, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               <Icon name="siren" size={14} /> {escalateSubmitting ? 'Escalating…' : 'Escalate'}
             </button>
           </DialogFooter>
@@ -1210,7 +1210,7 @@ function ConversationItem({
           type="button"
           onClick={(e) => onFav(channel.id, e)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: channel.is_favorite ? 'var(--gold)' : 'var(--ink3)', flexShrink: 0, fontSize: 13, padding: 0 }}
-        >
+         data-ui-native-button="">
           ★
         </button>
       </Tip>
@@ -1228,7 +1228,7 @@ function ConversationItem({
               type="button"
               onClick={(e) => e.stopPropagation()}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, padding: 2, display: 'flex' }}
-            >
+             data-ui-native-button="">
               <Icon name="moreVertical" size={14} />
             </button>
           </DropdownMenuTrigger>

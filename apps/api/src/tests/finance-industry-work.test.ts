@@ -26,7 +26,7 @@ describe('Industry accounting workflows', () => {
     for (const current of [tenant, other].filter(Boolean)) {
       await withTenant(current.tenantId, async trx => {
         await trx.updateTable('sales_invoices').set({ industry_work_id: null }).where('tenant_id', '=', current.tenantId).execute();
-        for (const table of ['finance_production_recipes', 'finance_stock_allocations', 'finance_production_materials', 'finance_production_orders', 'finance_industry_work_lines', 'finance_industry_work'] as const) await trx.deleteFrom(table).where('tenant_id', '=', current.tenantId).execute();
+        for (const table of ['finance_work_cost_allocations', 'finance_production_recipes', 'finance_stock_allocations', 'finance_production_materials', 'finance_production_orders', 'finance_industry_work_lines', 'finance_industry_work'] as const) await trx.deleteFrom(table).where('tenant_id', '=', current.tenantId).execute();
       });
       await current.cleanup();
     }
@@ -43,6 +43,26 @@ describe('Industry accounting workflows', () => {
     expect((await request('POST', '/v1/finance/industries', { industry: 'consulting', name: 'Leak', customer_id: otherCustomerId })).statusCode).toBe(400);
     expect((await request('POST', '/v1/finance/industries', { industry: 'consulting', name: 'Bad date', customer_id: customerId, due_date: '2026-02-30' })).statusCode).toBe(400);
   });
+  it('allocates posted costs once without changing company profit and reverses with the source', async () => {
+    const job = await work('consulting'); await activate(job.id);
+    const journalId = await GLService.post(tenant.tenantId, { entryDate: '2026-10-07', description: 'Payroll cost', createdBy: tenant.userId, sourceModule: 'MANUAL', lines: [{ accountCode: '5020', debit: 100, credit: 0 }, { accountCode: '2100', debit: 0, credit: 100 }] });
+    const source = await withTenant(tenant.tenantId, trx => trx.selectFrom('journal_lines').select('id').where('journal_entry_id', '=', journalId).where('debit', '>', 0).executeTakeFirstOrThrow());
+    const allocation = { source_journal_line_id: source.id, amount: 75, reason: 'Client delivery' };
+    const results = await Promise.all([request('POST', `/v1/finance/industries/${job.id}/costs`, allocation), request('POST', `/v1/finance/industries/${job.id}/costs`, allocation)]);
+    expect(results.map(result => result.statusCode).sort()).toEqual([201, 409]);
+    expect(Number((await request('GET', `/v1/finance/industries/${job.id}`)).json().posted_cost)).toBe(75);
+    const allocated = results.find(result => result.statusCode === 201)!.json();
+    const neutral = await withTenant(tenant.tenantId, trx => trx.selectFrom('journal_lines').select(['debit', 'credit']).where('journal_entry_id', '=', allocated.allocation_journal_id).execute());
+    expect(neutral.reduce((sum, line) => sum + Number(line.debit) - Number(line.credit), 0)).toBe(0);
+    await withTenant(other.tenantId, trx => GLService.seedChartOfAccounts(trx, other.tenantId));
+    const otherJournal = await GLService.post(other.tenantId, { entryDate: '2026-10-07', description: 'Other cost', sourceModule: 'MANUAL', lines: [{ accountCode: '5020', debit: 50, credit: 0 }, { accountCode: '2100', debit: 0, credit: 50 }] });
+    const foreignLine = await withTenant(other.tenantId, trx => trx.selectFrom('journal_lines').select('id').where('journal_entry_id', '=', otherJournal).where('debit', '>', 0).executeTakeFirstOrThrow());
+    expect((await request('POST', `/v1/finance/industries/${job.id}/costs`, { ...allocation, source_journal_line_id: foreignLine.id, amount: 1 })).statusCode).toBe(404);
+    await GLService.voidEntry(tenant.tenantId, journalId, tenant.userId, 'Correct payroll');
+    expect(Number((await request('GET', `/v1/finance/industries/${job.id}`)).json().posted_cost)).toBe(0);
+    expect((await request('GET', `/v1/finance/industries/${job.id}/costs`)).json().allocations.find((item: { id: string }) => item.id === allocated.id).reversed_at).toBeTruthy();
+    expect((await request('POST', `/v1/finance/industries/${job.id}/costs`, allocation)).statusCode).toBe(409);
+  }, 120000);
   it('bills only approved lines and reserves them against duplicate/concurrent billing', async () => {
     const job = await work('professional_services'); await activate(job.id);
     const line = await request('POST', `/v1/finance/industries/${job.id}/lines`, { kind: 'time', description: 'Advice', quantity: 2, unit: 'hours', rate: 100, cost_rate: 40, work_date: '2026-10-07' });

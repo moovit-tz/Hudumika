@@ -321,7 +321,7 @@ export const Store: React.FC = () => {
                   onChange={e => setSearchQuery(e.target.value)}
                 />
                 {searchQuery && (
-                  <Tip label="Clear search"><button type="button" className="store-search-clear" aria-label="Clear search" onClick={() => setSearchQuery('')}>
+                  <Tip label="Clear search"><button type="button" className="store-search-clear" aria-label="Clear search" onClick={() => setSearchQuery('')} data-ui-native-button="">
                     <Icon name="x" size={14} />
                   </button></Tip>
                 )}
@@ -432,7 +432,7 @@ export const Store: React.FC = () => {
                   type="button"
                   className="store-hero-btn"
                   onClick={() => setSelectedApp(apps.find(a => a.name.includes('Zoom')) ?? apps[0] ?? null)}
-                >
+                 data-ui-native-button="">
                   Explore Integration
                 </button>
               </div>
@@ -463,7 +463,7 @@ export const Store: React.FC = () => {
                 <div className="store-state-icon"><Icon name="search" size={20} /></div>
                 <strong>No matching apps</strong>
                 <span>Try a different search or browse another category.</span>
-                {searchQuery && <button type="button" onClick={() => setSearchQuery('')}>Clear search</button>}
+                {searchQuery && <button type="button" onClick={() => setSearchQuery('')} data-ui-native-button="">Clear search</button>}
               </div>
             ) : filteredApps.map(app => {
               const isInstalled = installedApps.includes(app.id);

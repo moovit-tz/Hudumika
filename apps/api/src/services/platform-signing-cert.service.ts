@@ -13,6 +13,7 @@
 // decrypting the blob just to show a table row.
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { verify as verifySignature } from 'node:crypto';
 import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { P12Signer } from '@signpdf/signer-p12';
 import { SUBFILTER_ETSI_CADES_DETACHED, extractSignature } from '@signpdf/utils';
@@ -149,8 +150,6 @@ export async function verifyRoundTrip(p12Buffer: Buffer, password: string): Prom
   //    (RFC 5652 §5.4) before hashing and verifying, then check the RSA
   //    signature against the embedded certificate's own public key.
   const attrSet = forge.asn1.create(forge.asn1.Class.UNIVERSAL, forge.asn1.Type.SET, true, msg.rawCapture.authenticatedAttributes);
-  const attrDigest = forge.md.sha256.create();
-  attrDigest.update(forge.asn1.toDer(attrSet).getBytes());
   // node-forge's own type definitions don't declare `.certificates` on a
   // parsed pkcs7 SignedData message, but it's real at runtime (confirmed
   // live) — the same category of type-defs-lagging-the-real-API gap this
@@ -158,7 +157,10 @@ export async function verifyRoundTrip(p12Buffer: Buffer, password: string): Prom
   const cert = (msg as unknown as { certificates: Array<{ publicKey: { verify(digest: string, signature: string): boolean } }> }).certificates[0];
   let verified = false;
   try {
-    verified = cert.publicKey.verify(attrDigest.digest().getBytes(), msg.rawCapture.signature);
+    // Native verification avoids node-forge's permissive RSA DigestInfo parser.
+    verified = verifySignature('sha256', Buffer.from(forge.asn1.toDer(attrSet).getBytes(), 'binary'),
+      forge.pki.publicKeyToPem(cert.publicKey as import('node-forge').pki.rsa.PublicKey),
+      Buffer.from(msg.rawCapture.signature, 'binary'));
   } catch {
     verified = false;
   }

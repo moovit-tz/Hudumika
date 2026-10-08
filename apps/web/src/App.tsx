@@ -32,7 +32,6 @@ import { Login }           from './pages/Login.js';
 import { TwoFaSetupRequired } from './pages/TwoFaSetupRequired.js';
 import { OndiLogin }       from './pages/OndiLogin.js';
 import { MaintenancePage } from './pages/MaintenancePage.js';
-import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
 import { ForgotPassword }  from './pages/ForgotPassword.js';
 import { ResetPassword }   from './pages/ResetPassword.js';
 import { RecoveryPage }    from './pages/RecoveryPage.js';
@@ -43,6 +42,7 @@ import { AcceptCustomerInvite } from './pages/AcceptCustomerInvite.js';
 import { VerifyEmail }          from './pages/VerifyEmail.js';
 
 // Lazy loaded pages & hub modules
+const OnboardingWizard = React.lazy(() => import('./pages/onboarding/OnboardingWizard.js').then(m => ({ default: m.OnboardingWizard })));
 const OrgLogin = React.lazy(() => import('./pages/OrgLogin.js').then(m => ({ default: m.OrgLogin })));
 const OrgShell = React.lazy(() => import('./pages/OrgShell.js').then(m => ({ default: m.OrgShell })));
 const WorkspaceHome = React.lazy(() => import('./pages/WorkspaceHome.js').then(m => ({ default: m.WorkspaceHome })));

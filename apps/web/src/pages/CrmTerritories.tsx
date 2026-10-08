@@ -370,7 +370,7 @@ export function CrmTerritories() {
                           onClick={() => setDraft(d => ({ ...d, member_ids: d.member_ids.filter(x => x !== uid) }))}
                           className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-(--red-l) hover:text-(--red)"
                           aria-label={`Remove ${u?.name}`}
-                        >
+                         data-ui-native-button="">
                           <UserMinus className="h-3 w-3" />
                         </button>
                       </div>

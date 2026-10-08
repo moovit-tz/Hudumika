@@ -93,7 +93,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
           {loading ? 'Loading…' : (shipment?.ref_number || '—')}
         </span>
         <button type="button" title="Close panel" onClick={onClose}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }} data-ui-native-button="">
           <Icon name="x" size={16} color="var(--ink3)" />
         </button>
       </div>

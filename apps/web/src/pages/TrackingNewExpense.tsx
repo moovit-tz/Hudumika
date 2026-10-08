@@ -109,8 +109,8 @@ export const TrackingNewExpense: React.FC = () => {
         variant="create"
         backTo="/tracking/vehicles"
         actions={<div className="exp-actions">
-          <button className="exp-btn-secondary" onClick={() => navigate(-1)}>Cancel</button>
-          <button className="exp-btn-primary" onClick={handleSubmit} disabled={saving}>Save Expense Entry</button>
+          <button className="exp-btn-secondary" onClick={() => navigate(-1)} data-ui-native-button="">Cancel</button>
+          <button className="exp-btn-primary" onClick={handleSubmit} disabled={saving} data-ui-native-button="">Save Expense Entry</button>
         </div>}
       />
 
@@ -264,10 +264,10 @@ export const TrackingNewExpense: React.FC = () => {
           </div>
 
           <div className="exp-form-footer">
-            <button type="button" className="exp-btn-text" onClick={() => navigate(-1)}>Cancel</button>
+            <button type="button" className="exp-btn-text" onClick={() => navigate(-1)} data-ui-native-button="">Cancel</button>
             <div className="exp-footer-actions">
-              <button type="button" className="exp-btn-secondary">Save & Add Another</button>
-              <button type="submit" className="exp-btn-primary" disabled={saving}>Save Expense Entry</button>
+              <button type="button" className="exp-btn-secondary" data-ui-native-button="">Save & Add Another</button>
+              <button type="submit" className="exp-btn-primary" disabled={saving} data-ui-native-button="">Save Expense Entry</button>
             </div>
           </div>
 

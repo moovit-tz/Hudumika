@@ -734,7 +734,7 @@ export function MeetingCenter() {
                 type="button"
                 onClick={() => { setSearchMeeting(''); setMeetingsPage(1); }}
                 style={{ position: 'absolute', right: 6, top: 7, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={12} />
               </button>
             )}
@@ -1089,7 +1089,7 @@ export function MeetingCenter() {
                                       textDecoration: 'underline',
                                       fontSize: 12,
                                     }}
-                                  >
+                                   data-ui-native-button="">
                                     Drive ▸ Meetings ▸ {m.title}
                                   </button>
                                 </div>
@@ -1109,7 +1109,7 @@ export function MeetingCenter() {
                                       textDecoration: 'underline',
                                       fontSize: 12,
                                     }}
-                                  >
+                                   data-ui-native-button="">
                                     {isCalendar ? 'External Calendar Link' : 'Connect WebRTC Room'}
                                   </button>
                                 </div>
@@ -1307,7 +1307,7 @@ export function MeetingCenter() {
                   fontWeight: p === meetingsPage ? 800 : 600,
                   cursor: 'pointer',
                 }}
-              >
+               data-ui-native-button="">
                 {p}
               </button>
             ))}
@@ -1366,7 +1366,7 @@ export function MeetingCenter() {
                       alignItems: 'center',
                       gap: 8,
                     }}
-                  >
+                   data-ui-native-button="">
                     <FeaturedIcon variant={schedKind === 'VIDEO' ? 'brand' : 'gray'} size="sm">
                       <Icon name="camera" size={16} />
                     </FeaturedIcon>
@@ -1391,7 +1391,7 @@ export function MeetingCenter() {
                       alignItems: 'center',
                       gap: 8,
                     }}
-                  >
+                   data-ui-native-button="">
                     <FeaturedIcon variant={schedKind === 'VOICE' ? 'info' : 'gray'} size="sm">
                       <Icon name="phone" size={16} />
                     </FeaturedIcon>
@@ -1700,7 +1700,7 @@ export function MeetingCenter() {
                       type="button"
                       onClick={() => setTaskList(prev => prev.filter(x => x.id !== t.id))}
                       style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="x" size={12} />
                     </button>
                   </div>

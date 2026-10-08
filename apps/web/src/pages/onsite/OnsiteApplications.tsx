@@ -113,7 +113,7 @@ export function OnsiteApplications() {
         titlePlain="Hosted"
         titleEm="applications"
         subtitle="Deploy Node.js, Python, PHP, static sites, and containerized microservices."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                     <Icon name="plus" size={16} /> Deploy New App
                   </button></>}
       />
@@ -133,7 +133,7 @@ export function OnsiteApplications() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Connect a Git repository or upload code to build and deploy your application.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="plus" size={16} /> Create Application
           </button>
         </div>
@@ -182,16 +182,16 @@ export function OnsiteApplications() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeploy(app.id)}>
+                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeploy(app.id)} data-ui-native-button="">
                           <Icon name="play" size={14} /> Deploy
                         </button>
                         <Link to={`/onsite/applications/${app.id}`} className="btn btn-sm btn-ghost">
                           <Icon name="settings" size={14} /> Details
                         </Link>
-                        <button className="btn btn-sm btn-ghost" onClick={() => handleClone(app.id, app.name)} title="Clone">
+                        <button className="btn btn-sm btn-ghost" onClick={() => handleClone(app.id, app.name)} title="Clone" data-ui-native-button="">
                           <Icon name="copy" size={14} />
                         </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(app.id, app.name)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(app.id, app.name)} data-ui-native-button="">
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>
@@ -209,7 +209,7 @@ export function OnsiteApplications() {
         <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Deploy Application</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleCreateApp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -272,10 +272,10 @@ export function OnsiteApplications() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
                   {submitting ? 'Creating…' : 'Create & Deploy'}
                 </button>
               </div>

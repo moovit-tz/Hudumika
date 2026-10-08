@@ -86,7 +86,7 @@ export function NotesLabelsPage() {
                   onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 />
                 <button type="button" onClick={() => remove(l.id, l.name)} title="Delete label"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }} data-ui-native-button="">
                   <Icon name="trash" size={15} color="var(--red)" />
                 </button>
               </div>

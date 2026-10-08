@@ -637,7 +637,7 @@ export async function smsRoutes(fastify: FastifyInstance) {
  */
 export async function smsWebhookRoutes(fastify: FastifyInstance) {
   if (!env.SMS_WEBHOOK_SECRET) {
-    console.warn('[SMS] WARNING: SMS_WEBHOOK_SECRET is not set — inbound and delivery-status webhook endpoints are open to unauthenticated requests. Set this env var in production to enable the shared-secret ?token= guard.');
+    fastify.log.warn('SMS_WEBHOOK_SECRET is not configured; production SMS callbacks are disabled.');
   }
 
   // Neither Africa's Talking nor Twilio's classic status/inbound callbacks
@@ -652,6 +652,9 @@ export async function smsWebhookRoutes(fastify: FastifyInstance) {
   // (webhooks.routes.ts), for the same reason, and skipped (open) until a
   // real secret is configured, same as GPSWOX/META.
   fastify.addHook('preHandler', async (request, reply) => {
+    if (env.APP_ENV === 'production' && !env.SMS_WEBHOOK_SECRET) {
+      return reply.status(503).send({ error: 'SMS webhooks are not configured' });
+    }
     if (env.SMS_WEBHOOK_SECRET) {
       const token = (request.query as any)?.token;
       if (token !== env.SMS_WEBHOOK_SECRET) {

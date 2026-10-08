@@ -1,5 +1,5 @@
 import { env } from '../config/env.js';
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter as EmailTransporter } from 'nodemailer';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
 
@@ -27,7 +27,7 @@ async function getPlatformSmtpConfig(): Promise<{ host: string; port?: string | 
  * its own, missing the connectionTimeout/socketTimeout this one carries —
  * without them a bad host could hang the SMTP send indefinitely).
  */
-export function buildSmtpTransporter(config: { host: string; port?: string | number; user?: string; pass?: string; enc?: string }): nodemailer.Transporter {
+export function buildSmtpTransporter(config: { host: string; port?: string | number; user?: string; pass?: string; enc?: string }): EmailTransporter {
   const port = Number(config.port) || (config.enc === 'ssl' ? 465 : 587);
   const secure = config.enc === 'ssl';
   const requireTLS = !secure && config.enc === 'tls';
@@ -39,7 +39,7 @@ export function buildSmtpTransporter(config: { host: string; port?: string | num
     auth: { user: config.user, pass: config.pass },
     connectionTimeout: 15_000,
     socketTimeout: 20_000,
-    tls: { rejectUnauthorized: false },
+    tls: { rejectUnauthorized: true },
   } as any);
 }
 
@@ -107,7 +107,7 @@ interface SendIdentityRow {
  *  token back to. */
 async function transporterFromIdentityRow(
   tenantId: string, row: SendIdentityRow, persistToken: (provider: 'outlook' | 'gmail', tokenInfo: { accessToken: string; expires?: number }) => void,
-): Promise<{ transporter: nodemailer.Transporter; fromName: string; fromAddress: string } | null> {
+): Promise<{ transporter: EmailTransporter; fromName: string; fromAddress: string } | null> {
   if (row.send_protocol === 'smtp') {
     if (!row.smtp_host || !row.smtp_user || !row.smtp_pass) return null;
     const transporter = buildSmtpTransporter({
@@ -172,7 +172,7 @@ async function transporterFromIdentityRow(
  * tenant/system identity exactly as before either feature existed — every
  * existing user who never touches "Send mail as" is completely unaffected.
  */
-async function buildUserTransporter(tenantId: string, userId: string, fromIdentityId?: string | null): Promise<{ transporter: nodemailer.Transporter; fromName: string; fromAddress: string } | null> {
+async function buildUserTransporter(tenantId: string, userId: string, fromIdentityId?: string | null): Promise<{ transporter: EmailTransporter; fromName: string; fromAddress: string } | null> {
   const identity = await withTenant(tenantId, (trx) => {
     let q = trx.selectFrom('email_send_identities').selectAll().where('user_id', '=', userId);
     // An explicit per-message choice (Compose's "From" picker) wins over
@@ -277,7 +277,7 @@ export class EmailIntegration {
       // EmailSection) actually saves — protocol/host/port/user/pass/enc/fromName/
       // fromEmail — not a separate email_*/smtp_* convention nobody ever wrote.
       const protocol = emailConfig?.protocol || 'mail'; // 'smtp', 'sendmail', or 'mail' (system default)
-      let transporter: nodemailer.Transporter;
+      let transporter: EmailTransporter;
 
       let fromName = emailConfig?.fromName || 'Hudumika';
       let fromAddress = emailConfig?.fromEmail || env.SMTP_USER;
@@ -358,7 +358,7 @@ export class EmailIntegration {
               user: env.SMTP_USER,
               pass: env.SMTP_PASS,
             },
-            tls: { rejectUnauthorized: false }
+            tls: { rejectUnauthorized: true }
           });
 
           fromName = 'Hudumika Notification';

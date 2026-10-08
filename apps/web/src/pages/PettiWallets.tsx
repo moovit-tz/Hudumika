@@ -308,14 +308,14 @@ export function PettiWallets() {
                         onClick={() => openEditModal(w)}
                         title="Edit wallet"
                         style={{ display: 'flex', alignItems: 'center', color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="edit" size={14} />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(w)}
                         style={{ fontSize: 11.5, fontWeight: 700, color: w.status === 'active' ? 'var(--red)' : 'var(--green)', background: 'none', border: 'none', cursor: 'pointer' }}
-                      >
+                       data-ui-native-button="">
                         {w.status === 'active' ? 'Close' : 'Reopen'}
                       </button>
                     </div>

@@ -115,7 +115,7 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
             className="input-field"
             style={{ flex: 1, fontSize:'var(--text-base)' }}
           />
-          <button onClick={handleConnect} className="btn btn-primary btn-sm" disabled={!emailInput.trim() || busy}>
+          <button onClick={handleConnect} className="btn btn-primary btn-sm" disabled={!emailInput.trim() || busy} data-ui-native-button="">
             {busy ? 'Connecting…' : 'Connect'}
           </button>
         </div>
@@ -139,17 +139,17 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
               <button
                 onClick={() => navToBreadcrumb(idx)}
                 style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py-xs) 4px', borderRadius:'var(--r-sm)', cursor: idx < breadcrumb.length - 1 ? 'pointer' : 'default', color: idx === breadcrumb.length - 1 ? 'var(--ink)' : 'var(--ink3)', fontWeight: idx === breadcrumb.length - 1 ? 600 : 400, fontSize:'var(--text-md)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-              >
+               data-ui-native-button="">
                 {crumb.name}
               </button>
             </React.Fragment>
           ))}
           {conn?.account_label && <span style={{ fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>· {conn.account_label}</span>}
         </div>
-        <button onClick={handleSync} disabled={busy} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+        <button onClick={handleSync} disabled={busy} className="btn btn-secondary btn-sm" style={{ gap: 6 }} data-ui-native-button="">
           <Icon name="refresh" size={13} /> {busy ? 'Syncing…' : 'Sync now'}
         </button>
-        <button onClick={handleDisconnect} disabled={busy} className="btn btn-secondary btn-sm" style={{ gap: 6, color: 'var(--red)' }}>
+        <button onClick={handleDisconnect} disabled={busy} className="btn btn-secondary btn-sm" style={{ gap: 6, color: 'var(--red)' }} data-ui-native-button="">
           Disconnect
         </button>
       </div>

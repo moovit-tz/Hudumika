@@ -98,7 +98,7 @@ export function OnsiteMonitoring() {
         titlePlain="Uptime"
         titleEm="monitors"
         subtitle="Automated HTTP/S synthetic probes monitoring availability and latency."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                     <Icon name="plus" size={16} /> Add Monitor
                   </button></>}
       />
@@ -118,7 +118,7 @@ export function OnsiteMonitoring() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Add your site or API endpoint URL to track 30-day uptime SLAs.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="plus" size={16} /> Create Uptime Monitor
           </button>
         </div>
@@ -168,10 +168,10 @@ export function OnsiteMonitoring() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-sm btn-secondary" disabled={running === c.id} onClick={() => handleRun(c.id)}>
+                        <button className="btn btn-sm btn-secondary" disabled={running === c.id} onClick={() => handleRun(c.id)} data-ui-native-button="">
                           <Icon name="refresh" size={14} /> {running === c.id ? 'Checking…' : 'Run now'}
                         </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(c.id, c.name)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(c.id, c.name)} data-ui-native-button="">
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>
@@ -189,7 +189,7 @@ export function OnsiteMonitoring() {
         <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-card-header">
             <DialogTitle className="onsite-card-title">Add Uptime Monitor</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)}>✕</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
           </div>
           <form onSubmit={handleAddCheck} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
@@ -237,10 +237,10 @@ export function OnsiteMonitoring() {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
                   {submitting ? 'Saving…' : 'Add Monitor'}
                 </button>
               </div>

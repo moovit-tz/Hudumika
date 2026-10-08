@@ -128,7 +128,7 @@ function BillingSection({ base }: { base: string }) {
             <p style={{ color: 'var(--ink3)', marginBottom: '1rem' }}>
               Bill this client for work beyond your bundle — design, retainers, extra services.
             </p>
-            <button className="btn btn-primary" disabled={linking} onClick={handleLink}>
+            <button className="btn btn-primary" disabled={linking} onClick={handleLink} data-ui-native-button="">
               {linking ? 'Setting up…' : 'Add as billable customer'}
             </button>
           </div>
@@ -174,7 +174,7 @@ function DomainsSection({ base }: { base: string }) {
     <div style={{ marginTop: '1.5rem' }}>
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Domains &amp; DNS</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAddDomain(true)}>
+        <button className="btn btn-sm btn-primary" onClick={() => setShowAddDomain(true)} data-ui-native-button="">
           <Icon name="plus" size={14} /> Add domain
         </button>
       </div>
@@ -194,7 +194,7 @@ function DomainsSection({ base }: { base: string }) {
                       <td style={{ fontWeight: 600 }}>{d.domain}</td>
                       <td><span className={`onsite-badge ${d.status === 'active' ? 'active' : 'inactive'}`}>{d.status}</span></td>
                       <td style={{ textAlign: 'right' }}>
-                        <button className="onsite-btn-outline" onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}>
+                        <button className="onsite-btn-outline" onClick={() => setExpandedId(expandedId === d.id ? null : d.id)} data-ui-native-button="">
                           {expandedId === d.id ? 'Hide DNS' : 'Manage DNS'}
                         </button>
                       </td>
@@ -296,7 +296,7 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
         <strong style={{ fontSize: '0.875rem' }}>DNS records</strong>
-        <button className="btn btn-sm btn-secondary" onClick={() => setShowAddRecord(true)}>
+        <button className="btn btn-sm btn-secondary" onClick={() => setShowAddRecord(true)} data-ui-native-button="">
           <Icon name="plus" size={14} /> Add record
         </button>
       </div>
@@ -315,7 +315,7 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
                 <td className="onsite-mono">{r.value}</td>
                 <td>{r.ttl}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(r.id)}>
+                  <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(r.id)} data-ui-native-button="">
                     <Icon name="trash2" size={14} />
                   </button>
                 </td>
@@ -424,7 +424,7 @@ function DeploymentsSection({ base }: { base: string }) {
     <div style={{ marginTop: '1.5rem' }}>
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Deployments</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAddApp(true)}>
+        <button className="btn btn-sm btn-primary" onClick={() => setShowAddApp(true)} data-ui-native-button="">
           <Icon name="plus" size={14} /> Register app
         </button>
       </div>
@@ -444,7 +444,7 @@ function DeploymentsSection({ base }: { base: string }) {
                     <td className="onsite-mono">{a.runtime}</td>
                     <td><span className={`onsite-badge ${a.status === 'active' ? 'active' : a.status === 'failed' ? 'failed' : 'inactive'}`}>{a.status}</span></td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="onsite-btn-outline" disabled={deploying === a.id} onClick={() => handleDeploy(a.id)}>
+                      <button className="onsite-btn-outline" disabled={deploying === a.id} onClick={() => handleDeploy(a.id)} data-ui-native-button="">
                         {deploying === a.id ? 'Deploying…' : 'Redeploy'}
                       </button>
                     </td>
@@ -561,7 +561,7 @@ function MonitoringSection({ base }: { base: string }) {
     <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Monitoring</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAddCheck(true)}>
+        <button className="btn btn-sm btn-primary" onClick={() => setShowAddCheck(true)} data-ui-native-button="">
           <Icon name="plus" size={14} /> Add check
         </button>
       </div>
@@ -582,7 +582,7 @@ function MonitoringSection({ base }: { base: string }) {
                     <td><span className={`onsite-badge ${c.status === 'healthy' ? 'active' : c.status === 'critical' ? 'failed' : 'unknown'}`}>{c.status}</span></td>
                     <td>{c.uptime_30d != null ? `${c.uptime_30d}%` : '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="onsite-btn-outline" disabled={running === c.id} onClick={() => handleRun(c.id)}>
+                      <button className="onsite-btn-outline" disabled={running === c.id} onClick={() => handleRun(c.id)} data-ui-native-button="">
                         {running === c.id ? 'Running…' : 'Run now'}
                       </button>
                     </td>
@@ -644,7 +644,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
       <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="onsite-card-header">
           <DialogTitle className="onsite-card-title">{title}</DialogTitle>
-          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={onClose} data-ui-native-button="">✕</button>
         </div>
         {children}
       </DialogContent>
@@ -655,8 +655,8 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 function ModalActions({ onClose, submitting, submitLabel, busyLabel }: { onClose: () => void; submitting: boolean; submitLabel: string; busyLabel: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-      <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? busyLabel : submitLabel}</button>
+      <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
+      <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">{submitting ? busyLabel : submitLabel}</button>
     </div>
   );
 }

@@ -364,7 +364,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               type="button"
               className={`notes-icon-btn${viewMode === 'grid' ? ' active' : ''}`}
               onClick={() => setNotesViewMode('grid')}
-            >
+             data-ui-native-button="">
               <Icon name="grid" size={18} />
             </button>
           </Tip>
@@ -373,7 +373,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               type="button"
               className={`notes-icon-btn${viewMode === 'list' ? ' active' : ''}`}
               onClick={() => setNotesViewMode('list')}
-            >
+             data-ui-native-button="">
               <Icon name="list" size={18} />
             </button>
           </Tip>
@@ -382,7 +382,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               type="button"
               className="notes-icon-btn"
               onClick={() => loadNotes(true)}
-            >
+             data-ui-native-button="">
               <Icon name="refresh" size={18} />
             </button>
           </Tip>
@@ -412,7 +412,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       className="notes-icon-btn"
                       title="New checklist"
                       onClick={() => { setIsChecklistMode(true); setIsExpanded(true); }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="checkCircle" size={18} />
                     </button>
                     <button
@@ -420,7 +420,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       className="notes-icon-btn"
                       title="New note with drawing"
                       onClick={() => { setShowDrawingModal(true); setIsExpanded(true); }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="edit" size={18} />
                     </button>
                     <button
@@ -428,7 +428,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       className="notes-icon-btn"
                       title="New note with image"
                       onClick={() => { fileInputRef.current?.click(); }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="upload" size={18} />
                     </button>
                   </div>
@@ -449,7 +449,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       className={`notes-icon-btn${isPinned ? ' active' : ''}`}
                       title={isPinned ? 'Unpin note' : 'Pin note'}
                       onClick={() => setIsPinned(!isPinned)}
-                    >
+                     data-ui-native-button="">
                       <Icon name="star" size={18} />
                     </button>
                   </div>
@@ -482,7 +482,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                             type="button"
                             className="notes-icon-btn"
                             onClick={() => removeComposerChecklistItem(item.id)}
-                          >
+                           data-ui-native-button="">
                             <Icon name="close" size={14} />
                           </button>
                         </div>
@@ -512,7 +512,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         type="button"
                         style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer' }}
                         onClick={() => setDrawing(null)}
-                      >
+                       data-ui-native-button="">
                         ×
                       </button>
                     </div>
@@ -527,7 +527,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                             type="button"
                             style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', fontSize: 12 }}
                             onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
-                          >
+                           data-ui-native-button="">
                             ×
                           </button>
                         </div>
@@ -568,7 +568,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         className="notes-icon-btn"
                         title="Background color"
                         onClick={() => setActiveColorPopover(activeColorPopover === 'composer' ? null : 'composer')}
-                      >
+                       data-ui-native-button="">
                         <Icon name="color" size={17} />
                       </button>
 
@@ -582,7 +582,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                               style={{ backgroundColor: c.hex }}
                               title={c.name}
                               onClick={() => { setColor(c.id); setActiveColorPopover(null); }}
-                            />
+                             data-ui-native-button=""/>
                           ))}
                         </div>
                       )}
@@ -603,7 +603,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         className="notes-icon-btn"
                         title="Add image"
                         onClick={() => fileInputRef.current?.click()}
-                      >
+                       data-ui-native-button="">
                         <Icon name="upload" size={17} />
                       </button>
 
@@ -613,7 +613,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         className="notes-icon-btn"
                         title="Draw sketch"
                         onClick={() => setShowDrawingModal(true)}
-                      >
+                       data-ui-native-button="">
                         <Icon name="edit" size={17} />
                       </button>
 
@@ -625,7 +625,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                             className="notes-icon-btn"
                             title="Add label"
                             onClick={() => setActiveLabelPopover(activeLabelPopover === 'composer' ? null : 'composer')}
-                          >
+                           data-ui-native-button="">
                             <Icon name="tag" size={17} />
                           </button>
                         </PopoverAnchor>
@@ -666,7 +666,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       />
                     </div>
 
-                    <button type="button" className="notes-done-btn" onClick={saveComposerNote}>
+                    <button type="button" className="notes-done-btn" onClick={saveComposerNote} data-ui-native-button="">
                       Done
                     </button>
                   </div>
@@ -697,7 +697,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                   emptyTrash();
                   showAlert('Trash emptied.');
                 }}
-              >
+               data-ui-native-button="">
                 Empty Trash
               </button>
             </div>
@@ -790,7 +790,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       <>
                         <Icon name="alertCircle" size={12} /> Not saved
                         <button type="button" onClick={() => flushAllPendingSaves()}
-                          style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 11.5 }}>
+                          style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 11.5 }} data-ui-native-button="">
                           Retry
                         </button>
                       </>
@@ -805,7 +805,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                     togglePinNote(editingNote.id);
                     setEditingNote(prev => prev ? { ...prev, pinned: !prev.pinned } : prev);
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name="star" size={18} />
                 </button>
               </div>
@@ -829,13 +829,13 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <Tip label="Version history">
-                  <button type="button" className="notes-icon-btn" onClick={() => setShowHistoryPanel(true)}>
+                  <button type="button" className="notes-icon-btn" onClick={() => setShowHistoryPanel(true)} data-ui-native-button="">
                     <Icon name="timer" size={15} />
                   </button>
                 </Tip>
                 {editingNote.isOwner && (
                   <Tip label="Share & visibility">
-                    <button type="button" className="notes-icon-btn" onClick={() => setShowSharePanel(true)}>
+                    <button type="button" className="notes-icon-btn" onClick={() => setShowSharePanel(true)} data-ui-native-button="">
                       <Icon name={VISIBILITY_META[editingNote.visibility].icon} size={15} />
                     </button>
                   </Tip>
@@ -895,7 +895,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         type="button"
                         className="notes-icon-btn"
                         onClick={() => trashNote(editingNote.id)}
-                      >
+                       data-ui-native-button="">
                         <Icon name="trash" size={16} />
                       </button>
                     </Tip>
@@ -904,7 +904,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         type="button"
                         className="notes-icon-btn"
                         onClick={() => toggleArchiveNote(editingNote.id)}
-                      >
+                       data-ui-native-button="">
                         <Icon name="archive" size={16} />
                       </button>
                     </Tip>
@@ -922,7 +922,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         type="button"
                         className={`notes-icon-btn${editingNote.meetingUrl ? ' active' : ''}`}
                         onClick={() => setShowMeetingPanel(v => !v)}
-                      >
+                       data-ui-native-button="">
                         <Icon name="video" size={16} />
                       </button>
                     </Tip>
@@ -938,14 +938,14 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         updateNote(editingNote.id, { legalHold });
                         setEditingNote(prev => prev ? { ...prev, legalHold } : prev);
                       }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="shield" size={16} />
                     </button>
                   </Tip>
                 )}
               </div>
 
-              <button type="button" className="notes-done-btn" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }}>
+              <button type="button" className="notes-done-btn" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }} data-ui-native-button="">
                 Close
               </button>
             </div>
@@ -1015,7 +1015,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
             e.stopPropagation();
             togglePinNote(note.id);
           }}
-        >
+         data-ui-native-button="">
           <Icon name="star" size={18} />
         </button>
 
@@ -1076,7 +1076,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                     type="button"
                     className="note-badge-reminder-snooze"
                     onClick={e => { e.stopPropagation(); snoozeReminder(note.id, new Date(Date.now() + 3600000).toISOString()); }}
-                  >
+                   data-ui-native-button="">
                     <Icon name="refresh" size={11} />
                   </button>
                 </Tip>
@@ -1139,7 +1139,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                   className="notes-icon-btn"
                   title="Restore note"
                   onClick={() => restoreNote(note.id)}
-                >
+                 data-ui-native-button="">
                   <Icon name="refresh" size={15} />
                 </button>
                 <button
@@ -1147,7 +1147,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                   className="notes-icon-btn"
                   title="Delete forever"
                   onClick={() => permanentlyDeleteNote(note.id)}
-                >
+                 data-ui-native-button="">
                   <Icon name="trash" size={15} />
                 </button>
               </>
@@ -1161,7 +1161,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                     className="notes-icon-btn"
                     title="Archive"
                     onClick={() => toggleArchiveNote(note.id)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="archive" size={15} />
                   </button>
                   <button
@@ -1169,7 +1169,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                     className="notes-icon-btn"
                     title="Delete"
                     onClick={() => trashNote(note.id)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="trash" size={15} />
                   </button>
                 </>
@@ -1179,7 +1179,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                 className="notes-icon-btn"
                 title="Duplicate"
                 onClick={() => addNote({ ...note, title: `${note.title} (Copy)`, visibility: 'team', shares: [] })}
-              >
+               data-ui-native-button="">
                 <Icon name="copy" size={15} />
               </button>
             </>
@@ -1318,7 +1318,7 @@ const CategoryPicker: React.FC<{
           className={`notes-icon-btn${value.subjectType ? ' active' : ''}`}
           title={badgeLabel ? `Related to ${badgeLabel}` : 'Relate to an app'}
           onClick={() => onOpenChange(!open)}
-        >
+         data-ui-native-button="">
           <Icon name="link" size={17} />
         </button>
       </PopoverAnchor>
@@ -1332,7 +1332,7 @@ const CategoryPicker: React.FC<{
             className="notes-icon-btn"
             style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: !value.subjectType ? 'var(--ink)' : 'var(--ink3)', fontWeight: !value.subjectType ? 700 : 500 }}
             onClick={() => { onChange({ subjectType: null, subjectId: null }); onOpenChange(false); }}
-          >
+           data-ui-native-button="">
             <Icon name="minusCircle" size={15} /> None
           </button>
           {NOTE_CATEGORIES.map(c => (
@@ -1350,7 +1350,7 @@ const CategoryPicker: React.FC<{
                 onChange({ subjectType: c.id, subjectId: null });
                 if (!LINKABLE_CATEGORIES[c.id]) onOpenChange(false);
               }}
-            >
+             data-ui-native-button="">
               <Icon name={c.icon} size={15} /> {c.label}
             </button>
           ))}
@@ -1462,7 +1462,7 @@ const DrawingCanvasModal: React.FC<{ onClose: () => void; onSave: (dataUrl: stri
                 className={`pen-color-btn${penColor === c ? ' active' : ''}`}
                 style={{ backgroundColor: c, border: c === '#ffffff' ? '1px solid #ccc' : 'none' }}
                 onClick={() => setPenColor(c)}
-              />
+               data-ui-native-button=""/>
             ))}
           </div>
 
@@ -1553,7 +1553,7 @@ const SharePanel: React.FC<{
     <div className="notes-share-panel" onClick={e => e.stopPropagation()}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Share &amp; visibility</div>
-        <button type="button" className="notes-icon-btn" onClick={onClose} aria-label="Close"><Icon name="close" size={14} /></button>
+        <button type="button" className="notes-icon-btn" onClick={onClose} aria-label="Close" data-ui-native-button=""><Icon name="close" size={14} /></button>
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
@@ -1569,7 +1569,7 @@ const SharePanel: React.FC<{
               background: visibility === v ? 'color-mix(in srgb, var(--teal) 10%, transparent)' : 'transparent',
               color: visibility === v ? 'var(--teal)' : 'var(--ink2)',
             }}
-          >
+           data-ui-native-button="">
             <Icon name={VISIBILITY_META[v].icon} size={16} />
             <span style={{ fontSize: 11.5, fontWeight: 700 }}>{VISIBILITY_META[v].label}</span>
           </button>
@@ -1606,7 +1606,7 @@ const SharePanel: React.FC<{
                     type="button"
                     onClick={() => addPerson(p)}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-                  >
+                   data-ui-native-button="">
                     <PersonAvatar userId={p.id} name={p.name} size={20} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
@@ -1639,7 +1639,7 @@ const SharePanel: React.FC<{
                       </SelectContent>
                     </Select>
                     <Tip label="Remove collaborator">
-                      <button type="button" className="notes-icon-btn" aria-label="Remove collaborator" onClick={() => removePerson(s.userId)}>
+                      <button type="button" className="notes-icon-btn" aria-label="Remove collaborator" onClick={() => removePerson(s.userId)} data-ui-native-button="">
                         <Icon name="close" size={13} />
                       </button>
                     </Tip>
@@ -1696,7 +1696,7 @@ const HistoryPanel: React.FC<{
     <div className="notes-share-panel" onClick={e => e.stopPropagation()}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Version history</div>
-        <button type="button" className="notes-icon-btn" onClick={onClose} aria-label="Close"><Icon name="close" size={14} /></button>
+        <button type="button" className="notes-icon-btn" onClick={onClose} aria-label="Close" data-ui-native-button=""><Icon name="close" size={14} /></button>
       </div>
 
       {revisions === null ? (

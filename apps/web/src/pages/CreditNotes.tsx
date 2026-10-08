@@ -328,7 +328,7 @@ export function CreditNotes() {
               <Input className="text-right" type="number" value={l.rate} onChange={e => updateLine(i, { rate: e.target.value })} placeholder="0.00" />
               <Input className="text-right" type="number" value={l.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
               <Input className="text-right" type="number" value={l.tax_pct} onChange={e => updateLine(i, { tax_pct: e.target.value })} />
-              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 1} style={{ background: 'none', border: 'none', cursor: lines.length > 1 ? 'pointer' : 'not-allowed', opacity: lines.length > 1 ? 1 : 0.3, padding: 4 }}>
+              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 1} style={{ background: 'none', border: 'none', cursor: lines.length > 1 ? 'pointer' : 'not-allowed', opacity: lines.length > 1 ? 1 : 0.3, padding: 4 }} data-ui-native-button="">
                 <Icon name="trash" size={14} color="var(--red)" />
               </button>
             </div>
@@ -409,7 +409,7 @@ export function CreditNotes() {
 
       <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={() => navigate('/finance/credit-notes/new')}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
           <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Credit Note
         </button>
       </div>

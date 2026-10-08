@@ -375,7 +375,7 @@ export function DeliveryDocumentsPage() {
 
       <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={() => setShowForm(s => !s)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
           <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New Document'}
         </button>
       </div>

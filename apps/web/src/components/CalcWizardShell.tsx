@@ -133,7 +133,7 @@ export function WizardNavRow({ step, totalSteps, setStep, error, busy, onContinu
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         {step > 1
           ? <button type="button" onClick={() => setStep(step - 1)} disabled={busy}
-              style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: busy ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: busy ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }} data-ui-native-button="">
               <Icon name="arrowLeft" size={14} /> Back
             </button>
           : <div />
@@ -141,7 +141,7 @@ export function WizardNavRow({ step, totalSteps, setStep, error, busy, onContinu
         {step < totalSteps
           ? <button type="button" disabled={!!error || busy}
               onClick={() => { if (!error) { if (onContinue) onContinue(); else setStep(step + 1); } }}
-              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: error ? 'var(--border)' : 'hsl(var(--primary))', color: error ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: error || busy ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: error ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: error ? 'var(--border)' : 'hsl(var(--primary))', color: error ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: error || busy ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: error ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }} data-ui-native-button="">
               {busy ? 'Calculating…' : (continueLabel ?? 'Continue')} {!busy && <Icon name="arrowRight" size={14} color={error ? 'var(--ink3)' : '#fff'} />}
             </button>
           : null

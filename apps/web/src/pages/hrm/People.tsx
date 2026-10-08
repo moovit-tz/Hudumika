@@ -133,7 +133,7 @@ export function EmployeesPage() {
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
           {(['list', 'grid'] as const).map(mode => (
             <Tip key={mode} label={mode === 'list' ? 'List view' : 'Card grid view'}><button type="button" aria-label={mode === 'list' ? 'List view' : 'Card grid view'} onClick={() => setViewMode(mode)}
-              style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name={mode === 'list' ? 'list' : 'grid'} size={15} color={viewMode === mode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
             </button></Tip>
           ))}
@@ -370,7 +370,7 @@ export function RolesPage() {
           </Tabs>
           {dirty && (
             <button type="button" onClick={save} disabled={saving}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
             </button>
           )}
@@ -432,7 +432,7 @@ export function RolesPage() {
                               <button type="button" onClick={() => toggle(key, res, a)}
                                 style={{ width:20, height:20, borderRadius:'var(--r-sm)', border:`2px solid ${on ? meta.color : 'var(--border)'}`,
                                   background: on ? meta.color : 'transparent', cursor:'pointer',
-                                  display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.1s' }}>
+                                  display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.1s' }} data-ui-native-button="">
                                 {on && <Icon name="check" size={10} color="#fff" />}
                               </button>
                             </td>
@@ -552,7 +552,7 @@ export function RolesPage() {
                             <button type="button" onClick={() => toggle(selected, res, a)}
                               style={{ width:22, height:22, borderRadius:'var(--r-sm)', border:`2px solid ${on ? selMeta.color : 'var(--border)'}`,
                                 background: on ? selMeta.color : 'transparent', cursor:'pointer',
-                                display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.12s' }}>
+                                display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.12s' }} data-ui-native-button="">
                               {on && <Icon name="check" size={11} color="#fff" />}
                             </button>
                           </td>
@@ -564,7 +564,7 @@ export function RolesPage() {
                           if (on !== !allOn) toggle(selected, res, a);
                         })}
                           style={{ fontSize:11, fontWeight:700, padding:'var(--ds-btn-py-xs) 8px', borderRadius:'var(--r)', border:'none', cursor:'pointer',
-                            background: allOn ? selMeta.bg : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                            background: allOn ? selMeta.bg : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                           {allOn ? 'Revoke all' : 'Grant all'}
                         </button>
                       </td>
@@ -982,7 +982,7 @@ export function TeamsPage() {
               {t.members.map(m => (
                 <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <PersonLink userId={m.user_id} name={m.user_name} size={22} style={{ flex:1 }} />
-                  <Tip label="Remove"><button type="button" aria-label={`Remove ${m.user_name}`} onClick={() => removeMember(t.id, m.user_id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}>
+                  <Tip label="Remove"><button type="button" aria-label={`Remove ${m.user_name}`} onClick={() => removeMember(t.id, m.user_id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }} data-ui-native-button="">
                     <Icon name="x" size={12} />
                   </button></Tip>
                 </div>

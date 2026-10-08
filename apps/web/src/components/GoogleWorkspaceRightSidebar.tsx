@@ -738,7 +738,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   <button
                     className={`gws-drawer-action ${searchOpen ? 'active' : ''}`}
                     onClick={() => { setSearchOpen(o => !o); setSearchQuery(''); }}
-                  >
+                   data-ui-native-button="">
                     <Icon name="search" size={15} />
                   </button>
                 </Tip>
@@ -751,7 +751,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 </Tip>
               )}
               <Tip label="Close">
-                <button className="gws-drawer-action" onClick={() => setActivePanel(null)}>
+                <button className="gws-drawer-action" onClick={() => setActivePanel(null)} data-ui-native-button="">
                   <Icon name="x" size={16} />
                 </button>
               </Tip>
@@ -769,7 +769,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 className="gws-drawer-search-input"
               />
               {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')} className="gws-drawer-search-clear">
+                <button type="button" onClick={() => setSearchQuery('')} className="gws-drawer-search-clear" data-ui-native-button="">
                   <Icon name="x" size={13} />
                 </button>
               )}
@@ -798,7 +798,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         type="button"
                         onClick={() => updateTodo(todo.id, { completed: !todo.completed })}
                         style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${todo.completed ? 'var(--teal)' : 'var(--border2)'}`, background: todo.completed ? 'var(--teal)' : 'transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
+                       data-ui-native-button="">
                         {todo.completed && <Icon name="check" size={10} style={{ color: '#fff' }} />}
                       </button>
                       <a
@@ -816,7 +816,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         onOpenChange={o => setOpenReminderTodoId(o ? todo.id : null)}
                         triggerStyle={{ background: 'none', border: 'none', cursor: 'pointer', color: todo.reminder ? 'var(--teal)' : 'var(--ink3)', display: 'flex', padding: 2 }}
                       />
-                      <button type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: 2 }}>
+                      <button type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: 2 }} data-ui-native-button="">
                         <Icon name="trash" size={13} />
                       </button>
                     </div>
@@ -848,7 +848,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setEventComposerOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setEventComposerOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> New event
                   </button>
                 )}
@@ -909,12 +909,12 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     <Button type="submit" size="xs">Start</Button>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setNewChannelOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setNewChannelOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> Start a chat
                   </button>
                 )}
 
-                <button type="button" onClick={toggleBrowse} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontWeight: 600, padding: '2px 2px' }}>
+                <button type="button" onClick={toggleBrowse} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontWeight: 600, padding: '2px 2px' }} data-ui-native-button="">
                   <Icon name={browseOpen ? 'chevronDown' : 'chevronRight'} size={12} /> Browse channels &amp; groups
                 </button>
                 {browseOpen && (
@@ -933,7 +933,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                           <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{bc.member_count} member{bc.member_count === 1 ? '' : 's'}</div>
                         </div>
                         <button type="button" onClick={() => handleJoinChannel(bc)} disabled={joiningChannelId === bc.id}
-                          style={{ flexShrink: 0, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: joiningChannelId === bc.id ? 'default' : 'pointer' }}>
+                          style={{ flexShrink: 0, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: joiningChannelId === bc.id ? 'default' : 'pointer' }} data-ui-native-button="">
                           {joiningChannelId === bc.id ? '…' : 'Join'}
                         </button>
                       </div>
@@ -948,7 +948,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     return (
                       <div key={c.id} data-channel-id={c.id} style={{ borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
                         <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                          <button type="button" onClick={() => openThread(c.id)} style={{ flex: 1, minWidth: 0, padding: 10, display: 'flex', gap: 10, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                          <button type="button" onClick={() => openThread(c.id)} style={{ flex: 1, minWidth: 0, padding: 10, display: 'flex', gap: 10, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }} data-ui-native-button="">
                             <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(124,58,237,0.12)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                               <Icon name="messageSquare" size={13} />
                             </div>
@@ -961,7 +961,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                             </div>
                           </button>
                           <Tip label={c.type === 'dm' ? 'Remove conversation' : 'Leave / delete channel'}>
-                            <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }}>
+                            <button type="button" onClick={e => handleLeaveOrDeleteChannel(e, c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', padding: '0 10px', flexShrink: 0 }} data-ui-native-button="">
                               <Icon name="moreVertical" size={14} />
                             </button>
                           </Tip>
@@ -1002,7 +1002,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
                   <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>{notifs.length} Notifications</span>
                   {unreadNotifCount > 0 && (
-                    <button type="button" onClick={markAllNotificationsRead} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
+                    <button type="button" onClick={markAllNotificationsRead} style={{ fontSize: 11.5, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Mark all read</button>
                   )}
                 </div>
                 <div>
@@ -1061,7 +1061,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         {n.title && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>}
                         <div style={{ fontSize: 12, color: 'var(--ink2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.content || 'Empty note'}</div>
                       </div>
-                      <button type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: 2, flexShrink: 0 }}>
+                      <button type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: 2, flexShrink: 0 }} data-ui-native-button="">
                         <Icon name="trash" size={13} />
                       </button>
                     </a>
@@ -1093,7 +1093,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setSmsComposerOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setSmsComposerOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> Quick send
                   </button>
                 )}
@@ -1162,7 +1162,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setContactComposerOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setContactComposerOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> Add contact
                   </button>
                 )}
@@ -1224,7 +1224,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setInvoiceComposerOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setInvoiceComposerOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> Quick invoice
                   </button>
                 )}
@@ -1267,7 +1267,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setDepositComposerOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setDepositComposerOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> Quick deposit
                   </button>
                 )}
@@ -1307,7 +1307,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                     </div>
                   </form>
                 ) : (
-                  <button type="button" onClick={() => setInviteComposerOpen(true)} style={composerToggleStyle}>
+                  <button type="button" onClick={() => setInviteComposerOpen(true)} style={composerToggleStyle} data-ui-native-button="">
                     <Icon name="plus" size={14} /> Invite staff
                   </button>
                 )}
@@ -1548,7 +1548,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             type="button"
             className="gws-rail-toggle"
             onClick={toggleRightSidebar}
-          >
+           data-ui-chrome-button="">
             <Icon name={collapsed ? "chevronLeft" : "chevronRight"} size={11} strokeWidth={2.5} />
           </button>
         </Tip>
@@ -1567,8 +1567,9 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   <button
                     className={`gws-rail-btn${isActive ? ' active' : ''}`}
                     onClick={() => togglePanel(app.id)}
+                    aria-label={app.label}
                     aria-pressed={isActive}
-                  >
+                   data-ui-chrome-button="">
                     <Icon name={app.icon} size={19} />
                     {badge && <span className={`gws-badge gws-badge-${badge.color}`}>{badge.count}</span>}
                   </button>
@@ -1589,10 +1590,11 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             <button
               className={`gws-ai-btn${activePanel === 'ai' ? ' active' : ''}`}
               onClick={() => togglePanel('ai')}
+              aria-label="AI Assistant"
               aria-pressed={activePanel === 'ai'}
-            >
+             data-ui-native-button="">
               <div className="gws-ai-btn-tile">
-                <Icon name="sparkle" size={19} color="#fff" />
+                <Icon name="sparkle" size={19} color="hsl(var(--primary-foreground))" />
               </div>
             </button>
           </Tip>
@@ -1601,7 +1603,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
           <DropdownMenu>
             <Tip label="Add apps to this panel" side="left">
               <DropdownMenuTrigger asChild>
-                <button className="gws-rail-btn">
+                <button className="gws-rail-btn" aria-label="Add apps to this panel" data-ui-native-button="">
                   <Icon name="plus" size={19} />
                 </button>
               </DropdownMenuTrigger>
@@ -1628,7 +1630,8 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
             <button
               className={`gws-rail-btn ${activePanel === 'settings' ? 'active' : ''}`}
               onClick={() => togglePanel('settings')}
-            >
+              aria-label="Quick Settings"
+             data-ui-native-button="">
               <Icon name="settings" size={19} />
             </button>
           </Tip>

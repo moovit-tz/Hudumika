@@ -132,7 +132,7 @@ export function PrivacyCenter() {
       />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, padding: '0 28px 20px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', gap: 4, padding: '0 28px 20px', borderBottom: '1px solid var(--border)' }} data-ds-tabstrip="">
         {TABS.map(t => (
           <button
             key={t}
@@ -148,7 +148,7 @@ export function PrivacyCenter() {
               cursor: 'pointer',
               transition: 'background 0.15s, color 0.15s',
             }}
-          >
+           data-ds-selected={tab === t} data-ui-native-button="" aria-pressed={tab === t}>
             {t}
           </button>
         ))}
@@ -247,7 +247,7 @@ export function PrivacyCenter() {
                     textAlign: 'left',
                     transition: 'border-color 0.15s',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name="shield" size={15} color="var(--teal)" />
                   <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
                 </button>

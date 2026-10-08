@@ -174,7 +174,7 @@ export const CompanySection: React.FC = () => {
               value={/^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : '#0f766e'}
               onChange={setAccentColor}
             />
-            {accentColor && <button type="button" className="s-brand-clear" onClick={() => setAccentColor('')}>Clear</button>}
+            {accentColor && <button type="button" className="s-brand-clear" onClick={() => setAccentColor('')} data-ui-native-button="">Clear</button>}
           </div>
         </Field>
         <Field label="Company Logo" hint="Recommended: 400×100px PNG or SVG" full>
@@ -188,7 +188,7 @@ export const CompanySection: React.FC = () => {
               <div className="s-upload-hint">PNG, SVG or JPG · max 2 MB</div>
             </div>
             {logoUrl && (
-              <Tip label="Remove logo"><button type="button" aria-label="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm">
+              <Tip label="Remove logo"><button type="button" aria-label="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm" data-ui-native-button="">
                 <Icon name="x" size={13} color="var(--red)" />
               </button></Tip>
             )}
@@ -206,7 +206,7 @@ export const CompanySection: React.FC = () => {
               <div className="s-upload-hint">PNG or SVG, ideally with a transparent background · max 2 MB</div>
             </div>
             {logoUrlDark && (
-              <Tip label="Remove dark-mode logo"><button type="button" aria-label="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm">
+              <Tip label="Remove dark-mode logo"><button type="button" aria-label="Remove dark-mode logo" onClick={e => { e.preventDefault(); setLogoUrlDark(null); }} className="s-upload-rm" data-ui-native-button="">
                 <Icon name="x" size={13} color="var(--red)" />
               </button></Tip>
             )}
@@ -218,7 +218,7 @@ export const CompanySection: React.FC = () => {
             <div className="s-logo-hist">
               {co.logoHistory.map((src, i) => (
                 <Tip key={i} label={`Restore logo ${i + 1}`}><button type="button" aria-label={`Restore logo ${i + 1}`} onClick={() => setLogoUrl(src)}
-                  className={`s-logo-thumb${logoUrl === src ? ' s-logo-thumb--on' : ''}`}><img src={src} alt={`Previous logo ${i + 1}`} className="s-logo-thumb-img" /></button></Tip>
+                  className={`s-logo-thumb${logoUrl === src ? ' s-logo-thumb--on' : ''}`} data-ui-native-button=""><img src={src} alt={`Previous logo ${i + 1}`} className="s-logo-thumb-img" /></button></Tip>
               ))}
             </div>
           </Field>
@@ -234,7 +234,7 @@ export const CompanySection: React.FC = () => {
               <div className="s-upload-hint">512×512px · PNG, JPG, SVG or ICO</div>
             </div>
             {faviconUrl && (
-              <Tip label="Remove favicon"><button type="button" aria-label="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm">
+              <Tip label="Remove favicon"><button type="button" aria-label="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm" data-ui-native-button="">
                 <Icon name="x" size={13} color="var(--red)" />
               </button></Tip>
             )}
@@ -573,7 +573,7 @@ export const EmailSection: React.FC = () => {
             <Badge variant={(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'success' : 'gray'}>
               {(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'Authorized' : 'Unauthorized'}
             </Badge>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConnect(protocol as 'outlook' | 'gmail')} disabled={connecting === protocol}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConnect(protocol as 'outlook' | 'gmail')} disabled={connecting === protocol} data-ui-native-button="">
               {connecting === protocol ? 'Connecting…' : 'Save & Authorize'}
             </button>
           </div>
@@ -631,7 +631,7 @@ export const EmailSection: React.FC = () => {
                 style={{ width: 220 }}
               />
             )}
-            <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
+            <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing} data-ui-native-button="">
               {testing ? 'Sending…' : 'Send Test Email'}
             </button>
             {testResult && (

@@ -10,6 +10,7 @@ import { applyStamp, StampAccessDeniedError } from '../services/stamp.service.js
 import { MinioIntegration } from '../integrations/minio.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
+import { prepareIndustryBilling, attachIndustryInvoice } from '../services/finance-industry-work.service.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
@@ -38,6 +39,7 @@ const invoiceLineSchema = z.object({
   tax_code_id: z.string().optional(),
 }).passthrough(); // resolveItemTaxCodes/buildInvoiceLines do their own per-line validation — this only guards the shape isn't a non-object.
 const invoiceCreateSchema = z.object({
+  industry_work_id: z.string().uuid().optional(),
   items: z.array(invoiceLineSchema).optional(),
   invoice_number: z.string().max(100).optional(),
   shipment_ref: z.string().max(100).optional(),
@@ -187,11 +189,11 @@ export function invoiceNetAndTax(
  * no matter how much VAT had been charged. Found by running a return end to end
  * and reading the entry it produced.
  */
-function invoiceJournalLines(grandTotal: number, { net, tax }: { net: number; tax: number }, businessLineId?: string | null) {
-  const dimensions = businessLineId ? { business_line_id: businessLineId } : undefined;
+function invoiceJournalLines(grandTotal: number, { net, tax }: { net: number; tax: number }, businessLineId?: string | null, workId?: string | null) {
+  const dimensions = { ...(businessLineId ? { business_line_id: businessLineId } : {}), ...(workId ? { work_id: workId } : {}) };
   return [
     { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable', dimensions },
-    { accountCode: '4000', debit: 0, credit: net, description: 'Freight Revenue', dimensions },
+    { accountCode: workId ? '4500' : '4000', debit: 0, credit: net, description: workId ? 'Industry job revenue' : 'Freight Revenue', dimensions },
     ...(tax > 0
       ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax', dimensions }]
       : []),
@@ -782,6 +784,17 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     let issuedId: string | null = null;
     let issuedNumber: string | null = null;
     const result = await withTenant(user.tenant_id, async (trx) => {
+      if (body.industry_work_id && user.role === 'SALES') return reply.status(403).send({ error: 'Job billing requires a manager or finance role.' });
+      const industryBilling = body.industry_work_id ? await prepareIndustryBilling(trx, user.tenant_id, body.industry_work_id) : null;
+      if (industryBilling) {
+        body.items = industryBilling.items;
+        body.customer_id = industryBilling.customer.id;
+        body.client_name = industryBilling.customer.name;
+        body.currency = industryBilling.work.currency;
+        body.ref_code = industryBilling.work.reference;
+        body.status = 'Draft';
+        body.notes = `Work: ${industryBilling.work.reference} — ${industryBilling.work.name}. Review tax codes before issuing.`;
+      }
       // Before the header is written — see resolveItemTaxCodes on why an early
       // return after a write commits the partial state.
       const resolved = await resolveItemTaxCodes(trx, user.tenant_id, body.items ?? []);
@@ -861,8 +874,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           sourceId: inv.id,
           createdBy: user.sub,
           lines: invoiceJournalLines(grandTotal, netAndTax, inv.business_line_id),
-        });
+        }, trx);
       }
+
+      if (industryBilling) await attachIndustryInvoice(trx, user.tenant_id, industryBilling.work.id, industryBilling.lines.map(line => line.id), inv.id);
 
       // Trigger accounting integration sync in background
       if (inv.status !== 'Draft') {
@@ -900,9 +915,24 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     let issuedId: string | null = null;
     let issuedNumber: string | null = null;
     const result = await withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency', 'status', 'business_line_id'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency', 'status', 'business_line_id', 'industry_work_id', 'customer_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
+      if (existing.industry_work_id) {
+        if (user.role === 'SALES') return reply.status(403).send({ error: 'Job billing requires a manager or finance role.' });
+        if (body.customer_id && body.customer_id !== existing.customer_id) return reply.status(409).send({ error: 'A job invoice must retain its approved customer.' });
+        if (body.currency && body.currency !== existing.currency) return reply.status(409).send({ error: 'A job invoice must retain its approved currency.' });
+        if (existing.status !== 'Draft' && (body.items || body.status === 'Draft')) return reply.status(409).send({ error: 'Issued job invoices are immutable. Use a credit note to correct their charges.' });
+        if (body.items) {
+          const approved = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).orderBy('sort_order').execute();
+          const changed = body.items.length !== approved.length || body.items.some((line, index) => {
+            const stored = approved[index];
+            return !stored || line.name !== stored.name || Number(line.rate ?? 0) !== Number(stored.rate) || Number(line.qty ?? 1) !== Number(stored.qty)
+              || (line.currency ?? existing.currency) !== stored.currency || (existing.status !== 'Draft' && Number(line.tax_pct ?? 0) !== Number(stored.tax_pct));
+          });
+          if (changed) return reply.status(409).send({ error: 'Approved job charges are locked. Correct the work before billing; review taxes while the invoice is a draft.' });
+        }
+      }
       if (body.business_line_id !== undefined && existing.status !== 'Draft' && body.business_line_id !== existing.business_line_id) {
         return reply.status(409).send({ error: 'The business line cannot be changed after an invoice has been issued because its ledger entry is already posted.' });
       }
@@ -983,8 +1013,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
                 grandTotal,
                 invoiceNetAndTax(lines, inv.currency, Number(inv.exchange_rate) || 1),
                 inv.business_line_id,
+                inv.industry_work_id,
               ),
-            });
+            }, trx);
           }
         }
       }

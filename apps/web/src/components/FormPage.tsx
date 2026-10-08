@@ -62,10 +62,10 @@ export function FormPageActions({ onCancel, onSave, saving, saveLabel = 'Save', 
   return (
     <>
       {extra}
-      <button type="button" onClick={onCancel} disabled={saving} className="btn btn-secondary">
+      <button type="button" onClick={onCancel} disabled={saving} className="btn btn-secondary" data-ui-native-button="">
         Cancel
       </button>
-      <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary">
+      <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary" data-ui-native-button="">
         {saving ? 'Saving…' : saveLabel}
       </button>
     </>

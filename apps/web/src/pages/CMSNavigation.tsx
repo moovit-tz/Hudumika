@@ -79,14 +79,14 @@ export function CMSNavigation() {
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{item.target}</div>
         </div>
         <button onClick={() => handleMove(item.id, 'up')} disabled={siblingIdx === 0} title="Move up"
-          style={{ background: 'none', border: 'none', cursor: siblingIdx === 0 ? 'default' : 'pointer', color: siblingIdx === 0 ? 'var(--border)' : 'var(--ink3)', display: 'flex' }}>
+          style={{ background: 'none', border: 'none', cursor: siblingIdx === 0 ? 'default' : 'pointer', color: siblingIdx === 0 ? 'var(--border)' : 'var(--ink3)', display: 'flex' }} data-ui-native-button="">
           <Icon name="arrowUp" size={14} />
         </button>
         <button onClick={() => handleMove(item.id, 'down')} disabled={siblingIdx === siblingCount - 1} title="Move down"
-          style={{ background: 'none', border: 'none', cursor: siblingIdx === siblingCount - 1 ? 'default' : 'pointer', color: siblingIdx === siblingCount - 1 ? 'var(--border)' : 'var(--ink3)', display: 'flex' }}>
+          style={{ background: 'none', border: 'none', cursor: siblingIdx === siblingCount - 1 ? 'default' : 'pointer', color: siblingIdx === siblingCount - 1 ? 'var(--border)' : 'var(--ink3)', display: 'flex' }} data-ui-native-button="">
           <Icon name="arrowDown" size={14} />
         </button>
-        <button onClick={() => handleDelete(item)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex' }}>
+        <button onClick={() => handleDelete(item)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex' }} data-ui-native-button="">
           <Icon name="trash2" size={14} />
         </button>
       </div>
@@ -116,7 +116,7 @@ export function CMSNavigation() {
               {topLevel.map(i => <SelectItem key={i.id} value={i.id}>Nested under "{i.label}"</SelectItem>)}
             </SelectContent>
           </Select>
-          <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} style={{ alignSelf: 'flex-start' }}>
+          <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} style={{ alignSelf: 'flex-start' }} data-ui-native-button="">
             {saving ? 'Adding…' : 'Add item'}
           </button>
         </div>

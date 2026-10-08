@@ -4,7 +4,7 @@ import '../pages/FinOps.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
-import type { SidebarSection } from '../components/AppSidebar.js';
+import type { SidebarSection, SidebarNavItem } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { PageLayout } from '../components/PageLayout.js';
@@ -26,7 +26,6 @@ function buildNav(t: TFunction): SidebarSection[] {
     {
       items: [
         { label: t('finance.nav.dashboard'), icon: 'barChart', path: '/finance', exact: true },
-        { label: t('finance.nav.industries', { defaultValue: 'Industry workspaces' }), icon: 'building', path: '/finance/industries' },
       ],
     },
     {
@@ -52,7 +51,7 @@ function buildNav(t: TFunction): SidebarSection[] {
       title: t('finance.nav.accounts'),
       items: [
         { label: t('finance.nav.products'),   icon: 'package',      path: '/finance/products' },
-        { label: 'Point of Sale',              icon: 'shoppingCart', path: '/finance/pos'      },
+        { label: 'POS',                        icon: 'shoppingCart', path: '/finance/pos'      },
         { label: t('finance.nav.taxCodes'),   icon: 'percent',      path: '/finance/tax-codes'},
         {
           label: 'General Ledger', icon: 'bookOpen', path: '/finance/accounts/chart-of-accounts',
@@ -127,7 +126,7 @@ function buildNav(t: TFunction): SidebarSection[] {
     },
     {
       title: 'Settings',
-      items: [{ label: 'Capabilities', icon: 'settings', path: '/finance/industries' }],
+      items: [{ label: t('finance.nav.industries', { defaultValue: 'Industries' }), icon: 'building', path: '/finance/industries' }],
     },
   ];
 }
@@ -217,12 +216,18 @@ export function FinOpsShell() {
   const { user } = useAuth();
   const { data: financeAccess } = useFinanceCapabilities();
   const enabled = new Set(financeAccess?.capabilities.filter(item => item.enabled).map(item => item.key));
+  const visibleItems = (items: SidebarNavItem[]): SidebarNavItem[] => items.flatMap(item => {
+    const children = item.children ? visibleItems(item.children) : undefined;
+    if (item.children && !children?.length) return [];
+    if (!item.children && (!roleCanSeeFinancePath(user?.role, item.path) || (CAPABILITY_BY_PATH[item.path] && !enabled.has(CAPABILITY_BY_PATH[item.path]!)))) return [];
+    return [{ ...item, ...(children ? { children, path: children.some(child => child.path === item.path) ? item.path : children[0].path } : {}) }];
+  });
   const NAV = buildNav(t).map(section => ({
     ...section,
     // Capability-linked destinations stay hidden until access is resolved.
     // This avoids briefly exposing every Advanced module during the initial
     // entitlement request or after a package change refresh.
-    items: section.items.filter(item => roleCanSeeFinancePath(user?.role, item.path) && (!CAPABILITY_BY_PATH[item.path] || enabled.has(CAPABILITY_BY_PATH[item.path]!))),
+    items: visibleItems(section.items),
   })).filter(section => section.items.length > 0);
   const gated = (capability: FinanceCapabilityKey, page: React.ReactNode) => <FinanceCapabilityGate capability={capability}><RequireRoles roles={FIN_ROLES}>{page}</RequireRoles></FinanceCapabilityGate>;
   return (

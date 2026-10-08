@@ -102,7 +102,7 @@ export const TrackingVendors: React.FC = () => {
           />
         </div>
         <button type="button" onClick={() => setShowAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="plus" size={15} /> Add vendor
         </button>
       </div>
@@ -125,7 +125,7 @@ export const TrackingVendors: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{v.email || '—'}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{v.address || '—'}</td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                  <button type="button" onClick={() => remove(v.id)} title="Remove vendor" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                  <button type="button" onClick={() => remove(v.id)} title="Remove vendor" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                     <Icon name="close" size={14} />
                   </button>
                 </td>

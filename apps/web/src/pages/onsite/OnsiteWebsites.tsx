@@ -106,11 +106,11 @@ export function OnsiteWebsites() {
         titleEm="websites"
         subtitle="Manage hosted websites, WordPress installations, and PHP web applications."
         actions={<div className="onsite-header-actions">
-                    <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)}>
+                    <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                       <Icon name="plus" size={16} />
                       <span>Add Website</span>
                     </button>
-                    <button className="onsite-btn-outline" onClick={() => navigate('/workspace/billing')}>
+                    <button className="onsite-btn-outline" onClick={() => navigate('/workspace/billing')} data-ui-native-button="">
                       <Icon name="layoutDashboard" size={15} />
                       <span>Get Plan</span>
                     </button>
@@ -176,13 +176,13 @@ export function OnsiteWebsites() {
           <button
             role="tab" aria-selected={activeTab === 'owned'} className={activeTab === 'owned' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('owned')}
-          >
+           data-ui-native-button="">
             Owned Websites ({filteredWebsites.length})
           </button>
           <button
             role="tab" aria-selected={activeTab === 'shared'} className={activeTab === 'shared' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('shared')}
-          >
+           data-ui-native-button="">
             Shared with Workspace
           </button>
         </div>
@@ -191,7 +191,7 @@ export function OnsiteWebsites() {
           className="onsite-btn-outline onsite-refresh-btn"
           onClick={() => fetchWebsites(true)}
           disabled={refreshing}
-        >
+         data-ui-native-button="">
           <Icon name="refresh" size={14} className={refreshing ? 'onsite-spin' : ''} />
           <span>{refreshing ? 'Refreshing...' : 'Refresh Status'}</span>
         </button>
@@ -229,7 +229,7 @@ export function OnsiteWebsites() {
           <p style={{ color: 'var(--ink2)', fontSize: '0.875rem', margin: '0.4rem 0 1.25rem 0' }}>
             {searchQuery ? 'No websites match your search query.' : 'Add your first website to start hosting files, WordPress, or web applications.'}
           </p>
-          <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)}>
+          <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="plus" size={14} />
             <span>Add Website</span>
           </button>
@@ -245,11 +245,11 @@ export function OnsiteWebsites() {
                 </div>
               </div>
               <div className="onsite-plan-header-actions">
-                <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/transfers')}>
+                <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/transfers')} data-ui-native-button="">
                   <Icon name="download" size={14} />
                   <span>Migrate Website</span>
                 </button>
-                <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)}>
+                <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)} data-ui-native-button="">
                   <Icon name="plus" size={14} />
                   <span>Add Website</span>
                 </button>
@@ -288,11 +288,11 @@ export function OnsiteWebsites() {
                       <button
                         className="onsite-btn-outline"
                         onClick={() => window.open((site.url || 'https://' + site.name) + '/wp-admin', '_blank', 'noopener,noreferrer')}
-                      >
+                       data-ui-native-button="">
                         <span>WP Admin ↗</span>
                       </button>
                     )}
-                    <button className="onsite-btn-purple" onClick={() => navigate('/onsite/websites/' + site.id)}>
+                    <button className="onsite-btn-purple" onClick={() => navigate('/onsite/websites/' + site.id)} data-ui-native-button="">
                       <span>Dashboard</span>
                     </button>
                     <Tip label={site.domain_id ? 'Open DNS settings' : 'No domain linked to this website yet'}>
@@ -301,7 +301,7 @@ export function OnsiteWebsites() {
                           className="onsite-btn-outline"
                           disabled={!site.domain_id}
                           onClick={() => site.domain_id && navigate('/onsite/domains/' + site.domain_id + '/dns')}
-                        >
+                         data-ui-native-button="">
                           <span>DNS</span>
                         </button>
                       </span>
@@ -372,7 +372,7 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="onsite-card-header">
           <DialogTitle className="onsite-card-title">Add website</DialogTitle>
-          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={onClose} data-ui-native-button="">✕</button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-form-group">
@@ -424,10 +424,10 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+            <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
               {submitting ? 'Adding…' : 'Add website'}
             </button>
           </div>

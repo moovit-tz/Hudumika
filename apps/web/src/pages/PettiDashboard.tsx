@@ -382,7 +382,7 @@ export function PettiDashboard() {
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 12 }}>Loading wallets…</div>
         ) : wallets.length === 0 ? (
           <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 12 }}>
-            No wallets yet. <button type="button" style={{ color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }} onClick={() => navigate('/petti/wallets')}>Create one</button>
+            No wallets yet. <button type="button" style={{ color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }} onClick={() => navigate('/petti/wallets')} data-ui-native-button="">Create one</button>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, alignItems: 'stretch' }}>

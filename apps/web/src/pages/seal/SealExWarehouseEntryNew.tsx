@@ -134,7 +134,7 @@ export function SealExWarehouseEntryNew() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <button type="submit" className="btn btn-primary" disabled={!isReady || saving}>
+            <button type="submit" className="btn btn-primary" disabled={!isReady || saving} data-ui-native-button="">
               <Icon name="fileText" size={14} /> {saving ? 'Creating…' : 'Create Declaration'}
             </button>
           </div>

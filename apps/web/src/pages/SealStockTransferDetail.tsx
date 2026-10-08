@@ -136,7 +136,7 @@ export function SealStockTransferNew() {
         <div className="seal-card" style={{ marginBottom: 16 }}>
           <div className="seal-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Lots to Transfer</span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={addLine}><Icon name="plus" size={12} /> Add Line</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={addLine} data-ui-native-button=""><Icon name="plus" size={12} /> Add Line</button>
           </div>
           <div className="seal-card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {form.lines.map((line, i) => (
@@ -155,7 +155,7 @@ export function SealStockTransferNew() {
                 </div>
                 <div style={{ paddingBottom: 1 }}>
                   {form.lines.length > 1 && (
-                    <button type="button" onClick={() => removeLine(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: '9px 6px', display: 'flex', alignItems: 'center' }}>
+                    <button type="button" onClick={() => removeLine(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: '9px 6px', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                       <Icon name="trash2" size={14} />
                     </button>
                   )}
@@ -166,7 +166,7 @@ export function SealStockTransferNew() {
         </div>
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>Cancel</button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)} data-ui-native-button="">Cancel</button>
           <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Transfer'}</Button>
         </div>
       </form>
@@ -227,9 +227,9 @@ export function SealStockTransferDetail() {
         subtitle={`Requested ${new Date(t.requested_at).toLocaleDateString()} · ${t.lines.length} lot${t.lines.length !== 1 ? 's' : ''}`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            {canApprove  && <button className="btn btn-secondary btn-sm" disabled={actioning} onClick={() => doAction('approve')}>Approve</button>}
+            {canApprove  && <button className="btn btn-secondary btn-sm" disabled={actioning} onClick={() => doAction('approve')} data-ui-native-button="">Approve</button>}
             {canExecute  && <Button disabled={actioning} onClick={() => doAction('execute')}>Execute Transfer</Button>}
-            {canCancel   && <button className="btn btn-sm" style={{ background: 'var(--red-l)', color: 'var(--red)', border: 'none' }} disabled={actioning} onClick={() => doAction('cancel')}>Cancel</button>}
+            {canCancel   && <button className="btn btn-sm" style={{ background: 'var(--red-l)', color: 'var(--red)', border: 'none' }} disabled={actioning} onClick={() => doAction('cancel')} data-ui-native-button="">Cancel</button>}
           </div>
         }
       />

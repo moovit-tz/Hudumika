@@ -255,7 +255,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                 className="spt-bedesk-icon-btn"
                 onClick={onClose}
                 style={{ marginRight: 2 }}
-              >
+               data-ui-native-button="">
                 <Icon name="arrowLeft" size={16} />
               </button>
             </Tip>
@@ -275,7 +275,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
               on mobile, where it's a drawer rather than a fixed 3rd column. */}
           {isMobile && (
             <Tip label="View details">
-              <button type="button" className="spt-bedesk-icon-btn" onClick={onOpenDetails}>
+              <button type="button" className="spt-bedesk-icon-btn" onClick={onOpenDetails} data-ui-native-button="">
                 <Icon name="dockRight" size={16} />
               </button>
             </Tip>
@@ -342,7 +342,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                     {m.attachments.map(a => (
                       <button key={a.id} type="button"
                         onClick={() => apiDownload(`/v1/files/${a.id}/download`, a.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink2)' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink2)' }} data-ui-native-button="">
                         <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
                         <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                         {a.size != null && <span style={{ color: 'var(--ink3)' }}>({fmtAttachmentSize(a.size)})</span>}
@@ -367,7 +367,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                     {m.attachments.map(a => (
                       <button key={a.id} type="button"
                         onClick={() => apiDownload(`/v1/files/${a.id}/download`, a.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink2)' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink2)' }} data-ui-native-button="">
                         <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
                         <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                         {a.size != null && <span style={{ color: 'var(--ink3)' }}>({fmtAttachmentSize(a.size)})</span>}
@@ -440,7 +440,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                   type="button"
                   className="spt-bedesk-mode-pill active"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
+                 data-ui-native-button="">
                   <Icon name={isNote ? 'lock' : 'mail'} size={12} />
                   <span>{isNote ? 'Internal Note' : 'Message'}</span>
                   <Icon name="chevronDown" size={11} />
@@ -466,7 +466,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                     onClick={() => setBroadcastChs(new Set(BROADCAST_ORDER))}
                     className={`spt-bedesk-ch-chip${broadcastChs.size === BROADCAST_ORDER.length ? ' active' : ''}`}
                     aria-label="All channels"
-                  >
+                   data-ui-native-button="">
                     <Icon name="layers" size={13} />
                   </button>
                 </Tip>
@@ -481,7 +481,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                         className={`spt-bedesk-ch-chip${active ? ' active' : ''}`}
                         style={active ? { color: cfg.color, borderColor: cfg.color } : undefined}
                         aria-label={cfg.label}
-                      >
+                       data-ui-native-button="">
                         <Icon name={cfg.icon} size={13} />
                       </button>
                     </Tip>
@@ -515,7 +515,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                 <span key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 6px 4px 9px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 11.5, color: 'var(--ink2)' }}>
                   <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
                   <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
-                  <button type="button" onClick={() => setPendingAttachments(prev => prev.filter(x => x.id !== a.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex' }}>
+                  <button type="button" onClick={() => setPendingAttachments(prev => prev.filter(x => x.id !== a.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, display: 'flex' }} data-ui-native-button="">
                     <Icon name="x" size={11} />
                   </button>
                 </span>
@@ -526,7 +526,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
             <Popover open={showEmoji} onOpenChange={setShowEmoji}>
               <Tip label="Insert Emoji">
                 <PopoverTrigger asChild>
-                  <button type="button" className="spt-bedesk-tb-btn">
+                  <button type="button" className="spt-bedesk-tb-btn" data-ui-native-button="">
                     <Icon name="smile" size={15} />
                   </button>
                 </PopoverTrigger>
@@ -534,7 +534,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
               <PopoverContent align="start" side="top" className="w-auto p-2">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 4 }}>
                   {COMPOSER_EMOJIS.map(em => (
-                    <button key={em} type="button" onClick={() => { setCompose(c => c + em); setShowEmoji(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }}>
+                    <button key={em} type="button" onClick={() => { setCompose(c => c + em); setShowEmoji(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 4 }} data-ui-native-button="">
                       {em}
                     </button>
                   ))}
@@ -544,7 +544,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
             <Popover open={showMacros} onOpenChange={o => { setShowMacros(o); if (o) loadMacros(); else setNewMacroOpen(false); }}>
               <Tip label="Canned responses / Macros">
                 <PopoverTrigger asChild>
-                  <button type="button" className="spt-bedesk-tb-btn">
+                  <button type="button" className="spt-bedesk-tb-btn" data-ui-native-button="">
                     <Icon name="cannedResponse" size={15} />
                   </button>
                 </PopoverTrigger>
@@ -564,7 +564,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                         <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.content}</div>
                       </div>
                       <Tip label="Delete macro">
-                        <button type="button" aria-label="Delete macro" onClick={e => deleteMacro(m.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', flexShrink: 0 }}>
+                        <button type="button" aria-label="Delete macro" onClick={e => deleteMacro(m.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', flexShrink: 0 }} data-ui-native-button="">
                           <Icon name="trash2" size={12} />
                         </button>
                       </Tip>
@@ -577,12 +577,12 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                       <input autoFocus value={newMacroTitle} onChange={e => setNewMacroTitle(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') saveMacro(); if (e.key === 'Escape') setNewMacroOpen(false); }}
                         placeholder="Macro title…" style={{ flex: 1, fontSize: 12, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--white)', color: 'var(--ink)' }} />
-                      <button type="button" onClick={saveMacro} disabled={!newMacroTitle.trim() || !compose.trim()} className="btn btn-primary btn-sm">Save</button>
+                      <button type="button" onClick={saveMacro} disabled={!newMacroTitle.trim() || !compose.trim()} className="btn btn-primary btn-sm" data-ui-native-button="">Save</button>
                     </div>
                   ) : (
                     <button type="button" onClick={() => setNewMacroOpen(true)} disabled={!compose.trim()}
                       title={compose.trim() ? 'Save the current message as a new canned response' : 'Type a message first'}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: compose.trim() ? 'var(--teal)' : 'var(--ink3)', fontWeight: 600, fontSize: 12, cursor: compose.trim() ? 'pointer' : 'default', padding: '6px 8px' }}>
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: compose.trim() ? 'var(--teal)' : 'var(--ink3)', fontWeight: 600, fontSize: 12, cursor: compose.trim() ? 'pointer' : 'default', padding: '6px 8px' }} data-ui-native-button="">
                       <Icon name="plus" size={13} /> Save current message as macro
                     </button>
                   )}
@@ -606,12 +606,12 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
               return (
                 <>
                   <Tip label={label}>
-                    <button type="button" className="spt-bedesk-tb-btn" disabled={!canAttach || uploadingAttachment} onClick={() => fileInputRef.current?.click()} style={!canAttach ? { opacity: 0.4, cursor: 'default' } : undefined}>
+                    <button type="button" className="spt-bedesk-tb-btn" disabled={!canAttach || uploadingAttachment} onClick={() => fileInputRef.current?.click()} style={!canAttach ? { opacity: 0.4, cursor: 'default' } : undefined} data-ui-native-button="">
                       <Icon name="paperclip" size={15} />
                     </button>
                   </Tip>
                   <Tip label={imgLabel}>
-                    <button type="button" className="spt-bedesk-tb-btn" disabled={!canAttach || uploadingAttachment} onClick={() => imageInputRef.current?.click()} style={!canAttach ? { opacity: 0.4, cursor: 'default' } : undefined}>
+                    <button type="button" className="spt-bedesk-tb-btn" disabled={!canAttach || uploadingAttachment} onClick={() => imageInputRef.current?.click()} style={!canAttach ? { opacity: 0.4, cursor: 'default' } : undefined} data-ui-native-button="">
                       <Icon name="image" size={15} />
                     </button>
                   </Tip>
@@ -624,7 +624,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                 className="spt-bedesk-tb-btn"
                 onClick={() => { if (aiSuggestionToUse) setCompose(aiSuggestionToUse); }}
                 style={{ color: 'var(--teal)' }}
-              >
+               data-ui-native-button="">
                 <Icon name="sparkle" size={15} />
               </button>
             </Tip>
@@ -636,7 +636,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
               onClick={handleSend}
               disabled={!canSend}
               className={`spt-bedesk-send-btn${canSend ? ' ready' : ''}${isNote ? ' note' : ''}`}
-            >
+             data-ui-native-button="">
               <span>{sending ? 'Sending…' : isNote ? 'Save note' : 'Send reply'}</span>
               {!isNote && <Icon name="chevronDown" size={12} />}
             </button>

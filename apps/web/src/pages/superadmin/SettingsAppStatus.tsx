@@ -1023,7 +1023,7 @@ export function AppStatusView() {
             color: betaOnly ? 'var(--gold)' : 'var(--ink2)',
             fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer', flexShrink:0,
           }}
-        >
+         data-ui-native-button="">
           <Icon name="sparkle" size={13} />
           Beta only
         </button>
@@ -1042,7 +1042,7 @@ export function AppStatusView() {
             title="List view"
             onClick={() => handleViewChange('list')}
             className={`sa-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-          >
+           data-ui-native-button="">
             <Icon name="list" size={14} />
           </button>
           <button
@@ -1050,7 +1050,7 @@ export function AppStatusView() {
             title="Grid view"
             onClick={() => handleViewChange('grid')}
             className={`sa-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-          >
+           data-ui-native-button="">
             <Icon name="grid" size={14} />
           </button>
         </div>

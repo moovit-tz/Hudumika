@@ -58,7 +58,7 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
             <div onClick={e => e.stopPropagation()} style={{ flexShrink: 0 }}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: '50%', display: 'flex' }}>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: '50%', display: 'flex' }} data-ui-native-button="">
                     <Icon name="moreVertical" size={15} />
                   </button>
                 </DropdownMenuTrigger>

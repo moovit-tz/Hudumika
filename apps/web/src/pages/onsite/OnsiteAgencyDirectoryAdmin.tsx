@@ -87,10 +87,10 @@ export function OnsiteAgencyDirectoryAdmin() {
                         <td>{p.region || '—'}</td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                            <button className="btn btn-sm btn-primary" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')}>
+                            <button className="btn btn-sm btn-primary" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')} data-ui-native-button="">
                               Approve
                             </button>
-                            <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')}>
+                            <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')} data-ui-native-button="">
                               Reject
                             </button>
                           </div>
@@ -130,12 +130,12 @@ export function OnsiteAgencyDirectoryAdmin() {
                         <td>{p.inquiries_count}</td>
                         <td style={{ textAlign: 'right' }}>
                           {p.status === 'rejected' && (
-                            <button className="btn btn-sm btn-primary" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')}>
+                            <button className="btn btn-sm btn-primary" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')} data-ui-native-button="">
                               Approve
                             </button>
                           )}
                           {p.status === 'approved' && (
-                            <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')}>
+                            <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')} data-ui-native-button="">
                               Unpublish
                             </button>
                           )}

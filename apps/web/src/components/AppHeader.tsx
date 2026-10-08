@@ -522,7 +522,7 @@ export function AppHeader({
               role="option"
               aria-selected={activeResult === resultIndex}
               className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent ${activeResult === resultIndex ? 'bg-accent' : ''}`}
-            >
+             data-ui-native-button="">
               <Icon name={SEARCH_CATEGORIES[cat]?.icon || 'search'} size={14} className="shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-foreground">{h.label}</div>
@@ -548,7 +548,7 @@ export function AppHeader({
               className="app-header-icon-btn app-header-hamburger"
               onClick={() => setMobileOpen(true)}
               title={t('header.menu')}
-            >
+             data-ui-native-button="">
               <Icon name="menu" size={20} />
             </button>
 
@@ -640,7 +640,7 @@ export function AppHeader({
                     className={`app-header-hub-search-clear${isAppSearch ? ' app-header-hub-search-clear--with-scope' : ''}`}
                     aria-label="Clear search"
                     onClick={() => { handleSearch(''); setResultsOpen(false); }}
-                  >
+                   data-ui-native-button="">
                     ✕
                   </button>
                 )}
@@ -662,7 +662,7 @@ export function AppHeader({
                       }
                       setActiveResult(-1);
                     }}
-                  >{searchEverywhere ? 'All' : 'App'}</button>
+                   data-ui-native-button="">{searchEverywhere ? 'All' : 'App'}</button>
                 )}
               </div>
             </PopoverAnchor>
@@ -678,7 +678,7 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
 
-          <button className="app-header-icon-btn mobile-search-btn" onClick={() => setMobileSearchOpen(true)} title="Search">
+          <button className="app-header-icon-btn mobile-search-btn" onClick={() => setMobileSearchOpen(true)} title="Search" data-ui-native-button="">
             <Icon name="search" size={20} />
           </button>
 
@@ -736,7 +736,7 @@ export function AppHeader({
                   className="app-header-icon-btn"
                   onClick={() => triggerOpen(clockContext())}
                   title={t('header.clockIn')}
-                >
+                 data-ui-native-button="">
                   <Icon name="clock" size={19} color="var(--ink)" />
                 </button>
               )
@@ -749,7 +749,7 @@ export function AppHeader({
               onClick={toggleFullPage}
               title={isFs ? t('header.exitFullPage') : t('header.fullPage')}
               aria-pressed={isFs}
-            >
+             data-ui-native-button="">
               <Icon name={isFs ? 'minimize' : 'maximize'} size={19} color="var(--ink)" />
             </button>
 
@@ -760,7 +760,7 @@ export function AppHeader({
                 className={`app-header-icon-btn${filterControl.open ? ' app-header-icon-btn--open' : ''}${filterControl.hasActive ? ' app-header-icon-btn--active' : ''}`}
                 onClick={filterControl.onToggle}
                 title={filterControl.open ? 'Collapse filters' : 'Expand filters'}
-              >
+               data-ui-native-button="">
                 <Icon name={filterControl.open ? 'chevronUp' : 'chevronDown'} size={17} />
               </button>
             )}
@@ -773,7 +773,7 @@ export function AppHeader({
               disabled={landingStyleSaving}
               title={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'}
               aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
-            >
+             data-ui-chrome-button="">
               <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
               <span className="app-header-mode-pill-text">{isAgentic ? 'Normal View' : 'Agentic View'}</span>
             </button>
@@ -784,7 +784,7 @@ export function AppHeader({
               className="app-header-icon-btn"
               onClick={toggleTheme}
               title={isDark ? t('header.lightMode') : t('header.darkMode')}
-            >
+             data-ui-native-button="">
               <Icon name={isDark ? 'sun' : 'moon'} size={17} />
             </button>
 
@@ -795,7 +795,7 @@ export function AppHeader({
                   type="button"
                   className="app-header-icon-btn"
                   title={t('header.language')}
-                >
+                 data-ui-native-button="">
                   <Icon name="globe" size={17} />
                 </button>
               </DropdownMenuTrigger>
@@ -975,7 +975,7 @@ export function AppHeader({
                 value={searchValue}
                 onChange={e => handleSearch(e.target.value)}
               />
-              <button className="app-header-search-modal-close" onClick={() => setMobileSearchOpen(false)}>Close</button>
+              <button className="app-header-search-modal-close" onClick={() => setMobileSearchOpen(false)} data-ui-native-button="">Close</button>
             </div>
             {searchValue.trim().length >= 2 && (
               <div className="app-header-search-modal-results">

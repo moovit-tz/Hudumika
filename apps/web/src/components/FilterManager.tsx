@@ -108,7 +108,7 @@ export function FilterManager({ labelDefs, pendingCriteria, onConsumePending }: 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
               <span style={{ fontSize: 13 }}>{summarizeCriteria(f.criteria)}</span>
               <div style={{ flex: 1 }} />
-              <button type="button" className="em-attach-chip-remove" onClick={() => remove(f.id)}><Icon name="trash" size={13} /></button>
+              <button type="button" className="em-attach-chip-remove" onClick={() => remove(f.id)} data-ui-native-button=""><Icon name="trash" size={13} /></button>
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {(f.actions.archive || f.actions.skipInbox) && <Badge variant="gray">Skip inbox</Badge>}
@@ -155,12 +155,12 @@ export function FilterManager({ labelDefs, pendingCriteria, onConsumePending }: 
             Also apply to matching conversations already in your mailbox
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Create filter'}</button>
-            <button type="button" className="em-text-btn" onClick={() => { setAdding(false); setCriteria({}); setActions(EMPTY_ACTIONS); }}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={save} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Create filter'}</button>
+            <button type="button" className="em-text-btn" onClick={() => { setAdding(false); setCriteria({}); setActions(EMPTY_ACTIONS); }} data-ui-native-button="">Cancel</button>
           </div>
         </div>
       ) : (
-        <button type="button" className="em-text-btn" onClick={() => setAdding(true)}>+ New filter</button>
+        <button type="button" className="em-text-btn" onClick={() => setAdding(true)} data-ui-native-button="">+ New filter</button>
       )}
     </div>
   );

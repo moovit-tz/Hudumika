@@ -18,14 +18,15 @@ See [`AGENTS.md`](AGENTS.md) for the rest of the stack's conventions — backend
 />
 ```
 
-The look is a **font pairing, not just a colour**, and all three parts matter:
+The title uses **one selected product font**, with colour providing emphasis:
 
-- `titlePlain` — the leading word(s), in `var(--font)` at weight 300. The plain face.
-- `titleEm` — the **final** word only, in `Cormorant Garamond` italic 700, coloured `var(--teal)`. The special face. This is what makes it recognisable.
+- `titlePlain` — the leading word(s), using the shared `--page-title-font` token, which inherits the font selected in the Hudumika design system through `--font`.
+- `titleEm` — the **final** word only, in the same font, weight and normal style, coloured `var(--teal)`. Do not introduce a serif or italic font for emphasis.
+- Size and weight use `--page-title-size` and `--page-title-weight` (700 by default); change these centrally, never in individual pages.
 - The trailing `.` is added by the component in the plain face and ink colour — never type it into `titleEm`.
 - `crumbs` renders uppercase, letter-spaced, `·`-separated.
 
-Because the em word reads `var(--teal)`, the title automatically takes each app's own colour and the tenant's brand — orange in ClearOS, green in Admin, whatever a SuperAdmin sets. **Never hardcode that colour**, and never substitute a different serif; the face is part of the platform's identity.
+Because the accent word reads `var(--teal)`, the title automatically takes each app's own colour and the tenant's brand — orange in ClearOS, green in Admin, whatever a SuperAdmin sets. **Never hardcode that colour or the title font.** All words inherit the same globally selected font.
 
 Splitting the title: put the noun the page is *about* in `titleEm`, the qualifier in `titlePlain` — "Customs *declarations*", "Component *showcase*", "Clearance *operations*", "Employment *records*". One word in `titleEm`, not a phrase.
 

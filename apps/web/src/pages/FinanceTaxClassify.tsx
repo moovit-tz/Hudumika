@@ -107,7 +107,7 @@ export function FinanceTaxClassify() {
       .then(([r, g]: any[]) => {
         setRows(r.rows ?? []); setTotal(r.total ?? 0); setGroups(g.groups ?? []);
       })
-      .catch(() => { setRows([]); setTotal(0); setGroups([]); })
+      .catch((error: unknown) => { setRows([]); setTotal(0); setGroups([]); setNotice({ kind: 'err', text: error instanceof Error ? error.message : 'Unable to load classifications. Retry before making changes.' }); })
       .finally(() => setLoading(false));
   }, [target, page]);
 
@@ -209,7 +209,7 @@ export function FinanceTaxClassify() {
             type="button"
             onClick={() => { setTarget(t.key); setPage(0); }}
             className={target === t.key ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-          >
+           data-ui-native-button="">
             {t.label}
           </button>
         ))}
@@ -219,11 +219,11 @@ export function FinanceTaxClassify() {
       {/* Grouped vs row-by-row */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => setMode('grouped')}
-          className={mode === 'grouped' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}>
+          className={mode === 'grouped' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'} data-ui-native-button="">
           By group ({groups.length})
         </button>
         <button type="button" onClick={() => setMode('rows')}
-          className={mode === 'rows' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}>
+          className={mode === 'rows' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'} data-ui-native-button="">
           Row by row ({total})
         </button>
         <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
@@ -301,7 +301,7 @@ export function FinanceTaxClassify() {
                     <td style={{ ...td, textAlign: 'right' }}>
                       <button type="button" className="btn btn-primary btn-sm"
                         disabled={busy || !picked || !fits}
-                        onClick={() => applyGroup(g)}>
+                        onClick={() => applyGroup(g)} data-ui-native-button="">
                         Apply to {g.count}
                       </button>
                     </td>
@@ -355,12 +355,12 @@ export function FinanceTaxClassify() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 14 }}>
           <button type="button" className="btn btn-secondary btn-sm"
             disabled={!chosen || eligible.size === 0}
-            onClick={selectAllEligible}>
+            onClick={selectAllEligible} data-ui-native-button="">
             Select {chosen ? eligible.size : ''} eligible
           </button>
           <button type="button" className="btn btn-primary btn-sm"
             disabled={busy || !chosen || selectedEligible.length === 0}
-            onClick={apply}>
+            onClick={apply} data-ui-native-button="">
             <Icon name="check" size={13} color="#fff" />
             {busy ? 'Applying…' : `Classify ${selectedEligible.length || ''}`}
           </button>
@@ -433,14 +433,14 @@ export function FinanceTaxClassify() {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button type="button" className="btn btn-secondary btn-sm" disabled={page === 0}
-            onClick={() => setPage(p => Math.max(0, p - 1))}>
+            onClick={() => setPage(p => Math.max(0, p - 1))} data-ui-native-button="">
             <Icon name="chevronLeft" size={13} /> Previous
           </button>
           <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
             Page {page + 1} of {pages}
           </span>
           <button type="button" className="btn btn-secondary btn-sm" disabled={page + 1 >= pages}
-            onClick={() => setPage(p => p + 1)}>
+            onClick={() => setPage(p => p + 1)} data-ui-native-button="">
             Next <Icon name="chevronRight" size={13} />
           </button>
         </div>

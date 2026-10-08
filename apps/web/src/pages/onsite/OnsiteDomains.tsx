@@ -225,15 +225,15 @@ export function OnsiteDomains() {
         subtitle="Centralized DNS management, TLD registration, and renewal control plane."
         actions={
           <div className="onsite-header-actions">
-            <button className="onsite-btn-purple" onClick={() => setIsAddModalOpen(true)}>
+            <button className="onsite-btn-purple" onClick={() => setIsAddModalOpen(true)} data-ui-native-button="">
               <Icon name="plus" size={16} />
               <span>Add Domain</span>
             </button>
-            <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/search')}>
+            <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/search')} data-ui-native-button="">
               <Icon name="search" size={15} />
               <span>Find TLDs</span>
             </button>
-            <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/transfers')}>
+            <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/transfers')} data-ui-native-button="">
               <Icon name="download" size={15} />
               <span>Transfer Domain</span>
             </button>
@@ -297,7 +297,7 @@ export function OnsiteDomains() {
       {/* Promo Banner */}
       {showPromo && (
         <div className="onsite-promo-card">
-          <button className="onsite-promo-dismiss" onClick={() => setShowPromo(false)} title="Dismiss promo">
+          <button className="onsite-promo-dismiss" onClick={() => setShowPromo(false)} title="Dismiss promo" data-ui-native-button="">
             <Icon name="close" size={16} />
           </button>
 
@@ -324,7 +324,7 @@ export function OnsiteDomains() {
                 <span className="onsite-promo-price">$0.99</span>
                 <span className="onsite-promo-unit">/1st yr</span>
               </div>
-              <button className="onsite-btn-purple" onClick={() => navigate('/onsite/domains/search')}>
+              <button className="onsite-btn-purple" onClick={() => navigate('/onsite/domains/search')} data-ui-native-button="">
                 Get deal
               </button>
             </div>
@@ -338,19 +338,19 @@ export function OnsiteDomains() {
           <button
             role="tab" aria-selected={activeTab === 'owned'} className={activeTab === 'owned' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('owned')}
-          >
+           data-ui-native-button="">
             Owned Domains ({displayDomains.length})
           </button>
           <button
             role="tab" aria-selected={activeTab === 'external'} className={activeTab === 'external' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('external')}
-          >
+           data-ui-native-button="">
             External &amp; Connected
           </button>
           <button
             role="tab" aria-selected={activeTab === 'shared'} className={activeTab === 'shared' ? 'onsite-tab active' : 'onsite-tab'}
             onClick={() => setActiveTab('shared')}
-          >
+           data-ui-native-button="">
             Shared with Workspace
           </button>
         </div>
@@ -359,7 +359,7 @@ export function OnsiteDomains() {
           className="onsite-btn-outline onsite-refresh-btn"
           onClick={() => fetchDomains(true)}
           disabled={refreshing}
-        >
+         data-ui-native-button="">
           <Icon name="refresh" size={14} className={refreshing ? 'onsite-spin' : ''} />
           <span>{refreshing ? 'Refreshing...' : 'Refresh Status'}</span>
         </button>
@@ -377,7 +377,7 @@ export function OnsiteDomains() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}>
+            <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
               <Icon name="close" size={14} />
             </button>
           )}
@@ -420,7 +420,7 @@ export function OnsiteDomains() {
               className="onsite-btn-outline"
               style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
               onClick={handleCopySelectedNames}
-            >
+             data-ui-native-button="">
               <Icon name="copy" size={12} />
               <span>Copy Names</span>
             </button>
@@ -428,7 +428,7 @@ export function OnsiteDomains() {
               className="onsite-btn-outline"
               style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
               onClick={() => setSelectedIds(new Set())}
-            >
+             data-ui-native-button="">
               <span>Clear Selection</span>
             </button>
           </div>
@@ -458,11 +458,11 @@ export function OnsiteDomains() {
               </p>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                 {searchQuery || statusFilter !== 'all' ? (
-                  <button className="onsite-btn-outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                  <button className="onsite-btn-outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} data-ui-native-button="">
                     <span>Reset Filters</span>
                   </button>
                 ) : (
-                  <button className="onsite-btn-purple" onClick={() => setIsAddModalOpen(true)}>
+                  <button className="onsite-btn-purple" onClick={() => setIsAddModalOpen(true)} data-ui-native-button="">
                     <Icon name="plus" size={14} />
                     <span>Add Your First Domain</span>
                   </button>
@@ -563,7 +563,7 @@ export function OnsiteDomains() {
                                 style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', color: 'var(--red)' }}
                                 title="Remove domain"
                                 onClick={() => setDomainToDelete(d)}
-                              >
+                               data-ui-native-button="">
                                 <Icon name="trash" size={14} />
                               </button>
                             </div>
@@ -632,7 +632,7 @@ export function OnsiteDomains() {
                           className="onsite-btn-outline onsite-btn-icon-sm"
                           style={{ color: 'var(--red)' }}
                           onClick={() => setDomainToDelete(d)}
-                        >
+                         data-ui-native-button="">
                           <Icon name="trash" size={14} />
                         </button>
                       </div>

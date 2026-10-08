@@ -469,7 +469,7 @@ export const Support: React.FC<{
               <div className="spt-details-backdrop" onClick={() => setDetailsOpen(false)} />
               <div className="spt-details-drawer">
                 <Tip label="Close">
-                  <button type="button" className="spt-icon-btn spt-details-drawer-close" onClick={() => setDetailsOpen(false)}>
+                  <button type="button" className="spt-icon-btn spt-details-drawer-close" onClick={() => setDetailsOpen(false)} data-ui-native-button="">
                     <Icon name="x" size={16} strokeWidth={2} />
                   </button>
                 </Tip>
@@ -533,8 +533,8 @@ export const Support: React.FC<{
                   placeholder="Detailed message or initial inquiry…" />
               </div>
               <div className="spt-modal-actions">
-                <button type="button" className="spt-modal-cancel" onClick={() => setShowCreate(false)} disabled={creating}>Cancel</button>
-                <button type="submit" className="spt-modal-submit" disabled={creating}>{creating ? 'Creating…' : 'Create Ticket'}</button>
+                <button type="button" className="spt-modal-cancel" onClick={() => setShowCreate(false)} disabled={creating} data-ui-native-button="">Cancel</button>
+                <button type="submit" className="spt-modal-submit" disabled={creating} data-ui-native-button="">{creating ? 'Creating…' : 'Create Ticket'}</button>
               </div>
             </form>
           </DialogContent>
@@ -555,7 +555,7 @@ export const Support: React.FC<{
             <DialogHeader className="spt-modal-hdr" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
               <DialogTitle className="spt-modal-title" style={{ fontSize: 17 }}>Rate Your Experience</DialogTitle>
               <Tip label="Close">
-                <button type="button" className="spt-icon-btn" onClick={handleCancelFeedback}>
+                <button type="button" className="spt-icon-btn" onClick={handleCancelFeedback} data-ui-native-button="">
                   <Icon name="x" size={16} strokeWidth={2} />
                 </button>
               </Tip>
@@ -584,7 +584,7 @@ export const Support: React.FC<{
                           transform: csatScore === star ? 'scale(1.2)' : 'none',
                         }}
                         title={`${star} Star${star > 1 ? 's' : ''}`}
-                      >
+                       data-ui-native-button="">
                         ★
                       </button>
                     );
@@ -615,7 +615,7 @@ export const Support: React.FC<{
                           fontWeight: 700,
                           cursor: 'pointer',
                         }}
-                      >
+                       data-ui-native-button="">
                         {score}
                       </button>
                     );
@@ -635,8 +635,8 @@ export const Support: React.FC<{
               </div>
 
               <div className="spt-modal-actions">
-                <button type="button" className="spt-modal-cancel" onClick={handleCancelFeedback}>Skip & Resolve</button>
-                <button type="submit" className="spt-modal-submit" disabled={npsScore === null || csatScore === null || submittingFeedback}>
+                <button type="button" className="spt-modal-cancel" onClick={handleCancelFeedback} data-ui-native-button="">Skip & Resolve</button>
+                <button type="submit" className="spt-modal-submit" disabled={npsScore === null || csatScore === null || submittingFeedback} data-ui-native-button="">
                   {submittingFeedback ? 'Submitting…' : 'Submit & Close'}
                 </button>
               </div>

@@ -209,13 +209,13 @@ export function SuperAdminQueryBuilder() {
 
       <div className="qb-layout">
         <nav className="qb-rail">
-          <button type="button" className={`qb-rail-item${activeMode === 'visual' ? ' qb-rail-item--active' : ''}`} onClick={() => setActiveMode('visual')}>
+          <button type="button" className={`qb-rail-item${activeMode === 'visual' ? ' qb-rail-item--active' : ''}`} onClick={() => setActiveMode('visual')} data-ui-native-button="">
             <Icon name="sliders" size={14} /> Visual Builder
           </button>
-          <button type="button" className={`qb-rail-item${activeMode === 'raw' ? ' qb-rail-item--active' : ''}`} onClick={() => setActiveMode('raw')}>
+          <button type="button" className={`qb-rail-item${activeMode === 'raw' ? ' qb-rail-item--active' : ''}`} onClick={() => setActiveMode('raw')} data-ui-native-button="">
             <Icon name="terminal" size={14} /> Raw SQL {!rawSqlEnabled && <Icon name="lock" size={11} />}
           </button>
-          <button type="button" className={`qb-rail-item${activeMode === 'history' ? ' qb-rail-item--active' : ''}`} onClick={loadHistory}>
+          <button type="button" className={`qb-rail-item${activeMode === 'history' ? ' qb-rail-item--active' : ''}`} onClick={loadHistory} data-ui-native-button="">
             <Icon name="clock" size={14} /> Query History
           </button>
         </nav>
@@ -257,7 +257,7 @@ export function SuperAdminQueryBuilder() {
                       {f.operator !== 'is_null' && f.operator !== 'is_not_null' && (
                         <Input value={f.value} onChange={e => updateFilter(i, { value: e.target.value })} placeholder="Value" className="qb-filter-value" />
                       )}
-                      <button type="button" className="qb-filter-remove" onClick={() => removeFilter(i)}><Icon name="x" size={13} /></button>
+                      <button type="button" className="qb-filter-remove" onClick={() => removeFilter(i)} data-ui-native-button=""><Icon name="x" size={13} /></button>
                     </div>
                   ))}
                   <Button size="sm" variant="outline" onClick={addFilter}>+ Add filter</Button>
@@ -326,7 +326,7 @@ export function SuperAdminQueryBuilder() {
                 <div>
                   <div className="qb-raw-toolbar">
                     <span className="qb-raw-enabled-badge"><Badge variant="warning">Raw SQL enabled</Badge></span>
-                    <button type="button" className="qb-disable-link" onClick={disableRawSql}>Disable raw SQL mode</button>
+                    <button type="button" className="qb-disable-link" onClick={disableRawSql} data-ui-native-button="">Disable raw SQL mode</button>
                   </div>
                   <Textarea value={rawSqlText} onChange={e => setRawSqlText(e.target.value)} className="qb-sql-textarea" spellCheck={false} />
                   <div className="qb-result-actions">

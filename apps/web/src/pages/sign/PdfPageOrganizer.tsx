@@ -243,17 +243,17 @@ export function PdfPageOrganizer({ documentSrc, fileName, onExport, onClose }: {
           {pages.length - deletedCount} page{pages.length - deletedCount === 1 ? '' : 's'}{sources.length > 1 ? ` · ${sources.length} documents` : ''}
         </span>
         {movedCount > 0 && (
-          <button type="button" onClick={() => togglePillFilter('moved')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <button type="button" onClick={() => togglePillFilter('moved')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }} data-ui-native-button="">
             <Badge variant="warning" style={activeFilter === 'moved' ? { boxShadow: '0 0 0 2px var(--gold)' } : undefined}>{movedCount} moved</Badge>
           </button>
         )}
         {addedCount > 0 && (
-          <button type="button" onClick={() => togglePillFilter('added')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <button type="button" onClick={() => togglePillFilter('added')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }} data-ui-native-button="">
             <Badge variant="info" style={activeFilter === 'added' ? { boxShadow: '0 0 0 2px var(--blue)' } : undefined}>{addedCount} added</Badge>
           </button>
         )}
         {deletedCount > 0 && (
-          <button type="button" onClick={() => togglePillFilter('deleted')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <button type="button" onClick={() => togglePillFilter('deleted')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }} data-ui-native-button="">
             <Badge variant="error" style={activeFilter === 'deleted' ? { boxShadow: '0 0 0 2px var(--red)' } : undefined}>{deletedCount} deleted</Badge>
           </button>
         )}
@@ -334,13 +334,13 @@ export function PdfPageOrganizer({ documentSrc, fileName, onExport, onClose }: {
                     {isDeleted ? (
                       <Tip label="Restore this page">
                         <button type="button" onClick={() => restorePage(p.id)}
-                          style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
+                          style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }} data-ui-native-button="">
                           <Icon name="refresh" size={12} />
                         </button>
                       </Tip>
                     ) : (
                       <button type="button" onClick={() => deletePage(p.id)} title="Remove this page"
-                        style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--sign-red-l)', color: 'var(--sign-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
+                        style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'var(--sign-red-l)', color: 'var(--sign-red)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }} data-ui-native-button="">
                         <Icon name="x" size={12} />
                       </button>
                     )}

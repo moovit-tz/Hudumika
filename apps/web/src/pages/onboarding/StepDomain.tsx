@@ -71,8 +71,8 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
       </div>
 
       <div className="login-form-actions">
-        <button type="button" onClick={onBack} className="login-back-btn">Back</button>
-        <button type="submit" className="login-submit-btn" disabled={status !== 'available'}>Continue</button>
+        <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
+        <button type="submit" className="login-submit-btn" disabled={status !== 'available'} data-ui-native-button="">Continue</button>
       </div>
     </form>
   );

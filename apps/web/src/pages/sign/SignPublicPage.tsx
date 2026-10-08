@@ -577,14 +577,14 @@ export function SignPublicPage() {
                 {isPdf && pdfNumPages > 1 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
                     <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
-                      style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }}>
+                      style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }} data-ui-native-button="">
                       <Icon name="chevronLeft" size={14} color="#f8fafc" />
                     </button>
                     <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
                       {currentPdfPage} / {pdfNumPages}
                     </span>
                     <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
-                      style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }}>
+                      style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }} data-ui-native-button="">
                       <Icon name="chevronRight" size={14} color="#f8fafc" />
                     </button>
                   </div>
@@ -749,7 +749,7 @@ export function SignPublicPage() {
                           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
                           color: isDone || i === currentField ? '#fff' : 'var(--ink2)', fontWeight: 700
                         }}
-                      >
+                       data-ui-native-button="">
                         {isDone ? <Icon name="check" size={13} /> : i + 1}
                       </button>
                     </Tip>

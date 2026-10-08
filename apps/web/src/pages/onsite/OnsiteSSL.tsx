@@ -149,7 +149,7 @@ export function OnsiteSSL() {
                             </td>
                             <td>
                               <button className="btn btn-sm btn-ghost" disabled={checking === c.domain_id}
-                                onClick={() => inspect(c.domain_id)}>
+                                onClick={() => inspect(c.domain_id)} data-ui-native-button="">
                                 <Icon name="refresh" size={14} /> {checking === c.domain_id ? 'Checking…' : 'Re-check'}
                               </button>
                             </td>
@@ -164,7 +164,7 @@ export function OnsiteSSL() {
                           </td>
                           <td>
                             <button className="btn btn-sm btn-secondary" disabled={checking === d.id}
-                              onClick={() => inspect(d.id)}>
+                              onClick={() => inspect(d.id)} data-ui-native-button="">
                               <Icon name="shield" size={14} /> {checking === d.id ? 'Checking…' : 'Check now'}
                             </button>
                           </td>

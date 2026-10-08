@@ -69,6 +69,7 @@ export function FilterBarPill({
     <button
       type="button"
       className={cn('filter-bar-pill', active && 'filter-bar-pill--on', className)}
+      aria-pressed={Boolean(active)}
       onClick={onClick}
     >
       {children}

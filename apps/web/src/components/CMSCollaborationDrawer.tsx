@@ -141,7 +141,7 @@ export function CMSCollaborationDrawer({
         <button
           onClick={onClose}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-        >
+         data-ui-native-button="">
           <Icon name="x" size={18} />
         </button>
       </div>
@@ -166,7 +166,7 @@ export function CMSCollaborationDrawer({
               fontSize: 12,
               cursor: 'pointer',
             }}
-          >
+           data-ui-native-button="">
             {tab.label}
           </button>
         ))}
@@ -234,7 +234,7 @@ export function CMSCollaborationDrawer({
                     border: 'none',
                     cursor: 'pointer',
                   }}
-                >
+                 data-ui-native-button="">
                   <Icon name={c.resolved ? 'checkCircle' : 'circle'} size={14} />
                   {c.resolved ? 'Resolved' : 'Resolve'}
                 </button>
@@ -258,7 +258,7 @@ export function CMSCollaborationDrawer({
                 <button
                   onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
                   style={{ fontSize: 11, color: 'var(--teal)', background: 'transparent', border: 'none', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                >
+                 data-ui-native-button="">
                   {replyingTo === c.id ? 'Cancel Reply' : 'Reply'}
                 </button>
 
@@ -267,7 +267,7 @@ export function CMSCollaborationDrawer({
                     onClick={() => handleDelete(c.id)}
                     style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }}
                     title="Delete"
-                  >
+                   data-ui-native-button="">
                     <Icon name="trash" size={12} />
                   </button>
                 )}
@@ -305,7 +305,7 @@ export function CMSCollaborationDrawer({
                     onClick={() => handlePostComment(c.id)}
                     disabled={submitting || !replyText.trim()}
                     style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                  >
+                   data-ui-native-button="">
                     Send
                   </button>
                 </div>
@@ -360,7 +360,7 @@ export function CMSCollaborationDrawer({
               cursor: 'pointer',
               opacity: !newComment.trim() ? 0.6 : 1,
             }}
-          >
+           data-ui-native-button="">
             Post
           </button>
         </div>

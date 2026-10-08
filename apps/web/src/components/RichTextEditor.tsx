@@ -160,7 +160,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
             className="rte-toolbar-btn"
             title={btn.title}
             onMouseDown={e => { e.preventDefault(); runCommand(btn.command, btn.value); }}
-          >
+           data-ui-native-button="">
             {btn.label}
           </button>
         ))}
@@ -173,7 +173,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
             const url = window.prompt('Link URL (https:// or mailto:)');
             if (url) runCommand('createLink', url);
           }}
-        >
+         data-ui-native-button="">
           <Icon name="link" size={13} />
         </button>
         {onInsertImage && (
@@ -185,7 +185,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
               e.preventDefault();
               handleInsertImage();
             }}
-          >
+           data-ui-native-button="">
             <Icon name="image" size={13} />
           </button>
         )}
@@ -205,7 +205,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
               className={`rte-img-btn ${imgWidth === 120 ? 'is-active' : ''}`}
               onClick={() => applyImageWidth(120)}
               title="Small width (120px)"
-            >
+             data-ui-native-button="">
               Small (120px)
             </button>
             <button
@@ -213,7 +213,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
               className={`rte-img-btn ${imgWidth === 240 ? 'is-active' : ''}`}
               onClick={() => applyImageWidth(240)}
               title="Medium width (240px)"
-            >
+             data-ui-native-button="">
               Medium (240px)
             </button>
             <button
@@ -221,7 +221,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
               className={`rte-img-btn ${imgWidth === 400 ? 'is-active' : ''}`}
               onClick={() => applyImageWidth(400)}
               title="Large width (400px)"
-            >
+             data-ui-native-button="">
               Large (400px)
             </button>
             <button
@@ -229,7 +229,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
               className="rte-img-btn"
               onClick={() => applyImageWidth('100%')}
               title="Fit to editor width"
-            >
+             data-ui-native-button="">
               Fit Width (100%)
             </button>
             <button
@@ -237,7 +237,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
               className="rte-img-btn"
               onClick={() => applyImageWidth('original')}
               title="Original dimensions"
-            >
+             data-ui-native-button="">
               Original
             </button>
           </div>
@@ -257,9 +257,9 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
           </div>
 
           <div className="rte-img-align-group">
-            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('left')} title="Align left">Left</button>
-            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('center')} title="Align center">Center</button>
-            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('right')} title="Align right">Right</button>
+            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('left')} title="Align left" data-ui-native-button="">Left</button>
+            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('center')} title="Align center" data-ui-native-button="">Center</button>
+            <button type="button" className="rte-img-btn" onClick={() => applyImageAlign('right')} title="Align right" data-ui-native-button="">Right</button>
           </div>
 
           <button
@@ -267,7 +267,7 @@ export function RichTextEditor({ value, onChange, placeholder, onInsertImage }: 
             className="rte-img-btn rte-img-btn--danger"
             onClick={deleteSelectedImage}
             title="Remove image"
-          >
+           data-ui-native-button="">
             <Icon name="trash" size={13} />
           </button>
         </div>

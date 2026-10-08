@@ -170,10 +170,6 @@
   .bliss-inbox-view-list {
     width: 100%;
   }
-  .bliss-inbox-view-list .ds-tabs-trigger {
-    flex: 1 1 0;
-    min-width: 0;
-  }
   .bliss-inbox-tab-label-full {
     display: none;
   }

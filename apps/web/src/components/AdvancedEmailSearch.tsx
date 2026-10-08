@@ -70,7 +70,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
             type="button"
             className={`em-icon-btn ${hasAnyFilter ? 'em-icon-btn--active' : 'em-icon-btn--ghost'}`}
             aria-label="Toggle advanced search"
-          >
+           data-ui-native-button="">
             <Icon name="chevronDown" size={14} />
           </button>
         </PopoverTrigger>
@@ -89,7 +89,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
             <span>Advanced Search</span>
           </div>
           {hasAnyFilter && (
-            <button type="button" className="em-adv-reset-btn" onClick={clear}>
+            <button type="button" className="em-adv-reset-btn" onClick={clear} data-ui-native-button="">
               <Icon name="refresh" size={11} />
               <span>Reset filters</span>
             </button>
@@ -242,7 +242,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         </div>
 
         <div className="em-adv-search-actions">
-          <button type="button" className="btn btn-ghost btn-xs" onClick={clear}>
+          <button type="button" className="btn btn-ghost btn-xs" onClick={clear} data-ui-native-button="">
             Clear
           </button>
           <div className="em-adv-actions-right">
@@ -252,13 +252,13 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
                   type="button"
                   className="btn btn-secondary btn-xs"
                   onClick={() => { onCreateFilter(q); setOpen(false); }}
-                >
+                 data-ui-native-button="">
                   <Icon name="filter" size={12} />
                   <span>Create filter</span>
                 </button>
               </Tip>
             )}
-            <button type="button" className="btn btn-primary btn-xs" onClick={run}>
+            <button type="button" className="btn btn-primary btn-xs" onClick={run} data-ui-native-button="">
               <Icon name="search" size={12} />
               <span>Search</span>
             </button>

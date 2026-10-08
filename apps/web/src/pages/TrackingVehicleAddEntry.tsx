@@ -219,7 +219,7 @@ export const TrackingVehicleAddEntry: React.FC = () => {
               {f.label}{f.required && <span aria-hidden="true" style={{ color: 'var(--red)' }}>*</span>}
               {f.hint && (
                 <Tip label={f.hint} side="right">
-                  <button type="button" aria-label={`About ${f.label}`} style={{ display: 'inline-flex', padding: 0, border: 0, background: 'transparent', color: 'var(--ink3)', cursor: 'help' }}>
+                  <button type="button" aria-label={`About ${f.label}`} style={{ display: 'inline-flex', padding: 0, border: 0, background: 'transparent', color: 'var(--ink3)', cursor: 'help' }} data-ui-native-button="">
                     <Icon name="info" size={13} />
                   </button>
                 </Tip>

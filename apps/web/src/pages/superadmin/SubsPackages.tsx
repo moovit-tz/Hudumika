@@ -110,8 +110,8 @@ export function SubscriptionsView() {
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
           <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'subscription' : 'subscriptions'} selected</span>
           <div style={{ flex:1 }} />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={exportSubscriptions}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
-          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())}>Clear</button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={exportSubscriptions} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
+          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
         </div>
       )}
 
@@ -443,10 +443,10 @@ export function PackagesView() {
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
             <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow:'hidden' }}>
               {(['monthly','annual'] as const).map(b=>(
-                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'hsl(var(--primary))':'var(--white)', color:billing===b?'hsl(var(--primary-foreground))':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>{b}</button>
+                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'hsl(var(--primary))':'var(--white)', color:billing===b?'hsl(var(--primary-foreground))':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">{b}</button>
               ))}
             </div>
-            <button onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm" style={{gap:6}}><Icon name="plus" size={13}/>New Package</button>
+            <button onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm" style={{gap:6}} data-ui-native-button=""><Icon name="plus" size={13}/>New Package</button>
           </div>
         }
       />
@@ -456,7 +456,7 @@ export function PackagesView() {
       )}
       {packagesError && (
         <div style={{ padding:'32px 0', textAlign:'center', color:'var(--red)', fontSize:13 }}>
-          Couldn't load packages. <button onClick={reload} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }}>Retry</button>
+          Couldn't load packages. <button onClick={reload} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }} data-ui-native-button="">Retry</button>
         </div>
       )}
       {packages !== null && packages.length === 0 && (
@@ -511,7 +511,7 @@ export function PackagesView() {
 
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:16, borderTop:'1px solid var(--border)' }}>
               <span style={{ fontSize:12, color:'var(--ink3)' }}><strong style={{ color:'var(--ink)' }}>{pkg.active}</strong> active {pkg.active===1?'company':'companies'}</span>
-              <button onClick={()=>setEditing(pkg)} className="btn btn-secondary btn-sm" style={{ gap:5 }}>
+              <button onClick={()=>setEditing(pkg)} className="btn btn-secondary btn-sm" style={{ gap:5 }} data-ui-native-button="">
                 <Icon name="edit" size={12} />Edit
               </button>
             </div>
@@ -538,7 +538,7 @@ export function PackagesView() {
         )}
         {addonsError && (
           <div style={{ padding:'16px 0', color:'var(--red)', fontSize:13 }}>
-            Couldn't load add-ons. <button onClick={reloadAddons} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }}>Retry</button>
+            Couldn't load add-ons. <button onClick={reloadAddons} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }} data-ui-native-button="">Retry</button>
           </div>
         )}
         {addons !== null && addons.length === 0 && !addonsError && (
@@ -561,7 +561,7 @@ export function PackagesView() {
                   <p style={{ fontSize:12, color:'var(--ink2)', margin:'4px 0 10px', lineHeight:1.5 }}>{addon.description}</p>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
                     <span style={{ fontSize:11.5, color:'var(--ink3)' }}><strong style={{ color:'var(--ink)' }}>{addon.activeCompanies}</strong> active {addon.activeCompanies===1?'company':'companies'}</span>
-                    <button onClick={()=>setEditingAddon(addon)} className="btn btn-secondary btn-sm" style={{ gap:5 }}>
+                    <button onClick={()=>setEditingAddon(addon)} className="btn btn-secondary btn-sm" style={{ gap:5 }} data-ui-native-button="">
                       <Icon name="edit" size={12} />Edit
                     </button>
                   </div>

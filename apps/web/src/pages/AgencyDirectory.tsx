@@ -95,7 +95,7 @@ export function AgencyDirectory() {
           </Select>
         )}
         {serviceTag && (
-          <button type="button" className="ad-filter-chip" onClick={() => setServiceTag('')}>
+          <button type="button" className="ad-filter-chip" onClick={() => setServiceTag('')} data-ui-native-button="">
             <Icon name="tag" size={12} />{serviceTag}<Icon name="x" size={12} />
           </button>
         )}
@@ -134,7 +134,7 @@ export function AgencyDirectory() {
                         type="button"
                         className={`ad-tag${serviceTag === t ? ' ad-tag-active' : ''}`}
                         onClick={() => setServiceTag(serviceTag === t ? '' : t)}
-                      >
+                       data-ui-native-button="">
                         <Icon name="tag" size={11} />{t}
                       </button>
                     ))}
@@ -154,7 +154,7 @@ export function AgencyDirectory() {
                     <CompanyAvatar name={p.tenant_name ?? ''} logoUrl={p.tenant_logo_url} size={22} shape="square" />
                     {p.tenant_name}
                   </span>
-                  <button type="button" className="ad-btn-contact" onClick={() => setActiveInquiry(p)}>
+                  <button type="button" className="ad-btn-contact" onClick={() => setActiveInquiry(p)} data-ui-native-button="">
                     <Icon name="send" size={14} />Contact
                   </button>
                 </div>
@@ -202,13 +202,13 @@ function InquiryModal({ profile, onClose }: { profile: OnsiteAgencyProfile; onCl
       <div className="ad-modal" onClick={e => e.stopPropagation()}>
         <div className="ad-modal-header">
           <h3>Contact {profile.tenant_name}</h3>
-          <button type="button" className="ad-modal-close" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
+          <button type="button" className="ad-modal-close" onClick={onClose} aria-label="Close" data-ui-native-button=""><Icon name="x" size={16} /></button>
         </div>
         {sent ? (
           <div className="ad-modal-sent">
             <Icon name="checkCircle" size={32} />
             <p>Your message is on its way to {profile.tenant_name}. They'll reach out to you directly at {email}.</p>
-            <button type="button" className="ad-btn-contact" onClick={onClose}>Close</button>
+            <button type="button" className="ad-btn-contact" onClick={onClose} data-ui-native-button="">Close</button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="ad-modal-form">
@@ -221,7 +221,7 @@ function InquiryModal({ profile, onClose }: { profile: OnsiteAgencyProfile; onCl
             <label>What do you need help with?
               <textarea rows={4} value={message} onChange={e => setMessage(e.target.value)} required />
             </label>
-            <button type="submit" className="ad-btn-contact" disabled={!canSubmit}>
+            <button type="submit" className="ad-btn-contact" disabled={!canSubmit} data-ui-native-button="">
               {submitting ? 'Sending…' : 'Send message'}
             </button>
           </form>

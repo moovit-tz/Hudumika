@@ -1,11 +1,24 @@
 .workflow-list-page { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .workflow-metrics { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 16px; }
 .workflow-metric { display: flex; align-items: center; gap: 16px; padding: 24px !important; }
-.workflow-toolbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px !important; flex-wrap: nowrap; overflow-x: auto; }
-.workflow-search { flex: 1; min-width: 140px; max-width: 260px; }
-.workflow-toolbar-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 4px; }
-.workflow-count { font-size: 13px; color: var(--ink3); white-space: nowrap; flex-shrink: 0; }
-.workflow-page-label { font-size: 13px; color: var(--ink3); white-space: nowrap; flex-shrink: 0; }
+.workflow-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--card-bg, var(--white));
+  border: var(--card-border);
+  border-radius: var(--card-radius, var(--r));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.workflow-toolbar::-webkit-scrollbar { display: none; }
+.workflow-filter-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.workflow-search { flex: 1; min-width: 160px; }
+.workflow-pagination { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-left: auto; }
+.workflow-toolbar-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
+.workflow-count { font-size: 13px; color: var(--ink3); white-space: nowrap; }
+.workflow-page-label { font-size: 13px; color: var(--ink3); white-space: nowrap; }
 .workflow-list-item { padding: 24px !important; display: grid; grid-template-columns: minmax(0,1fr) minmax(240px,0.65fr); gap: 16px 24px; }
 .workflow-list-item .studio-workflow-item-header { min-width: 0; }
 .workflow-list-item .studio-workflow-item-meta { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; align-items: flex-start; font-size: 13px; color: var(--ink3); }

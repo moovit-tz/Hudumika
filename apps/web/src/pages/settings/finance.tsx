@@ -471,7 +471,7 @@ export const PaymentGatewaysSection: React.FC = () => {
           }
           try { await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify(payload) }); } catch {}
           setSaving(false);
-        }}>
+        }} data-ui-native-button="">
           {saving ? 'Saving…' : 'Save All Changes'}
         </button>
       </div>
@@ -517,7 +517,7 @@ export const PaymentGatewaysSection: React.FC = () => {
                             title={isOpen ? 'Collapse' : 'Configure'}
                             onClick={() => setExpanded(ex => ({ ...ex, [gw.id]: !ex[gw.id] }))}
                             className="s-gw-exp-btn"
-                          >
+                           data-ui-native-button="">
                             <Icon name={isOpen ? 'chevronUp' : 'chevronDown'} size={14} strokeWidth={2.5} />
                           </button>
                         )}
@@ -569,8 +569,8 @@ export const PaymentGatewaysSection: React.FC = () => {
                         </div>
                         {/* Actions */}
                         <div className="s-gw-foot">
-                          <button type="button" className="btn btn-primary btn-sm" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})}>Save</button>
-                          <button type="button" className="btn btn-secondary btn-sm" disabled={testing === gw.id} onClick={() => testGateway(gw)}>
+                          <button type="button" className="btn btn-primary btn-sm" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})} data-ui-native-button="">Save</button>
+                          <button type="button" className="btn btn-secondary btn-sm" disabled={testing === gw.id} onClick={() => testGateway(gw)} data-ui-native-button="">
                             {testing === gw.id ? 'Testing…' : 'Test Connection'}
                           </button>
                           {testResults[gw.id] && (

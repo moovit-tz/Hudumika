@@ -532,7 +532,7 @@ export const FinanceLedger: React.FC = () => {
                         textAlign: 'left',
                         boxSizing: 'border-box',
                       }}
-                    >
+                     data-ui-native-button="">
                       <span style={{ fontSize: 12, color: cfg.color, fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>
                       <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink3)', fontWeight: 600 }}>{acc.account_code}</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{acc.account_name}</span>

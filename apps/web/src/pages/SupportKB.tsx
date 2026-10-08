@@ -335,7 +335,7 @@ export const SupportKB: React.FC = () => {
                   fontSize: 12,
                   boxShadow: viewMode === 'table' ? 'var(--elev)' : 'none'
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="list" size={13} /> Table View
               </button>
               <button
@@ -355,7 +355,7 @@ export const SupportKB: React.FC = () => {
                   fontSize: 12,
                   boxShadow: viewMode === 'cards' ? 'var(--elev)' : 'none'
                 }}
-              >
+               data-ui-native-button="">
                 <Icon name="grid" size={13} /> Cards View
               </button>
             </div>

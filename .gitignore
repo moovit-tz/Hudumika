@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+.cache/
 
 .claude/*
 # Agent memory is intentionally NOT tracked/pushed. It used to carry a

@@ -264,9 +264,9 @@ function PayModal({ bill, onPay, onClose }: {
           <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? '✓ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
         </div>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <button type="button" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
           <button type="button" disabled={amount <= 0 || amount > balance} onClick={() => onPay(amount, date, method, ref, note)}
-            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'hsl(var(--primary))' : 'var(--border)', color: amount > 0 && amount <= balance ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'hsl(var(--primary))' : 'var(--border)', color: amount > 0 && amount <= balance ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             Confirm Payment
           </button>
         </div>
@@ -508,7 +508,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                       <Tip label="Remove line">
                         <span>
                           <button type="button" aria-label="Remove line" onClick={() => removeLine(ln._key)} disabled={f.lines.length === 1}
-                            style={{ background:'none', border:'none', cursor: f.lines.length === 1 ? 'default' : 'pointer', color: f.lines.length === 1 ? 'var(--border)' : 'var(--red)', display:'flex', padding:4 }}>
+                            style={{ background:'none', border:'none', cursor: f.lines.length === 1 ? 'default' : 'pointer', color: f.lines.length === 1 ? 'var(--border)' : 'var(--red)', display:'flex', padding:4 }} data-ui-native-button="">
                             <Icon name="x" size={13} />
                           </button>
                         </span>
@@ -520,7 +520,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
             </table>
             <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <button type="button" onClick={addLine}
-                style={{ display:'flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-sm) 12px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'none', cursor:'pointer', fontWeight:600, fontSize:12, color:'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-sm) 12px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'none', cursor:'pointer', fontWeight:600, fontSize:12, color:'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="plus" size={12} /> Add Line
               </button>
               <div style={{ textAlign:'right', fontSize:13 }}>
@@ -662,9 +662,9 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
           </div>
         </div>
         <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <button type="button" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
           <button type="button" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { showAlert('Name, supplier and next due date are required.'); return; } onSave(f); }}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="save" size={13} /> {initial ? 'Update' : 'Create'}
           </button>
         </div>
@@ -715,7 +715,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
   return (
     <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
       <div style={{ padding:'18px 32px', borderBottom:'1px solid var(--border)', background:'var(--white)' }}>
-        <button type="button" onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', fontSize:13, fontWeight:600, marginBottom:14, padding:0 }}>
+        <button type="button" onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', fontSize:13, fontWeight:600, marginBottom:14, padding:0 }} data-ui-native-button="">
           <Icon name="arrowLeft" size={14} /> All Bills
         </button>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
@@ -729,13 +729,13 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
-            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="dollarSign" size={13} /> Pay</button>}
-            <button type="button" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="edit" size={13} /> Edit</button>
+            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
+            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="dollarSign" size={13} /> Pay</button>}
+            <button type="button" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="edit" size={13} /> Edit</button>
             <Tip label="Print bill">
-              <button type="button" aria-label="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="printer" size={13} /></button>
+              <button type="button" aria-label="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="printer" size={13} /></button>
             </Tip>
-            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void</button>}
+            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Void</button>}
           </div>
         </div>
         {over && <Banner variant="error" className="mt-3">Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</Banner>}
@@ -878,7 +878,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               style={{ width:'100%', padding:'7px 9px', borderRadius: 'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--font)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
             />
             <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
-              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'hsl(var(--primary))', color: efdChecking ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'hsl(var(--primary))', color: efdChecking ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
             </button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
@@ -951,12 +951,12 @@ function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMob
                     <td style={{ padding:'12px 10px' }}>
                       <div style={{ display:'flex', gap:2 }}>
                         <Tip label="Generate bill now"><span><button type="button" aria-label="Generate bill now" onClick={() => onGenerate(r)} disabled={r.state !== 'ACTIVE'}
-                          style={{ background:'none', border:'none', cursor: r.state==='ACTIVE'?'pointer':'default', color: r.state==='ACTIVE'?'var(--teal)':'var(--border)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}>
+                          style={{ background:'none', border:'none', cursor: r.state==='ACTIVE'?'pointer':'default', color: r.state==='ACTIVE'?'var(--teal)':'var(--border)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button="">
                           <Icon name="zap" size={14} />
                         </button></span></Tip>
-                        <Tip label="Edit recurring bill"><button type="button" aria-label="Edit recurring bill" onClick={() => onEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}><Icon name="edit" size={14} /></button></Tip>
-                        <Tip label={r.state==='ACTIVE'?'Pause recurring bill':'Resume recurring bill'}><button type="button" aria-label={r.state==='ACTIVE'?'Pause recurring bill':'Resume recurring bill'} onClick={() => onToggle(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}><Icon name={r.state==='ACTIVE' ? 'pause' : 'chevronRight'} size={14} /></button></Tip>
-                        <Tip label="Delete recurring bill"><button type="button" aria-label="Delete recurring bill" onClick={() => onDelete(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}><Icon name="trash" size={14} /></button></Tip>
+                        <Tip label="Edit recurring bill"><button type="button" aria-label="Edit recurring bill" onClick={() => onEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button=""><Icon name="edit" size={14} /></button></Tip>
+                        <Tip label={r.state==='ACTIVE'?'Pause recurring bill':'Resume recurring bill'}><button type="button" aria-label={r.state==='ACTIVE'?'Pause recurring bill':'Resume recurring bill'} onClick={() => onToggle(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button=""><Icon name={r.state==='ACTIVE' ? 'pause' : 'chevronRight'} size={14} /></button></Tip>
+                        <Tip label="Delete recurring bill"><button type="button" aria-label="Delete recurring bill" onClick={() => onDelete(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>
                       </div>
                     </td>
                   </tr>
@@ -1214,7 +1214,7 @@ export const Bills: React.FC = () => {
               <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:12 }}>Void <strong>{voidTarget.bill_number}</strong>? The related journal entries will be reversed.</div>
               <Textarea value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Reason for voiding" className="mb-5" />
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-                <button type="button" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                <button type="button" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
                 <Button type="button" variant="destructive" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
               </div>
             </>
@@ -1297,7 +1297,7 @@ export const Bills: React.FC = () => {
                 type="button"
                 onClick={() => { setFormBill(null); setShowBillForm(true); }}
                 style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
-              >
+               data-ui-native-button="">
                 <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Bill
               </button>
             </div>
@@ -1387,10 +1387,10 @@ export const Bills: React.FC = () => {
                               <td style={{ padding:'11px 14px' }}><StatusBadge status={b.status} /></td>
                               <td style={{ padding:'11px 10px' }} onClick={e => e.stopPropagation()}>
                                 <div style={{ display:'flex', gap:2 }}>
-                                  <Tip label="View bill"><button type="button" aria-label="View bill" onClick={() => { setSelected(bills.find(x=>x.id===b.id)??null); setView('detail'); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="eye" size={14} /></button></Tip>
-                                  {(b.status==='POSTED'||b.status==='PARTIAL'||b.status==='OVERDUE') && <Tip label="Record payment"><button type="button" aria-label="Record payment" onClick={() => setPayTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--teal-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="dollarSign" size={14} /></button></Tip>}
-                                  <Tip label="Edit bill"><button type="button" aria-label="Edit bill" onClick={() => { setFormBill(bills.find(x=>x.id===b.id)??null); setShowBillForm(true); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="edit" size={14} /></button></Tip>
-                                  {b.status!=='PAID'&&b.status!=='VOID' && <Tip label="Void bill"><button type="button" aria-label="Void bill" onClick={() => setVoidTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--red-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="xCircle" size={14} /></button></Tip>}
+                                  <Tip label="View bill"><button type="button" aria-label="View bill" onClick={() => { setSelected(bills.find(x=>x.id===b.id)??null); setView('detail'); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="eye" size={14} /></button></Tip>
+                                  {(b.status==='POSTED'||b.status==='PARTIAL'||b.status==='OVERDUE') && <Tip label="Record payment"><button type="button" aria-label="Record payment" onClick={() => setPayTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--teal-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="dollarSign" size={14} /></button></Tip>}
+                                  <Tip label="Edit bill"><button type="button" aria-label="Edit bill" onClick={() => { setFormBill(bills.find(x=>x.id===b.id)??null); setShowBillForm(true); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="edit" size={14} /></button></Tip>
+                                  {b.status!=='PAID'&&b.status!=='VOID' && <Tip label="Void bill"><button type="button" aria-label="Void bill" onClick={() => setVoidTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--red-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="xCircle" size={14} /></button></Tip>}
                                 </div>
                               </td>
                             </tr>

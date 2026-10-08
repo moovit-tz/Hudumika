@@ -289,7 +289,7 @@ export const ModulesSection: React.FC = () => {
               className="s-mods-search-clear"
               onClick={() => setSearchQuery('')}
               title="Clear search"
-            >
+             data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           )}
@@ -452,7 +452,7 @@ export const ModulesSection: React.FC = () => {
                       className={`s-mod-access-tag ${isRestricted ? 's-mod-access-tag--locked' : 's-mod-access-tag--open'}`}
                       onClick={() => canManageModules && setLicenseAppId(key)}
                       disabled={!canManageModules}
-                    >
+                     data-ui-native-button="">
                       <Icon name={isRestricted ? 'lock' : 'globe'} size={12} />
                       {isRestricted ? `Restricted (${grantCount} ${grantCount === 1 ? 'user' : 'users'})` : 'Open to Everyone'}
                     </button>
@@ -467,7 +467,7 @@ export const ModulesSection: React.FC = () => {
                       type="button"
                       className="s-mod-access-btn"
                       onClick={() => setLicenseAppId(key)}
-                    >
+                     data-ui-native-button="">
                       <Icon name="users" size={13} />
                       Manage Access
                     </button>
@@ -532,7 +532,7 @@ export const ModulesSection: React.FC = () => {
                           className={`s-mod-access-tag ${isRestricted ? 's-mod-access-tag--locked' : 's-mod-access-tag--open'}`}
                           onClick={() => canManageModules && setLicenseAppId(key)}
                           disabled={!canManageModules}
-                        >
+                         data-ui-native-button="">
                           <Icon name={isRestricted ? 'lock' : 'globe'} size={12} />
                           {isRestricted ? `Restricted (${grantCount})` : 'Open to All'}
                         </button>
@@ -683,7 +683,7 @@ export function AppLicensePanel({
             </div>
           </div>
           <Tip label="Close (Esc)">
-            <button type="button" className="s-lic-close-btn" onClick={onClose} aria-label="Close">
+            <button type="button" className="s-lic-close-btn" onClick={onClose} aria-label="Close" data-ui-native-button="">
               <Icon name="x" size={18} />
             </button>
           </Tip>
@@ -787,7 +787,7 @@ export function AppLicensePanel({
                                   onClick={() => removePerson(g.user_id)}
                                   disabled={saving}
                                   title="Revoke access"
-                                >
+                                 data-ui-native-button="">
                                   Revoke
                                 </button>
                               </div>

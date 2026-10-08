@@ -78,11 +78,11 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <Tip label="Edit"><button type="button" aria-label={`Edit ${product.name}`} onClick={() => onEdit(product)}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
             <Icon name="edit" size={14} color="var(--ink2)" />
           </button></Tip>
           <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
             <Icon name="x" size={14} color="var(--ink2)" />
           </button></Tip>
         </div>
@@ -202,8 +202,8 @@ function ProductForm({ product, onSave, onClose }: {
       onCancel={onClose}
       actions={
         <>
-          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary">
+          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary" data-ui-native-button="">
             <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : product ? 'Save Changes' : 'Add Item'}
           </button>
         </>
@@ -377,7 +377,7 @@ export function FinanceProducts() {
         titleEm="services"
         subtitle="Define the items and services your business buys and sells."
         actions={
-          <button type="button" className="btn btn-primary" onClick={() => { setEditProduct(null); setShowForm(true); }}>
+          <button type="button" className="btn btn-primary" onClick={() => { setEditProduct(null); setShowForm(true); }} data-ui-native-button="">
             <Icon name="plus" size={13} color="#fff" /> New Item
           </button>
         }
@@ -501,13 +501,13 @@ export function FinanceProducts() {
                       <Tip label="Edit"><button type="button" aria-label={`Edit ${p.name}`} onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                         <Icon name="edit" size={14} />
                       </button></Tip>
                       <Tip label="Delete"><button type="button" aria-label={`Delete ${p.name}`} onClick={e => { e.stopPropagation(); handleDelete(p.id); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')} data-ui-native-button="">
                         <Icon name="trash2" size={14} />
                       </button></Tip>
                     </td>
@@ -533,13 +533,13 @@ export function FinanceProducts() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button type="button" disabled={currentPage === 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
-                  style={pagerBtn(currentPage === 1)}>
+                  style={pagerBtn(currentPage === 1)} data-ui-native-button="">
                   <Icon name="arrowLeft" size={12} /> Previous
                 </button>
                 <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
                 <button type="button" disabled={currentPage === pageCount}
                   onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                  style={pagerBtn(currentPage === pageCount)}>
+                  style={pagerBtn(currentPage === pageCount)} data-ui-native-button="">
                   Next <Icon name="arrowRight" size={12} />
                 </button>
               </div>

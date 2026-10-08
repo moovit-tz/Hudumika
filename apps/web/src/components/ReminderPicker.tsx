@@ -30,7 +30,7 @@ export const ReminderPicker: React.FC<{
           style={triggerStyle ? { ...triggerStyle, color: value ? 'var(--teal)' : triggerStyle.color } : undefined}
           title={value ? 'Change reminder' : 'Add reminder'}
           onClick={() => onOpenChange(!open)}
-        >
+         data-ui-native-button="">
           <Icon name="clock" size={17} />
         </button>
       </PopoverAnchor>

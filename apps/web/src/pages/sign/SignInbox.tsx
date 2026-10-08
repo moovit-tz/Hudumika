@@ -56,18 +56,18 @@ function Pagination({ total, page, onPage, perPage = PER_PAGE }: { total: number
   const btnBase: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, height: 32, padding: '0 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center', padding: '16px 0', flexShrink: 0 }}>
-      <button type="button" style={{ ...btnBase, color: page === 1 ? 'var(--ink3)' : 'var(--ink)' }} disabled={page === 1} onClick={() => onPage(page - 1)}>
+      <button type="button" style={{ ...btnBase, color: page === 1 ? 'var(--ink3)' : 'var(--ink)' }} disabled={page === 1} onClick={() => onPage(page - 1)} data-ui-native-button="">
         <Icon name="chevronLeft" size={13} />
       </button>
       {pages.map((p, i) => p === '...' ? (
         <span key={`e${i}`} style={{ color: 'var(--ink3)', fontSize: 12.5, padding: '0 4px' }}>…</span>
       ) : (
         <button key={p} type="button" onClick={() => onPage(p as number)}
-          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }}>
+          style={{ ...btnBase, background: p === page ? 'hsl(var(--primary))' : 'var(--bg)', color: p === page ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderColor: p === page ? 'hsl(var(--primary))' : 'var(--border)' }} data-ui-native-button="">
           {p}
         </button>
       ))}
-      <button type="button" style={{ ...btnBase, color: page === totalPages ? 'var(--ink3)' : 'var(--ink)' }} disabled={page === totalPages} onClick={() => onPage(page + 1)}>
+      <button type="button" style={{ ...btnBase, color: page === totalPages ? 'var(--ink3)' : 'var(--ink)' }} disabled={page === totalPages} onClick={() => onPage(page + 1)} data-ui-native-button="">
         <Icon name="chevronRight" size={13} />
       </button>
       <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>

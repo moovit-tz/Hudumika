@@ -55,7 +55,7 @@ function TokenStage({ token }: { token: string }) {
             <input type="text" inputMode="numeric" className="auth-input" placeholder="123456" value={totp}
               onChange={e => { setTotp(e.target.value); setError(null); }} autoComplete="one-time-code" autoFocus maxLength={6} />
           </AuthField>
-          <button type="submit" disabled={loading || totp.length !== 6} className="auth-btn-primary">
+          <button type="submit" disabled={loading || totp.length !== 6} className="auth-btn-primary" data-ui-native-button="">
             {loading ? <><span className="auth-spinner" /> Verifying…</> : 'Verify and sign in'}
           </button>
         </form>

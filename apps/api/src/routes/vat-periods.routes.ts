@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { TAX_PREPARATION_CHECKS, taxPreparationContext } from '../services/finance-tax-preparation.service.js';
+import { IndustryWorkError } from '../services/finance-industry-work.service.js';
 import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -31,6 +33,13 @@ const reopenSchema = z.object({ reason: z.string().optional() });
  * being editable.
  */
 export async function vatPeriodRoutes(fastify: FastifyInstance) {
+  fastify.setErrorHandler((error, request, reply) => {
+    if (error instanceof z.ZodError) return reply.status(400).send({ error: error.issues.map(issue => issue.message).join('; ') });
+    if (error instanceof IndustryWorkError) return reply.status(error.statusCode).send({ error: error.message });
+    request.log.error(error);
+    const status = error && typeof error === 'object' && 'statusCode' in error && typeof error.statusCode === 'number' ? error.statusCode : 500;
+    return reply.status(status).send({ error: status < 500 && error instanceof Error ? error.message : 'Unable to process the VAT period.' });
+  });
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
 
@@ -55,6 +64,40 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id)
         .orderBy('period_start', 'desc')
         .execute());
+  });
+  fastify.get('/:id/preparation', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    return withTenant(request.user.tenant_id, async trx => {
+      let context;
+      try { context = await taxPreparationContext(trx, request.user.tenant_id, id); }
+      catch (error) { if (error instanceof IndustryWorkError) return reply.status(error.statusCode).send({ error: error.message }); throw error; }
+      const preparations = await trx.selectFrom('finance_tax_preparations').select(['id','prepared_by','status','evidence_note','reviewed_by','review_note','created_at','source_hash']).where('tenant_id', '=', request.user.tenant_id).where('period_id', '=', id).orderBy('created_at','desc').limit(20).execute();
+      return { period: context.period, checks: TAX_PREPARATION_CHECKS, diagnostics: context.diagnostics, summary: { currency: context.snapshot.currency, output_tax: context.snapshot.outputTax, recoverable_input: context.snapshot.inputTaxRecoverable, net_payable: context.snapshot.netPayable, ledger_difference: context.snapshot.ledger.difference }, preparations: preparations.map(item => ({ ...item, current: item.source_hash === context.hash })) };
+    });
+  });
+  fastify.post('/:id/preparation', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = z.object({ checks: z.record(z.string(), z.boolean()), evidence_note: z.string().trim().min(1).max(4000) }).parse(request.body);
+    if (TAX_PREPARATION_CHECKS.some(check => body.checks[check] !== true)) return reply.status(422).send({ error: 'Complete every preparation check.' });
+    return withTenant(request.user.tenant_id, async trx => {
+      const context = await taxPreparationContext(trx, request.user.tenant_id, id);
+      if (context.period.status !== 'open') return reply.status(409).send({ error: 'Only open VAT periods accept preparation.' });
+      if (context.diagnostics.some(item => item.severity === 'blocking')) return reply.status(409).send({ error: 'Resolve the blocking diagnostics before preparing.', diagnostics: context.diagnostics });
+      return reply.status(201).send(await trx.insertInto('finance_tax_preparations').values({ tenant_id: request.user.tenant_id, period_id: id, prepared_by: request.user.sub, checks: body.checks, evidence_note: body.evidence_note, return_snapshot: context.snapshot, source_hash: context.hash, reviewed_by: null, review_note: null, reviewed_at: null }).returning('id').executeTakeFirstOrThrow());
+    });
+  });
+  fastify.post('/:id/preparation/:preparationId/review', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const { id, preparationId } = z.object({ id: z.string().uuid(), preparationId: z.string().uuid() }).parse(request.params);
+    const body = z.object({ approve: z.boolean(), note: z.string().trim().min(1).max(4000) }).parse(request.body);
+    return withTenant(request.user.tenant_id, async trx => {
+      const context = await taxPreparationContext(trx, request.user.tenant_id, id);
+      const preparation = await trx.selectFrom('finance_tax_preparations').selectAll().where('tenant_id', '=', request.user.tenant_id).where('period_id', '=', id).where('id', '=', preparationId).forUpdate().executeTakeFirst();
+      if (!preparation) return reply.status(404).send({ error: 'Preparation not found.' });
+      if (preparation.prepared_by === request.user.sub) return reply.status(403).send({ error: 'A different finance reviewer must review this preparation.' });
+      if (preparation.status !== 'prepared' || context.period.status !== 'open') return reply.status(409).send({ error: 'This preparation is no longer awaiting review.' });
+      if (body.approve && (preparation.source_hash !== context.hash || context.diagnostics.some(item => item.severity === 'blocking'))) return reply.status(409).send({ error: 'Source data changed or diagnostics are unresolved. Prepare a new version before approval.' });
+      return trx.updateTable('finance_tax_preparations').set({ status: body.approve ? 'approved' : 'rejected', reviewed_by: request.user.sub, review_note: body.note, reviewed_at: new Date() }).where('tenant_id', '=', request.user.tenant_id).where('id', '=', preparationId).returning('id').executeTakeFirstOrThrow();
+    });
   });
 
   // GET /v1/vat-periods/:id — the return exactly as filed, not recomputed.

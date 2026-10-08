@@ -31,7 +31,7 @@ export function MaintenancePage() {
           background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13,
           fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25,
         }}
-      >
+       data-ui-native-button="">
         Try again
       </button>
     </div>

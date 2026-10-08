@@ -1416,7 +1416,7 @@ export const BlissWhatsApp: React.FC = () => {
                     type="button"
                     onClick={() => setTplBody(prev => `${prev} {{${(prev.match(/\{\{\d+\}\}/g) || []).length + 1}}}`)}
                     style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                  >
+                   data-ui-native-button="">
                     + Insert Variable
                   </button>
                 </div>

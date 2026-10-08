@@ -110,7 +110,7 @@ export const CarrierSelect: React.FC<CarrierSelectProps> = ({
               onClick={() => handleSelect(autoDetectedLine)}
               className="inline-flex items-center gap-1.5 text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/80 px-2 py-0.5 rounded-full border border-teal-200 dark:border-teal-800 transition-colors cursor-pointer shadow-xs"
               title="Click to apply auto-detected carrier"
-            >
+             data-ui-native-button="">
               <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
               Auto-detected: <CarrierLogo carrier={autoDetectedLine} size="xs" variant="mark" className="inline-block" /> {autoDetectedLine.shortName}
               <span className="text-[9px] underline opacity-80">Apply</span>
@@ -162,7 +162,7 @@ export const CarrierSelect: React.FC<CarrierSelectProps> = ({
               }}
               className="p-0.5 hover:text-red-500 rounded"
               title="Clear carrier"
-            >
+             data-ui-native-button="">
               <Icon name="x" size={12} />
             </button>
           )}
@@ -208,7 +208,7 @@ export const CarrierSelect: React.FC<CarrierSelectProps> = ({
                         ? 'bg-teal-50 dark:bg-teal-950/50 text-[var(--teal)] font-bold'
                         : 'hover:bg-[var(--bg)] text-[var(--ink)]'
                     }`}
-                  >
+                   data-ui-native-button="">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CarrierLogo carrier={line} size={24} variant="mark" />
                       <div className="min-w-0">
@@ -242,7 +242,7 @@ export const CarrierSelect: React.FC<CarrierSelectProps> = ({
                   type="button"
                   onClick={() => handleCustomInput(search)}
                   className="px-3 py-1 text-xs font-bold rounded-lg bg-[var(--teal)] text-white hover:opacity-90"
-                >
+                 data-ui-native-button="">
                   Use custom carrier "{search}"
                 </button>
               </div>

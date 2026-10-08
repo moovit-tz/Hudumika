@@ -5,7 +5,8 @@ import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { GLService } from '../services/gl.service.js';
-import { computeAndSaveDraftCitReturn, accrueCitReturn } from '../services/cit.service.js';
+import { sql } from 'kysely';
+import { CLOSE_CHECKS, closeDiagnostics, hasCloseBlockers } from '../services/finance-close.service.js';
 
 const RETAINED_EARNINGS_ACCOUNT = '3100';
 
@@ -28,6 +29,30 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('gl_periods').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('period_start', 'desc').execute();
+    });
+  });
+
+  fastify.get('/:id/review', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    return withTenant(request.user.tenant_id, async trx => {
+      const period = await trx.selectFrom('gl_periods').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', id).executeTakeFirst();
+      if (!period) return reply.status(404).send({ error: 'Period not found' });
+      const diagnostics = await closeDiagnostics(trx, request.user.tenant_id, period.period_start, period.period_end);
+      const reviews = await trx.selectFrom('finance_close_reviews').selectAll().where('tenant_id', '=', request.user.tenant_id).where('period_id', '=', id).orderBy('created_at', 'desc').limit(20).execute();
+      return { period, diagnostics, checks: CLOSE_CHECKS, reviews, blocked: hasCloseBlockers(diagnostics) };
+    });
+  });
+  fastify.post('/:id/review', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = z.object({ checklist: z.record(z.string(), z.boolean()), note: z.string().trim().min(1).max(2000) }).parse(request.body);
+    if (CLOSE_CHECKS.some(check => body.checklist[check] !== true)) return reply.status(422).send({ error: 'Review every close area before signing off.' });
+    return withTenant(request.user.tenant_id, async trx => {
+      const period = await trx.selectFrom('gl_periods').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', id).forUpdate().executeTakeFirst();
+      if (!period) return reply.status(404).send({ error: 'Period not found' });
+      if (period.status !== 'open') return reply.status(409).send({ error: 'Only open periods accept review.' });
+      const diagnostics = await closeDiagnostics(trx, request.user.tenant_id, period.period_start, period.period_end);
+      if (hasCloseBlockers(diagnostics)) return reply.status(409).send({ error: 'Resolve the close exceptions before signing off.', diagnostics });
+      return reply.status(201).send(await trx.insertInto('finance_close_reviews').values({ tenant_id: request.user.tenant_id, period_id: id, reviewer_id: request.user.sub, checklist: body.checklist, note: body.note, diagnostics }).returningAll().executeTakeFirstOrThrow());
     });
   });
 
@@ -63,30 +88,23 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const period = await trx.selectFrom('gl_periods').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      await sql`select pg_advisory_xact_lock(hashtextextended(${`gl:${user.tenant_id}`}, 0))`.execute(trx);
+      const period = await trx.selectFrom('gl_periods').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!period) return reply.status(404).send({ error: 'Period not found' });
       if (period.status === 'closed') return reply.status(409).send({ error: 'This period is already closed.' });
+      const diagnostics = await closeDiagnostics(trx, user.tenant_id, period.period_start, period.period_end);
+      const review = await trx.selectFrom('finance_close_reviews').selectAll().where('tenant_id', '=', user.tenant_id).where('period_id', '=', id).orderBy('created_at', 'desc').executeTakeFirst();
+      if (hasCloseBlockers(diagnostics)) return reply.status(409).send({ error: 'Resolve the close-review exceptions before closing.', diagnostics });
+      if (!review || CLOSE_CHECKS.some(check => review.checklist[check] !== true) || Object.entries(diagnostics).some(([key, value]) => review.diagnostics[key] !== value) || (period.reopened_at && review.created_at <= period.reopened_at)) return reply.status(409).send({ error: 'Record a current close-review sign-off before closing. New transactions or a reopened period require a new review.' });
 
-      // Corporate income tax (M2) must be accrued before the trial balance
-      // below is pulled, or 5950 Income Tax Expense has no balance yet and
-      // the sweep below closes a pre-tax number into Retained Earnings. If
-      // the tenant already computed and/or accrued this exact period
-      // themselves (via /v1/cit/returns), that work is respected as-is —
-      // this only fills the gap when nothing exists yet, using whatever
-      // rate/adjustments are on record at close time (REFERENCE_DEFAULT
-      // rate if the tenant configured none — visible afterward on the
-      // persisted cit_returns row, never silently assumed).
+      // Tax must be prepared separately; closing must not invent a reviewed tax liability.
       if (period.period_type === 'YEAR') {
-        let citReturn = await trx.selectFrom('cit_returns').select('id').where('tenant_id', '=', user.tenant_id)
+        const citReturn = await trx.selectFrom('cit_returns').select(['id', 'status']).where('tenant_id', '=', user.tenant_id)
           .where('period_start', '=', period.period_start).where('period_end', '=', period.period_end).executeTakeFirst();
-        if (!citReturn) {
-          const draft = await computeAndSaveDraftCitReturn(user.tenant_id, period.period_start, period.period_end, user.sub);
-          citReturn = { id: draft.id };
-        }
-        await accrueCitReturn(user.tenant_id, citReturn.id, user.sub);
+        if (!citReturn || citReturn.status !== 'ACCRUED') return reply.status(409).send({ error: 'Prepare, review and accrue the income-tax return before closing a year.' });
       }
 
-      const tb = await GLService.trialBalance(user.tenant_id, period.period_start, period.period_end);
+      const tb = await GLService.trialBalance(user.tenant_id, period.period_start, period.period_end, trx);
 
       let closingEntryId: string | null = null;
       if (period.period_type === 'YEAR') {
@@ -98,8 +116,8 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
           const netIncome = revenueNet - expenseNet;
 
           const lines = [
-            ...revenueRows.map(r => ({ accountCode: r.account_code, debit: r.period_credit - r.period_debit, credit: 0, description: `Close ${r.account_name}` })),
-            ...expenseRows.map(r => ({ accountCode: r.account_code, debit: 0, credit: r.period_debit - r.period_credit, description: `Close ${r.account_name}` })),
+            ...revenueRows.map(r => ({ accountCode: r.account_code, debit: Math.max(0, r.period_credit - r.period_debit), credit: Math.max(0, r.period_debit - r.period_credit), description: `Close ${r.account_name}` })),
+            ...expenseRows.map(r => ({ accountCode: r.account_code, debit: Math.max(0, r.period_credit - r.period_debit), credit: Math.max(0, r.period_debit - r.period_credit), description: `Close ${r.account_name}` })),
             netIncome >= 0
               ? { accountCode: RETAINED_EARNINGS_ACCOUNT, debit: 0, credit: netIncome, description: 'Net income transferred to Retained Earnings' }
               : { accountCode: RETAINED_EARNINGS_ACCOUNT, debit: -netIncome, credit: 0, description: 'Net loss transferred to Retained Earnings' },
@@ -115,14 +133,14 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
             sourceModule: 'MANUAL',
             createdBy: user.sub,
             lines,
-          });
+          }, trx);
         }
       }
 
       const updated = await trx.updateTable('gl_periods').set({
         status: 'closed', trial_balance_snapshot: JSON.stringify(tb) as any,
         closing_entry_id: closingEntryId, closed_at: new Date(), closed_by: user.sub,
-      }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      }).where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
 
       return updated;
     });

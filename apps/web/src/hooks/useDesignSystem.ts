@@ -53,6 +53,8 @@ export interface ShapeTokens {
    *  buttons, cards. Was a hardcoded `1px` literal scattered across index.css
    *  and the ui/ component library until this token existed. */
   borderWidth: number;
+  /** Card outlines stay independently configurable from input/button borders. */
+  cardBorderWidth?: number;
   /** Default stroke weight for every <Icon> that doesn't request its own
    *  (see Icon.tsx) — icons that explicitly ask for a bolder/thinner weight
    *  (e.g. an active nav icon at 2.5) are untouched by this. */
@@ -376,7 +378,7 @@ export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
   density: 'comfortable',
   iconLibrary: 'stroke',
   motion: { durFast: 80, dur: 150, durSlow: 300, ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-  tabs: { variant: 'segmented', radius: 6, height: 34, size: 13 },
+  tabs: { variant: 'segmented', radius: 6, height: 44, size: 13 },
   responsive: { breakpoint: 768 },
 };
 
@@ -477,7 +479,7 @@ export const PLATFORM_THEMES: PlatformTheme[] = [
       tabs: {
         variant: 'segmented',
         radius: 8,
-        height: 34,
+        height: 44,
         size: 13,
       },
     },
@@ -912,6 +914,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--tab-size': `${tokens.tabs.size}px`,
     '--r-sm': `${shape.rSm}px`, '--r': `${shape.r}px`, '--r-lg': `${shape.rLg}px`, '--card-radius': `${shape.rLg}px`, '--badge-radius': `${shape.badgeRadius}px`,
     '--border-width': `${shape.borderWidth}px`,
+    '--card-border-width': `${shape.cardBorderWidth ?? 1}px`,
     '--icon-stroke-width': `${shape.iconStrokeWidth}`,
     '--breadcrumb-size': `${shape.breadcrumbSize}px`,
 

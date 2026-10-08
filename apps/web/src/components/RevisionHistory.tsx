@@ -100,7 +100,7 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
                   return (
                     <button key={rev.id} onClick={() => setSelectedId(rev.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 'var(--r-sm)', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')} data-ui-native-button="">
                       <PersonAvatar userId={rev.author_id} name={rev.author_name || 'Unknown'} size={26} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{rev.author_name || 'Unknown'}</div>
@@ -116,7 +116,7 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
             )
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <button onClick={() => setSelectedId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', padding: 0, alignSelf: 'flex-start' }}>
+              <button onClick={() => setSelectedId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', padding: 0, alignSelf: 'flex-start' }} data-ui-native-button="">
                 <Icon name="arrowLeft" size={13} /> All versions
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -152,11 +152,11 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
         </DialogBody>
         <DialogFooter>
           {selected ? (
-            <button className="btn btn-primary btn-sm" disabled={restoring} onClick={() => handleRestore(selected)}>
+            <button className="btn btn-primary btn-sm" disabled={restoring} onClick={() => handleRestore(selected)} data-ui-native-button="">
               {restoring ? 'Restoring…' : 'Restore this version'}
             </button>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={() => onOpenChange(false)}>Close</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => onOpenChange(false)} data-ui-native-button="">Close</button>
           )}
         </DialogFooter>
       </DialogContent>

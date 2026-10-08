@@ -237,7 +237,7 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
         <textarea title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
-          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
           <Button type="button" variant="destructive" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
             Reject Quote
           </Button>
@@ -256,7 +256,7 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</DialogTitle>
           <Tip label="Close">
-            <button type="button" aria-label="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}><Icon name="x" size={18}/></button>
+            <button type="button" aria-label="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={18}/></button>
           </Tip>
         </div>
         <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Recipient Email</label>
@@ -266,9 +266,9 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
         <textarea title="Email message" value={msg} onChange={e=>setMsg(e.target.value)} rows={6}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', marginBottom:16, outline:'none' }}/>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
           <button type="button" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="send" size={13}/> Send Quote
           </button>
         </div>
@@ -437,9 +437,9 @@ function ContactSelector({ customers, leads, value, onChange }: {
         <div style={{ padding:'10px 10px 8px' }}>
           <input type="text" title="Search contacts" placeholder="Search..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
             style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
-          <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 'var(--r)', padding:3 }}>
-            <button type="button" onClick={()=>setTab('customers')} style={tabS(tab==='customers')}>Customers ({custOptions.length})</button>
-            <button type="button" onClick={()=>setTab('leads')} style={tabS(tab==='leads')}>Leads ({leadOptions.length})</button>
+          <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 'var(--r)', padding:3 }} data-ds-tabstrip="">
+            <button type="button" onClick={()=>setTab('customers')} style={tabS(tab==='customers')} data-ds-selected={tab === 'customers'} data-ui-native-button="" aria-pressed={tab === 'customers'}>Customers ({custOptions.length})</button>
+            <button type="button" onClick={()=>setTab('leads')} style={tabS(tab==='leads')} data-ds-selected={tab === 'leads'} data-ui-native-button="" aria-pressed={tab === 'leads'}>Leads ({leadOptions.length})</button>
           </div>
         </div>
         <div style={{ overflowY:'auto', flex:1 }}>
@@ -563,7 +563,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
                         <Tip label="Pick from catalog">
                           <PopoverTrigger asChild>
                             <button type="button" aria-label="Pick from catalog"
-                              style={{ padding:'var(--ds-btn-py) 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', color:'var(--ink2)', flexShrink:0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                              style={{ padding:'var(--ds-btn-py) 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', color:'var(--ink2)', flexShrink:0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                               <Icon name="search" size={12}/>
                             </button>
                           </PopoverTrigger>
@@ -598,7 +598,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
                   <td style={{ padding:'6px 4px', width:32 }}>
                     <Tip label="Remove line">
                       <button type="button" aria-label="Remove line" onClick={()=>remove(l._key)}
-                        style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:4, display:'flex', borderRadius:'var(--r-sm)' }}>
+                        style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:4, display:'flex', borderRadius:'var(--r-sm)' }} data-ui-native-button="">
                         <Icon name="trash" size={13}/>
                       </button>
                     </Tip>
@@ -613,13 +613,13 @@ function LineItemsEditor({ lines, currency, onChange }: {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'12px 8px 4px', flexWrap:'wrap', gap:12 }}>
         <div style={{ display:'flex', gap:8, position:'relative' }}>
           <button type="button" onClick={addBlank}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="plus" size={13}/> Add Line
           </button>
           <Popover open={showCatalog} onOpenChange={setShowCatalog}>
             <PopoverTrigger asChild>
               <button type="button"
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="clipboard" size={13}/> From Catalog
               </button>
             </PopoverTrigger>
@@ -700,10 +700,10 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
       onCancel={onCancel}
       actions={
         <>
-          <button type="button" onClick={()=>submit(true)} disabled={saving} className="btn btn-secondary">
+          <button type="button" onClick={()=>submit(true)} disabled={saving} className="btn btn-secondary" data-ui-native-button="">
             {saving?'Saving…':'Save as Draft'}
           </button>
-          <button type="button" onClick={()=>submit(false)} disabled={saving} className="btn btn-primary">
+          <button type="button" onClick={()=>submit(false)} disabled={saving} className="btn btn-primary" data-ui-native-button="">
             <Icon name="send" size={13}/> Save &amp; Submit
           </button>
         </>
@@ -1167,7 +1167,7 @@ export const Quotations: React.FC = () => {
         <div style={{ display:'flex', gap:6, flexWrap: 'wrap' }}>
           {STATUS_TABS.map(t=>(
             <button key={t.key} type="button" onClick={()=>setFilter(t.key)}
-              style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }}>
+              style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }} data-ui-native-button="">
               {t.label}
               {t.key!=='ALL'&&quotes.filter(q=>q.status===t.key).length>0&&(
                 <span style={{ marginLeft:6, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 'var(--r)', padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
@@ -1181,10 +1181,10 @@ export const Quotations: React.FC = () => {
             <input type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>setSearch(e.target.value)}
               style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
-          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="download" size={13}/> Export CSV
           </button>
-          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="plus" size={13}/> New Quotation
           </button>
         </div>
@@ -1198,7 +1198,7 @@ export const Quotations: React.FC = () => {
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:6 }}>No quotations found</div>
                 <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{search?'Try a different search term.':'Get started by creating your first quotation.'}</div>
-                {!search&&<button type="button" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13}/>New Quotation</button>}
+                {!search&&<button type="button" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13}/>New Quotation</button>}
               </div>
             : <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
                 <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>
@@ -1225,7 +1225,7 @@ export const Quotations: React.FC = () => {
                               <Tip key={a.title} label={a.title}>
                                 <button type="button" aria-label={a.title} onClick={a.fn}
                                   style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}
-                                  onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
+                                  onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button="">
                                   <Icon name={a.icon} size={14}/>
                                 </button>
                               </Tip>

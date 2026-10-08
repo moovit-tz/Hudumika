@@ -220,7 +220,7 @@ export const ReportIssuePage: React.FC = () => {
         subtitle="Tell us what went wrong. It reaches the Hudumika platform team as a tracked ticket, and you can follow it here."
         actions={
           <button type="button" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
-            onClick={() => navigate(-1)}>
+            onClick={() => navigate(-1)} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back
           </button>
         }
@@ -246,10 +246,10 @@ export const ReportIssuePage: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => { setSent(null); setUploadNote(''); }}>
+                <button type="button" className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => { setSent(null); setUploadNote(''); }} data-ui-native-button="">
                   Report something else
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ fontSize: 13 }} onClick={() => openTicket(sent.id)}>
+                <button type="button" className="btn btn-secondary" style={{ fontSize: 13 }} onClick={() => openTicket(sent.id)} data-ui-native-button="">
                   Open this report
                 </button>
               </div>
@@ -333,7 +333,7 @@ export const ReportIssuePage: React.FC = () => {
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)' }}>{f.name}</span>
                     <span style={{ color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{(f.size / 1024).toFixed(0)} KB</span>
                     <button type="button" onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex' }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--red)" />
                     </button>
                   </div>
@@ -356,7 +356,7 @@ export const ReportIssuePage: React.FC = () => {
 
               <button type="button" className="btn btn-primary" disabled={sending}
                 style={{ width: '100%', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                onClick={submit}>
+                onClick={submit} data-ui-native-button="">
                 <Icon name="send" size={14} color="#fff" />
                 {sending ? 'Filing the report…' : 'File this report'}
               </button>
@@ -398,7 +398,7 @@ export const ReportIssuePage: React.FC = () => {
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <strong style={{ fontSize: 13, color: 'var(--ink)' }}>{open.ref_number} · thread</strong>
-                <button type="button" onClick={() => setOpen(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                <button type="button" onClick={() => setOpen(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }} data-ui-native-button="">
                   <Icon name="x" size={14} color="var(--ink3)" />
                 </button>
               </div>

@@ -44,12 +44,14 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
       let q = trx
         .selectFrom('notifications')
+        .where('tenant_id', '=', user.tenant_id)
         .selectAll()
         .where('title', 'is not', null) // Only in-app notifications have a title
         .where(inAppFilter);
 
       let countQ = trx
         .selectFrom('notifications')
+        .where('tenant_id', '=', user.tenant_id)
         .select(trx.fn.count('id').as('cnt'))
         .where('read', '=', false)
         .where('title', 'is not', null)
@@ -57,6 +59,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
       let totalQ = trx
         .selectFrom('notifications')
+        .where('tenant_id', '=', user.tenant_id)
         .select(trx.fn.count('id').as('cnt'))
         .where('title', 'is not', null)
         .where(inAppFilter);
@@ -107,6 +110,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx
         .selectFrom('notifications')
+        .where('tenant_id', '=', user.tenant_id)
         .select(trx.fn.count('id').as('cnt'))
         .where('read', '=', false)
         .where('title', 'is not', null)
@@ -133,6 +137,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx
         .updateTable('notifications')
+        .where('tenant_id', '=', user.tenant_id)
         .set({ read: true, read_at: new Date() })
         .where('read', '=', false);
 
@@ -158,6 +163,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx
         .updateTable('notifications')
+        .where('tenant_id', '=', user.tenant_id)
         .set({ read: true, read_at: new Date() })
         .where('id', '=', id);
 

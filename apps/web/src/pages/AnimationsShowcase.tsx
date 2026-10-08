@@ -113,7 +113,7 @@ function MicroInteractionsDemo() {
       </div>
       {/* Button press */}
       <div className="flex flex-col items-center gap-1">
-        <button type="button" className="btn btn-primary transition-transform active:scale-95">
+        <button type="button" className="btn btn-primary transition-transform active:scale-95" data-ui-native-button="">
           Press me
         </button>
         <span className="text-xs text-muted-foreground font-medium">Active:scale-95</span>
@@ -147,10 +147,10 @@ function LoadingStatesDemo() {
 
   return (
     <div className="flex flex-wrap gap-4 items-center">
-      <button type="button" className="oscar-btn oscar-btn-primary" onClick={trigger} disabled={loading}>
+      <button type="button" className="oscar-btn oscar-btn-primary" onClick={trigger} disabled={loading} data-ui-native-button="">
         {loading ? <><span className="oscar-spinner-sm oscar-spinner-white" /> Loading…</> : 'Submit Form'}
       </button>
-      <button type="button" className="oscar-btn oscar-btn-soft-primary" onClick={trigger} disabled={loading}>
+      <button type="button" className="oscar-btn oscar-btn-soft-primary" onClick={trigger} disabled={loading} data-ui-native-button="">
         {loading ? <><span className="oscar-spinner-sm" style={{ borderTopColor: 'var(--teal)' }} /> Processing…</> : 'Process Data'}
       </button>
       {loading && (
@@ -201,7 +201,7 @@ export default function AnimationsShowcase() {
 
       {/* Retrigger hint */}
       <div className="flex items-center gap-2">
-        <button type="button" className="oscar-btn oscar-btn-soft-primary" onClick={retrigger}>
+        <button type="button" className="oscar-btn oscar-btn-soft-primary" onClick={retrigger} data-ui-native-button="">
           <Icon name="refresh" size={14} />
           Retrigger all animations
         </button>
@@ -241,7 +241,7 @@ export default function AnimationsShowcase() {
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card border-border text-muted-foreground hover:text-foreground'
               }`}
-            >
+             data-ui-native-button="">
               {ms}ms
             </button>
           ))}
@@ -277,7 +277,7 @@ export default function AnimationsShowcase() {
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card border-border text-muted-foreground hover:text-foreground'
               }`}
-            >
+             data-ui-native-button="">
               {e.label}
             </button>
           ))}
@@ -332,7 +332,7 @@ export default function AnimationsShowcase() {
                 className="anim-ref-copy"
                 onClick={() => navigator.clipboard?.writeText(a.cls)}
                 title="Copy class name"
-              >
+               data-ui-native-button="">
                 <Icon name="copy" size={12} />
               </button>
             </div>

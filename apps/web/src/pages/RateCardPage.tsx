@@ -234,14 +234,14 @@ export const RateCardPage: React.FC = () => {
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         {isEditing ? (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={13} /></button>
-                            <button type="button" onClick={cancelEdit} aria-label="Cancel" style={{ background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="x" size={13} /></button>
+                            <button type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="check" size={13} /></button>
+                            <button type="button" onClick={cancelEdit} aria-label="Cancel" style={{ background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="x" size={13} /></button>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button type="button" onClick={() => startEdit(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="edit" size={12} color="var(--ink3)" /></button>
+                            <button type="button" onClick={() => startEdit(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="edit" size={12} color="var(--ink3)" /></button>
                             {!row.code && (
-                              <button type="button" onClick={() => removeExtra(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="trash" size={12} color="var(--red)" /></button>
+                              <button type="button" onClick={() => removeExtra(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="trash" size={12} color="var(--red)" /></button>
                             )}
                           </div>
                         )}
@@ -302,10 +302,10 @@ export const RateCardPage: React.FC = () => {
                 <div style={{ width: 260 }}>
                   <EntityPicker value={operatorPicker} onChange={item => item && selectOperator(item)} search={searchIcdOperators} placeholder="Search ICD operators…" />
                 </div>
-                <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
               </div>
             ) : (
-              <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="plusCircle" size={13} /> Link an ICD operator
               </button>
             ))}
@@ -363,11 +363,11 @@ export const RateCardPage: React.FC = () => {
                         </SelectContent>
                       </Select>
                       <input style={{ ...editInput, width: 100 }} type="number" min="0" step="0.01" placeholder="Rate" value={extraDraft.rate_amount} onChange={e => setExtraDraft(d => ({ ...d, rate_amount: e.target.value }))} />
-                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add</button>
-                      <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Add</button>
+                      <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => setAddingExtra(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <button type="button" onClick={() => setAddingExtra(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="plusCircle" size={14} /> Add charge to this card
                     </button>
                   )

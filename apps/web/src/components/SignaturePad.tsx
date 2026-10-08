@@ -160,7 +160,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
       <div style={{ display: 'flex', marginBottom: 12, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
         {(['draw', 'type', 'upload'] as SignMode[]).map(m => (
           <button key={m} onClick={() => { setMode(m); clearCanvas(); }}
-            style={{ flex: 1, padding: '8px', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, background: mode === m ? 'var(--teal)' : 'var(--bg)', color: mode === m ? 'hsl(var(--primary-foreground))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+            style={{ flex: 1, padding: '8px', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, background: mode === m ? 'var(--teal)' : 'var(--bg)', color: mode === m ? 'hsl(var(--primary-foreground))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
             <Icon name={m === 'draw' ? 'edit' : m === 'type' ? 'fileText' : 'upload'} size={13} />
             {m === 'draw' ? 'Draw' : m === 'type' ? 'Type' : 'Upload'}
           </button>

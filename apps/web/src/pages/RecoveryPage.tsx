@@ -56,7 +56,7 @@ function RequestStage() {
           <input type="email" className="auth-input" placeholder="you@company.com" value={email}
             onChange={e => { setEmail(e.target.value); setError(null); }} autoComplete="email" autoFocus />
         </AuthField>
-        <button type="submit" disabled={loading} className="auth-btn-primary">
+        <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
           {loading ? <><span className="auth-spinner" /> Sending…</> : 'Notify my recovery contacts'}
         </button>
       </form>
@@ -158,7 +158,7 @@ function TokenStage({ token }: { token: string }) {
         <AuthField label="Confirm new password">
           <input type="password" className="auth-input" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="new-password" />
         </AuthField>
-        <button type="submit" disabled={loading} className="auth-btn-primary">
+        <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
           {loading ? <><span className="auth-spinner" /> Saving…</> : 'Set new password'}
         </button>
       </form>

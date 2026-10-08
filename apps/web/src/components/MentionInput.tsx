@@ -176,7 +176,7 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
                 border: 'none',
                 cursor: 'pointer',
                 textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-            >
+             data-ui-native-button="">
               <PersonAvatar userId={u.id} name={u.name} size={28} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>{u.name}</div>

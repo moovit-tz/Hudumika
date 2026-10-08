@@ -94,8 +94,8 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
       </label>
 
       <div className="login-form-actions">
-        <button type="button" onClick={onBack} className="login-back-btn" disabled={submitting}>Back</button>
-        <button type="submit" className="login-submit-btn" disabled={submitting || !draft.privacy_policy_version_id || !draft.privacy_acknowledged}>
+        <button type="button" onClick={onBack} className="login-back-btn" disabled={submitting} data-ui-native-button="">Back</button>
+        <button type="submit" className="login-submit-btn" disabled={submitting || !draft.privacy_policy_version_id || !draft.privacy_acknowledged} data-ui-native-button="">
           {submitting ? 'Creating your workspace…' : 'Create my workspace'}
         </button>
       </div>

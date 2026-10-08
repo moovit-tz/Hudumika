@@ -19,10 +19,9 @@ const webhookPayloadSchema = z.record(z.string(), z.any());
 /** Verifies Meta's X-Hub-Signature-256 HMAC over the exact raw request bytes
  *  — must run before JSON.parse touches the body, since re-serializing would
  *  not byte-for-byte match what Meta actually signed. Returns true (allow)
- *  when META_APP_SECRET isn't configured yet, since there's nothing to check
- *  a signature against; once a real secret is set this starts enforcing. */
+ *  without a secret only in development; production always fails closed. */
 function verifyMetaSignature(rawBody: Buffer, header: string | undefined): boolean {
-  if (!env.META_APP_SECRET) return true;
+  if (!env.META_APP_SECRET) return env.APP_ENV !== 'production';
   if (!header || !header.startsWith('sha256=')) return false;
   const expected = crypto.createHmac('sha256', env.META_APP_SECRET).update(rawBody).digest('hex');
   const provided = header.slice('sha256='.length);
@@ -104,6 +103,9 @@ export async function webhookRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/gpswox', async (request, reply) => {
     try {
+      if (env.APP_ENV === 'production' && !env.GPSWOX_WEBHOOK_SECRET) {
+        return reply.status(503).send({ error: 'GPS webhooks are not configured' });
+      }
       // GPSWOX has no request-signing scheme of its own — a shared secret
       // sent back as ?token= is the simplest proof this came from the
       // configured GPSWOX account, not an internet client that guessed a
@@ -116,7 +118,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       }
 
       const payload = webhookPayloadSchema.parse(request.body ?? {});
-      console.log('📥 GPSWOX Webhook Received:', payload);
+      request.log.debug('GPS webhook received');
 
       // Extract device ID (IMEI)
       const imei = payload.device_imei || payload.imei;
@@ -340,7 +342,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       return { success: true };
     }
 
-    console.log(`📥 Webhook Inbound Message: From +${fromPhone} -> tenant ${customer.tenant_id}`);
+    request.log.debug('Inbound messaging webhook processed');
 
     const externalRef: string | null = msg.id || null;
     const contentBody = describeInboundMessage(msg);

@@ -375,13 +375,13 @@ export const Billing: React.FC = () => {
               {selectedIds.size > 0 && (
                 <div className="inv-bulk-actions">
                   <span className="inv-bulk-count">{selectedIds.size} selected</span>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={exportSelectedCsv}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={exportSelectedCsv} data-ui-native-button="">
                     <Icon name="download" size={13} /> Export CSV
                   </button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={downloadAllSelected} disabled={downloadingAll}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={downloadAllSelected} disabled={downloadingAll} data-ui-native-button="">
                     <Icon name="file" size={13} /> {downloadingAll ? 'Downloading…' : 'Download all'}
                   </button>
-                  <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection">
+                  <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection" data-ui-native-button="">
                     <Icon name="x" size={13} />
                   </button>
                 </div>
@@ -398,7 +398,7 @@ export const Billing: React.FC = () => {
                   dance that used to do the same job a second way. */}
               <Popover open={showFilters} onOpenChange={setShowFilters}>
                 <PopoverTrigger asChild>
-                  <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`}>
+                  <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} data-ui-native-button="">
                     <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
                   </button>
                 </PopoverTrigger>
@@ -426,8 +426,8 @@ export const Billing: React.FC = () => {
                     </div>
                   </div>
                   <div className="inv-filters-foot">
-                    <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
-                    <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} data-ui-native-button="">Clear</button>
+                    <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)} data-ui-native-button="">Done</button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -442,7 +442,7 @@ export const Billing: React.FC = () => {
           </div>
           <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
             className="inv-toolbar-cta"
-            style={{ padding: 'var(--ds-btn-py-sm) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            style={{ padding: 'var(--ds-btn-py-sm) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
             <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> Create Invoice
           </button>
           </div>
@@ -519,7 +519,7 @@ export const Billing: React.FC = () => {
                   <tr><td colSpan={10} className="inv-table-msg">
                     <div className="inv-empty-title">No invoices yet</div>
                     <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
-                    <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
+                    <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }} data-ui-native-button="">
                       <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> Create New Invoice
                     </button>
                   </td></tr>

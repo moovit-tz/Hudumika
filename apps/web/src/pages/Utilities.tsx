@@ -232,7 +232,7 @@ export const Utilities: React.FC = () => {
               desc={ds.desc}
               action={
                 <button type="button" className="btn btn-secondary btn-sm"
-                  onClick={() => exportDataset(ds)} disabled={exporting !== null}>
+                  onClick={() => exportDataset(ds)} disabled={exporting !== null} data-ui-native-button="">
                   {exporting === ds.id ? 'Exporting…' : 'Download CSV'}
                 </button>
               }
@@ -255,7 +255,7 @@ export const Utilities: React.FC = () => {
             desc="Ping the backend API to verify it is reachable and responding correctly."
             action={
               <div>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={checkHealth}>Check Health</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={checkHealth} data-ui-native-button="">Check Health</button>
                 {healthResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: healthResult.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{healthResult}</div>}
               </div>
             }
@@ -267,7 +267,7 @@ export const Utilities: React.FC = () => {
             desc="Test the real-time WebSocket connection used for live shipment updates and notifications."
             action={
               <div>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={pingWs}>Test Connection</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={pingWs} data-ui-native-button="">Test Connection</button>
                 {pingResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: pingResult.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{pingResult}</div>}
               </div>
             }
@@ -278,7 +278,7 @@ export const Utilities: React.FC = () => {
             title="Clear Local Cache"
             desc="Clear browser localStorage data for this app. You will be signed out and need to log in again."
             action={
-              <button type="button" className="btn btn-danger btn-sm" onClick={async () => { if ((await showConfirm('Clear cache and sign out?', { variant: 'warning', confirmLabel: 'Clear Cache' }))) { localStorage.clear(); window.location.reload(); } }}>
+              <button type="button" className="btn btn-danger btn-sm" onClick={async () => { if ((await showConfirm('Clear cache and sign out?', { variant: 'warning', confirmLabel: 'Clear Cache' }))) { localStorage.clear(); window.location.reload(); } }} data-ui-native-button="">
                 Clear Cache
               </button>
             }

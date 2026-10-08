@@ -40,7 +40,7 @@ export function RecentlySharedCard({ items, onOpen }: { items: CloudFile[]; onOp
               onClick={() => onOpen(item)}
               className="hover:bg-(--bg)"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
-            >
+             data-ui-native-button="">
               <FeaturedIcon variant={cfg.variant} size="sm"><Icon name={cfg.icon} size={15} /></FeaturedIcon>
               <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
               <div style={{ display: 'flex', flexShrink: 0 }}>

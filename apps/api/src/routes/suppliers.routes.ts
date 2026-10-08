@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -25,7 +25,7 @@ const supplierSchema = z.object({
 
 export async function supplierRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('finops'));
+  fastify.addHook('preHandler', requireAnyEntitlement(['crm', 'finops']));
 
   // GET /v1/suppliers — list, optionally filtered by ?search=
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
@@ -40,11 +40,11 @@ export async function supplierRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request) => {
     const user = request.user;
-    const { search } = request.query as { search?: string };
+    const { search, page, status, limit } = z.object({ search: z.string().max(160).optional(), page: z.coerce.number().int().min(1).max(100000).optional(), limit: z.coerce.number().int().min(1).max(100).optional(), status: z.enum(['active','inactive','blocked']).optional() }).parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('suppliers').selectAll().where('tenant_id', '=', user.tenant_id);
       if (search) {
-        const s = `%${search}%`;
+        const s = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
         q = q.where((eb) =>
           eb.or([
             eb('name', 'ilike', s),
@@ -53,7 +53,14 @@ export async function supplierRoutes(fastify: FastifyInstance) {
           ]),
         );
       }
-      return q.orderBy('name', 'asc').execute();
+      if (status) q = q.where('status', '=', status);
+      q = q.orderBy('name', 'asc').orderBy('id');
+      if (page) {
+        const size = limit ?? 20;
+        const rows = await q.limit(size + 1).offset((page - 1) * size).execute();
+        return { data: rows.slice(0, size), has_more: rows.length > size };
+      }
+      return (limit ? q.limit(limit) : q).execute();
     });
   });
 

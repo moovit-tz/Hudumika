@@ -699,7 +699,7 @@ export function AgenticExecutionStage({
                     type="button"
                     className={`r6-step-row ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}`}
                     onClick={() => handleStepClick(idx)}
-                  >
+                   data-ui-native-button="">
                     <div className={`r6-step-badge ${isCompleted ? 'check' : isActive ? 'active-num' : 'num'}`}>
                       {isCompleted ? '✓' : s.stepNumber}
                     </div>
@@ -862,7 +862,7 @@ export function AgenticExecutionStage({
                   </div>
 
                   <div className="r6-gmail-actions">
-                    <button type="button" className="r6-send-btn">Send</button>
+                    <button type="button" className="r6-send-btn" data-ui-native-button="">Send</button>
                     <div className="r6-msg-sent-toast">
                       <span>✓</span>
                       <span>{currentStep.data.statusBadge}</span>
@@ -890,7 +890,7 @@ export function AgenticExecutionStage({
               disabled={isAiGenerating}
               onClick={() => handleRunPrompt(sug.prompt)}
               title={sug.prompt}
-            >
+             data-ui-native-button="">
               <Icon name={sug.icon as any} size={12} />
               <span>{sug.label}</span>
             </button>
@@ -914,7 +914,7 @@ export function AgenticExecutionStage({
           />
         </div>
         <div className="r6-prompt-actions">
-          <button type="submit" className="r6-prompt-submit" disabled={isAiGenerating || !customPrompt.trim()}>
+          <button type="submit" className="r6-prompt-submit" disabled={isAiGenerating || !customPrompt.trim()} data-ui-native-button="">
             {isAiGenerating ? (
               <>
                 <span className="r6-submit-spinner" />

@@ -244,7 +244,7 @@ export function BlissNotifications() {
                   onChange={e => setSearch(e.target.value)}
                 />
                 {search && (
-                  <button className="bnc-search-clear" onClick={() => setSearch("")}>
+                  <button className="bnc-search-clear" onClick={() => setSearch("")} data-ui-native-button="">
                     <Icon name="x" size={12} />
                   </button>
                 )}
@@ -281,11 +281,11 @@ export function BlissNotifications() {
 
             {totalPages > 1 && (
               <div className="bnc-pagination">
-                <button className="bnc-pg-btn" disabled={page === 1} onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))}>
+                <button className="bnc-pg-btn" disabled={page === 1} onClick={() => setOffset(o => Math.max(0, o - PAGE_SIZE))} data-ui-native-button="">
                   <Icon name="chevronLeft" size={14} />
                 </button>
                 <span className="bnc-pg-label">Page {page} of {totalPages}</span>
-                <button className="bnc-pg-btn" disabled={page === totalPages} onClick={() => setOffset(o => o + PAGE_SIZE)}>
+                <button className="bnc-pg-btn" disabled={page === totalPages} onClick={() => setOffset(o => o + PAGE_SIZE)} data-ui-native-button="">
                   <Icon name="chevronRight" size={14} />
                 </button>
               </div>
@@ -361,7 +361,7 @@ function NotifDetail({ n, onClose }: { n: any; onClose: () => void }) {
           </div>
         </div>
         <Tip label="Close">
-          <button className="bnc-icon-btn" onClick={onClose}>
+          <button className="bnc-icon-btn" onClick={onClose} data-ui-native-button="">
             <Icon name="x" size={16} />
           </button>
         </Tip>

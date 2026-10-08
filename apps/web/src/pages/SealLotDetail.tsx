@@ -185,7 +185,7 @@ export function SealLotDetail() {
       />
       <div className="seal-page-hdr">
         <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }} data-ui-native-button="">
             <Icon name="arrowLeft" size={13} />
             <span>Back to Lots</span>
           </button>
@@ -293,7 +293,7 @@ export function SealLotDetail() {
                     disabled={acting !== null}
                     title={`Requires: ${a.evidenceHint}`}
                     onClick={() => handleAction(a.to)}
-                  >
+                   data-ui-native-button="">
                     {acting === a.to ? 'Recording…' : ACTION_LABELS[a.to]}
                   </button>
                 ))}
@@ -308,7 +308,7 @@ export function SealLotDetail() {
                 {locations.map(loc => <SelectItem key={loc.id} value={loc.id}>{loc.code}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" className="btn btn-secondary" disabled={!transferTo || acting !== null} onClick={handleTransfer}>
+            <button type="button" className="btn btn-secondary" disabled={!transferTo || acting !== null} onClick={handleTransfer} data-ui-native-button="">
               {acting === 'transfer' ? 'Moving…' : 'Move (No Fiscal Effect)'}
             </button>
           </div>
@@ -324,7 +324,7 @@ export function SealLotDetail() {
               value={returnReference} onChange={e => setReturnReference(e.target.value)}
               placeholder="RMA / return reference"
             />
-            <button type="button" className="btn btn-secondary" disabled={!returnQty || Number(returnQty) <= 0 || acting !== null} onClick={handleReturn}>
+            <button type="button" className="btn btn-secondary" disabled={!returnQty || Number(returnQty) <= 0 || acting !== null} onClick={handleReturn} data-ui-native-button="">
               {acting === 'return' ? 'Processing…' : 'Process Return'}
             </button>
           </div>
@@ -340,7 +340,7 @@ export function SealLotDetail() {
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <input type="number" step="any" className="input-field" style={{ width: 140 }} placeholder="°C reading" value={newReading} onChange={e => setNewReading(e.target.value)} />
-              <button type="button" className="btn btn-primary" disabled={!newReading || loggingReading} onClick={handleLogReading}>
+              <button type="button" className="btn btn-primary" disabled={!newReading || loggingReading} onClick={handleLogReading} data-ui-native-button="">
                 {loggingReading ? 'Logging…' : 'Log Reading'}
               </button>
             </div>
@@ -384,7 +384,7 @@ export function SealLotDetail() {
                   <span style={{ color: 'var(--ink3)' }}>Already billed through today — nothing new has accrued.</span>
                 )}
               </div>
-              <button type="button" className="btn btn-primary" disabled={accrual.days <= 0 || generatingInvoice} onClick={handleGenerateInvoice}>
+              <button type="button" className="btn btn-primary" disabled={accrual.days <= 0 || generatingInvoice} onClick={handleGenerateInvoice} data-ui-native-button="">
                 <Icon name="dollarSign" size={14} /><span>{generatingInvoice ? 'Generating…' : 'Generate Storage Invoice'}</span>
               </button>
             </div>
@@ -408,7 +408,7 @@ export function SealLotDetail() {
       <div className="seal-card">
         <div className="seal-card-hdr">
           <h2 className="seal-card-title">Movement History</h2>
-          <button type="button" className="btn btn-secondary" onClick={handleVerifyChain}>
+          <button type="button" className="btn btn-secondary" onClick={handleVerifyChain} data-ui-native-button="">
             <Icon name="shield" size={13} />
             <span>Verify Chain</span>
           </button>

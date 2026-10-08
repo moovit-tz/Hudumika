@@ -49,7 +49,7 @@ export function DescribeMessageInput({ subject, replyContext, onGenerated }: {
           disabled={busy}
         />
         {instruction.trim() && (
-          <button type="button" className="dmi-go" onClick={generate} disabled={busy} aria-label="Generate draft">
+          <button type="button" className="dmi-go" onClick={generate} disabled={busy} aria-label="Generate draft" data-ui-native-button="">
             <Icon name="arrowUp" size={13} />
           </button>
         )}

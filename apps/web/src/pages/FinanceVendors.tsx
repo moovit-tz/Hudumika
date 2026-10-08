@@ -90,11 +90,11 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <Tip label="Edit vendor"><button type="button" aria-label="Edit vendor" onClick={() => onEdit(vendor)}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
             <Icon name="edit" size={14} color="var(--ink2)" />
           </button></Tip>
           <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
             <Icon name="x" size={14} color="var(--ink2)" />
           </button></Tip>
         </div>
@@ -278,8 +278,8 @@ function VendorForm({ vendor, onSave, onClose }: {
       onCancel={onClose}
       actions={
         <>
-          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary">
+          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary" data-ui-native-button="">
             <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : vendor ? 'Save Changes' : 'Add Vendor'}
           </button>
         </>
@@ -621,13 +621,13 @@ export function FinanceVendors() {
                       <Tip label="Edit"><button type="button" aria-label={`Edit ${v.name}`} onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                         <Icon name="edit" size={14} />
                       </button></Tip>
                       <Tip label="Delete"><button type="button" aria-label={`Delete ${v.name}`} onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')} data-ui-native-button="">
                         <Icon name="trash2" size={14} />
                       </button></Tip>
                     </td>

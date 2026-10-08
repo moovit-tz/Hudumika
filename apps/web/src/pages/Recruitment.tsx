@@ -1165,7 +1165,7 @@ function PipelineTab() {
                     borderRadius: 'var(--r)', border: `1px solid ${o.id === selId ? 'var(--teal)' : 'var(--border)'}`,
                     background: o.id === selId ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', fontFamily: 'var(--font)',
                   }}
-                >
+                 data-ui-native-button="">
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                     <FeaturedIcon variant="brand" size="sm"><Icon name="briefcase" size={16} /></FeaturedIcon>
                     <div>

@@ -175,32 +175,42 @@ export function WorkflowList() {
         </Banner>
       )}
 
-      <Card className="workflow-toolbar">
-        <SingleSelectFilter
-          label="App"
-          value={app}
-          onChange={v => setApp(v ?? '__all__')}
-          options={appOptions}
-        />
-        <SingleSelectFilter
-          label="Status"
-          value={status}
-          onChange={v => setStatus(v ?? 'ALL')}
-          options={[
-            { value: 'ALL', label: 'All' },
-            { value: 'ACTIVE', label: 'Active' },
-            { value: 'DRAFT', label: 'Draft' },
-            { value: 'PAUSED', label: 'Paused' },
-          ]}
-        />
-        <SingleSelectFilter label="Activity" value={activity} onChange={v => setActivity(v ?? 'ALL')} options={[{value:'ALL',label:'All'},{value:'never',label:'Never run'},{value:'ran',label:'Has runs'},{value:'recent',label:'Last 30 days'},{value:'unrunnable',label:'Cannot run'}]} />
-        <SingleSelectFilter label="Sort" value={sort} onChange={v => setSort(v ?? 'updated')} options={[{value:'updated',label:'Recently updated'},{value:'name',label:'Name'},{value:'runs',label:'Most runs'},{value:'lastRun',label:'Last run'}]} />
-        <div className="workflow-search"><SearchToolbar search={q} onSearch={setQ} placeholder="Search workflows" /></div>
+      <div className="workflow-toolbar">
+        {/* ── filter pills ── */}
+        <div className="workflow-filter-group">
+          <SingleSelectFilter
+            label="App"
+            value={app}
+            onChange={v => setApp(v ?? '__all__')}
+            options={appOptions}
+          />
+          <SingleSelectFilter
+            label="Status"
+            value={status}
+            onChange={v => setStatus(v ?? 'ALL')}
+            options={[
+              { value: 'ALL', label: 'All' },
+              { value: 'ACTIVE', label: 'Active' },
+              { value: 'DRAFT', label: 'Draft' },
+              { value: 'PAUSED', label: 'Paused' },
+            ]}
+          />
+          <SingleSelectFilter label="Activity" value={activity} onChange={v => setActivity(v ?? 'ALL')} options={[{value:'ALL',label:'All'},{value:'never',label:'Never run'},{value:'ran',label:'Has runs'},{value:'recent',label:'Last 30 days'},{value:'unrunnable',label:'Cannot run'}]} />
+          <SingleSelectFilter label="Sort" value={sort} onChange={v => setSort(v ?? 'updated')} options={[{value:'updated',label:'Recently updated'},{value:'name',label:'Name'},{value:'runs',label:'Most runs'},{value:'lastRun',label:'Last run'}]} />
+        </div>
+
+        {/* ── search – grows to fill available space ── */}
+        <div className="workflow-search">
+          <SearchToolbar search={q} onSearch={setQ} placeholder="Search workflows" />
+        </div>
+
         {(app !== '__all__' || status !== 'ALL' || activity !== 'ALL' || q) && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
         )}
+
+        {/* ── pagination – pushed to far right ── */}
         {!loading && visible.length > 0 && (
-          <>
+          <div className="workflow-pagination">
             <div className="workflow-toolbar-sep" />
             <span className="workflow-count" aria-live="polite">
               {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, visible.length)} of {visible.length}
@@ -213,9 +223,9 @@ export function WorkflowList() {
             <Button variant="outline" size="sm" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)} aria-label="Next page">
               <Icon name="chevronRight" size={14} />
             </Button>
-          </>
+          </div>
         )}
-      </Card>
+      </div>
 
       {error && <Banner variant="error" className="mb-3">{error}</Banner>}
       {loading && <SectionLoading />}
@@ -234,7 +244,7 @@ export function WorkflowList() {
                   <Tip label={w.supersedes_subscriber ? `Activating stands down the ${w.supersedes_subscriber} code subscriber` : 'Toggle workflow status'}><div onClick={e => e.stopPropagation()}>
                     <Switch aria-label={`Activate ${w.name}`} checked={w.status === 'ACTIVE'} disabled={busyId === w.id || !trig} onCheckedChange={v => toggle(w, v)} />
                   </div></Tip>
-                  <button className="workflow-name" onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)}>{w.name}</button>
+                  <button className="workflow-name" onClick={() => navigate(`/studio/w/${w.id}${returnTo ? `?return=${encodeURIComponent(returnTo)}` : ''}`)} data-ui-native-button="">{w.name}</button>
                   <Badge variant={w.status === 'ACTIVE' ? 'success' : w.status === 'PAUSED' ? 'warning' : 'gray'}>{w.status}</Badge>
                   {!trig && <Badge variant="error">Trigger not registered</Badge>}
                   {w.supersedes_subscriber && <Badge variant="info">Replaces code</Badge>}

@@ -198,7 +198,7 @@ export function JournalEntries() {
 
       {!readOnly && <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button" onClick={() => setShowForm(s => !s)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
           <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New entry'}
         </button>
       </div>}
@@ -234,12 +234,12 @@ export function JournalEntries() {
               <input className="input-field" type="number" min="0" step="0.01" value={l.debit} onChange={e => updateLine(i, { debit: e.target.value, credit: e.target.value ? '' : l.credit })} style={{ textAlign: 'right' }} placeholder="0.00" />
               <input className="input-field" type="number" min="0" step="0.01" value={l.credit} onChange={e => updateLine(i, { credit: e.target.value, debit: e.target.value ? '' : l.debit })} style={{ textAlign: 'right' }} placeholder="0.00" />
               <input className="input-field" value={l.description} onChange={e => updateLine(i, { description: e.target.value })} placeholder="Optional" />
-              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 2} title="Remove line" style={{ background: 'none', border: 'none', cursor: lines.length > 2 ? 'pointer' : 'not-allowed', opacity: lines.length > 2 ? 1 : 0.3, padding: 4 }}>
+              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 2} title="Remove line" style={{ background: 'none', border: 'none', cursor: lines.length > 2 ? 'pointer' : 'not-allowed', opacity: lines.length > 2 ? 1 : 0.3, padding: 4 }} data-ui-native-button="">
                 <Icon name="trash" size={14} color="var(--red)" />
               </button>
             </div>
           ))}
-          <button type="button" className="btn btn-secondary btn-sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
             <Icon name="plus" size={12} /> Add line
           </button>
 
@@ -251,7 +251,7 @@ export function JournalEntries() {
               {!totals.balanced && totals.dr + totals.cr > 0 && <span style={{ marginLeft: 12, color: 'var(--red)', fontWeight: 700 }}>Out of balance</span>}
               {totals.balanced && <span style={{ marginLeft: 12, color: 'var(--green)', fontWeight: 700 }}>Balanced</span>}
             </div>
-            <button type="button" className="btn btn-primary btn-sm" disabled={posting || !totals.balanced} onClick={postEntry}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={posting || !totals.balanced} onClick={postEntry} data-ui-native-button="">
               {posting ? 'Posting…' : 'Post entry'}
             </button>
           </div>
@@ -294,11 +294,11 @@ export function JournalEntries() {
                           voidingId === e.id ? (
                             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
                               <input className="input-field" style={{ width: 160, height: 28, fontSize: 12 }} placeholder="Reason for voiding" value={voidReason} onChange={ev => setVoidReason(ev.target.value)} autoFocus />
-                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setVoidingId(null); setVoidReason(''); }}>Cancel</button>
-                              <button type="button" className="btn btn-primary btn-sm" onClick={() => confirmVoid(e.id)}>Confirm</button>
+                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setVoidingId(null); setVoidReason(''); }} data-ui-native-button="">Cancel</button>
+                              <button type="button" className="btn btn-primary btn-sm" onClick={() => confirmVoid(e.id)} data-ui-native-button="">Confirm</button>
                             </div>
                           ) : (
-                            <button type="button" onClick={() => setVoidingId(e.id)} style={{ fontSize: 12.5, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Void</button>
+                            <button type="button" onClick={() => setVoidingId(e.id)} style={{ fontSize: 12.5, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Void</button>
                           )
                         )}
                       </td>

@@ -138,7 +138,7 @@ function CatModal({ initial, categories, onSave, onClose }: {
           </div>
         </DialogBody>
         <DialogFooter>
-          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
           <Button type="button" onClick={submit} disabled={saving}>
             {saving ? 'Saving…' : initial ? 'Update Category' : 'Add Category'}
           </Button>
@@ -244,11 +244,11 @@ export const ProductCategoriesPage: React.FC = () => {
         <td style={{ padding: '10px 10px' }}>
           <div style={{ display: 'flex', gap: 2 }}>
             <Tip label="Edit"><button type="button" aria-label={`Edit ${cat.name}`} onClick={() => setEditing(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
               <Icon name="edit" size={14} />
             </button></Tip>
             <Tip label="Delete"><button type="button" aria-label={`Delete ${cat.name}`} onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 5, borderRadius: 'var(--r-sm)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
               <Icon name="trash" size={14} />
             </button></Tip>
           </div>
@@ -276,7 +276,7 @@ export const ProductCategoriesPage: React.FC = () => {
         subtitle="Organise your product catalog into a hierarchy of categories."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={() => navigate('/finance/products')} className="btn btn-secondary btn-sm">
+            <button type="button" onClick={() => navigate('/finance/products')} className="btn btn-secondary btn-sm" data-ui-native-button="">
               <Icon name="arrowLeft" size={13} /> Back to Catalog
             </button>
             <Button onClick={() => setEditing('new')}>

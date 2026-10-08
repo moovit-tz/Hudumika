@@ -227,11 +227,11 @@ export function ComplyTraExtract() {
                 </div>
 
                 {status === 'idle' ? (
-                  <button type="submit" className="comply-btn-primary" style={{ marginTop: 8 }}>
+                  <button type="submit" className="comply-btn-primary" style={{ marginTop: 8 }} data-ui-native-button="">
                     <Icon name="zap" style={{ marginRight: 8 }} /> Generate Preview
                   </button>
                 ) : (
-                  <button type="button" className="comply-btn-secondary" disabled style={{ marginTop: 8 }}>
+                  <button type="button" className="comply-btn-secondary" disabled style={{ marginTop: 8 }} data-ui-native-button="">
                     Generating…
                   </button>
                 )}
@@ -293,7 +293,7 @@ export function ComplyTraExtract() {
                 </div>
                 <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>TIN: {resultData.taxpayer.tin} · {simulated ? 'Demo data — not a live TRA record' : 'From your uploaded document'}</p>
               </div>
-              <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => { setStatus('idle'); setUploadFile(null); }}>
+              <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => { setStatus('idle'); setUploadFile(null); }} data-ui-native-button="">
                 <Icon name="refresh" style={{ marginRight: 6 }} /> New Preview
               </button>
             </div>
@@ -368,7 +368,7 @@ export function ComplyTraExtract() {
                         ✓ Registered in Obligations
                       </span>
                     ) : (
-                      <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleImportObligations} disabled={savingObligations}>
+                      <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleImportObligations} disabled={savingObligations} data-ui-native-button="">
                         {savingObligations ? 'Registering...' : 'Register Obligations'}
                       </button>
                     )}
@@ -411,7 +411,7 @@ export function ComplyTraExtract() {
                       {tccSaved ? (
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--comply)' }}>✓ Imported into Vault</span>
                       ) : (
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleImportTcc} disabled={savingTcc}>
+                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleImportTcc} disabled={savingTcc} data-ui-native-button="">
                           {savingTcc ? 'Importing...' : 'Import to Vault'}
                         </button>
                       )}

@@ -85,7 +85,7 @@ export const Reports: React.FC = () => {
         titleEm="analytics"
         subtitle="How this workspace is performing — officer workload, bottlenecks and clearance times."
         actions={
-          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={loading}>
+          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={loading} data-ui-native-button="">
             Export CSV
           </button>
         }

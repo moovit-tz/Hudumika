@@ -102,7 +102,7 @@ export function SealAdjustments() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowNew(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNew(false)} data-ui-native-button="">Cancel</button>
                 <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Start Count'}</Button>
               </DialogFooter>
             </form>

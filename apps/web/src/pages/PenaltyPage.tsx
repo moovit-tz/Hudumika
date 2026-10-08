@@ -183,7 +183,7 @@ export const PenaltyPage: React.FC = () => {
           step === 3 ? (
             <button type="button" className="btn btn-primary"
               disabled={!result || aiPending} onClick={runAi}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} data-ui-native-button="">
               <Icon name="zap" size={14} />
               {aiPending ? 'Analysing…' : 'AI Analysis'}
             </button>
@@ -243,7 +243,7 @@ export const PenaltyPage: React.FC = () => {
               className="btn btn-primary"
               onClick={() => setStep(2)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-            >
+             data-ui-native-button="">
               <span>Continue</span>
               <span style={{ fontSize: 15 }}>→</span>
             </button>
@@ -323,7 +323,7 @@ export const PenaltyPage: React.FC = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <button type="button" onClick={() => setStep(1)}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               ← Back
             </button>
             <button
@@ -338,7 +338,7 @@ export const PenaltyPage: React.FC = () => {
                 setStep(3);
               }}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-            >
+             data-ui-native-button="">
               <span>Calculate Penalty</span>
               <span style={{ fontSize: 15 }}>→</span>
             </button>
@@ -360,7 +360,7 @@ export const PenaltyPage: React.FC = () => {
                   onClick={calculate}
                   disabled={calcLoading}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
+                 data-ui-native-button="">
                   <Icon name="alertCircle" size={15} color="hsl(var(--primary-foreground))" />
                   <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
                 </button>
@@ -400,7 +400,7 @@ export const PenaltyPage: React.FC = () => {
           {summary && (
             <SectionCard
               title="AI analysis"
-              action={<button type="button" onClick={() => setSummary('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>}
+              action={<button type="button" onClick={() => setSummary('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }} data-ui-native-button="">×</button>}
             >
               <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{summary}</div>
             </SectionCard>
@@ -418,11 +418,11 @@ export const PenaltyPage: React.FC = () => {
           {/* Bottom nav */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button type="button" onClick={() => setStep(2)}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               ← Back
             </button>
             <button type="button" onClick={resetAll}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Start New Assessment
             </button>
           </div>

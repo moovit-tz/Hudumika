@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "tw-animate-css";
 @import "./components/ui/ds-tabs.css";
 
@@ -234,6 +234,9 @@
   --elev-lg: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
 
   --font: 'Atlassian Sans', system-ui, sans-serif;
+  --page-title-font: var(--font);
+  --page-title-weight: 700;
+  --page-title-size: clamp(1.25rem, 2vw, 1.625rem);
   --mono: 'Atlassian Sans', system-ui, sans-serif;
   --serif: 'Atlassian Sans', system-ui, sans-serif;
   --bodoni: 'Atlassian Sans', system-ui, sans-serif;
@@ -242,7 +245,8 @@
 
   /* ── Design system tokens (overridden live by DesignSystemProvider) ── */
   --card-bg:      var(--white);
-  --card-border:  1px solid var(--border);
+  --card-border-width: 1px;
+  --card-border: var(--card-border-width) solid var(--border);
   --card-shadow:  var(--elev);
   --card-padding: 18px;
   --card-radius:  var(--r-lg, 14px);
@@ -635,7 +639,7 @@ body {
 @keyframes auth-spin { to { rotate: 1turn; } }
 
 /* Canonical loading ring (ui/spinner.tsx's Spinner/SectionLoading/PageLoading) —
-   replaces 17+ separate per-page `<style>{'@keyframes spin{...}'}</style>`
+   replaces 17+ separate per-page `\3c style>{'@keyframes spin{...}'}\3c /style>`
    blocks that all did the same thing with a different local name. */
 @keyframes ds-spin { to { transform: rotate(360deg); } }
 .ds-spinner { animation: ds-spin 0.8s linear infinite; will-change: transform; }
@@ -1151,7 +1155,7 @@ body {
   line-height: 1.25;
 }
 .btn-xs  { padding: 0 10px; font-size: 12px; min-height: var(--ctl-h-xs, 28px); height: var(--ctl-h-xs, 28px); border-radius: var(--r-sm, 6px); }
-.btn-sm  { padding: 0 24px; font-size: 13px; min-height: var(--action-h); height: var(--action-h); border-radius: var(--r-sm, 6px); }
+.btn-sm  { padding: 0 24px; font-size: 13px; min-height: var(--ctl-h); height: var(--ctl-h); border-radius: var(--r-sm, 6px); }
 .btn-md  { padding: 0 32px; font-size: 14px; min-height: var(--action-h); height: var(--action-h); border-radius: var(--r-sm, 6px); }
 .btn-lg  { padding: 0 32px; font-size: 15px; min-height: var(--action-h); height: var(--action-h); border-radius: var(--r-sm, 6px); }
 
@@ -3541,18 +3545,18 @@ select.input-field { cursor: pointer; }
 }
 
 .hub2-welcome-title {
-  font-family: var(--font);
+  font-family: var(--page-title-font);
   font-size: clamp(25px, 3.6vw, 38px);
-  font-weight: 300;
+  font-weight: var(--page-title-weight);
   color: var(--ink);
   letter-spacing: -0.4px;
   line-height: 1.15;
   margin: 8px 0 12px;
 }
 .hub2-welcome-em {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-style: italic;
-  font-weight: 700;
+  font-family: inherit;
+  font-style: normal;
+  font-weight: inherit;
   color: var(--teal);
 }
 .hub2-welcome-sub {
@@ -4051,24 +4055,21 @@ select.input-field { cursor: pointer; }
   user-select: none;
 }
 
-/* DreamsCore page title — bold, plain, sans-serif. ph-em carries the
-   per-app accent on the final word without the old Cormorant Garamond. */
+/* One selected product font; the accent only changes the brand colour. */
 .page-header-title {
-  font-family: var(--font);
-  font-size: clamp(20px, 2vw, 26px);
-  font-weight: 700;
+  font-family: var(--page-title-font);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
   color: var(--ink);
   line-height: 1.3;
   letter-spacing: -0.015em;
   margin: 0;
 }
 .ph-em {
+  font-family: inherit;
+  font-style: normal;
   color: var(--teal);
-  font-weight: 700;
-}
-.page-header-title.ph-cjk .ph-em {
-  font-weight: 700;
-  color: var(--teal);
+  font-weight: inherit;
 }
 
 .page-header-live-badge {
@@ -4102,10 +4103,10 @@ select.input-field { cursor: pointer; }
   margin-bottom: 20px;
 }
 .page-header--create .page-header-title--create {
-  font-family: var(--font);
-  font-size: clamp(18px, 1.8vw, 22px);
+  font-family: var(--page-title-font);
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
   font-style: normal;
-  font-weight: 700;
+  font-weight: var(--page-title-weight);
   letter-spacing: -0.015em;
   line-height: 1.3;
   margin-bottom: 4px;
@@ -6948,7 +6949,46 @@ html[data-expanded="true"] .fin-shell {
 }
 
 [data-ui-button] { box-sizing: border-box; max-width: 100%; }
-[data-ui-button][data-size="icon"] { width: var(--action-h); height: var(--action-h); }
+[data-ui-native-button]:not([role="tab"]):not(.ds-tabs-trigger):not([data-ds-tabs-exempt] > button):not([class*="avatar"]):not([aria-label*="avatar" i]):not(.cnt-step-circle):not([class*="step-circle"]) {
+  border-radius: var(--r-sm, 6px) !important;
+  border-width: var(--border-width, 1px) !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+[data-ui-native-button]:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+[data-ui-native-button]:disabled { cursor: not-allowed; opacity: .5; }
+/* Shared geometry stays authoritative when a page supplies utility classes. */
+[data-ui-button], .btn {
+  min-width: var(--ctl-h) !important;
+  border-radius: var(--r-sm, 6px) !important;
+  border-width: var(--border-width, 1px) !important;
+}
+[data-ui-card], :where([class$="-card"], [class*="-card "], .card, .cust-master-hero) {
+  border-radius: var(--card-radius, var(--r-lg)) !important;
+  border: var(--card-border) !important;
+}
+
+:is([role="menu"], [role="listbox"]) {
+  border-radius: var(--r, 10px) !important;
+  border-width: var(--border-width, 1px) !important;
+  max-width: calc(100vw - 24px);
+}
+[data-ui-popup] { border-radius: var(--r, 10px) !important; border-width: var(--border-width, 1px) !important; }
+[role="dialog"]:not([data-ui-popup]) { border-radius: var(--r-lg, 16px) !important; border-width: var(--border-width, 1px) !important; }
+:is([role="menu"], [role="listbox"]) :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], .dd-item) {
+  min-height: max(44px, var(--ctl-h, 44px));
+  border-radius: var(--r-sm, 6px) !important;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.filter-bar-pill, .filter-bar-clear {
+  min-height: max(44px, var(--ctl-h, 44px));
+  border-radius: var(--r-sm, 6px) !important;
+  border-width: var(--border-width, 1px) !important;
+}
+[data-ui-button][data-size="icon"] { width: var(--ctl-h); height: var(--ctl-h); }
 @media (max-width: 640px) {
   [data-ui-button]:not([data-size="icon"]):not([data-size="xs"]),
   .btn:not(.btn-xs) { white-space: normal; overflow-wrap: normal; text-align: center; }
@@ -6965,4 +7005,17 @@ html[data-expanded="true"] .fin-shell {
   div:has(> a > [data-ui-button]) > div[style*="flex: 1"] {
     flex-basis: 200px; min-width: 0;
   }
+}
+
+/* Toolbar controls share input geometry; primary page actions keep action sizing. */
+.crm-toolbar :is([data-ui-button], input, [role="combobox"]) {
+  min-height: var(--ctl-h);
+  height: var(--ctl-h);
+  padding-block: 0;
+  box-sizing: border-box;
+}
+.crm-toolbar [data-ui-native-button] { min-height: calc(var(--ctl-h) - 2px); }
+@media (max-width: 640px) {
+  .crm-toolbar > div:has(> input) { min-width: 0 !important; flex: 1 1 100%; }
+  .crm-toolbar > div:has(> [role="combobox"]) { flex-wrap: wrap; }
 }

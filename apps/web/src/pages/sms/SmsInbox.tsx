@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { apiFetch } from '../../lib/api.js';
 import { usePageSEO } from '../../hooks/usePageSEO.js';
+import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { showAlert } from '../../lib/alert.js';
 
 interface InboundMessage {
@@ -68,6 +69,7 @@ function countSegments(text: string): number {
 }
 
 export function SmsInbox() {
+  const isMobile = useIsMobile();
   usePageSEO('SMS Inbox & Two-Way Conversations', 'Real-time two-way messaging, inbound customer responses, keyword triggers and customer replies.');
   const [inboundMsgs, setInboundMsgs] = useState<InboundMessage[]>([]);
   const [outboundMsgs, setOutboundMsgs] = useState<OutboundMessage[]>([]);
@@ -250,7 +252,7 @@ export function SmsInbox() {
         style={{
           flex: 1,
           display: 'grid',
-          gridTemplateColumns: '360px 1fr',
+          gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'minmax(240px, 360px) minmax(0, 1fr)',
           gap: 0,
           background: 'var(--white)',
           border: '1px solid var(--border)',
@@ -263,7 +265,10 @@ export function SmsInbox() {
         {/* Left Side: Threads List */}
         <div
           style={{
-            borderRight: '1px solid var(--border)',
+            borderRight: isMobile ? undefined : 'var(--border-width, 1px) solid var(--border)',
+            borderBottom: isMobile ? 'var(--border-width, 1px) solid var(--border)' : undefined,
+            maxHeight: isMobile ? '40vh' : undefined,
+            minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
             background: 'var(--bg)',
@@ -278,7 +283,7 @@ export function SmsInbox() {
               placeholder="Search conversations…"
               style={{ marginBottom: 8, fontSize: 13 }}
             />
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 6 }} data-ds-tabstrip="">
               {[
                 { id: 'all', label: 'All' },
                 { id: 'replies', label: 'Replies' },
@@ -298,7 +303,7 @@ export function SmsInbox() {
                     background: filterTab === tab.id ? 'var(--teal-l)' : 'var(--white)',
                     color: filterTab === tab.id ? 'var(--teal)' : 'var(--ink2)',
                   }}
-                >
+                 data-ds-selected={filterTab === tab.id as any} data-ui-native-button="" aria-pressed={filterTab === tab.id as any}>
                   {tab.label}
                 </button>
               ))}
@@ -373,7 +378,7 @@ export function SmsInbox() {
         </div>
 
         {/* Right Side: Active Chat Stream & Composer */}
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--white)', overflow: 'hidden' }}>
+        <div style={{ display: isMobile && !activeThread ? 'none' : 'flex', flexDirection: 'column', background: 'var(--white)', overflow: 'hidden', minWidth: 0 }}>
           {activeThread ? (
             <>
               {/* Active Header */}

@@ -522,14 +522,14 @@ function DetailDialog({
                     type="button"
                     className={`setm-mode-btn${previewMode === 'desktop' ? ' is-active' : ''}`}
                     onClick={() => setPreviewMode('desktop')}
-                  >
+                   data-ui-native-button="">
                     <Icon name="monitor" size={13} /> Desktop
                   </button>
                   <button
                     type="button"
                     className={`setm-mode-btn${previewMode === 'mobile' ? ' is-active' : ''}`}
                     onClick={() => setPreviewMode('mobile')}
-                  >
+                   data-ui-native-button="">
                     <Icon name="smartphone" size={13} /> Mobile
                   </button>
                 </div>
@@ -541,7 +541,7 @@ function DetailDialog({
                       type="button"
                       className={`setm-data-btn${previewDataMode === 'sample' ? ' is-active' : ''}`}
                       onClick={() => setPreviewDataMode('sample')}
-                    >
+                     data-ui-native-button="">
                       <Icon name="sparkle" size={12} /> Sample Data
                     </button>
                   </Tip>
@@ -550,7 +550,7 @@ function DetailDialog({
                       type="button"
                       className={`setm-data-btn${previewDataMode === 'raw' ? ' is-active' : ''}`}
                       onClick={() => setPreviewDataMode('raw')}
-                    >
+                     data-ui-native-button="">
                       <Icon name="tag" size={12} /> Raw Tags
                     </button>
                   </Tip>
@@ -564,7 +564,7 @@ function DetailDialog({
                       className="setm-zoom-btn"
                       onClick={handleZoomOut}
                       aria-label="Zoom out"
-                    >
+                     data-ui-native-button="">
                       <Icon name="minus" size={12} />
                     </button>
                   </Tip>
@@ -574,7 +574,7 @@ function DetailDialog({
                       type="button"
                       className="setm-zoom-btn setm-zoom-value"
                       onClick={handleToggleFit}
-                    >
+                     data-ui-native-button="">
                       {autoFit ? 'Fit' : `${zoom}%`}
                     </button>
                   </Tip>
@@ -585,7 +585,7 @@ function DetailDialog({
                       className="setm-zoom-btn"
                       onClick={handleZoomIn}
                       aria-label="Zoom in"
-                    >
+                     data-ui-native-button="">
                       <Icon name="plus" size={12} />
                     </button>
                   </Tip>
@@ -597,7 +597,7 @@ function DetailDialog({
                       onClick={resetView}
                       aria-label="Reset pan position"
                       style={{ borderLeft: '1px solid var(--border)', marginLeft: 2, paddingLeft: 6 }}
-                    >
+                     data-ui-native-button="">
                       <Icon name="refresh" size={12} />
                     </button>
                   </Tip>
@@ -709,7 +709,7 @@ function DetailDialog({
                         className={`setm-vars-mode-btn${varMode === 'human' ? ' is-active' : ''}`}
                         onClick={() => setVarMode('human')}
                         title="Display friendly field names"
-                      >
+                       data-ui-native-button="">
                         Friendly
                       </button>
                       <button
@@ -717,7 +717,7 @@ function DetailDialog({
                         className={`setm-vars-mode-btn${varMode === 'code' ? ' is-active' : ''}`}
                         onClick={() => setVarMode('code')}
                         title="Display raw Handlebars tags"
-                      >
+                       data-ui-native-button="">
                         Code
                       </button>
                     </div>
@@ -740,7 +740,7 @@ function DetailDialog({
                             type="button"
                             className={`setm-var-btn${isCopied ? ' is-copied' : ''}`}
                             onClick={() => copyVar(v)}
-                          >
+                           data-ui-native-button="">
                             <Icon
                               name={isCopied ? 'check' : varMode === 'human' ? info.icon : 'tag'}
                               size={12}
@@ -1046,7 +1046,7 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
                 className="setm-search-clear"
                 onClick={() => setSearch('')}
                 aria-label="Clear search"
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={12} />
               </button>
             )}
@@ -1062,7 +1062,7 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
                 aria-selected={sourceFilter === s}
                 className={`setm-source-btn${sourceFilter === s ? ' is-active' : ''}`}
                 onClick={() => setSourceFilter(s)}
-              >
+               data-ui-native-button="">
                 {s === 'all' ? 'All sources' : s === 'official' ? 'Official' : 'Third Party'}
               </button>
             ))}
@@ -1093,7 +1093,7 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
                   className={`setm-view-btn${view === 'grid' ? ' is-active' : ''}`}
                   onClick={() => setView('grid')}
                   aria-label="Grid view"
-                >
+                 data-ui-native-button="">
                   <Icon name="grid" size={15} />
                 </button>
               </Tip>
@@ -1103,7 +1103,7 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
                   className={`setm-view-btn${view === 'list' ? ' is-active' : ''}`}
                   onClick={() => setView('list')}
                   aria-label="List view"
-                >
+                 data-ui-native-button="">
                   <Icon name="list" size={15} />
                 </button>
               </Tip>

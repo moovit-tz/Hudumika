@@ -40,7 +40,7 @@ export function ConnectorOAuthCallback() {
         color={state === 'error' ? 'var(--red)' : state === 'done' ? 'var(--green)' : 'var(--teal)'} />
       <div style={{ fontSize: 14, color: 'var(--ink)', maxWidth: 420 }}>{message}</div>
       {state === 'error' && (
-        <button className="btn btn-sm" onClick={() => navigate('/cloud', { replace: true })}>Back to Drive</button>
+        <button className="btn btn-sm" onClick={() => navigate('/cloud', { replace: true })} data-ui-native-button="">Back to Drive</button>
       )}
     </div>
   );

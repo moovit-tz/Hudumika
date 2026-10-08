@@ -347,7 +347,7 @@ export const OndiPersonalDevices: React.FC = () => {
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
-            >
+             data-ui-native-button="">
               <Icon name="refresh" size={14} />
               <span>Refresh</span>
             </button>
@@ -356,7 +356,7 @@ export const OndiPersonalDevices: React.FC = () => {
                 type="button"
                 onClick={() => setRevokeConfirmModal(true)}
                 className="opd-revoke-all-btn"
-              >
+               data-ui-native-button="">
                 <Icon name="logOut" size={14} />
                 <span>Sign Out Others ({otherDevicesCount})</span>
               </button>
@@ -488,7 +488,7 @@ export const OndiPersonalDevices: React.FC = () => {
               className={`opd-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
               title="Cards Grid View"
-            >
+             data-ui-native-button="">
               <Icon name="grid" size={13} />
               <span>Cards</span>
             </button>
@@ -497,7 +497,7 @@ export const OndiPersonalDevices: React.FC = () => {
               className={`opd-view-btn ${viewMode === 'table' ? 'active' : ''}`}
               onClick={() => setViewMode('table')}
               title="Data Table View"
-            >
+             data-ui-native-button="">
               <Icon name="list" size={13} />
               <span>Table</span>
             </button>
@@ -560,7 +560,7 @@ export const OndiPersonalDevices: React.FC = () => {
                 cursor: 'pointer',
                 color: 'var(--ink)',
               }}
-            >
+             data-ui-native-button="">
               Clear Search
             </button>
           )}
@@ -648,7 +648,7 @@ export const OndiPersonalDevices: React.FC = () => {
                     type="button"
                     className="opd-card-btn-detail"
                     onClick={() => openDetail(d)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="info" size={13} />
                     <span>Telemetry & Details</span>
                   </button>
@@ -657,7 +657,7 @@ export const OndiPersonalDevices: React.FC = () => {
                     className="opd-card-btn-signout"
                     onClick={() => handleSignOut(d.id, d.is_current)}
                     disabled={revokingId === d.id}
-                  >
+                   data-ui-native-button="">
                     <Icon name="logOut" size={13} />
                     <span>{revokingId === d.id ? 'Signing out…' : 'Sign Out'}</span>
                   </button>
@@ -767,7 +767,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                        >
+                         data-ui-native-button="">
                           Details
                         </button>
                         <button
@@ -783,7 +783,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
-                        >
+                         data-ui-native-button="">
                           Sign Out
                         </button>
                       </div>
@@ -809,7 +809,7 @@ export const OndiPersonalDevices: React.FC = () => {
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
               title="Previous page"
-            >
+             data-ui-native-button="">
               <Icon name="chevronLeft" size={15} />
             </button>
             <span className="opd-pagination-page">Page {page + 1} of {totalPages}</span>
@@ -819,7 +819,7 @@ export const OndiPersonalDevices: React.FC = () => {
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
               title="Next page"
-            >
+             data-ui-native-button="">
               <Icon name="chevronRight" size={15} />
             </button>
           </div>
@@ -888,7 +888,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             borderRadius: 'var(--r-sm)',
                             cursor: 'pointer',
                           }}
-                        >
+                         data-ui-native-button="">
                           {saving ? 'Saving…' : 'Save'}
                         </button>
                         <button
@@ -901,7 +901,7 @@ export const OndiPersonalDevices: React.FC = () => {
                             border: 'none',
                             cursor: 'pointer',
                           }}
-                        >
+                         data-ui-native-button="">
                           Cancel
                         </button>
                       </div>
@@ -920,7 +920,7 @@ export const OndiPersonalDevices: React.FC = () => {
                               selected.device_label || `${selectedParsed.browser} on ${selectedParsed.os}`
                             );
                           }}
-                        >
+                         data-ui-native-button="">
                           <Icon name="edit" size={14} />
                         </button>
                       </div>
@@ -1033,7 +1033,7 @@ export const OndiPersonalDevices: React.FC = () => {
                       type="button"
                       className="opd-ua-copy-btn"
                       onClick={() => copyUserAgentString(selected.user_agent)}
-                    >
+                     data-ui-native-button="">
                       <Icon name="copy" size={12} />
                       <span>{copiedUa ? 'Copied!' : 'Copy'}</span>
                     </button>
@@ -1054,14 +1054,14 @@ export const OndiPersonalDevices: React.FC = () => {
               </div>
 
               <div className="opd-modal-footer">
-                <button type="button" className="opd-btn-cancel" onClick={closeDetail}>
+                <button type="button" className="opd-btn-cancel" onClick={closeDetail} data-ui-native-button="">
                   Close
                 </button>
                 <button
                   type="button"
                   className="opd-btn-danger-action"
                   onClick={() => handleSignOut(selected.id, selected.is_current)}
-                >
+                 data-ui-native-button="">
                   <Icon name="logOut" size={14} />
                   <span>{selected.is_current ? 'Sign Out of Current Session' : 'Sign Out This Device'}</span>
                 </button>
@@ -1122,7 +1122,7 @@ export const OndiPersonalDevices: React.FC = () => {
               type="button"
               className="opd-btn-cancel"
               onClick={() => setRevokeConfirmModal(false)}
-            >
+             data-ui-native-button="">
               Cancel
             </button>
             <button
@@ -1130,7 +1130,7 @@ export const OndiPersonalDevices: React.FC = () => {
               className="opd-btn-danger-action"
               onClick={handleSignOutOthers}
               disabled={revokingOthers}
-            >
+             data-ui-native-button="">
               <Icon name="logOut" size={14} />
               <span>{revokingOthers ? 'Revoking…' : `Revoke ${otherDevicesCount} Session${otherDevicesCount > 1 ? 's' : ''}`}</span>
             </button>

@@ -51,7 +51,7 @@ export function DriveFilePicker({ open, onOpenChange, onPick, busy }: {
               <button
                 key={f.id} type="button" disabled={busy} onClick={() => onPick(f)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 8px', border: 'none', background: 'none', textAlign: 'left', borderBottom: '1px solid var(--border)', cursor: busy ? 'default' : 'pointer' }}
-              >
+               data-ui-native-button="">
                 <Icon name="fileText" size={16} />
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13, color: 'var(--ink)' }}>{f.name}</span>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtSize(f.size)}</span>

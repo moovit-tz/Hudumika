@@ -92,7 +92,7 @@ export function OnsiteBackups() {
         titleEm="backups"
         subtitle="Snapshots of your domains, DNS, applications, environments, secrets, websites and health checks — not your site's deployed files or database, which Onsite never stores a copy of."
         actions={
-          <button className="btn btn-primary" disabled={creating} onClick={handleCreate}>
+          <button className="btn btn-primary" disabled={creating} onClick={handleCreate} data-ui-native-button="">
             <Icon name="plus" size={16} /> {creating ? 'Creating…' : 'Create backup now'}
           </button>
         }
@@ -110,7 +110,7 @@ export function OnsiteBackups() {
           onChange={(e) => setRetentionDays(Number(e.target.value) || 1)}
         />
         <span style={{ fontSize: '0.875rem', color: 'var(--ink3)' }}>days</span>
-        <button className="btn btn-sm btn-secondary" disabled={savingRetention} onClick={handleSaveRetention}>
+        <button className="btn btn-sm btn-secondary" disabled={savingRetention} onClick={handleSaveRetention} data-ui-native-button="">
           {savingRetention ? 'Saving…' : 'Save'}
         </button>
       </div>
@@ -124,7 +124,7 @@ export function OnsiteBackups() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             A scheduled snapshot runs automatically every day. Create one now to protect your current setup right away.
           </p>
-          <button className="btn btn-primary" disabled={creating} onClick={handleCreate}>
+          <button className="btn btn-primary" disabled={creating} onClick={handleCreate} data-ui-native-button="">
             <Icon name="plus" size={16} /> Create backup now
           </button>
         </div>
@@ -154,11 +154,11 @@ export function OnsiteBackups() {
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
                         {b.status === 'completed' && (
-                          <button className="onsite-btn-outline" disabled={restoringId === b.id} onClick={() => handleRestore(b)}>
+                          <button className="onsite-btn-outline" disabled={restoringId === b.id} onClick={() => handleRestore(b)} data-ui-native-button="">
                             {restoringId === b.id ? 'Restoring…' : 'Restore'}
                           </button>
                         )}
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(b)}>
+                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(b)} data-ui-native-button="">
                           <Icon name="trash2" size={14} />
                         </button>
                       </div>

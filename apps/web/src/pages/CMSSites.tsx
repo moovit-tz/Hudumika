@@ -149,7 +149,7 @@ export function CMSSites() {
               fontSize: 13,
               cursor: 'pointer',
             }}
-          >
+           data-ui-native-button="">
             <Icon name="plus" size={16} />
             New Site
           </button>
@@ -214,7 +214,7 @@ export function CMSSites() {
                 fontSize: 13,
                 cursor: 'pointer',
               }}
-            >
+             data-ui-native-button="">
               Create Default Site
             </button>
           </div>
@@ -291,7 +291,7 @@ export function CMSSites() {
                         cursor: 'pointer',
                         padding: 0,
                       }}
-                    >
+                     data-ui-native-button="">
                       Make Default
                     </button>
                   )}
@@ -310,7 +310,7 @@ export function CMSSites() {
                         cursor: 'pointer',
                         fontWeight: 500,
                       }}
-                    >
+                     data-ui-native-button="">
                       Edit
                     </button>
                     {!site.is_default && (
@@ -325,7 +325,7 @@ export function CMSSites() {
                           color: 'var(--red)',
                           cursor: 'pointer',
                         }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="trash" size={14} />
                       </button>
                     )}
@@ -369,7 +369,7 @@ export function CMSSites() {
               <button
                 onClick={() => setModalOpen(false)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={20} />
               </button>
             </div>
@@ -477,7 +477,7 @@ export function CMSSites() {
                   fontWeight: 500,
                   cursor: 'pointer',
                 }}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
@@ -494,7 +494,7 @@ export function CMSSites() {
                   cursor: 'pointer',
                   opacity: saving ? 0.7 : 1,
                 }}
-              >
+               data-ui-native-button="">
                 {saving ? 'Saving...' : editingSite ? 'Update Site' : 'Create Site'}
               </button>
             </div>

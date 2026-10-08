@@ -176,7 +176,7 @@ export const UserProfile: React.FC = () => {
                 title="Change cover photo"
                 disabled={saving}
                 onClick={e => { e.stopPropagation(); coverInput.current?.click(); }}
-              >
+               data-ui-native-button="">
                 <Icon name="camera" size={15} />
               </button>
               <button
@@ -185,7 +185,7 @@ export const UserProfile: React.FC = () => {
                 title="Remove cover photo"
                 disabled={saving}
                 onClick={e => { e.stopPropagation(); removeCover(); }}
-              >
+               data-ui-native-button="">
                 <Icon name="trash" size={15} />
               </button>
             </div>
@@ -195,7 +195,7 @@ export const UserProfile: React.FC = () => {
             type="button"
             className="up-cover is-empty"
             onClick={() => coverInput.current?.click()}
-          >
+           data-ui-native-button="">
             <span className="up-cover-empty-icon"><Icon name="camera" size={18} /></span>
             <span className="up-cover-empty-label">Add a cover photo</span>
           </button>

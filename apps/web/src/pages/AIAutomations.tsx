@@ -350,7 +350,7 @@ export function AIAutomations() {
       subtitle="Build automated workflows triggered by events across the platform."
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button className="btn btn-secondary btn-xs" onClick={handleNewPage}>
+          <button className="btn btn-secondary btn-xs" onClick={handleNewPage} data-ui-native-button="">
             New page <Icon name="plus" size={12} style={{ marginLeft: 4 }} />
           </button>
 
@@ -365,7 +365,7 @@ export function AIAutomations() {
       {/* ── Toolbar ── */}
       <div className="aia-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <button className="aia-btn-try-ai" onClick={() => setAiOpen(o => !o)}>
+          <button className="aia-btn-try-ai" onClick={() => setAiOpen(o => !o)} data-ui-native-button="">
             <Icon name="sparkle" size={14} /> Try AI
           </button>
 
@@ -381,8 +381,8 @@ export function AIAutomations() {
               />
               {aiError && <div className="aia-ai-error">{aiError}</div>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setAiOpen(false)}>Cancel</button>
-                <button className="aia-btn-try-ai" style={{ opacity: aiLoading ? 0.7 : 1 }} onClick={handleGenerate} disabled={aiLoading}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setAiOpen(false)} data-ui-native-button="">Cancel</button>
+                <button className="aia-btn-try-ai" style={{ opacity: aiLoading ? 0.7 : 1 }} onClick={handleGenerate} disabled={aiLoading} data-ui-native-button="">
                   {aiLoading ? 'Generating…' : 'Generate'}
                 </button>
               </div>
@@ -461,12 +461,12 @@ export function AIAutomations() {
             </PopoverAnchor>
             <PopoverContent className="aia-add-menu" align="center" side="right" sideOffset={10}>
               {(Object.keys(ACTION_KIND_META) as ActionKind[]).map(kind => (
-                <button key={kind} className="aia-add-menu-item" onClick={() => addNewNode('actionNode', kind)}>
+                <button key={kind} className="aia-add-menu-item" onClick={() => addNewNode('actionNode', kind)} data-ui-native-button="">
                   <Icon name={ACTION_KIND_META[kind].icon} size={16} color={ACTION_KIND_META[kind].accent} /> {ACTION_KIND_META[kind].label}
                 </button>
               ))}
               <div className="aia-add-menu-divider" />
-              <button className="aia-add-menu-item" onClick={() => addNewNode('statusNode', 'condition')}>
+              <button className="aia-add-menu-item" onClick={() => addNewNode('statusNode', 'condition')} data-ui-native-button="">
                 <Icon name={STATUS_KIND_META.condition.icon} size={16} color={STATUS_KIND_META.condition.accent} /> {STATUS_KIND_META.condition.label}
               </button>
             </PopoverContent>
@@ -483,7 +483,7 @@ export function AIAutomations() {
                 onChange={(e) => updateNode(selectedNode.type === 'triggerNode' ? { title: e.target.value } : { label: e.target.value })}
                 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--ink)', border: 'none', background: 'transparent', outline: 'none', width: '100%' }}
               />
-              <button onClick={() => setSelectedNodeId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button onClick={() => setSelectedNodeId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -491,13 +491,13 @@ export function AIAutomations() {
             <div className="aia-sidebar-content">
               {/* Tabs */}
               <div className="aia-sidebar-tabs" role="tablist" aria-label="Automation step settings">
-                <button role="tab" aria-selected={sidebarTab === 'setup'} className={sidebarTab === 'setup' ? 'active' : ''} onClick={() => setSidebarTab('setup')}>
+                <button role="tab" aria-selected={sidebarTab === 'setup'} className={sidebarTab === 'setup' ? 'active' : ''} onClick={() => setSidebarTab('setup')} data-ui-native-button="">
                   <Icon name="check" size={12} style={{ marginRight: 4 }} /> Setup
                 </button>
-                <button role="tab" aria-selected={sidebarTab === 'integration'} className={sidebarTab === 'integration' ? 'active' : ''} onClick={() => setSidebarTab('integration')}>
+                <button role="tab" aria-selected={sidebarTab === 'integration'} className={sidebarTab === 'integration' ? 'active' : ''} onClick={() => setSidebarTab('integration')} data-ui-native-button="">
                   <Icon name="link" size={12} style={{ marginRight: 4 }} /> Integration
                 </button>
-                <button role="tab" aria-selected={sidebarTab === 'testing'} className={sidebarTab === 'testing' ? 'active' : ''} onClick={() => setSidebarTab('testing')}>
+                <button role="tab" aria-selected={sidebarTab === 'testing'} className={sidebarTab === 'testing' ? 'active' : ''} onClick={() => setSidebarTab('testing')} data-ui-native-button="">
                   <Icon name="play" size={12} style={{ marginRight: 4 }} /> Testing
                 </button>
               </div>
@@ -527,7 +527,7 @@ export function AIAutomations() {
                       ? 'Fires a real HTTP request to the URL configured in Setup and shows the real response.'
                       : 'Run this step in isolation to confirm it behaves as expected before publishing.'}
                   </p>
-                  <button className="btn btn-secondary btn-sm" onClick={runTest} disabled={testRunning} style={{ width: '100%', justifyContent: 'center', opacity: testRunning ? 0.7 : 1 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={runTest} disabled={testRunning} style={{ width: '100%', justifyContent: 'center', opacity: testRunning ? 0.7 : 1 }} data-ui-native-button="">
                     <Icon name="play" size={13} style={{ marginRight: 6 }} /> {testRunning ? 'Running…' : 'Run test'}
                   </button>
                   {testRunMessage && <div className="aia-test-result" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{testRunMessage}</div>}

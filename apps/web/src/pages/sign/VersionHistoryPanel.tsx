@@ -293,7 +293,7 @@ export function VersionHistoryPanel({ envelopeId, onRestore, onClose }: {
               style={{
                 textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: `1px solid ${v.id === selectedId ? 'var(--teal)' : 'var(--border)'}`,
                 background: v.id === selectedId ? 'var(--teal-l)' : 'var(--card-bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
-              }}>
+              }} data-ui-native-button="">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <PersonAvatar userId={v.created_by ?? undefined} name={v.created_by_name} size={22} />
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.created_by_name}</span>

@@ -170,12 +170,12 @@ export const TrackingDrivers: React.FC = () => {
             <div className="drv-toolbar-right">
               <div className="drv-view-toggle">
                 <Tip label="Card grid view">
-                  <button type="button" aria-label="Card grid view" className={`drv-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
+                  <button type="button" aria-label="Card grid view" className={`drv-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} data-ui-native-button="">
                     <Icon name="grid" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Table list view">
-                  <button type="button" aria-label="Table list view" className={`drv-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')}>
+                  <button type="button" aria-label="Table list view" className={`drv-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} data-ui-native-button="">
                     <Icon name="list" size={15} />
                   </button>
                 </Tip>
@@ -252,7 +252,7 @@ export const TrackingDrivers: React.FC = () => {
                         type="button"
                         className="drv-action-btn-sm"
                         onClick={() => setSelectedDriver(d)}
-                      >
+                       data-ui-native-button="">
                         <Icon name="barChart2" size={13} /> Quick Peek
                       </button>
 
@@ -322,7 +322,7 @@ export const TrackingDrivers: React.FC = () => {
                               type="button"
                               className="drv-action-btn-sm"
                               onClick={() => setSelectedDriver(d)}
-                            >
+                             data-ui-native-button="">
                               <Icon name="eye" size={13} /> Peek
                             </button>
                             <Link
@@ -375,7 +375,7 @@ export const TrackingDrivers: React.FC = () => {
                   className="drv-sb-close-btn"
                   onClick={() => setSelectedDriver(null)}
                   aria-label="Close driver details"
-                >
+                 data-ui-native-button="">
                   <Icon name="x" size={16} />
                 </button>
               </div>

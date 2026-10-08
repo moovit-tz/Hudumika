@@ -73,7 +73,7 @@ export const TenantManagement: React.FC = () => {
           borderRadius: 'var(--r-sm)',
           cursor: 'pointer',
           marginBottom: '16px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-      >
+       data-ui-native-button="">
         + New Company
       </button>
 

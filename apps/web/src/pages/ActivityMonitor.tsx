@@ -82,7 +82,7 @@ export function ActivityMonitorPage() {
             padding: 'var(--ds-btn-py-sm) 16px', borderRadius: 'var(--r)', border: '1px solid ' + (consent ? 'var(--red)' : 'var(--teal)'),
             background: consent ? 'var(--white)' : 'hsl(var(--primary))', color: consent ? 'var(--red)' : 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700,
             cursor: settings?.enabled ? 'pointer' : 'not-allowed', opacity: settings?.enabled ? 1 : 0.5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
-          }}>{consent ? 'Opt out' : 'Opt in'}</button>
+          }} data-ui-native-button="">{consent ? 'Opt out' : 'Opt in'}</button>
         }
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>

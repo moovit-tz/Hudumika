@@ -102,7 +102,7 @@ export function ComplyLicenseCatalog() {
                       type="button"
                       className="comply-btn-secondary comply-btn-sm"
                       onClick={() => navigate(`/complyos/license-catalog/apply/${c.id}`)}
-                    >
+                     data-ui-native-button="">
                       Apply
                     </button>
                   </td>
@@ -123,7 +123,7 @@ export function ComplyLicenseCatalog() {
                 <span className="comply-badge comply-badge--draft">{selected.sn}. {selected.category}</span>
               </div>
               <Tip label="Close">
-                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
+                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)} data-ui-native-button="">
                   <Icon name="x" size={18} />
                 </button>
               </Tip>
@@ -168,7 +168,7 @@ export function ComplyLicenseCatalog() {
                 className="comply-btn-primary"
                 style={{ alignSelf: 'flex-start' }}
                 onClick={() => navigate(`/complyos/license-catalog/apply/${selected.id}`)}
-              >
+               data-ui-native-button="">
                 <Icon name="send" size={13} /> Apply for this Licence
               </button>
             </div>

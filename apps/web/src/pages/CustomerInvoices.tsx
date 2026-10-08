@@ -53,7 +53,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
       borderRadius: 'var(--r)', padding: '16px',
       fontFamily: 'var(--font)',
       boxShadow: isOverdue ? '0 0 0 1px var(--red)' : 'none',
-    }}>
+    }} data-ui-native-button="">
       {/* Row 1: id + badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)', flex: 1 }}>{inv.id}</span>
@@ -145,7 +145,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
       {/* Top bar */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button type="button" aria-label="Back to invoices" onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">
           <Icon name="chevronLeft" size={18} color="var(--teal)" />
           Back
         </button>

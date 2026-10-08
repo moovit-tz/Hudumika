@@ -47,7 +47,7 @@ export const EmailContextDrawer: React.FC<EmailContextDrawerProps> = ({
           className="em-icon-btn em-icon-btn--ghost"
           onClick={onClose}
           aria-label="Close drawer"
-        >
+         data-ui-native-button="">
           <Icon name="x" size={16} />
         </button>
       </div>
@@ -73,7 +73,7 @@ export const EmailContextDrawer: React.FC<EmailContextDrawerProps> = ({
               type="button"
               className="em-context-action-btn"
               onClick={handleCreateCrmLead}
-            >
+             data-ui-native-button="">
               <div className="em-context-action-icon em-context-action-icon--blue">
                 <Icon name="userPlus" size={16} />
               </div>
@@ -91,7 +91,7 @@ export const EmailContextDrawer: React.FC<EmailContextDrawerProps> = ({
                   onNavigate(`/bliss/calls?call=${sender.userId}&kind=VIDEO`);
                   onClose();
                 }}
-              >
+               data-ui-native-button="">
                 <div className="em-context-action-icon em-context-action-icon--green">
                   <Icon name="video" size={16} />
                 </div>
@@ -108,7 +108,7 @@ export const EmailContextDrawer: React.FC<EmailContextDrawerProps> = ({
                   onNavigate(`/bliss/calls`);
                   onClose();
                 }}
-              >
+               data-ui-native-button="">
                 <div className="em-context-action-icon em-context-action-icon--green">
                   <Icon name="phone" size={16} />
                 </div>
@@ -126,7 +126,7 @@ export const EmailContextDrawer: React.FC<EmailContextDrawerProps> = ({
                 onNavigate(`/calendar?new=1&title=${encodeURIComponent(`Meeting with ${sender.name || sender.email}`)}`);
                 onClose();
               }}
-            >
+             data-ui-native-button="">
               <div className="em-context-action-icon em-context-action-icon--gold">
                 <Icon name="calendar" size={16} />
               </div>
@@ -143,7 +143,7 @@ export const EmailContextDrawer: React.FC<EmailContextDrawerProps> = ({
                 onNavigate(`/clearance?q=${encodeURIComponent(domain)}`);
                 onClose();
               }}
-            >
+             data-ui-native-button="">
               <div className="em-context-action-icon em-context-action-icon--purple">
                 <Icon name="truck" size={16} />
               </div>

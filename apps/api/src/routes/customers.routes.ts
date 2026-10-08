@@ -111,12 +111,13 @@ export async function customerRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const user = request.user;
+    const pickerQuery = z.object({ search: z.string().max(160).optional(), limit: z.coerce.number().int().min(1).max(100).optional() }).parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
       // Explicit tenant filter — RLS alone doesn't apply here because this
       // connection uses a DB role that owns the tables (see db/client.ts),
       // and Postgres always lets the table owner bypass row-level policies
       // regardless of the SET LOCAL app.tenant_id session variable.
-      const list = await trx
+      let customerQuery = trx
         .selectFrom('customers')
         // organizations has no tenant_id (platform-level, migration 230) and
         // no RLS — a plain left join, just for the display name of whichever
@@ -132,9 +133,10 @@ export async function customerRoutes(fastify: FastifyInstance) {
         // 338_customer_soft_delete.sql — DELETE /:id sets this instead of
         // hard-deleting; without excluding it here a "deleted" customer
         // reappeared on the very next load of this same list.
-        .where('customers.deleted_at', 'is', null)
-        .orderBy('customers.name', 'asc')
-        .execute();
+        .where('customers.deleted_at', 'is', null);
+      if (pickerQuery.search) customerQuery = customerQuery.where('customers.name', 'ilike', `%${pickerQuery.search.replace(/[\\%_]/g, '\\$&')}%`);
+      customerQuery = customerQuery.orderBy('customers.name', 'asc').orderBy('customers.id');
+      const list = await (pickerQuery.limit ? customerQuery.limit(pickerQuery.limit) : customerQuery).execute();
       return { data: list };
     });
   });

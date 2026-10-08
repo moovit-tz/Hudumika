@@ -133,7 +133,7 @@ export function PostEditor({
       {/* Top action header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, flexWrap: 'wrap', rowGap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>
+          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back to Posts
           </button>
           {form.id && autosaveState !== 'idle' && (
@@ -151,36 +151,36 @@ export function PostEditor({
           )}
           {form.id && (
             <>
-              <button onClick={() => setShowComments(true)} className="btn btn-secondary btn-sm" title="Editorial collaboration & comments">
+              <button onClick={() => setShowComments(true)} className="btn btn-secondary btn-sm" title="Editorial collaboration & comments" data-ui-native-button="">
                 <Icon name="messageSquare" size={13} /> Comments
               </button>
-              <button onClick={() => setShowTranslate(true)} className="btn btn-secondary btn-sm" title="AI Machine Translation (Draft-only)">
+              <button onClick={() => setShowTranslate(true)} className="btn btn-secondary btn-sm" title="AI Machine Translation (Draft-only)" data-ui-native-button="">
                 <Icon name="sparkle" size={13} /> Translate
               </button>
-              <button onClick={() => setShowRequestApproval(true)} className="btn btn-secondary btn-sm" title="Submit for editorial approval">
+              <button onClick={() => setShowRequestApproval(true)} className="btn btn-secondary btn-sm" title="Submit for editorial approval" data-ui-native-button="">
                 <Icon name="checkCircle" size={13} /> Request Review
               </button>
-              <button onClick={() => setShowAddToRelease(true)} className="btn btn-secondary btn-sm" title="Bundle into release">
+              <button onClick={() => setShowAddToRelease(true)} className="btn btn-secondary btn-sm" title="Bundle into release" data-ui-native-button="">
                 <Icon name="package" size={13} /> Add to Release
               </button>
-              <button onClick={() => setShowActivity(true)} className="btn btn-secondary btn-sm" title="Who did what">
+              <button onClick={() => setShowActivity(true)} className="btn btn-secondary btn-sm" title="Who did what" data-ui-native-button="">
                 <Icon name="activity" size={13} /> Activity
               </button>
-              <button onClick={() => setShowHistory(true)} className="btn btn-secondary btn-sm" title="Version history">
+              <button onClick={() => setShowHistory(true)} className="btn btn-secondary btn-sm" title="Version history" data-ui-native-button="">
                 <Icon name="clock" size={13} /> History
               </button>
               {tenantSlug && (
-                <button onClick={handlePreview} className="btn btn-secondary btn-sm">
+                <button onClick={handlePreview} className="btn btn-secondary btn-sm" data-ui-native-button="">
                   <Icon name="eye" size={13} /> Preview
                 </button>
               )}
             </>
           )}
-          <button onClick={() => handleSave('draft')} className="btn btn-secondary btn-sm">Save Draft</button>
+          <button onClick={() => handleSave('draft')} className="btn btn-secondary btn-sm" data-ui-native-button="">Save Draft</button>
           {form.publish_at !== undefined && form.status === 'scheduled'
-            ? <button onClick={() => handleSave('scheduled')} className="btn btn-primary btn-sm">Schedule</button>
-            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm">Schedule…</button>}
-          <button onClick={() => handleSave('published')} className="btn btn-primary btn-sm">Publish</button>
+            ? <button onClick={() => handleSave('scheduled')} className="btn btn-primary btn-sm" data-ui-native-button="">Schedule</button>
+            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm" data-ui-native-button="">Schedule…</button>}
+          <button onClick={() => handleSave('published')} className="btn btn-primary btn-sm" data-ui-native-button="">Publish</button>
         </div>
       </div>
 
@@ -308,7 +308,7 @@ export function PostEditor({
           <FL label="Tags">
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input value={form.tags || ''} onChange={e => set('tags', e.target.value)} placeholder="comma, separated" className="input-field" style={{ fontSize: 12, flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiTagsLoading} onClick={handleAiTags} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiTagsLoading} onClick={handleAiTags} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                 <Icon name="sparkle" size={12} /> {aiTagsLoading ? 'Thinking…' : 'Suggest'}
               </button>
             </div>
@@ -319,7 +319,7 @@ export function PostEditor({
             <FL label="SEO description">
               <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews…" rows={2} maxLength={500}
                 className="input-field" style={{ fontSize: 12, lineHeight: 1.5, resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
-              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                 <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
               </button>
             </FL>
@@ -435,7 +435,7 @@ export function PageEditor({
       {/* Top action header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, flexWrap: 'wrap', rowGap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>
+          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back to Pages
           </button>
           {form.id && autosaveState !== 'idle' && (
@@ -453,36 +453,36 @@ export function PageEditor({
           )}
           {form.id && (
             <>
-              <button onClick={() => setShowComments(true)} className="btn btn-secondary btn-sm" title="Editorial collaboration & comments">
+              <button onClick={() => setShowComments(true)} className="btn btn-secondary btn-sm" title="Editorial collaboration & comments" data-ui-native-button="">
                 <Icon name="messageSquare" size={13} /> Comments
               </button>
-              <button onClick={() => setShowTranslate(true)} className="btn btn-secondary btn-sm" title="AI Machine Translation (Draft-only)">
+              <button onClick={() => setShowTranslate(true)} className="btn btn-secondary btn-sm" title="AI Machine Translation (Draft-only)" data-ui-native-button="">
                 <Icon name="sparkle" size={13} /> Translate
               </button>
-              <button onClick={() => setShowRequestApproval(true)} className="btn btn-secondary btn-sm" title="Submit for editorial approval">
+              <button onClick={() => setShowRequestApproval(true)} className="btn btn-secondary btn-sm" title="Submit for editorial approval" data-ui-native-button="">
                 <Icon name="checkCircle" size={13} /> Request Review
               </button>
-              <button onClick={() => setShowAddToRelease(true)} className="btn btn-secondary btn-sm" title="Bundle into release">
+              <button onClick={() => setShowAddToRelease(true)} className="btn btn-secondary btn-sm" title="Bundle into release" data-ui-native-button="">
                 <Icon name="package" size={13} /> Add to Release
               </button>
-              <button onClick={() => setShowActivity(true)} className="btn btn-secondary btn-sm" title="Who did what">
+              <button onClick={() => setShowActivity(true)} className="btn btn-secondary btn-sm" title="Who did what" data-ui-native-button="">
                 <Icon name="activity" size={13} /> Activity
               </button>
-              <button onClick={() => setShowHistory(true)} className="btn btn-secondary btn-sm" title="Version history">
+              <button onClick={() => setShowHistory(true)} className="btn btn-secondary btn-sm" title="Version history" data-ui-native-button="">
                 <Icon name="clock" size={13} /> History
               </button>
               {tenantSlug && (
-                <button onClick={handlePreview} className="btn btn-secondary btn-sm">
+                <button onClick={handlePreview} className="btn btn-secondary btn-sm" data-ui-native-button="">
                   <Icon name="eye" size={13} /> Preview
                 </button>
               )}
             </>
           )}
-          <button onClick={() => handleSave('draft')} className="btn btn-secondary btn-sm">Save Draft</button>
+          <button onClick={() => handleSave('draft')} className="btn btn-secondary btn-sm" data-ui-native-button="">Save Draft</button>
           {form.status === 'scheduled'
-            ? <button onClick={() => handleSave('scheduled')} className="btn btn-primary btn-sm">Schedule</button>
-            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm">Schedule…</button>}
-          <button onClick={() => handleSave('published')} className="btn btn-primary btn-sm">Publish</button>
+            ? <button onClick={() => handleSave('scheduled')} className="btn btn-primary btn-sm" data-ui-native-button="">Schedule</button>
+            : <button onClick={() => set('status', 'scheduled')} className="btn btn-secondary btn-sm" data-ui-native-button="">Schedule…</button>}
+          <button onClick={() => handleSave('published')} className="btn btn-primary btn-sm" data-ui-native-button="">Publish</button>
         </div>
       </div>
 
@@ -553,7 +553,7 @@ export function PageEditor({
           <FL label="SEO description">
             <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews for this page…" rows={2} maxLength={500}
               style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 11px', fontSize: 13, lineHeight: 1.5, resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
-            <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
               <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
             </button>
           </FL>

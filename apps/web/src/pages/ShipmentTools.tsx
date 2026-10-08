@@ -282,7 +282,7 @@ function ToolCard({ title, desc, tags, color, bg, icon, onRun, children }: {
           <button type="button" onClick={onRun}
             style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: color, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'opacity .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
             onMouseOver={e => (e.currentTarget.style.opacity = '.85')}
-            onMouseOut={e => (e.currentTarget.style.opacity = '1')}>
+            onMouseOut={e => (e.currentTarget.style.opacity = '1')} data-ui-native-button="">
             <Icon name="zap" size={13} color="#fff" />
             Calculate
           </button>
@@ -306,7 +306,7 @@ function TF({ label, hint, full, children }: { label: string; hint?: string; ful
 function Seg({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
-      style={{ padding: 'var(--ds-btn-py-sm) 13px', borderRadius: 'var(--r)', border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, background: active ? 'var(--teal-l)' : 'var(--white)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: active ? 700 : 400, fontSize: 12, cursor: 'pointer', transition: 'all .12s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+      style={{ padding: 'var(--ds-btn-py-sm) 13px', borderRadius: 'var(--r)', border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, background: active ? 'var(--teal-l)' : 'var(--white)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: active ? 700 : 400, fontSize: 12, cursor: 'pointer', transition: 'all .12s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
       {label}
     </button>
   );
@@ -641,7 +641,7 @@ export const ShipmentTools: React.FC = () => {
                   <Icon name="download" size={13} /> Export PDF
                 </Button>
                 <button type="button" onClick={() => setSummary('')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20, lineHeight: 1, padding: '0 4px' }} data-ui-native-button="">×</button>
               </div>
             }
           >

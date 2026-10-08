@@ -134,7 +134,7 @@ export function SmsDashboard() {
                   color: timeframe === 'today' ? 'var(--ink)' : 'var(--ink3)',
                   boxShadow: timeframe === 'today' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
-              >
+               data-ui-native-button="">
                 Today
               </button>
               <button
@@ -151,7 +151,7 @@ export function SmsDashboard() {
                   color: timeframe === 'month' ? 'var(--ink)' : 'var(--ink3)',
                   boxShadow: timeframe === 'month' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
-              >
+               data-ui-native-button="">
                 This Month
               </button>
             </div>

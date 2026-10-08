@@ -129,7 +129,7 @@ export function TotpEnrollCard() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontFamily: 'var(--font)', fontSize: 12.5 }}>
                 <span style={{ flex: 1, overflow: 'auto', whiteSpace: 'nowrap' }}>{setupData.secret}</span>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(setupData.secret); showAlert('Secret key copied.', { variant: 'success' }); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex' }} data-ui-native-button="">
                   <Icon name="copy" size={13} />
                 </button>
               </div>
@@ -154,7 +154,7 @@ export function TotpEnrollCard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Backup codes — save these somewhere safe</span>
               <button type="button" onClick={() => { navigator.clipboard.writeText(backupCodes.join('\n')); showAlert('Backup codes copied.', { variant: 'success' }); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                 <Icon name="copy" size={12} /> Copy all
               </button>
             </div>

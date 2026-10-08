@@ -238,7 +238,7 @@ export function StudioDashboard() {
                 type="button"
                 onClick={() => navigate('/studio/runs')}
                 style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}
-              >
+               data-ui-native-button="">
                 View all <Icon name="arrowRight" size={13} />
               </button>
             </div>

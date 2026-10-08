@@ -148,7 +148,7 @@ export function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: st
         color: isDanger ? '#e11d48' : 'var(--teal, #0f766e)',
         border: isDanger ? '1px solid rgba(225, 29, 72, 0.2)' : '1px solid rgba(15, 118, 110, 0.2)',
       }}
-    >
+     data-ui-native-button="">
       {label}
     </button>
   );

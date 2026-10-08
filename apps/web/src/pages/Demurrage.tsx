@@ -346,7 +346,7 @@ export const Demurrage: React.FC = () => {
             title="Container Demurrage Tracker"
             padded={false}
             action={
-              <button type="button" className="btn btn-primary btn-sm" onClick={startAddC}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={startAddC} data-ui-native-button="">
                 <Icon name="plus" size={13} /> Add Container
               </button>
             }
@@ -407,10 +407,10 @@ export const Demurrage: React.FC = () => {
                   </label>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowCForm(false); setEditCId(null); }}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowCForm(false); setEditCId(null); }} data-ui-native-button="">
                     Cancel
                   </button>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={submitCForm}>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={submitCForm} data-ui-native-button="">
                     {editCId ? 'Save Changes' : 'Start Tracking'}
                   </button>
                 </div>
@@ -481,7 +481,7 @@ export const Demurrage: React.FC = () => {
                                 type="button"
                                 onClick={() => openRecharge(c)}
                                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', border: '1px solid var(--gold-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                              >
+                               data-ui-native-button="">
                                 <Icon name="receipt" size={11} /> Recharge
                               </button>
                             )}
@@ -490,7 +490,7 @@ export const Demurrage: React.FC = () => {
                                 type="button"
                                 onClick={() => { setReturnModal(c.id); setReturnDate(new Date().toISOString().split('T')[0]); }}
                                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                              >
+                               data-ui-native-button="">
                                 <Icon name="checkCircle" size={11} /> Returned
                               </button>
                             )}
@@ -499,7 +499,7 @@ export const Demurrage: React.FC = () => {
                               title="Edit container"
                               onClick={() => startEditC(c)}
                               style={{ display: 'flex', alignItems: 'center', padding: 'var(--ds-btn-py-xs) 8px', color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                            >
+                             data-ui-native-button="">
                               <Icon name="edit" size={12} />
                             </button>
                             <button
@@ -507,7 +507,7 @@ export const Demurrage: React.FC = () => {
                               title="Remove from tracking"
                               onClick={() => deleteContainer(c.id)}
                               style={{ display: 'flex', alignItems: 'center', padding: 'var(--ds-btn-py-xs) 8px', color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red-l)', borderRadius: 'var(--r)', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                            >
+                             data-ui-native-button="">
                               <Icon name="trash" size={12} />
                             </button>
                           </div>
@@ -609,7 +609,7 @@ export const Demurrage: React.FC = () => {
                   <label style={{ display: 'block', ...label, marginBottom: 4 }}>Free Days</label>
                   <input type="number" value={calcFreeDays} onChange={e => setCalcFreeDays(Number(e.target.value))} style={{ ...fieldInput, marginTop: 0 }} />
                 </div>
-                <button type="button" className="btn btn-primary" onClick={handleQuickCalc} style={{ justifyContent: 'center' }}>
+                <button type="button" className="btn btn-primary" onClick={handleQuickCalc} style={{ justifyContent: 'center' }} data-ui-native-button="">
                   Calculate Demurrage
                 </button>
               </div>
@@ -677,8 +677,8 @@ export const Demurrage: React.FC = () => {
             <DatePicker date={parseDateOnly(returnDate)} onChange={d => setReturnDate(toDateOnlyString(d))} />
           </div>
           <DialogFooter>
-            <button type="button" className="btn btn-secondary" onClick={() => setReturnModal(null)}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={handleMarkReturned}>Confirm Return</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setReturnModal(null)} data-ui-native-button="">Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={handleMarkReturned} data-ui-native-button="">Confirm Return</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -709,8 +709,8 @@ export const Demurrage: React.FC = () => {
             </div>
           )}
           <DialogFooter>
-            <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)}>Cancel</button>
-            <button type="button" className="btn btn-primary" disabled={!rechargeInvoiceId || rechargeSaving} onClick={submitRecharge}>
+            <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)} data-ui-native-button="">Cancel</button>
+            <button type="button" className="btn btn-primary" disabled={!rechargeInvoiceId || rechargeSaving} onClick={submitRecharge} data-ui-native-button="">
               {rechargeSaving ? 'Recharging…' : 'Recharge'}
             </button>
           </DialogFooter>

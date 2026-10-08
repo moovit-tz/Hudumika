@@ -212,7 +212,7 @@ export function SuperAdminReports() {
                 {appMetrics.map(m => (
                   <button key={m.key} type="button"
                     className={`sar-rail-item${activeView === m.key ? ' sar-rail-item--active' : ''}`}
-                    onClick={() => selectMetric(m.key)}>
+                    onClick={() => selectMetric(m.key)} data-ui-native-button="">
                     {m.label}
                   </button>
                 ))}
@@ -227,11 +227,11 @@ export function SuperAdminReports() {
                 <div key={def.id} className="sar-saved-row">
                   <button type="button"
                     className={`sar-rail-item${activeView === def.metric_key ? ' sar-rail-item--active' : ''}`}
-                    onClick={() => selectSavedReport(def)}>
+                    onClick={() => selectSavedReport(def)} data-ui-native-button="">
                     {def.name}
                   </button>
                   <Tip label="Delete report">
-                    <button type="button" className="sar-saved-delete" aria-label="Delete report" onClick={() => deleteReport(def.id)}>
+                    <button type="button" className="sar-saved-delete" aria-label="Delete report" onClick={() => deleteReport(def.id)} data-ui-native-button="">
                       <Icon name="trash" size={12} />
                     </button>
                   </Tip>
@@ -244,7 +244,7 @@ export function SuperAdminReports() {
             <div className="sar-rail-group-label">Observability</div>
             <button type="button"
               className={`sar-rail-item${activeView === '__history__' ? ' sar-rail-item--active' : ''}`}
-              onClick={loadRuns}>
+              onClick={loadRuns} data-ui-native-button="">
               Run History
             </button>
           </div>

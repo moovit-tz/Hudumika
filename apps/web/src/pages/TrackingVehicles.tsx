@@ -21,6 +21,7 @@ import { Tip } from '../components/ui/tooltip.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { Badge } from '../components/ui/badge.js';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu.js';
 
 interface Vehicle {
   id: string; name: string; plate_number: string | null; type: string;
@@ -28,6 +29,7 @@ interface Vehicle {
   photo_url: string | null; current_load_pct: number | null;
   driver_id: string | null;
   make: string | null; model: string | null; dimensions: string | null; group_name: string | null;
+  ownership: string | null;
   last_position: {
     latitude: number; longitude: number; speed: number | null; recorded_at: string;
   } | null;
@@ -47,27 +49,31 @@ interface DashboardKPIs {
   on_time_pct_today: number | null;
 }
 
-// Vehicle category mapping — types that belong to each category.
-// Uses substring matching so "PICKUP_TRUCK" matches both "PICKUP" and "TRUCK"
-// keywords; unmatched types fall through to the "trucks" default bucket.
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  trucks: ['TRUCK', 'SEMI', 'FLATBED', 'BOX', 'TANKER', 'DUMP', 'TRACTOR', 'LORRY', 'RIGID', 'TIPPER'],
-  shuttle: ['SUV', 'MINIVAN', 'VAN', 'BUS', 'SEDAN', 'COACH', 'HIACE', 'PASSENGER', 'SHUTTLE'],
-  horse: ['PICKUP', 'HORSE', 'LIVESTOCK', 'EQUINE'],
+// Explicit operational-use taxonomy avoids ambiguous substring matches such
+// as a horse-towing pickup being classified as a generic commercial truck.
+const CATEGORY_TYPES: Record<string, string[]> = {
+  trucks: ['TRUCK', 'HEAVY_DUTY_TRUCK', 'FLATBED_TRUCK', 'BOX_TRUCK', 'TANKER_TRUCK', 'DUMP_TRUCK', 'SEMI_TRACTOR', 'RIGID_LORRY', 'TIPPER'],
+  shuttle: ['SUV', 'MINIVAN', 'VAN', 'PASSENGER_VAN', 'SHUTTLE_BUS', 'BUS', 'COACH', 'SEDAN', 'HIACE'],
+  horse: ['HORSE', 'HEAVY_DUTY_PICKUP', 'HORSE_TOW_SUV', 'HORSE_LORRY', 'HORSE_VAN', 'LIVESTOCK_TRUCK', 'EQUINE_TRANSPORT'],
 };
 
 const CATEGORY_HINTS: Record<string, string> = {
   trucks: 'Flatbed, box, tanker, dump trucks, semi-trailers and rigid lorries',
   shuttle: 'SUVs, minivans and vans for shuttle or passenger transport',
-  horse: 'Pickup trucks (F-250/F-350, Ram 2500/3500), horse lorries and livestock vans',
+  horse: 'Heavy-duty pickups, tow-rated SUVs, horse lorries and specialized livestock vans',
+  other: 'Motorbikes and specialized powered assets outside the main operating categories',
 };
 
 function getCategoryForType(type: string): string {
   const u = (type || '').toUpperCase();
-  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some(kw => u.includes(kw))) return cat;
+  for (const [cat, types] of Object.entries(CATEGORY_TYPES)) {
+    if (types.includes(u)) return cat;
   }
-  return 'trucks';
+  return 'other';
+}
+
+function formatAssetType(type: string) {
+  return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
 const TRAILER_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'gray'> = {
@@ -224,6 +230,7 @@ export const TrackingVehicles: React.FC = () => {
     trucks: vehicles.filter(v => getCategoryForType(v.type) === 'trucks').length,
     shuttle: vehicles.filter(v => getCategoryForType(v.type) === 'shuttle').length,
     horse: vehicles.filter(v => getCategoryForType(v.type) === 'horse').length,
+    other: vehicles.filter(v => getCategoryForType(v.type) === 'other').length,
     trailers: trailers.length,
   }), [vehicles, trailers]);
 
@@ -232,7 +239,8 @@ export const TrackingVehicles: React.FC = () => {
       <PageHeader
         crumbs={['HuduFreight', 'Fleet']}
         titlePlain="Fleet"
-        titleEm="vehicles"
+        titleEm="assets"
+        subtitle="Manage vehicles, individually tracked horses, and towable assets in one inventory with clear operating and ownership categories."
         actions={
           <div className="trk-actions">
             <Select defaultValue="30d">
@@ -246,6 +254,13 @@ export const TrackingVehicles: React.FC = () => {
             <Tip label="Refresh fleet data">
               <Button variant="outline" size="icon" aria-label="Refresh fleet data" onClick={reload}><Icon name="refresh" size={16} /></Button>
             </Tip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button><Icon name="plus" size={15} /> Add asset</Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild><Link to="/tracking/vehicles/new"><Icon name="truck" size={14} /> Powered vehicle</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/tracking/trailers/new"><Icon name="box2" size={14} /> Trailer or towable</Link></DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -282,7 +297,7 @@ export const TrackingVehicles: React.FC = () => {
         <Tabs value={category} onValueChange={cat => { setCategory(cat); setFilter('All'); setTrailerFilter('All'); }}>
           <TabsList>
             <TabsTrigger value="all">
-              All <span className="trk-cat-count">{categoryCounts.all + categoryCounts.trailers}</span>
+              All mobile assets <span className="trk-cat-count">{categoryCounts.all}</span>
             </TabsTrigger>
             <TabsTrigger value="trucks">
               <Icon name="truck" size={13} />
@@ -295,6 +310,10 @@ export const TrackingVehicles: React.FC = () => {
             <TabsTrigger value="horse">
               <Icon name="package" size={13} />
               Horse transport <span className="trk-cat-count">{categoryCounts.horse}</span>
+            </TabsTrigger>
+            <TabsTrigger value="other">
+              <Icon name="moreHorizontal" size={13} />
+              Other <span className="trk-cat-count">{categoryCounts.other}</span>
             </TabsTrigger>
             <TabsTrigger value="trailers">
               <Icon name="box2" size={13} />
@@ -413,9 +432,6 @@ export const TrackingVehicles: React.FC = () => {
                     <TabsTrigger value="list"><Icon name="list" size={14} /></TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Button asChild variant="outline" size="icon">
-                  <Link to="/tracking/vehicles/new" aria-label="Register a vehicle"><Icon name="truck" size={15} /></Link>
-                </Button>
                 <Button asChild>
                   <Link to="/tracking/shipments/new"><Icon name="plus" size={15} /> New shipment</Link>
                 </Button>
@@ -448,7 +464,10 @@ export const TrackingVehicles: React.FC = () => {
                           <div className="trk-vcard-title">{v.name}</div>
                           <div className="trk-vcard-id">ID: {v.plate_number || v.id.slice(0, 8)}</div>
                         </div>
-                        <div className={`trk-vcard-badge ${badgeClass}`}>{status}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {v.ownership && v.ownership !== 'OWNED' && <Badge variant="info">{v.ownership}</Badge>}
+                          <div className={`trk-vcard-badge ${badgeClass}`}>{status}</div>
+                        </div>
                       </div>
                       <div className="trk-vcard-img-container" style={{ height: 140, marginBottom: 16, borderRadius: 'var(--r)' }}>
                         {v.photo_url ? (
@@ -460,6 +479,10 @@ export const TrackingVehicles: React.FC = () => {
                         )}
                       </div>
                       <div className="trk-vcard-specs">
+                        <div className="trk-spec-line">
+                          <span>Asset type:</span>
+                          <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{formatAssetType(v.type)}</span>
+                        </div>
                         <div className="trk-spec-line">
                           <span>Brand/Model:</span>
                           <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{v.make || 'Unknown'} {v.model || ''}</span>
@@ -519,6 +542,10 @@ export const TrackingVehicles: React.FC = () => {
                         <div className="trk-vlist-main">
                           <div className="trk-vcard-title" style={{ fontSize: 16 }}>{v.name}</div>
                           <div className="trk-vcard-id">ID: {v.plate_number || v.id.slice(0, 8)}</div>
+                          <div style={{ marginTop: 5, display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <Badge variant="gray">{formatAssetType(v.type)}</Badge>
+                            {v.ownership && v.ownership !== 'OWNED' && <Badge variant="info">{v.ownership}</Badge>}
+                          </div>
                           <div className="trk-vcard-driver-info" style={{ marginTop: 8 }}>
                             <PersonAvatar userId={v.driver_id} kind="drivers" name={v.driver_name || 'Unassigned'} size={24} style={{ borderRadius: '50%' }} />
                             <span className="trk-vcard-driver-name">{v.driver_name || 'Unassigned'}</span>
@@ -561,15 +588,15 @@ export const TrackingVehicles: React.FC = () => {
 
             {!loading && filteredVehicles.length > PAGE_SIZE && (
               <div className="trk-pagination">
-                <button type="button" aria-label="Previous page" className="trk-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                <button type="button" aria-label="Previous page" className="trk-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} data-ui-native-button="">
                   <Icon name="chevronLeft" size={13} />
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                  <button key={n} type="button" aria-label={`Page ${n}`} aria-current={n === page ? 'page' : undefined} className={`trk-page-btn ${n === page ? 'active' : ''}`} onClick={() => setPage(n)}>
+                  <button key={n} type="button" aria-label={`Page ${n}`} aria-current={n === page ? 'page' : undefined} className={`trk-page-btn ${n === page ? 'active' : ''}`} onClick={() => setPage(n)} data-ui-native-button="">
                     {n}
                   </button>
                 ))}
-                <button type="button" aria-label="Next page" className="trk-page-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                <button type="button" aria-label="Next page" className="trk-page-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} data-ui-native-button="">
                   <Icon name="chevronRight" size={13} />
                 </button>
               </div>

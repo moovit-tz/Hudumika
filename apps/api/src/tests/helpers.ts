@@ -67,5 +67,6 @@ export async function createTestTenant(role: UserRole = 'TENANT_ADMIN'): Promise
 }
 
 export function authHeaders(token: string) {
-  return { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
+  // inject infers JSON for object payloads; bodyless DELETE must omit it.
+  return { authorization: `Bearer ${token}` };
 }

@@ -279,7 +279,7 @@ export function SmsCampaignDetail() {
                 background: statusFilter === f.id ? 'var(--teal-l)' : 'var(--white)',
                 color: statusFilter === f.id ? 'var(--teal)' : 'var(--ink2)',
               }}
-            >
+             data-ui-native-button="">
               {f.label}
             </button>
           ))}

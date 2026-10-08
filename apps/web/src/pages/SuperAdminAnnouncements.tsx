@@ -163,7 +163,7 @@ export const SuperAdminAnnouncements: React.FC = () => {
         {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !form.title.trim()}>
+          <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !form.title.trim()} data-ui-native-button="">
             {saving ? 'Publishing…' : 'Publish'}
           </button>
           <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
@@ -206,11 +206,11 @@ export const SuperAdminAnnouncements: React.FC = () => {
                   <td style={{ padding: '11px 14px', color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{a.dismissed_count}</td>
                   <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
                     <Tip label={a.active ? 'Switch off' : 'Switch on'}><button type="button" aria-label={a.active ? 'Switch off' : 'Switch on'} onClick={() => toggle(a)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }} data-ui-native-button="">
                       <Icon name={a.active ? 'pause' : 'play'} size={14} />
                     </button></Tip>
                     <Tip label="Delete"><button type="button" aria-label={`Delete ${a.title}`} onClick={() => remove(a)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }} data-ui-native-button="">
                       <Icon name="trash2" size={14} />
                     </button></Tip>
                   </td>

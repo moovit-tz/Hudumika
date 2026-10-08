@@ -61,7 +61,7 @@ export function OnsiteReferrals() {
             {link?.url ? (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input className="onsite-input onsite-mono" readOnly value={link.url} style={{ flex: 1 }} />
-                <button className="btn btn-secondary btn-sm" onClick={handleCopy}>
+                <button className="btn btn-secondary btn-sm" onClick={handleCopy} data-ui-native-button="">
                   <Icon name="copy" size={14} /> Copy
                 </button>
               </div>

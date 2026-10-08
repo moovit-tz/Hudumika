@@ -119,13 +119,13 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
     <div className={`container-tracker-root space-y-4 ${className}`}>
       {/* ── Top Tab Bar ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-1.5 p-1 bg-[var(--bg)] border border-[var(--border)] rounded-xl">
+        <div className="flex items-center gap-1.5 p-1 bg-[var(--bg)] border border-[var(--border)] rounded-xl" data-ds-tabstrip="">
           <button
             type="button"
             className={`cnt-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
             onClick={() => setActiveTab('details')}
             aria-pressed={activeTab === 'details'}
-          >
+           data-ds-selected={activeTab === 'details'} data-ui-native-button="">
             <Icon name="info" size={14} color={activeTab === 'details' ? 'var(--teal)' : 'var(--ink3)'} />
             Details
           </button>
@@ -134,7 +134,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
             className={`cnt-tab-btn ${activeTab === 'tracking' ? 'active' : ''}`}
             onClick={() => setActiveTab('tracking')}
             aria-pressed={activeTab === 'tracking'}
-          >
+           data-ds-selected={activeTab === 'tracking'} data-ui-native-button="">
             <Icon name="percent" size={14} color={activeTab === 'tracking' ? 'var(--teal)' : 'var(--ink3)'} />
             Tracking
           </button>

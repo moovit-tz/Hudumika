@@ -149,7 +149,7 @@ export function CarriersPage() {
     {
       key: 'status', header: 'Status', width: 120,
       render: carrier => (
-        <button type="button" onClick={() => toggleActive(carrier)} disabled={togglingId === carrier.id} aria-label={`${carrier.active ? 'Deactivate' : 'Activate'} ${carrier.name}`} style={{ background: 'none', border: 'none', padding: 0, cursor: togglingId === carrier.id ? 'wait' : 'pointer' }}>
+        <button type="button" onClick={() => toggleActive(carrier)} disabled={togglingId === carrier.id} aria-label={`${carrier.active ? 'Deactivate' : 'Activate'} ${carrier.name}`} style={{ background: 'none', border: 'none', padding: 0, cursor: togglingId === carrier.id ? 'wait' : 'pointer' }} data-ui-native-button="">
           <Badge variant={carrier.active ? 'success' : 'gray'}>{togglingId === carrier.id ? 'Updating…' : carrier.active ? 'Active' : 'Inactive'}</Badge>
         </button>
       ),
@@ -225,7 +225,7 @@ export function CarriersPage() {
                         color: already ? 'var(--green)' : 'var(--teal)',
                         border: 'none',
                       }}
-                    >
+                     data-ui-native-button="">
                       {already ? <><Icon name="checkCircle" size={12} /> Added</> : addingId === d.id ? 'Adding…' : <><Icon name="plus" size={12} /> Add</>}
                     </button>
                   </div>

@@ -733,7 +733,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ui-native-button="">
               <Icon name="activity" size={15} /> Portfolio Overview
             </button>
             <button
@@ -752,7 +752,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ui-native-button="">
               <Icon name="layers" size={15} /> Portfolios & Programs
             </button>
             <button
@@ -771,7 +771,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ui-native-button="">
               <Icon name="briefcase" size={15} /> Projects Directory ({projects?.length ?? 0})
             </button>
             <button
@@ -790,7 +790,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 alignItems: 'center',
                 gap: 6,
               }}
-            >
+             data-ui-native-button="">
               <Icon name="truck" size={15} /> Heavy Machinery Fleet
             </button>
           </div>
@@ -855,7 +855,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   fontWeight: 700,
                   color: listStatusFilter === 'all' ? 'var(--teal)' : 'var(--ink2)',
                 }}
-              >
+               data-ui-native-button="">
                 All Projects ({projects?.length ?? 0})
               </button>
               {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
@@ -873,7 +873,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                     fontWeight: 700,
                     color: listStatusFilter === k ? 'var(--teal)' : 'var(--ink2)',
                   }}
-                >
+                 data-ui-native-button="">
                   {listCounts[k] ?? 0} {m.label}
                 </button>
               ))}
@@ -911,7 +911,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                         boxShadow: 'var(--card-shadow)',
                         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                       }}
-                    >
+                     data-ui-native-button="">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ width: 12, height: 12, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                         <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1059,7 +1059,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             padding: 0,
             marginBottom: 10,
           }}
-        >
+         data-ui-native-button="">
           <Icon name="arrowLeft" size={13} /> Return to Projects
         </button>
 
@@ -1351,7 +1351,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2 }}>
                   {(['kanban', 'table', 'milestone'] as const).map(v => (
                     <button key={v} type="button" onClick={() => setBoardView(v)}
-                      style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: boardView === v ? 'var(--white)' : 'transparent', color: boardView === v ? 'var(--teal)' : 'var(--ink3)', boxShadow: boardView === v ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: boardView === v ? 'var(--white)' : 'transparent', color: boardView === v ? 'var(--teal)' : 'var(--ink3)', boxShadow: boardView === v ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center', gap: 5 }} data-ui-native-button="">
                       <Icon name={v === 'kanban' ? 'columns' : v === 'table' ? 'list' : 'flag'} size={13} /> {v === 'kanban' ? 'Board' : v === 'table' ? 'Table' : 'Milestones'}
                     </button>
                   ))}
@@ -1653,7 +1653,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{m.email}</div>
                     </div>
                   </div>
-                  <button type="button" onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }}>
+                  <button type="button" onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }} data-ui-native-button="">
                     <Icon name="x" size={15} />
                   </button>
                 </div>

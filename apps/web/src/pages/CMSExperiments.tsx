@@ -56,7 +56,7 @@ export function CMSExperimentsList() {
         titlePlain="A/B"
         titleEm="experiments"
         subtitle="Two block-array variants, a visitor sticky-assigned to one, a real view count per variant — placed on any page or entry with an A/B Test block."
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New experiment</button>}
+        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)} data-ui-native-button=""><Icon name="plus" size={13} /> New experiment</button>}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
@@ -68,8 +68,8 @@ export function CMSExperimentsList() {
                 <input className="input-field" value={name} placeholder="e.g. Homepage hero" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create experiment'}</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create experiment'}</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
           </div>
@@ -193,9 +193,9 @@ export function CMSExperimentDetail() {
         subtitle={`Placed anywhere with an A/B Test block — key "${experiment.key}".`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
-            <button className="btn btn-secondary btn-sm" onClick={handleToggleStatus}>{experiment.status === 'running' ? 'Stop' : 'Resume'}</button>
-            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleToggleStatus} data-ui-native-button="">{experiment.status === 'running' ? 'Stop' : 'Resume'}</button>
+            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave} data-ui-native-button="">{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
           </div>
         }
       />
@@ -227,7 +227,7 @@ export function CMSExperimentDetail() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }}>Delete this experiment</button>
+          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this experiment</button>
         </div>
       </div>
     </div>

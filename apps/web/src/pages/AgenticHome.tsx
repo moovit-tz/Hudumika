@@ -428,7 +428,7 @@ export const AgenticHome: React.FC = () => {
                     className="ah-header-pill-btn"
                     title="Explore workspaces and agent flows"
                     aria-label="Explore workspaces and agent flows"
-                  >
+                   data-ui-native-button="">
                     <Icon name="grid" size={14} style={{ color: 'var(--ink2)' }} />
                     <span>Explore</span>
                     <Icon name="chevronDown" size={11} className="ah-pill-chevron" />
@@ -501,7 +501,7 @@ export const AgenticHome: React.FC = () => {
                   className="ah-search-clear"
                   onClick={() => { setSearchQ(''); setSearchResults(null); }}
                   title="Clear search"
-                >
+                 data-ui-native-button="">
                   <Icon name="close" size={12} />
                 </button>
               ) : (
@@ -519,7 +519,7 @@ export const AgenticHome: React.FC = () => {
                       type="button"
                       className="ah-search-row"
                       onMouseDown={() => { navigate(hit.path); setSearchQ(''); setSearchResults(null); }}
-                    >
+                     data-ui-native-button="">
                       <div className="ah-search-row-icon">
                         <Icon
                           name={
@@ -551,7 +551,7 @@ export const AgenticHome: React.FC = () => {
               onClick={() => setLandingStyle('advanced')}
               title="Switch to Normal Workspace View (Standard app layout & navigation)"
               aria-label="Switch to Normal Workspace View"
-            >
+             data-ui-native-button="">
               <Icon name="layoutDashboard" size={14} className="ah-view-switch-icon" />
               <span className="ah-view-switch-label">Normal View</span>
             </button>
@@ -566,7 +566,7 @@ export const AgenticHome: React.FC = () => {
             <DropdownMenu>
               <Tip label="Notifications">
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="ah-header-icon-btn" aria-label="Notifications">
+                  <button type="button" className="ah-header-icon-btn" aria-label="Notifications" data-ui-native-button="">
                     <Icon name="bell" size={18} color="var(--ink)" />
                     {unreadCount > 0 && <span className="ah-header-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
                   </button>
@@ -708,7 +708,7 @@ export const AgenticHome: React.FC = () => {
                     {openTaskCount === 0 && <div className="ah-empty-row">Nothing open — enjoy the quiet.</div>}
                     {d.tasks.map(t => (
                       <div key={t.id} className="ah-task-row">
-                        <button type="button" className="ah-task-check" onClick={() => toggleTaskDone(t.id)} title="Mark done" />
+                        <button type="button" className="ah-task-check" onClick={() => toggleTaskDone(t.id)} title="Mark done"  data-ui-native-button=""/>
                         <span className="ah-task-title">{t.title}</span>
                         {t.due && <Badge variant={isToday(t.due) ? 'error' : 'gray'}>{fmtDate(t.due)}</Badge>}
                       </div>
@@ -846,7 +846,7 @@ export const AgenticHome: React.FC = () => {
           {tab === 'agent' && <div className="agent-task-footer"><PageFooter /></div>}
         </div>
 
-        <button type="button" className="ah-chat-fab" onClick={() => setChatOpen(o => !o)} title="Ask your workspace agent">
+        <button type="button" className="ah-chat-fab" onClick={() => setChatOpen(o => !o)} title="Ask your workspace agent" data-ui-native-button="">
           <Icon name={chatOpen ? 'x' : 'sparkle'} size={19} color="#fff" />
         </button>
         {chatOpen && (
@@ -888,7 +888,7 @@ export const AgenticHome: React.FC = () => {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
               />
-              <button type="button" className="ah-chat-send" onClick={sendChat} disabled={!!pendingApproval || chatBusy} aria-label="Send"><Icon name="send" size={14} color="#fff" /></button>
+              <button type="button" className="ah-chat-send" onClick={sendChat} disabled={!!pendingApproval || chatBusy} aria-label="Send" data-ui-native-button=""><Icon name="send" size={14} color="#fff" /></button>
             </div>
           </div>
         )}

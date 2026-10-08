@@ -181,7 +181,7 @@ export const EmailMessageViewer: React.FC<EmailMessageViewerProps> = ({
             type="button"
             className="em-privacy-banner-btn"
             onClick={() => setShowRemoteImages(true)}
-          >
+           data-ui-native-button="">
             Show images
           </button>
         </div>
@@ -203,7 +203,7 @@ export const EmailMessageViewer: React.FC<EmailMessageViewerProps> = ({
                   onNavigate(`/clearance?q=${encodeURIComponent(ref.code)}`);
                 }
               }}
-            >
+             data-ui-native-button="">
               <Icon
                 name={ref.type === 'invoice' ? 'fileText' : ref.type === 'container' ? 'truck' : 'shield'}
                 size={12}
@@ -240,7 +240,7 @@ export const EmailMessageViewer: React.FC<EmailMessageViewerProps> = ({
                   type="button"
                   className="em-calendar-rsvp-btn em-calendar-rsvp-btn--primary"
                   onClick={handleAddToCalendar}
-                >
+                 data-ui-native-button="">
                   <Icon name="plus" size={13} /> Add to Calendar
                 </button>
               )}
@@ -273,7 +273,7 @@ export const EmailMessageViewer: React.FC<EmailMessageViewerProps> = ({
                 className="em-quoted-toggle-btn"
                 onClick={() => setShowQuoted(true)}
                 aria-label="Show quoted text"
-              >
+               data-ui-native-button="">
                 <span className="em-quoted-dots">···</span>
               </button>
             </Tip>
@@ -285,7 +285,7 @@ export const EmailMessageViewer: React.FC<EmailMessageViewerProps> = ({
                   type="button"
                   className="em-quoted-hide-btn"
                   onClick={() => setShowQuoted(false)}
-                >
+                 data-ui-native-button="">
                   Hide
                 </button>
               </div>

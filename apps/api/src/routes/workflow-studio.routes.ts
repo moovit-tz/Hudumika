@@ -95,6 +95,7 @@ const APP_META: Record<AppId, { name: string; color: string }> = {
   ondi:         { name: 'Ondi',         color: '#0b1e3a' },
   // Same app id + color LauncherApps.tsx already uses for each real app.
   cloud:        { name: 'Cloud',        color: '#0369a1' },
+  email:        { name: 'Email',        color: '#0078d4' },
   onsite:       { name: 'Onsite',       color: '#0f172a' },
   tasks:        { name: 'Tasks',        color: '#0f766e' },
   workspace:    { name: 'Admin',        color: '#64748b' },

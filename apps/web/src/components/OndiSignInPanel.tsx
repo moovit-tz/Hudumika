@@ -280,11 +280,11 @@ export function OndiSignInPanel() {
       {mode === null ? (
         <>
           <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} variant="pill" />
-          <button type="button" onClick={() => switchMode('phone')} className="ondi-pill ondi-pill--phone">
+          <button type="button" onClick={() => switchMode('phone')} className="ondi-pill ondi-pill--phone" data-ui-native-button="">
             <Icon name="phone" size={16} /> Continue with phone number
           </button>
 
-          <button type="button" onClick={() => setShowMoreMethods(s => !s)} className="ondi-more-toggle">
+          <button type="button" onClick={() => setShowMoreMethods(s => !s)} className="ondi-more-toggle" data-ui-native-button="">
             {showMoreMethods ? 'Fewer options' : 'More ways to sign in'}
             <Icon name={showMoreMethods ? 'chevronUp' : 'chevronDown'} size={13} />
           </button>
@@ -298,7 +298,7 @@ export function OndiSignInPanel() {
                       onClick={() => switchMode(key)}
                       className="ondi-method-btn"
                       aria-label={METHOD_META[key].label}
-                    >
+                     data-ui-native-button="">
                       <Icon name={METHOD_META[key].icon} size={17} />
                     </button>
                   </Tip>
@@ -318,7 +318,7 @@ export function OndiSignInPanel() {
           )}
         </>
       ) : (
-        <button type="button" onClick={() => switchMode(null)} className="login-back-btn ondi-form-back">
+        <button type="button" onClick={() => switchMode(null)} className="login-back-btn ondi-form-back" data-ui-native-button="">
           <Icon name="chevronLeft" size={14} /> All sign-in options
         </button>
       )}
@@ -372,15 +372,15 @@ export function OndiSignInPanel() {
                 onClick={sendCode}
                 disabled={loading || resendIn > 0}
                 className="login-back-btn"
-              >
+               data-ui-native-button="">
                 {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
               </button>
-              <button type="submit" disabled={loading} className="login-submit-btn">
+              <button type="submit" disabled={loading} className="login-submit-btn" data-ui-native-button="">
                 {loading ? 'Please wait…' : 'Verify & sign in'}
               </button>
             </div>
           ) : (
-            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
               {loading ? 'Please wait…' : 'Send code'}
             </button>
           )}
@@ -414,13 +414,13 @@ export function OndiSignInPanel() {
                   disabled={loading}
                 />
                 <Tip label={showTotpPassword ? 'Hide password' : 'Show password'}>
-                  <button type="button" onClick={() => setShowTotpPassword(p => !p)} className="login-pw-toggle">
+                  <button type="button" onClick={() => setShowTotpPassword(p => !p)} className="login-pw-toggle" data-ui-native-button="">
                     <Icon name={showTotpPassword ? 'eyeOff' : 'eye'} size={16} />
                   </button>
                 </Tip>
               </div>
             </div>
-            <button type="submit" disabled={loading || !email.trim() || !totpPassword} className="login-submit-btn login-submit-btn--full">
+            <button type="submit" disabled={loading || !email.trim() || !totpPassword} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
               {loading ? 'Please wait…' : 'Continue'}
             </button>
           </form>
@@ -445,10 +445,10 @@ export function OndiSignInPanel() {
                 onClick={() => { setTotpStep('credentials'); setTotpCode(''); setTotpPassword(''); setError(null); }}
                 disabled={loading}
                 className="login-back-btn"
-              >
+               data-ui-native-button="">
                 Back
               </button>
-              <button type="submit" disabled={loading} className="login-submit-btn">
+              <button type="submit" disabled={loading} className="login-submit-btn" data-ui-native-button="">
                 {loading ? 'Please wait…' : 'Verify & sign in'}
               </button>
             </div>
@@ -469,7 +469,7 @@ export function OndiSignInPanel() {
               disabled={loading}
             />
           </div>
-          <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+          <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
             {loading ? 'Please wait…' : 'Continue with passkey'}
           </button>
         </form>
@@ -486,7 +486,7 @@ export function OndiSignInPanel() {
               onClick={() => { setMagicLinkSent(false); setInfo(null); }}
               className="login-back-btn"
               style={{ margin: '0 auto' }}
-            >
+             data-ui-native-button="">
               Use a different email
             </button>
           </div>
@@ -503,7 +503,7 @@ export function OndiSignInPanel() {
                 disabled={loading}
               />
             </div>
-            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+            <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
               {loading ? 'Please wait…' : 'Send sign-in link'}
             </button>
           </form>
@@ -523,7 +523,7 @@ export function OndiSignInPanel() {
               disabled={ssoChecking}
             />
           </div>
-          <button type="submit" disabled={ssoChecking} className="login-submit-btn login-submit-btn--full">
+          <button type="submit" disabled={ssoChecking} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
             {ssoChecking ? 'Redirecting…' : 'Continue'}
           </button>
         </form>

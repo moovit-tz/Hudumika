@@ -186,7 +186,7 @@ export function CrmLeadScoring() {
                   className={`min-h-7 flex-1 rounded-md px-3 text-xs font-semibold capitalize transition-colors sm:flex-none ${
                     filter === item ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
-                >
+                 data-ui-native-button="">
                   {item}
                 </button>
               ))}

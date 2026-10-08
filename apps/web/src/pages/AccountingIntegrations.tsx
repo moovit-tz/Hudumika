@@ -77,7 +77,7 @@ export function AccountingIntegrations() {
       setIntegrations(data.integrations || []);
       setLogs(data.logs || []);
     } catch (err) {
-      console.error(err);
+      showAlert(err instanceof Error ? err.message : 'Unable to load accounting connections.', { variant: 'error' });
     } finally {
       setLoading(false);
     }

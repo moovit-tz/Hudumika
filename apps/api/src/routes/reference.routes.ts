@@ -341,7 +341,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     for (const k of editable) if (k in body) patch[k] = body[k] === '' ? null : body[k];
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No editable fields provided' });
     if (patch.item_name === null) return reply.status(400).send({ error: 'Item name cannot be empty' });
-    patch.updated_by = (req as any).user?.id ?? null;
+    patch.updated_by = (req as any).user?.sub ?? null;
     patch.updated_at = new Date();
     const row = await dbPlatform.updateTable('port_tariff_items').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
     if (!row) return reply.status(404).send({ error: 'Tariff item not found' });
@@ -362,7 +362,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       rate_type: b.rate_type ?? 'fixed', min_charge: b.min_charge ?? null,
       free_period: b.free_period ?? null, source_document: b.source_document,
       source_page: b.source_page ?? null, notes: b.notes ?? null,
-      is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.id ?? null,
+      is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.sub ?? null,
     } as any).returningAll().executeTakeFirst();
     return reply.status(201).send({ data: row });
   });
@@ -383,7 +383,7 @@ export async function referenceRoutes(fastify: FastifyInstance) {
       rate_type: b.rate_type ?? 'fixed', min_charge: b.min_charge ?? null,
       free_period: b.free_period ?? null, source_document: b.source_document,
       source_page: b.source_page ?? null, notes: b.notes ?? null,
-      is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.id ?? null,
+      is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.sub ?? null,
     }));
     const rows = await dbPlatform.insertInto('port_tariff_items').values(values as any).returningAll().execute();
     return reply.status(201).send({ data: { inserted: rows.length } });

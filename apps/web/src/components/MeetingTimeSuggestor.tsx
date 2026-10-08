@@ -66,7 +66,7 @@ export function MeetingTimeSuggestor({ onInsert }: { onInsert: (text: string) =>
           in this codebase — see EmailApp.tsx's DropdownMenuTrigger buttons
           for the same reasoning. A native title is the safe equivalent. */}
       <PopoverTrigger asChild>
-        <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="Suggest a meeting time" title="Suggest a time">
+        <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="Suggest a meeting time" title="Suggest a time" data-ui-native-button="">
           <Icon name="calendar" size={16} />
         </button>
       </PopoverTrigger>

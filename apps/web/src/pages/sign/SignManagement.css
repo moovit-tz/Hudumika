@@ -20,8 +20,6 @@
 .sign-verify-form-row button, .sign-verify-back button { min-height: max(44px, var(--ctl-h-lg)); }
 .sign-verify-back .sign-verify-back-link { padding-inline: 0; border: 0; background: transparent; box-shadow: none; color: var(--blue); }
 .sign-verify-modes { width: 100%; }
-.sign-verify-modes .ds-tabs-list { display: flex; width: 100%; gap: 8px; height: auto !important; }
-.sign-verify-modes .ds-tabs-trigger { flex: 1; min-width: 0; min-height: max(44px, var(--ctl-h-lg)) !important; height: auto !important; padding: var(--ds-btn-py-lg) 16px !important; font-size: 14px !important; border-radius: var(--r-sm) !important; }
 .sign-verify-card { overflow-wrap: anywhere; }
 .sign-verify-card img { max-width: 100%; }
 .sign-verify-help { margin-top: 24px; padding: 20px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -55,6 +53,5 @@
 @media (max-width: 360px) {
   .sign-verify-back-label { display: none; }
   .sign-verify-back button { width: 44px; padding-inline: 0; }
-  .sign-verify-modes .ds-tabs-trigger { padding-inline: 8px !important; font-size: 13px !important; }
   .sign-verify-card { padding: 16px !important; }
 }

@@ -73,11 +73,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       {/* ── Filter chips ── */}
       <div className="filter-chips">
         <button type="button" className={`fc${showOnlyMyCases ? ' on' : ''}`}
-          onClick={() => setShowOnlyMyCases(!showOnlyMyCases)}>
+          onClick={() => setShowOnlyMyCases(!showOnlyMyCases)} data-ui-native-button="">
           My Cases
         </button>
         <button type="button" className={`fc${selectedRiskOnly ? ' red-on' : ''}`}
-          onClick={() => setSelectedRiskOnly(!selectedRiskOnly)}>
+          onClick={() => setSelectedRiskOnly(!selectedRiskOnly)} data-ui-native-button="">
           At Risk
         </button>
         <div className="filter-divider" />

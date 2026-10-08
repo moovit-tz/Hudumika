@@ -31,7 +31,7 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
 
   return (
     <div>
-      <button type="button" onClick={onBack} className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }}>
+      <button type="button" onClick={onBack} className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} data-ui-native-button="">
         <Icon name="chevronLeft" size={13} /> Back
       </button>
 
@@ -59,7 +59,7 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
                       border: `1.5px solid ${draft.answers[q.question] === o.value ? 'var(--teal)' : 'var(--border)'}`,
                       background: draft.answers[q.question] === o.value ? 'var(--teal-l)' : 'var(--white)',
                       color: draft.answers[q.question] === o.value ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
+                   data-ui-native-button="">
                     {o.label}
                   </button>
                 ))}
@@ -71,7 +71,7 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
 
       {error && <Banner variant="error" className="mb-3.5">{error}</Banner>}
 
-      <button type="button" className="btn btn-primary btn-lg" onClick={run} disabled={running}>
+      <button type="button" className="btn btn-primary btn-lg" onClick={run} disabled={running} data-ui-native-button="">
         {running ? 'Checking…' : 'Show me what I need'} <Icon name="arrowRight" size={15} />
       </button>
     </div>

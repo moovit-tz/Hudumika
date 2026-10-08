@@ -316,10 +316,6 @@
   color: var(--teal);
 }
 
-[data-theme="dark"] [data-crm="true"] button:not(:disabled):not([role="tab"]):hover {
-  border-color: var(--border2);
-}
-
 [data-theme="dark"] [data-crm="true"] [role="dialog"],
 [data-theme="dark"] [data-crm="true"] [data-radix-popper-content-wrapper] > div {
   border-color: var(--border);

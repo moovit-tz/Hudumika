@@ -43,10 +43,10 @@ import { TrackingIssueDetail } from '../pages/TrackingIssueDetail.js';
 import { TrackingNewExpense } from '../pages/TrackingNewExpense.js';
 import { TrackingDevices } from '../pages/TrackingDevices.js';
 import { DepotPage } from '../pages/DepotPage.js';
-import { TrackingTrailers } from '../pages/TrackingTrailers.js';
 import { TrackingTrailerNew } from '../pages/TrackingTrailerNew.js';
 import { TrackingTrailerDetail } from '../pages/TrackingTrailerDetail.js';
 import { TrackingTransporters } from '../pages/TrackingTransporters.js';
+import { TrackingTripDetail } from '../pages/TrackingTripDetail.js';
 
 export function TrackingShell() {
   const { hasPlan } = useTenantPlan();
@@ -59,8 +59,7 @@ export function TrackingShell() {
       items: [
         { label: 'Dashboard',      icon: 'grid',    path: '/tracking', exact: true },
         { label: 'Live Map',       icon: 'mapPin',  path: '/tracking/map' },
-        { label: 'Vehicles',       icon: 'truck',   path: '/tracking/vehicles' },
-        { label: 'Trailers',       icon: 'box3',    path: '/tracking/vehicles?cat=trailers' },
+        { label: 'Fleet Assets',   icon: 'truck',   path: '/tracking/vehicles' },
         { label: 'Drivers',        icon: 'user',    path: '/tracking/drivers' },
         { label: 'Trips',          icon: 'package', path: '/tracking/shipments' },
         { label: 'Operations Ledger', icon: 'clipboardList', path: '/tracking/ledger' },
@@ -152,6 +151,7 @@ export function TrackingShell() {
                 <Route path="drivers/new" element={<TrackingDriverNew />} />
                 <Route path="drivers/:id" element={<TrackingDriverDetail />} />
                 <Route path="shipments" element={<TrackingShipments />} />
+                <Route path="shipments/:id" element={<TrackingTripDetail />} />
                 <Route path="ledger" element={<Navigate to="/tracking?tab=ledger" replace />} />
                 <Route path="trips" element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="consignments" element={<Navigate to="/tracking/shipments" replace />} />

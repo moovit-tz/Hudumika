@@ -11,7 +11,7 @@ import swaggerUi from '@fastify/swagger-ui';
 
 import { env } from './config/env.js';
 import { antivirusConfigured, pingClamd, checkAntivirusAtBoot } from './integrations/antivirus.js';
-import { db } from './db/client.js';
+import { db, withTenant } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
 import { getPlatformApiSettings } from './lib/platform-settings.js';
 import { extractToken } from './lib/cookies.js';
@@ -45,6 +45,7 @@ import { workflowTemplateRoutes } from './routes/workflow-templates.routes.js';
 import { documentRoutes } from './routes/documents.routes.js';
 import { financeRoutes } from './routes/finance.routes.js';
 import { financeExpensesRoutes } from './routes/financeExpenses.routes.js';
+import { financeExpenseReportRoutes } from './routes/finance-expense-reports.routes.js';
 import { pettiRoutes } from './routes/petti.routes.js';
 import { notesRoutes } from './routes/notes.routes.js';
 import { analyticsRoutes } from './routes/analytics.routes.js';
@@ -208,6 +209,7 @@ import { landedCostShareRoutes } from './routes/landed-cost-share.routes.js';
 import { shipmentReportPublicRoutes } from './routes/shipment-report-public.routes.js';
 import { entitlementsRoutes } from './routes/entitlements.routes.js';
 import { financeCapabilitiesRoutes } from './routes/finance-capabilities.routes.js';
+import { financeIndustryWorkRoutes } from './routes/finance-industry-work.routes.js';
 import { posRoutes } from './routes/pos.routes.js';
 import { relatedRecordsRoutes } from './routes/related-records.routes.js';
 import { apiKeysRoutes } from './routes/api-keys.routes.js';
@@ -254,6 +256,10 @@ import { isDriverError, driverErrorResponse } from './utils/db-errors.js';
 const server = fastify({
   logger: {
     level: env.LOG_LEVEL,
+    redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-api-key"]', 'req.headers["x-csrf-token"]', 'res.headers["set-cookie"]'],
+    serializers: {
+      req: request => ({ method: request.method, url: request.url?.split('?')[0], remoteAddress: request.ip }),
+    },
   },
   // Default (1 MiB) is too small for base64-encoded image payloads (branding
   // logos/favicons, etc.) sent as plain JSON rather than multipart uploads.
@@ -367,7 +373,9 @@ export async function registerApp() {
         return platformLimit > 0 ? platformLimit : 1200;
       },
       timeWindow: '1 minute',
-      keyGenerator: (request: any) => request.headers['x-api-key'] || request.ip,
+      // Headers are unverified at onRequest; rotating arbitrary API keys must
+      // not create a fresh rate-limit bucket for every request.
+      keyGenerator: (request: any) => request.ip,
     });
 
     // A route validating its body/params with a zod schema throws ZodError on
@@ -377,7 +385,7 @@ export async function registerApp() {
     // adopts zod gets a clean 400 for free, rather than each call site
     // needing its own try/catch around .parse().
     server.setErrorHandler((error, request, reply) => {
-      if (error.name === 'ZodError') {
+      if (error instanceof Error && error.name === 'ZodError') {
         const zodError = error as unknown as { issues: { path: (string | number)[]; message: string }[] };
         return reply.status(400).send({
           error: 'Validation failed',
@@ -399,11 +407,16 @@ export async function registerApp() {
       // duplicate, a record still in use) — driverErrorResponse maps those to
       // the accurate 4xx with a fixed message; anything else stays a 500.
       if (isDriverError(error)) {
-        console.error('[db error]', request.method, request.url, error);
+        request.log.error({ code: error.code, method: request.method, route: request.routeOptions.url }, 'Database operation failed');
         const { status, error: message } = driverErrorResponse(error.code);
         return reply.status(status).send({ error: message });
       }
 
+      const statusCode = error instanceof Error && 'statusCode' in error ? error.statusCode : undefined;
+      if (env.APP_ENV === 'production' && !(typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500)) {
+        request.log.error({ type: error instanceof Error ? error.name : 'UnknownError' }, 'Request failed');
+        return reply.status(500).send({ error: 'Internal Server Error' });
+      }
       return reply.send(error);
     });
 
@@ -416,14 +429,14 @@ export async function registerApp() {
       const user = (request as any).user;
       if (!user?.tenant_id) return;
       const apiKeyId = user.sub?.startsWith('apikey:') ? user.sub.slice('apikey:'.length) : null;
-      db.insertInto('api_usage_events').values({
+      await withTenant(user.tenant_id, trx => trx.insertInto('api_usage_events').values({
         tenant_id: user.tenant_id,
         api_key_id: apiKeyId,
         method: request.method,
         path: request.routeOptions?.url || request.url,
         status_code: reply.statusCode,
         duration_ms: Math.round(reply.elapsedTime ?? 0),
-      }).execute().catch(() => {});
+      }).execute()).catch(() => request.log.error('API usage recording failed'));
     });
 
     // Monthly plan usage metering — counts successful item-creating POSTs
@@ -519,7 +532,9 @@ export async function registerApp() {
     await server.register(financeRoutes, { prefix: '/v1/finance' });
     await server.register(financeRoutes, { prefix: '/v1/shipments' }); // alias: frontend uses /v1/shipments/:id/expenses etc.
     await server.register(financeExpensesRoutes, { prefix: '/v1/finance' });
+    await server.register(financeExpenseReportRoutes, { prefix: '/v1/finance/expense-reports' });
     await server.register(financeCapabilitiesRoutes, { prefix: '/v1/finance/capabilities' });
+    await server.register(financeIndustryWorkRoutes, { prefix: '/v1/finance/industries' });
     await server.register(posRoutes, { prefix: '/v1/finance/pos' });
     await server.register(pettiRoutes, { prefix: '/v1/petti' });
     await server.register(notesRoutes, { prefix: '/v1/notes' });
@@ -665,7 +680,6 @@ export async function registerApp() {
     await server.register(emailTemplatesRoutes, { prefix: '/v1/email-templates' });
     try { await syncCommEventRegistry(); } catch (e) { console.error('[comm-events] syncCommEventRegistry failed (migration 513 not applied?):', e); }
     try { await seedMarketplaceTemplates(); } catch (e) { console.error('[marketplace-seed] seedMarketplaceTemplates failed:', e); }
-    try { await installDefaultMarketplaceTemplates(); } catch (e) { console.error('[marketplace-seed] installDefaultMarketplaceTemplates failed:', e); }
     await server.register(commEventsRoutes, { prefix: '/v1/comm' });
     await server.register(marketplaceEmailRoutes, { prefix: '/v1/marketplace/email-templates' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
@@ -785,12 +799,14 @@ async function main() {
     await checkAntivirusAtBoot(env.APP_ENV);
     bootstrapSubscribers();
     registerBuiltInEntityProviders();
-    await bootstrapJobs();
-    await initAisTracker();
 
     // 6. Listen
     const port = env.APP_PORT;
     const address = await server.listen({ port, host: '0.0.0.0' });
+    try { await installDefaultMarketplaceTemplates(); } catch (e) { server.log.error(e, 'Marketplace default installation failed'); }
+    // A second process that cannot bind the API port must not run jobs.
+    await bootstrapJobs();
+    await initAisTracker();
     server.log.info(`🚀 Hudumika API Server running on ${address}`);
   } catch (err) {
     server.log.error(err);

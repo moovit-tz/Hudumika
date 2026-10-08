@@ -177,7 +177,7 @@ export function FreightBookingsPage() {
                   )}
                   {(b.status === 'REQUESTED') && (
                     <Tip label="Cancel booking">
-                      <button type="button" aria-label="Cancel booking" onClick={e => { e.stopPropagation(); cancelBooking(b); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}>
+                      <button type="button" aria-label="Cancel booking" onClick={e => { e.stopPropagation(); cancelBooking(b); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }} data-ui-native-button="">
                         <Icon name="x" size={14} />
                       </button>
                     </Tip>

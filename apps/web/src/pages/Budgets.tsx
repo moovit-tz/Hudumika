@@ -100,7 +100,7 @@ export function Budgets() {
           }))
         );
       })
-      .catch(() => setRows([]));
+      .catch((error: unknown) => { setRows([]); showAlert(error instanceof Error ? error.message : 'Unable to load this budget.', { variant: 'error' }); });
   };
 
   useEffect(() => {
@@ -360,7 +360,7 @@ export function Budgets() {
                               onClick={() => removeRow(r.account_code)}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}
                               title="Remove account"
-                            >
+                             data-ui-native-button="">
                               <Icon name="x" size={13} />
                             </button>
                           )}

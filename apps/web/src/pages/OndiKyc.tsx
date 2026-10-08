@@ -304,7 +304,7 @@ export const OndiKyc: React.FC = () => {
                               color: 'var(--teal)',
                               transition: 'all 0.15s ease'
                             }}
-                          >
+                           data-ui-native-button="">
                             Inspect
                           </button>
                         </td>
@@ -349,7 +349,7 @@ export const OndiKyc: React.FC = () => {
               <button
                 onClick={() => { setSelectedRow(null); setPreviewUrl(null); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -451,7 +451,7 @@ export const OndiKyc: React.FC = () => {
                   opacity: busyId === selectedRow.id ? 0.6 : 1,
                   transition: 'all 0.15s ease'
                 }}
-              >
+               data-ui-native-button="">
                 Reject
               </button>
               <button
@@ -472,7 +472,7 @@ export const OndiKyc: React.FC = () => {
                   boxShadow: '0 2px 8px var(--teal-m)',
                   transition: 'all 0.15s ease'
                 }}
-              >
+               data-ui-native-button="">
                 Approve Verification
               </button>
             </div>

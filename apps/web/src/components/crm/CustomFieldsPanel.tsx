@@ -85,7 +85,7 @@ export function CustomFieldsPanel({ entityType, subjectId, heading }: { entityTy
         );
       })}
       {dirty && (
-        <button type="button" className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} disabled={saving} onClick={save}>
+        <button type="button" className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} disabled={saving} onClick={save} data-ui-native-button="">
           {saving ? 'Saving…' : 'Save custom fields'}
         </button>
       )}

@@ -57,8 +57,8 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
   return (
     <form onSubmit={handleSubmit} noValidate className="login-form ob-payment-form">
       <div className="ob-billing-toggle">
-        <button type="button" className={`ob-billing-opt${p.method === 'card' ? ' ob-billing-opt--active' : ''}`} onClick={() => setPayment({ method: 'card' })}>Card</button>
-        <button type="button" className={`ob-billing-opt${p.method === 'mpesa' ? ' ob-billing-opt--active' : ''}`} onClick={() => setPayment({ method: 'mpesa' })}>Mobile Money</button>
+        <button type="button" className={`ob-billing-opt${p.method === 'card' ? ' ob-billing-opt--active' : ''}`} onClick={() => setPayment({ method: 'card' })} data-ui-native-button="">Card</button>
+        <button type="button" className={`ob-billing-opt${p.method === 'mpesa' ? ' ob-billing-opt--active' : ''}`} onClick={() => setPayment({ method: 'mpesa' })} data-ui-native-button="">Mobile Money</button>
       </div>
 
       <div className="ob-payment-method-fields">
@@ -149,8 +149,8 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
       </div>
 
       <div className="login-form-actions">
-        <button type="button" onClick={onBack} className="login-back-btn">Back</button>
-        <button type="submit" className="login-submit-btn">Continue</button>
+        <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
+        <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue</button>
       </div>
     </form>
   );

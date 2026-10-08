@@ -548,7 +548,7 @@ export function CrmPipelineStages() {
                           disabled={isFirst}
                           onClick={() => moveStage(s, -1)}
                           className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-20 disabled:hover:bg-transparent"
-                        >
+                         data-ui-native-button="">
                           <ArrowUp className="h-3.5 w-3.5" />
                         </button>
                       </Tip>
@@ -558,7 +558,7 @@ export function CrmPipelineStages() {
                           disabled={isLast}
                           onClick={() => moveStage(s, 1)}
                           className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-20 disabled:hover:bg-transparent"
-                        >
+                         data-ui-native-button="">
                           <ArrowDown className="h-3.5 w-3.5" />
                         </button>
                       </Tip>
@@ -577,7 +577,7 @@ export function CrmPipelineStages() {
                             type="button"
                             className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/80 transition-transform hover:scale-105"
                             style={{ backgroundColor: col.bg }}
-                          >
+                           data-ui-native-button="">
                             <span
                               className="h-3 w-3 rounded-full"
                               style={{ backgroundColor: col.fg }}
@@ -659,7 +659,7 @@ export function CrmPipelineStages() {
                               ? 'bg-(--green-l) text-(--green) border border-(--green)/40 shadow-xs'
                               : 'border border-border/80 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                           }`}
-                        >
+                         data-ui-native-button="">
                           <CheckCircle2 className="h-3 w-3" />
                           <span>Won</span>
                         </button>
@@ -680,7 +680,7 @@ export function CrmPipelineStages() {
                               ? 'bg-(--red-l) text-(--red) border border-(--red)/40 shadow-xs'
                               : 'border border-border/80 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                           }`}
-                        >
+                         data-ui-native-button="">
                           <XCircle className="h-3 w-3" />
                           <span>Lost</span>
                         </button>
@@ -848,7 +848,7 @@ export function CrmPipelineStages() {
                           ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
                           : 'border-border bg-card hover:border-primary/40'
                       }`}
-                    >
+                     data-ui-native-button="">
                       <span
                         className="h-3.5 w-3.5 rounded-full shrink-0"
                         style={{ backgroundColor: item.fg }}
@@ -874,7 +874,7 @@ export function CrmPipelineStages() {
                       ? 'border-primary bg-(--teal-l) text-(--teal) ring-2 ring-primary/20'
                       : 'border-border bg-card text-muted-foreground hover:border-primary/40'
                   }`}
-                >
+                 data-ui-native-button="">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                     <span>In Progress</span>
@@ -892,7 +892,7 @@ export function CrmPipelineStages() {
                       ? 'border-(--green) bg-(--green-l) text-(--green) ring-2 ring-(--green)/20'
                       : 'border-border bg-card text-muted-foreground hover:border-(--green)/40'
                   }`}
-                >
+                 data-ui-native-button="">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <CheckCircle2 className="h-3.5 w-3.5 text-(--green)" />
                     <span>Closed Won</span>
@@ -910,7 +910,7 @@ export function CrmPipelineStages() {
                       ? 'border-(--red) bg-(--red-l) text-(--red) ring-2 ring-(--red)/20'
                       : 'border-border bg-card text-muted-foreground hover:border-(--red)/40'
                   }`}
-                >
+                 data-ui-native-button="">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <XCircle className="h-3.5 w-3.5 text-(--red)" />
                     <span>Closed Lost</span>
@@ -1008,7 +1008,7 @@ export function CrmPipelineStages() {
                           ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
                           : 'border-border bg-card hover:border-primary/40'
                       }`}
-                    >
+                     data-ui-native-button="">
                       <span
                         className="h-3.5 w-3.5 rounded-full shrink-0"
                         style={{ backgroundColor: item.fg }}
@@ -1033,7 +1033,7 @@ export function CrmPipelineStages() {
                       ? 'border-primary bg-(--teal-l) text-(--teal) ring-2 ring-primary/20'
                       : 'border-border bg-card text-muted-foreground hover:border-primary/40'
                   }`}
-                >
+                 data-ui-native-button="">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                     <span>In Progress</span>
@@ -1049,7 +1049,7 @@ export function CrmPipelineStages() {
                       ? 'border-(--green) bg-(--green-l) text-(--green) ring-2 ring-(--green)/20'
                       : 'border-border bg-card text-muted-foreground hover:border-(--green)/40'
                   }`}
-                >
+                 data-ui-native-button="">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <CheckCircle2 className="h-3.5 w-3.5 text-(--green)" />
                     <span>Closed Won</span>
@@ -1065,7 +1065,7 @@ export function CrmPipelineStages() {
                       ? 'border-(--red) bg-(--red-l) text-(--red) ring-2 ring-(--red)/20'
                       : 'border-border bg-card text-muted-foreground hover:border-(--red)/40'
                   }`}
-                >
+                 data-ui-native-button="">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                     <XCircle className="h-3.5 w-3.5 text-(--red)" />
                     <span>Closed Lost</span>

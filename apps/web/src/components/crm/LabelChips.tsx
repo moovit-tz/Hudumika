@@ -79,7 +79,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
           padding: '3px 9px', borderRadius: 999, background: COLOR_BG[l.color] ?? COLOR_BG.teal, color: COLOR_VAR[l.color] ?? COLOR_VAR.teal,
         }}>
           {l.name}
-          <button type="button" onClick={() => toggle(l, false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex' }}>
+          <button type="button" onClick={() => toggle(l, false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex' }} data-ui-native-button="">
             <Icon name="x" size={9} />
           </button>
         </span>
@@ -89,7 +89,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
           <button type="button" title="Add label" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%',
             border: '1px dashed var(--border)', background: 'none', cursor: 'pointer', color: 'var(--ink3)',
-          }}>
+          }} data-ui-native-button="">
             <Icon name="plus" size={11} />
           </button>
         </PopoverTrigger>
@@ -102,7 +102,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
                 <button key={l.id} type="button" onClick={() => toggle(l, !on)} style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, border: 'none',
                   background: on ? 'var(--bg)' : 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12.5, color: 'var(--ink)',
-                }}>
+                }} data-ui-native-button="">
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLOR_VAR[l.color] ?? COLOR_VAR.teal, flexShrink: 0 }} />
                   <span style={{ flex: 1 }}>{l.name}</span>
                   {on && <Icon name="check" size={12} color="var(--teal)" />}
@@ -116,7 +116,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
               placeholder="New label…" value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createAndAssign(); }}
             />
-            <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim()} onClick={createAndAssign}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim()} onClick={createAndAssign} data-ui-native-button="">
               Add
             </button>
           </div>

@@ -166,7 +166,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
         onClick={() => setLauncherOpen(d => !d)}
         title={t('header.allApps')}
         aria-expanded={launcherOpen}
-      >
+       data-ui-native-button="">
         <Icon name="grid" size={14} style={{ color: 'var(--teal)' }} />
         <span>Apps</span>
         <Icon name="chevronDown" size={11} className="ah-pill-chevron" />
@@ -177,7 +177,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
         className={`app-header-icon-btn${launcherOpen ? ' app-header-icon-btn--open' : ''}`}
         onClick={() => setLauncherOpen(d => !d)}
         title={t('header.allApps')}
-      >
+       data-ui-native-button="">
         <Icon name="grid" size={17} />
       </button>
     );
@@ -208,10 +208,10 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
               className={`app-lnch-edit-toggle${editMode ? ' app-lnch-edit-toggle--active' : ''}`}
               onClick={() => setEditMode(m => !m)}
               title={editMode ? t('launcher.done') : t('launcher.rearrange')}
-            >
+             data-ui-native-button="">
               <Icon name={editMode ? 'check' : 'edit'} size={13} />
             </button>
-            <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title={t('launcher.close')}>
+            <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title={t('launcher.close')} data-ui-native-button="">
               <Icon name="close" size={14} />
             </button>
           </div>

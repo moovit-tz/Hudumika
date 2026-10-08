@@ -192,7 +192,7 @@ export function CrmSmartViews() {
             : views.length === 0 ? <p className="text-sm italic text-muted-foreground">No saved {entity} views yet.</p>
             : views.map(v => (
               <button key={v.id} type="button" onClick={() => setSelected(v)}
-                className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${selected?.id === v.id ? 'border-(--teal) bg-(--teal-l)' : 'border-border bg-card hover:bg-muted/20'}`}>
+                className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${selected?.id === v.id ? 'border-(--teal) bg-(--teal-l)' : 'border-border bg-card hover:bg-muted/20'}`} data-ui-native-button="">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-bold text-foreground">{v.name}</span>
                   <span className="mono text-xs text-muted-foreground">{v.count}</span>
@@ -200,9 +200,9 @@ export function CrmSmartViews() {
                 <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">{v.rules.map(r => fmtRule(r, labelName)).join(v.match_type === 'any' ? '  ·  or  ·  ' : '  ·  and  ·  ')}</p>
                 <div className="mt-2 flex gap-3">
                   <button type="button" onClick={e => { e.stopPropagation(); setEditing({ id: v.id, name: v.name, match_type: v.match_type, rules: v.rules }); }}
-                    className="text-[11px] font-semibold text-(--teal) hover:underline">Edit</button>
+                    className="text-[11px] font-semibold text-(--teal) hover:underline" data-ui-native-button="">Edit</button>
                   <button type="button" onClick={e => { e.stopPropagation(); remove(v); }}
-                    className="text-[11px] font-semibold text-(--red) hover:underline">Delete</button>
+                    className="text-[11px] font-semibold text-(--red) hover:underline" data-ui-native-button="">Delete</button>
                 </div>
               </button>
             ))}
@@ -225,7 +225,7 @@ export function CrmSmartViews() {
               <div className="divide-y divide-border">
                 {results.slice(0, 200).map((row: any) => (
                   <button type="button" key={row.id} onClick={() => navigate(entity === 'lead' ? `/crm/leads?lead=${row.id}` : entity === 'deal' ? `/crm/pipeline?deal=${row.id}` : `/crm/customers?id=${row.id}`)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted/20">
+                    className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-muted/20" data-ui-native-button="">
                     <span className="font-semibold text-foreground">{row.company || row.name}</span>
                     <span className="mono text-xs text-muted-foreground">{row.stage || row.account_status || ''}</span>
                   </button>

@@ -308,7 +308,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
             className="app-sb-toggle"
             onClick={toggleCollapse}
             title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
-          >
+           data-ui-chrome-button="">
             <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={11} color="currentColor" strokeWidth={2.5} />
           </button>
         )}
@@ -429,7 +429,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                             className="app-sb-item app-sb-item--parent-hdr"
                             onClick={() => toggleParent(item.path, isParentOpen)}
                             aria-expanded={isParentOpen}
-                          >
+                           data-ui-chrome-button="">
                             <span className="app-sb-item-icon">
                               <Icon name={item.icon} size={16} strokeWidth={1.8} />
                             </span>

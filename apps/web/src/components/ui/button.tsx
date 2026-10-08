@@ -20,14 +20,13 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
-      // Action controls share the roomy Studio footprint; typography keeps
-      // its existing size ladder and theme/density still supply the tokens.
+      // Toolbar and icon controls follow input density; primary actions stay roomy.
       size: {
         xs: "min-h-[var(--ctl-h-xs)] py-[var(--ds-btn-py-xs,3px)] px-2.5 text-xs",
         default: "min-h-[var(--action-h)] py-[var(--action-py)] px-8",
-        sm: "min-h-[var(--action-h)] py-[var(--action-py)] px-6 text-[13px]",
+        sm: "min-h-[var(--ctl-h)] py-0 px-6 text-[13px]",
         lg: "min-h-[var(--action-h)] py-[var(--action-py)] px-8 text-[15px]",
-        icon: "min-h-[var(--action-h)] aspect-square py-[var(--action-py)] px-0",
+        icon: "min-h-[var(--ctl-h)] aspect-square py-0 px-0",
       },
     },
     defaultVariants: {
@@ -46,7 +45,7 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    const padBlock = size === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : 'var(--action-py)'
+    const padBlock = size === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : size === 'sm' || size === 'icon' ? '0' : 'var(--action-py)'
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}

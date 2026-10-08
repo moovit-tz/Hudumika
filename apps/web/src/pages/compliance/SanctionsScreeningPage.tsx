@@ -218,7 +218,7 @@ export function SanctionsScreeningPage() {
                           type="button"
                           onClick={() => openEntry(row.best_match_entry_id!)}
                           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontWeight: 600 }}
-                        >
+                         data-ui-native-button="">
                           {row.best_match_name}
                         </button>
                       ) : <span style={{ color: 'var(--ink3)' }}>—</span>}

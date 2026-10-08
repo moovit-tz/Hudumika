@@ -131,7 +131,7 @@ export function AddEdge({
               data?.onAddClick?.(id, event);
             }}
             style={{ pointerEvents: 'all' }}
-          >
+           data-ui-native-button="">
             +
           </button>
           {data?.label && (

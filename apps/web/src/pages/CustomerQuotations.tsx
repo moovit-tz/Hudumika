@@ -188,7 +188,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       {/* Top bar */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button type="button" onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">
           <Icon name="chevronLeft" size={18} color="var(--teal)" />
           Back
         </button>
@@ -358,7 +358,7 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
       background: 'var(--white)', border: '1px solid var(--border)',
       borderLeft: `4px solid ${st.color}`,
       borderRadius: 'var(--r)', padding: '16px', fontFamily: 'var(--font)',
-    }}>
+    }} data-ui-native-button="">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--font)', flex: 1 }}>{quote.quote_number}</span>
         <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, borderRadius: 'var(--badge-radius)', padding: '2px 10px', flexShrink: 0 }}>{st.label}</span>

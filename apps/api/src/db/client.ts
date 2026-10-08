@@ -1682,6 +1682,7 @@ export interface ShipmentJobChargesTable {
 }
 
 export interface FinanceExpensesTable {
+  report_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   name: string;
@@ -5404,6 +5405,11 @@ export interface FinanceIndustryWorkLinesTable {
   approved_at: Date | null; created_at: Generated<Date>;
 }
 export interface Database {
+  finance_production_recipes: {
+    id: Generated<string>; tenant_id: string; name: string; version: number;
+    recipe: ColumnType<import('@hudumika/types').IndustryProductionRecipeInput, string, string>;
+    created_by: string; created_at: Generated<Date>;
+  };
   finance_stock_allocations: {
     id: Generated<string>; tenant_id: string; work_id: string; item_id: string; location_id: string;
     batch: string; quantity: number; dispatched_quantity: Generated<number>; released: Generated<boolean>;
@@ -5421,6 +5427,33 @@ export interface Database {
     quantity: number; unit: string; batch: string;
   };
   finance_industry_work: FinanceIndustryWorkTable;
+  finance_tax_preparations: {
+    id: Generated<string>; tenant_id: string; period_id: string; prepared_by: string;
+    checks: Record<string, boolean>; evidence_note: string; return_snapshot: unknown; source_hash: string;
+    status: Generated<'prepared' | 'approved' | 'rejected'>; reviewed_by: string | null; review_note: string | null;
+    reviewed_at: Date | null; created_at: Generated<Date>;
+  };
+  finance_expense_reports: {
+    id: Generated<string>; tenant_id: string; name: string; owner_id: string;
+    status: Generated<'draft' | 'submitted' | 'approved' | 'rejected' | 'reimbursed'>;
+    review_note: string | null; reviewed_by: string | null; reviewed_at: Date | null;
+    reimbursement_journal_id: string | null; payment_reference: string | null; created_at: Generated<Date>;
+  };
+  finance_expense_report_items: {
+    customer_id: Generated<string | null>; supplier_id: Generated<string | null>;
+    id: Generated<string>; tenant_id: string; report_id: string; name: string; category: string;
+    amount: number; expense_date: string; receipt_data: string; receipt_hash: string;
+    expense_id: string | null; created_at: Generated<Date>;
+  };
+  finance_close_reviews: {
+    id: Generated<string>; tenant_id: string; period_id: string; reviewer_id: string;
+    checklist: Record<string, boolean>; diagnostics: Record<string, unknown>; note: string; created_at: Generated<Date>;
+  };
+  finance_work_cost_allocations: {
+    id: Generated<string>; tenant_id: string; work_id: string; source_journal_line_id: string;
+    amount: number; reason: string; allocation_journal_id: string; created_by: string;
+    created_at: Generated<Date>; reversed_at: Date | null;
+  };
   finance_industry_work_lines: FinanceIndustryWorkLinesTable;
   tenant_finance_capabilities: TenantFinanceCapabilitiesTable;
   tenant_finance_profiles: TenantFinanceProfilesTable;

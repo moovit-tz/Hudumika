@@ -130,7 +130,7 @@ export function OnsiteApplicationDetail() {
         titlePlain="Application"
         titleEm="detail"
         subtitle={<>Runtime: {app.runtime} | Port: {app.port || 3000}</>}
-        actions={<><button className="btn btn-primary" onClick={() => fetchAppData()}>
+        actions={<><button className="btn btn-primary" onClick={() => fetchAppData()} data-ui-native-button="">
                     <Icon name="refresh" size={16} /> Refresh
                   </button></>}
       />
@@ -185,7 +185,7 @@ export function OnsiteApplicationDetail() {
                 style={{ flex: 2 }}
                 required
               />
-              <button type="submit" className="btn btn-secondary" disabled={savingSecret}>
+              <button type="submit" className="btn btn-secondary" disabled={savingSecret} data-ui-native-button="">
                 {savingSecret ? 'Saving…' : 'Add Variable'}
               </button>
             </form>
@@ -212,7 +212,7 @@ export function OnsiteApplicationDetail() {
                         <td className="onsite-mono" style={{ fontWeight: 600 }}>{s.key}</td>
                         <td className="onsite-mono" style={{ color: 'var(--ink3)' }}>{s.value_masked}</td>
                         <td>
-                          <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteSecret(s.id)}>
+                          <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteSecret(s.id)} data-ui-native-button="">
                             <Icon name="trash2" size={14} />
                           </button>
                         </td>
@@ -229,7 +229,7 @@ export function OnsiteApplicationDetail() {
           <div className="onsite-card">
             <div className="onsite-card-header">
               <h3 className="onsite-card-title">Environments</h3>
-              <button className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(true)}>
+              <button className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(true)} data-ui-native-button="">
                 <Icon name="plus" size={14} /> Add environment
               </button>
             </div>
@@ -256,8 +256,8 @@ export function OnsiteApplicationDetail() {
                   <input type="text" className="onsite-input" placeholder="develop" value={envBranch} onChange={(e) => setEnvBranch(e.target.value)} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-sm btn-primary" disabled={savingEnv}>{savingEnv ? 'Adding…' : 'Add'}</button>
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(false)} data-ui-native-button="">Cancel</button>
+                  <button type="submit" className="btn btn-sm btn-primary" disabled={savingEnv} data-ui-native-button="">{savingEnv ? 'Adding…' : 'Add'}</button>
                 </div>
               </form>
             )}

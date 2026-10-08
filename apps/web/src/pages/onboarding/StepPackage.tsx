@@ -70,14 +70,14 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             type="button"
             className={`ob-billing-opt${draft.billing_cycle === 'monthly' ? ' ob-billing-opt--active' : ''}`}
             onClick={() => update({ billing_cycle: 'monthly' })}
-          >
+           data-ui-native-button="">
             Monthly
           </button>
           <button
             type="button"
             className={`ob-billing-opt${draft.billing_cycle === 'annual' ? ' ob-billing-opt--active' : ''}`}
             onClick={() => update({ billing_cycle: 'annual' })}
-          >
+           data-ui-native-button="">
             Annually <span className="ob-billing-save">Save 30%</span>
           </button>
         </div>
@@ -136,7 +136,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 type="button"
                 className={`ob-pkg-btn ${isPro || selected ? 'ob-pkg-btn--solid' : 'ob-pkg-btn--outline'}`}
                 onClick={(e) => { e.stopPropagation(); update({ package_code: pkg.code }); }}
-              >
+               data-ui-native-button="">
                 {selected ? 'Plan Selected ✓' : isCustom ? 'Contact Sales' : 'Buy Plan'}
               </button>
 
@@ -213,7 +213,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
           type="button"
           className="ob-matrix-toggle"
           onClick={() => setShowMatrix(prev => !prev)}
-        >
+         data-ui-native-button="">
           <span>{showMatrix ? 'Hide feature comparison' : 'Compare all features'}</span>
           <Icon name={showMatrix ? 'chevronUp' : 'chevronDown'} size={15} />
         </button>
@@ -239,8 +239,8 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
 
       {/* Form Action Controls */}
       <div className="login-form-actions" style={{ marginTop: 28 }}>
-        <button type="button" onClick={onBack} className="login-back-btn">Back</button>
-        <button type="submit" className="login-submit-btn" disabled={packages.length === 0}>
+        <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
+        <button type="submit" className="login-submit-btn" disabled={packages.length === 0} data-ui-native-button="">
           Continue to Step 4
         </button>
       </div>

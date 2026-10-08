@@ -151,10 +151,6 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  [data-onepi] :is(button, [role="button"], [role="tab"]):not([aria-label*="color" i]) {
-    min-height: 44px;
-  }
-
   [data-onepi] :is(input, textarea, select) {
     font-size: 16px;
   }

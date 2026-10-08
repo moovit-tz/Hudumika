@@ -85,7 +85,7 @@ function OfficerMentionInput({
             <>
               <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
-              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>×</button>
+              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }} data-ui-native-button="">×</button>
             </>
           ) : (
             <input
@@ -111,7 +111,7 @@ function OfficerMentionInput({
             onClick={() => select(o)}
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-          >
+           data-ui-native-button="">
             <PersonAvatar userId={o.user_id || o.id} name={o.name} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
@@ -702,10 +702,10 @@ export function CreateShipmentPage() {
                   Download our standard shipment template. You can share this with your clients to fill in container and commercial details before uploading it back here.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
-                  <button className="btn btn-secondary" onClick={downloadTemplate}>
+                  <button className="btn btn-secondary" onClick={downloadTemplate} data-ui-native-button="">
                     <Icon name="download" size={16} /> Download Template
                   </button>
-                  <button className="btn btn-primary" disabled={excelBusy} onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); }; inp.click(); }}>
+                  <button className="btn btn-primary" disabled={excelBusy} onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); }; inp.click(); }} data-ui-native-button="">
                     <Icon name="upload" size={16} /> {excelBusy ? 'Reading…' : 'Upload Filled Excel'}
                   </button>
                 </div>
@@ -719,7 +719,7 @@ export function CreateShipmentPage() {
                     <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
                       {excelReport.text}
                       <div style={{ marginTop: 10 }}>
-                        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setCurrentStep(3)}>
+                        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setCurrentStep(3)} data-ui-native-button="">
                           {excelReport.ok ? 'Review the form' : 'Fill the form by hand'}
                         </button>
                       </div>
@@ -968,26 +968,26 @@ export function CreateShipmentPage() {
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={() => currentStep > 1 ? setCurrentStep(s => s - 1) : navigate('/clearos/ops')}
-              >
+               data-ui-native-button="">
                 {currentStep === 1 ? 'Cancel' : 'Previous'}
               </button>
               
               {currentStep === 1 && (
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(2)}>Skip OCR</button>
-                  <button type="button" className="btn btn-primary" onClick={applyOcrToForm} disabled={!ocrResult}>Apply & Continue</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(2)} data-ui-native-button="">Skip OCR</button>
+                  <button type="button" className="btn btn-primary" onClick={applyOcrToForm} disabled={!ocrResult} data-ui-native-button="">Apply & Continue</button>
                 </div>
               )}
               
               {currentStep === 2 && (
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(3)}>Skip Excel</button>
-                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelReport}>Continue</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(3)} data-ui-native-button="">Skip Excel</button>
+                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelReport} data-ui-native-button="">Continue</button>
                 </div>
               )}
               
               {currentStep === 3 && (
-                <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(4)}>
+                <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(4)} data-ui-native-button="">
                   Review Details
                 </button>
               )}
@@ -1002,13 +1002,13 @@ export function CreateShipmentPage() {
                       Still needed: <strong style={{ color: 'var(--ink2)' }}>{missingRequired.join(', ')}</strong>
                       {' · '}
                       <button type="button" onClick={() => setCurrentStep(3)}
-                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }} data-ui-native-button="">
                         Go back
                       </button>
                     </span>
                   )}
                   <button type="button" className="btn btn-primary" onClick={handleCreateCase}
-                    disabled={createLoading || missingRequired.length > 0}>
+                    disabled={createLoading || missingRequired.length > 0} data-ui-native-button="">
                     {createLoading ? 'Creating...' : 'Create Shipment'}
                   </button>
                 </div>

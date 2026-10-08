@@ -114,7 +114,7 @@ export const ResetPassword: React.FC = () => {
                   autoComplete="new-password"
                   autoFocus
                 />
-                <button type="button" className="auth-eye-btn" aria-label={showPass ? 'Hide password' : 'Show password'} onClick={() => setShowPass(p => !p)} tabIndex={-1}>
+                <button type="button" className="auth-eye-btn" aria-label={showPass ? 'Hide password' : 'Show password'} onClick={() => setShowPass(p => !p)} tabIndex={-1} data-ui-native-button="">
                   <Icon name={showPass ? 'eyeOff' : 'eye'} size={15} />
                 </button>
               </div>
@@ -142,13 +142,13 @@ export const ResetPassword: React.FC = () => {
                   onChange={e => { setConfirm(e.target.value); setFieldErr(p => ({ ...p, confirm: undefined })); }}
                   autoComplete="new-password"
                 />
-                <button type="button" className="auth-eye-btn" aria-label={showConf ? 'Hide password' : 'Show password'} onClick={() => setShowConf(p => !p)} tabIndex={-1}>
+                <button type="button" className="auth-eye-btn" aria-label={showConf ? 'Hide password' : 'Show password'} onClick={() => setShowConf(p => !p)} tabIndex={-1} data-ui-native-button="">
                   <Icon name={showConf ? 'eyeOff' : 'eye'} size={15} />
                 </button>
               </div>
             </AuthField>
 
-            <button type="submit" disabled={loading} className="auth-btn-primary">
+            <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
               {loading ? <><span className="auth-spinner" /> Updating…</> : 'Update password'}
             </button>
           </form>

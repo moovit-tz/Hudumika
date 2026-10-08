@@ -202,7 +202,7 @@ function ActMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () 
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" aria-label="More actions" onClick={e => e.stopPropagation()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
         </button>
       </DropdownMenuTrigger>
@@ -738,7 +738,7 @@ export const Leads: React.FC = () => {
             <span>/</span>
             <span className="lead-lp-crumbs-current">{sel.company}</span>
           </div>
-          <button className="lead-lp-back-btn" onClick={closeProfile}>
+          <button className="lead-lp-back-btn" onClick={closeProfile} data-ui-native-button="">
             <Icon name="arrowLeft" size={13} />
             All Leads
           </button>
@@ -859,11 +859,11 @@ export const Leads: React.FC = () => {
         </div>
 
         {/* Tab navigation strip */}
-        <div className="lead-lp-tab-nav">
+        <div className="lead-lp-tab-nav" data-ds-tabstrip="">
           {PROF_TABS.map(t => (
             <button key={t.key} type="button" className="lead-lp-nav-btn"
               data-active={profileTab === t.key ? 'true' : undefined}
-              onClick={() => { setProfileTab(t.key); setEditMode(false); }}>
+              onClick={() => { setProfileTab(t.key); setEditMode(false); }} data-ds-selected={profileTab === t.key} data-ui-native-button="" aria-pressed={profileTab === t.key}>
               <Icon name={t.icon} size={15} />
               <span>{t.label}</span>
               {t.key === 'tasks' && leadTasks.filter(u => !u.done).length > 0 && (
@@ -1189,7 +1189,7 @@ export const Leads: React.FC = () => {
             <div className="card" style={{ width: '90%', maxWidth: 580, padding: 28, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', maxHeight: '92vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22 }}>
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
-                <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
+                <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">×</button>
               </div>
               <form onSubmit={handleAdd}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px' }}>
@@ -1276,8 +1276,8 @@ export const Leads: React.FC = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-                  <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-md" disabled={addSaving}>{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
+                  <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-md" disabled={addSaving} data-ui-native-button="">{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
                 </div>
               </form>
             </div>
@@ -1360,7 +1360,7 @@ export const Leads: React.FC = () => {
 
             {(search || filterStage || filterSource || filterPriority || filterTerritory || activeViewId) && (
               <button type="button" onClick={() => { setSearch(''); setFilterStage(''); setFilterSource(''); setFilterPriority(''); setFilterTerritory(''); setActiveViewId(null); setViewMatchIds(null); setPage(1); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: '0 2px' }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: '0 2px' }} data-ui-native-button="">
                 Clear
               </button>
             )}
@@ -1395,7 +1395,7 @@ export const Leads: React.FC = () => {
                 {bulkApplying ? 'Applying…' : 'Apply'}
               </Button>
               <button type="button" onClick={() => { setSelectedIds([]); setBulkAction(''); }}
-                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
                 Clear selection
               </button>
             </div>
@@ -1403,11 +1403,11 @@ export const Leads: React.FC = () => {
 
           {/* Stage chips */}
           <div style={{ display: 'flex', gap: 6, padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', flexWrap: 'wrap' }}>
-            <button type="button" className={`fc${!filterStage ? ' on' : ''}`} onClick={() => { setFilterStage(''); setPage(1); }}>
+            <button type="button" className={`fc${!filterStage ? ' on' : ''}`} onClick={() => { setFilterStage(''); setPage(1); }} data-ui-native-button="">
               All ({leads.length})
             </button>
             {stageIds.map(s => (
-              <button key={s} type="button" className={`fc${filterStage === s ? ' on' : ''}`} onClick={() => { setFilterStage(filterStage === s ? '' : s); setPage(1); }}>
+              <button key={s} type="button" className={`fc${filterStage === s ? ' on' : ''}`} onClick={() => { setFilterStage(filterStage === s ? '' : s); setPage(1); }} data-ui-native-button="">
                 {liveStageCfg[s]?.label || s} ({leads.filter(l => l.stage === s).length})
               </button>
             ))}
@@ -1504,18 +1504,18 @@ export const Leads: React.FC = () => {
               </span>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <button type="button" aria-label="Previous page" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pg === 1}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === 1 ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === 1 ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === 1 ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === 1 ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   <Icon name="chevronLeft" size={14} />
                 </button>
                 {getPageNums(pg, totalPages).map((p, i) =>
                   p === '…' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>…</span> :
                   <button key={p} type="button" onClick={() => setPage(Number(p))}
-                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'hsl(var(--primary))' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'hsl(var(--primary))' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     {p}
                   </button>
                 )}
                 <button type="button" aria-label="Next page" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pg === totalPages}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === totalPages ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === totalPages ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === totalPages ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === totalPages ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   <Icon name="chevronRight" size={14} />
                 </button>
               </div>
@@ -1533,7 +1533,7 @@ export const Leads: React.FC = () => {
                 <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{editingId ? 'Edit Lead' : 'Add New Lead'}</h2>
                 <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 0' }}>Fill in the prospect details below</p>
               </div>
-              <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>×</button>
+              <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">×</button>
             </div>
             <form onSubmit={handleAdd}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px' }}>
@@ -1620,8 +1620,8 @@ export const Leads: React.FC = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-                <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary btn-md" disabled={addSaving}>{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
+                <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">Cancel</button>
+                <button type="submit" className="btn btn-primary btn-md" disabled={addSaving} data-ui-native-button="">{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
               </div>
             </form>
           </div>

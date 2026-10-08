@@ -191,7 +191,7 @@ export function AttendanceStatusBanner() {
               {/* Clean Primary Greeting with signature Hudumika typography */}
               <div className="asb-heading-wrap">
                 <h1 className="asb-name-title">
-                  Welcome to your workspace, <em className="asb-name-em">{user?.name?.split(' ')[0] || 'there'}</em><span className="asb-name-dot">.</span>
+                  Welcome, <em className="asb-name-em">{user?.name?.split(' ')[0] || 'there'}</em><span className="asb-name-dot">.</span>
                 </h1>
               </div>
 

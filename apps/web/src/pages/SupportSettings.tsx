@@ -193,8 +193,8 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
       )}
 
       <div className="ssg-form-actions">
-        <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel}>Cancel</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={!name.trim() || saving} onClick={handleSave}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel} data-ui-native-button="">Cancel</button>
+        <button type="button" className="btn btn-primary btn-sm" disabled={!name.trim() || saving} onClick={handleSave} data-ui-native-button="">
           {saving ? 'Saving…' : 'Create rule'}
         </button>
       </div>
@@ -334,7 +334,7 @@ export const SupportSettings: React.FC = () => {
                     </div>
                     {canManage && (
                       <Tip label="Delete rule">
-                        <button type="button" className="ssg-rule-delete" onClick={() => handleDelete(rule)}>
+                        <button type="button" className="ssg-rule-delete" onClick={() => handleDelete(rule)} data-ui-native-button="">
                           <Icon name="trash" size={14} />
                         </button>
                       </Tip>
@@ -348,7 +348,7 @@ export const SupportSettings: React.FC = () => {
                       onCancel={() => setOpenForm(null)}
                       onSave={(name, config) => handleSave(section.type, name, config)} />
                   ) : (
-                    <button type="button" className="ssg-add-rule-btn" onClick={() => setOpenForm(section.type)}>
+                    <button type="button" className="ssg-add-rule-btn" onClick={() => setOpenForm(section.type)} data-ui-native-button="">
                       <Icon name="plus" size={13} /> Add rule
                     </button>
                   )

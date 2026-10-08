@@ -161,7 +161,7 @@ export function CrmTerminology() {
                   disabled={!!applyingPreset}
                   onClick={() => applyPreset(preset)}
                   className="rounded-lg border border-border bg-card px-4 py-3.5 text-left transition-colors hover:border-(--teal) hover:ring-2 hover:ring-(--teal-l) disabled:opacity-60"
-                >
+                 data-ui-native-button="">
                   <div className="mb-2 flex items-center gap-1.5">
                     <Wand2 size={14} className="text-(--teal)" />
                     <span className="text-sm font-bold text-foreground">
@@ -218,7 +218,7 @@ export function CrmTerminology() {
                         disabled={!changed && !term?.overridden}
                         title={changed ? 'Discard this edit' : 'Reset to default'}
                         className={`rounded p-1.5 transition-colors ${changed || term?.overridden ? 'cursor-pointer text-(--red) hover:bg-(--red-l)' : 'cursor-default opacity-30 text-muted-foreground'}`}
-                      >
+                       data-ui-native-button="">
                         <RotateCcw size={13} />
                       </button>
                     </div>

@@ -111,7 +111,7 @@ export const OndiSessions: React.FC = () => {
             )}
           </div>
           <button type="button" onClick={checkChain} disabled={checkingChain}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 16px', cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }}>
+            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 16px', cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }} data-ui-native-button="">
             Re-verify Chain
           </button>
         </div>
@@ -139,7 +139,7 @@ export const OndiSessions: React.FC = () => {
                     </div>
                   </div>
                   <button type="button" onClick={() => toggleTrusted(d)}
-                    className={`ondi-status-pill ${d.trusted ? 'success' : 'gray'}`} style={{ border: 'none', cursor: 'pointer' }}>
+                    className={`ondi-status-pill ${d.trusted ? 'success' : 'gray'}`} style={{ border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                     <span className="ondi-status-dot" />
                     {d.trusted ? 'Trusted' : 'Untrusted'}
                   </button>

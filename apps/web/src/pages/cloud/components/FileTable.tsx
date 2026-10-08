@@ -103,7 +103,7 @@ function FileTableRow({ item, selected, onClick, onDoubleClick, onContextMenuOpe
           <TableCell onClick={e => e.stopPropagation()}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="inline-flex items-center rounded-md p-1 text-[var(--ink3)] hover:bg-[var(--bg)]">
+                <button className="inline-flex items-center rounded-md p-1 text-[var(--ink3)] hover:bg-[var(--bg)]" data-ui-native-button="">
                   <Icon name="moreHorizontal" size={16} />
                 </button>
               </DropdownMenuTrigger>

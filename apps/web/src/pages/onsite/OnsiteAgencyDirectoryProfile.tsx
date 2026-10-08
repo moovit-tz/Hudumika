@@ -208,7 +208,7 @@ export function OnsiteAgencyDirectoryProfile() {
               />
             </div>
             <div>
-              <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+              <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
                 {saving ? 'Saving…' : profile ? 'Save changes' : 'Submit for review'}
               </button>
             </div>

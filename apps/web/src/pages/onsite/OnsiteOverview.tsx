@@ -63,7 +63,7 @@ export function OnsiteOverview() {
             onChange={(e) => setPromptText(e.target.value)}
           />
           <Tip label="Ask AI or search">
-            <button type="submit" className="onsite-prompt-submit" aria-label="Ask AI or search">
+            <button type="submit" className="onsite-prompt-submit" aria-label="Ask AI or search" data-ui-native-button="">
               <Icon name="arrowRight" size={16} />
             </button>
           </Tip>
@@ -71,25 +71,25 @@ export function OnsiteOverview() {
 
         {/* Quick Action Tag Pills */}
         <div className="onsite-prompt-pills">
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/domains/search')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/domains/search')} data-ui-native-button="">
             <Icon name="globe" size={14} /> Get domain
           </button>
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
             <Icon name="layoutDashboard" size={14} /> Create website
           </button>
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')} data-ui-native-button="">
             <Icon name="mail" size={14} /> Get email
           </button>
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/applications')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/applications')} data-ui-native-button="">
             <Icon name="terminal" size={14} /> Try vibe coding
           </button>
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
             <Icon name="refresh" size={14} /> Migrate site
           </button>
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/servers')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/servers')} data-ui-native-button="">
             <Icon name="monitor" size={14} /> Get VPS
           </button>
-          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')}>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')} data-ui-native-button="">
             <Icon name="send" size={14} /> Try email marketing
           </button>
         </div>
@@ -103,7 +103,7 @@ export function OnsiteOverview() {
             <h3>Get your website live – in minutes</h3>
             <p>Just describe your idea and let AI build your site. From portfolios and online stores to business sites and more – get yours online today.</p>
           </div>
-          <button className="onsite-btn-black" onClick={() => navigate('/onsite/websites')}>
+          <button className="onsite-btn-black" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
             Try AI Builder
           </button>
         </div>
@@ -114,7 +114,7 @@ export function OnsiteOverview() {
             <h3>Build your online store with AI</h3>
             <p>Sell on your site, social media, and more. Manage products, orders, and sales – all from one place.</p>
           </div>
-          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/websites')}>
+          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
             Get started
           </button>
         </div>
@@ -125,7 +125,7 @@ export function OnsiteOverview() {
             <h3>Claim your free email</h3>
             <p>Show you're a credible business with a professional email address, like <code>you@yourdomain.com</code>.</p>
           </div>
-          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/emails')}>
+          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/emails')} data-ui-native-button="">
             Claim email
           </button>
         </div>

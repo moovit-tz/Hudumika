@@ -54,7 +54,7 @@ export function OnsiteAgencyClients() {
         titleEm="clients"
         subtitle="Every client you host under your own package — each on its own independent account, free to detach or move on at any time."
         actions={
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="userPlus" size={16} /> New client
           </button>
         }
@@ -75,7 +75,7 @@ export function OnsiteAgencyClients() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Set up hosting for your first client. They get their own account and login — billed under your package until they detach.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
             <Icon name="userPlus" size={16} /> New client
           </button>
         </div>
@@ -114,7 +114,7 @@ export function OnsiteAgencyClients() {
                             style={{ color: 'var(--red)' }}
                             disabled={releasing === c.tenant_id}
                             onClick={() => handleRelease(c)}
-                          >
+                           data-ui-native-button="">
                             {releasing === c.tenant_id ? 'Releasing…' : 'Release'}
                           </button>
                         </div>
@@ -204,7 +204,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
       <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="onsite-card-header">
           <DialogTitle className="onsite-card-title">New client</DialogTitle>
-          <button className="btn btn-sm btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-ghost" onClick={onClose} data-ui-native-button="">✕</button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-form-group">
@@ -250,10 +250,10 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
+            <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
               {submitting ? 'Creating…' : 'Create client'}
             </button>
           </div>

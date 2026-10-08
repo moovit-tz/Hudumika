@@ -232,10 +232,10 @@ export function ClearanceWorkflowList() {
           />
         </div>
         <div className="wf-header-actions">
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/clearos/ops')}>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/clearos/ops')} data-ui-native-button="">
             Back to Ops
           </button>
-          <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')}>
+          <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')} data-ui-native-button="">
             <Icon name="plus" size={14} color="white" />
             New Workflow
           </button>
@@ -272,7 +272,7 @@ export function ClearanceWorkflowList() {
                   {(tpl.freightModes || []).map((m: string) => <span key={m} className="wf-badge wf-badge-blue">{m}</span>)}
                   {(tpl.consignmentTypes || []).map((c: string) => <span key={c} className="wf-badge wf-badge-orange">{c}</span>)}
                 </div>
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: 2 }} disabled={adopting === tpl.id} onClick={() => handleAdopt(tpl)}>
+                <button className="btn btn-secondary btn-sm" style={{ marginTop: 2 }} disabled={adopting === tpl.id} onClick={() => handleAdopt(tpl)} data-ui-native-button="">
                   {adopting === tpl.id ? 'Adding…' : <><Icon name="plus" size={12} /> Use template</>}
                 </button>
               </div>
@@ -314,10 +314,10 @@ export function ClearanceWorkflowList() {
               </ul>
               {isSuperAdmin && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  <button className="btn btn-primary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'approve')}>
+                  <button className="btn btn-primary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'approve')} data-ui-native-button="">
                     {deciding === p.id ? 'Working…' : <><Icon name="check" size={12} color="white" /> Approve &amp; publish v{p.proposedVersion}</>}
                   </button>
-                  <button className="btn btn-secondary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'reject')}>Reject</button>
+                  <button className="btn btn-secondary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'reject')} data-ui-native-button="">Reject</button>
                 </div>
               )}
             </div>
@@ -353,7 +353,7 @@ export function ClearanceWorkflowList() {
                 <div className="wf-empty-icon"><Icon name="tasks" size={32} color="var(--ink3)" /></div>
                 <div className="wf-empty-title">No Workflows Yet</div>
                 <div className="wf-empty-sub">Create your first workflow to configure how shipments move through your operations.</div>
-                <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')}>
+                <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')} data-ui-native-button="">
                   <Icon name="plus" size={13} color="white" /> New Workflow
                 </button>
               </div>
@@ -368,13 +368,13 @@ export function ClearanceWorkflowList() {
                       </div>
                     </div>
                     <div className="wf-card-actions">
-                      <Tip label="Edit workflow"><button type="button" className="wf-icon-btn" aria-label="Edit workflow" onClick={() => navigate(`/studio/clearance/${wf.id}`)}>
+                      <Tip label="Edit workflow"><button type="button" className="wf-icon-btn" aria-label="Edit workflow" onClick={() => navigate(`/studio/clearance/${wf.id}`)} data-ui-native-button="">
                         <Icon name="edit" size={13} />
                       </button></Tip>
-                      <Tip label="Duplicate workflow"><button type="button" className="wf-icon-btn" aria-label="Duplicate workflow" onClick={() => handleDuplicate(wf)}>
+                      <Tip label="Duplicate workflow"><button type="button" className="wf-icon-btn" aria-label="Duplicate workflow" onClick={() => handleDuplicate(wf)} data-ui-native-button="">
                         <Icon name="copy" size={13} />
                       </button></Tip>
-                      <Tip label="Delete workflow"><button type="button" className="wf-icon-btn danger" aria-label="Delete workflow" onClick={() => handleDelete(wf.id)}>
+                      <Tip label="Delete workflow"><button type="button" className="wf-icon-btn danger" aria-label="Delete workflow" onClick={() => handleDelete(wf.id)} data-ui-native-button="">
                         <Icon name="trash" size={13} />
                       </button></Tip>
                     </div>
@@ -395,7 +395,7 @@ export function ClearanceWorkflowList() {
                     <button
                       style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: wf.isActive ? 'var(--red)' : 'var(--green)', fontWeight: 700, fontFamily: 'inherit', padding: 'var(--ds-btn-py-xs) 4px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                       onClick={() => handleToggleActive(wf)}
-                    >
+                     data-ui-native-button="">
                       {wf.isActive ? 'Deactivate' : 'Activate'}
                     </button>
                   </div>

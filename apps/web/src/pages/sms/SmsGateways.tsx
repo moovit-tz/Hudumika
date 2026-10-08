@@ -225,7 +225,7 @@ export function SmsGateways() {
               <button
                 onClick={() => setTestModalGateway(null)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={14} />
               </button>
             }
@@ -413,7 +413,7 @@ export function SmsGateways() {
                           alignItems: 'center',
                           gap: 6,
                         }}
-                      >
+                       data-ui-native-button="">
                         <Badge variant={g.active ? 'success' : 'gray'}>
                           {g.active ? 'Active' : 'Disabled'}
                         </Badge>

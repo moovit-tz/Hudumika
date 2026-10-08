@@ -220,7 +220,7 @@ export function SealConsignmentDetail() {
       {/* Header */}
       <div className="seal-page-hdr">
         <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/consignments')} style={{ marginBottom: 12 }}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/consignments')} style={{ marginBottom: 12 }} data-ui-native-button="">
             <Icon name="arrowLeft" size={13} />
             <span>Back to Consignments</span>
           </button>
@@ -270,7 +270,7 @@ export function SealConsignmentDetail() {
             className="btn btn-primary"
             style={{ height: 38, padding: '0 20px', whiteSpace: 'nowrap' }}
             disabled={!check?.valid || addingContainer}
-          >
+           data-ui-native-button="">
             <Icon name="plus" size={14} />
             <span>{addingContainer ? 'Adding…' : 'Add Container'}</span>
           </button>
@@ -313,7 +313,7 @@ export function SealConsignmentDetail() {
                 }}
                 className="btn btn-secondary btn-sm"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
+               data-ui-native-button="">
                 <Icon name="container" size={13} color="var(--teal)" />
                 <span>3D Specs &amp; Survey</span>
               </button>
@@ -339,14 +339,14 @@ export function SealConsignmentDetail() {
                     <label className="seal-field-label">Tare (kg)</label>
                     <input type="number" className="seal-input-control" value={tareWeight} onChange={e => setTareWeight(e.target.value)} />
                   </div>
-                  <button type="button" className="btn btn-primary" disabled={gating} onClick={() => handleGateIn(c.id)}>
+                  <button type="button" className="btn btn-primary" disabled={gating} onClick={() => handleGateIn(c.id)} data-ui-native-button="">
                     <Icon name="truck" size={14} /><span>{gating ? 'Recording…' : 'Confirm Gate-In'}</span>
                   </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setGateActionId(null)}>Cancel</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setGateActionId(null)} data-ui-native-button="">Cancel</button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setGateActionId(c.id)}>
+                  <button type="button" className="btn btn-primary" onClick={() => setGateActionId(c.id)} data-ui-native-button="">
                     <Icon name="truck" size={14} /><span>Gate In</span>
                   </button>
                 </div>
@@ -388,12 +388,12 @@ export function SealConsignmentDetail() {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     {c.eir_reference && (
-                      <button type="button" className="btn btn-secondary" onClick={() => handlePrintEir(c)}>
+                      <button type="button" className="btn btn-secondary" onClick={() => handlePrintEir(c)} data-ui-native-button="">
                         <Icon name="printer" size={13} /><span>Print EIR ({c.eir_reference})</span>
                       </button>
                     )}
                     {devanActionId !== c.id && (
-                      <button type="button" className="btn btn-primary" onClick={() => setDevanActionId(c.id)}>
+                      <button type="button" className="btn btn-primary" onClick={() => setDevanActionId(c.id)} data-ui-native-button="">
                         <Icon name="package" size={14} /><span>Devan / Tally</span>
                       </button>
                     )}
@@ -429,19 +429,19 @@ export function SealConsignmentDetail() {
                             </SelectContent>
                           </Select>
                         )}
-                        <button type="button" className="btn btn-secondary btn-xs" style={{ width: 'var(--ctl-h-xs)', padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
+                        <button type="button" className="btn btn-secondary btn-xs" style={{ width: 'var(--ctl-h-xs)', padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))} data-ui-native-button="">
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => setTallyLines(lines => [...lines, emptyLine()])}>
+                      <button type="button" className="btn btn-secondary" onClick={() => setTallyLines(lines => [...lines, emptyLine()])} data-ui-native-button="">
                         <Icon name="plus" size={13} /><span>Add Line</span>
                       </button>
-                      <button type="button" className="btn btn-primary" disabled={devanning} onClick={() => handleDevan(c.id)}>
+                      <button type="button" className="btn btn-primary" disabled={devanning} onClick={() => handleDevan(c.id)} data-ui-native-button="">
                         <Icon name="check" size={14} /><span>{devanning ? 'Recording…' : 'Submit Tally'}</span>
                       </button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setDevanActionId(null)}>Cancel</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setDevanActionId(null)} data-ui-native-button="">Cancel</button>
                     </div>
                   </div>
                 )}

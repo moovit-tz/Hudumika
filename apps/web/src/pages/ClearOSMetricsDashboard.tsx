@@ -50,7 +50,7 @@ function OfficerOutputDonut({ rows, onSelect }: { rows: OfficerPerformance[]; on
       </Pie>
       <RechartsTooltip contentStyle={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'none', fontSize: 12 }} />
     </PieChart></ResponsiveContainer><div className="clearos-donut__center"><strong>{total}</strong><span>closed</span></div></div>
-    <div className="clearos-donut-legend">{data.slice(0, 6).map((row, index) => <button type="button" key={row.user_id} onClick={() => onSelect(row)}><span style={{ background: OFFICER_CHART_COLORS[index % OFFICER_CHART_COLORS.length] }} /><em>{row.name}</em><strong>{row.cases_closed}</strong></button>)}</div>
+    <div className="clearos-donut-legend">{data.slice(0, 6).map((row, index) => <button type="button" key={row.user_id} onClick={() => onSelect(row)} data-ui-native-button=""><span style={{ background: OFFICER_CHART_COLORS[index % OFFICER_CHART_COLORS.length] }} /><em>{row.name}</em><strong>{row.cases_closed}</strong></button>)}</div>
   </div>;
 }
 

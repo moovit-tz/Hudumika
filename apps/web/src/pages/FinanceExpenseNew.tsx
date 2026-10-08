@@ -9,6 +9,10 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Button } from '../components/ui/button.js';
+import './FinanceIndustries.css';
 import { SectionCard } from '../components/SectionCard.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
@@ -22,7 +26,6 @@ const CATS: Record<string, string> = {
 interface ShipmentOpt { id: string; ref_number?: string; bl_number?: string | null; customer_name?: string }
 interface CustomerOpt { id: string; name: string }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
 
 export const FinanceExpenseNew: React.FC = () => {
@@ -55,9 +58,9 @@ export const FinanceExpenseNew: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch(() => setShipments([]));
-    apiFetch('/v1/customers').then((res: any) => setCustomers(res?.data ?? res ?? [])).catch(() => setCustomers([]));
-    apiFetch('/v1/settings').then((res: any) => setCustomCats(res?.settings?.['expenses-categories']?.categories ?? [])).catch(() => setCustomCats([]));
+    apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch(err => setError(err.message || 'Could not load shipments.'));
+    apiFetch('/v1/customers').then((res: any) => setCustomers(res?.data ?? res ?? [])).catch(err => setError(err.message || 'Could not load CRM customers.'));
+    apiFetch('/v1/settings').then((res: any) => setCustomCats(res?.settings?.['expenses-categories']?.categories ?? [])).catch(err => setError(err.message || 'Could not load expense categories.'));
   }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -69,7 +72,7 @@ export const FinanceExpenseNew: React.FC = () => {
   }
 
   async function searchSuppliers(q: string): Promise<PickerItem[]> {
-    const res: any = await apiFetch(`/v1/suppliers${q.trim() ? `?search=${encodeURIComponent(q.trim())}` : ''}`).catch(() => []);
+    const res: any = await apiFetch(`/v1/suppliers${q.trim() ? `?search=${encodeURIComponent(q.trim())}` : ''}`);
     const list = Array.isArray(res) ? res : [];
     return list.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
   }
@@ -100,7 +103,7 @@ export const FinanceExpenseNew: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="industry-page">
       <BackButton to="/finance/expenses" label="Expenses" />
       <PageHeader
         crumbs={['Finance', 'Expenses', 'New']}
@@ -111,18 +114,18 @@ export const FinanceExpenseNew: React.FC = () => {
 
       <SectionCard>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div className="industry-form-grid">
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Expense Name</label>
-            <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Forklift Hire" style={inputStyle} />
+            <Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Forklift Hire"  />
           </div>
-          <div style={{ width: 140 }}>
+          <div style={{ minWidth: 0 }}>
             <label style={labelStyle}>Amount (TZS)</label>
-            <input type="number" required value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" style={inputStyle} />
+            <Input type="number" min="0.01" step="0.01" required value={amount} onChange={e => setAmount(e.target.value)} placeholder="0"  />
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div className="industry-form-grid">
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Date</label>
             <DatePicker date={parseDateOnly(date)} onChange={d => setDate(toDateOnlyString(d))} />
@@ -141,7 +144,7 @@ export const FinanceExpenseNew: React.FC = () => {
 
         <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div className="industry-form-grid">
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Link to Shipment (Job)</label>
             <Combobox
@@ -179,7 +182,7 @@ export const FinanceExpenseNew: React.FC = () => {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div className="industry-form-grid">
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Payment Mode</label>
             <Select value={paymentMode} onValueChange={setPaymentMode}>
@@ -191,7 +194,7 @@ export const FinanceExpenseNew: React.FC = () => {
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Reference #</label>
-            <input value={reference} onChange={e => setReference(e.target.value)} placeholder="Receipt / Cheque no" style={inputStyle} />
+            <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="Receipt / Cheque no"  />
           </div>
         </div>
 
@@ -215,7 +218,7 @@ export const FinanceExpenseNew: React.FC = () => {
 
         <div>
           <label style={labelStyle}>Note / Description</label>
-          <textarea value={note} onChange={e => setNote(e.target.value)} style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }} placeholder="Optional notes about this expense..." />
+          <Textarea value={note} onChange={e => setNote(e.target.value)}  placeholder="Optional notes about this expense..." />
         </div>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
@@ -226,10 +229,8 @@ export const FinanceExpenseNew: React.FC = () => {
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
-          <Link to="/finance/expenses" style={{ padding: '9px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
-          <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving ? 'Savingâ€¦' : 'Save Expense'}
-          </button>
+          <Button asChild variant="outline"><Link to="/finance/expenses">Cancel</Link></Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save expense'}</Button>
         </div>
       </form>
       </SectionCard>

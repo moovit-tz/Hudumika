@@ -209,7 +209,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
                   title="Previous page"
                   className="lbx-icon-btn"
                   style={{ opacity: currentPage <= 1 ? 0.35 : 1 }}
-                >
+                 data-ui-native-button="">
                   <Icon name="chevronLeft" size={14} />
                 </button>
                 <input
@@ -226,18 +226,18 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
                   title="Next page"
                   className="lbx-icon-btn"
                   style={{ opacity: currentPage >= numPages ? 0.35 : 1 }}
-                >
+                 data-ui-native-button="">
                   <Icon name="chevronRight" size={14} />
                 </button>
               </div>
             )}
 
             <div className="lbx-pill">
-              <button onClick={() => setZoom(z => Math.max(50, z - 10))} title="Zoom out" className="lbx-icon-btn lbx-zoom-btn">
+              <button onClick={() => setZoom(z => Math.max(50, z - 10))} title="Zoom out" className="lbx-icon-btn lbx-zoom-btn" data-ui-native-button="">
                 <Icon name="minus" size={13} />
               </button>
               <span className="lbx-zoom-label">{zoom}%</span>
-              <button onClick={() => setZoom(z => Math.min(200, z + 10))} title="Zoom in" className="lbx-icon-btn lbx-zoom-btn">
+              <button onClick={() => setZoom(z => Math.min(200, z + 10))} title="Zoom in" className="lbx-icon-btn lbx-zoom-btn" data-ui-native-button="">
                 <Icon name="plus" size={13} />
               </button>
             </div>
@@ -245,10 +245,10 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
 
           {/* Right: actions */}
           <div className="lbx-bar-right">
-            <button onClick={() => window.print()} title="Print" className="lbx-icon-btn lbx-action-btn">
+            <button onClick={() => window.print()} title="Print" className="lbx-icon-btn lbx-action-btn" data-ui-native-button="">
               <Icon name="printer" size={15} />
             </button>
-            <button onClick={() => onDownload(item)} title="Download" className="lbx-icon-btn lbx-action-btn">
+            <button onClick={() => onDownload(item)} title="Download" className="lbx-icon-btn lbx-action-btn" data-ui-native-button="">
               <Icon name="download" size={15} />
             </button>
 
@@ -259,10 +259,10 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
               title={item.starred ? 'Unstar' : 'Star'}
               className="lbx-icon-btn lbx-action-btn"
               style={{ color: item.starred ? 'var(--gold)' : undefined }}
-            >
+             data-ui-native-button="">
               <Icon name="star" size={15} color={item.starred ? 'var(--gold)' : undefined} />
             </button>
-            <button onClick={() => onShare(item)} title="Share" className="lbx-icon-btn lbx-action-btn">
+            <button onClick={() => onShare(item)} title="Share" className="lbx-icon-btn lbx-action-btn" data-ui-native-button="">
               <Icon name="userPlus" size={15} />
             </button>
 
@@ -271,14 +271,14 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
             {/* Send this real file straight into a real signing workflow —
                 /v1/sign/envelopes.file_id is a real FK to cloud_files, so the
                 editor opens with this exact document loaded, not a re-upload. */}
-            <button onClick={openInSign} className="lbx-sign-btn">
+            <button onClick={openInSign} className="lbx-sign-btn" data-ui-native-button="">
               <Icon name="stamp" size={14} color="#fff" />
               <span>Sign &amp; Stamp</span>
             </button>
 
             <div className="lbx-divider" />
 
-            <Tip label="Close viewer"><button onClick={onClose} aria-label="Close viewer" className="lbx-icon-btn lbx-close-btn"><Icon name="close" size={16} /></button></Tip>
+            <Tip label="Close viewer"><button onClick={onClose} aria-label="Close viewer" className="lbx-icon-btn lbx-close-btn" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
           </div>
         </div>
 
@@ -296,7 +296,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage <= 1}
                   title="Previous page"
-                >
+                 data-ui-native-button="">
                   <Icon name="chevronLeft" size={20} color="#e5e7eb" />
                 </button>
                 <button
@@ -304,7 +304,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage >= numPages}
                   title="Next page"
-                >
+                 data-ui-native-button="">
                   <Icon name="chevronRight" size={20} color="#e5e7eb" />
                 </button>
               </>
@@ -347,7 +347,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
               <div className="lbx-status">
                 <Icon name="fileText" size={28} />
                 <span>Inline preview isn't available for {ext.toUpperCase()} files on this deployment.</span>
-                <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => onDownload(item)}>Download to view</button>
+                <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => onDownload(item)} data-ui-native-button="">Download to view</button>
               </div>
             )}
 

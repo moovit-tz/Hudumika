@@ -1,0 +1,209 @@
+{
+  "generatedAt": "2026-10-08T05:19:12.156Z",
+  "scope": "Read-only requests using a disposable Finance tenant. No transaction mutations, external-provider syncs or statutory filings were exercised.",
+  "results": [
+    {
+      "path": "/v1/customers",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/industries",
+      "status": 400,
+      "error": "Invalid work data."
+    },
+    {
+      "path": "/v1/invoices",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/industries/stock-options",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/industries/recipes",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/dashboard-snapshot",
+      "status": 200
+    },
+    {
+      "path": "/v1/leads",
+      "status": 403,
+      "error": "Forbidden: Access denied. Required one of [SUPER_ADMIN, ADMIN, TENANT_ADMIN, MANAGER, SALES, SENIOR, JUNIOR, OFFICER], user has role: FINANCE"
+    },
+    {
+      "path": "/v1/quotations",
+      "status": 200
+    },
+    {
+      "path": "/v1/products",
+      "status": 200
+    },
+    {
+      "path": "/v1/inventory/warehouses",
+      "status": 200
+    },
+    {
+      "path": "/v1/purchase-orders",
+      "status": 200
+    },
+    {
+      "path": "/v1/suppliers",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/expenses",
+      "status": 200
+    },
+    {
+      "path": "/v1/shipments",
+      "status": 200
+    },
+    {
+      "path": "/v1/settings",
+      "status": 200
+    },
+    {
+      "path": "/v1/bills",
+      "status": 200
+    },
+    {
+      "path": "/v1/bills/recurring",
+      "status": 200
+    },
+    {
+      "path": "/v1/bills/payments",
+      "status": 200
+    },
+    {
+      "path": "/v1/products/categories",
+      "status": 200
+    },
+    {
+      "path": "/v1/products/reviews",
+      "status": 200
+    },
+    {
+      "path": "/v1/tax-codes",
+      "status": 200
+    },
+    {
+      "path": "/v1/tax-codes/registration",
+      "status": 200
+    },
+    {
+      "path": "/v1/tax-codes/usage",
+      "status": 200
+    },
+    {
+      "path": "/v1/vat-periods",
+      "status": 200
+    },
+    {
+      "path": "/v1/payments",
+      "status": 200
+    },
+    {
+      "path": "/v1/files",
+      "status": 400,
+      "error": "drive_id is required"
+    },
+    {
+      "path": "/v1/finance/aged-receivables",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/aged-payables",
+      "status": 200
+    },
+    {
+      "path": "/v1/dividends",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/entities",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/intercompany-transactions",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/chart-of-accounts",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/journal-entries",
+      "status": 200
+    },
+    {
+      "path": "/v1/delivery-documents",
+      "status": 200
+    },
+    {
+      "path": "/v1/accounting-integrations",
+      "status": 200
+    },
+    {
+      "path": "/v1/invoices/recurring",
+      "status": 200
+    },
+    {
+      "path": "/v1/credit-notes",
+      "status": 200
+    },
+    {
+      "path": "/v1/fixed-assets",
+      "status": 200
+    },
+    {
+      "path": "/v1/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/bank-reconciliation/statements",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/gl-periods",
+      "status": 200
+    },
+    {
+      "path": "/v1/ap-approval-workflows",
+      "status": 200
+    },
+    {
+      "path": "/v1/hr/staff",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/pos/bootstrap",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/pos/analytics",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/pos/holds",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/pos/shifts?limit=30",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/pos/usage",
+      "status": 200
+    },
+    {
+      "path": "/v1/finance/pos/sales",
+      "status": 200
+    },
+    {
+      "path": "/v1/fx-revaluations",
+      "status": 200
+    }
+  ]
+}

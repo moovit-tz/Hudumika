@@ -127,7 +127,7 @@ export function RecipientChips({ label, value, onChange, placeholder }: {
             <span key={c.email} className="rcp-chip">
               <PersonAvatar name={c.name || c.email} size={18} hideStatus />
               <span className="rcp-chip-text">{c.name || c.email}</span>
-              <button type="button" className="rcp-chip-remove" onClick={() => removeChip(c.email)} aria-label={`Remove ${c.name || c.email}`}>
+              <button type="button" className="rcp-chip-remove" onClick={() => removeChip(c.email)} aria-label={`Remove ${c.name || c.email}`} data-ui-native-button="">
                 <Icon name="x" size={11} />
               </button>
             </span>

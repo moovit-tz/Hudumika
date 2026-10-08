@@ -226,7 +226,7 @@ export function ShipmentDetail() {
               {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
               {job.hasDangerousGoods && (
                 <button type="button" onClick={() => setTab('overview')} title="Carries a dangerous-goods declaration — see the Overview tab"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 'var(--r-sm)', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 'var(--r-sm)', fontWeight: 700, border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                   <Icon name="alertTriangle" size={11} color="var(--gold)" /> DG
                 </button>
               )}
@@ -257,15 +257,15 @@ export function ShipmentDetail() {
                 // it's the actual primary action, same as accent-colour links
                 // and CTAs are the only colour in the Hostinger reference this
                 // page's palette is being brought closer to.
-                <button type="button" onClick={() => setShowAdv(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, flexShrink: 0 }}>
+                <button type="button" onClick={() => setShowAdv(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, flexShrink: 0 }} data-ui-native-button="">
                   <Icon name="arrowRight" size={13} color="#fff" /> Advance Stage
                 </button>
               )}
-              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                 <Icon name="printer" size={15} />
               </button>
               {isStaff && (
-                <button type="button" onClick={() => shareShipmentReportLink(job.id)} title="Copy progress link (for WhatsApp/email)" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
+                <button type="button" onClick={() => shareShipmentReportLink(job.id)} title="Copy progress link (for WhatsApp/email)" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                   <Icon name="link" size={15} />
                 </button>
               )}

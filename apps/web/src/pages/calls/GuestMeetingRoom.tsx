@@ -230,7 +230,7 @@ export function GuestMeetingRoom({
         background: danger ? 'var(--red)' : active ? '#3c4043' : '#fff', color: danger ? 'hsl(var(--red-foreground))' : active ? '#fff' : '#202124',
         display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : 1,
       }}
-    >
+     data-ui-native-button="">
       <Icon name={icon} size={20} />
     </button>
   );
@@ -306,7 +306,7 @@ export function GuestMeetingRoom({
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 300, maxWidth: '100vw', background: '#1f2937', borderLeft: '1px solid #374151', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#f9fafb' }}>In-call messages</span>
-            <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}><Icon name="x" size={16} /></button>
+            <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {chat.map((c, i) => (
@@ -348,13 +348,13 @@ function Popover2({ onEmoji }: { onEmoji: (e: string) => void }) {
       <button
         type="button" title="Reactions" onClick={() => setOpen(v => !v)}
         style={{ width: 48, height: 48, flexShrink: 0, borderRadius: '50%', border: 'none', cursor: 'pointer', background: open ? '#3c4043' : '#fff', color: open ? '#fff' : '#202124', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >
+       data-ui-native-button="">
         <Icon name="smile" size={20} />
       </button>
       {open && (
         <div style={{ position: 'absolute', bottom: 58, left: '50%', transform: 'translateX(-50%)', background: '#1f2937', border: '1px solid #374151', borderRadius: 'var(--r)', padding: 8, display: 'flex', gap: 4 }}>
           {EMOJI.map(e => (
-            <button key={e} onClick={() => { onEmoji(e); setOpen(false); }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 4 }}>{e}</button>
+            <button key={e} onClick={() => { onEmoji(e); setOpen(false); }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 4 }} data-ui-native-button="">{e}</button>
           ))}
         </div>
       )}

@@ -178,11 +178,11 @@ export const SuperAdminCalculations: React.FC = () => {
         <div className="sac-foot">
           <span>{total === 0 ? 'Nothing to show' : `${offset + 1}–${Math.min(offset + LIMIT, total)} of ${total.toLocaleString()}`}</span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="sac-btn" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - LIMIT))}>
+            <button type="button" className="sac-btn" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - LIMIT))} data-ui-native-button="">
               <Icon name="arrowLeft" size={12} /> Previous
             </button>
             <span style={{ minWidth: 74, textAlign: 'center' }}>Page {Math.floor(offset / LIMIT) + 1} of {pages}</span>
-            <button type="button" className="sac-btn" disabled={offset + LIMIT >= total} onClick={() => setOffset(o => o + LIMIT)}>
+            <button type="button" className="sac-btn" disabled={offset + LIMIT >= total} onClick={() => setOffset(o => o + LIMIT)} data-ui-native-button="">
               Next <Icon name="arrowRight" size={12} />
             </button>
           </div>

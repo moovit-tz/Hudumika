@@ -251,7 +251,7 @@ export function SmsReports() {
                 <button
                   onClick={() => setSelectedMessage(null)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}
-                >
+                 data-ui-native-button="">
                   <Icon name="x" size={14} />
                 </button>
               }

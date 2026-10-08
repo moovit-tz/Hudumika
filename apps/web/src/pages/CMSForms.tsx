@@ -60,7 +60,7 @@ export function CMSFormsList() {
         titlePlain="Forms &"
         titleEm="submissions"
         subtitle="A form a visitor can actually fill in — contact requests, sign-ups — placed on any page or entry via a real Form block, with every submission landing here."
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New form</button>}
+        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)} data-ui-native-button=""><Icon name="plus" size={13} /> New form</button>}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
@@ -72,8 +72,8 @@ export function CMSFormsList() {
                 <input className="input-field" value={name} placeholder="e.g. Contact us" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>{saving ? 'Creating…' : 'Create form'}</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create form'}</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
           </div>
@@ -216,8 +216,8 @@ export function CMSFormDetail() {
         subtitle={`Place this form anywhere with a Form block — key "${form.key}".`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleRename}>Rename</button>
-            {tab === 'fields' && <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave}>{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>}
+            <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
+            {tab === 'fields' && <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave} data-ui-native-button="">{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>}
           </div>
         }
       />
@@ -251,7 +251,7 @@ export function CMSFormDetail() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, flexShrink: 0, paddingTop: 8 }}>
                     <Checkbox checked={Boolean(f.required)} onCheckedChange={checked => updateField(i, { required: Boolean(checked) })} /> Required
                   </label>
-                  <button type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: 6 }}>
+                  <button type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: 6 }} data-ui-native-button="">
                     <Icon name="x" size={14} />
                   </button>
                   {f.type === 'select' && (
@@ -264,7 +264,7 @@ export function CMSFormDetail() {
                 </div>
               ))}
               {fields.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12.5, textAlign: 'center', padding: '12px 0' }}>No fields yet — add the first one below.</div>}
-              <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={addField}><Icon name="plus" size={12} /> Add field</button>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={addField} data-ui-native-button=""><Icon name="plus" size={12} /> Add field</button>
             </div>
 
             <div className="card" style={{ padding: '20px 22px', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -277,13 +277,13 @@ export function CMSFormDetail() {
             </div>
 
             <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-              <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }}>Delete this form</button>
+              <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this form</button>
             </div>
           </>
         ) : (
           <div className="card" style={{ padding: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-              <button className="btn btn-secondary btn-sm" disabled={!submissions?.length} onClick={exportCsv}><Icon name="download" size={12} /> Export CSV</button>
+              <button className="btn btn-secondary btn-sm" disabled={!submissions?.length} onClick={exportCsv} data-ui-native-button=""><Icon name="download" size={12} /> Export CSV</button>
             </div>
             {submissions === null ? <SectionLoading /> : submissions.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>

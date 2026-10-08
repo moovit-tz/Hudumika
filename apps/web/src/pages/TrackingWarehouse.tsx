@@ -271,7 +271,7 @@ export const TrackingWarehouse: React.FC = () => {
                       <Badge variant={l.active ? 'success' : 'gray'}>{l.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                      <button type="button" onClick={() => removeLocation(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="close" size={14} /></button>
+                      <button type="button" onClick={() => removeLocation(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="close" size={14} /></button>
                     </td>
                   </tr>
                 ))}
@@ -312,9 +312,9 @@ export const TrackingWarehouse: React.FC = () => {
                         <Badge variant="gray">{a.status.replace('_', ' ')}</Badge>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {a.status === 'SCHEDULED' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'check-in')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}>Check in</button>}
-                        {a.status === 'CHECKED_IN' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'complete')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}>Complete</button>}
-                        {(a.status === 'SCHEDULED' || a.status === 'CHECKED_IN') && <button type="button" onClick={() => setAppointmentStatus(a.id, 'cancel')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>}
+                        {a.status === 'SCHEDULED' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'check-in')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Check in</button>}
+                        {a.status === 'CHECKED_IN' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'complete')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Complete</button>}
+                        {(a.status === 'SCHEDULED' || a.status === 'CHECKED_IN') && <button type="button" onClick={() => setAppointmentStatus(a.id, 'cancel')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Cancel</button>}
                       </td>
                     </tr>
                   );

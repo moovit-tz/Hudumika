@@ -70,10 +70,10 @@ export function ComplyCalendar() {
         subtitle="Renewal windows, filing deadlines, and penalty dates"
         actions={
         <div style={{ display: 'flex', gap: 10 }}>
-          <button type="button" className="comply-btn-secondary" onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }}>
+          <button type="button" className="comply-btn-secondary" onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }} data-ui-native-button="">
             Today
           </button>
-          <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/calendar/new-reminder')}>
+          <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/calendar/new-reminder')} data-ui-native-button="">
             <Icon name="plus" size={14} /> Add Reminder
           </button>
         </div>
@@ -85,13 +85,13 @@ export function ComplyCalendar() {
         <div>
           {/* Month nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={prevMonth}>
+            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={prevMonth} data-ui-native-button="">
               <Icon name="chevronLeft" size={13} />
             </button>
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
               {MONTHS[month]} {year}
             </span>
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={nextMonth}>
+            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={nextMonth} data-ui-native-button="">
               <Icon name="chevronRight" size={13} />
             </button>
           </div>
@@ -146,7 +146,7 @@ export function ComplyCalendar() {
                   {d.source === 'reminder' && (
                     <Tip label="Delete reminder">
                       <button type="button" aria-label="Delete reminder" onClick={() => deleteReminder(d.source_id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginLeft: 2, flexShrink: 0 }}>
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginLeft: 2, flexShrink: 0 }} data-ui-native-button="">
                         <Icon name="x" size={13} />
                       </button>
                     </Tip>

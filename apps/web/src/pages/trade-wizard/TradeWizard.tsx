@@ -184,7 +184,7 @@ export function TradeWizard() {
                   cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)', lineHeight: 1.25}}
-              >
+               data-ui-native-button="">
                 <FeaturedIcon variant={draft.kind === null ? 'brand' : 'gray'} size="sm" shape="square">
                   <Icon name="grid" size={15} />
                 </FeaturedIcon>
@@ -214,7 +214,7 @@ export function TradeWizard() {
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)', lineHeight: 1.25}}
-                  >
+                   data-ui-native-button="">
                     <FeaturedIcon variant={isSelected ? 'brand' : 'gray'} size="sm" shape="square">
                       <Icon name={k.icon} size={15} />
                     </FeaturedIcon>

@@ -842,7 +842,7 @@ export const Tracker: React.FC = () => {
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 14px', border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
-                    >
+                     data-ui-native-button="">
                       <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: s.type === 'CONTAINER' ? 'var(--gold-l)' : s.kind === 'snapshot' ? 'var(--teal-l)' : 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name={s.type === 'AWB' ? 'compass' : s.type === 'CONTAINER' ? 'container' : 'anchor'} size={13} color={s.type === 'CONTAINER' ? 'var(--gold)' : s.kind === 'snapshot' ? 'var(--teal)' : 'var(--blue)'} />
                       </div>
@@ -881,7 +881,7 @@ export const Tracker: React.FC = () => {
                   onClick={() => selectPreset(c.container_number, 'CONTAINER')}
                   title={`${c.size_type || c.iso_code} · ${c.lifecycle_stage?.replace(/_/g, ' ')}`}
                   className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-(--bg) border border-(--border) text-(--ink2) hover:border-(--teal) hover:text-(--ink) transition-colors"
-                >
+                 data-ui-native-button="">
                   {c.container_number}
                 </button>
               ))}
@@ -889,7 +889,7 @@ export const Tracker: React.FC = () => {
                 type="button"
                 onClick={() => navigate('/cargotracker/containers')}
                 className="px-2.5 py-1 rounded-md text-[11px] font-bold text-(--teal) hover:underline"
-              >
+               data-ui-native-button="">
                 Fleet →
               </button>
             </div>
@@ -1102,7 +1102,7 @@ export const Tracker: React.FC = () => {
                   style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', fontSize: 10, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '.04em', textTransform: 'uppercase' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.12)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
-                >
+                 data-ui-native-button="">
                   <Icon name="x" size={10} color="rgba(255,255,255,.7)" />New Search
                 </button>
               </div>
@@ -1442,7 +1442,7 @@ export const Tracker: React.FC = () => {
               const evts = parseEvents(snap.events);
               return (
                 <div key={snap.id} style={{ background: 'linear-gradient(150deg, hsl(220 65% 7%), hsl(220 58% 13%))', borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,.07)', padding: '16px 18px', color: 'rgba(255,255,255,.92)', position: 'relative' }}>
-                  <button onClick={() => deleteSnap(snap.id)} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button onClick={() => deleteSnap(snap.id)} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                     <Icon name="x" size={12} color="rgba(255,255,255,.55)" />
                   </button>
 
@@ -1466,10 +1466,10 @@ export const Tracker: React.FC = () => {
                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
                         <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)' }}>{snap.tracking_number}</div>
                       </div>
-                      <Tip label="Edit entry"><button className="tr-btn" aria-label="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Tip label="Edit entry"><button className="tr-btn" aria-label="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} data-ui-native-button="">
                         <Icon name="edit" size={11} color="rgba(255,255,255,.55)" />
                       </button></Tip>
-                      <Tip label="Refresh tracking status"><button className="tr-btn" aria-label="Refresh tracking status" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 20, opacity: retrackingId === snap.id ? 0.5 : 1 }}>
+                      <Tip label="Refresh tracking status"><button className="tr-btn" aria-label="Refresh tracking status" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 20, opacity: retrackingId === snap.id ? 0.5 : 1 }} data-ui-native-button="">
                         <Icon name="refresh" size={11} color="rgba(255,255,255,.55)" />
                       </button></Tip>
                     </div>
@@ -1500,10 +1500,10 @@ export const Tracker: React.FC = () => {
 
                   {/* Snap actions */}
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
                       <Icon name="link" size={10} color="rgba(255,255,255,.55)" />Share
                     </button>
-                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
                       <Icon name="fileText" size={10} color="rgba(255,255,255,.55)" />PDF
                     </button>
                     {!snap.shipment_id

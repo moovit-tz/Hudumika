@@ -77,7 +77,7 @@ export function OnsiteDomainSearch() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="submit" className="onsite-prompt-submit" disabled={searching}>
+          <button type="submit" className="onsite-prompt-submit" disabled={searching} data-ui-native-button="">
             <Icon name={searching ? 'refresh' : 'arrowRight'} size={16} className={searching ? 'onsite-spin' : ''} />
           </button>
         </form>
@@ -117,7 +117,7 @@ export function OnsiteDomainSearch() {
                           className="onsite-btn-purple"
                           disabled={requesting === s.domain}
                           onClick={() => handleRequest(s.domain)}
-                        >
+                         data-ui-native-button="">
                           {requesting === s.domain ? 'Requesting…' : 'Request this domain'}
                         </button>
                       )}
@@ -142,7 +142,7 @@ export function OnsiteDomainSearch() {
             <h3 style={{ fontSize: '1.35rem', marginTop: '1rem' }}>Already own a domain?</h3>
             <p style={{ marginTop: '0.5rem' }}>Bring it over — we'll record the transfer request for you.</p>
           </div>
-          <button className="onsite-btn-outline" style={{ marginTop: '1rem' }} onClick={() => navigate('/onsite/domains/transfers')}>
+          <button className="onsite-btn-outline" style={{ marginTop: '1rem' }} onClick={() => navigate('/onsite/domains/transfers')} data-ui-native-button="">
             Transfer domain ↗
           </button>
         </div>

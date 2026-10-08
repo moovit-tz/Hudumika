@@ -144,7 +144,7 @@ export const TrackingPartsStock: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.unit_cost != null ? p.unit_cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vendorName(p.vendor_id)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                    <button type="button" onClick={() => remove(p.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+                    <button type="button" onClick={() => remove(p.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                       <Icon name="close" size={14} />
                     </button>
                   </td>

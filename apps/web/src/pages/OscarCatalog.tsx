@@ -23,7 +23,7 @@ function StyleSwitcher({
             ? 'bg-card shadow-sm text-foreground border border-border'
             : 'text-muted-foreground hover:text-foreground'
         }`}
-      >
+       data-ui-native-button="">
         Hudumika
       </button>
       <button
@@ -34,7 +34,7 @@ function StyleSwitcher({
             ? 'bg-primary text-primary-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground'
         }`}
-      >
+       data-ui-native-button="">
         Oscar
       </button>
     </div>
@@ -92,13 +92,13 @@ function AlertsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
               <span className="font-semibold">{v.label}!</span>
               {' '}This is a {v.label.toLowerCase()} alert — check it out.
             </div>
-            <button type="button" className="oscar-alert-close" onClick={() => dismiss(v.id)}>
+            <button type="button" className="oscar-alert-close" onClick={() => dismiss(v.id)} data-ui-native-button="">
               <Icon name="close" size={14} />
             </button>
           </div>
         ))}
         {dismissed.length > 0 && (
-          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setDismissed([])}>
+          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setDismissed([])} data-ui-native-button="">
             ↺ Reset alerts
           </button>
         )}
@@ -137,30 +137,30 @@ function ButtonsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="oscar-btn oscar-btn-primary">Primary</button>
-          <button type="button" className="oscar-btn oscar-btn-secondary">Secondary</button>
-          <button type="button" className="oscar-btn oscar-btn-success">Success</button>
-          <button type="button" className="oscar-btn oscar-btn-warning">Warning</button>
-          <button type="button" className="oscar-btn oscar-btn-danger">Danger</button>
-          <button type="button" className="oscar-btn oscar-btn-ghost">Ghost</button>
+          <button type="button" className="oscar-btn oscar-btn-primary" data-ui-native-button="">Primary</button>
+          <button type="button" className="oscar-btn oscar-btn-secondary" data-ui-native-button="">Secondary</button>
+          <button type="button" className="oscar-btn oscar-btn-success" data-ui-native-button="">Success</button>
+          <button type="button" className="oscar-btn oscar-btn-warning" data-ui-native-button="">Warning</button>
+          <button type="button" className="oscar-btn oscar-btn-danger" data-ui-native-button="">Danger</button>
+          <button type="button" className="oscar-btn oscar-btn-ghost" data-ui-native-button="">Ghost</button>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="oscar-btn oscar-btn-soft-primary">Soft Primary</button>
-          <button type="button" className="oscar-btn oscar-btn-soft-success">Soft Success</button>
-          <button type="button" className="oscar-btn oscar-btn-soft-warning">Soft Warning</button>
-          <button type="button" className="oscar-btn oscar-btn-soft-danger">Soft Danger</button>
+          <button type="button" className="oscar-btn oscar-btn-soft-primary" data-ui-native-button="">Soft Primary</button>
+          <button type="button" className="oscar-btn oscar-btn-soft-success" data-ui-native-button="">Soft Success</button>
+          <button type="button" className="oscar-btn oscar-btn-soft-warning" data-ui-native-button="">Soft Warning</button>
+          <button type="button" className="oscar-btn oscar-btn-soft-danger" data-ui-native-button="">Soft Danger</button>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          <button type="button" className="oscar-btn oscar-btn-primary oscar-btn-sm">Small</button>
-          <button type="button" className="oscar-btn oscar-btn-primary">Medium</button>
-          <button type="button" className="oscar-btn oscar-btn-primary oscar-btn-lg">Large</button>
-          <button type="button" className="oscar-btn oscar-btn-outline-primary">Outline</button>
-          <button type="button" className="oscar-btn oscar-btn-primary oscar-btn-icon" onClick={triggerLoad}>
+          <button type="button" className="oscar-btn oscar-btn-primary oscar-btn-sm" data-ui-native-button="">Small</button>
+          <button type="button" className="oscar-btn oscar-btn-primary" data-ui-native-button="">Medium</button>
+          <button type="button" className="oscar-btn oscar-btn-primary oscar-btn-lg" data-ui-native-button="">Large</button>
+          <button type="button" className="oscar-btn oscar-btn-outline-primary" data-ui-native-button="">Outline</button>
+          <button type="button" className="oscar-btn oscar-btn-primary oscar-btn-icon" onClick={triggerLoad} data-ui-native-button="">
             {loading
               ? <span className="oscar-spinner-sm oscar-spinner-white" />
               : <Icon name="plus" size={16} />}
           </button>
-          <button type="button" className="oscar-btn oscar-btn-primary" disabled>Disabled</button>
+          <button type="button" className="oscar-btn oscar-btn-primary" disabled data-ui-native-button="">Disabled</button>
         </div>
       </div>
     );
@@ -169,16 +169,16 @@ function ButtonsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="btn btn-primary">Primary</button>
-        <button type="button" className="btn btn-secondary">Secondary</button>
-        <button type="button" className="btn btn-ghost">Ghost</button>
-        <button type="button" className="btn btn-danger">Danger</button>
+        <button type="button" className="btn btn-primary" data-ui-native-button="">Primary</button>
+        <button type="button" className="btn btn-secondary" data-ui-native-button="">Secondary</button>
+        <button type="button" className="btn btn-ghost" data-ui-native-button="">Ghost</button>
+        <button type="button" className="btn btn-danger" data-ui-native-button="">Danger</button>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        <button type="button" className="btn btn-secondary" onClick={triggerLoad}>
+        <button type="button" className="btn btn-secondary" onClick={triggerLoad} data-ui-native-button="">
           {loading ? <span className="oscar-spinner-sm" style={{ borderTopColor: 'var(--teal)' }} /> : 'Click me'}
         </button>
-        <button type="button" className="btn btn-primary" disabled>Disabled</button>
+        <button type="button" className="btn btn-primary" disabled data-ui-native-button="">Disabled</button>
       </div>
     </div>
   );
@@ -254,7 +254,7 @@ function CardsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
             <TwotoneIcon name="building" size={28} color="var(--teal)" secondaryColor="var(--teal)" />
             <h5 className="oscar-card-title mt-3">Lift on Hover</h5>
             <p className="oscar-card-desc">Shadow deepens and card rises on hover — Oscar's signature card interaction.</p>
-            <button type="button" className="oscar-btn oscar-btn-soft-primary mt-4">Learn more</button>
+            <button type="button" className="oscar-btn oscar-btn-soft-primary mt-4" data-ui-native-button="">Learn more</button>
           </div>
         </div>
         <div className="oscar-card oscar-card-accent">
@@ -277,7 +277,7 @@ function CardsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
         <TwotoneIcon name="building" size={28} color="var(--teal)" secondaryColor="var(--teal)" />
         <h5 className="font-semibold text-sm mt-3 mb-1">Standard Card</h5>
         <p className="text-xs text-muted-foreground">Hudumika default card surface with border and subtle shadow.</p>
-        <button type="button" className="btn btn-primary btn-sm mt-4">Learn more</button>
+        <button type="button" className="btn btn-primary btn-sm mt-4" data-ui-native-button="">Learn more</button>
       </div>
       <div className="card p-5 border-t-2" style={{ borderTopColor: 'var(--teal)' }}>
         <h5 className="font-semibold text-sm mb-1">Accent Card</h5>
@@ -446,25 +446,25 @@ function TabsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
       <div className="flex flex-col gap-6">
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Underline</p>
-          <div className="oscar-tabs-underline">
+          <div className="oscar-tabs-underline" data-ds-tabstrip="">
             {labels.map((l, i) => (
-              <button key={i} type="button" className={`oscar-tab-ul${tab === i ? ' oscar-tab-ul--active' : ''}`} onClick={() => setTab(i)}>{l}</button>
+              <button key={i} type="button" className={`oscar-tab-ul${tab === i ? ' oscar-tab-ul--active' : ''}`} onClick={() => setTab(i)} data-ds-selected={tab === i} data-ui-native-button="" aria-pressed={tab === i}>{l}</button>
             ))}
           </div>
         </div>
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Pill</p>
-          <div className="oscar-tabs-pill">
+          <div className="oscar-tabs-pill" data-ds-tabstrip="">
             {labels.map((l, i) => (
-              <button key={i} type="button" className={`oscar-tab-pill${tab === i ? ' oscar-tab-pill--active' : ''}`} onClick={() => setTab(i)}>{l}</button>
+              <button key={i} type="button" className={`oscar-tab-pill${tab === i ? ' oscar-tab-pill--active' : ''}`} onClick={() => setTab(i)} data-ds-selected={tab === i} data-ui-native-button="" aria-pressed={tab === i}>{l}</button>
             ))}
           </div>
         </div>
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Boxed</p>
-          <div className="oscar-tabs-boxed">
+          <div className="oscar-tabs-boxed" data-ds-tabstrip="">
             {labels.map((l, i) => (
-              <button key={i} type="button" className={`oscar-tab-box${tab === i ? ' oscar-tab-box--active' : ''}`} onClick={() => setTab(i)}>{l}</button>
+              <button key={i} type="button" className={`oscar-tab-box${tab === i ? ' oscar-tab-box--active' : ''}`} onClick={() => setTab(i)} data-ds-selected={tab === i} data-ui-native-button="" aria-pressed={tab === i}>{l}</button>
             ))}
           </div>
         </div>
@@ -475,10 +475,10 @@ function TabsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border" data-ds-tabstrip="">
         {labels.map((l, i) => (
           <button key={i} type="button" onClick={() => setTab(i)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === i ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === i ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`} data-ds-selected={tab === i} data-ui-native-button="" aria-pressed={tab === i}>
             {l}
           </button>
         ))}
@@ -506,17 +506,17 @@ function ToastDemo() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="oscar-btn oscar-btn-soft-success" onClick={() => show('success', 'Operation completed successfully!')}>Success</button>
-        <button type="button" className="oscar-btn oscar-btn-soft-warning" onClick={() => show('warning', 'Please review the configuration.')}>Warning</button>
-        <button type="button" className="oscar-btn oscar-btn-soft-danger"  onClick={() => show('danger',  'Action could not be completed.')}>Danger</button>
-        <button type="button" className="oscar-btn oscar-btn-soft-primary" onClick={() => show('info',    'Your changes are saved.')}>Info</button>
+        <button type="button" className="oscar-btn oscar-btn-soft-success" onClick={() => show('success', 'Operation completed successfully!')} data-ui-native-button="">Success</button>
+        <button type="button" className="oscar-btn oscar-btn-soft-warning" onClick={() => show('warning', 'Please review the configuration.')} data-ui-native-button="">Warning</button>
+        <button type="button" className="oscar-btn oscar-btn-soft-danger"  onClick={() => show('danger',  'Action could not be completed.')} data-ui-native-button="">Danger</button>
+        <button type="button" className="oscar-btn oscar-btn-soft-primary" onClick={() => show('info',    'Your changes are saved.')} data-ui-native-button="">Info</button>
       </div>
       <div className="flex flex-col gap-2">
         {toasts.map(t => (
           <div key={t.id} className={`oscar-toast oscar-toast-${t.type}`}>
             <Icon name={iconMap[t.type]} size={16} />
             <span className="text-sm flex-1">{t.msg}</span>
-            <button type="button" className="opacity-50 hover:opacity-100" onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}>
+            <button type="button" className="opacity-50 hover:opacity-100" onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))} data-ui-native-button="">
               <Icon name="close" size={13} />
             </button>
           </div>
@@ -535,22 +535,22 @@ function PaginationDemo({ style }: { style: 'hudumika' | 'oscar' }) {
   if (style === 'oscar') {
     return (
       <div className="oscar-pagination">
-        <button type="button" className="oscar-page-btn" onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={15} /></button>
+        <button type="button" className="oscar-page-btn" onClick={() => go(page - 1)} disabled={page === 1} data-ui-native-button=""><Icon name="chevronLeft" size={15} /></button>
         {pages.map(p => (
-          <button key={p} type="button" className={`oscar-page-btn${page === p ? ' oscar-page-btn--active' : ''}`} onClick={() => go(p)}>{p}</button>
+          <button key={p} type="button" className={`oscar-page-btn${page === p ? ' oscar-page-btn--active' : ''}`} onClick={() => go(p)} data-ui-native-button="">{p}</button>
         ))}
-        <button type="button" className="oscar-page-btn" onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={15} /></button>
+        <button type="button" className="oscar-page-btn" onClick={() => go(page + 1)} disabled={page === 5} data-ui-native-button=""><Icon name="chevronRight" size={15} /></button>
       </div>
     );
   }
 
   return (
     <div className="flex items-center gap-1">
-      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={14} /></button>
+      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page - 1)} disabled={page === 1} data-ui-native-button=""><Icon name="chevronLeft" size={14} /></button>
       {pages.map(p => (
-        <button key={p} type="button" className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-secondary'}`} style={{ minWidth: 34 }} onClick={() => go(p)}>{p}</button>
+        <button key={p} type="button" className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-secondary'}`} style={{ minWidth: 34 }} onClick={() => go(p)} data-ui-native-button="">{p}</button>
       ))}
-      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={14} /></button>
+      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page + 1)} disabled={page === 5} data-ui-native-button=""><Icon name="chevronRight" size={14} /></button>
     </div>
   );
 }
@@ -570,14 +570,14 @@ function FabDemo() {
           {actions.map(a => (
             <div key={a.label} className="flex items-center gap-2 justify-end">
               <span className="oscar-fab-label">{a.label}</span>
-              <button type="button" className="oscar-fab oscar-fab-mini" onClick={() => setOpen(false)}>
+              <button type="button" className="oscar-fab oscar-fab-mini" onClick={() => setOpen(false)} data-ui-native-button="">
                 <Icon name={a.icon} size={15} />
               </button>
             </div>
           ))}
         </div>
       )}
-      <button type="button" className={`oscar-fab oscar-fab-primary${open ? ' oscar-fab-open' : ''}`} onClick={() => setOpen(!open)}>
+      <button type="button" className={`oscar-fab oscar-fab-primary${open ? ' oscar-fab-open' : ''}`} onClick={() => setOpen(!open)} data-ui-native-button="">
         <Icon name={open ? 'close' : 'plus'} size={20} />
       </button>
     </div>
@@ -596,7 +596,7 @@ function AccordionDemo() {
     <div className="oscar-accordion">
       {items.map((item, i) => (
         <div key={i} className={`oscar-accordion-item${open === i ? ' oscar-accordion-item--open' : ''}`}>
-          <button type="button" className="oscar-accordion-trigger" onClick={() => setOpen(open === i ? null : i)}>
+          <button type="button" className="oscar-accordion-trigger" onClick={() => setOpen(open === i ? null : i)} data-ui-native-button="">
             <span className="text-sm font-semibold">{item.q}</span>
             <Icon name={open === i ? 'chevronUp' : 'chevronDown'} size={16} style={{ color: 'var(--ink3)', flexShrink: 0 }} />
           </button>
@@ -731,7 +731,7 @@ function RatingDemo() {
         {[1, 2, 3, 4, 5].map(s => (
           <button key={s} type="button" className="oscar-star"
             style={{ color: (hover ?? rating) >= s ? 'var(--gold)' : 'var(--border)' }}
-            onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(null)} onClick={() => setRating(s)}>
+            onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(null)} onClick={() => setRating(s)} data-ui-native-button="">
             <Icon name="star" size={26} />
           </button>
         ))}
@@ -757,14 +757,14 @@ function TimelineDemo() {
             <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-primary/10 text-primary">22 new</span>
           </div>
           {/* Animated Tab Filter */}
-          <div className="flex items-center p-1 rounded-xl bg-muted/50 border border-border text-xs font-medium">
+          <div className="flex items-center p-1 rounded-xl bg-muted/50 border border-border text-xs font-medium" data-ds-tabstrip="">
             <button
               type="button"
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1 rounded-lg transition-all ${
                 activeTab === 'all' ? 'bg-card shadow-xs text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
               }`}
-            >
+             data-ds-selected={activeTab === 'all'} data-ui-native-button="" aria-pressed={activeTab === 'all'}>
               All <span className="ml-1 text-[10px] px-1 rounded-full bg-muted text-muted-foreground">22</span>
             </button>
             <button
@@ -773,7 +773,7 @@ function TimelineDemo() {
               className={`px-3 py-1 rounded-lg transition-all ${
                 activeTab === 'unread' ? 'bg-card shadow-xs text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
               }`}
-            >
+             data-ds-selected={activeTab === 'unread'} data-ui-native-button="" aria-pressed={activeTab === 'unread'}>
               Unread <span className="ml-1 text-[10px] px-1 rounded-full bg-emerald-500/15 text-emerald-600">12</span>
             </button>
             <button
@@ -782,7 +782,7 @@ function TimelineDemo() {
               className={`px-3 py-1 rounded-lg transition-all ${
                 activeTab === 'archived' ? 'bg-card shadow-xs text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
               }`}
-            >
+             data-ds-selected={activeTab === 'archived'} data-ui-native-button="" aria-pressed={activeTab === 'archived'}>
               Archived <span className="ml-1 text-[10px] px-1 rounded-full bg-muted text-muted-foreground">10</span>
             </button>
           </div>
@@ -822,13 +822,13 @@ function TimelineDemo() {
                     ? 'bg-emerald-500 text-white shadow-xs'
                     : 'bg-primary text-primary-foreground hover:opacity-90 shadow-xs'
                 }`}
-              >
+               data-ui-native-button="">
                 {accepted.includes('deja') ? '✓ Accepted' : 'Accept'}
               </button>
               <button
                 type="button"
                 className="px-3 py-1 text-xs font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted"
-              >
+               data-ui-native-button="">
                 Decline
               </button>
             </div>
@@ -873,7 +873,7 @@ function TimelineDemo() {
                     ? 'bg-emerald-500 text-white'
                     : 'bg-muted text-foreground hover:bg-muted/80'
                 }`}
-              >
+               data-ui-native-button="">
                 {replied.includes('jayvon') ? '✓ Replied' : 'Reply'}
               </button>
             </div>
@@ -976,7 +976,7 @@ function AdvancedDataTablesDemo() {
             />
             <Icon name="search" size={13} className="absolute left-2.5 top-2.5 text-muted-foreground pointer-events-none" />
           </div>
-          <button type="button" className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-xs">
+          <button type="button" className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-xs" data-ui-native-button="">
             + Add New User
           </button>
         </div>
@@ -1036,10 +1036,10 @@ function AdvancedDataTablesDemo() {
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+                    <button type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" data-ui-native-button="">
                       <Icon name="edit" size={13} />
                     </button>
-                    <button type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+                    <button type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" data-ui-native-button="">
                       <Icon name="trash" size={13} />
                     </button>
                   </div>
@@ -1152,7 +1152,7 @@ function StackedCardsAndTabsDemo() {
                 className={`text-sm font-semibold transition-colors ${
                   activeTab1 === t.toLowerCase() ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {t}
               </button>
             ))}
@@ -1172,7 +1172,7 @@ function StackedCardsAndTabsDemo() {
                     ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-foreground hover:bg-muted'
                 }`}
-              >
+               data-ui-native-button="">
                 {t}
               </button>
             ))}
@@ -1192,7 +1192,7 @@ function StackedCardsAndTabsDemo() {
                     ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {t}
               </button>
             ))}
@@ -1212,7 +1212,7 @@ function StackedCardsAndTabsDemo() {
                     ? 'bg-card shadow-xs text-primary border border-border'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {t}
               </button>
             ))}
@@ -1232,7 +1232,7 @@ function StackedCardsAndTabsDemo() {
                     ? 'bg-primary/15 text-primary'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
-              >
+               data-ui-native-button="">
                 {t}
               </button>
             ))}
@@ -1279,7 +1279,7 @@ export default function OscarCatalog() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit flex-wrap">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit flex-wrap" data-ds-tabstrip="">
         {OSCAR_TABS.map((t) => (
           <button
             key={t.id}
@@ -1290,7 +1290,7 @@ export default function OscarCatalog() {
                 ? 'bg-card shadow-sm text-foreground border border-border font-bold'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
-          >
+           data-ds-selected={activeTab === t.id} data-ui-native-button="" aria-pressed={activeTab === t.id}>
             <Icon name={t.icon} size={14} />
             {t.label}
           </button>

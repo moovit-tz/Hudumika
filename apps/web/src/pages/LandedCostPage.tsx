@@ -1335,14 +1335,14 @@ export const LandedCostPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         {step > 1
           ? <button type="button" onClick={() => setStep(s => (s - 1) as any)}
-              style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }} data-ui-native-button="">
               <Icon name="arrowLeft" size={14} /> Back
             </button>
           : <div />
         }
         {step < 4
           ? <button type="button" disabled={!!stepError} onClick={() => { if (!validateStep(step)) setStep(s => (s + 1) as any); }}
-              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'hsl(var(--primary))', color: stepError ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px var(--teal-m)' }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'hsl(var(--primary))', color: stepError ? 'var(--ink3)' : 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px var(--teal-m)' }} data-ui-native-button="">
               Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink3)' : '#fff'} />
             </button>
           : null
@@ -1358,7 +1358,7 @@ export const LandedCostPage: React.FC = () => {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
       <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Upload the supplier invoice — Excel, CSV, PDF or a photo. Or add each line by hand.</div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={downloadCsvTemplate} className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button type="button" onClick={downloadCsvTemplate} className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
           <Icon name="download" size={13} /> Template
         </button>
         <label className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: importing ? 'progress' : 'pointer', opacity: importing ? 0.55 : 1 }}>
@@ -1498,7 +1498,7 @@ export const LandedCostPage: React.FC = () => {
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {mapper.headerIdx != null && (
             <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }}
-              onClick={() => setMapper(m => (m ? { ...m, headerIdx: null, roles: undefined } : m))}>
+              onClick={() => setMapper(m => (m ? { ...m, headerIdx: null, roles: undefined } : m))} data-ui-native-button="">
               Pick a different row
             </button>
           )}
@@ -1509,11 +1509,11 @@ export const LandedCostPage: React.FC = () => {
                 col: { desc: colOf('desc'), qty: colOf('qty'), price: colOf('price'), amt: colOf('amt'), hs: colOf('hs'), model: colOf('model'), unit: colOf('unit') },
               });
               setMapper(null);
-            }}>
+            }} data-ui-native-button="">
             Import these lines
           </button>
           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, marginLeft: 'auto' }}
-            onClick={() => setMapper(null)}>Cancel</button>
+            onClick={() => setMapper(null)} data-ui-native-button="">Cancel</button>
         </div>
       </div>
     );
@@ -1758,19 +1758,19 @@ export const LandedCostPage: React.FC = () => {
             ? <>Suggestions ready on <strong>{suggestedCount}</strong> line{suggestedCount === 1 ? '' : 's'}. They match words in the tariff text — they are not a classification, so check each before accepting.</>
             : <>{needsHsCount} line{needsHsCount === 1 ? '' : 's'} still need an HS code. Match them against the tariff database from the description and model.</>}
         </span>
-        <button type="button" className="btn btn-secondary" style={{ fontSize: 13 }} disabled={suggesting || needsHsCount === 0} onClick={fetchHsSuggestions}>
+        <button type="button" className="btn btn-secondary" style={{ fontSize: 13 }} disabled={suggesting || needsHsCount === 0} onClick={fetchHsSuggestions} data-ui-native-button="">
           {suggesting ? 'Matching…' : suggestedCount > 0 ? 'Refresh suggestions' : 'Suggest HS codes'}
         </button>
         {/* Offered only when word matching genuinely tied, because that is the
             only case it can improve on — and every line sent costs tokens. */}
         {tiedCount > 0 && (
           <button type="button" className="btn btn-secondary" style={{ fontSize: 13 }} disabled={aiPicking} onClick={askAiToPick}
-            title={`${tiedCount} line${tiedCount === 1 ? '' : 's'} where two or more codes matched the same words equally well`}>
+            title={`${tiedCount} line${tiedCount === 1 ? '' : 's'} where two or more codes matched the same words equally well`} data-ui-native-button="">
             {aiPicking ? 'Asking AI…' : `Ask AI to break ${tiedCount} tie${tiedCount === 1 ? '' : 's'}`}
           </button>
         )}
         {suggestedCount > 0 && (
-          <button type="button" className="btn btn-primary" style={{ fontSize: 13 }} onClick={acceptAllTopSuggestions}>
+          <button type="button" className="btn btn-primary" style={{ fontSize: 13 }} onClick={acceptAllTopSuggestions} data-ui-native-button="">
             Accept top match on all {suggestedCount}
           </button>
         )}
@@ -1803,7 +1803,7 @@ export const LandedCostPage: React.FC = () => {
               padding: 'var(--ds-btn-py-sm) 11px', borderRadius: 'var(--r-sm)', cursor: 'pointer',
               background: ISSUE_STYLE[g.kind].tint,
               border: `1px solid ${ISSUE_STYLE[g.kind].edge}`,
-              color: ISSUE_STYLE[g.kind].ink, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              color: ISSUE_STYLE[g.kind].ink, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             {g.rows.length} {ISSUE_STYLE[g.kind].label}
             <Icon name="arrowRight" size={12} color={ISSUE_STYLE[g.kind].ink} />
           </button>
@@ -2001,19 +2001,19 @@ export const LandedCostPage: React.FC = () => {
                 entry reopens as the report it produced. */}
             <button type="button" className="btn btn-secondary"
               onClick={() => navigate('/clearos/customs-tools/history')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--border)', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--border)', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }} data-ui-native-button="">
               <Icon name="clock" size={14} color="var(--teal)" /> History
             </button>
             {result && (
               <button type="button" className="btn btn-secondary"
                 onClick={async () => { const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'var(--card-bg, var(--white))' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'var(--card-bg, var(--white))' }} data-ui-native-button="">
                 <Icon name="download" size={14} color="var(--teal)" /> Export PDF
               </button>
             )}
             <button type="button" className="btn btn-primary"
               disabled={!result || aiPending} onClick={runAi}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} data-ui-native-button="">
               <Icon name="sparkle" size={14} color="#fff" />
               {aiPending ? 'Analysing…' : 'AI Analysis'}
             </button>
@@ -2308,7 +2308,7 @@ export const LandedCostPage: React.FC = () => {
                               {row.excluded ? 'Excluded' : 'Include'}
                             </label>
                             <button type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
-                              style={{ background: 'none', border: 'none', cursor: multiItems.length === 1 ? 'default' : 'pointer', opacity: multiItems.length === 1 ? 0.3 : 1, color: 'var(--red)', display: 'flex', alignItems: 'center' }}>
+                              style={{ background: 'none', border: 'none', cursor: multiItems.length === 1 ? 'default' : 'pointer', opacity: multiItems.length === 1 ? 0.3 : 1, color: 'var(--red)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                               <Icon name="trash" size={13} color="var(--red)" />
                             </button>
                           </div>
@@ -2348,7 +2348,7 @@ export const LandedCostPage: React.FC = () => {
                                   <div key={`mem-${m.code}`} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                                     <button type="button" onClick={() => acceptSuggestion(row.id, m.code)}
                                       title={`Use ${m.code} — matches "${m.closestDescription}"`}
-                                      style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--green)', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                                      style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--green)', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                                       {m.code}
                                     </button>
                                     <span style={{ fontSize: 11.5, color: 'var(--ink2)', flex: '1 1 160px', minWidth: 0 }}>
@@ -2375,7 +2375,7 @@ export const LandedCostPage: React.FC = () => {
                                     onClick={() => acceptSuggestion(row.id, s.code)}
                                     title={`Use ${s.code} for this line`}
                                     style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: led ? 'hsl(var(--primary))' : 'transparent', color: led ? 'hsl(var(--primary-foreground))' : 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                                  >
+                                   data-ui-native-button="">
                                     {s.code}
                                   </button>
                                   {led && (
@@ -2468,7 +2468,7 @@ export const LandedCostPage: React.FC = () => {
                   </div>
 
                   <button type="button" onClick={addRow} disabled={multiItems.length >= MAX_CARGO_ROWS} className="btn btn-secondary"
-                    style={{ marginTop: 10, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, opacity: multiItems.length >= MAX_CARGO_ROWS ? 0.45 : 1, cursor: multiItems.length >= MAX_CARGO_ROWS ? 'not-allowed' : 'pointer' }}>
+                    style={{ marginTop: 10, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, opacity: multiItems.length >= MAX_CARGO_ROWS ? 0.45 : 1, cursor: multiItems.length >= MAX_CARGO_ROWS ? 'not-allowed' : 'pointer' }} data-ui-native-button="">
                     <Icon name="plus" size={13} /> Add line item
                   </button>
                   <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink3)', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
@@ -2548,14 +2548,14 @@ export const LandedCostPage: React.FC = () => {
                           <Tip label="Remove container size"><span><button type="button" aria-label="Remove container size"
                             onClick={() => setContainerLots(l => l.length > 1 ? l.filter((_, j) => j !== i) : l)}
                             disabled={containerLots.length === 1}
-                            style={{ background: 'none', border: 'none', cursor: containerLots.length === 1 ? 'default' : 'pointer', opacity: containerLots.length === 1 ? 0.3 : 1, color: 'var(--red)', padding: 6, height: 44 }}>
+                            style={{ background: 'none', border: 'none', cursor: containerLots.length === 1 ? 'default' : 'pointer', opacity: containerLots.length === 1 ? 0.3 : 1, color: 'var(--red)', padding: 6, height: 44 }} data-ui-native-button="">
                             <Icon name="trash" size={14} color="var(--red)" />
                           </button></span></Tip>
                           {i === containerLots.length - 1 ? (
                             <Tip label={containerLots.length >= 2 ? 'Both container sizes are already listed' : 'Add the other container size'}><span><button type="button"
                               onClick={() => setContainerLots(l => l.length >= 2 ? l : [...l, { size: l.some(x => x.size === '20ft') ? '40ft' : '20ft', count: '1' }])}
                               disabled={containerLots.length >= 2}
-                              style={{ height: 44, whiteSpace: 'nowrap', fontSize: 12, fontWeight: 700, color: containerLots.length >= 2 ? 'var(--ink3)' : 'var(--teal)', background: 'none', border: `1px solid ${containerLots.length >= 2 ? 'var(--border)' : 'var(--teal)'}`, borderRadius: 'var(--r-sm)', padding: '0 12px', cursor: containerLots.length >= 2 ? 'not-allowed' : 'pointer' }}>
+                              style={{ height: 44, whiteSpace: 'nowrap', fontSize: 12, fontWeight: 700, color: containerLots.length >= 2 ? 'var(--ink3)' : 'var(--teal)', background: 'none', border: `1px solid ${containerLots.length >= 2 ? 'var(--border)' : 'var(--teal)'}`, borderRadius: 'var(--r-sm)', padding: '0 12px', cursor: containerLots.length >= 2 ? 'not-allowed' : 'pointer' }} data-ui-native-button="">
                               + Add size
                             </button></span></Tip>
                           ) : <span />}
@@ -2643,7 +2643,7 @@ export const LandedCostPage: React.FC = () => {
 
                   <Field label="Advanced Settings" hint="Replace a sourced rate. Blank uses the tariff or TPA figure.">
                     <button type="button" className="lcp-ctl" onClick={() => setShowAdvanced(v => !v)}
-                      style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 13, fontWeight: 700 }}>
+                      style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 13, fontWeight: 700 }} data-ui-native-button="">
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name="settings" size={15} color="var(--ink3)" />
                         {overrideCount > 0
@@ -2832,7 +2832,7 @@ export const LandedCostPage: React.FC = () => {
                         <div style={{ padding: '14px 18px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Icon name="sparkle" size={16} color="var(--teal)" />
                           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>AI Analysis</span>
-                          <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 16, padding: 0, display: 'flex', alignItems: 'center' }}>
+                          <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 16, padding: 0, display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                             <Icon name="close" size={14} color="var(--ink3)" />
                           </button>
                         </div>
@@ -2859,7 +2859,7 @@ export const LandedCostPage: React.FC = () => {
                         )}
 
                         <button type="button" onClick={runAi} disabled={aiPending}
-                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px var(--teal-m)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px var(--teal-m)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                           <Icon name="sparkle" size={14} color="#fff" />
                           {aiPending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
                         </button>
@@ -2910,12 +2910,12 @@ export const LandedCostPage: React.FC = () => {
 
                     <div className="lcp-btn-row-3">
                       <button type="button" onClick={() => setStep(3)}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         <Icon name="edit" size={15} color="var(--ink2)" />
                         Amend details
                       </button>
                       <button type="button" onClick={async () => { if (!result) return; const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         <Icon name="download" size={15} color="var(--teal)" />
                         Export PDF
                       </button>
@@ -2924,12 +2924,12 @@ export const LandedCostPage: React.FC = () => {
                           upload and the calculation itself, and a half-written report
                           should survive a mis-click. */}
                       <button type="button" onClick={() => navigate('/clearos/report-issue')}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         <Icon name="alertCircle" size={15} color="var(--ink2)" />
                         Report an issue
                       </button>
                       <button type="button" onClick={newCalculation}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         New Calculation
                       </button>
                     </div>
@@ -3102,7 +3102,7 @@ export const LandedCostPage: React.FC = () => {
                         the whole invoice. Step 3 keeps every row, and the
                         figures recalculate on return. */}
                     <button type="button" onClick={() => setStep(3)}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="edit" size={15} color="var(--ink2)" />
                       Amend items
                     </button>
@@ -3118,7 +3118,7 @@ export const LandedCostPage: React.FC = () => {
                       setShareNotice(share.qrUnavailableReason ?? '');
                       printMultiReport(multiResult, { ...reportMeta, ...share }, rc, sc, lots);
                     }}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="download" size={15} color="var(--teal)" />
                       Export PDF
                     </button>
@@ -3126,12 +3126,12 @@ export const LandedCostPage: React.FC = () => {
                         attachment upload and the calculation itself, and a
                         half-written report should survive a mis-click. */}
                     <button type="button" onClick={() => navigate('/clearos/report-issue')}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="alertCircle" size={15} color="var(--ink2)" />
                       Report an issue
                     </button>
                     <button type="button" onClick={newCalculation}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       New Calculation
                     </button>
                   </div>

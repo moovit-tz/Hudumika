@@ -202,7 +202,7 @@ export function MetricCard({
         <div className="mc-head-right" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {onMenuClick && (
             <Tip label={menuTitle ?? 'Refresh'}>
-              <button type="button" className="mc-refresh-btn" aria-label={menuTitle ?? 'Refresh'} onClick={(event) => { event.stopPropagation(); onMenuClick(); }}>
+              <button type="button" className="mc-refresh-btn" aria-label={menuTitle ?? 'Refresh'} onClick={(event) => { event.stopPropagation(); onMenuClick(); }} data-ui-native-button="">
                 <Icon name="refresh" size={13} strokeWidth={1.75} duotone={false} />
               </button>
             </Tip>
@@ -218,12 +218,12 @@ export function MetricCard({
       ) : error ? (
         <div className="mc-state mc-error" role="status">
           <span>{error}</span>
-          {onRetry && <button type="button" onClick={(event) => { event.stopPropagation(); onRetry(); }}>Try again</button>}
+          {onRetry && <button type="button" onClick={(event) => { event.stopPropagation(); onRetry(); }} data-ui-native-button="">Try again</button>}
         </div>
       ) : empty ? (
         <div className="mc-state mc-empty" role="status">
           <span>{emptyMessage}</span>
-          {emptyActionLabel && onEmptyAction && <button type="button" onClick={(event) => { event.stopPropagation(); onEmptyAction(); }}>{emptyActionLabel}</button>}
+          {emptyActionLabel && onEmptyAction && <button type="button" onClick={(event) => { event.stopPropagation(); onEmptyAction(); }} data-ui-native-button="">{emptyActionLabel}</button>}
         </div>
       ) : (
         <>

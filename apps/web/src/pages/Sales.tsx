@@ -115,8 +115,8 @@ function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: (
         <DialogTitle style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Confirm</DialogTitle>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 22 }}>{msg}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
-          <button type="button" className="btn btn-primary" style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={onConfirm}>Delete</button>
+          <button type="button" className="btn btn-secondary" onClick={onCancel} data-ui-native-button="">Cancel</button>
+          <button type="button" className="btn btn-primary" style={{ background: 'var(--red)', borderColor: 'var(--red)' }} onClick={onConfirm} data-ui-native-button="">Delete</button>
         </div>
       </DialogContent>
     </Dialog>
@@ -172,8 +172,8 @@ function StatusModal({
         )}
         {err && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Update'}</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Update'}</button>
         </div>
       </DialogContent>
     </Dialog>
@@ -237,22 +237,22 @@ function DetailPanel({
         {/* Action buttons */}
         <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-            onClick={() => onEdit(quote)}>
+            onClick={() => onEdit(quote)} data-ui-native-button="">
             <Icon name="edit" size={13} /> Edit
           </button>
           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-            onClick={() => onStatusChange(quote)}>
+            onClick={() => onStatusChange(quote)} data-ui-native-button="">
             <Icon name="refresh" size={13} /> Status
           </button>
           {quote.status === 'APPROVED' && (
             <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-              onClick={() => onConvert(quote)}>
+              onClick={() => onConvert(quote)} data-ui-native-button="">
               <Icon name="arrowRight" size={13} /> Convert to Shipment
             </button>
           )}
           {canDelete && (
             <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-              onClick={() => onDelete(quote)}>
+              onClick={() => onDelete(quote)} data-ui-native-button="">
               <Icon name="trash2" size={13} /> Delete
             </button>
           )}
@@ -510,7 +510,7 @@ function QuoteModal({
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2 }}>
           <DialogTitle style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</DialogTitle>
           <Tip label="Close quotation editor">
-            <button type="button" aria-label="Close quotation editor" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+            <button type="button" aria-label="Close quotation editor" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
               <Icon name="x" size={18} />
             </button>
           </Tip>
@@ -603,7 +603,7 @@ function QuoteModal({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Line Items</div>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: 'var(--ds-btn-py-xs) 10px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={addLine}>
+              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: 'var(--ds-btn-py-xs) 10px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={addLine} data-ui-native-button="">
                 <Icon name="plus" size={12} /> Add Line
               </button>
             </div>
@@ -659,7 +659,7 @@ function QuoteModal({
                         <td style={{ padding: '4px 4px' }}>
                           {lines.length > 1 && (
                             <Tip label="Remove line">
-                              <button type="button" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
+                              <button type="button" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }} data-ui-native-button="">
                                 <Icon name="x" size={14} />
                               </button>
                             </Tip>
@@ -685,8 +685,8 @@ function QuoteModal({
           {/* Error + footer */}
           {err && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 12 }}>{err}</div>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingBottom: 22 }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
+            <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={save} disabled={saving} data-ui-native-button="">
               {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create Quotation'}
             </button>
           </div>
@@ -876,7 +876,7 @@ export const Sales: React.FC = () => {
                           className="sales-card-action"
                           aria-label={`Edit quotation ${q.quote_number}`}
                           onClick={() => openEdit(q)}
-                        >
+                         data-ui-native-button="">
                           <Icon name="edit" size={13} />
                         </button>
                         </Tip>
@@ -887,7 +887,7 @@ export const Sales: React.FC = () => {
                             className="sales-card-action is-danger"
                             aria-label={`Delete quotation ${q.quote_number}`}
                             onClick={() => openDelete(q)}
-                          >
+                           data-ui-native-button="">
                             <Icon name="trash2" size={13} />
                           </button>
                           </Tip>

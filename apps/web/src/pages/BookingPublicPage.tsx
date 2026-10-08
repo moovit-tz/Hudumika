@@ -130,13 +130,13 @@ export function BookingPublicPage() {
                   onClick={() => setSelectedDate(d => new Date(d.getTime() - 86400000))}
                   disabled={formatISODate(selectedDate) <= formatISODate(new Date())}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', color: 'var(--ink3)', opacity: formatISODate(selectedDate) <= formatISODate(new Date()) ? 0.3 : 1 }}
-                >
+                 data-ui-native-button="">
                   <Icon name="chevronLeft" size={18} />
                 </button>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
-                <button type="button" onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', color: 'var(--ink3)' }}>
+                <button type="button" onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
                   <Icon name="chevronRight" size={18} />
                 </button>
               </div>
@@ -167,7 +167,7 @@ export function BookingPublicPage() {
                               background: sel ? 'hsl(var(--primary))' : 'var(--white)', color: sel ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                               transition: 'all 0.15s ease', boxShadow: sel ? '0 2px 8px var(--teal-m)' : 'none',
                             }}
-                          >
+                           data-ui-native-button="">
                             {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                           </button>
                         );
@@ -195,7 +195,7 @@ export function BookingPublicPage() {
                       opacity: (submitting || !name.trim() || !email.trim()) ? 0.6 : 1, transition: 'all 0.15s ease',
                       boxShadow: '0 2px 8px var(--teal-m)',
                     }}
-                  >
+                   data-ui-native-button="">
                     {submitting ? 'Confirming Booking…' : 'Confirm Meeting Booking'}
                   </button>
                 </div>

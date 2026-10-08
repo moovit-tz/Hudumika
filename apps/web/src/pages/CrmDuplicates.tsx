@@ -219,7 +219,7 @@ export function CrmDuplicates() {
                 {customerGroups !== null && customerGroups.length > 0 ? (
                   <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
                     No lead matches at this threshold —{' '}
-                    <button type="button" className="font-semibold text-(--teal) underline-offset-2 hover:underline" onClick={() => setTab('customers')}>
+                    <button type="button" className="font-semibold text-(--teal) underline-offset-2 hover:underline" onClick={() => setTab('customers')} data-ui-native-button="">
                       {customerGroups.length} customer group{customerGroups.length === 1 ? '' : 's'} need review
                     </button>.
                   </p>
@@ -250,7 +250,7 @@ export function CrmDuplicates() {
                 {leadGroups !== null && leadGroups.length > 0 ? (
                   <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
                     No customer matches at this threshold —{' '}
-                    <button type="button" className="font-semibold text-(--teal) underline-offset-2 hover:underline" onClick={() => setTab('leads')}>
+                    <button type="button" className="font-semibold text-(--teal) underline-offset-2 hover:underline" onClick={() => setTab('leads')} data-ui-native-button="">
                       {leadGroups.length} lead group{leadGroups.length === 1 ? '' : 's'} need review
                     </button>.
                   </p>

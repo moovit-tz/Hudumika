@@ -144,7 +144,7 @@ export function CMSRequestApprovalModal({
             type="button"
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
-          >
+           data-ui-native-button="">
             <Icon name="x" size={16} />
           </button>
         </div>
@@ -205,10 +205,10 @@ export function CMSRequestApprovalModal({
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" disabled={submitting}>
+                <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" disabled={submitting} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !assignedTo}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !assignedTo} data-ui-native-button="">
                   {submitting ? 'Submitting…' : 'Submit for Review'}
                 </button>
               </div>

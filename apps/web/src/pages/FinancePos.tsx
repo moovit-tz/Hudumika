@@ -315,7 +315,7 @@ export function FinancePos() {
     <div className="pos-page">
       <PageHeader
         crumbs={['Finance','Operations']}
-        titlePlain="Point of" titleEm="sale"
+        titlePlain="" titleEm="POS"
         subtitle="Sell from the shared catalogue, collect payment and post the transaction automatically."
         actions={<>
           <Button variant="outline" onClick={() => setShiftHistoryOpen(true)}><Icon name="receipt" size={15}/>Registers</Button>
@@ -364,9 +364,9 @@ export function FinancePos() {
 
           {categories.length > 0 && (
             <div className="pos-category-tabs">
-              <button type="button" className={`pos-cat-tab${!selectedCategory ? ' is-active' : ''}`} onClick={() => setSelectedCategory('')}>All</button>
+              <button type="button" className={`pos-cat-tab${!selectedCategory ? ' is-active' : ''}`} onClick={() => setSelectedCategory('')} data-ui-native-button="">All</button>
               {categories.map(cat => (
-                <button type="button" key={cat} className={`pos-cat-tab${selectedCategory === cat ? ' is-active' : ''}`} onClick={() => setSelectedCategory(cat)}>{cat}</button>
+                <button type="button" key={cat} className={`pos-cat-tab${selectedCategory === cat ? ' is-active' : ''}`} onClick={() => setSelectedCategory(cat)} data-ui-native-button="">{cat}</button>
               ))}
             </div>
           )}
@@ -376,7 +376,7 @@ export function FinancePos() {
               const available = availability[product.id];
               const unavailable = !!locationId && available !== undefined && available <= 0;
               return (
-                <button type="button" className={`pos-product${unavailable ? ' is-unavailable' : ''}`} key={product.id} onClick={() => addProduct(product)} disabled={!data.shift || unavailable}>
+                <button type="button" className={`pos-product${unavailable ? ' is-unavailable' : ''}`} key={product.id} onClick={() => addProduct(product)} disabled={!data.shift || unavailable} data-ui-native-button="">
                   <div className="pos-product-icon"><Icon name="package" size={18}/></div>
                   <div className="pos-product-copy"><strong>{product.name}</strong><span>{product.code || product.category || 'Catalogue item'}</span></div>
                   <b>{cash(product.sale_price, product.currency)}</b>
@@ -427,9 +427,9 @@ export function FinancePos() {
                 <div className="pos-cart-line" key={line.id}>
                   <div><strong>{line.name}</strong><span>{cash(line.sale_price, line.currency)} · {line.tax_rate}% tax</span></div>
                   <div className="pos-qty">
-                    <button onClick={() => changeQty(line.id, line.qty - 1)}>−</button>
+                    <button onClick={() => changeQty(line.id, line.qty - 1)} data-ui-native-button="">−</button>
                     <span>{line.qty}</span>
-                    <button onClick={() => changeQty(line.id, line.qty + 1)}>+</button>
+                    <button onClick={() => changeQty(line.id, line.qty + 1)} data-ui-native-button="">+</button>
                   </div>
                   <div className="pos-line-discount">
                     <Input
@@ -440,7 +440,7 @@ export function FinancePos() {
                       onChange={e => changeDiscount(line.id, Number(e.target.value))}
                     />
                     <Tip label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'}>
-                      <button type="button" className="pos-discount-mode-btn" aria-label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'} onClick={() => toggleDiscountMode(line.id)}>
+                      <button type="button" className="pos-discount-mode-btn" aria-label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'} onClick={() => toggleDiscountMode(line.id)} data-ui-native-button="">
                         {line.discountMode === 'pct' ? '%' : 'TZS'}
                       </button>
                     </Tip>
@@ -478,9 +478,9 @@ export function FinancePos() {
                 {/* Quick cash denominations — only shown for the CASH method when a total exists */}
                 {payment.method === 'CASH' && totals.total > 0 && (
                   <div className="pos-quick-tender">
-                    <button type="button" className="pos-tender-btn" onClick={() => updatePayment(payment.id, { amount:totals.total.toFixed(2) })}>Exact</button>
+                    <button type="button" className="pos-tender-btn" onClick={() => updatePayment(payment.id, { amount:totals.total.toFixed(2) })} data-ui-native-button="">Exact</button>
                     {quickTenders.map(d => (
-                      <button type="button" key={d} className="pos-tender-btn" onClick={() => updatePayment(payment.id, { amount:String(d) })}>{fmtDenom(d)}</button>
+                      <button type="button" key={d} className="pos-tender-btn" onClick={() => updatePayment(payment.id, { amount:String(d) })} data-ui-native-button="">{fmtDenom(d)}</button>
                     ))}
                   </div>
                 )}
@@ -490,7 +490,7 @@ export function FinancePos() {
               <span>{invalidChange ? 'Add cash tender for change' : paymentBalance > 0 ? 'Remaining' : paymentBalance < 0 ? 'Change due' : 'Fully allocated'}</span>
               <b>{cash(Math.abs(paymentBalance), currency)}</b>
               {paymentBalance > 0 && (
-                <button type="button" onClick={() => updatePayment(payments[payments.length - 1].id, { amount:String((Number(payments[payments.length - 1].amount) || 0) + paymentBalance) })}>Pay balance</button>
+                <button type="button" onClick={() => updatePayment(payments[payments.length - 1].id, { amount:String((Number(payments[payments.length - 1].amount) || 0) + paymentBalance) })} data-ui-native-button="">Pay balance</button>
               )}
             </div>
           </div>
@@ -532,7 +532,7 @@ export function FinancePos() {
         </div>
         <div className="pos-history-list">
           {sales.map(sale => (
-            <button type="button" key={sale.id} onClick={() => apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => setReceipt(r as PosSale))}>
+            <button type="button" key={sale.id} onClick={() => apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => setReceipt(r as PosSale))} data-ui-native-button="">
               <span><strong>{sale.sale_number}</strong><small>{sale.customer_name ?? 'Walk-in customer'} · {new Date(sale.sold_at).toLocaleString()}</small></span>
               <Badge variant={sale.status === 'POSTING_FAILED' || sale.status === 'VOIDED' ? 'destructive' : sale.status === 'REFUNDED' ? 'warning' : 'success'}>{sale.status === 'POSTING_FAILED' ? 'Posting failed' : sale.status}</Badge>
               <b>{cash(sale.grand_total, sale.currency)}</b>

@@ -49,7 +49,7 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onDel
             borderRadius: '4px',
             cursor: 'pointer',
           }}
-        >
+         data-ui-native-button="">
           Edit
         </button>
         <button
@@ -63,7 +63,7 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onDel
             borderRadius: '4px',
             cursor: 'pointer',
           }}
-        >
+         data-ui-native-button="">
           Delete
         </button>
       </div>

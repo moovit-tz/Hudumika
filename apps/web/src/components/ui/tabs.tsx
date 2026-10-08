@@ -27,8 +27,8 @@ import { cn } from "@/lib/utils"
  * DesignSystemView's own "filter row" example — not a separate variant of
  * its own, since it changes what's inside a trigger, not the trigger's own
  * track/fill/border treatment. Wrap the label text itself in a
- * `.ds-tabs-trigger-label` span and it collapses to icon-only under 560px
- * (ds-tabs.css) — flyonui's "pills with icon" mobile behavior, opt-in and
+ * `.ds-tabs-trigger-label` span and it keeps readable labels on mobile
+ * (ds-tabs.css). Long rows scroll horizontally,
  * variant-agnostic rather than a seventh CSS identity.
  */
 export type TabsVariant = "underline" | "pill" | "segmented" | "boxed" | "outline" | "lifted"

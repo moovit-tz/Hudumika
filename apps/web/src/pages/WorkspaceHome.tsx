@@ -333,7 +333,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                             data-starred={isStarred}
                             onClick={(e) => toggleStar(app.id, e)}
                             aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
-                          >
+                           data-ui-native-button="">
                             <Icon name="star" size={17} duotone={isStarred} />
                           </button>
                         </Tip>
@@ -402,7 +402,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                                     data-starred={isStarredLeft}
                                     onClick={(e) => toggleStar(appLeft.id, e)}
                                     aria-label={isStarredLeft ? `Unstar ${appNameLeft}` : `Star ${appNameLeft}`}
-                                  >
+                                   data-ui-native-button="">
                                     <Icon name="star" size={17} duotone={isStarredLeft} />
                                   </button>
                                 </Tip>
@@ -437,7 +437,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                                         data-starred={isStarredRight}
                                         onClick={(e) => toggleStar(appRight.id, e)}
                                         aria-label={isStarredRight ? `Unstar ${appNameRight}` : `Star ${appNameRight}`}
-                                      >
+                                       data-ui-native-button="">
                                         <Icon name="star" size={17} duotone={isStarredRight} />
                                       </button>
                                     </Tip>

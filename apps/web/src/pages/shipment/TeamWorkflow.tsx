@@ -349,7 +349,7 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
             const on = !!selected.find(x => x.id === e.id);
             return (
               <button key={e.id} type="button" onClick={() => toggleEmp(e)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--ds-btn-py) 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--ds-btn-py) 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: empAvatarColor(e.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {empInitials(e.name)}
                 </div>
@@ -375,7 +375,7 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
               const COLORS: Record<string, string> = { email: 'var(--teal)', whatsapp: 'var(--green)', sms: 'var(--gold)', teams: 'var(--purple)' };
               return (
                 <button key={ch} type="button" onClick={() => toggleCh(ch)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {ch === 'whatsapp' ? 'WhatsApp' : ch.charAt(0).toUpperCase() + ch.slice(1)}
                 </button>
               );
@@ -389,9 +389,9 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
             {selected.length > 0 ? `${selected.length} person${selected.length > 1 ? 's' : ''} selected` : 'Select staff to tag'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={requestClose} style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+            <button type="button" onClick={requestClose} style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
             <button type="button" disabled={staffLoading || staffError || selected.length === 0 || saved || confirming} onClick={handleConfirm}
-              style={{ padding: 'var(--ds-btn-py) 18px', background: saved ? 'var(--green)' : selected.length > 0 ? 'var(--teal)' : 'var(--border)', color: selected.length > 0 || saved ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected.length > 0 && !confirming ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ padding: 'var(--ds-btn-py) 18px', background: saved ? 'var(--green)' : selected.length > 0 ? 'var(--teal)' : 'var(--border)', color: selected.length > 0 || saved ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected.length > 0 && !confirming ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, transition: 'background .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {saved ? <><Icon name="check" size={13} color="#fff" /> Done!</> : confirming ? 'Saving…' : <><Icon name="userPlus" size={13} color={selected.length > 0 ? '#fff' : 'var(--ink3)'} /> {mode === 'assign' ? 'Assign' : 'Tag & Notify'}</>}
             </button>
           </div>
@@ -414,7 +414,7 @@ export function ChannelToggle({ ch, active, onToggle, readOnly }: { ch: Channel;
     <Tip label={readOnly ? cfg.label : `${active ? 'Disable' : 'Enable'} ${cfg.label}`}>
       <span>
         <button type="button" onClick={readOnly ? undefined : onToggle} disabled={readOnly}
-          style={{ fontSize: 10, padding: 'var(--ds-btn-py-xs) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ fontSize: 10, padding: 'var(--ds-btn-py-xs) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           {cfg.label}
         </button>
       </span>
@@ -526,7 +526,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
       {/* Assigned To */}
       <Card title="Assigned To" padded={false} action={canManage ? (
         <button type="button" onClick={() => setShowAssignPicker(true)}
-          style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 0 }}>
+          style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 0 }} data-ui-native-button="">
           {job.assignees.length > 0 ? 'Change' : '+ Assign'}
         </button>
       ) : undefined}>
@@ -534,7 +534,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
           {job.assignees.length === 0 ? (
             canManage ? (
               <button type="button" onClick={() => setShowAssignPicker(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }} data-ui-native-button="">
                 <Icon name="userPlus" size={14} color="var(--ink3)" /> Assign an agent…
               </button>
             ) : (
@@ -573,7 +573,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                       zIndex: 10 - index,
                     }}
                     title={label}
-                  >
+                   data-ui-native-button="">
                     <Av name={label} userId={a} size={28} />
                   </button>
                 );
@@ -641,7 +641,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                       cursor: 'pointer',
                     }}
                     title="Add Staff Listener"
-                  >
+                   data-ui-native-button="">
                     <Icon name="plus" size={11} />
                   </button>
                 )}
@@ -665,7 +665,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                             marginRight: -8,
                             zIndex: 10 - index,
                           }}
-                        >
+                         data-ui-native-button="">
                           <Av name={l.name} userId={l.id} size={28} />
                         </button>
                       </HoverCardTrigger>
@@ -717,7 +717,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                           marginRight: 6,
                           zIndex: 5,
                         }}
-                      >
+                       data-ui-native-button="">
                         +{internal.length - 4}
                       </button>
                     </PopoverTrigger>
@@ -764,7 +764,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                       marginLeft: internal.length > 4 ? 0 : 10,
                     }}
                     title="Add Staff Listener"
-                  >
+                   data-ui-native-button="">
                     <Icon name="plus" size={13} />
                   </button>
                 )}
@@ -797,7 +797,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                       cursor: 'pointer',
                     }}
                     title="Add Customer Listener"
-                  >
+                   data-ui-native-button="">
                     <Icon name="plus" size={11} />
                   </button>
                 )}
@@ -821,7 +821,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                             marginRight: -8,
                             zIndex: 10 - index,
                           }}
-                        >
+                         data-ui-native-button="">
                           <Av name={l.name} userId={l.id} size={28} />
                         </button>
                       </HoverCardTrigger>
@@ -873,7 +873,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                           marginRight: 6,
                           zIndex: 5,
                         }}
-                      >
+                       data-ui-native-button="">
                         +{customers.length - 4}
                       </button>
                     </PopoverTrigger>
@@ -920,7 +920,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                       marginLeft: customers.length > 4 ? 0 : 10,
                     }}
                     title="Add Customer Listener"
-                  >
+                   data-ui-native-button="">
                     <Icon name="plus" size={13} />
                   </button>
                 )}
@@ -985,7 +985,7 @@ export function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: 
                   cursor: canManage ? 'pointer' : 'default', fontSize: 12, fontWeight: 600,
                   color: item.warn ? 'var(--red)' : 'var(--ink)',
                 }}
-              >
+               data-ui-native-button="">
                 {item.date ? fdate(item.date) : '—'}
                 {canManage && <Icon name="edit" size={11} color="var(--ink3)" />}
               </button>
@@ -1101,7 +1101,7 @@ export function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: 
               <Icon name={verifyMsg.valid ? 'checkCircle' : 'alertCircle'} size={12} />{' '}
               {verifyMsg.total === 0 ? 'No checks on this step' : `${verifyMsg.met} of ${verifyMsg.total} checks met`}
             </span>
-            <button type="button" onClick={() => setVerifyMsg(null)} style={{ border: 'none', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }} aria-label="Dismiss">×</button>
+            <button type="button" onClick={() => setVerifyMsg(null)} style={{ border: 'none', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }} aria-label="Dismiss" data-ui-native-button="">×</button>
           </div>
           {!verifyMsg.valid && verifyMsg.failures.length > 0 && (
             <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
@@ -1115,7 +1115,7 @@ export function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: 
       )}
 
       {!locked && canManage && !open && (
-        <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+        <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
           <Icon name="gitBranch" size={13} /> Change workflow
         </button>
       )}
@@ -1140,8 +1140,8 @@ export function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: 
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={() => { setOpen(false); setTarget(''); }} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>Cancel</button>
-            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'hsl(var(--primary))' : 'var(--border)', color: target && !saving ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply'}</button>
+            <button type="button" onClick={() => { setOpen(false); setTarget(''); }} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">Cancel</button>
+            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'hsl(var(--primary))' : 'var(--border)', color: target && !saving ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">{saving ? 'Applying…' : 'Apply'}</button>
           </div>
         </div>
       )}

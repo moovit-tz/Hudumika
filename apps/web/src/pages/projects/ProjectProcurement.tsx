@@ -202,7 +202,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
     <div className="space-y-6">
       {/* Sub-tab Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-ds-tabstrip="">
           <button
             onClick={() => setActiveTab('requests')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
@@ -210,7 +210,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'requests'} data-ui-native-button="" aria-pressed={activeTab === 'requests'}>
             Requisitions (PR) ({purchaseRequests.length})
           </button>
           <button
@@ -220,7 +220,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'rfqs'} data-ui-native-button="" aria-pressed={activeTab === 'rfqs'}>
             RFQ Tender Comparison ({rfqs.length})
           </button>
           <button
@@ -230,7 +230,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'pos'} data-ui-native-button="" aria-pressed={activeTab === 'pos'}>
             Purchase Orders (PO) ({purchaseOrders.length})
           </button>
           <button
@@ -240,7 +240,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                 ? 'bg-teal-600 text-white'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-          >
+           data-ds-selected={activeTab === 'grns'} data-ui-native-button="" aria-pressed={activeTab === 'grns'}>
             Goods Receipts (GRN) ({goodsReceipts.length})
           </button>
         </div>

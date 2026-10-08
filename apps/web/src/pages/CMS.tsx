@@ -501,23 +501,23 @@ export const CMS: React.FC = () => {
             <>
               <input ref={wpImportInputRef} type="file" accept=".xml,text/xml,application/xml" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleWordPressFile(f); e.target.value = ''; }} />
-              <button onClick={() => wpImportInputRef.current?.click()} disabled={importingWp} className="btn btn-secondary btn-sm" title="Import posts from a WordPress export (.xml)">
+              <button onClick={() => wpImportInputRef.current?.click()} disabled={importingWp} className="btn btn-secondary btn-sm" title="Import posts from a WordPress export (.xml)" data-ui-native-button="">
                 <Icon name="upload" size={13} /> {importingWp ? 'Importing…' : 'Import from WordPress'}
               </button>
-              <button onClick={handleExportPosts} className="btn btn-secondary btn-sm">
+              <button onClick={handleExportPosts} className="btn btn-secondary btn-sm" data-ui-native-button="">
                 <Icon name="download" size={13} /> Export CSV
               </button>
-              <button onClick={() => { setEditPost(null); goTo('post-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={() => { setEditPost(null); goTo('post-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
                 <Icon name="plus" size={13} /> Add New Post
               </button>
             </>
           )}
           {view === 'pages' && (
             <>
-              <button onClick={handleExportPages} className="btn btn-secondary btn-sm">
+              <button onClick={handleExportPages} className="btn btn-secondary btn-sm" data-ui-native-button="">
                 <Icon name="download" size={13} /> Export CSV
               </button>
-              <button onClick={() => { setEditPage({}); goTo('page-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={() => { setEditPage({}); goTo('page-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
                 <Icon name="plus" size={13} /> Add New Page
               </button>
             </>
@@ -600,7 +600,7 @@ export const CMS: React.FC = () => {
                         disabled={installingTemplate !== null}
                         className="btn btn-primary btn-sm"
                         style={{ opacity: installingTemplate && installingTemplate !== t.key ? 0.5 : 1 }}
-                      >
+                       data-ui-native-button="">
                         {installingTemplate === t.key ? 'Installing…' : 'Use this template'}
                       </button>
                     </div>
@@ -615,7 +615,7 @@ export const CMS: React.FC = () => {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Get Started</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14, lineHeight: 1.5 }}>You can customise your site from here.</div>
-                  <button onClick={() => goTo('customize')} className="btn btn-primary btn-sm">Customize Site</button>
+                  <button onClick={() => goTo('customize')} className="btn btn-primary btn-sm" data-ui-native-button="">Customize Site</button>
                 </div>
 
                 <div>
@@ -628,7 +628,7 @@ export const CMS: React.FC = () => {
                       fn: () => { if (siteSettings?.tenantSlug) window.open(`/site/${siteSettings.tenantSlug}`, '_blank', 'noopener'); },
                     },
                   ].map(item => (
-                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name={item.icon} size={13} /> {item.label}
                     </button>
                   ))}
@@ -641,7 +641,7 @@ export const CMS: React.FC = () => {
                     { icon: 'file' as const,    label: 'Pages',    count: pages.length, fn: () => goTo('pages') },
                     { icon: 'message' as const, label: 'Comments', count: comments.length, fn: () => goTo('comments') },
                   ].map(item => (
-                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name={item.icon} size={13} style={{ color: 'var(--teal)' } as React.CSSProperties} />
                       <span style={{ color: 'var(--teal)', fontWeight: 700, minWidth: 22 }}>{item.count}</span>
                       {item.label}
@@ -657,7 +657,7 @@ export const CMS: React.FC = () => {
                     { icon: 'package' as const,     label: 'Content Releases & Bundles', fn: () => navigate('/cms/releases') },
                     { icon: 'gitBranch' as const,   label: 'Workflow Lifecycle States', fn: () => navigate('/cms/workflow') },
                   ].map(item => (
-                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name={item.icon} size={13} /> {item.label}
                     </button>
                   ))}
@@ -679,14 +679,14 @@ export const CMS: React.FC = () => {
                     <textarea value={draftContent} onChange={e => setDraftContent(e.target.value)} placeholder="What's on your mind?!" rows={6}
                       style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '9px 11px', fontSize: 13, lineHeight: 1.6, resize: 'none', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
                   </FL>
-                  <button onClick={saveDraft} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}>Save Draft</button>
+                  <button onClick={saveDraft} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} data-ui-native-button="">Save Draft</button>
                 </div>
                 {posts.filter(p => p.status === 'draft').length > 0 && (
                   <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Recent Drafts</div>
                     {posts.filter(p => p.status === 'draft').slice(0, 3).map(p => (
                       <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
-                        <button onClick={() => { setEditPost(p); goTo('post-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{p.title}</button>
+                        <button onClick={() => { setEditPost(p); goTo('post-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 500, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }} data-ui-native-button="">{p.title}</button>
                         <span style={{ fontSize: 10.5, color: 'var(--ink3)', flexShrink: 0 }}>{fmtDate(p.updated_at)}</span>
                       </div>
                     ))}
@@ -785,17 +785,17 @@ export const CMS: React.FC = () => {
                       <td style={{ padding: '11px 16px', fontWeight: 600, color: 'var(--ink)', maxWidth: 260 }}>
                         <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{post.title}</div>
                         <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                          {post.status !== 'trash' && <button onClick={() => { setEditPost(post); goTo('post-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 600 }}>Edit</button>}
+                          {post.status !== 'trash' && <button onClick={() => { setEditPost(post); goTo('post-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 600 }} data-ui-native-button="">Edit</button>}
                           {post.status === 'published' && siteSettings?.tenantSlug && (
                             <a href={`/site/${siteSettings.tenantSlug}/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>View</a>
                           )}
-                          {post.status !== 'trash' && <button onClick={() => togglePub(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)', padding: 0 }}>{post.status === 'published' ? 'Unpublish' : 'Publish'}</button>}
+                          {post.status !== 'trash' && <button onClick={() => togglePub(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">{post.status === 'published' ? 'Unpublish' : 'Publish'}</button>}
                           {post.status === 'trash'
                             ? <>
-                                <button onClick={() => restorePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--green)', fontFamily: 'var(--font)', padding: 0 }}>Restore</button>
-                                <button onClick={() => deletePostForever(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Delete permanently</button>
+                                <button onClick={() => restorePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--green)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">Restore</button>
+                                <button onClick={() => deletePostForever(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">Delete permanently</button>
                               </>
-                            : <button onClick={() => trashPost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Trash</button>}
+                            : <button onClick={() => trashPost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">Trash</button>}
                         </div>
                       </td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>{post.author}</td>
@@ -819,7 +819,7 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Comments"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="messageSquare" size={12} />
                             </button>
                             <button
@@ -827,7 +827,7 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Translate with AI"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="sparkle" size={12} />
                             </button>
                             <button
@@ -835,7 +835,7 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Request Approval"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="checkCircle" size={12} />
                             </button>
                             <button
@@ -843,10 +843,10 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Add to Release"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="package" size={12} />
                             </button>
-                            <button onClick={() => { setEditPost(post); goTo('post-editor'); }} className="btn btn-secondary btn-sm" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={() => { setEditPost(post); goTo('post-editor'); }} className="btn btn-secondary btn-sm" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                               <Icon name="edit" size={11} /> Edit
                             </button>
                           </div>
@@ -862,7 +862,7 @@ export const CMS: React.FC = () => {
               </div>
               {postsHasMore && (
                 <div style={{ padding: 14, textAlign: 'center' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadPosts({ search: pSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: posts.length })}>Load more</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadPosts({ search: pSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: posts.length })} data-ui-native-button="">Load more</button>
                 </div>
               )}
             </div>
@@ -917,16 +917,16 @@ export const CMS: React.FC = () => {
                       <td style={{ padding: '11px 16px', fontWeight: 600, color: 'var(--ink)' }}>
                         {pg.title}
                         <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                          {pg.status !== 'trash' && <button onClick={() => { setEditPage(pg); goTo('page-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 600 }}>Edit</button>}
+                          {pg.status !== 'trash' && <button onClick={() => { setEditPage(pg); goTo('page-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 600 }} data-ui-native-button="">Edit</button>}
                           {pg.status === 'published' && siteSettings?.tenantSlug && (
                             <a href={`/site/${siteSettings.tenantSlug}/${pg.slug.replace(/^\//, '')}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>View</a>
                           )}
                           {pg.status === 'trash'
                             ? <>
-                                <button onClick={() => restorePage(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--green)', fontFamily: 'var(--font)', padding: 0 }}>Restore</button>
-                                <button onClick={() => deletePageForever(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Delete permanently</button>
+                                <button onClick={() => restorePage(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--green)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">Restore</button>
+                                <button onClick={() => deletePageForever(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">Delete permanently</button>
                               </>
-                            : <button onClick={() => trashPage(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Trash</button>}
+                            : <button onClick={() => trashPage(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">Trash</button>}
                         </div>
                       </td>
                       <td style={{ padding: '11px 16px', fontFamily: 'var(--font)', color: 'var(--ink3)', fontSize: 12 }}>{pg.slug}</td>
@@ -950,7 +950,7 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Comments"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="messageSquare" size={12} />
                             </button>
                             <button
@@ -958,7 +958,7 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Translate with AI"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="sparkle" size={12} />
                             </button>
                             <button
@@ -966,7 +966,7 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Request Approval"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="checkCircle" size={12} />
                             </button>
                             <button
@@ -974,10 +974,10 @@ export const CMS: React.FC = () => {
                               className="btn btn-secondary btn-sm"
                               title="Add to Release"
                               style={{ padding: '4px 7px' }}
-                            >
+                             data-ui-native-button="">
                               <Icon name="package" size={12} />
                             </button>
-                            <button onClick={() => { setEditPage(pg); goTo('page-editor'); }} className="btn btn-secondary btn-sm" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <button onClick={() => { setEditPage(pg); goTo('page-editor'); }} className="btn btn-secondary btn-sm" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                               <Icon name="edit" size={11} /> Edit
                             </button>
                           </div>
@@ -993,7 +993,7 @@ export const CMS: React.FC = () => {
               </div>
               {pagesHasMore && (
                 <div style={{ padding: 14, textAlign: 'center' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadPages({ search: pagesSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: pages.length })}>Load more</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadPages({ search: pagesSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: pages.length })} data-ui-native-button="">Load more</button>
                 </div>
               )}
             </div>
@@ -1025,16 +1025,16 @@ export const CMS: React.FC = () => {
                   </div>
                   <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.55, marginBottom: 10 }}>{c.content}</div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {c.status !== 'approved' && <button onClick={() => approveCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--green)' }}>Approve</button>}
-                    {c.status !== 'spam'     && <button onClick={() => spamCmt(c.id)}    className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--gold)' }}>Mark Spam</button>}
-                    <button onClick={() => deleteCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--red)' }}>Delete</button>
+                    {c.status !== 'approved' && <button onClick={() => approveCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--green)' }} data-ui-native-button="">Approve</button>}
+                    {c.status !== 'spam'     && <button onClick={() => spamCmt(c.id)}    className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--gold)' }} data-ui-native-button="">Mark Spam</button>}
+                    <button onClick={() => deleteCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--red)' }} data-ui-native-button="">Delete</button>
                   </div>
                 </div>
               </div>
             ))}
             {commentsHasMore && (
               <div style={{ textAlign: 'center' }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadComments({ offset: comments.length })}>Load more</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadComments({ offset: comments.length })} data-ui-native-button="">Load more</button>
               </div>
             )}
           </div>

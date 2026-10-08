@@ -69,7 +69,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Invite a New Team Member</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>An invitation link will be sent to their email.</div>
           </div>
-          <button type="button" className="ondi-icon-action" onClick={onClose} style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', padding: 6, cursor: 'pointer', color: 'var(--ink3)' }}>
+          <button type="button" className="ondi-icon-action" onClick={onClose} style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', padding: 6, cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -256,7 +256,7 @@ export const OndiUsers: React.FC = () => {
         subtitle="Manage seated members, assigned administrative roles, and pending tenant invitations."
         actions={canManage ? (
           <button type="button" className="ondi-primary-action" onClick={() => setShowInvite(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
             <Icon name="userPlus" size={15} /> Invite User
           </button>
         ) : undefined}
@@ -311,14 +311,14 @@ export const OndiUsers: React.FC = () => {
 
       {/* Tabs Header Bar */}
       <div className="ondi-nav-tabstrip" role="tablist" aria-label="People administration">
-        <button role="tab" aria-selected={activeTab === 'users'} className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+        <button role="tab" aria-selected={activeTab === 'users'} className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} data-ui-native-button="">
           <Icon name="users" size={14} /> Users <span className="ondi-tab-badge">{users.length}</span>
         </button>
-        <button role="tab" aria-selected={activeTab === 'invites'} className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`} onClick={() => setActiveTab('invites')}>
+        <button role="tab" aria-selected={activeTab === 'invites'} className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`} onClick={() => setActiveTab('invites')} data-ui-native-button="">
           <Icon name="mail" size={14} /> Invites {invites.length > 0 && <span className="ondi-tab-badge">{invites.length}</span>}
         </button>
         {canManage && (
-          <button role="tab" aria-selected={activeTab === 'join-requests'} className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`} onClick={() => setActiveTab('join-requests')}>
+          <button role="tab" aria-selected={activeTab === 'join-requests'} className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`} onClick={() => setActiveTab('join-requests')} data-ui-native-button="">
             <Icon name="userCheck" size={14} /> Join Requests {joinRequests.length > 0 && <span className="ondi-tab-badge">{joinRequests.length}</span>}
           </button>
         )}
@@ -363,7 +363,7 @@ export const OndiUsers: React.FC = () => {
               />
 
               <button type="button" className="ondi-secondary-action" onClick={exportCSV}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }} data-ui-native-button="">
                 <Icon name="download" size={14} /> Export CSV
               </button>
             </div>
@@ -415,7 +415,7 @@ export const OndiUsers: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 'var(--r-sm)'}}>
+                            <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                               <Icon name="moreVertical" size={16} />
                             </button>
                           </DropdownMenuTrigger>
@@ -482,7 +482,7 @@ export const OndiUsers: React.FC = () => {
                         {i.status === 'PENDING' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }}>
+                              <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button="">
                                 <Icon name="moreVertical" size={16} />
                               </button>
                             </DropdownMenuTrigger>
@@ -557,7 +557,7 @@ export const OndiUsers: React.FC = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <button type="button" className="ondi-secondary-action" onClick={() => denyJoinRequest(r.id)}
-                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
                           Deny
                         </button>
                       </div>

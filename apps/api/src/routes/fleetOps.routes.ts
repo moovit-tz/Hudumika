@@ -483,6 +483,34 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.get('/trips/:id', async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('trips').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Trip not found.' });
+
+      let shipment_ref: string | null = null;
+      if (row.shipment_id) {
+        try {
+          const sc = await trx.selectFrom('shipment_cases').select('ref_number')
+            .where('id', '=', row.shipment_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+          shipment_ref = sc?.ref_number ?? null;
+        } catch { /* clearos not provisioned */ }
+      }
+
+      return {
+        ...row,
+        distance_km: numOrNull(row.distance_km),
+        cargo_weight_kg: numOrNull(row.cargo_weight_kg),
+        cargo_temp_c: numOrNull(row.cargo_temp_c),
+        load_capacity_pct: numOrNull(row.load_capacity_pct),
+        shipment_ref,
+      };
+    });
+  });
+
   fastify.post('/trips', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const body = req.body as {

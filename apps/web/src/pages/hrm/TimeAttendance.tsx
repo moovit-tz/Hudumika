@@ -46,7 +46,7 @@ function FlagToggle({ label, on, onChange }: { label: string; on: boolean; onCha
   return (
     <button type="button" onClick={() => onChange(!on)}
       style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 10px', fontSize:11.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r-sm)', cursor:'pointer', fontFamily:'var(--font)',
-        background: on ? 'var(--teal-l)' : 'var(--bg)', color: on ? 'var(--teal)' : 'var(--ink3)' }}>
+        background: on ? 'var(--teal-l)' : 'var(--bg)', color: on ? 'var(--teal)' : 'var(--ink3)' }} data-ui-native-button="">
       <span style={{ width:14, height:14, borderRadius:'50%', display:'inline-flex', alignItems:'center', justifyContent:'center', background: on ? 'hsl(var(--primary))' : 'var(--ink3)', color: on ? 'hsl(var(--primary-foreground))' : '#fff' }}>
         <Icon name={on ? 'check' : 'x'} size={9} strokeWidth={3} />
       </span>

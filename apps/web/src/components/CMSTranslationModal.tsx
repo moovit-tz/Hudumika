@@ -111,7 +111,7 @@ export function CMSTranslationModal({
           <button
             onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-          >
+           data-ui-native-button="">
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -178,7 +178,7 @@ export function CMSTranslationModal({
                   cursor: 'pointer',
                   textAlign: 'left',
                 }}
-              >
+               data-ui-native-button="">
                 <span style={{ fontSize: 16 }}>{l.flag}</span>
                 <span>{l.name}</span>
               </button>
@@ -190,7 +190,7 @@ export function CMSTranslationModal({
           <button
             onClick={onClose}
             style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
-          >
+           data-ui-native-button="">
             Cancel
           </button>
           <button
@@ -210,7 +210,7 @@ export function CMSTranslationModal({
               cursor: 'pointer',
               opacity: translating ? 0.7 : 1,
             }}
-          >
+           data-ui-native-button="">
             <Icon name="sparkle" size={14} />
             {translating ? 'Generating Draft Translation...' : 'Translate with AI (Draft)'}
           </button>

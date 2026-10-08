@@ -105,7 +105,7 @@ function CommentSection({ tenantSlug, postSlug }: { tenantSlug: string; postSlug
           <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
             value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
             style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
-          <button type="submit" disabled={submitting}>{submitting ? 'Posting…' : 'Post comment'}</button>
+          <button type="submit" disabled={submitting} data-ui-native-button="">{submitting ? 'Posting…' : 'Post comment'}</button>
         </form>
       )}
     </div>
@@ -151,7 +151,7 @@ function SearchBox({ tenantSlug, initialQuery }: { tenantSlug: string; initialQu
   return (
     <form className="onesite-pub-search" onSubmit={e => { e.preventDefault(); if (q.trim()) window.location.href = `/site/${tenantSlug}/search?q=${encodeURIComponent(q.trim())}`; }}>
       <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" aria-label="Search this site" />
-      <button type="submit" aria-label="Search">
+      <button type="submit" aria-label="Search" data-ui-native-button="">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
       </button>
     </form>

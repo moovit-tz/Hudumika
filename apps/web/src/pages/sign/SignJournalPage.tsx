@@ -287,7 +287,7 @@ export function SignJournalPage() {
                                   {entry.anchor_hash.slice(0, 10)}…{entry.anchor_hash.slice(-6)}
                                 </code>
                                 <button type="button" onClick={() => copyToClipboard(entry.anchor_hash!, entry.event_id)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} title="Copy SHA-256 Hash">
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} title="Copy SHA-256 Hash" data-ui-native-button="">
                                   <Icon name={copiedHash === entry.event_id ? 'check' : 'copy'} size={13} style={{ color: copiedHash === entry.event_id ? 'var(--green)' : undefined }} />
                                 </button>
                               </div>

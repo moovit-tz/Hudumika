@@ -202,7 +202,7 @@ export function PettiDeposit() {
                         type="button"
                         className="petti-amount-chip"
                         onClick={() => setAmount(String(preset))}
-                      >
+                       data-ui-native-button="">
                         +{preset.toLocaleString()}
                       </button>
                     ))}

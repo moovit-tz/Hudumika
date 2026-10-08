@@ -199,9 +199,9 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
     <div>
       {/* Status filter strip */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
+        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
         {statuses.map(s => { const cfg = TASK_STATUS_CFG[s]; const on = filterStatus === s; return (
-          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             {cfg.label} <span style={{ fontWeight: 700 }}>{counts[s]}</span>
           </button>
         ); })}
@@ -210,7 +210,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="input-field" style={{ flex: 1, fontSize: 13 }} />
-        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="plus" size={14} /> Add Task
         </button>
       </div>
@@ -226,7 +226,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
               {newTitleCustom ? (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task name…" required autoFocus style={{ flex: 1 }} />
-                  <button type="button" onClick={() => { setNewTitleCustom(false); setNewTitle(''); }} title="Choose from list instead" className="btn btn-secondary btn-sm">
+                  <button type="button" onClick={() => { setNewTitleCustom(false); setNewTitle(''); }} title="Choose from list instead" className="btn btn-secondary btn-sm" data-ui-native-button="">
                     <Icon name="x" size={13} />
                   </button>
                 </div>
@@ -272,8 +272,8 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
             />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={addSaving}>{addSaving ? 'Saving…' : 'Add Task'}</button>
-            <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={addSaving} data-ui-native-button="">{addSaving ? 'Saving…' : 'Add Task'}</button>
+            <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
           </div>
         </form>
         </Card>
@@ -340,7 +340,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                         </span>
                         {canEditStatus(task) && (
                           <button type="button" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task"
-                            style={{ fontSize: 11, fontWeight: 600, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                            style={{ fontSize: 11, fontWeight: 600, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                             Reopen
                           </button>
                         )}
@@ -359,12 +359,12 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                         </div>
                         {task.status !== 'complete' && (
                           <button type="button" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                             <Icon name="check" size={12} />
                           </button>
                         )}
                         <button type="button" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id} title="Close & sign off this task"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal-d)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal-d)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                           <Icon name="lock" size={11} /> Close
                         </button>
                       </div>
@@ -459,7 +459,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
           )}
         </div>
-        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="clock" size={14} /> Log Time
         </button>
       </div>
@@ -512,8 +512,8 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             <input value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked on…" style={{ width: '100%' }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={logSaving}>{logSaving ? 'Saving…' : 'Save Entry'}</button>
-            <button type="button" onClick={() => setShowLog(false)} className="btn btn-secondary btn-sm">Cancel</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={logSaving} data-ui-native-button="">{logSaving ? 'Saving…' : 'Save Entry'}</button>
+            <button type="button" onClick={() => setShowLog(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
           </div>
         </form>
         </Card>

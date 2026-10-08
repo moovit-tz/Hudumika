@@ -532,8 +532,8 @@ export function CompaniesView() {
         action={
           <div className="sa-toolbar-actions">
             {apiError && <span className="sa-toolbar-offline">API offline — showing mock data</span>}
-            <button type="button" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm"><Icon name="refresh" size={12}/>Refresh</button>
-            <button type="button" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md"><Icon name="plus" size={13}/>Add Company</button>
+            <button type="button" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm" data-ui-native-button=""><Icon name="refresh" size={12}/>Refresh</button>
+            <button type="button" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md" data-ui-native-button=""><Icon name="plus" size={13}/>Add Company</button>
           </div>
         }
       />
@@ -597,7 +597,7 @@ export function CompaniesView() {
                         padding: '2px 6px',
                       }}
                       className="hover:underline"
-                    >
+                     data-ui-native-button="">
                       Reset all
                     </button>
                   )}
@@ -634,7 +634,7 @@ export function CompaniesView() {
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
-                        >
+                         data-ui-native-button="">
                           {opt.dot && (
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: opt.dot }} />
                           )}
@@ -667,7 +667,7 @@ export function CompaniesView() {
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
-                    >
+                     data-ui-native-button="">
                       All Plans
                     </button>
                     {(Object.keys(PLAN_CFG) as PlanId[]).map(k => {
@@ -690,7 +690,7 @@ export function CompaniesView() {
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
-                        >
+                         data-ui-native-button="">
                           {PLAN_CFG[k].label}
                         </button>
                       );
@@ -708,7 +708,7 @@ export function CompaniesView() {
                     onClick={close}
                     className="btn btn-primary btn-sm"
                     style={{ padding: '4px 12px', fontSize: 12 }}
-                  >
+                   data-ui-native-button="">
                     Done
                   </button>
                 </div>
@@ -741,7 +741,7 @@ export function CompaniesView() {
                   onClick={() => setSearch('')}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
                   title="Clear search"
-                >
+                 data-ui-native-button="">
                   <X size={12} />
                 </button>
               </span>
@@ -767,7 +767,7 @@ export function CompaniesView() {
                   onClick={() => setStatusFilter('all')}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
                   title="Remove status filter"
-                >
+                 data-ui-native-button="">
                   <X size={12} />
                 </button>
               </span>
@@ -792,7 +792,7 @@ export function CompaniesView() {
                   onClick={() => setPlanFilter('all')}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
                   title="Remove plan filter"
-                >
+                 data-ui-native-button="">
                   <X size={12} />
                 </button>
               </span>
@@ -814,7 +814,7 @@ export function CompaniesView() {
                 padding: '2px 4px',
               }}
               className="hover:underline"
-            >
+             data-ui-native-button="">
               Clear all
             </button>
           </div>
@@ -829,8 +829,8 @@ export function CompaniesView() {
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
           <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'company' : 'companies'} selected</span>
           <div style={{ flex:1 }} />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCompanies}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
-          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())}>Clear</button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCompanies} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
+          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
         </div>
       )}
 
@@ -888,7 +888,7 @@ export function CompaniesView() {
                       type="button"
                       disabled={!!impersonating}
                       onClick={() => handleImpersonate(co)}
-                      style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="eye" size={11} color="var(--teal)" />
                       {impersonating === co.id ? 'Switching…' : 'Login As'}
                     </button>
@@ -928,7 +928,7 @@ export function CompaniesView() {
           <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
               <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Add Company</span>
-              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowAdd(false)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
+              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowAdd(false)} className="dp-close" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
             </div>
             <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:14 }}>
               {([
@@ -954,8 +954,8 @@ export function CompaniesView() {
               </div>
             </div>
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
-              <button type="button" onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button type="button" onClick={addCompany} className="btn btn-primary btn-sm" disabled={!form.name.trim()||!form.email.trim()}>Add Company</button>
+              <button type="button" onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
+              <button type="button" onClick={addCompany} className="btn btn-primary btn-sm" disabled={!form.name.trim()||!form.email.trim()} data-ui-native-button="">Add Company</button>
             </div>
           </div>
         </div>
@@ -966,7 +966,7 @@ export function CompaniesView() {
           <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
               <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Edit Company</span>
-              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowEdit(false)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
+              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowEdit(false)} className="dp-close" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
               <div>
@@ -1067,8 +1067,8 @@ export function CompaniesView() {
             </div>
 
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
-              <button type="button" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button type="button" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()}>Save Changes</button>
+              <button type="button" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
+              <button type="button" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()} data-ui-native-button="">Save Changes</button>
             </div>
           </div>
         </div>
@@ -1082,11 +1082,11 @@ export function CompaniesView() {
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <Tip label="Retag customer and shipment Cloud folders created before entity linking existed" side="top">
                   <button type="button" disabled={resyncingCloud}
-                    onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm">
+                    onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm" data-ui-native-button="">
                     {resyncingCloud ? 'Resyncing…' : 'Resync Cloud Links'}
                   </button>
                 </Tip>
-                <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setCustomersCo(null)} className="dp-close"><Icon name="close" size={16} /></button></Tip>
+                <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setCustomersCo(null)} className="dp-close" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
               </div>
             </div>
             {loadingCustomers ? (
@@ -1114,7 +1114,7 @@ export function CompaniesView() {
                         title={`Login as ${cust.name}`}
                         disabled={!!impersonatingCustomerId}
                         onClick={() => handleImpersonateCustomer(cust)}
-                        style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         <Icon name="eye" size={11} color="var(--teal)" />
                         {impersonatingCustomerId === cust.id ? 'Switching…' : 'Login As Customer'}
                       </button>

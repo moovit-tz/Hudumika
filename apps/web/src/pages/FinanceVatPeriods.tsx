@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
+import { Link } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -70,7 +71,7 @@ export function FinanceVatPeriods() {
     setLoading(true);
     apiFetch('/v1/vat-periods')
       .then((r: any) => setPeriods(Array.isArray(r) ? r : []))
-      .catch(() => setPeriods([]))
+      .catch((error: unknown) => setNotice({ kind: 'err', text: error instanceof Error ? error.message : 'Unable to load VAT periods. Retry before making changes.' }))
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -108,7 +109,7 @@ export function FinanceVatPeriods() {
       const adj = Number(r?.period?.adjustment_amount) || 0;
       setNotice({
         kind: 'ok',
-        text: `Period closed. The return is stored as filed and its documents are now frozen.` +
+        text: `Period closed. An internal return snapshot is stored and its documents are frozen. No return was submitted to a tax authority.` +
               (adj > 0 ? ` A partial-exemption adjustment of ${fmt(adj)} was posted to the ledger.` : ''),
       });
       setOpen(null);
@@ -127,7 +128,7 @@ export function FinanceVatPeriods() {
   }
 
   async function reopen(p: Period) {
-    const reason = await showPrompt('Reopening unfreezes documents a return was already filed on.', {
+    const reason = await showPrompt('Reopening unfreezes documents behind a closed return snapshot.', {
       title: 'Why is this needed?', placeholder: 'e.g. A late credit note needs to post inside this period', required: true, confirmLabel: 'Reopen Period',
     });
     if (!reason?.trim()) return;
@@ -136,7 +137,7 @@ export function FinanceVatPeriods() {
       await apiFetch(`/v1/vat-periods/${p.id}/reopen`, {
         method: 'POST', body: JSON.stringify({ reason: reason.trim() }),
       });
-      setNotice({ kind: 'warn', text: 'Period reopened. The return as originally filed is kept on record.' });
+      setNotice({ kind: 'warn', text: 'Period reopened. The original closed snapshot is kept on record.' });
       load();
     } catch (e: any) {
       setNotice({ kind: 'err', text: e?.message || 'Could not reopen that period' });
@@ -154,13 +155,13 @@ export function FinanceVatPeriods() {
     { key: 'jurisdiction', header: 'Jurisdiction', accessor: 'jurisdiction', sortable: true },
     {
       key: 'status', header: 'Status', accessor: 'status', sortable: true,
-      render: period => <div className="flex items-center gap-1.5"><Badge variant={period.status === 'closed' ? 'success' : 'gray'}>{period.status === 'closed' ? 'Filed' : 'Open'}</Badge>{period.reopened_at && <Tip label={period.reopen_reason || 'No reason recorded'}><span><Badge variant="warning">Reopened</Badge></span></Tip>}</div>,
+      render: period => <div className="flex items-center gap-1.5"><Badge variant={period.status === 'closed' ? 'success' : 'gray'}>{period.status === 'closed' ? 'Closed' : 'Open'}</Badge>{period.reopened_at && <Tip label={period.reopen_reason || 'No reason recorded'}><span><Badge variant="warning">Reopened</Badge></span></Tip>}</div>,
     },
     { key: 'adjustment', header: 'Adjustment posted', accessor: 'adjustment_amount', sortable: true, align: 'right', hideAt: 'sm', render: period => Number(period.adjustment_amount) > 0 ? fmt(Number(period.adjustment_amount)) : '—' },
     { key: 'closed', header: 'Closed', accessor: 'closed_at', sortable: true, hideAt: 'md', render: period => period.closed_at ? String(period.closed_at).slice(0, 10) : '—' },
     {
       key: 'actions', header: '', align: 'right',
-      render: period => <div className="flex justify-end gap-1.5"><Button type="button" variant="outline" size="sm" disabled={busy === period.id} onClick={() => view(period)}>{period.status === 'closed' ? 'View filed' : 'Preview'}</Button>{period.status === 'open' ? <Button type="button" size="sm" disabled={busy === period.id} onClick={() => close(period)}>Close &amp; file</Button> : <Button type="button" variant="outline" size="sm" disabled={busy === period.id} onClick={() => reopen(period)}>Reopen</Button>}</div>,
+      render: period => <div className="flex flex-wrap justify-end gap-1.5"><Button asChild variant="outline" size="sm"><Link to={`/finance/vat-periods/${period.id}/preparation`}>Prepare</Link></Button><Button type="button" variant="outline" size="sm" disabled={busy === period.id} onClick={() => view(period)}>{period.status === 'closed' ? 'View snapshot' : 'Preview'}</Button>{period.status === 'open' ? <Button type="button" size="sm" disabled={busy === period.id} onClick={() => close(period)}>Close period</Button> : <Button type="button" variant="outline" size="sm" disabled={busy === period.id} onClick={() => reopen(period)}>Reopen</Button>}</div>,
     },
   ];
 
@@ -168,9 +169,9 @@ export function FinanceVatPeriods() {
     <div className="page-layout">
       <PageHeader
         crumbs={['Finance', 'Tax']}
-        titlePlain="Filing"
+        titlePlain="VAT"
         titleEm="periods"
-        subtitle="Closing a period stores the return as filed and freezes the documents behind it."
+        subtitle="Prepare and review VAT. Closing stores an internal snapshot and locks source documents; it does not submit a return."
       />
 
       <MetricsRow cards={[
@@ -185,7 +186,7 @@ export function FinanceVatPeriods() {
           sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--gold)', loading,
         },
         {
-          title: 'Filed Returns', value: String(periods.filter(p => p.status === 'closed').length), icon: 'lock',
+          title: 'Closed Returns', value: String(periods.filter(p => p.status === 'closed').length), icon: 'lock',
           sub1Label: 'REOPENED', sub1Value: String(periods.filter(p => p.reopened_at).length),
           sub2Label: 'TOTAL', sub2Value: String(periods.length), barHighlight: 'var(--green)', loading,
         },
@@ -244,7 +245,7 @@ export function FinanceVatPeriods() {
           empty={!loading && periods.length === 0}
           emptyIcon="calendar"
           emptyTitle="No filing periods"
-          emptyMessage="Create a period above when you are ready to prepare and file a tax return."
+          emptyMessage="Create a period above when you are ready to prepare and review a tax return."
           defaultSortKey="period"
           defaultSortDir="desc"
           pageSize={12}
@@ -257,7 +258,7 @@ export function FinanceVatPeriods() {
         <SectionCard
           padded={false}
           collapsible={false}
-          title={`${String(open.period.period_start).slice(0, 10)} → ${String(open.period.period_end).slice(0, 10)}${open.provisional ? ' · provisional, recomputed live' : ' · as filed'}`}
+          title={`${String(open.period.period_start).slice(0, 10)} → ${String(open.period.period_end).slice(0, 10)}${open.provisional ? ' · provisional, recomputed live' : ' · closed snapshot'}`}
           action={<Button type="button" variant="outline" size="sm" onClick={() => setOpen(null)}>
             <Icon name="x" size={13} /> Close
           </Button>}
@@ -284,7 +285,7 @@ export function FinanceVatPeriods() {
           {open.provisional && gaps > 0 && (
             <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--gold-l)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
               <strong style={{ color: 'var(--ink)' }}>{gaps} line(s) cannot be placed in a box.</strong>{' '}
-              Closing freezes them exactly as they are, and the filed return will carry the hole.
+              Closing freezes them exactly as they are, and the stored snapshot will retain the missing classification.
               <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a href="/finance/tax-codes/classify" className="btn btn-secondary btn-sm">Classify them first</a>
                 <Button type="button" variant="outline" size="sm"

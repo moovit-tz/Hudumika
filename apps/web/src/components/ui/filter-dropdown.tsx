@@ -32,26 +32,19 @@ function TriggerPill({
   icon, label, valueLabel, active, onClear,
 }: { icon?: React.ReactNode; label: string; valueLabel?: string; active?: boolean; onClear?: () => void }) {
   return (
-    <PopoverTrigger asChild>
-      <button type="button" data-active={active} className={triggerPillClass}>
-        {icon}
-        <span>{label}{valueLabel ? <>: <span className="font-bold">{valueLabel}</span></> : null}</span>
-        {active && onClear ? (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onClear(); } }}
-            title="Remove this filter"
-            className="ml-0.5 rounded-full p-0.5 text-foreground/40 hover:bg-destructive/10 hover:text-destructive"
-          >
-            <X className="h-3.5 w-3.5" />
-          </span>
-        ) : (
+    <div className="inline-flex items-center gap-1 max-w-full">
+      <PopoverTrigger asChild>
+        <button type="button" data-active={active} className={triggerPillClass}>
+          {icon}
+          <span>{label}{valueLabel ? <>: <span className="font-bold">{valueLabel}</span></> : null}</span>
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-        )}
-      </button>
-    </PopoverTrigger>
+        </button>
+      </PopoverTrigger>
+      {active && onClear && <button type="button" aria-label={`Clear ${label} filter`} onClick={onClear}
+        className="inline-flex items-center justify-center min-h-[var(--ctl-h-sm)] min-w-[var(--ctl-h-sm)] rounded-full text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
+        <X className="h-3.5 w-3.5" />
+      </button>}
+    </div>
   )
 }
 

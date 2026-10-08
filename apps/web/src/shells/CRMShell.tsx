@@ -28,6 +28,7 @@ import { CrmQuotaTargets }          from '../pages/CrmQuotaTargets.js';
 import { CrmTerritories }           from '../pages/CrmTerritories.js';
 import { CrmLeadStages }            from '../pages/CrmLeadStages.js';
 import { CrmTerminology }           from '../pages/CrmTerminology.js';
+import { CrmVendors, CrmVendorRecord } from '../pages/CrmVendors.js';
 
 /* /crm/leads/:id → /crm/leads?lead=:id (opens the lead profile directly) */
 function LeadsWithId() {
@@ -49,6 +50,7 @@ const NAV: SidebarSection[] = [
         children: [
           { label: 'Customers',          icon: 'users',    path: '/crm/customers'      },
           { label: 'Partners Directory', icon: 'link',     path: '/crm/chain-partners' },
+          { label: 'Vendors', icon: 'users', path: '/crm/vendors' },
           { label: 'Leads',              icon: 'userPlus', path: '/crm/leads'          },
         ],
       },
@@ -106,6 +108,9 @@ export function CRMShell() {
               <Route path="chain-partners/:id"    element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
               <Route path="leads"         element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Leads /></RequireRoles>} />
               <Route path="leads/:id"     element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><LeadsWithId /></RequireRoles>} />
+              <Route path="vendors" element={<RequireRoles roles={CRM_ROLES}><CrmVendors /></RequireRoles>} />
+              <Route path="vendors/new" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
+              <Route path="vendors/:id" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
               <Route path="opportunities" element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Pipeline /></RequireRoles>} />
               <Route path="pipeline"     element={<Navigate to="/crm/opportunities" replace />} />
               <Route path="quotes"       element={<RequireRoles roles={CRM_ROLES}><Sales /></RequireRoles>} />

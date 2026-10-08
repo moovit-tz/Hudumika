@@ -55,13 +55,13 @@ export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings 
           <FL label="Logo">
             <div style={{ display: 'flex', gap: 8 }}>
               <input value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('logoUrl')}>Choose from library</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('logoUrl')} data-ui-native-button="">Choose from library</button>
             </div>
           </FL>
           <FL label="Favicon">
             <div style={{ display: 'flex', gap: 8 }}>
               <input value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('faviconUrl')}>Choose from library</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('faviconUrl')} data-ui-native-button="">Choose from library</button>
             </div>
           </FL>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -69,7 +69,7 @@ export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings 
               onClick={() => handleSave('identity', { siteTitle: form.siteTitle, tagline: form.tagline, logoUrl: form.logoUrl, faviconUrl: form.faviconUrl })}
               disabled={saving === 'identity'}
               className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
-            >
+             data-ui-native-button="">
               {saving === 'identity' ? 'Saving…' : 'Save'}
             </button>
             {savedFlash === 'identity' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
@@ -124,7 +124,7 @@ export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings 
               onClick={() => handleSave('appearance', { accentColor: form.accentColor, headingFont: form.headingFont, bodyFont: form.bodyFont, radius: form.radius })}
               disabled={saving === 'appearance'}
               className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
-            >
+             data-ui-native-button="">
               {saving === 'appearance' ? 'Saving…' : 'Save'}
             </button>
             {savedFlash === 'appearance' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}

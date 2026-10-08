@@ -88,6 +88,8 @@ function findEmittedTypes(): Map<string, { files: string[]; keys: Set<string> }>
       if (!block) continue;
       const type = /type:\s*['"`]([^'"`]+)['"`]/.exec(block)?.[1];
       if (!type) continue;
+      // Dynamic CMS lifecycle names are checked through their literal emitters.
+      if (type.includes('${')) continue;
       const entry = found.get(type) ?? { files: [], keys: new Set<string>() };
       entry.files.push(relative(SRC, file).replace(/\\/g, '/'));
       for (const k of payloadKeys(block)) entry.keys.add(k);
@@ -166,4 +168,6 @@ if (failed) {
   console.error('\nFix apps/api/src/studio/triggers.ts, or the emitter, so the two agree.');
   process.exit(1);
 }
-console.log('\nOK — every trigger has an emitter and every emitted event has a trigger.');
+console.log(registeredButNeverEmitted.length || emittedButNotRegistered.length
+  ? '\nPayload and template checks passed; registry coverage warnings remain.'
+  : '\nOK — every trigger has an emitter and every emitted event has a trigger.');

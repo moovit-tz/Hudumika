@@ -205,7 +205,7 @@ export const Login: React.FC = () => {
             toggleThemeWithAnimation(e, next === 'dark');
           }}
           className="login-toggle"
-        >
+         data-ui-native-button="">
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>
@@ -229,8 +229,8 @@ export const Login: React.FC = () => {
             is already a real, dedicated multi-step registration flow
             (OnboardingWizard); this pill just navigates there. */}
         <div className="login-toplevel-switcher">
-          <button type="button" className="login-toplevel-tab login-toplevel-tab--active">{t('login.signIn')}</button>
-          <button type="button" onClick={() => navigate('/signup')} className="login-toplevel-tab">{t('login.createAccount')}</button>
+          <button type="button" className="login-toplevel-tab login-toplevel-tab--active" data-ui-native-button="">{t('login.signIn')}</button>
+          <button type="button" onClick={() => navigate('/signup')} className="login-toplevel-tab" data-ui-native-button="">{t('login.createAccount')}</button>
         </div>
 
         <div className="login-header-left">
@@ -256,7 +256,7 @@ export const Login: React.FC = () => {
               type="button"
               onClick={() => setMethod(m.key)}
               className={`login-method-tab${method === m.key ? ' login-method-tab--active' : ''}`}
-            >
+             data-ui-native-button="">
               {m.icon}
               <span>{m.label}</span>
             </button>
@@ -292,10 +292,10 @@ export const Login: React.FC = () => {
                   onClick={() => { setNeeds2fa(false); setTotpCode(''); setError(null); }}
                   disabled={loading}
                   className="login-back-btn"
-                >
+                 data-ui-native-button="">
                   Back
                 </button>
-                <button type="submit" disabled={loading} className="login-submit-btn">
+                <button type="submit" disabled={loading} className="login-submit-btn" data-ui-native-button="">
                   {loading ? t('login.signingIn') : 'Verify & sign in'}
                 </button>
               </div>
@@ -336,7 +336,7 @@ export const Login: React.FC = () => {
                     autoComplete="current-password"
                   />
                   <Tip label={showPass ? t('login.hidePassword') : t('login.showPassword')}>
-                    <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle">
+                    <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" data-ui-native-button="">
                       <Icon name={showPass ? 'eyeOff' : 'eye'} size={16} />
                     </button>
                   </Tip>
@@ -348,7 +348,7 @@ export const Login: React.FC = () => {
                 )}
               </div>
 
-              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full">
+              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
                 {loading ? t('login.signingIn') : t('login.signIn')}
                 {!loading && <Icon name="arrowRight" size={14} color="#fff" />}
               </button>
@@ -367,7 +367,7 @@ export const Login: React.FC = () => {
                 onClick={() => handleDemoLogin(acc.email)}
                 disabled={loading || !!demoLoadingEmail}
                 className="login-demo-btn"
-              >
+               data-ui-native-button="">
                 {demoLoadingEmail === acc.email
                   ? <span className="auth-spinner" />
                   : <Icon name="user" size={14} />
@@ -383,7 +383,7 @@ export const Login: React.FC = () => {
       <div className="login-footer">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="login-lang-trigger">
+            <button type="button" className="login-lang-trigger" data-ui-native-button="">
               <Icon name="globe" size={13} />
               {LANGUAGES.find(l => l.code === language)?.nativeLabel ?? 'English'}
             </button>
@@ -498,7 +498,7 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
             toggleThemeWithAnimation(e, next === 'dark');
           }}
           className="login-toggle"
-        >
+         data-ui-native-button="">
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>
@@ -519,7 +519,7 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
       <div className="login-footer">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" className="login-lang-trigger">
+            <button type="button" className="login-lang-trigger" data-ui-native-button="">
               <Icon name="globe" size={13} />
               {LANGUAGES.find(l => l.code === language)?.nativeLabel ?? 'English'}
             </button>

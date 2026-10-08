@@ -114,11 +114,11 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequ
           new still needs this form (name/plan/payment have nowhere else to
           come from), but a colleague joining an existing one doesn't. */}
       <div className="login-method-switcher">
-        <button type="button" onClick={() => setMode('ondi')} className={`login-method-tab${mode === 'ondi' ? ' login-method-tab--active' : ''}`}>
+        <button type="button" onClick={() => setMode('ondi')} className={`login-method-tab${mode === 'ondi' ? ' login-method-tab--active' : ''}`} data-ui-native-button="">
           <OndiLogo size={14} />
           <span>Ondi</span>
         </button>
-        <button type="button" onClick={() => setMode('details')} className={`login-method-tab${mode === 'details' ? ' login-method-tab--active' : ''}`}>
+        <button type="button" onClick={() => setMode('details')} className={`login-method-tab${mode === 'details' ? ' login-method-tab--active' : ''}`} data-ui-native-button="">
           <Icon name="user" size={14} />
           <span>Details</span>
         </button>
@@ -192,7 +192,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequ
             autoComplete="new-password"
           />
           <Tip label={showPass ? 'Hide password' : 'Show password'}>
-            <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle">
+            <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" data-ui-native-button="">
               <Icon name={showPass ? 'eyeOff' : 'eye'} size={15} />
             </button>
           </Tip>
@@ -222,7 +222,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequ
             autoComplete="new-password"
           />
           <Tip label={showConfirm ? 'Hide password' : 'Show password'}>
-            <button type="button" onClick={() => setShowConfirm(p => !p)} className="login-pw-toggle">
+            <button type="button" onClick={() => setShowConfirm(p => !p)} className="login-pw-toggle" data-ui-native-button="">
               <Icon name={showConfirm ? 'eyeOff' : 'eye'} size={15} />
             </button>
           </Tip>
@@ -232,24 +232,24 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequ
 
       {showJoinOffer ? (
         <div className="login-form-actions ob-join-offer-actions">
-          <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back to sign in</button>
+          <button type="button" onClick={() => navigate('/login')} className="login-back-btn" data-ui-native-button="">Back to sign in</button>
           <button
             type="button"
             onClick={handleRequestJoin}
             disabled={joinRequestSubmitting}
             className="login-submit-btn"
-          >
+           data-ui-native-button="">
             {joinRequestSubmitting ? 'Sending request…' : `Request to join ${matchedTenant!.name}`}
           </button>
         </div>
       ) : (
         <div className="login-form-actions">
-          <button type="button" onClick={() => navigate('/login')} className="login-back-btn">Back to sign in</button>
-          <button type="submit" className="login-submit-btn">Continue</button>
+          <button type="button" onClick={() => navigate('/login')} className="login-back-btn" data-ui-native-button="">Back to sign in</button>
+          <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue</button>
         </div>
       )}
       {showJoinOffer && (
-        <button type="submit" className="ob-join-offer-skip">
+        <button type="submit" className="ob-join-offer-skip" data-ui-native-button="">
           Set up a new, separate workspace instead
         </button>
       )}

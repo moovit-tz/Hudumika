@@ -26,7 +26,7 @@ export function ConnectedStorageCards({ connections, onOpen }: { connections: St
           type="button"
           style={{ color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 'inherit', padding: 0 }}
           onClick={() => onOpen('onedrive')}
-        >
+         data-ui-native-button="">
           Connect OneDrive →
         </button>
       </Card>
@@ -50,7 +50,7 @@ export function ConnectedStorageCards({ connections, onOpen }: { connections: St
               background: 'none', border: 'none', borderTop: i > 0 ? '1px solid var(--border)' : 'none',
               cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', borderRadius: i === 0 ? 'var(--r)' : 0,
             }}
-          >
+           data-ui-native-button="">
             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 'var(--r)', background: `${p.color}1a`, flexShrink: 0 }}>
               <Icon name={p.icon} size={15} color={p.color} />
             </span>

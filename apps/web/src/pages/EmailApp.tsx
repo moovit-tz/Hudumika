@@ -285,7 +285,7 @@ const ContactHoverCardBody: React.FC<ContactHoverCardBodyProps> = ({ addr, saved
               className={`em-contact-card-add-btn${isSaved ? ' em-contact-card-add-btn--saved' : ''}`}
               onClick={() => { if (!isSaved && !isSaving) onSave(addr.email, addr.name); }}
               disabled={isSaving}
-            >
+             data-ui-native-button="">
               <Icon name={isSaved ? 'check' : 'userPlus'} size={14} />
             </button>
           </Tip>
@@ -293,26 +293,26 @@ const ContactHoverCardBody: React.FC<ContactHoverCardBodyProps> = ({ addr, saved
       </div>
       <div className="em-contact-card-actions">
         <Tip label="Compose email">
-          <button type="button" className="em-contact-card-action-icon" onClick={() => onCompose(addr)}>
+          <button type="button" className="em-contact-card-action-icon" onClick={() => onCompose(addr)} data-ui-native-button="">
             <Icon name="mail" size={15} />
           </button>
         </Tip>
         {addr.userId && (
           <>
             <Tip label="Start chat">
-              <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate(`/bliss?chat=${addr.userId}`)}>
+              <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate(`/bliss?chat=${addr.userId}`)} data-ui-native-button="">
                 <Icon name="message" size={15} />
               </button>
             </Tip>
             <Tip label="Video call">
-              <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate(`/bliss/calls?call=${addr.userId}&kind=VIDEO`)}>
+              <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate(`/bliss/calls?call=${addr.userId}&kind=VIDEO`)} data-ui-native-button="">
                 <Icon name="video" size={15} />
               </button>
             </Tip>
           </>
         )}
         <Tip label="Open calendar">
-          <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate('/calendar')}>
+          <button type="button" className="em-contact-card-action-icon" onClick={() => onNavigate('/calendar')} data-ui-native-button="">
             <Icon name="calendar" size={15} />
           </button>
         </Tip>
@@ -374,12 +374,12 @@ const TemplatePickerPanel: React.FC<TemplatePickerPanelProps> = ({ templates, se
           onChange={e => setSearch(e.target.value)}
           autoFocus
         />
-        {search && <button type="button" className="em-tpl-search-clear" onClick={() => setSearch('')}><Icon name="x" size={12} /></button>}
+        {search && <button type="button" className="em-tpl-search-clear" onClick={() => setSearch('')} data-ui-native-button=""><Icon name="x" size={12} /></button>}
       </div>
       <div className="em-tpl-stats">
         <span className="em-tpl-stats-total">{templates.length} {templates.length === 1 ? 'template' : 'templates'}</span>
         {customised > 0 && <span className="em-tpl-stats-custom">{customised} customized</span>}
-        <button type="button" className="em-tpl-manage-link" onClick={onManage}>Manage</button>
+        <button type="button" className="em-tpl-manage-link" onClick={onManage} data-ui-native-button="">Manage</button>
       </div>
       <div className="em-tpl-groups">
         {TEMPLATE_CATEGORIES_ORDER.map(cat => {
@@ -388,7 +388,7 @@ const TemplatePickerPanel: React.FC<TemplatePickerPanelProps> = ({ templates, se
           const open = openGroups.has(cat);
           return (
             <div key={cat} className="em-tpl-group">
-              <button type="button" className="em-tpl-group-header" onClick={() => toggleGroup(cat)}>
+              <button type="button" className="em-tpl-group-header" onClick={() => toggleGroup(cat)} data-ui-native-button="">
                 <span className="em-tpl-group-name">{cat}</span>
                 <span className="em-tpl-group-count">{items.length}</span>
                 <Icon name={open ? 'chevronUp' : 'chevronDown'} size={14} color="var(--ink3)" />
@@ -396,7 +396,7 @@ const TemplatePickerPanel: React.FC<TemplatePickerPanelProps> = ({ templates, se
               {open && (
                 <div className="em-tpl-group-items">
                   {items.map(t => (
-                    <button key={t.id} type="button" className="em-tpl-item" onClick={() => onApply(t)}>
+                    <button key={t.id} type="button" className="em-tpl-item" onClick={() => onApply(t)} data-ui-native-button="">
                       <span className="em-tpl-item-name">{t.name}</span>
                       {t.is_html && <span className="em-tpl-item-badge">HTML</span>}
                     </button>
@@ -1956,7 +1956,7 @@ export const EmailApp: React.FC = () => {
                   <Icon name="paperclip" size={12} />
                   <span>{a.uploading ? 'Uploading…' : a.filename}</span>
                   {a.error && <span className="em-attach-chip-error">{a.error}</span>}
-                  <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'reply')}><Icon name="x" size={11} /></button>
+                  <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'reply')} data-ui-native-button=""><Icon name="x" size={11} /></button>
                 </div>
               ))}
             </div>
@@ -1970,25 +1970,25 @@ export const EmailApp: React.FC = () => {
               <span className="em-compose-label">Send at</span>
               <input type="datetime-local" className="em-compose-input" value={replySendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                 onChange={e => setReplySendAt(e.target.value)} />
-              <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setReplySendAt(null)}><Icon name="x" size={11} /></button></Tip>
+              <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setReplySendAt(null)} data-ui-native-button=""><Icon name="x" size={11} /></button></Tip>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20 }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)}>
+            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20 }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)} data-ui-native-button="">
               <Icon name="send" size={13} /> {replySendAt ? 'Schedule send' : 'Send'}
             </button>
             <Tip label="Schedule send for later">
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplySendAt(prev => prev !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16))}>
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplySendAt(prev => prev !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16))} data-ui-native-button="">
                 <Icon name="clock" size={15} />
               </button>
             </Tip>
             <Tip label="Attach file">
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => replyFileInputRef.current?.click()}>
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => replyFileInputRef.current?.click()} data-ui-native-button="">
                 <Icon name="paperclip" size={15} />
               </button>
             </Tip>
             <Tip label="Attach from Drive">
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setDrivePickerTarget('reply')}>
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setDrivePickerTarget('reply')} data-ui-native-button="">
                 <Icon name="folder" size={15} />
               </button>
             </Tip>
@@ -1999,7 +1999,7 @@ export const EmailApp: React.FC = () => {
                 type="button"
                 className="em-icon-btn em-icon-btn--ghost"
                 onClick={() => quickTemplates.length > 0 ? setTemplatePickerOpen(v => !v) : navigate('/email/templates')}
-              >
+               data-ui-native-button="">
                 <Icon name="layers" size={15} />
               </button>
             </Tip>
@@ -2007,9 +2007,9 @@ export const EmailApp: React.FC = () => {
               <TemplatePickerPanel templates={quickTemplates} target="reply" search={templateSearch} setSearch={setTemplateSearch} openGroups={openGroups} setOpenGroups={setOpenGroups} onApply={t => applyTemplate(t, 'reply')} onClose={() => setTemplatePickerOpen(false)} onManage={() => { setTemplatePickerOpen(false); navigate('/email/templates'); }} />
             )}
             <div style={{ flex: 1 }} />
-            <button type="button" className="em-text-btn" onClick={() => saveReplyDraft()}>{replySaving ? 'Saving…' : replyDraftId ? 'Saved to Drafts' : 'Save draft'}</button>
+            <button type="button" className="em-text-btn" onClick={() => saveReplyDraft()} data-ui-native-button="">{replySaving ? 'Saving…' : replyDraftId ? 'Saved to Drafts' : 'Save draft'}</button>
             <Tip label="Discard">
-              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardReply}>
+              <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardReply} data-ui-native-button="">
                 <Icon name="trash" size={16} />
               </button>
             </Tip>
@@ -2035,7 +2035,7 @@ export const EmailApp: React.FC = () => {
 
             <div className="em-search-bar">
               {isMobile && (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setMobileOpen(true)}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setMobileOpen(true)} data-ui-native-button="">
                   <Icon name="menu" size={20} />
                 </button>
               )}
@@ -2047,7 +2047,7 @@ export const EmailApp: React.FC = () => {
                   disabled={!search.trim() || aiSearchLoading}
                   aria-label="Ask AI to search this mailbox"
                   title="Ask AI"
-                >
+                 data-ui-native-button="">
                   {aiSearchLoading
                     ? <Spinner size={14} />
                     : emailsLoading && (search.trim() || advancedSearch)
@@ -2064,7 +2064,7 @@ export const EmailApp: React.FC = () => {
                 />
                 {search && (
                   <Tip label="Clear search">
-                    <button type="button" className="em-search-clear" aria-label="Clear search" onClick={() => setSearch('')}>
+                    <button type="button" className="em-search-clear" aria-label="Clear search" onClick={() => setSearch('')} data-ui-native-button="">
                       <Icon name="x" size={14} />
                     </button>
                   </Tip>
@@ -2078,12 +2078,12 @@ export const EmailApp: React.FC = () => {
               />
               {(aiSearchError || searchError) && <span className="em-ai-search-error" role="status">{aiSearchError || searchError}</span>}
               <Tip label="Refresh">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={loadEmails}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={loadEmails} data-ui-native-button="">
                   <Icon name="refresh" size={15} />
                 </button>
               </Tip>
               <Tip label="Email settings">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={openSettingsPanel}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={openSettingsPanel} data-ui-native-button="">
                   <Icon name="settings" size={15} />
                 </button>
               </Tip>
@@ -2111,13 +2111,13 @@ export const EmailApp: React.FC = () => {
               {selected.size > 0 && (
                 <div className="em-bulk-actions">
                   <span className="em-bulk-count">{selected.size} selected</span>
-                  <Tip label="Mark read"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('read')}><Icon name="eye" size={13} /></button></Tip>
-                  <Tip label="Mark unread"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('unread')}><Icon name="eyeOff" size={13} /></button></Tip>
+                  <Tip label="Mark read"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('read')} data-ui-native-button=""><Icon name="eye" size={13} /></button></Tip>
+                  <Tip label="Mark unread"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('unread')} data-ui-native-button=""><Icon name="eyeOff" size={13} /></button></Tip>
                   {labelDefs.length > 0 && (
                     <DropdownMenu>
                       <Tip label="Apply label">
                         <DropdownMenuTrigger asChild>
-                          <button type="button" className="em-bulk-btn" aria-label="Apply label"><Icon name="tag" size={13} /></button>
+                          <button type="button" className="em-bulk-btn" aria-label="Apply label" data-ui-native-button=""><Icon name="tag" size={13} /></button>
                         </DropdownMenuTrigger>
                       </Tip>
                       <DropdownMenuContent align="start">
@@ -2127,10 +2127,10 @@ export const EmailApp: React.FC = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
-                  <Tip label="Archive"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('archive')}><Icon name="folder" size={13} /></button></Tip>
-                  <Tip label="Report spam"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('spam')}><Icon name="alertCircle" size={13} /></button></Tip>
+                  <Tip label="Archive"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('archive')} data-ui-native-button=""><Icon name="folder" size={13} /></button></Tip>
+                  <Tip label="Report spam"><button type="button" className="em-bulk-btn" onClick={() => bulkAction('spam')} data-ui-native-button=""><Icon name="alertCircle" size={13} /></button></Tip>
                   <Tip label={activeFolder === 'trash' ? 'Delete permanently' : 'Move to Trash'}>
-                    <button type="button" className="em-bulk-btn em-bulk-btn--danger" onClick={() => bulkAction(activeFolder === 'trash' ? 'delete' : 'trash')}>
+                    <button type="button" className="em-bulk-btn em-bulk-btn--danger" onClick={() => bulkAction(activeFolder === 'trash' ? 'delete' : 'trash')} data-ui-native-button="">
                       <Icon name="trash" size={13} />
                     </button>
                   </Tip>
@@ -2155,7 +2155,7 @@ export const EmailApp: React.FC = () => {
                   <Icon name="mail" size={36} color="var(--border)" />
                   <span>No emails</span>
                   {import.meta.env.DEV && activeFolder === 'inbox' && !search && filter === 'all' && (
-                    <button type="button" className="em-text-btn" onClick={loadSampleMessages} disabled={seedingDemo}>
+                    <button type="button" className="em-text-btn" onClick={loadSampleMessages} disabled={seedingDemo} data-ui-native-button="">
                       {seedingDemo ? 'Loading…' : 'Load sample messages (dev only)'}
                     </button>
                   )}
@@ -2165,7 +2165,6 @@ export const EmailApp: React.FC = () => {
                   key={email.id}
                   className={`em-row${!email.read ? ' em-row--unread' : ''}${selectedId === email.id ? ' em-row--selected' : ''}`}
                   onClick={() => rowClick(email)}
-                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rowClick(email); } }}
                 >
                   <div className="em-row-select-area">
                     <div className="em-row-check-wrap" onClick={ev => toggleSelect(email.id, ev)}
@@ -2200,7 +2199,7 @@ export const EmailApp: React.FC = () => {
 
                     <div className="em-row-mid">
                       <span className="em-row-subject-line">
-                        <span className={`em-row-subject${!email.read ? ' em-row-subject--bold' : ''}`}>{email.subject}</span>
+                        <button type="button" aria-label={`Open ${email.subject || 'email'} from ${email.from.name}`} className={`em-row-subject em-row-open${!email.read ? ' em-row-subject--bold' : ''}`} onClick={event => { event.stopPropagation(); rowClick(email); }} data-ui-native-button="">{email.subject || '(No subject)'}</button>
                         {(email.threadCount ?? 1) > 1 && (
                           <Tip label="Messages in this conversation"><span className="em-thread-badge">{email.threadCount}</span></Tip>
                         )}
@@ -2270,7 +2269,7 @@ export const EmailApp: React.FC = () => {
                       </div>
                       {email.folder === 'scheduled' && (
                         <Tip label="Cancel">
-                          <button type="button" className="em-icon-btn em-icon-btn--ghost em-row-cancel-btn" onClick={ev => { ev.stopPropagation(); cancelScheduled(email.id); }}>
+                          <button type="button" className="em-icon-btn em-icon-btn--ghost em-row-cancel-btn" onClick={ev => { ev.stopPropagation(); cancelScheduled(email.id); }} data-ui-native-button="">
                             <Icon name="x" size={14} />
                           </button>
                         </Tip>
@@ -2310,22 +2309,22 @@ export const EmailApp: React.FC = () => {
             <div className="em-detail">
             <div className="em-detail-toolbar">
               <Tip label="Back">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setSelectedId(null)}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setSelectedId(null)} data-ui-native-button="">
                   <Icon name="arrowLeft" size={16} />
                 </button>
               </Tip>
               <div className="em-toolbar-sep" />
               {selectedEmail.folder === 'scheduled' ? (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => cancelScheduled(selectedEmail.id)}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => cancelScheduled(selectedEmail.id)} data-ui-native-button="">
                   <Icon name="x" size={16} /> Cancel send
                 </button>
               ) : (
                 <>
-                  <Tip label="Archive"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'archive')}><Icon name="folder" size={16} /></button></Tip>
-                  <Tip label="Delete"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'trash')}><Icon name="trash" size={16} /></button></Tip>
-                  <Tip label="Mark unread"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => markUnread(selectedEmail.id)}><Icon name="mail" size={16} /></button></Tip>
+                  <Tip label="Archive"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'archive')} data-ui-native-button=""><Icon name="folder" size={16} /></button></Tip>
+                  <Tip label="Delete"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'trash')} data-ui-native-button=""><Icon name="trash" size={16} /></button></Tip>
+                  <Tip label="Mark unread"><button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => markUnread(selectedEmail.id)} data-ui-native-button=""><Icon name="mail" size={16} /></button></Tip>
                   <Tip label={selectedEmail.starred ? 'Unstar' : 'Star'}>
-                    <button type="button" className={`em-icon-btn em-icon-btn--ghost${selectedEmail.starred ? ' em-icon-btn--starred' : ''}`} onClick={e => toggleStar(selectedEmail.id, e)}>
+                    <button type="button" className={`em-icon-btn em-icon-btn--ghost${selectedEmail.starred ? ' em-icon-btn--starred' : ''}`} onClick={e => toggleStar(selectedEmail.id, e)} data-ui-native-button="">
                       <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : undefined} />
                     </button>
                   </Tip>
@@ -2333,14 +2332,14 @@ export const EmailApp: React.FC = () => {
               )}
               {selectedEmail.folder === 'inbox' && (
                 <Tip label="Report spam">
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'spam')}>
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'spam')} data-ui-native-button="">
                     <Icon name="alertCircle" size={16} />
                   </button>
                 </Tip>
               )}
               {selectedEmail.folder === 'spam' && (
                 <Tip label="Not spam — move to Inbox">
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'inbox')}>
+                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => moveToFolder(selectedEmail.id, 'inbox')} data-ui-native-button="">
                     <Icon name="checkCircle" size={16} />
                   </button>
                 </Tip>
@@ -2349,7 +2348,7 @@ export const EmailApp: React.FC = () => {
                 <DropdownMenu>
                   <Tip label="Labels">
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="Labels"><Icon name="tag" size={16} /></button>
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="Labels" data-ui-native-button=""><Icon name="tag" size={16} /></button>
                     </DropdownMenuTrigger>
                   </Tip>
                   <DropdownMenuContent align="start">
@@ -2364,7 +2363,7 @@ export const EmailApp: React.FC = () => {
               <DropdownMenu>
                 <Tip label="More actions">
                   <DropdownMenuTrigger asChild>
-                    <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="More actions"><Icon name="moreVertical" size={16} /></button>
+                    <button type="button" className="em-icon-btn em-icon-btn--ghost" aria-label="More actions" data-ui-native-button=""><Icon name="moreVertical" size={16} /></button>
                   </DropdownMenuTrigger>
                 </Tip>
                 <DropdownMenuContent align="start">
@@ -2397,11 +2396,11 @@ export const EmailApp: React.FC = () => {
                 className={`em-icon-btn em-icon-btn--ghost${contextDrawerOpen ? ' em-icon-btn--active' : ''}`}
                 onClick={() => setContextDrawerOpen(v => !v)}
                 title="Contact & CRM Intelligence"
-              >
+               data-ui-native-button="">
                 <Icon name="user" size={14} color="var(--teal)" />
                 Contact Info
               </button>
-              <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
+              <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading} data-ui-native-button="">
                 {aiLoading ? <Icon name="refresh" size={14} color="var(--teal)" /> : <Icon name="zap" size={14} color="var(--teal)" />}
                 AI Summary
               </button>
@@ -2422,7 +2421,7 @@ export const EmailApp: React.FC = () => {
                     type="button"
                     className="em-ai-overview-hdr"
                     onClick={() => setAiOverviewOpen(v => !v)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="zap" size={14} color="var(--blue)" />
                     <span className="em-ai-overview-title">AI Overview</span>
                     <Icon name={aiOverviewOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--blue)" />
@@ -2501,10 +2500,10 @@ export const EmailApp: React.FC = () => {
                     {taskAdded ? (
                       <span className="em-task-banner-added"><Icon name="check" size={13} /> Added to Tasks</span>
                     ) : (
-                      <button type="button" className="em-task-banner-btn" onClick={addSuggestedTask}>Remind me</button>
+                      <button type="button" className="em-task-banner-btn" onClick={addSuggestedTask} data-ui-native-button="">Remind me</button>
                     )}
                     <Tip label="Dismiss">
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTaskDismissed(true)}>
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setTaskDismissed(true)} data-ui-native-button="">
                         <Icon name="x" size={14} />
                       </button>
                     </Tip>
@@ -2539,7 +2538,7 @@ export const EmailApp: React.FC = () => {
                     </div>
                     <div className="em-detail-from-right">
                       <span className="em-detail-from-date">{fmtDateLong(selectedEmail.date)}</span>
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={e => toggleStar(selectedEmail.id, e)}>
+                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={e => toggleStar(selectedEmail.id, e)} data-ui-native-button="">
                         <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : 'var(--border)'} />
                       </button>
                     </div>
@@ -2583,7 +2582,7 @@ export const EmailApp: React.FC = () => {
                 <div className="em-attach-list">
                   {selectedEmail.attachments.map(a => (
                     <span key={a.storageKey} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <button type="button" className="em-attach-chip em-attach-chip--download" onClick={() => downloadAttachment(selectedEmail.id, a.storageKey)}>
+                      <button type="button" className="em-attach-chip em-attach-chip--download" onClick={() => downloadAttachment(selectedEmail.id, a.storageKey)} data-ui-native-button="">
                         <Icon name="paperclip" size={13} />
                         <span>{a.filename}</span>
                         {a.size != null && <span className="em-attach-chip-size">{(a.size / 1024).toFixed(0)} KB</span>}
@@ -2592,7 +2591,7 @@ export const EmailApp: React.FC = () => {
                       <DropdownMenu onOpenChange={open => { if (open) loadWritableDrives(); }}>
                         <Tip label="Save to Drive">
                           <DropdownMenuTrigger asChild>
-                            <button type="button" className="em-icon-btn" aria-label={`Save ${a.filename} to Drive`}><Icon name="folder" size={14} /></button>
+                            <button type="button" className="em-icon-btn" aria-label={`Save ${a.filename} to Drive`} data-ui-native-button=""><Icon name="folder" size={14} /></button>
                           </DropdownMenuTrigger>
                         </Tip>
                         <DropdownMenuContent align="start">
@@ -2629,7 +2628,7 @@ export const EmailApp: React.FC = () => {
                   <div className="em-reply-hdr">
                     <span>{replyCc.length > 0 ? 'Reply all' : 'Reply'}</span>
                     <div style={{ flex: 1 }} />
-                    <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyOpen(false)}>
+                    <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyOpen(false)} data-ui-native-button="">
                       <Icon name="x" size={14} />
                     </button>
                   </div>
@@ -2640,13 +2639,13 @@ export const EmailApp: React.FC = () => {
 
             {!replyOpen && selectedEmail.folder !== 'scheduled' && (
               <div className="em-detail-footer">
-                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => openReply('reply')}>
+                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => openReply('reply')} data-ui-native-button="">
                   <Icon name="arrowLeft" size={14} /> Reply
                 </button>
-                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => openReply('replyAll')}>
+                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => openReply('replyAll')} data-ui-native-button="">
                   <Icon name="arrowLeft" size={14} /> Reply all
                 </button>
-                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={forwardEmail}>
+                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={forwardEmail} data-ui-native-button="">
                   <Icon name="send" size={14} /> Forward
                 </button>
               </div>
@@ -2673,19 +2672,19 @@ export const EmailApp: React.FC = () => {
             <span className="em-compose-title">New Message</span>
             {!isMobile && (
               <Tip label="Default size">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(false); }}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(false); }} data-ui-native-button="">
                   <Icon name="minus" size={14} color="#fff" />
                 </button>
               </Tip>
             )}
             {!isMobile && (
               <Tip label={composeFullScreen ? 'Exit full screen' : 'Full screen'}>
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(f => !f); }}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeFullScreen(f => !f); }} data-ui-native-button="">
                   <Icon name={composeFullScreen ? 'minimize' : 'maximize'} size={14} color="#fff" />
                 </button>
               </Tip>
             )}
-            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeOpen(false); }}>
+            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeOpen(false); }} data-ui-native-button="">
               <Icon name="x" size={16} color="#fff" />
             </button>
           </div>
@@ -2743,7 +2742,7 @@ export const EmailApp: React.FC = () => {
                     <span>{a.uploading ? 'Uploading…' : a.filename}</span>
                     {a.size != null && !a.uploading && <span className="em-attach-chip-size">{(a.size / 1024).toFixed(0)} KB</span>}
                     {a.error && <span className="em-attach-chip-error">{a.error}</span>}
-                    <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'compose')}><Icon name="x" size={11} /></button>
+                    <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'compose')} data-ui-native-button=""><Icon name="x" size={11} /></button>
                   </div>
                 ))}
               </div>
@@ -2757,26 +2756,26 @@ export const EmailApp: React.FC = () => {
                 <span className="em-compose-label">Send at</span>
                 <input type="datetime-local" className="em-compose-input" value={compose.sendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   onChange={e => setCompose(p => ({ ...p, sendAt: e.target.value }))} />
-                <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setCompose(p => ({ ...p, sendAt: null }))}><Icon name="x" size={11} /></button></Tip>
+                <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setCompose(p => ({ ...p, sendAt: null }))} data-ui-native-button=""><Icon name="x" size={11} /></button></Tip>
               </div>
             )}
             <div className="em-compose-footer" style={{ position: 'relative' }}>
-              <button type="button" className="em-compose-send-btn" onClick={sendCompose} disabled={compose.attachments.some(a => a.uploading)}>
+              <button type="button" className="em-compose-send-btn" onClick={sendCompose} disabled={compose.attachments.some(a => a.uploading)} data-ui-native-button="">
                 <Icon name="send" size={14} /> {compose.sendAt ? 'Schedule send' : 'Send'}
               </button>
               <div className="em-compose-footer-sep" />
               <Tip label="Schedule send for later">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setCompose(p => ({ ...p, sendAt: p.sendAt !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }))}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setCompose(p => ({ ...p, sendAt: p.sendAt !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) }))} data-ui-native-button="">
                   <Icon name="clock" size={16} />
                 </button>
               </Tip>
               <Tip label="Attach file">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => composeFileInputRef.current?.click()}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => composeFileInputRef.current?.click()} data-ui-native-button="">
                   <Icon name="paperclip" size={16} />
                 </button>
               </Tip>
               <Tip label="Attach from Drive">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setDrivePickerTarget('compose')}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setDrivePickerTarget('compose')} data-ui-native-button="">
                   <Icon name="folder" size={16} />
                 </button>
               </Tip>
@@ -2787,7 +2786,7 @@ export const EmailApp: React.FC = () => {
                   type="button"
                   className="em-icon-btn em-icon-btn--ghost"
                   onClick={() => quickTemplates.length > 0 ? setTemplatePickerOpen(v => !v) : navigate('/email/templates')}
-                >
+                 data-ui-native-button="">
                   <Icon name="layers" size={16} />
                 </button>
               </Tip>
@@ -2795,11 +2794,11 @@ export const EmailApp: React.FC = () => {
                 <TemplatePickerPanel templates={quickTemplates} target="compose" search={templateSearch} setSearch={setTemplateSearch} openGroups={openGroups} setOpenGroups={setOpenGroups} onApply={t => applyTemplate(t, 'compose')} onClose={() => setTemplatePickerOpen(false)} onManage={() => { setTemplatePickerOpen(false); navigate('/email/templates'); }} />
               )}
               <div style={{ flex: 1 }} />
-              <button type="button" className="em-text-btn" onClick={() => saveDraft()}>
+              <button type="button" className="em-text-btn" onClick={() => saveDraft()} data-ui-native-button="">
                 {composeSaving ? 'Saving…' : compose.draftId ? 'Saved to Drafts' : 'Save draft'}
               </button>
               <Tip label="Discard">
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardCompose}>
+                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={discardCompose} data-ui-native-button="">
                   <Icon name="trash" size={18} />
                 </button>
               </Tip>
@@ -2813,7 +2812,7 @@ export const EmailApp: React.FC = () => {
         <div className="em-undo-toast">
           <Icon name="send" size={14} color="var(--teal)" />
           <span>Message sending in {undoSecondsLeft}s…</span>
-          <button type="button" className="em-text-btn" onClick={() => cancelScheduled(undoToast.id)}>Undo</button>
+          <button type="button" className="em-text-btn" onClick={() => cancelScheduled(undoToast.id)} data-ui-native-button="">Undo</button>
         </div>
       )}
 
@@ -2892,8 +2891,8 @@ export const EmailApp: React.FC = () => {
                               <div key={t.id} className="em-label-manage-row">
                                 <span className="em-label-name">{t.name}</span>
                                 <div className="em-label-actions">
-                                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(t)}>Edit</button>
-                                  <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteTemplate(t.id)} title="Delete template">
+                                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(t)} data-ui-native-button="">Edit</button>
+                                  <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteTemplate(t.id)} title="Delete template" data-ui-native-button="">
                                     <Icon name="trash" size={14} />
                                   </button>
                                 </div>
@@ -2919,13 +2918,13 @@ export const EmailApp: React.FC = () => {
                                   onChange={e => setTemplateEditing(prev => prev ? { ...prev, body: e.target.value } : prev)} />
                               </div>
                               <div className="em-form-actions">
-                                <button type="button" className="btn btn-primary btn-sm" onClick={saveTemplate}>Save Template</button>
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(null)}>Cancel</button>
+                                <button type="button" className="btn btn-primary btn-sm" onClick={saveTemplate} data-ui-native-button="">Save Template</button>
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(null)} data-ui-native-button="">Cancel</button>
                               </div>
                             </div>
                           ) : (
                             <div>
-                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing({ id: null, name: '', subject: '', body: '' })}>
+                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing({ id: null, name: '', subject: '', body: '' })} data-ui-native-button="">
                                 <Icon name="plus" size={14} />
                                 <span>New quick reply</span>
                               </button>
@@ -3002,7 +3001,7 @@ export const EmailApp: React.FC = () => {
                             <input className="em-settings-input" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createLabel(); } }}
                               placeholder="New label name" />
-                            <button type="button" className="btn btn-primary btn-sm" onClick={createLabel} disabled={!newLabelName.trim()}>
+                            <button type="button" className="btn btn-primary btn-sm" onClick={createLabel} disabled={!newLabelName.trim()} data-ui-native-button="">
                               <Icon name="plus" size={14} />
                               <span>Add Label</span>
                             </button>
@@ -3017,11 +3016,11 @@ export const EmailApp: React.FC = () => {
                                     onBlur={e => { if (e.target.value.trim() && e.target.value.trim() !== l.name) renameLabel(l.id, e.target.value); }} />
                                   <div className="em-label-actions">
                                     <Tip label={l.hidden ? 'Show in label list' : 'Hide from label list'}>
-                                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => toggleLabelHidden(l.id, !l.hidden)}>
+                                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => toggleLabelHidden(l.id, !l.hidden)} data-ui-native-button="">
                                         <Icon name={l.hidden ? 'eyeOff' : 'eye'} size={15} />
                                       </button>
                                     </Tip>
-                                    <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteLabel(l.id)} title="Delete label">
+                                    <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteLabel(l.id)} title="Delete label" data-ui-native-button="">
                                       <Icon name="trash" size={15} />
                                     </button>
                                   </div>
@@ -3120,7 +3119,7 @@ export const EmailApp: React.FC = () => {
                                 onCheckedChange={v => setSettings({ ...settings, imapMarkAsRead: v })}
                               />
                               <div className="em-settings-action-row">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={testImapConnection} disabled={imapTesting || !settings.imapHost || !settings.imapUser}>
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={testImapConnection} disabled={imapTesting || !settings.imapHost || !settings.imapUser} data-ui-native-button="">
                                   {imapTesting ? <><Spinner size={13} /><span>Testing…</span></> : 'Test connection'}
                                 </button>
                                 {imapTestResult && (
@@ -3260,7 +3259,7 @@ export const EmailApp: React.FC = () => {
                                         className="btn btn-secondary btn-sm"
                                         onClick={testSmtpConnection}
                                         disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}
-                                      >
+                                       data-ui-native-button="">
                                         {smtpTesting ? <><Spinner size={13} /><span>Testing SMTP…</span></> : 'Test SMTP Connection'}
                                       </button>
                                       {smtpTestResult && (
@@ -3294,7 +3293,7 @@ export const EmailApp: React.FC = () => {
                                             navigator.clipboard.writeText(`${window.location.origin}/v1/settings/email/outlook/callback`);
                                             showAlert('Redirect URI copied to clipboard', { variant: 'success' });
                                           }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon name="copy" size={13} />
                                         </button>
                                       </Tip>
@@ -3313,7 +3312,7 @@ export const EmailApp: React.FC = () => {
                                           type="button"
                                           className="btn btn-secondary btn-sm"
                                           onClick={() => connectPersonalMail('outlook')}
-                                        >
+                                         data-ui-native-button="">
                                           Connect Outlook
                                         </button>
                                       )}
@@ -3342,7 +3341,7 @@ export const EmailApp: React.FC = () => {
                                             navigator.clipboard.writeText(`${window.location.origin}/v1/settings/email/gmail/callback`);
                                             showAlert('Redirect URI copied to clipboard', { variant: 'success' });
                                           }}
-                                        >
+                                         data-ui-native-button="">
                                           <Icon name="copy" size={13} />
                                         </button>
                                       </Tip>
@@ -3361,7 +3360,7 @@ export const EmailApp: React.FC = () => {
                                           type="button"
                                           className="btn btn-secondary btn-sm"
                                           onClick={() => connectPersonalMail('gmail')}
-                                        >
+                                         data-ui-native-button="">
                                           Connect Gmail
                                         </button>
                                       )}
@@ -3392,7 +3391,7 @@ export const EmailApp: React.FC = () => {
                                     className="btn btn-secondary btn-sm"
                                     onClick={sendTestEmail}
                                     disabled={testMailSending || !sendTestMailTo.trim()}
-                                  >
+                                   data-ui-native-button="">
                                     {testMailSending ? <><Spinner size={13} /><span>Sending…</span></> : 'Send Test Mail'}
                                   </button>
                                 </div>
@@ -3439,7 +3438,7 @@ export const EmailApp: React.FC = () => {
                             <input className="em-settings-input" value={blocklistInput} onChange={e => setBlocklistInput(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBlocklistEntry(); } }}
                               placeholder="spam@example.com, badomain.com, or a keyword" />
-                            <button type="button" className="btn btn-primary btn-sm" onClick={addBlocklistEntry} disabled={!blocklistInput.trim()}>
+                            <button type="button" className="btn btn-primary btn-sm" onClick={addBlocklistEntry} disabled={!blocklistInput.trim()} data-ui-native-button="">
                               <Icon name="plus" size={14} />
                               <span>Block</span>
                             </button>
@@ -3448,7 +3447,7 @@ export const EmailApp: React.FC = () => {
                             {settings.spamBlocklist.map(v => (
                               <span key={v} className="em-attach-chip">
                                 <span>{v}</span>
-                                <button type="button" className="em-attach-chip-remove" onClick={() => removeBlocklistEntry(v)} title="Unblock">
+                                <button type="button" className="em-attach-chip-remove" onClick={() => removeBlocklistEntry(v)} title="Unblock" data-ui-native-button="">
                                   <Icon name="x" size={12} />
                                 </button>
                               </span>

@@ -261,7 +261,7 @@ export function AccountsQuery() {
                       color: status === s ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
                       fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                  >
+                   data-ui-native-button="">
                     {s}
                   </button>
                 ))}
@@ -303,7 +303,7 @@ export function AccountsQuery() {
           onClick={runReport}
           disabled={loading}
           style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
-        >
+         data-ui-native-button="">
           <Icon name="refresh" size={15} color="#fff" />
           {loading ? 'Running…' : 'Run Report'}
         </button>
@@ -364,7 +364,7 @@ export function AccountsQuery() {
                 type="button"
                 onClick={() => exportCSV(result.report_type, result.data)}
                 style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13 }}
-              >
+               data-ui-native-button="">
                 <Icon name="download" size={14} color="var(--teal)" />
                 Export CSV
               </button>

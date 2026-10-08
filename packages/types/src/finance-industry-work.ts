@@ -1,6 +1,14 @@
 import type { FinanceIndustryKey } from './finance-capabilities.js';
 
 export type IndustryWorkStatus = 'draft' | 'active' | 'completed' | 'cancelled';
+export interface IndustryCostSource {
+  id: string; entry_number: string; description: string | null; account_code: string;
+  account_name: string; debit: number; available: number;
+}
+export interface IndustryCostAllocation {
+  id: string; amount: number; reason: string; created_at: string; reversed_at: string | null;
+  allocation_journal_id: string; source_journal_line_id: string;
+}
 export type IndustryLineKind = 'service' | 'time' | 'material' | 'expense' | 'milestone';
 export interface IndustryWork {
   id: string;

@@ -107,7 +107,7 @@ export function SealReceiveLot() {
       />
       <div className="seal-page-hdr">
         <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }} data-ui-native-button="">
             <Icon name="arrowLeft" size={13} />
             <span>Back to Lots</span>
           </button>
@@ -286,7 +286,7 @@ export function SealReceiveLot() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <button type="submit" className="btn btn-primary" disabled={!isReady || saving}>
+            <button type="submit" className="btn btn-primary" disabled={!isReady || saving} data-ui-native-button="">
               <Icon name="package" size={14} />
               <span>{saving ? 'Receiving…' : 'Receive Lot'}</span>
             </button>

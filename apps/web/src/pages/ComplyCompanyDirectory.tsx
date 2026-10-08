@@ -215,11 +215,11 @@ export function ComplyCompanyDirectory() {
                       <td style={{ fontSize: 12.5, lineHeight: 1.4 }}>{c.registered_address || '—'}</td>
                       <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                         {!c.active && (
-                          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleMarkComplete(c)} title="Mark Complete — move to CRM">
+                          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleMarkComplete(c)} title="Mark Complete — move to CRM" data-ui-native-button="">
                             <Icon name="checkCircle" size={13} />
                           </button>
                         )}
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleDelete(c)} title="Delete" style={{ marginLeft: 6 }}>
+                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleDelete(c)} title="Delete" style={{ marginLeft: 6 }} data-ui-native-button="">
                           <Icon name="trash" size={13} />
                         </button>
                       </td>

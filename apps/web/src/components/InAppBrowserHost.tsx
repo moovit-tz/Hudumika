@@ -116,13 +116,13 @@ export function InAppBrowserHost() {
               </div>
             </div>
 
-            <button type="button" style={iconBtn} onClick={() => setIframeKey((k) => k + 1)} title="Reload" aria-label="Reload">
+            <button type="button" style={iconBtn} onClick={() => setIframeKey((k) => k + 1)} title="Reload" aria-label="Reload" data-ui-native-button="">
               <Icon name="refresh" size={15} />
             </button>
-            <button type="button" style={iconBtn} onClick={openNative} title="Open in new tab" aria-label="Open in new tab">
+            <button type="button" style={iconBtn} onClick={openNative} title="Open in new tab" aria-label="Open in new tab" data-ui-native-button="">
               <Icon name="externalLink" size={15} />
             </button>
-            <button type="button" style={{ ...iconBtn, color: 'var(--ink)' }} onClick={closeInAppBrowser} title="Close" aria-label="Close">
+            <button type="button" style={{ ...iconBtn, color: 'var(--ink)' }} onClick={closeInAppBrowser} title="Close" aria-label="Close" data-ui-native-button="">
               <Icon name="x" size={16} />
             </button>
           </div>
@@ -142,7 +142,7 @@ export function InAppBrowserHost() {
             <span style={{ flex: 1, minWidth: 0, fontWeight: 500 }}>
               Viewing inside Hudumika. External portals (like WP-Admin or Webmail) may block in-app frames.
             </span>
-            <button type="button" onClick={openNative} style={{ ...iconBtn, width: 'auto', height: 'var(--ctl-h-xs)', padding: '0 10px', fontSize: 11.5, fontWeight: 600 }}>
+            <button type="button" onClick={openNative} style={{ ...iconBtn, width: 'auto', height: 'var(--ctl-h-xs)', padding: '0 10px', fontSize: 11.5, fontWeight: 600 }} data-ui-native-button="">
               Open in new tab ↗
             </button>
           </div>
@@ -170,7 +170,7 @@ export function InAppBrowserHost() {
                 <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 320, padding: '0 20px' }}>
                   {slowHint
                     ? <>This is taking a while — the site may block in-app viewing.{' '}
-                        <button type="button" onClick={openNative} style={{ border: 'none', background: 'transparent', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, pointerEvents: 'auto' }}>Open in a new tab ↗</button>
+                        <button type="button" onClick={openNative} style={{ border: 'none', background: 'transparent', color: 'var(--teal)', cursor: 'pointer', fontWeight: 600, pointerEvents: 'auto' }} data-ui-native-button="">Open in a new tab ↗</button>
                       </>
                     : <>Loading {host}…</>}
                 </div>

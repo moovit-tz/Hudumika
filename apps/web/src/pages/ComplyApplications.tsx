@@ -272,7 +272,7 @@ export function ComplyApplications() {
                 <span className={`comply-badge comply-badge--${selected.status}`}>{statusLabel(selected.status)}</span>
               </div>
               <Tip label="Close">
-                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)}>
+                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)} data-ui-native-button="">
                   <Icon name="x" size={18} />
                 </button>
               </Tip>

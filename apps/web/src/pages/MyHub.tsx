@@ -376,7 +376,7 @@ export function MyHubPage() {
                       type="button"
                       onClick={() => window.open(`http://localhost:3001/v1/documents/download?key=${encodeURIComponent(doc.storage_key)}&filename=${encodeURIComponent(doc.name)}`, '_blank')}
                       style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                    >
+                     data-ui-native-button="">
                       PDF
                     </button>
                   </div>

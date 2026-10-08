@@ -41,7 +41,6 @@
 }
 
 .budgets-toolbar-tabs [role="tablist"] {
-  flex-wrap: nowrap;
   white-space: nowrap;
 }
 

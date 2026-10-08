@@ -92,7 +92,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Contracts</div>
         {canEdit && (
           <button type="button" onClick={() => setAdding(a => !a)}
-            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} data-ui-native-button="">
             {adding ? 'Cancel' : 'Add'}
           </button>
         )}
@@ -127,7 +127,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-primary btn-sm" disabled={saving || !form.start_date}
-              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add}>
+              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add} data-ui-native-button="">
               {saving ? 'Saving…' : 'Add contract'}
             </button>
           </div>
@@ -162,7 +162,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
             )}
             {canEdit && (
               <button type="button" title="Remove" onClick={() => remove(r.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={14} />
               </button>
             )}
@@ -210,7 +210,7 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Emergency contacts</div>
         {canEdit && (
           <button type="button" onClick={() => setAdding(a => !a)}
-            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} data-ui-native-button="">
             {adding ? 'Cancel' : 'Add'}
           </button>
         )}
@@ -238,7 +238,7 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-primary btn-sm" disabled={saving || !form.name || !form.phone}
-              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add}>
+              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add} data-ui-native-button="">
               {saving ? 'Saving…' : 'Add contact'}
             </button>
           </div>
@@ -264,7 +264,7 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
           )}
           {canEdit && (
             <button type="button" title="Remove" onClick={() => remove(r.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           )}

@@ -15,8 +15,9 @@
  */
 
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
-import { db } from '../db/client.js';
+import { db, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
@@ -29,14 +30,25 @@ export async function privacyAdminRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate, requireRole(...ADMIN_ROLES)],
   }, async (req, reply) => {
     const user = (req as any).user;
-    const { subject_id, domain, sensitivity, from, to, limit = '50', offset = '0' } = req.query as Record<string, string>;
+    const parsed = z.object({
+      subject_id: z.string().uuid().optional(),
+      domain: z.string().max(100).optional(),
+      sensitivity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+      from: z.string().max(40).refine(value => /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value) && Number.isFinite(Date.parse(value))).optional(),
+      to: z.string().max(40).refine(value => /^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value) && Number.isFinite(Date.parse(value))).optional(),
+      limit: z.coerce.number().int().min(1).max(200).default(50),
+      offset: z.coerce.number().int().min(0).max(100000).default(0),
+    }).safeParse(req.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid audit filters' });
+    const { subject_id, domain, sensitivity, from, to, limit, offset } = parsed.data;
 
     const rows = await withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('pii_access_log')
+        .where('tenant_id', '=', user.tenant_id)
         .select(['id', 'accessor_id', 'accessor_type', 'accessor_ref', 'subject_id', 'subject_table', 'fields_accessed', 'data_domain', 'sensitivity_level', 'purpose', 'route', 'created_at'])
         .orderBy('created_at', 'desc')
-        .limit(Math.min(parseInt(limit), 200))
-        .offset(parseInt(offset));
+        .limit(limit)
+        .offset(offset);
       if (subject_id) q = q.where('subject_id', '=', subject_id);
       if (domain) q = q.where('data_domain', '=', domain);
       if (sensitivity) q = q.where('sensitivity_level', '=', sensitivity as any);
@@ -57,7 +69,7 @@ export async function privacyAdminRoutes(fastify: FastifyInstance) {
 
     // Return both platform defaults (tenant_id IS NULL) and tenant-specific overrides.
     const [defaults, overrides] = await Promise.all([
-      db.selectFrom('data_retention_policies')
+      dbPlatform.selectFrom('data_retention_policies')
         .selectAll()
         .where('tenant_id', 'is', null)
         .execute(),
@@ -76,16 +88,16 @@ export async function privacyAdminRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate, requireRole(...ADMIN_ROLES)],
   }, async (req, reply) => {
     const user = (req as any).user;
-    const body = req.body as {
-      table_name: string; data_domain: string; retention_days: number;
-      action_on_expiry: 'ANONYMISE' | 'PSEUDONYMISE' | 'DELETE' | 'ARCHIVE';
-      target_columns?: string[]; legal_hold?: boolean;
-    };
-
-    const VALID_ACTIONS = ['ANONYMISE', 'PSEUDONYMISE', 'DELETE', 'ARCHIVE'];
-    if (!VALID_ACTIONS.includes(body.action_on_expiry)) {
-      return reply.status(400).send({ error: 'invalid action_on_expiry' });
-    }
+    const parsed = z.object({
+      table_name: z.string().regex(/^[a-z][a-z0-9_]*$/).max(63),
+      data_domain: z.string().trim().min(1).max(100),
+      retention_days: z.number().int().min(1).max(36500),
+      action_on_expiry: z.enum(['ANONYMISE', 'PSEUDONYMISE', 'DELETE', 'ARCHIVE']),
+      target_columns: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/).max(63)).max(100).optional(),
+      legal_hold: z.boolean().optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid retention policy', message: parsed.error.issues.map(issue => issue.message).join('; ') });
+    const body = parsed.data;
 
     const row = await withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('data_retention_policies').values({
@@ -94,14 +106,14 @@ export async function privacyAdminRoutes(fastify: FastifyInstance) {
         data_domain: body.data_domain,
         retention_days: body.retention_days,
         action_on_expiry: body.action_on_expiry,
-        target_columns: JSON.stringify(body.target_columns ?? []) as any,
+        target_columns: body.target_columns ?? [],
         legal_hold: body.legal_hold ?? false,
       } as any)
       .onConflict((oc) =>
         oc.columns(['tenant_id', 'table_name', 'data_domain']).doUpdateSet({
           retention_days: body.retention_days,
           action_on_expiry: body.action_on_expiry,
-          target_columns: JSON.stringify(body.target_columns ?? []) as any,
+          target_columns: body.target_columns ?? [],
           legal_hold: body.legal_hold ?? false,
         }),
       )

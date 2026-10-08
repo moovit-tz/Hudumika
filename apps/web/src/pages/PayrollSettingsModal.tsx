@@ -123,7 +123,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
               The PAYE brackets and contribution schemes the payroll engine calculates against for <strong>{jurisdiction}</strong>. Changes apply to the next calculation.
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}>
+          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} data-ui-native-button="">
             <Icon name="x" size={18} />
           </button>
         </div>

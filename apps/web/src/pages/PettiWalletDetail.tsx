@@ -573,7 +573,7 @@ export function PettiWalletDetail() {
                         <Button size="sm" variant="outline" onClick={() => openVoucher(w.id)} title="Print voucher">
                           <Icon name="printer" size={12} />
                         </Button>
-                        <button type="button" onClick={() => raiseFlag('withdrawal', w.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }}>
+                        <button type="button" onClick={() => raiseFlag('withdrawal', w.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
                           <Icon name="flag" size={13} />
                         </button>
                       </div>
@@ -612,7 +612,7 @@ export function PettiWalletDetail() {
                     <td style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{d.note || '—'}</td>
                     <td style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(d.created_at)}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button type="button" onClick={() => raiseFlag('deposit', d.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', color: 'var(--ink3)' }}>
+                      <button type="button" onClick={() => raiseFlag('deposit', d.id)} title="Flag this transaction" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', color: 'var(--ink3)' }} data-ui-native-button="">
                         <Icon name="flag" size={13} />
                       </button>
                     </td>

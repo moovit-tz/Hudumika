@@ -558,7 +558,7 @@ export function PayrollPage() {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }} data-ui-native-button="">
                               <Icon name="moreHorizontal" size={18} color="var(--ink3)" />
                             </button>
                           </DropdownMenuTrigger>
@@ -652,7 +652,7 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` · ${slip.email}` : ''}</div>
           </div>
           <Tip label="Close">
-            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }} data-ui-native-button=""><Icon name="x" size={18} /></button>
           </Tip>
         </div>
         <div>{/* body */}
@@ -744,7 +744,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Set the salary components a payroll run reads to calculate pay.</div>
           </div>
           <Tip label="Close">
-            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }} data-ui-native-button=""><Icon name="x" size={18} /></button>
           </Tip>
         </div>
 

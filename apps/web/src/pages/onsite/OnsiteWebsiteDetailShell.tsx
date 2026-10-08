@@ -126,7 +126,7 @@ export function OnsiteWebsiteDetailShell() {
             <button
               onClick={() => toggleSection('security')}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-            >
+             data-ui-native-button="">
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Icon name="shield" size={16} /> Security
               </span>
@@ -147,7 +147,7 @@ export function OnsiteWebsiteDetailShell() {
             <button
               onClick={() => toggleSection('website')}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-            >
+             data-ui-native-button="">
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Icon name="globe" size={16} /> Website
               </span>
@@ -169,7 +169,7 @@ export function OnsiteWebsiteDetailShell() {
             <button
               onClick={() => toggleSection('databases')}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-            >
+             data-ui-native-button="">
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Icon name="layers" size={16} /> Databases
               </span>
@@ -191,7 +191,7 @@ export function OnsiteWebsiteDetailShell() {
             <button
               onClick={() => toggleSection('advanced')}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-            >
+             data-ui-native-button="">
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Icon name="settings" size={16} /> Advanced
               </span>

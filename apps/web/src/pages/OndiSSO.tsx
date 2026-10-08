@@ -101,8 +101,8 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             <label htmlFor="firstParty" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>First-party application (Bypasses user consent screen)</label>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving || !name.trim() || !clientId.trim() || !redirectUris.trim()} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !name.trim() || !clientId.trim() || !redirectUris.trim()) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+            <button type="submit" disabled={saving || !name.trim() || !clientId.trim() || !redirectUris.trim()} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !name.trim() || !clientId.trim() || !redirectUris.trim()) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {saving ? 'Creating…' : 'Register application'}
             </button>
           </div>
@@ -192,8 +192,8 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
             </>
           )}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="submit" disabled={saving || !canSubmit} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !canSubmit) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+            <button type="submit" disabled={saving || !canSubmit} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !canSubmit) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {saving ? 'Saving…' : type === 'SAML' ? 'Continue' : 'Add provider'}
             </button>
           </div>
@@ -345,7 +345,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
         <DialogHeader>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{existing ? `Finish setup — ${existing.name}` : 'Connect a SAML identity provider'}</DialogTitle>
-            <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={18} /></button>
           </div>
 
           {/* Step rail */}
@@ -378,7 +378,7 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {(Object.keys(SAML_VENDOR_GUIDES) as Array<keyof typeof SAML_VENDOR_GUIDES>).map(v => (
                   <button key={v} type="button" onClick={() => setVendor(v)}
-                    style={{ padding: '9px 12px', borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}>
+                    style={{ padding: '9px 12px', borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }} data-ui-native-button="">
                     {SAML_VENDOR_GUIDES[v].label}
                   </button>
                 ))}
@@ -455,16 +455,16 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             type="button"
             onClick={step === 'basics' ? onClose : () => setStep(STEP_ORDER[STEP_ORDER.indexOf(step) - 1])}
             style={btnGhost}
-          >
+           data-ui-native-button="">
             {step === 'basics' ? 'Cancel' : 'Back'}
           </button>
           {step === 'basics' && (
-            <button type="button" onClick={createAndContinue} disabled={saving || !name.trim()} style={{ ...btnPrimary, opacity: (saving || !name.trim()) ? 0.6 : 1 }}>
+            <button type="button" onClick={createAndContinue} disabled={saving || !name.trim()} style={{ ...btnPrimary, opacity: (saving || !name.trim()) ? 0.6 : 1 }} data-ui-native-button="">
               {saving ? 'Creating…' : 'Continue'}
             </button>
           )}
           {step === 'your-side' && (
-            <button type="button" onClick={() => setStep('their-side')} style={btnPrimary}>I've done that — continue</button>
+            <button type="button" onClick={() => setStep('their-side')} style={btnPrimary} data-ui-native-button="">I've done that — continue</button>
           )}
           {step === 'their-side' && (
             <button
@@ -472,12 +472,12 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
               onClick={saveIdpDetails}
               disabled={saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()}
               style={{ ...btnPrimary, opacity: (saving || !idpEntityId.trim() || !idpSsoUrl.trim() || !idpCertificate.trim()) ? 0.6 : 1 }}
-            >
+             data-ui-native-button="">
               {saving ? 'Saving…' : 'Save & continue'}
             </button>
           )}
           {step === 'test' && (
-            <button type="button" onClick={() => { onSaved(); onClose(); }} style={btnPrimary}>Done</button>
+            <button type="button" onClick={() => { onSaved(); onClose(); }} style={btnPrimary} data-ui-native-button="">Done</button>
           )}
         </DialogFooter>
       </DialogContent>
@@ -496,7 +496,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <code style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 11.5, background: 'var(--bg)', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'auto', whiteSpace: 'nowrap' }}>{value}</code>
         <Tip label={copied ? 'Copied' : 'Copy'}><button type="button" aria-label={copied ? 'Copied' : 'Copy'} onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-          style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }}>
+          style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }} data-ui-native-button="">
           <Icon name={copied ? 'check' : 'copy'} size={13} />
         </button></Tip>
       </div>
@@ -630,12 +630,12 @@ export const OndiSSO: React.FC = () => {
         actions={activeTab === 'registry' ? (
           subTab === 'idps' ? (
             <button type="button" onClick={() => governanceEntitled && setShowAdd(true)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="plusCircle" size={15} /> Add provider
             </button>
           ) : (
             <button type="button" onClick={() => governanceEntitled && setShowAddClient(true)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="plusCircle" size={15} /> Add SSO client
             </button>
           )
@@ -652,9 +652,9 @@ export const OndiSSO: React.FC = () => {
       )}
 
       {/* Tabs Header Navigation */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
-        <button style={tabStyle('registry')} onClick={() => setActiveTab('registry')}>Identity Providers</button>
-        <button style={tabStyle('flow')} onClick={() => setActiveTab('flow')}>Sign-In Flow</button>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 20 }} data-ds-tabstrip="">
+        <button style={tabStyle('registry')} onClick={() => setActiveTab('registry')} data-ds-selected={activeTab === 'registry'} data-ui-native-button="" aria-pressed={activeTab === 'registry'}>Identity Providers</button>
+        <button style={tabStyle('flow')} onClick={() => setActiveTab('flow')} data-ds-selected={activeTab === 'flow'} data-ui-native-button="" aria-pressed={activeTab === 'flow'}>Sign-In Flow</button>
       </div>
 
       {/* ── Tab 1: Provider Registry ────────────────────────────────────── */}
@@ -703,7 +703,7 @@ export const OndiSSO: React.FC = () => {
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <button type="button" onClick={() => toggleEnabled(p)} disabled={needsSetup || !governanceEntitled} title={needsSetup ? 'Finish setup before enabling' : !governanceEntitled ? 'Requires the Enterprise Identity & Governance add-on' : undefined}
-                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : 'var(--bg)', color: p.enabled ? 'var(--green)' : 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : 'var(--bg)', color: p.enabled ? 'var(--green)' : 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                             {p.enabled ? 'Enabled' : 'Disabled'}
                           </button>
                         </td>
@@ -713,18 +713,18 @@ export const OndiSSO: React.FC = () => {
                             {isSaml && (
                               needsSetup ? (
                                 <button type="button" onClick={() => governanceEntitled && setSamlWizard(p)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-                                  style={{ fontSize: 11.5, fontWeight: 700, border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                                  style={{ fontSize: 11.5, fontWeight: 700, border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                                   Finish setup
                                 </button>
                               ) : (
                                 <Tip label="View connection details"><button type="button" aria-label="View connection details" onClick={() => setSamlWizard(p)}
-                                  style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                                  style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                                   <Icon name="link" size={13} />
                                 </button></Tip>
                               )
                             )}
                             <Tip label="Remove"><button type="button" aria-label={`Remove ${p.name}`} onClick={() => remove(p.id)}
-                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button></Tip>
                           </div>
@@ -774,7 +774,7 @@ export const OndiSSO: React.FC = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <code style={{ fontFamily: 'var(--font)', fontSize: 12, background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>{c.client_id}</code>
                               <Tip label="Copy Client ID"><button type="button" aria-label="Copy Client ID" onClick={() => copyToClipboard(c.client_id)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}>
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }} data-ui-native-button="">
                                 <Icon name="copy" size={13} />
                               </button></Tip>
                             </div>
@@ -794,7 +794,7 @@ export const OndiSSO: React.FC = () => {
                           </td>
                           <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                             <Tip label="Remove Client"><button type="button" aria-label={`Remove ${c.name}`} onClick={() => removeClient(c.id)}
-                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button></Tip>
                           </td>

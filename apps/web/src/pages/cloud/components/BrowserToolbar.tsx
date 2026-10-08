@@ -48,23 +48,23 @@ export function BrowserToolbar(props: {
   if (selectedCount > 0) {
     return (
       <div className="fb-selection-bar">
-        <button onClick={onClearSelection} className="fb-toolbar-icon-btn" aria-label="Clear selection"><Icon name="x" size={18} /></button>
+        <button onClick={onClearSelection} className="fb-toolbar-icon-btn" aria-label="Clear selection" data-ui-native-button=""><Icon name="x" size={18} /></button>
         <span className="fb-selection-count">{selectedCount} selected</span>
         <div className="fb-selection-actions">
           {isTrashView ? (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={onBulkRestore}><Icon name="refresh" size={14} /> Restore</button>
+              <button className="btn btn-ghost btn-sm" onClick={onBulkRestore} data-ui-native-button=""><Icon name="refresh" size={14} /> Restore</button>
               {canPermanentlyDelete && (
-                <button className="btn btn-ghost btn-sm fb-danger-action" onClick={onBulkPermanentDelete}><Icon name="trash2" size={14} /> Delete forever</button>
+                <button className="btn btn-ghost btn-sm fb-danger-action" onClick={onBulkPermanentDelete} data-ui-native-button=""><Icon name="trash2" size={14} /> Delete forever</button>
               )}
             </>
           ) : (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={onBulkDownload}><Icon name="download" size={14} /> Download</button>
-              {selectedCount === 1 && <button className="btn btn-ghost btn-sm" onClick={onBulkShare}><Icon name="userPlus" size={14} /> Share</button>}
-              <button className="btn btn-ghost btn-sm" onClick={onBulkMove}><Icon name="folderOpen" size={14} /> Move to</button>
-              <button className="btn btn-ghost btn-sm" onClick={onBulkStar}><Icon name="star" size={14} /> Star</button>
-              <button className="btn btn-ghost btn-sm fb-danger-action" onClick={onBulkTrash}><Icon name="trash" size={14} /> Move to trash</button>
+              <button className="btn btn-ghost btn-sm" onClick={onBulkDownload} data-ui-native-button=""><Icon name="download" size={14} /> Download</button>
+              {selectedCount === 1 && <button className="btn btn-ghost btn-sm" onClick={onBulkShare} data-ui-native-button=""><Icon name="userPlus" size={14} /> Share</button>}
+              <button className="btn btn-ghost btn-sm" onClick={onBulkMove} data-ui-native-button=""><Icon name="folderOpen" size={14} /> Move to</button>
+              <button className="btn btn-ghost btn-sm" onClick={onBulkStar} data-ui-native-button=""><Icon name="star" size={14} /> Star</button>
+              <button className="btn btn-ghost btn-sm fb-danger-action" onClick={onBulkTrash} data-ui-native-button=""><Icon name="trash" size={14} /> Move to trash</button>
             </>
           )}
         </div>
@@ -93,14 +93,14 @@ export function BrowserToolbar(props: {
                     <button
                       onClick={() => !isLast && navToBreadcrumb(idx)}
                       className={`fb-breadcrumb${isLast ? ' fb-breadcrumb--current' : ''}`}
-                    >
+                     data-ui-native-button="">
                       {crumb.name}
                     </button>
                     {isLast && currentFolderItem && (
                       <DropdownMenu>
                         <Tip label="Folder options">
                           <DropdownMenuTrigger asChild>
-                          <button aria-label="Folder options" className="fb-toolbar-icon-btn">
+                          <button aria-label="Folder options" className="fb-toolbar-icon-btn" data-ui-native-button="">
                             <Icon name="chevronDown" size={16} color="var(--ink3)" />
                           </button>
                           </DropdownMenuTrigger>
@@ -114,7 +114,7 @@ export function BrowserToolbar(props: {
                 );
               })}
               {currentFolderItem && (
-                <Tip label="Share this folder"><button aria-label="Share this folder" onClick={onShareFolder} className="fb-toolbar-icon-btn"><Icon name="users" size={15} color="var(--ink3)" /></button></Tip>
+                <Tip label="Share this folder"><button aria-label="Share this folder" onClick={onShareFolder} className="fb-toolbar-icon-btn" data-ui-native-button=""><Icon name="users" size={15} color="var(--ink3)" /></button></Tip>
               )}
             </div>
           )}
@@ -125,7 +125,7 @@ export function BrowserToolbar(props: {
             <button
               onClick={async () => { if (await showConfirm('Empty trash? This permanently deletes all items in Trash.', { confirmLabel: 'Empty Trash' })) onEmptyTrash(); }}
               className="btn btn-secondary btn-sm fb-empty-trash-btn"
-            >
+             data-ui-native-button="">
               <Icon name="trash2" size={13} /> Empty trash
             </button>
           )}
@@ -145,7 +145,7 @@ export function BrowserToolbar(props: {
                 key={m} onClick={() => setViewMode(m)} title={m === 'grid' ? 'Grid view' : 'List view'}
                 className={`fb-view-btn${viewMode === m ? ' fb-view-btn--active' : ''}`}
                 aria-pressed={viewMode === m}
-              >
+               data-ui-native-button="">
                 <Icon name={m === 'grid' ? 'grid' : 'list'} size={15} />
               </button>
             ))}

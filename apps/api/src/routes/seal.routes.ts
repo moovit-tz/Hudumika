@@ -1730,7 +1730,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           tenant_id: request.user.tenant_id,
           count_ref: `CC-${year}-${seq}`,
           compartment_id: compartmentId ?? null,
-          initiated_by: request.user.id,
+          initiated_by: request.user.sub,
           notes: notes ?? null,
         }).returningAll().executeTakeFirstOrThrow();
       });
@@ -1764,7 +1764,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
           .executeTakeFirstOrThrow();
         const updates: Record<string, unknown> = {};
-        if (countedQty !== undefined) { updates.counted_qty = String(countedQty); updates.counted_by = request.user.id; updates.counted_at = new Date(); }
+        if (countedQty !== undefined) { updates.counted_qty = String(countedQty); updates.counted_by = request.user.sub; updates.counted_at = new Date(); }
         if (notes !== undefined) updates.notes = notes;
         return trx.updateTable('seal_count_lines').set(updates)
           .where('id', '=', lineId).returningAll().executeTakeFirstOrThrow();
@@ -1825,7 +1825,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           to_compartment_id: b.toCompartmentId ?? null,
           from_zone: b.fromZone ?? null,
           to_zone: b.toZone ?? null,
-          requested_by: request.user.id,
+          requested_by: request.user.sub,
           expected_at: b.expectedAt ? new Date(b.expectedAt) : null,
           notes: b.notes ?? null,
         }).returningAll().executeTakeFirstOrThrow();
@@ -1878,11 +1878,11 @@ export async function sealRoutes(fastify: FastifyInstance) {
         const updates: Record<string, unknown> = {};
         if (action === 'approve' && transfer.status === 'PENDING_APPROVAL') {
           newStatus = 'APPROVED';
-          updates.approved_by = request.user.id;
+          updates.approved_by = request.user.sub;
           updates.approved_at = new Date();
         } else if (action === 'execute' && ['APPROVED', 'IN_PROGRESS'].includes(transfer.status as string)) {
           newStatus = 'COMPLETED';
-          updates.executed_by = request.user.id;
+          updates.executed_by = request.user.sub;
           updates.executed_at = new Date();
         } else if (action === 'cancel' && !['COMPLETED', 'CANCELLED'].includes(transfer.status as string)) {
           newStatus = 'CANCELLED';

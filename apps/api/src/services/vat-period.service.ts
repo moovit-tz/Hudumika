@@ -112,37 +112,12 @@ export async function reverseDocumentJournals(
     .where('tenant_id', '=', tenantId)
     .where('source_module', '=', sourceModule)
     .where('source_id', '=', sourceId)
+    .where('reverses_entry_id', 'is', null)
     .where('voided_at', 'is', null)
     .execute();
 
-  for (const e of entries) {
-    const lines = await trx
-      .selectFrom('journal_lines as jl')
-      .innerJoin('chart_of_accounts as a', 'a.id', 'jl.account_id')
-      .select(['a.code', 'jl.debit', 'jl.credit', 'jl.description'])
-      .where('jl.journal_entry_id', '=', e.id)
-      .execute();
-
-    await GLService.post(tenantId, {
-      entryDate: new Date().toISOString(),
-      description: `Reversal of ${e.description ?? e.entry_number}`,
-      reference: e.reference ?? e.entry_number,
-      sourceModule,
-      sourceId,
-      createdBy: actorId ?? undefined,
-      // Debits and credits swapped — the mirror image, not a negative amount.
-      lines: lines.map(l => ({
-        accountCode: l.code,
-        debit: Number(l.credit) || 0,
-        credit: Number(l.debit) || 0,
-        description: `Reversal: ${l.description ?? ''}`.trim(),
-      })),
-    } as any);
-
-    await trx.updateTable('journal_entries')
-      .set({ voided_at: new Date(), voided_by: actorId, void_reason: reason, status: 'VOIDED', updated_at: new Date() })
-      .where('id', '=', e.id)
-      .execute();
+  for (const entry of entries) {
+    await GLService.voidEntry(tenantId, entry.id, actorId, reason, trx);
   }
   return entries.length;
 }

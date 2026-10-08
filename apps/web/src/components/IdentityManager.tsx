@@ -102,17 +102,17 @@ export function IdentityManager({ onChange }: { onChange?: (ids: EmailSendIdenti
               <span style={{ fontWeight: 600, fontSize: 13 }}>{id.fromName || id.fromEmail} &lt;{id.fromEmail}&gt;</span>
               {id.isDefault && <Badge variant="brand">Default</Badge>}
               <div style={{ flex: 1 }} />
-              <button type="button" className="em-text-btn" onClick={() => test(id.id)} disabled={testing === id.id}>
+              <button type="button" className="em-text-btn" onClick={() => test(id.id)} disabled={testing === id.id} data-ui-native-button="">
                 {testing === id.id ? 'Testing…' : 'Test'}
               </button>
-              <button type="button" className="em-attach-chip-remove" onClick={() => remove(id.id)}><Icon name="trash" size={13} /></button>
+              <button type="button" className="em-attach-chip-remove" onClick={() => remove(id.id)} data-ui-native-button=""><Icon name="trash" size={13} /></button>
             </div>
             {testResult?.id === id.id && (
               <span className={testResult.success ? 'em-settings-success' : 'em-settings-error'}>
                 {testResult.success ? 'Connected successfully.' : testResult.error}
               </span>
             )}
-            {!id.isDefault && <button type="button" className="em-text-btn" onClick={() => setDefault(id.id)}>Make default</button>}
+            {!id.isDefault && <button type="button" className="em-text-btn" onClick={() => setDefault(id.id)} data-ui-native-button="">Make default</button>}
           </div>
         ))}
         {identities.length === 0 && !adding && <p className="em-settings-hint">No additional addresses yet — your workspace address above is used for everything.</p>}
@@ -153,12 +153,12 @@ export function IdentityManager({ onChange }: { onChange?: (ids: EmailSendIdenti
             <input className="em-compose-input em-settings-input" type="password" value={draft.smtpPass} onChange={e => setDraft({ ...draft, smtpPass: e.target.value })} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-primary" onClick={saveDraft} disabled={saving}>{saving ? 'Saving…' : 'Add address'}</button>
-            <button type="button" className="em-text-btn" onClick={() => { setAdding(false); setDraft(EMPTY_DRAFT); }}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={saveDraft} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Add address'}</button>
+            <button type="button" className="em-text-btn" onClick={() => { setAdding(false); setDraft(EMPTY_DRAFT); }} data-ui-native-button="">Cancel</button>
           </div>
         </div>
       ) : (
-        <button type="button" className="em-text-btn" onClick={() => setAdding(true)}>+ Add another email address</button>
+        <button type="button" className="em-text-btn" onClick={() => setAdding(true)} data-ui-native-button="">+ Add another email address</button>
       )}
     </div>
   );

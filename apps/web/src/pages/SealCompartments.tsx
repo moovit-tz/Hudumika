@@ -137,7 +137,7 @@ export function SealCompartments() {
           type="button"
           className="btn btn-primary"
           onClick={() => setShowNewCompartment(v => !v)}
-        >
+         data-ui-native-button="">
           <Icon name="plus" size={14} />
           <span>+ New Compartment</span>
         </button>
@@ -171,8 +171,8 @@ export function SealCompartments() {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowNewCompartment(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Compartment'}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowNewCompartment(false)} data-ui-native-button="">Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={saving} data-ui-native-button="">{saving ? 'Creating…' : 'Create Compartment'}</button>
           </div>
         </form>
       )}
@@ -244,7 +244,7 @@ export function SealCompartments() {
                       type="button"
                       className="btn btn-secondary"
                       onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}
-                    >
+                     data-ui-native-button="">
                       <Icon name="arrowUpDown" size={13} />
                       <span>Sorting Dashboard</span>
                     </button>
@@ -254,7 +254,7 @@ export function SealCompartments() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="warehouse" size={13} />
                     <span>Warehouse Layout</span>
                   </button>
@@ -263,7 +263,7 @@ export function SealCompartments() {
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}
-                  >
+                   data-ui-native-button="">
                     <Icon name="grid" size={13} />
                     <span>Heat Grid</span>
                   </button>
@@ -274,7 +274,7 @@ export function SealCompartments() {
                         type="button"
                         className="btn btn-secondary"
                         style={{ padding: '9px', aspectRatio: '1 / 1' }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="chevronDown" size={15} />
                       </button>
                     </DropdownMenuTrigger>

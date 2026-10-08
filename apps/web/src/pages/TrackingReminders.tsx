@@ -166,8 +166,8 @@ export const TrackingReminders: React.FC = () => {
                 <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {r.status === 'PENDING' && (
                     <>
-                      <button type="button" onClick={() => setStatus(r.id, 'DONE')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}>Mark done</button>
-                      <button type="button" onClick={() => setStatus(r.id, 'DISMISSED')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }}>Dismiss</button>
+                      <button type="button" onClick={() => setStatus(r.id, 'DONE')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Mark done</button>
+                      <button type="button" onClick={() => setStatus(r.id, 'DISMISSED')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Dismiss</button>
                     </>
                   )}
                 </td>

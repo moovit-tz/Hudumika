@@ -446,56 +446,19 @@
 }
 
 .sa-settings-nav.ds-tabs-list {
-  display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
-  gap: 4px !important;
-  width: 100% !important;
-  max-width: 100%;
-  height: auto !important;
-  min-height: 0;
-  padding: 8px !important;
-  background: var(--white) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--card-radius, var(--r)) !important;
-  box-shadow: var(--card-shadow, var(--elev-sm));
   overflow: visible;
   box-sizing: border-box;
 }
 
 .sa-settings-nav .ds-tabs-trigger {
-  display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 10px;
-  width: 100% !important;
-  height: 38px !important;
-  min-height: 38px;
-  padding: 0 12px !important;
-  font-size: 13px;
-  font-weight: 550;
-  color: var(--ink2);
-  border-radius: var(--nav-item-r, 8px);
   white-space: nowrap;
-  border: 1px solid transparent;
-  background: transparent;
   text-align: left;
   transition: all 0.15s ease;
   cursor: pointer;
-  flex-shrink: 0;
-}
-
-.sa-settings-nav .ds-tabs-trigger:hover:not([data-state="active"]) {
-  color: var(--ink);
-  background: var(--card-sunken);
-}
-
-.sa-settings-nav .ds-tabs-trigger[data-state="active"] {
-  background: var(--teal-l);
-  color: var(--teal);
-  font-weight: 700;
-  border-color: var(--teal-m);
-  box-shadow: none;
 }
 
 .sa-settings-content {
@@ -516,16 +479,10 @@
     position: static;
   }
   .sa-settings-nav.ds-tabs-list {
-    display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     overflow: visible !important;
-    padding: 6px !important;
   }
   .sa-settings-nav .ds-tabs-trigger {
-    width: 100% !important;
-    height: auto !important;
-    min-height: var(--tab-height, 38px);
-    padding: 8px 10px !important;
     white-space: normal;
   }
 }

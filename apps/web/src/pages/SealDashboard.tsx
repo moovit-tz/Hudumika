@@ -507,13 +507,13 @@ export function SealDashboard() {
                 {dbCompartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" className="sid-btn-outline" onClick={() => setShowImportModal(true)}>
+            <button type="button" className="sid-btn-outline" onClick={() => setShowImportModal(true)} data-ui-native-button="">
               <Icon name="fileText" size={14} color="var(--ink2)" /><span>Import</span>
             </button>
-            <button type="button" className="sid-btn-outline" onClick={handleExportCSV}>
+            <button type="button" className="sid-btn-outline" onClick={handleExportCSV} data-ui-native-button="">
               <Icon name="send" size={14} color="var(--ink2)" /><span>Export</span>
             </button>
-            <button type="button" className="sid-btn-primary" onClick={() => setShowAddModal(true)}>
+            <button type="button" className="sid-btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
               <Icon name="plus" size={14} color="currentColor" /><span>Add Item</span>
             </button>
           </div>
@@ -747,7 +747,7 @@ export function SealDashboard() {
               type="button"
               onClick={() => setSearchQuery('')}
               style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}
-            >
+             data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           )}
@@ -827,7 +827,7 @@ export function SealDashboard() {
                           e.stopPropagation();
                           setActiveActionMenuId(activeActionMenuId === item.id ? null : item.id);
                         }}
-                      >
+                       data-ui-native-button="">
                         <Icon name="moreVertical" size={15} />
                       </button>
 
@@ -906,7 +906,7 @@ export function SealDashboard() {
                 type="button"
                 className="sid-action-btn"
                 onClick={() => setShowAddModal(false)}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1008,13 +1008,13 @@ export function SealDashboard() {
                   type="button"
                   className="sid-btn-outline"
                   onClick={() => setShowAddModal(false)}
-                >
+                 data-ui-native-button="">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="sid-btn-primary"
-                >
+                 data-ui-native-button="">
                   Save Item
                 </button>
               </div>
@@ -1033,7 +1033,7 @@ export function SealDashboard() {
                 type="button"
                 className="sid-action-btn"
                 onClick={() => setShowImportModal(false)}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1066,7 +1066,7 @@ export function SealDashboard() {
                 type="button"
                 className="sid-btn-outline"
                 onClick={() => setShowImportModal(false)}
-              >
+               data-ui-native-button="">
                 Close
               </button>
             </div>
@@ -1084,7 +1084,7 @@ export function SealDashboard() {
                 type="button"
                 className="sid-action-btn"
                 onClick={() => setAdjustingItem(null)}
-              >
+               data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1130,14 +1130,14 @@ export function SealDashboard() {
                 type="button"
                 className="sid-btn-outline"
                 onClick={() => setAdjustingItem(null)}
-              >
+               data-ui-native-button="">
                 Cancel
               </button>
               <button
                 type="button"
                 className="sid-btn-primary"
                 onClick={handleSaveAdjustment}
-              >
+               data-ui-native-button="">
                 Confirm Adjustment
               </button>
             </div>

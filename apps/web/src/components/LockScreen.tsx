@@ -148,7 +148,7 @@ export function LockScreen() {
                 border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 'var(--r-sm)',
                 color: 'var(--ink3)',
               }}
-            >
+             data-ui-native-button="">
               <Icon name={showPass ? 'eyeOff' : 'eye'} size={19} />
             </button>
           </div>

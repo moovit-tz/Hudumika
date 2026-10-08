@@ -1,14 +1,15 @@
+:root { --tab-hit-height: max(44px, var(--tab-height, 44px)); }
+
 /* Tabs — all six variants (underline, pill, segmented, boxed, outline,
    lifted), driven by design-system tokens. Sizing comes from --tab-height /
    --tab-radius / --tab-size, written by useDesignSystem.ts. The variant is
-   `data-tabs` on <html> (platform default) or `data-variant` on the
-   list/trigger (per-instance override). */
+   `data-tabs` on <html> is authoritative for every app. */
 
 .ds-tabs-list {
   display: flex;
   align-items: center;
   gap: 2px;
-  min-height: var(--tab-height, 38px);
+  min-height: var(--tab-hit-height);
   position: relative;
   /* Long tab rows scroll rather than wrapping into a ragged second line,
      which on a phone otherwise pushes the panel below the fold. A slim,
@@ -51,7 +52,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  height: var(--tab-height, 38px);
+  height: var(--tab-hit-height);
   padding: 0 14px;
   border-radius: var(--tab-radius, 8px);
   transition: color .14s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease;
@@ -69,49 +70,42 @@
 
 /* ── underline (default) ─────────────────────────────────────────────
    A rule under the whole row, with the active tab sitting on top of it. */
-:root[data-tabs="underline"] .ds-tabs-list,
-.ds-tabs-list[data-variant="underline"] {
+:root[data-tabs="underline"] .ds-tabs-list{
   gap: 4px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width, 1px) solid var(--border);
   border-radius: 0;
   background: transparent;
   padding: 0;
 }
-:root[data-tabs="underline"] .ds-tabs-trigger,
-.ds-tabs-trigger[data-variant="underline"] {
+:root[data-tabs="underline"] .ds-tabs-trigger{
   border-radius: 0;
   padding: 0 12px;
   box-shadow: inset 0 -2px 0 0 transparent;
 }
-:root[data-tabs="underline"] .ds-tabs-trigger[data-state="active"],
-.ds-tabs-trigger[data-variant="underline"][data-state="active"] {
+:root[data-tabs="underline"] .ds-tabs-trigger[data-state="active"]{
   box-shadow: inset 0 -2px 0 0 var(--teal);
 }
 
 /* ── pill ────────────────────────────────────────────────────────────
    Tinted track, filled active tab. */
-:root[data-tabs="pill"] .ds-tabs-list,
-.ds-tabs-list[data-variant="pill"] {
+:root[data-tabs="pill"] .ds-tabs-list{
   background: var(--teal-l);
   border-radius: calc(var(--tab-radius, 8px) + 3px);
   padding: 3px;
   gap: 3px;
   display: inline-flex;
 }
-:root[data-tabs="pill"] .ds-tabs-trigger,
-.ds-tabs-trigger[data-variant="pill"] {
-  height: calc(var(--tab-height, 38px) - 6px);
+:root[data-tabs="pill"] .ds-tabs-trigger{
+  height: var(--tab-hit-height);
 }
-:root[data-tabs="pill"] .ds-tabs-trigger[data-state="active"],
-.ds-tabs-trigger[data-variant="pill"][data-state="active"] {
+:root[data-tabs="pill"] .ds-tabs-trigger[data-state="active"]{
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
 /* ── segmented ───────────────────────────────────────────────────────
    Bordered track, raised active tab — an iOS-style control. */
-:root[data-tabs="segmented"] .ds-tabs-list,
-.ds-tabs-list[data-variant="segmented"] {
+:root[data-tabs="segmented"] .ds-tabs-list{
   /* --card-sunken, the same sunken surface a collapsible card body uses, so the
      tab track reads as one material with the panel below it. It is a real
      neutral in both themes and — unlike --bg — is never flattened to white
@@ -123,12 +117,10 @@
   gap: 3px;
   display: inline-flex;
 }
-:root[data-tabs="segmented"] .ds-tabs-trigger,
-.ds-tabs-trigger[data-variant="segmented"] {
-  height: calc(var(--tab-height, 38px) - 6px);
+:root[data-tabs="segmented"] .ds-tabs-trigger{
+  height: var(--tab-hit-height);
 }
-:root[data-tabs="segmented"] .ds-tabs-trigger[data-state="active"],
-.ds-tabs-trigger[data-variant="segmented"][data-state="active"] {
+:root[data-tabs="segmented"] .ds-tabs-trigger[data-state="active"]{
   background: var(--card-bg, var(--white));
   color: var(--ink);
   box-shadow: var(--elev-sm);
@@ -139,26 +131,22 @@
    the active chip gets a tinted fill. Reads lighter-weight than pill/
    segmented, for a row of independent filters (a status list, a category
    picker) rather than a real content switcher. */
-:root[data-tabs="boxed"] .ds-tabs-list,
-.ds-tabs-list[data-variant="boxed"] {
+:root[data-tabs="boxed"] .ds-tabs-list{
   gap: 6px;
   background: transparent;
   padding: 0;
 }
-:root[data-tabs="boxed"] .ds-tabs-trigger,
-.ds-tabs-trigger[data-variant="boxed"] {
-  height: calc(var(--tab-height, 38px) - 8px);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+:root[data-tabs="boxed"] .ds-tabs-trigger{
+  height: var(--tab-hit-height);
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--tab-radius, 8px);
   background: var(--white);
 }
-:root[data-tabs="boxed"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
-.ds-tabs-trigger[data-variant="boxed"]:hover:not([data-state="active"]):not(:disabled) {
+:root[data-tabs="boxed"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled){
   background: var(--hover-bg);
   border-color: var(--ink3);
 }
-:root[data-tabs="boxed"] .ds-tabs-trigger[data-state="active"],
-.ds-tabs-trigger[data-variant="boxed"][data-state="active"] {
+:root[data-tabs="boxed"] .ds-tabs-trigger[data-state="active"]{
   background: var(--teal-l);
   border-color: var(--teal-m);
   color: var(--teal);
@@ -168,28 +156,24 @@
    Discrete chips like boxed, but selection reads through the border
    alone — no fill change — for contexts (a sort order, a display
    preference) where a filled/tinted chip would overstate the choice. */
-:root[data-tabs="outline"] .ds-tabs-list,
-.ds-tabs-list[data-variant="outline"] {
+:root[data-tabs="outline"] .ds-tabs-list{
   gap: 6px;
   background: transparent;
   padding: 0;
 }
-:root[data-tabs="outline"] .ds-tabs-trigger,
-.ds-tabs-trigger[data-variant="outline"] {
-  height: calc(var(--tab-height, 38px) - 8px);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+:root[data-tabs="outline"] .ds-tabs-trigger{
+  height: var(--tab-hit-height);
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--tab-radius, 8px);
   background: var(--white);
 }
-:root[data-tabs="outline"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
-.ds-tabs-trigger[data-variant="outline"]:hover:not([data-state="active"]):not(:disabled) {
+:root[data-tabs="outline"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled){
   border-color: var(--ink3);
   color: var(--ink);
 }
-:root[data-tabs="outline"] .ds-tabs-trigger[data-state="active"],
-.ds-tabs-trigger[data-variant="outline"][data-state="active"] {
+:root[data-tabs="outline"] .ds-tabs-trigger[data-state="active"]{
   background: var(--white);
-  border: 1.5px solid var(--ink);
+  border: var(--border-width, 1px) solid var(--ink);
   color: var(--ink);
   font-weight: 700;
 }
@@ -198,29 +182,25 @@
    Classic browser-tab/folder-tab: a shared baseline rule, inactive tabs
    sit a couple of pixels lower on a sunken fill, the active tab rises to
    meet the panel below it and erases the baseline under itself. */
-:root[data-tabs="lifted"] .ds-tabs-list,
-.ds-tabs-list[data-variant="lifted"] {
+:root[data-tabs="lifted"] .ds-tabs-list{
   gap: 2px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border-width, 1px) solid var(--border);
   border-radius: 0;
   background: transparent;
   padding: 0;
   align-items: flex-end;
 }
-:root[data-tabs="lifted"] .ds-tabs-trigger,
-.ds-tabs-trigger[data-variant="lifted"] {
-  border: 1px solid transparent;
+:root[data-tabs="lifted"] .ds-tabs-trigger{
+  border: var(--border-width, 1px) solid transparent;
   border-bottom: none;
   border-radius: var(--tab-radius, 8px) var(--tab-radius, 8px) 0 0;
   background: var(--card-sunken);
   transform: translateY(1px);
 }
-:root[data-tabs="lifted"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled),
-.ds-tabs-trigger[data-variant="lifted"]:hover:not([data-state="active"]):not(:disabled) {
+:root[data-tabs="lifted"] .ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled){
   background: var(--hover-bg);
 }
-:root[data-tabs="lifted"] .ds-tabs-trigger[data-state="active"],
-.ds-tabs-trigger[data-variant="lifted"][data-state="active"] {
+:root[data-tabs="lifted"] .ds-tabs-trigger[data-state="active"]{
   background: var(--card-bg, var(--white));
   border-color: var(--border);
   color: var(--ink);
@@ -233,14 +213,9 @@
 @media (max-width: 560px) {
   .ds-tabs-trigger { padding: 0 11px; }
 
-  /* Icon+label composition (flyonui's "pills with icon" — an icon paired
-     with a text label, collapsing to icon-only on narrow screens) is opt-in:
-     wrap the label text in a `.ds-tabs-trigger-label` span and it collapses
-     here automatically, in any variant. A trigger with no such span (plain
-     text, or an icon with no wrapped label) is untouched — this never hides
-     the only content a trigger has. */
-  .ds-tabs-trigger-label { display: none; }
-  .ds-tabs-trigger:has(.ds-tabs-trigger-label) { padding: 0 9px; gap: 0; }
+  /* Preserve labels and accessible names; scroll long rows on phones. */
+  .ds-tabs-trigger-label { display: inline; }
+  .ds-tabs-trigger:has(.ds-tabs-trigger-label) { padding: 0 12px; gap: 7px; }
 }
 
 /* Legacy semantic tabs -----------------------------------------------------
@@ -248,15 +223,15 @@
    tab semantics but predate the Radix wrapper. This compatibility layer is
    deliberately role-based: unrelated button groups, radio cards and wizard
    steps are not silently restyled as tabs. New code must use tabs.tsx. */
-[role="tablist"]:not(.ds-tabs-list) {
+[role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) {
   display: flex !important;
   align-items: center !important;
   gap: 2px !important;
-  min-height: var(--tab-height, 38px) !important;
+  min-height: var(--tab-hit-height) !important;
   max-width: 100%;
   overflow-x: auto;
 }
-[role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+[role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"] {
   appearance: none;
   border: none !important;
   background: transparent !important;
@@ -266,95 +241,95 @@
   font: inherit;
   font-size: var(--tab-size, 13px) !important;
   font-weight: 600 !important;
-  height: var(--tab-height, 38px) !important;
+  height: var(--tab-hit-height) !important;
   min-height: 0 !important;
   padding: 0 14px !important;
   white-space: nowrap;
 }
-[role="tablist"]:not(.ds-tabs-list) > [role="tab"]:focus-visible {
+[role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"]:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: -2px;
 }
-[role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] { color: var(--teal) !important; }
+[role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] { color: var(--teal) !important; }
 
-:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list) {
-  border-bottom: 1px solid var(--border) !important;
+:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) {
+  border-bottom: var(--border-width, 1px) solid var(--border) !important;
   border-radius: 0 !important;
   background: transparent !important;
   padding: 0 !important;
 }
-:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"] {
   border-radius: 0 !important;
   box-shadow: inset 0 -2px 0 transparent !important;
 }
-:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+:root[data-tabs="underline"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] {
   box-shadow: inset 0 -2px 0 var(--teal) !important;
 }
 
-:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list),
-:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) {
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]),
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) {
   border: 0 !important;
   border-radius: calc(var(--tab-radius, 8px) + 3px) !important;
   padding: 3px !important;
   gap: 3px !important;
   width: fit-content;
 }
-:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list) { background: var(--teal-l) !important; }
-:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) { background: var(--card-sunken) !important; }
-:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"],
-:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) { background: var(--teal-l) !important; }
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) { background: var(--card-sunken) !important; }
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"],
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"] {
   border-radius: var(--tab-radius, 8px) !important;
-  height: calc(var(--tab-height, 38px) - 6px) !important;
+  height: var(--tab-hit-height) !important;
 }
-:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+:root[data-tabs="pill"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] {
   background: hsl(var(--primary)) !important;
   color: hsl(var(--primary-foreground)) !important;
 }
-:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+:root[data-tabs="segmented"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] {
   background: var(--card-bg, var(--white)) !important;
   color: var(--ink) !important;
   box-shadow: var(--elev-sm) !important;
 }
 
-:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list),
-:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list) {
+:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]),
+:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) {
   background: transparent !important;
   border: 0 !important;
   gap: 6px !important;
   padding: 0 !important;
 }
-:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"],
-:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"],
+:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"] {
   background: var(--white) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 999px !important;
-  height: calc(var(--tab-height, 38px) - 8px) !important;
+  border: var(--border-width, 1px) solid var(--border) !important;
+  border-radius: var(--tab-radius, 8px) !important;
+  height: var(--tab-hit-height) !important;
 }
-:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+:root[data-tabs="boxed"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] {
   background: var(--teal-l) !important;
   border-color: var(--teal-m) !important;
 }
-:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
-  border: 1.5px solid var(--ink) !important;
+:root[data-tabs="outline"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] {
+  border: var(--border-width, 1px) solid var(--ink) !important;
   color: var(--ink) !important;
   font-weight: 700 !important;
 }
 
-:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list) {
+:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) {
   align-items: flex-end !important;
   background: transparent !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: var(--border-width, 1px) solid var(--border) !important;
   border-radius: 0 !important;
   padding: 0 !important;
 }
-:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"] {
+:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"] {
   background: var(--card-sunken) !important;
-  border: 1px solid transparent !important;
+  border: var(--border-width, 1px) solid transparent !important;
   border-bottom: 0 !important;
   border-radius: var(--tab-radius, 8px) var(--tab-radius, 8px) 0 0 !important;
   transform: translateY(1px);
 }
-:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list) > [role="tab"][aria-selected="true"] {
+:root[data-tabs="lifted"] [role="tablist"]:not(.ds-tabs-list):not([data-ds-tabs-exempt="crm-customers"]) > [role="tab"][aria-selected="true"] {
   background: var(--card-bg, var(--white)) !important;
   border-color: var(--border) !important;
   box-shadow: var(--elev-sm) !important;
@@ -367,94 +342,102 @@
    `-tabs` or `-tabstrip`; tab panels and unrelated controls are untouched. */
 /* Radix roots expose data-ds-tabs-root. New root class names must not end in
    `-tabs`: that suffix is deliberately reserved for this legacy bridge. */
-:is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+:is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) {
   display: flex !important;
   align-items: center !important;
   gap: 2px !important;
-  min-height: var(--tab-height, 38px) !important;
+  min-height: var(--tab-hit-height) !important;
   max-width: 100%;
   overflow-x: auto;
 }
-:is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+:is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(button, [class*="-tab"]) {
   appearance: none;
   color: var(--ink3) !important;
   flex: 0 0 auto;
   font-size: var(--tab-size, 13px) !important;
   font-weight: 600 !important;
-  height: var(--tab-height, 38px) !important;
+  height: var(--tab-hit-height) !important;
   min-height: 0 !important;
   padding: 0 14px !important;
   white-space: nowrap;
 }
-:is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+:is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) {
   color: var(--teal) !important;
 }
-:root[data-tabs="underline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+:root[data-tabs="underline"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) {
   background: transparent !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: var(--border-width, 1px) solid var(--border) !important;
   border-radius: 0 !important;
   padding: 0 !important;
 }
-:root[data-tabs="underline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+:root[data-tabs="underline"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(button, [class*="-tab"]) {
   background: transparent !important;
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: inset 0 -2px 0 transparent !important;
 }
-:root[data-tabs="underline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+:root[data-tabs="underline"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) {
   box-shadow: inset 0 -2px 0 var(--teal) !important;
 }
-:root[data-tabs="pill"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]),
-:root[data-tabs="segmented"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+:root[data-tabs="pill"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]),
+:root[data-tabs="segmented"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) {
   border: 0 !important;
   border-radius: calc(var(--tab-radius, 8px) + 3px) !important;
   gap: 3px !important;
   padding: 3px !important;
   width: fit-content;
 }
-:root[data-tabs="pill"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) { background: var(--teal-l) !important; }
-:root[data-tabs="segmented"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) { background: var(--card-sunken) !important; }
-:root[data-tabs="pill"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+:root[data-tabs="pill"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) { background: var(--teal-l) !important; }
+:root[data-tabs="segmented"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) { background: var(--card-sunken) !important; }
+:root[data-tabs="pill"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) {
   background: hsl(var(--primary)) !important;
   color: hsl(var(--primary-foreground)) !important;
 }
-:root[data-tabs="segmented"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+:root[data-tabs="segmented"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) {
   background: var(--card-bg, var(--white)) !important;
   box-shadow: var(--elev-sm) !important;
   color: var(--ink) !important;
 }
-:root[data-tabs="boxed"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]),
-:root[data-tabs="outline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+:root[data-tabs="boxed"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]),
+:root[data-tabs="outline"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) {
   background: transparent !important;
   border: 0 !important;
   gap: 6px !important;
   padding: 0 !important;
 }
-:root[data-tabs="boxed"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]),
-:root[data-tabs="outline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+:root[data-tabs="boxed"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(button, [class*="-tab"]),
+:root[data-tabs="outline"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(button, [class*="-tab"]) {
   background: var(--white) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 999px !important;
-  height: calc(var(--tab-height, 38px) - 8px) !important;
+  border: var(--border-width, 1px) solid var(--border) !important;
+  border-radius: var(--tab-radius, 8px) !important;
+  height: var(--tab-hit-height) !important;
 }
-:root[data-tabs="boxed"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) { background: var(--teal-l) !important; border-color: var(--teal-m) !important; }
-:root[data-tabs="outline"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) { border: 1.5px solid var(--ink) !important; color: var(--ink) !important; }
-:root[data-tabs="lifted"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) {
+:root[data-tabs="boxed"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) { background: var(--teal-l) !important; border-color: var(--teal-m) !important; }
+:root[data-tabs="outline"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) { border: var(--border-width, 1px) solid var(--ink) !important; color: var(--ink) !important; }
+:root[data-tabs="lifted"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) {
   align-items: flex-end !important;
   background: transparent !important;
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: var(--border-width, 1px) solid var(--border) !important;
   border-radius: 0 !important;
   padding: 0 !important;
 }
-:root[data-tabs="lifted"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(button, [class*="-tab"]) {
+:root[data-tabs="lifted"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(button, [class*="-tab"]) {
   background: var(--card-sunken) !important;
-  border: 1px solid transparent !important;
+  border: var(--border-width, 1px) solid transparent !important;
   border-bottom: 0 !important;
   border-radius: var(--tab-radius, 8px) var(--tab-radius, 8px) 0 0 !important;
 }
-:root[data-tabs="lifted"] :is([class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]) > :is(.active, .on, [class*="--active"], [data-active="true"]) {
+:root[data-tabs="lifted"] :is([data-ds-tabstrip], [class$="-tabs"], [class*="-tabs "], [class$="-tabstrip"], [class*="-tabstrip "]):not(.ds-tabs-list):not([role="tablist"]):not([data-ds-tabs-root]):not([data-ds-tabs-exempt="crm-customers"]) > :is(.active, .on, [class*="--active"], [class*="--on"], [data-ds-selected="true"], [data-active="true"]) {
   background: var(--card-bg, var(--white)) !important;
   border-color: var(--border) !important;
   box-shadow: var(--elev-sm) !important;
   color: var(--ink) !important;
 }
+
+/* Scroll the strip rather than shrink targets or push the page sideways. */
+.ds-tabs-list, [role="tablist"]:not([data-ds-tabs-exempt="crm-customers"]), [data-ds-tabstrip] { min-width: 0; box-sizing: border-box; flex-wrap: nowrap !important; }
+.ds-tabs-trigger { flex: 0 0 auto; }
+.ds-tabs-trigger:disabled, [role="tab"][aria-disabled="true"] { cursor: not-allowed; opacity: .5; }
+
+[data-ds-tabstrip] > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: var(--tab-radius, 8px); }
+[data-ds-tabstrip] > button:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
