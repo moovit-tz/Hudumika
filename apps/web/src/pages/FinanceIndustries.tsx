@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { FINANCE_INDUSTRIES, type FinanceIndustryKey, type IndustryWork, type IndustryWorkLine, type IndustryProductionRecipe } from '@hudumika/types';
+import { FINANCE_INDUSTRIES, type FinanceCapabilityKey, type FinanceIndustryKey, type IndustryWork, type IndustryWorkLine, type IndustryProductionRecipe } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -15,6 +16,7 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Icon } from '../components/Icon.js';
 import './FinanceIndustries.css';
 
 const experiences: Record<FinanceIndustryKey, { title: string; noun: string; description: string; sections: string[]; kinds: IndustryWorkLine['kind'][]; fields: string[]; tools: { label: string; path: string; description: string }[] }> = {
@@ -42,9 +44,123 @@ function money(amount: number | string | undefined, currency = 'TZS') { return n
 const writers = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'];
 
 export function FinanceIndustries() {
-  return <div className="industry-page"><PageHeader crumbs={['Finance', 'Industries']} titlePlain="Industry" titleEm="workspaces" subtitle="Choose the workspace that matches your operations. Each uses the same customer records and accounting ledger." />
-    <div className="industry-hub-grid">{FINANCE_INDUSTRIES.map(industry => <Card key={industry.key}><CardHeader><CardTitle>{industry.name}</CardTitle><CardDescription>{experiences[industry.key].description}</CardDescription></CardHeader><CardContent><div className="industry-tags">{experiences[industry.key].fields.slice(0, 3).map(field => <Badge key={field} variant="gray">{field}</Badge>)}</div><Button asChild><Link to={`/finance/industries/${industry.key}`}>Open workspace</Link></Button></CardContent></Card>)}</div>
-  </div>;
+  const { user } = useAuth();
+  const canManage = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user?.role ?? '');
+  const configuration = useFinanceConfiguration();
+  const { data: capData, setEnabled } = useFinanceCapabilities();
+  const [savingIndustries, setSavingIndustries] = useState(false);
+  const [savingCap, setSavingCap] = useState<FinanceCapabilityKey | null>(null);
+  const [message, setMessage] = useState('');
+
+  const selectedIndustries = configuration.data?.industries ?? [];
+
+  const recommendations = useMemo(() => new Set(
+    configuration.data?.industryDefinitions
+      .filter(ind => selectedIndustries.includes(ind.key))
+      .flatMap(ind => ind.recommendedCapabilities) ?? []
+  ), [configuration.data, selectedIndustries]);
+
+  const recommendedCapabilities = useMemo(() =>
+    capData?.capabilities.filter(item => item.status === 'available' && recommendations.has(item.key)) ?? [],
+    [capData, recommendations]
+  );
+
+  async function toggleIndustry(key: FinanceIndustryKey, checked: boolean) {
+    setSavingIndustries(true);
+    setMessage('');
+    const next = checked
+      ? [...selectedIndustries, key]
+      : selectedIndustries.filter(k => k !== key);
+    try { await configuration.saveIndustries(next as FinanceIndustryKey[]); }
+    catch (err: any) { setMessage(err.message ?? 'Unable to save the business profile.'); }
+    finally { setSavingIndustries(false); }
+  }
+
+  async function enableCap(key: FinanceCapabilityKey) {
+    setSavingCap(key);
+    setMessage('');
+    try { await setEnabled(key, true); }
+    catch (err: any) { setMessage(err.message ?? 'Unable to enable capability.'); }
+    finally { setSavingCap(null); }
+  }
+
+  return (
+    <div className="industry-page">
+      <PageHeader
+        crumbs={['Finance', 'Industries']}
+        titlePlain="Industry"
+        titleEm="workspaces"
+        subtitle="Open any workspace to create and manage work. Check the activities your business performs to configure your Finance workspace."
+      />
+      {message && <p role="alert" className="industry-hub-alert">{message}</p>}
+      <div className="industry-hub-grid">
+        {FINANCE_INDUSTRIES.map(industry => {
+          const isSelected = selectedIndustries.includes(industry.key);
+          const exp = experiences[industry.key];
+          return (
+            <Card key={industry.key} className={isSelected ? 'industry-hub-card--active' : ''}>
+              <CardHeader>
+                <div className="industry-hub-card-top">
+                  <CardTitle>{industry.name}</CardTitle>
+                  {canManage ? (
+                    <label className="industry-hub-profile-toggle">
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={savingIndustries}
+                        onCheckedChange={value => void toggleIndustry(industry.key, value === true)}
+                      />
+                      <span>Our business</span>
+                    </label>
+                  ) : isSelected ? (
+                    <Badge variant="brand">Active</Badge>
+                  ) : null}
+                </div>
+                <CardDescription>{exp.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="industry-tags">
+                  {exp.fields.slice(0, 3).map(field => <Badge key={field} variant="gray">{field}</Badge>)}
+                </div>
+                <Button asChild>
+                  <Link to={`/finance/industries/${industry.key}`}>Open workspace</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+      {selectedIndustries.length > 0 && capData && recommendedCapabilities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recommended tools</CardTitle>
+            <CardDescription>
+              Capabilities that match the {selectedIndustries.length === 1 ? '1 activity' : `${selectedIndustries.length} activities`} you selected. Enable included ones now — nothing here creates an additional subscription.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="industry-recommendation-list">
+            {recommendedCapabilities.map(item => (
+              <div className="industry-recommendation-row" key={item.key}>
+                <span className="industry-recommendation-icon">
+                  <Icon name={item.enabled ? 'checkCircle' : item.entitled ? 'settings' : 'lock'} size={18} />
+                </span>
+                <div>
+                  <strong>{item.name}</strong>
+                  <small>{item.enabled ? 'Ready to use' : item.entitled ? 'Included — enable now' : 'Requires Finance Advanced'}</small>
+                </div>
+                {item.enabled ? (
+                  <Badge variant="success">Enabled</Badge>
+                ) : item.entitled ? (
+                  <Button size="sm" variant="outline" disabled={!canManage || savingCap === item.key} onClick={() => void enableCap(item.key)}>Enable</Button>
+                ) : (
+                  <Button size="sm" variant="ghost" asChild><Link to="/workspace/billing">View plans</Link></Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }
 export function FinanceIndustryWorkspace() {
   const { industry: key } = useParams(); const industry = key as FinanceIndustryKey; const config = experiences[industry];
@@ -106,7 +222,7 @@ export function FinanceIndustryWorkDetail() {
   const editable = ['draft', 'active'].includes(work.status); const unbilled = work.lines?.some(item => item.approved && item.billable && !item.invoice_id);
   return <div className="industry-page"><PageHeader crumbs={[{ label: 'Finance', to: '/finance' }, { label: config.title, to: `/finance/industries/${industry}` }, work.reference]} title={work.name} subtitle={`${work.reference} · ${work.status}`} actions={<div className="industry-actions">{canWrite && work.status === 'draft' && <Button disabled={busy} onClick={() => action(`/v1/finance/industries/${id}/status`, 'PATCH', { status: 'active' })}>Activate</Button>}{canWrite && work.status === 'active' && <Button variant="outline" disabled={busy || work.lines?.some(item => !item.approved)} onClick={() => action(`/v1/finance/industries/${id}/status`, 'PATCH', { status: 'completed' })}>Complete</Button>}{canWrite && unbilled && work.status !== 'draft' && work.status !== 'cancelled' && <Button disabled={busy} onClick={bill}>Create invoice draft</Button>}{work.invoice_id && <Button asChild variant="outline"><Link to={`/finance/invoices?id=${work.invoice_id}`}>View invoice</Link></Button>}</div>} />
     {error && <p role="alert">{error}</p>}<div className="industry-summary-grid">{[['Cost budget', work.budget], ['Estimated charges', work.estimated_revenue], ['Estimated costs', work.estimated_cost], ['Estimated margin', Number(work.estimated_revenue) - Number(work.estimated_cost)]].map(([label, amount]) => <Card key={String(label)}><CardHeader><CardDescription>{label}</CardDescription><CardTitle>{money(amount as number, work.currency)}</CardTitle></CardHeader></Card>)}</div>
-    {work.currency === 'TZS' && <Card><CardHeader><CardTitle>Posted job results</CardTitle><CardDescription>Includes ledger entries tagged to this job and their reversals. Untagged costs elsewhere are excluded; review allocations before relying on the margin.</CardDescription></CardHeader><CardContent><div className="industry-summary-grid"><div><small>Revenue, excluding VAT</small><h3>{money(work.posted_revenue)}</h3></div><div><small>Recognised direct costs</small><h3>{money(work.posted_cost)}</h3></div><div><small>Posted margin</small><h3>{money(Number(work.posted_revenue) - Number(work.posted_cost))}</h3></div><div><small>Budget remaining</small><h3>{money(Number(work.budget) - Number(work.posted_cost))}</h3></div></div><p>Accrue approved direct service costs only when they have not already been recorded through payroll, expenses or supplier bills. Accrual posts to 5020 / 2100; inventory costs post automatically.</p><div className="industry-actions">{canWrite && accountingEnabled && ['active', 'completed'].includes(work.status) && work.lines?.filter(line => line.approved && !line.cost_journal_id && line.kind !== 'material' && Number(line.cost_rate) > 0).map(line => <Button key={line.id} variant="outline" disabled={busy} onClick={() => action(`/v1/finance/industries/${id}/lines/${line.id}/accrue-cost`, 'POST')}>Accrue {line.description} · {money(Number(line.quantity) * Number(line.cost_rate))}</Button>)}</div></CardContent></Card>}
+    {work.currency === 'TZS' && <Card><CardHeader><CardTitle>Posted job results</CardTitle>{canWrite && accountingEnabled && <Button asChild variant="outline"><Link to={`/finance/industries/${industry}/${id}/costs`}>Allocate posted costs</Link></Button>}<CardDescription>Includes ledger entries tagged to this job and their reversals. Untagged costs elsewhere are excluded; review allocations before relying on the margin.</CardDescription></CardHeader><CardContent><div className="industry-summary-grid"><div><small>Revenue, excluding VAT</small><h3>{money(work.posted_revenue)}</h3></div><div><small>Recognised direct costs</small><h3>{money(work.posted_cost)}</h3></div><div><small>Posted margin</small><h3>{money(Number(work.posted_revenue) - Number(work.posted_cost))}</h3></div><div><small>Budget remaining</small><h3>{money(Number(work.budget) - Number(work.posted_cost))}</h3></div></div><p>Accrue approved direct service costs only when they have not already been recorded through payroll, expenses or supplier bills. Accrual posts to 5020 / 2100; inventory costs post automatically.</p><div className="industry-actions">{canWrite && accountingEnabled && ['active', 'completed'].includes(work.status) && work.lines?.filter(line => line.approved && !line.cost_journal_id && line.kind !== 'material' && Number(line.cost_rate) > 0).map(line => <Button key={line.id} variant="outline" disabled={busy} onClick={() => action(`/v1/finance/industries/${id}/lines/${line.id}/accrue-cost`, 'POST')}>Accrue {line.description} · {money(Number(line.quantity) * Number(line.cost_rate))}</Button>)}</div></CardContent></Card>}
     {['retail', 'wholesale', 'warehousing', 'manufacturing', 'printing'].includes(industry) && <Card><CardHeader><CardTitle>Allocated stock and dispatch</CardTitle><CardDescription>Allocate owned stock in base units, then dispatch all or part of each allocation. Dispatch posts COGS. Customer-owned custody stock requires a separate off-ledger workflow.</CardDescription></CardHeader><CardContent>
       {canWrite && work.status === 'active' && inventoryEnabled && <Button asChild><Link to={`/finance/industries/${industry}/${id}/allocation/new`}>Allocate stock</Link></Button>}
       {!inventoryEnabled && <p>Enable Inventory to allocate and dispatch stock.</p>}

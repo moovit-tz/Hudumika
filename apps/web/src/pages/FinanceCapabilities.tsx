@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { FinanceCapabilityKey, FinanceIndustryKey } from '@hudumika/types';
+import type { FinanceCapabilityKey } from '@hudumika/types';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
@@ -9,7 +9,6 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { Checkbox } from '../components/ui/checkbox.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -23,7 +22,6 @@ export function FinanceCapabilities() {
   const { data, loading, error, setEnabled } = useFinanceCapabilities();
   const configuration = useFinanceConfiguration();
   const [saving, setSaving] = useState<FinanceCapabilityKey | null>(null);
-  const [savingIndustries, setSavingIndustries] = useState(false);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('capabilities');
   const [newLine, setNewLine] = useState({ name: '', code: '' });
@@ -33,7 +31,6 @@ export function FinanceCapabilities() {
   const recommendations = useMemo(() => new Set(configuration.data?.industryDefinitions
     .filter(industry => selectedIndustries.includes(industry.key))
     .flatMap(industry => industry.recommendedCapabilities) ?? []), [configuration.data, selectedIndustries]);
-  const recommendedCapabilities = useMemo(() => data?.capabilities.filter(item => item.status === 'available' && recommendations.has(item.key)) ?? [], [data, recommendations]);
   const advancedAccounting = data?.capabilities.find(item => item.key === 'finance.accounting.advanced');
   const canManageBusinessLines = canManage && advancedAccounting?.enabled === true;
 
@@ -47,13 +44,12 @@ export function FinanceCapabilities() {
 
   return (
     <div className="finance-capabilities-page">
-      <PageHeader crumbs={['Finance', 'Settings']} titlePlain="Finance" titleEm="capabilities" subtitle="Choose which package-included Finance tools appear in this workspace." />
+      <PageHeader crumbs={['Finance', 'Settings']} titlePlain="Finance" titleEm="capabilities" subtitle="Enable or disable Finance tools and manage business lines. Business profile is configured in Industry workspaces." />
       {!canManage && <div className="finance-capabilities-alert">You can review this workspace configuration. A tenant administrator manages capability activation, business profiles, and business lines.</div>}
       {loading ? <SectionLoading label="Loading capabilities" /> : error ? <div className="finance-capabilities-alert">{error}</div> : data && (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList aria-label="Finance settings sections">
             <TabsTrigger value="capabilities">Capabilities</TabsTrigger>
-            <TabsTrigger value="industries">Business profile</TabsTrigger>
             <TabsTrigger value="lines">Business lines</TabsTrigger>
           </TabsList>
           {message && <div className="finance-capabilities-alert" role="alert">{message}</div>}
@@ -85,49 +81,6 @@ export function FinanceCapabilities() {
               </div>
             </section>;
           })}
-          </TabsContent>
-          <TabsContent value="industries">
-            {configuration.loading ? <SectionLoading label="Loading business profile" /> : configuration.error ? <div className="finance-capabilities-alert">{configuration.error}</div> : (
-              <div className="finance-profile-setup">
-                <section className="finance-setup-summary" aria-label="Business profile setup summary">
-                  <div><span className="finance-capabilities-eyebrow">GUIDED SETUP</span><h2>Match Finance to your operations</h2><p>Select every activity that applies. Recommendations configure the workspace; they do not change your package or block setup.</p></div>
-                  <div className="finance-setup-metrics">
-                    <span><strong>{selectedIndustries.length}</strong> activities</span>
-                    <span><strong>{recommendedCapabilities.length}</strong> recommended tools</span>
-                    <span><strong>{recommendedCapabilities.filter(item => item.entitled).length}</strong> included</span>
-                  </div>
-                </section>
-                <section className="finance-capability-section finance-configuration-section">
-                  <header><div><h2>What does your business do?</h2><span>Choose one or more activities. You can change these later.</span></div>{savingIndustries && <span>Saving…</span>}</header>
-                  <div className="finance-industry-grid">
-                    {configuration.data?.industryDefinitions.map(industry => {
-                      const checked = selectedIndustries.includes(industry.key);
-                      return <label className={`finance-industry-option${checked ? ' is-selected' : ''}`} key={industry.key}>
-                        <Checkbox disabled={!canManage || savingIndustries} checked={checked} onCheckedChange={async value => {
-                          const next = value ? [...selectedIndustries, industry.key] : selectedIndustries.filter(key => key !== industry.key);
-                          setMessage(''); setSavingIndustries(true);
-                          try { await configuration.saveIndustries(next as FinanceIndustryKey[]); }
-                          catch (err: any) { setMessage(err.message || 'Unable to save the business profile.'); }
-                          finally { setSavingIndustries(false); }
-                        }} />
-                        <span><strong>{industry.name}</strong><small>{industry.description}</small></span>
-                      </label>;
-                    })}
-                  </div>
-                </section>
-                <section className="finance-capability-section finance-recommendations-section">
-                  <header><div><h2>Recommended workspace</h2><span>Enable included tools now or continue without them.</span></div></header>
-                  {recommendedCapabilities.length ? <div className="finance-recommendation-list">
-                    {recommendedCapabilities.map(item => <div className="finance-recommendation-row" key={item.key}>
-                      <span className="finance-capability-icon"><Icon name={item.enabled ? 'checkCircle' : item.entitled ? 'settings' : 'lock'} size={18} /></span>
-                      <div><strong>{item.name}</strong><small>{item.enabled ? 'Ready to use' : item.entitled ? 'Included in your package and ready to enable' : 'Optional — your current tools remain available'}</small></div>
-                      {item.enabled ? <Badge variant="success">Enabled</Badge> : item.entitled ? <Button size="sm" variant="outline" disabled={!canManage || saving === item.key} onClick={() => void toggle(item.key, true)}>Enable</Button> : <Button size="sm" variant="ghost" asChild><Link to="/workspace/billing">View plans</Link></Button>}
-                    </div>)}
-                  </div> : <div className="finance-recommendations-empty"><Icon name="layers" size={20} /><div><strong>Select an activity to see recommendations</strong><span>Core Finance remains available while you set up the workspace.</span></div></div>}
-                  <footer className="finance-setup-footer"><span>Nothing here creates an additional subscription.</span><Button variant="outline" onClick={() => setActiveTab('capabilities')}>Review all capabilities</Button></footer>
-                </section>
-              </div>
-            )}
           </TabsContent>
           <TabsContent value="lines">
             <section className="finance-capability-section finance-configuration-section">
