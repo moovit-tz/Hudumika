@@ -19,6 +19,7 @@ import { runCloudTrashExpiryJob } from './cloud-trash-expiry.job.js';
 import { runCloudStorageMaintenanceJob } from './cloud-storage-maintenance.job.js';
 import { runSubscriptionBillingJob } from './subscription-billing.job.js';
 import { runOnsiteBackupJob } from './onsite-backup.job.js';
+import { runAccountingOutboxJob } from '../services/accounting-outbox.service.js';
 import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 import { runImapEmailIngestJob } from './imap-email-ingest.job.js';
@@ -98,6 +99,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'SEAL Anchor Confirmation Sweep', schedule: 'Every hour' },
   { name: 'Declaration Ledger Anchor (Bitcoin)', schedule: 'Daily' },
   { name: 'Declaration Anchor Confirmation Sweep', schedule: 'Every hour' },
+  { name: 'Finance Accounting Sync Outbox', schedule: 'Every 1 minute' },
   { name: 'Mail Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'SMS Outbox Sweep', schedule: 'Every 1 minute' },
   { name: 'IMAP Ticket Ingest', schedule: 'Every 3 minutes' },
@@ -122,6 +124,7 @@ let workflowCommQueue: Queue | null = null;
 let sealAnchorQueue: Queue | null = null;
 let declarationAnchorQueue: Queue | null = null;
 let mailOutboxQueue: Queue | null = null;
+let accountingOutboxQueue: Queue | null = null;
 let imapTicketQueue: Queue | null = null;
 let imapEmailQueue: Queue | null = null;
 let scheduledEmailSendQueue: Queue | null = null;
@@ -237,6 +240,7 @@ function startBullMQ(): void {
     workflowCommQueue = track(new Queue('workflow-comms', { connection: redisConnection as any }));
     sealAnchorQueue = track(new Queue('seal-ledger-anchor', { connection: redisConnection as any }));
     declarationAnchorQueue = track(new Queue('declaration-ledger-anchor', { connection: redisConnection as any }));
+    accountingOutboxQueue = track(new Queue('finance-accounting-outbox', { connection: redisConnection as any }));
     mailOutboxQueue = track(new Queue('mail-outbox', { connection: redisConnection as any }));
     imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
     imapEmailQueue = track(new Queue('imap-email-ingest', { connection: redisConnection as any }));
@@ -389,6 +393,8 @@ function startBullMQ(): void {
       },
       { connection: redisConnection as any }
     ));
+
+    track(new Worker('finance-accounting-outbox', async () => { await runAccountingOutboxJob(); }, { connection: redisConnection as any }));
 
     // Worker for the mail outbox sweep — its own queue since it polls far
     // more frequently (1 min, mail needs to go out promptly) than the
@@ -693,6 +699,7 @@ function startBullMQ(): void {
       repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending anchors for Bitcoin confirmation
     }).catch(console.error);
 
+    accountingOutboxQueue.add('sweep', {}, { repeat: { every: 60 * 1000 } }).catch(console.error);
     mailOutboxQueue.add('sweep', {}, {
       repeat: { every: 60 * 1000 } // Every 1 minute — mail needs to go out promptly, not on a daily cadence
     }).catch(console.error);
@@ -752,6 +759,7 @@ function startIntervalFallback(): void {
   runDataQualityJob().catch(console.error);
   runGpswoxSyncJob().catch(console.error);
   runWorkflowCommQueueJob().catch(console.error);
+  runAccountingOutboxJob().catch(console.error);
   runMailOutboxJob().catch(console.error);
   runScheduledEmailSendJob().catch(console.error);
   runSmsOutboxJob().catch(console.error);
@@ -948,6 +956,8 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runWorkflowLearningJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
+
+  setInterval(() => { runAccountingOutboxJob().catch(console.error); }, 60 * 1000);
 
   // Mail outbox sweep — every minute. Safe to also run immediately on
   // startup (above): each row is processed exactly once and marked sent/

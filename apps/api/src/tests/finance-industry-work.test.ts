@@ -43,6 +43,30 @@ describe('Industry accounting workflows', () => {
     expect((await request('POST', '/v1/finance/industries', { industry: 'consulting', name: 'Leak', customer_id: otherCustomerId })).statusCode).toBe(400);
     expect((await request('POST', '/v1/finance/industries', { industry: 'consulting', name: 'Bad date', customer_id: customerId, due_date: '2026-02-30' })).statusCode).toBe(400);
   });
+  it('creates construction projects with site and contract details', async () => {
+    const result = await request('POST', '/v1/finance/industries', {
+      industry: 'construction',
+      name: 'Community clinic build',
+      customer_id: customerId,
+      budget: 250000000,
+      due_date: '2027-06-30',
+      specifications: {
+        'Site Address': 'Plot 42, Dodoma',
+        'Contract / BOQ Reference': 'BOQ-2026-014',
+        'Project Manager': 'Asha Mushi',
+        'Retention Terms': '10% for 180 days',
+        'Defects Liability Period': '12 months',
+      },
+    });
+    expect(result.statusCode, result.body).toBe(201);
+    expect(result.json()).toMatchObject({ industry: 'construction', name: 'Community clinic build' });
+    const detail = await request('GET', `/v1/finance/industries/${result.json().id}`);
+    expect(detail.statusCode, detail.body).toBe(200);
+    expect(detail.json().specifications).toMatchObject({
+      'Contract / BOQ Reference': 'BOQ-2026-014',
+      'Retention Terms': '10% for 180 days',
+    });
+  });
   it('allocates posted costs once without changing company profit and reverses with the source', async () => {
     const job = await work('consulting'); await activate(job.id);
     const journalId = await GLService.post(tenant.tenantId, { entryDate: '2026-10-07', description: 'Payroll cost', createdBy: tenant.userId, sourceModule: 'MANUAL', lines: [{ accountCode: '5020', debit: 100, credit: 0 }, { accountCode: '2100', debit: 0, credit: 100 }] });

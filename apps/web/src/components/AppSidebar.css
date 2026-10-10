@@ -1186,3 +1186,8 @@ html[data-expanded="true"] .app-sidebar {
 .app-sb-skeleton-text {
   background: var(--sb-skeleton-bg, rgba(255, 255, 255, 0.08));
 }
+@media(max-width:767px) {
+ .app-sidebar--mobile-open { width:min(320px,calc(100vw - 48px)) !important; min-width:0 !important; height:100dvh; padding-bottom:env(safe-area-inset-bottom); }
+ .app-sidebar--mobile-open .app-sb-nav { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+ .app-sidebar--mobile-open .app-sb-item { min-height:44px; white-space:normal; overflow-wrap:anywhere; }
+}

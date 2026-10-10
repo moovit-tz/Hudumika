@@ -1,631 +1,744 @@
-﻿/* ==========================================================================
-   Hudumika Design System - Vexlora Finance Command Center Styles
-   ========================================================================== */
+/* ═══════════════════════════════════════════════════════════════════════
+   Hudumika Design System — Finance Executive Dashboard Styles
+   Inherits 100% of global design system tokens, radii, borders & shadows
+   ═══════════════════════════════════════════════════════════════════════ */
 
-.vex-finance-root {
+.fin-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--content-gap, var(--space-lg, 20px));
   width: 100%;
+  min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
   font-family: var(--font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   color: var(--ink);
-  padding-bottom: 40px;
+  padding-bottom: var(--space-xl, 36px);
 }
 
-/* ── Top Bento Row ── */
-.vex-top-bento {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr 1.2fr;
-  gap: 16px;
-  width: 100%;
-}
-
-/* Treasury Tower (Left Hero Card) */
-.vex-treasury-tower {
-  background: linear-gradient(145deg, var(--teal) 0%, color-mix(in srgb, var(--teal) 80%, #000) 100%);
-  border-radius: var(--r-lg, 12px);
-  padding: 22px 24px;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+/* ── Hero Treasury Command Banner ───────────────────────────────────── */
+.fin-hero-banner {
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--teal) 40%, transparent);
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  border: var(--card-border-width, 1px) solid color-mix(in srgb, var(--teal) 24%, var(--border));
+  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 70%),
+              radial-gradient(ellipse 50% 60% at 5% 110%, color-mix(in srgb, var(--navy, #1e293b) 12%, transparent), transparent 60%),
+              var(--card-bg, var(--white));
+  box-shadow: var(--elev, var(--card-shadow, var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05))));
+  padding: var(--card-padding, clamp(18px, 2.5vw, 24px));
+  display: grid;
+  grid-template-columns: minmax(320px, 1.4fr) minmax(280px, 1fr);
+  gap: var(--content-gap, var(--space-lg, 20px));
+  align-items: center;
 }
 
-.vex-treasury-tower::before {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -20%;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-  pointer-events: none;
+.fin-hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 14px);
+  min-width: 0;
 }
 
-.vex-tower-header {
+.fin-hero-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  z-index: 1;
+  flex-wrap: wrap;
+  gap: var(--space-sm, 8px);
 }
 
-.vex-tower-chip {
+.fin-hero-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #fff;
+  gap: var(--space-xs, 6px);
+  padding: var(--badge-py, 2px) var(--badge-px, 8px);
+  min-height: var(--badge-min-h, 20px);
+  border-radius: var(--badge-radius, 9999px);
+  background: color-mix(in srgb, var(--teal) 12%, var(--card-sunken, var(--bg)));
+  border: var(--border-width, 1px) solid color-mix(in srgb, var(--teal) 25%, transparent);
+  font-size: var(--badge-fs, var(--text-xs, 11px));
+  font-weight: 750;
+  color: var(--teal);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.vex-tower-sync {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.vex-tower-metric-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 4px;
-  z-index: 1;
-}
-
-.vex-tower-metric-val {
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: #fff;
-  margin-bottom: 6px;
-  z-index: 1;
-}
-
-.vex-tower-metric-badge {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--green-l);
-  display: inline-flex;
+.fin-hero-sync {
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+  display: flex;
   align-items: center;
+  gap: 5px;
+}
+
+.fin-hero-liquidity {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  margin-bottom: 18px;
-  z-index: 1;
 }
 
-.vex-tower-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 18px;
-  z-index: 1;
-}
-
-.vex-tower-stat-box {
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--r, 8px);
-  padding: 8px 10px;
-}
-
-.vex-tower-stat-lbl {
-  font-size: 10px;
+.fin-hero-liquidity-label {
+  font-size: var(--text-xs, 11px);
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  margin-bottom: 2px;
-}
-
-.vex-tower-stat-num {
-  font-size: 14px;
-  font-weight: 800;
-  color: #fff;
-}
-
-.vex-tower-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  z-index: 1;
-}
-
-/* Account Liquidity Breakdown (Middle Column) */
-.vex-liquidity-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg, 12px);
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
-  box-shadow: var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
-}
-
-.vex-acct-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.vex-acct-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.vex-acct-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.vex-acct-mask {
-  font-size: 11px;
-  color: var(--ink3);
-  font-family: var(--font);
-}
-
-.vex-acct-amount {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-.vex-acct-track {
-  height: 6px;
-  background: var(--card-sunken, var(--bg));
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.vex-acct-bar {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-/* Control Rail (Right Card) */
-.vex-control-rail {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg, 12px);
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 14px;
-  box-shadow: var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.05));
-}
-
-.vex-rail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.vex-rail-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--ink);
-  margin-bottom: 2px;
-}
-
-.vex-rail-sub {
-  font-size: 11.5px;
+  letter-spacing: 0.05em;
   color: var(--ink3);
 }
 
-.vex-rail-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: var(--r, 8px);
-  background: var(--bg);
-  border: 1px solid var(--border);
-}
-
-.vex-rail-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.vex-rail-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.vex-rail-lbl {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--ink3);
-  text-transform: uppercase;
-}
-
-.vex-rail-val {
-  font-size: 16px;
-  font-weight: 800;
+.fin-hero-liquidity-value {
+  font-size: clamp(var(--text-2xl, 22px), 3.2vw, var(--text-3xl, 28px));
+  font-weight: 850;
   color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-/* ── Row 2: Cash-Flow Forecast & AI Signals ── */
-.vex-row-2 {
-  display: grid;
-  grid-template-columns: 2fr 1.1fr;
-  gap: 16px;
-}
-
-/* Cash-Flow Forecast Bar Chart */
-.vex-cf-chart-wrap {
+  line-height: 1.15;
+  letter-spacing: -0.025em;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: baseline;
+  gap: var(--space-sm, 8px);
+  flex-wrap: wrap;
 }
 
-.vex-cf-legend {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  font-size: 11px;
-  color: var(--ink3);
-}
-
-.vex-cf-bars-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 8px;
-  align-items: flex-end;
-  height: 200px;
-  padding-top: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.vex-cf-month-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
-  justify-content: flex-end;
-}
-
-.vex-cf-bars-pair {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 100%;
-  width: 100%;
-  justify-content: center;
-}
-
-.vex-cf-bar-in {
-  width: 45%;
-  background: var(--teal);
-  border-radius: 3px 3px 0 0;
-  transition: height 0.4s ease;
-}
-
-.vex-cf-bar-out {
-  width: 45%;
-  background: var(--blue);
-  border-radius: 3px 3px 0 0;
-  transition: height 0.4s ease;
-}
-
-.vex-cf-month-label {
-  font-size: 10.5px;
-  color: var(--ink3);
-  font-weight: 600;
-}
-
-/* AI Finance Signals */
-.vex-signals-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.vex-signal-card {
-  padding: 12px 14px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r, 8px);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: border-color 0.15s ease;
-}
-
-.vex-signal-card:hover {
-  border-color: var(--teal);
-}
-
-.vex-signal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.vex-signal-title {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.vex-signal-desc {
-  font-size: 11.5px;
-  color: var(--ink2);
-  line-height: 1.4;
-}
-
-/* ── Row 3: Working Capital & Spend/Budget ── */
-.vex-row-3 {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 16px;
-}
-
-.vex-wc-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.vex-wc-kpi-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r, 8px);
-  padding: 10px 12px;
-}
-
-.vex-wc-kpi-badge {
-  font-size: 10px;
+.fin-hero-liquidity-value small {
+  font-size: var(--text-sm, 12px);
   font-weight: 700;
   color: var(--teal);
-  text-transform: uppercase;
-  margin-bottom: 2px;
+  background: color-mix(in srgb, var(--teal) 10%, var(--card-sunken, var(--bg)));
+  padding: 2px 8px;
+  border-radius: var(--r-sm, 6px);
 }
 
-.vex-wc-kpi-val {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-.vex-wc-kpi-sub {
-  font-size: 10.5px;
-  color: var(--ink3);
+/* Multi-Currency Cash Distribution Bar */
+.fin-currency-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
   margin-top: 2px;
 }
 
-/* Budget Progress Rows */
-.vex-budget-row {
+.fin-dist-meter {
+  display: flex;
+  height: 8px;
+  width: 100%;
+  border-radius: var(--badge-radius, 9999px);
+  overflow: hidden;
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 90%, var(--border)));
+}
+
+.fin-dist-seg {
+  height: 100%;
+  transition: width var(--dur-slow, 300ms) var(--ease, ease);
+}
+
+.fin-dist-seg--tzs { background: var(--teal); }
+.fin-dist-seg--usd { background: var(--blue, #3b82f6); }
+.fin-dist-seg--onhand { background: var(--gold, #eab308); }
+
+.fin-currency-chips {
+  display: flex;
+  gap: var(--space-md, 12px);
+  flex-wrap: wrap;
+}
+
+.fin-currency-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm, 12px);
+  color: var(--ink2);
+}
+
+.fin-currency-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--badge-radius, 9999px);
+  flex-shrink: 0;
+}
+
+.fin-currency-dot--tzs { background: var(--teal); }
+.fin-currency-dot--usd { background: var(--blue, #3b82f6); }
+.fin-currency-dot--onhand { background: var(--gold, #eab308); }
+
+.fin-currency-chip strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Hero Right Side: Working Capital Barometer */
+.fin-hero-barometer {
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 65%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--r, 12px);
+  padding: var(--card-padding, 16px);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: var(--space-md, 14px);
 }
 
-.vex-budget-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.vex-budget-name {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.vex-budget-caps {
-  color: var(--ink3);
-}
-
-.vex-budget-pct {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--teal);
-}
-
-/* ── Row 4: Cash Activity & Close Readiness ── */
-.vex-row-4 {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-}
-
-/* Cash Activity Table */
-.vex-activity-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
-  text-align: left;
-}
-
-.vex-activity-table th {
-  padding: 10px 12px;
-  background: var(--card-sunken, var(--bg));
-  color: var(--ink3);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-}
-
-.vex-activity-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--ink);
-  vertical-align: middle;
-}
-
-.vex-activity-table tr:last-child td {
-  border-bottom: none;
-}
-
-.vex-activity-table tr:hover td {
-  background: color-mix(in srgb, var(--teal) 3%, transparent);
-}
-
-/* Close Readiness Checklist */
-.vex-close-item {
+.fin-barometer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: var(--r, 8px);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
 }
 
-.vex-close-left {
+.fin-barometer-title {
+  font-size: var(--text-xs, 12px);
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink2);
+}
+
+.fin-barometer-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md, 12px);
+}
+
+.fin-barometer-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fin-barometer-tile span {
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+}
+
+.fin-barometer-tile strong {
+  font-size: var(--text-lg, 16px);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.fin-hero-actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* ── Top Executive KPI Metric Cards (4 Columns) ─────────────────────── */
+.fin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--content-gap, var(--space-md, 16px));
+}
+
+.fin-kpi-card {
+  background: var(--card-bg, var(--white));
+  border: var(--card-border-width, 1px) solid var(--border);
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  padding: var(--card-padding, 18px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-md, 12px);
+  box-shadow: var(--elev-sm, var(--shadow-sm));
+  transition: transform var(--dur, 150ms) var(--ease, ease),
+              box-shadow var(--dur, 150ms) var(--ease, ease),
+              border-color var(--dur, 150ms) var(--ease, ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.fin-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev-lg, var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.08)));
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+}
+
+.fin-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md, 12px);
+}
+
+.fin-kpi-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fin-kpi-label {
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fin-kpi-value {
+  font-size: var(--text-xl, 18px);
+  font-weight: 850;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.fin-kpi-meter-bar {
+  height: 5px;
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 80%, var(--border)));
+  border-radius: var(--badge-radius, 9999px);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.fin-kpi-meter-fill {
+  height: 100%;
+  border-radius: var(--badge-radius, 9999px);
+  transition: width var(--dur-slow, 300ms) var(--ease, ease);
+}
+
+.fin-kpi-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-sm, 8px);
+  border-top: var(--border-width, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+  font-size: var(--text-xs, 11px);
+  color: var(--ink2);
+}
+
+.fin-kpi-link {
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  color: var(--teal);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  transition: color var(--dur-fast, 80ms) ease;
+}
+
+.fin-kpi-link:hover {
+  color: color-mix(in srgb, var(--teal) 80%, #000);
+  text-decoration: underline;
+}
+
+/* ── Middle Section: 2-Column Analytical Studio ──────────────────────── */
+.fin-studio-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--content-gap, var(--space-lg, 20px));
+}
+
+.fin-studio-card {
+  background: var(--card-bg, var(--white));
+  border: var(--card-border-width, 1px) solid var(--border);
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  box-shadow: var(--elev, var(--card-shadow, var(--shadow-sm)));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fin-studio-header {
+  padding: calc(var(--card-padding, 18px) * 0.85) var(--card-padding, 18px);
+  border-bottom: var(--border-width, 1px) solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md, 12px);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 40%, transparent));
+}
+
+.fin-studio-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 10px);
+}
+
+.fin-studio-header h3 {
+  margin: 0;
+  font-size: var(--text-base, 13px);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.fin-studio-header p {
+  margin: 2px 0 0;
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+}
+
+.fin-studio-body {
+  padding: var(--card-padding, 18px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 16px);
+  flex: 1;
+}
+
+/* Performance Visual Breakdown Rows */
+.fin-pnl-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm, 10px);
+}
+
+.fin-pnl-tile {
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 60%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--r-sm, 8px);
+  padding: var(--space-sm, 10px) var(--space-md, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fin-pnl-tile-label {
+  font-size: var(--text-xs, 10px);
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.fin-pnl-tile-val {
+  font-size: var(--text-md, 15px);
+  font-weight: 850;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.fin-pnl-tile-sub {
+  font-size: var(--text-xs, 10px);
+  color: var(--ink3);
+}
+
+/* Flow Ratio Bar */
+.fin-flow-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 6px);
+  padding: var(--space-md, 14px);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 40%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--r, 10px);
+}
+
+.fin-flow-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.fin-flow-track {
+  height: 10px;
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 90%, var(--border)));
+  border-radius: var(--badge-radius, 9999px);
+  display: flex;
+  overflow: hidden;
+}
+
+.fin-flow-revenue {
+  background: var(--teal);
+  height: 100%;
+}
+
+.fin-flow-expense {
+  background: var(--red, #ef4444);
+  height: 100%;
+}
+
+.fin-flow-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs, 10px);
+  color: var(--ink3);
+}
+
+.fin-flow-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fin-dot-sm {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--badge-radius, 9999px);
+}
+
+.fin-studio-footer {
+  padding: calc(var(--card-padding, 18px) * 0.75) var(--card-padding, 18px);
+  border-top: var(--border-width, 1px) solid var(--border);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 20%, transparent));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 10px);
+  flex-wrap: wrap;
+}
+
+/* Treasury Breakdown Studio Elements */
+.fin-working-capital-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+}
+
+.fin-wc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm, 10px) var(--space-md, 12px);
+  border-radius: var(--r-sm, 8px);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 50%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
+}
+
+.fin-wc-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 10px);
+}
+
+.fin-wc-copy {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.vex-close-name {
-  font-size: 12.5px;
-  font-weight: 700;
+.fin-wc-copy strong {
+  font-size: var(--text-sm, 12px);
   color: var(--ink);
+  font-weight: 750;
 }
 
-.vex-close-owner {
-  font-size: 11px;
+.fin-wc-copy span {
+  font-size: var(--text-xs, 11px);
   color: var(--ink3);
 }
 
-.vex-alert-callout {
-  padding: 12px 14px;
-  background: var(--gold-l);
-  border: 1px solid var(--gold);
-  border-radius: var(--r, 8px);
+.fin-wc-amount {
+  font-size: var(--text-md, 14px);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ── Bottom Section: 3-Column Operational Hub ───────────────────────── */
+.fin-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--content-gap, var(--space-md, 16px));
+}
+
+.fin-ops-card {
+  background: var(--card-bg, var(--white));
+  border: var(--card-border-width, 1px) solid var(--border);
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  box-shadow: var(--elev-sm, var(--shadow-sm));
+  padding: var(--card-padding, 18px);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 12px;
+  justify-content: space-between;
+  gap: var(--space-md, 14px);
 }
 
-.vex-alert-title {
-  font-size: 12px;
-  font-weight: 700;
+.fin-ops-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm, 10px);
+}
+
+.fin-ops-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+}
+
+.fin-ops-card-title h3 {
+  margin: 0;
+  font-size: var(--text-base, 13px);
+  font-weight: 800;
   color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.fin-ops-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+}
+
+.fin-ops-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  padding: var(--space-sm, 10px) var(--space-md, 12px);
+  border-radius: var(--r-sm, 8px);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 60%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
+  gap: var(--space-sm, 10px);
 }
 
-.vex-alert-body {
-  font-size: 11.5px;
-  color: var(--ink2);
-  line-height: 1.4;
-}
-
-.vex-pos-strip {
-  display: grid;
-  grid-template-columns: minmax(190px, 1.15fr) repeat(4, minmax(130px, 1fr)) auto;
-  align-items: stretch;
-  gap: 0;
-  overflow: hidden;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-}
-
-.vex-pos-heading,
-.vex-pos-stat {
+.fin-ops-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-  padding: 15px 16px;
-  border-right: 1px solid var(--border);
 }
 
-.vex-pos-heading {
+.fin-ops-item-title {
+  font-size: var(--text-sm, 12px);
+  font-weight: 750;
+  color: var(--ink);
+}
+
+.fin-ops-item-sub {
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+}
+
+.fin-ops-item-right {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: var(--space-sm, 8px);
+  flex-shrink: 0;
 }
 
-.vex-pos-icon {
+.fin-ops-item-amount {
+  font-size: var(--text-sm, 12px);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.fin-ops-card-actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  flex-wrap: wrap;
+  padding-top: var(--space-sm, 8px);
+  border-top: var(--border-width, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+/* ── Workspace & Commerce Quick Launchpad ───────────────────────────── */
+.fin-launchpad-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 14px);
+}
+
+.fin-launchpad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fin-launchpad-header h3 {
+  margin: 0;
+  font-size: var(--text-base, 13px);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.fin-launchpad-header p {
+  margin: 2px 0 0;
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+}
+
+.fin-launchpad-grid {
   display: grid;
-  place-items: center;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--r-sm);
-  background: var(--teal-l);
-  color: var(--teal);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--content-gap, var(--space-md, 14px));
 }
 
-.vex-pos-heading strong,
-.vex-pos-heading span,
-.vex-pos-stat span,
-.vex-pos-stat strong,
-.vex-pos-stat small {
-  display: block;
+.fin-launchpad-card {
+  background: var(--card-bg, var(--white));
+  border: var(--card-border-width, 1px) solid var(--border);
+  border-radius: var(--card-radius, var(--r-lg, 12px));
+  padding: var(--card-padding, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--elev-sm, var(--shadow-sm));
+  transition: transform var(--dur, 150ms) var(--ease, ease),
+              border-color var(--dur, 150ms) var(--ease, ease),
+              box-shadow var(--dur, 150ms) var(--ease, ease);
 }
 
-.vex-pos-heading strong { color: var(--ink); font-size: 13px; }
-.vex-pos-heading span,
-.vex-pos-stat span,
-.vex-pos-stat small { color: var(--ink3); font-size: 10.5px; }
-.vex-pos-heading span { margin-top: 3px; }
-.vex-pos-stat strong { margin: 5px 0 3px; color: var(--ink); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vex-pos-strip > button { align-self: center; margin: 0 14px; white-space: nowrap; }
-
-/* ── Responsive breakpoints ── */
-@media (max-width: 1050px) {
-  .vex-top-bento {
-    grid-template-columns: 1fr;
-  }
-  .vex-row-2,
-  .vex-row-3,
-  .vex-row-4 {
-    grid-template-columns: 1fr;
-  }
-  .vex-pos-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .vex-pos-heading,
-  .vex-pos-stat { border-bottom: 1px solid var(--border); }
-  .vex-pos-strip > button { margin-block: 12px; justify-self: start; }
+.fin-launchpad-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
+  box-shadow: var(--elev-lg, var(--shadow-lg));
 }
 
-@media (max-width: 600px) {
-  .vex-tower-stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .vex-wc-kpis {
+.fin-launchpad-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fin-launchpad-card strong {
+  font-size: var(--text-sm, 13px);
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.fin-launchpad-card p {
+  margin: 0;
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+  line-height: 1.45;
+}
+
+/* ── Mobile & Responsive Breakpoints ────────────────────────────────── */
+@media (max-width: 1200px) {
+  .fin-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .vex-pos-strip { grid-template-columns: 1fr; }
-  .vex-pos-heading,
-  .vex-pos-stat { border-right: 0; }
+  .fin-studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .fin-ops-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .fin-hero-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .fin-dashboard {
+    gap: var(--space-md, 14px);
+  }
+  .fin-hero-banner {
+    padding: var(--card-padding, 14px);
+    gap: var(--space-md, 14px);
+  }
+  .fin-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .fin-pnl-overview {
+    grid-template-columns: 1fr;
+  }
+  .fin-barometer-metrics {
+    grid-template-columns: 1fr;
+  }
+  .fin-launchpad-grid {
+    grid-template-columns: 1fr;
+  }
+  .fin-hero-actions {
+    width: 100%;
+  }
+  .fin-hero-actions > * {
+    flex: 1;
+  }
 }

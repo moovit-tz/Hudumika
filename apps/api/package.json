@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-assets.mjs",
     "typecheck": "tsc --noEmit && npm run check:triggers",
     "check:triggers": "tsx src/scripts/check-triggers.ts",
     "db:migrate": "tsx src/db/migrate.ts",

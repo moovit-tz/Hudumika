@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-08T05:19:12.156Z",
+  "generatedAt": "2026-10-08T15:07:42.507Z",
   "scope": "Read-only requests using a disposable Finance tenant. No transaction mutations, external-provider syncs or statutory filings were exercised.",
   "results": [
     {
@@ -42,7 +42,8 @@
     },
     {
       "path": "/v1/inventory/warehouses",
-      "status": 200
+      "status": 403,
+      "error": "Your current plan does not include this feature."
     },
     {
       "path": "/v1/purchase-orders",

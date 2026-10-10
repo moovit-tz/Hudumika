@@ -1,90 +1,668 @@
-.industry-page { display: grid; gap: var(--space-6, 24px); min-width: 0; }
-.industry-hub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--space-6, 24px); }
-.industry-hub-grid [data-ui-card] { display: flex; flex-direction: column; }
-.industry-hub-grid [data-ui-card] > :last-child { display: grid; gap: var(--space-6, 24px); margin-top: auto; }
-.industry-tags, .industry-actions, .industry-form-actions { display: flex; flex-wrap: wrap; gap: var(--space-3, 12px); }
-.industry-actions button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
-.industry-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 320px); gap: var(--space-6, 24px); }
-.industry-workspace-grid aside { display: grid; align-content: start; gap: var(--space-6, 24px); }
-.industry-tools { display: grid; gap: var(--space-4, 16px); }
-.industry-tools a, .industry-record > div { display: grid; gap: var(--space-2, 8px); }
-.industry-tools a { color: var(--teal); text-decoration: none; padding-block: var(--space-2, 8px); }
-.industry-tools span, .industry-record small, .industry-record span, .industry-field > span { color: var(--text-muted); }
-.industry-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 220px); gap: var(--space-4, 16px); align-items: end; margin-bottom: var(--space-6, 24px); }
-.industry-field { display: grid; gap: var(--space-2, 8px); min-width: 0; }
-.industry-record { display: flex; justify-content: space-between; gap: var(--space-4, 16px); padding: var(--space-4, 16px); border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
-.industry-record:last-child { border-bottom: 0; }
-.industry-record > div:last-child { text-align: right; justify-items: end; }
-.industry-records { border: var(--card-border); border-radius: var(--card-radius); overflow: hidden; }
-.industry-empty { padding: var(--space-8, 32px); text-align: center; display: grid; justify-items: center; gap: var(--space-4, 16px); }
-.industry-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-3, 12px); margin-top: var(--space-6, 24px); }
-.industry-pagination > span { margin-right: auto; }
-.industry-form-content { padding-top: var(--space-6, 24px); }
-.industry-form-grid, .industry-specifications { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6, 24px); }
-.industry-form-actions { justify-content: flex-end; margin-top: var(--space-6, 24px); }
-.industry-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4, 16px); }
-.industry-summary-grid [data-ui-card] { min-width: 0; overflow-wrap: anywhere; }
-.industry-specifications dt { color: var(--text-muted); }
-.industry-specifications dd { margin: var(--space-2, 8px) 0 0; overflow-wrap: anywhere; }
-.industry-line-form { border-top: 1px solid var(--border); margin-top: var(--space-6, 24px); padding-top: var(--space-6, 24px); display: grid; gap: var(--space-4, 16px); }
-.industry-check { display: flex; align-items: center; gap: var(--space-3, 12px); }
-.industry-material-row { display: grid; grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(90px, 1fr)) auto; gap: var(--space-4, 16px); align-items: end; margin-bottom: var(--space-6, 24px); }
-.industry-consulting .industry-workspace-grid, .industry-professional_services .industry-workspace-grid { grid-template-columns: minmax(250px, 320px) minmax(0, 1fr); }
-.industry-consulting .industry-register, .industry-professional_services .industry-register { order: 2; }
-.industry-printing .industry-records { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.industry-manufacturing .industry-record { border-left: 3px solid var(--teal); }
-@media (max-width: 1000px) { .industry-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-/* Hub card profile toggle */
-.industry-hub-card--active { background: var(--teal-l); border-color: var(--teal-m, var(--teal)); }
-.industry-hub-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.industry-hub-card-top [data-ui-card-title] { margin: 0; }
-.industry-hub-profile-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: var(--ink3); white-space: nowrap; flex-shrink: 0; }
-.industry-hub-profile-toggle span { -webkit-user-select: none; user-select: none; }
-.industry-hub-alert { padding: 10px 14px; border: 1px solid var(--red-m); border-radius: var(--r-sm); background: var(--red-l); color: var(--red); font-size: 12.5px; margin: 0; }
-/* Recommendation rows (bottom of hub) */
-.industry-recommendation-list { display: flex; flex-direction: column; padding: 0; }
-.industry-recommendation-row { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.industry-recommendation-row:last-child { border-bottom: 0; }
-.industry-recommendation-row div { display: flex; flex-direction: column; gap: 2px; }
-.industry-recommendation-row strong { color: var(--ink); font-size: 13.5px; }
-.industry-recommendation-row small { color: var(--ink3); font-size: 11.5px; }
-.industry-recommendation-icon { display: grid; place-items: center; color: var(--teal); }
-@media (max-width: 760px) {
-  .industry-workspace-grid, .industry-consulting .industry-workspace-grid, .industry-professional_services .industry-workspace-grid, .industry-form-grid, .industry-specifications, .industry-printing .industry-records { grid-template-columns: minmax(0, 1fr); }
-  .industry-consulting .industry-register, .industry-professional_services .industry-register { order: 0; }
-  .industry-toolbar { grid-template-columns: minmax(0, 1fr); }
-  .industry-material-row { grid-template-columns: minmax(0, 1fr); }
-  .industry-record { flex-direction: column; }.industry-record > div:last-child { text-align: left; justify-items: start; }
-  .industry-actions, .industry-form-actions { width: 100%; }.industry-actions > *, .industry-form-actions > * { flex: 1; }
-  .industry-recommendation-row { grid-template-columns: 24px minmax(0,1fr); }
-  .industry-recommendation-row > :last-child { grid-column: 2; justify-self: start; }
+/* ═══════════════════════════════════════════════════════════════════════
+   Finance Industries & ERP Hub — Hudumika Design System
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.industry-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 24px);
+  min-width: 0;
+  width: 100%;
 }
-/* === Capabilities & business lines (merged from FinanceCapabilities.css) === */
-.finance-capabilities-page { display:flex; flex-direction:column; gap:18px; }
-.finance-edition-card,.finance-capability-section { background:var(--white); border:1px solid var(--border); border-radius:var(--r); box-shadow:var(--elev-sm); }
-.finance-edition-card { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:18px 20px; }
-.finance-edition-card h2 { margin:4px 0; color:var(--ink); font-size:20px; }
-.finance-edition-card p { margin:0; color:var(--ink3); font-size:13px; }
-.finance-capabilities-eyebrow { color:var(--teal); font-size:10px; font-weight:750; letter-spacing:.09em; }
-.finance-capability-section>header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
-.finance-capability-section>header h2 { margin:0; color:var(--ink); font-size:15px; }
-.finance-capability-section>header span { color:var(--ink3); font-size:12px; }
-.finance-capability-list { display:flex; flex-direction:column; }
-.finance-capability-row { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border); }
-.finance-capability-row:last-child { border-bottom:0; }
-.finance-capability-icon { width:36px; height:36px; display:grid; place-items:center; border-radius:var(--r-sm); color:var(--teal); background:var(--teal-l); }
-.finance-capability-copy { min-width:0; }
-.finance-capability-title { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:var(--ink); }
-.finance-capability-copy p { margin:3px 0; color:var(--ink3); font-size:12.5px; }
-.finance-capability-copy small { color:var(--ink3); font-size:11px; }
-.finance-capabilities-alert { padding:12px 14px; border:1px solid var(--red-m); border-radius:var(--r-sm); background:var(--red-l); color:var(--red); font-size:12.5px; }
-.finance-capabilities-page [data-ds-tabs-content] { margin-top:16px; }
-.finance-capabilities-page>[data-ds-tabs-root]>.finance-capabilities-alert { margin-top:14px; }
-.finance-configuration-section>header>div { display:flex; flex-direction:column; gap:4px; }
-.finance-line-form { display:grid; grid-template-columns:minmax(220px,1fr) minmax(120px,.35fr) auto; gap:10px; padding:16px 18px; border-bottom:1px solid var(--border); }
-.finance-business-lines { display:flex; flex-direction:column; }
-.finance-business-line { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:12px 18px; border-bottom:1px solid var(--border); }
-.finance-business-line:last-child { border-bottom:0; }
-.finance-business-line>div { display:flex; flex-direction:column; gap:2px; }
-.finance-empty-copy { margin:0; padding:24px 18px; color:var(--ink3); text-align:center; }
-@media (max-width:640px) { .finance-edition-card { align-items:center; } .finance-capability-row { grid-template-columns:36px minmax(0,1fr); } .finance-capability-row>[role="switch"] { grid-column:2; justify-self:start; } .finance-line-form,.finance-business-line { grid-template-columns:1fr; } .finance-business-line .min-h-\[var\(--ctl-h-sm\)\] { width:100%; } }
+
+/* ── Hero Overview Card ─────────────────────────────────────────────── */
+.erp-overview-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
+  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 70%),
+              radial-gradient(ellipse 50% 60% at 5% 110%, color-mix(in srgb, var(--navy) 8%, transparent), transparent 60%),
+              var(--white);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  transition: all 0.2s ease;
+}
+
+.erp-overview-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--space-8, 32px);
+  align-items: center;
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.erp-overview-copy {
+  display: flex;
+  gap: var(--space-4, 16px);
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.erp-overview-copy h2 {
+  margin: var(--space-2, 8px) 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.erp-overview-copy p {
+  margin: 0;
+  color: var(--ink3);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.erp-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: var(--r, 12px);
+  padding: 16px 20px;
+}
+
+.erp-overview-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.erp-overview-stats strong {
+  font-size: clamp(1.5rem, 2.5vw, 1.85rem);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.erp-overview-stats span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Foundation Grid ────────────────────────────────────────────────── */
+.erp-foundation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.erp-foundation-card {
+  border-radius: var(--card-radius, var(--r, 12px));
+  border: 1px solid var(--border);
+  background: var(--white);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.erp-foundation-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+  box-shadow: 0 8px 24px -6px color-mix(in srgb, var(--teal) 14%, transparent), var(--shadow-sm);
+}
+
+.erp-foundation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  padding: var(--space-5, 20px);
+}
+
+.erp-foundation > div:nth-child(2) {
+  flex: 1;
+  min-width: 140px;
+}
+
+.erp-foundation h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.erp-foundation p {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink3);
+  line-height: 1.5;
+}
+
+/* ── Section & Filter Controls ──────────────────────────────────────── */
+.erp-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4, 16px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.erp-section-heading h2 {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.erp-section-heading p {
+  margin: 3px 0 0;
+  color: var(--ink3);
+  font-size: 0.8125rem;
+}
+
+.erp-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-6, 24px);
+  flex-wrap: wrap;
+}
+
+.erp-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  padding: 4px;
+  border-radius: var(--badge-radius, 9999px);
+  border: 1px solid var(--border);
+}
+
+.erp-filter-pill {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: var(--badge-radius, 9999px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.erp-filter-pill:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--white) 60%, transparent);
+}
+
+.erp-filter-pill--active {
+  background: var(--white);
+  color: var(--teal);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Industry Cards Grid ────────────────────────────────────────────── */
+.erp-industry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6, 24px);
+}
+
+.erp-industry-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid var(--border);
+  background: var(--white);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.erp-industry-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
+  box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--teal) 16%, transparent), var(--shadow-sm);
+}
+
+.erp-industry-card--active {
+  border: 1.5px solid color-mix(in srgb, var(--teal) 55%, var(--border));
+  background: radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--teal) 6%, transparent), transparent 70%), var(--white);
+  box-shadow: 0 6px 20px -4px color-mix(in srgb, var(--teal) 14%, transparent), var(--shadow-sm);
+}
+
+.erp-card-identity {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.erp-industry-card [data-ui-card-title] {
+  font-size: 1.1rem;
+  font-weight: 750;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.erp-industry-card .erp-card-description {
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  margin-top: 4px;
+}
+
+.erp-workflow-label {
+  color: var(--ink3);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.industry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.erp-tool-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4, 16px) 0 0;
+}
+
+.erp-tool-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink2);
+  font-size: 0.8125rem;
+}
+
+.erp-tool-list svg {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.erp-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  margin-top: auto;
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+}
+
+.erp-profile-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.erp-profile-readonly {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink3);
+}
+
+.erp-no-results {
+  grid-column: 1 / -1;
+  border-radius: var(--card-radius);
+  border: 1px dashed var(--border);
+  background: var(--white);
+}
+
+/* ── Recommendations ────────────────────────────────────────────────── */
+.industry-recommendation-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.industry-recommendation-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1px solid var(--border);
+}
+
+.industry-recommendation-row:last-child {
+  border-bottom: 0;
+}
+
+.industry-recommendation-row div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.industry-recommendation-row strong {
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.industry-recommendation-row small {
+  color: var(--ink3);
+  font-size: 0.75rem;
+}
+
+/* ── Capabilities Edition Card & List ────────────────────────────────── */
+.finance-edition-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6, 24px);
+  padding: clamp(20px, 3vw, 28px);
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
+  background: radial-gradient(ellipse 70% 100% at 100% 0%, color-mix(in srgb, var(--teal) 10%, transparent), transparent), var(--white);
+}
+
+.finance-edition-card h2 {
+  margin: 4px 0 6px;
+  color: var(--ink);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.finance-edition-card p {
+  margin: 0;
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.finance-edition-card small {
+  display: block;
+  margin-top: 10px;
+  color: var(--ink2);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.finance-capabilities-eyebrow {
+  color: var(--teal);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.finance-capability-section {
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid var(--border);
+  background: var(--white);
+  overflow: hidden;
+}
+
+.finance-capability-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 45%, transparent);
+}
+
+.finance-capability-section > header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+.finance-capability-section > header span {
+  color: var(--ink3);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.finance-capability-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.finance-capability-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.finance-capability-row:last-child {
+  border-bottom: 0;
+}
+
+.finance-capability-row:hover {
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+}
+
+.finance-capability-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.finance-capability-title strong {
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.finance-capability-copy p {
+  margin: 4px 0 0;
+  color: var(--ink3);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.finance-capability-copy small {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--teal);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+/* ── Business Lines ─────────────────────────────────────────────────── */
+.finance-line-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(120px, 0.4fr) auto;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+}
+
+.finance-business-lines {
+  display: flex;
+  flex-direction: column;
+}
+
+.finance-business-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  border-bottom: 1px solid var(--border);
+}
+
+.finance-business-line:last-child {
+  border-bottom: 0;
+}
+
+.finance-business-line > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.finance-business-line strong {
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.finance-business-line small {
+  color: var(--ink3);
+  font-size: 0.75rem;
+}
+
+.finance-empty-copy {
+  margin: 0;
+  padding: var(--space-8, 32px) var(--space-5, 20px);
+  color: var(--ink3);
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+/* ── Shared Work Details & Subpages ─────────────────────────────────── */
+.industry-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--space-6, 24px);
+}
+
+.industry-workspace-grid aside {
+  display: grid;
+  align-content: start;
+  gap: var(--space-6, 24px);
+}
+
+.industry-tools {
+  display: grid;
+  gap: var(--space-3, 12px);
+}
+
+.industry-tools a {
+  display: grid;
+  gap: 2px;
+  color: var(--teal);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--teal) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--teal) 16%, transparent);
+  transition: all 0.15s ease;
+}
+
+.industry-tools a:hover {
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
+  border-color: var(--teal);
+}
+
+.industry-tools a strong {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--teal);
+}
+
+.industry-tools a span {
+  font-size: 0.75rem;
+  color: var(--ink3);
+}
+
+.industry-record {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  padding: var(--space-4, 16px);
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.industry-record:hover {
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+}
+
+.industry-record:last-child {
+  border-bottom: 0;
+}
+
+.industry-records {
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, var(--r, 12px));
+  background: var(--white);
+  overflow: hidden;
+}
+
+.industry-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+}
+
+.industry-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-6, 24px);
+}
+
+.industry-pagination > span {
+  margin-right: auto;
+  font-size: 0.8125rem;
+  color: var(--ink3);
+}
+
+/* ── Responsive Rules ───────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .erp-overview-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .erp-foundation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .industry-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .industry-workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finance-edition-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .erp-overview-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finance-line-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finance-capability-row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .finance-capability-row > [role="switch"] {
+    grid-column: 2;
+  }
+}

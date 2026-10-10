@@ -1294,3 +1294,38 @@
   }
 }
 
+/* Mobile header keeps every action reachable without squeezing touch targets. */
+@media (max-width: 767px) {
+ .app-header { height:auto; min-height:57px; }
+ .app-header-inner--hub,.app-header-inner--app { grid-template-columns:minmax(0,1fr) auto !important; gap:var(--space-2,8px); padding:var(--space-2,8px) var(--space-4,16px) !important; }
+ .app-header-inner .app-header-left { min-width:0; max-width:100%; }
+ .app-header-mobile-brand-container { display:flex; min-width:0; }
+ .app-header-mobile-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+ .app-header-actions { grid-column:1/-1; width:100%; min-width:0; flex-wrap:wrap; justify-content:flex-end; gap:var(--space-1,4px); }
+ .app-header-icon-btn,.app-header-hamburger,.app-header-avatar-trigger,.app-header-mode-pill { min-width:44px; min-height:44px; width:44px; height:44px; box-sizing:border-box; }
+ .app-header-actions .app-header-rel { min-width:0; }
+ .app-header-clock-card { max-width:calc(100vw - 32px); }
+ .app-header-profile-menu { max-width:calc(100vw - 32px); }
+ .app-header-search-modal { width:calc(100vw - 32px); max-width:calc(100vw - 32px); }
+ .app-header-search-modal-inner { min-width:0; }
+ .app-header-search-modal-input { min-width:0; font-size:16px; }
+}
+/* Keep primary navigation on one mobile row; secondary actions use the menu. */
+.app-header-secondary-actions { display:contents; }
+.app-header-mobile-more { display:none; }
+@media(max-width:767px) {
+ .app-header { height:60px; min-height:60px; }
+ .app-header-inner--hub,.app-header-inner--app { grid-template-columns:minmax(0,1fr) 44px auto !important; gap:var(--space-1,4px); padding:0 var(--space-2,8px) !important; }
+ .app-header-actions { grid-column:auto; width:auto; flex-wrap:nowrap; gap:0; }
+ .app-header-secondary-actions { display:none; }
+ .app-header-mobile-more { display:flex; }
+ .app-header-left { overflow:hidden; }
+ .app-header-mobile-brand-container { overflow:hidden; }
+ .app-header-hamburger { flex-shrink:0; }
+ .app-header-left a { min-width:0; overflow:hidden; }
+ .app-header-left a img { max-width:100%; object-fit:contain; }
+}
+@media(max-width:400px) {
+ .app-header-mobile-name { display:none; }
+ .app-header-inner--hub .app-header-left > a { max-width:58px; }
+}

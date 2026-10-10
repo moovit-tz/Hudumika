@@ -56,6 +56,8 @@ export function BrandingIdentitySection() {
   });
   const [logoLight, setLogoLight] = useState<string>(localStorage.getItem('hudumika_brand_logo_light') ?? '');
   const [logoDark,  setLogoDark]  = useState<string>(localStorage.getItem('hudumika_brand_logo_dark')  ?? '');
+  const [logoVerticalLight, setLogoVerticalLight] = useState(localStorage.getItem('hudumika_brand_logo_vertical_light') ?? '');
+  const [logoVerticalDark, setLogoVerticalDark] = useState(localStorage.getItem('hudumika_brand_logo_vertical_dark') ?? '');
   const [favicon,   setFavicon]   = useState<string>(localStorage.getItem('hudumika_brand_favicon')    ?? '');
   const [savedSection, setSavedSection] = useState<string | null>(null);
   const [saveErrors, setSaveErrors] = useState<Record<string, string | undefined>>({});
@@ -72,6 +74,8 @@ export function BrandingIdentitySection() {
       });
       setLogoLight(localStorage.getItem('hudumika_brand_logo_light') ?? '');
       setLogoDark(localStorage.getItem('hudumika_brand_logo_dark') ?? '');
+      setLogoVerticalLight(localStorage.getItem('hudumika_brand_logo_vertical_light') ?? '');
+      setLogoVerticalDark(localStorage.getItem('hudumika_brand_logo_vertical_dark') ?? '');
       setFavicon(localStorage.getItem('hudumika_brand_favicon') ?? '');
     };
     window.addEventListener('hudumika-brand-updated', resync);
@@ -119,33 +123,29 @@ export function BrandingIdentitySection() {
     }
   };
 
-  const handleLogoUpload = async (which: 'light' | 'dark' | 'favicon', e: React.ChangeEvent<HTMLInputElement>) => {
+  const logoSlots = {
+    light: { field: 'logoLight', key: 'hudumika_brand_logo_light', set: setLogoLight },
+    dark: { field: 'logoDark', key: 'hudumika_brand_logo_dark', set: setLogoDark },
+    verticalLight: { field: 'logoVerticalLight', key: 'hudumika_brand_logo_vertical_light', set: setLogoVerticalLight },
+    verticalDark: { field: 'logoVerticalDark', key: 'hudumika_brand_logo_vertical_dark', set: setLogoVerticalDark },
+    favicon: { field: 'favicon', key: 'hudumika_brand_favicon', set: setFavicon },
+  } as const;
+  const saveLogo = async (which: keyof typeof logoSlots, data: string) => {
+    const slot = logoSlots[which];
+    try {
+      await pushBranding({ [slot.field]: data });
+      if (data) localStorage.setItem(slot.key, data); else localStorage.removeItem(slot.key);
+      slot.set(data);
+      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+      flashSaved('logos');
+    } catch (error) { flashError('logos', error); }
+  };
+  const handleLogoUpload = async (which: keyof typeof logoSlots, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
-    const data = await readFile(file);
-    if (which === 'light') {
-      localStorage.setItem('hudumika_brand_logo_light', data);
-      setLogoLight(data);
-      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-      try { await pushBranding({ logoLight: data }); flashSaved('logos'); } catch (err: any) { flashError('logos', err); }
-    } else if (which === 'dark') {
-      localStorage.setItem('hudumika_brand_logo_dark', data);
-      setLogoDark(data);
-      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-      try { await pushBranding({ logoDark: data }); flashSaved('logos'); } catch (err: any) { flashError('logos', err); }
-    } else {
-      localStorage.setItem('hudumika_brand_favicon', data);
-      setFavicon(data);
-      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-      try { await pushBranding({ favicon: data }); flashSaved('logos'); } catch (err: any) { flashError('logos', err); }
-    }
+    if (file.size > 2 * 1024 * 1024) { flashError('logos', new Error('Choose a logo smaller than 2 MB.')); return; }
+    await saveLogo(which, await readFile(file));
   };
-
-  const clearLogo = (which: 'light' | 'dark' | 'favicon') => {
-    if (which === 'light') { localStorage.removeItem('hudumika_brand_logo_light'); setLogoLight(''); }
-    else if (which === 'dark') { localStorage.removeItem('hudumika_brand_logo_dark'); setLogoDark(''); }
-    else { localStorage.removeItem('hudumika_brand_favicon'); setFavicon(''); }
-    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-  };
+  const clearLogo = (which: keyof typeof logoSlots) => saveLogo(which, '');
 
   return (
     <div className="space-y-6">
@@ -246,6 +246,17 @@ export function BrandingIdentitySection() {
               {logoDark && <Button variant="ghost" onClick={() => clearLogo('dark')}><Icon name="x" size={16} /></Button>}
             </div>
           </div>
+
+          {([{ key: 'verticalLight', label: 'Vertical logo · light background', value: logoVerticalLight }, { key: 'verticalDark', label: 'Vertical logo · dark background', value: logoVerticalDark }] as const).map(slot => (
+            <div key={slot.key} className="flex flex-col gap-2">
+              <Label>{slot.label}</Label>
+              <div className="flex h-40 items-center justify-center rounded-lg border p-4" style={{ background: slot.key === 'verticalDark' ? 'var(--ink)' : 'var(--surface)' }}>
+                {slot.value ? <img src={slot.value} alt={slot.label} className="h-full max-w-full object-contain" /> : <span className="text-sm text-muted-foreground">No vertical logo</span>}
+              </div>
+              <Button variant="outline" asChild><label>Upload<input type="file" accept="image/png,image/jpeg,image/svg+xml" className="sr-only" onChange={e => handleLogoUpload(slot.key, e)} /></label></Button>
+              {slot.value && <Button variant="ghost" onClick={() => clearLogo(slot.key)}>Remove</Button>}
+            </div>
+          ))}
 
         </CardContent>
       </Card>

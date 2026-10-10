@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showPrompt } from '../lib/prompt.js';
@@ -13,6 +13,8 @@ import { Badge } from '../components/ui/badge.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { getCompany } from '../data/companyStore.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import {
   DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
   DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
@@ -49,86 +51,8 @@ function fmtDate(d: string | null | undefined) {
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-/** Client-rendered print window — same pattern as Quotations.tsx's
- *  printQuote(); credit-notes.routes.ts has no PDF/send endpoint, so this
- *  (and the mailto: send below) are the only real options for this document. */
-function printCreditNote(cn: CreditNote, total: number, fmt: (n: number, currency?: string) => string) {
-  const co = getCompany();
-  const items = cn.items ?? [];
-  const logoHtml = co.logoUrl
-    ? `<img src="${co.logoUrl}" style="height:48px;max-width:160px;object-fit:contain" alt="${co.name}"/>`
-    : `<div style="font-size:22px;font-weight:800;color:#0d1a35">${co.name}</div>`;
-  const rowsHtml = items.map((l, i) => {
-    const lineTotal = (Number(l.rate) || 0) * (Number(l.qty) || 1) * (1 + (Number(l.tax_pct) || 0) / 100);
-    return `
-    <tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:8px 10px;color:#94a3b8;font-size:12px">${i + 1}</td>
-      <td style="padding:8px 10px;font-weight:600;font-size:13px">${l.name || l.description || `Credit item ${i + 1}`}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:13px">${Number(l.qty) || 1}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:13px">${fmt(Number(l.rate) || 0, cn.currency)}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:12px;color:#94a3b8">${Number(l.tax_pct) || 0}%</td>
-      <td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:700">${fmt(lineTotal, cn.currency)}</td>
-    </tr>`;
-  }).join('');
-
-  const win = window.open('', '_blank', 'width=920,height=750');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>${cn.credit_note_number}</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;color:#1e293b;background:#fff;padding:48px}
-    .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:24px;border-bottom:3px solid #dc2626}
-    .co-sub{font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5}
-    .cnum{font-size:26px;font-weight:800;color:#dc2626;font-family:monospace;letter-spacing:-0.5px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px}
-    .box{background:#f8fafc;border-radius:10px;padding:18px;border:1px solid #e2e8f0}
-    .box-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-    .box-val{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
-    .box-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:#475569}
-    .box-row span:last-child{font-weight:600;color:#1e293b}
-    table{width:100%;border-collapse:collapse;margin-bottom:24px}
-    th{padding:9px 10px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;background:#f8fafc;border-bottom:2px solid #e2e8f0;letter-spacing:.04em}
-    th.r{text-align:right}
-    .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:32px}
-    .totals{width:260px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
-    .trow{display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;border-bottom:1px solid #e2e8f0}
-    .trow:last-child{border:none;background:#fef2f2;font-weight:800;font-size:15px;color:#dc2626}
-    .footer{border-top:2px solid #e2e8f0;padding-top:16px;display:flex;justify-content:space-between;align-items:center;margin-top:32px}
-    .footer-co{font-size:11px;color:#94a3b8}
-    @media print{body{padding:24px}@page{margin:1cm}}
-  </style></head><body>
-  <div class="hdr">
-    <div>${logoHtml}<div class="co-sub">${co.tagline || ''}<br>${co.address ? co.address + ', ' : ''} ${co.city || ''}<br>${co.phone || ''} – ${co.email || ''}</div></div>
-    <div style="text-align:right">
-      <div class="cnum">${cn.credit_note_number}</div>
-      <div style="font-size:12px;color:#64748b;margin-top:6px">Credit Note</div>
-    </div>
-  </div>
-  <div class="grid2">
-    <div class="box">
-      <div class="box-lbl">Credited To</div>
-      <div class="box-val">${cn.client_name || '—'}</div>
-    </div>
-    <div class="box">
-      <div class="box-lbl">Credit Note Details</div>
-      <div class="box-row"><span>Date</span><span>${fmtDate(cn.credit_date)}</span></div>
-      <div class="box-row"><span>Currency</span><span>${cn.currency}</span></div>
-      <div class="box-row"><span>Original Invoice</span><span>${cn.original_invoice_id || 'Standalone'}</span></div>
-      ${cn.reason ? `<div class="box-row"><span>Reason</span><span>${cn.reason}</span></div>` : ''}
-    </div>
-  </div>
-  <table>
-    <thead><tr><th>#</th><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Tax</th><th class="r">Amount</th></tr></thead>
-    <tbody>${rowsHtml}</tbody>
-  </table>
-  <div class="totals-wrap"><div class="totals">
-    <div class="trow"><span>Total Credited</span><span>${fmt(total, cn.currency)}</span></div>
-  </div></div>
-  <div class="footer">
-    <div class="footer-co"><strong>${co.name}</strong><br>${co.website || ''} – ${co.email || ''}</div>
-  </div>
-  <script>window.onload=()=>{window.print()}</script></body></html>`);
-  win.document.close();
+function printCreditNote(cn: CreditNote) {
+  void apiViewBlob(`/v1/credit-notes/${cn.id}/pdf`).catch(error => showAlert(error instanceof Error ? error.message : 'Could not open the credit note PDF.', {variant: 'error'}));
 }
 
 function sendCreditNoteEmail(cn: CreditNote, total: number, fmt: (n: number, currency?: string) => string) {
@@ -150,7 +74,7 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
 
   const actionGroups: DocumentAction[][] = [
     [
-      { key: 'print', label: 'Print / PDF', icon: 'printer', onClick: () => printCreditNote(note, total, fmt) },
+      { key: 'print', label: 'Print / PDF', icon: 'printer', onClick: () => printCreditNote(note) },
       { key: 'send', label: 'Send by Email', icon: 'mail', onClick: () => sendCreditNoteEmail(note, total, fmt) },
     ],
     [
@@ -223,11 +147,46 @@ export function CreditNotes() {
   const isNew = location.pathname.endsWith('/new');
 
   const [notes, setNotes] = useState<CreditNote[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selected, setSelected] = useState<CreditNote | null>(null);
   const [loading, setLoading] = useState(true);
   const [voiding, setVoiding] = useState(false);
-  const load = () => apiFetch('/v1/credit-notes').then((d: any) => { if (Array.isArray(d)) setNotes(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load credit notes.')).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
+  const loadIdRef = useRef(0);
+
+  const load = useCallback(async (p = page, ps = pageSize, s = search, sf = statusFilter) => {
+    const id = ++loadIdRef.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(p), page_size: String(ps) });
+      if (s.trim()) params.set('search', s.trim());
+      if (sf) params.set('status', sf);
+      const d = await apiFetch(`/v1/credit-notes?${params}`);
+      if (id !== loadIdRef.current) return;
+      if (d && typeof d === 'object' && 'items' in d) {
+        setNotes(d.items as CreditNote[]);
+        setTotal(d.total);
+      } else if (Array.isArray(d)) {
+        setNotes(d);
+        setTotal(d.length);
+      }
+    } catch (err) {
+      if (id !== loadIdRef.current) return;
+      showAlert(err instanceof Error ? err.message : 'Could not load credit notes.');
+    } finally {
+      if (id === loadIdRef.current) setLoading(false);
+    }
+  }, [page, pageSize, search, statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  function handlePageChange(p: number) { setPage(p); }
+  function handlePageSizeChange(ps: number) { setPageSize(ps); setPage(1); }
+  function handleSearchChange(s: string) { setSearch(s); setPage(1); }
+  function handleStatusFilterChange(sf: string | null) { setStatusFilter(sf); setPage(1); }
 
   async function voidNote(id: string) {
     const reason = await showPrompt('This voids the credit note and reverses its GL entries. Provide a reason for the audit trail.', {
@@ -264,7 +223,7 @@ export function CreditNotes() {
   const updateLine = (i: number, patch: Partial<DraftLine>) => setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
   const addLine = () => setLines(prev => [...prev, emptyLine()]);
   const removeLine = (i: number) => setLines(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev);
-  const total = lines.reduce((s, l) => s + (Number(l.rate) || 0) * (Number(l.qty) || 1) * (1 + (Number(l.tax_pct) || 0) / 100), 0);
+  const draftTotal = lines.reduce((s, l) => s + (Number(l.rate) || 0) * (Number(l.qty) || 1) * (1 + (Number(l.tax_pct) || 0) / 100), 0);
 
   async function submit() {
     const validLines = lines.filter(l => l.name.trim() && Number(l.rate) !== 0);
@@ -338,29 +297,21 @@ export function CreditNotes() {
           </Button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Total: <span style={{ color: 'var(--red)' }}>{fmt(total)}</span></div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Total: <span style={{ color: 'var(--red)' }}>{fmt(draftTotal)}</span></div>
           </div>
         </div>
       </FormPage>
     );
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading credit notes…</div>;
-
   const cnStats = (() => {
-    const now = new Date();
     const draftCount = notes.filter(n => n.status === 'DRAFT').length;
     const postedCount = notes.filter(n => n.status === 'POSTED').length;
     const voidCount = notes.filter(n => n.status === 'VOID').length;
     const linkedCount = notes.filter(n => !!n.original_invoice_id).length;
     const postedNotes = notes.filter(n => n.status === 'POSTED');
     const totalCredited = postedNotes.reduce((s, n) => s + creditNoteTotal(n), 0);
-    const creditedThisMonth = postedNotes.reduce((s, n) => {
-      if (!n.credit_date) return s;
-      const d = new Date(n.credit_date);
-      return s + (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? creditNoteTotal(n) : 0);
-    }, 0);
-    return { total: notes.length, draftCount, postedCount, voidCount, linkedCount, totalCredited, creditedThisMonth };
+    return { total, draftCount, postedCount, voidCount, linkedCount, totalCredited };
   })();
 
   if (selected) {
@@ -392,7 +343,7 @@ export function CreditNotes() {
         {
           title: 'TOTAL CREDITED', value: fmt(cnStats.totalCredited),
           invertTrend: true,
-          sub1Label: 'THIS MONTH', sub1Value: fmt(cnStats.creditedThisMonth),
+          sub1Label: 'POSTED', sub1Value: String(cnStats.postedCount),
           sub2Label: 'VOIDED', sub2Value: String(cnStats.voidCount), barHighlight: 'var(--red)',
         },
         {
@@ -407,44 +358,64 @@ export function CreditNotes() {
         },
       ]} />
 
-      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => navigate('/finance/credit-notes/new')}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Credit Note
-        </button>
+      <div className="py-4">
+        <SearchToolbar
+          search={search}
+          onSearch={handleSearchChange}
+          placeholder="Search credit note numbers, customers, or reasons…"
+          quickFilter={{
+            label: 'Status', value: statusFilter, onChange: handleStatusFilterChange, allLabel: 'All statuses',
+            options: [{ value: 'DRAFT', label: 'Draft' }, { value: 'POSTED', label: 'Posted' }, { value: 'VOID', label: 'Void' }],
+          }}
+          actions={<Button size="sm" onClick={() => navigate('/finance/credit-notes/new')}><Icon name="plus" size={14} />New Credit Note</Button>}
+        />
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="rtbl-wrap">
-          <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-            <thead>
-              <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
-                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Number</th>
-                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Date</th>
-                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Customer</th>
-                <th style={{ padding: '8px 12px', textAlign: 'left' }}>Reason</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {notes.length === 0 ? (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--ink3)', fontStyle: 'italic' }}>No credit notes issued yet.</td></tr>
-              ) : notes.map(n => (
-                <tr key={n.id} onClick={() => setSelected(n)} tabIndex={0} role="button"
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(n); } }}
-                  style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                  <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontWeight: 600 }}>{n.credit_note_number}</td>
-                  <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{n.credit_date ? new Date(n.credit_date).toLocaleDateString('en-GB') : '—'}</td>
-                  <td style={{ padding: '9px 12px' }}>{n.client_name || '—'}</td>
-                  <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{n.reason || '—'}</td>
-                  <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                    <Badge variant={STATUS_VARIANT[n.status]}>{n.status}</Badge>
-                  </td>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading credit notes…</div>
+        ) : (
+          <div className="rtbl-wrap">
+            <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Number</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Date</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Customer</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left' }}>Reason</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {notes.length === 0 ? (
+                  <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--ink3)', fontStyle: 'italic' }}>No credit notes found.</td></tr>
+                ) : notes.map(n => (
+                  <tr key={n.id} onClick={() => setSelected(n)} tabIndex={0} role="button"
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(n); } }}
+                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+                    <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontWeight: 600 }}>{n.credit_note_number}</td>
+                    <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{n.credit_date ? new Date(n.credit_date).toLocaleDateString('en-GB') : '—'}</td>
+                    <td style={{ padding: '9px 12px' }}>{n.client_name || '—'}</td>
+                    <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{n.reason || '—'}</td>
+                    <td style={{ padding: '9px 12px', textAlign: 'center' }}>
+                      <Badge variant={STATUS_VARIANT[n.status]}>{n.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {total > pageSize && (
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            itemLabel="credit note"
+          />
+        )}
       </div>
     </div>
   );

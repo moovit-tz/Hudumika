@@ -1,3 +1,4 @@
+import { renderCreditNotePdf } from '../services/finance-document-pdf.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -52,30 +53,63 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/', async (request) => {
+  fastify.get('/', async (request, reply) => {
     const user = request.user;
-    const { customer_id, original_invoice_id } = request.query as { customer_id?: string; original_invoice_id?: string };
+    const parsed = z.object({
+      customer_id: z.string().uuid().optional(),
+      original_invoice_id: z.string().uuid().optional(),
+      status: z.enum(['POSTED', 'VOID']).optional(),
+      search: z.string().max(200).optional(),
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).default(25),
+    }).safeParse(request.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid credit note filters.' });
+    const { customer_id, original_invoice_id, status, search, page, page_size } = parsed.data;
+
     return withTenant(user.tenant_id, async (trx) => {
-      let q = trx.selectFrom('credit_notes').selectAll().where('tenant_id', '=', user.tenant_id);
+      let q = trx.selectFrom('credit_notes').where('tenant_id', '=', user.tenant_id);
       if (customer_id) q = q.where('customer_id', '=', customer_id);
       if (original_invoice_id) q = q.where('original_invoice_id', '=', original_invoice_id);
-      const rows = await q.orderBy('created_at', 'desc').execute();
-
-      // Same "batch-fetch lines, attach to each row" shape as GET /v1/invoices
-      // — the frontend needs each credit note's total (its line items) for
-      // the customer statement's running balance.
-      const ids = rows.map(r => r.id);
-      const lines = ids.length > 0
-        ? await trx.selectFrom('credit_note_lines').selectAll().where('credit_note_id', 'in', ids).orderBy('sort_order', 'asc').execute()
-        : [];
-      const linesByNote = new Map<string, typeof lines>();
-      for (const l of lines) {
-        const arr = linesByNote.get(l.credit_note_id) ?? [];
-        arr.push(l);
-        linesByNote.set(l.credit_note_id, arr);
+      if (status) q = q.where('status', '=', status);
+      if (search) {
+        const pattern = `%${search.replace(/[\\%_]/g, c => `\\${c}`)}%`;
+        q = q.where(eb => eb.or([eb('credit_note_number', 'ilike', pattern), eb('client_name', 'ilike', pattern), eb('reason', 'ilike', pattern)]));
       }
-      return rows.map(r => ({ ...r, items: linesByNote.get(r.id) ?? [] }));
+
+      const fetchLines = async (ids: string[]) => {
+        if (!ids.length) return new Map<string, any[]>();
+        const lines = await trx.selectFrom('credit_note_lines').selectAll().where('credit_note_id', 'in', ids).orderBy('sort_order', 'asc').execute();
+        const m = new Map<string, typeof lines>();
+        for (const l of lines) { const arr = m.get(l.credit_note_id) ?? []; arr.push(l); m.set(l.credit_note_id, arr); }
+        return m;
+      };
+
+      if (page === undefined) {
+        const rows = await q.selectAll().orderBy('created_at', 'desc').execute();
+        const linesByNote = await fetchLines(rows.map(r => r.id));
+        return rows.map(r => ({ ...r, items: linesByNote.get(r.id) ?? [] }));
+      }
+
+      const total = Number((await q.select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow()).count);
+      const rows = await q.selectAll().orderBy('created_at', 'desc').orderBy('id', 'desc').limit(page_size).offset((page - 1) * page_size).execute();
+      const linesByNote = await fetchLines(rows.map(r => r.id));
+      return {
+        items: rows.map(r => ({ ...r, items: linesByNote.get(r.id) ?? [] })),
+        total, page, page_size, total_pages: Math.ceil(total / page_size),
+      };
     });
+  });
+
+  fastify.get('/:id/pdf', async (request, reply) => {
+    const parsed = z.string().uuid().safeParse((request.params as {id: string}).id);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid document ID.' });
+    try {
+      const pdf = await renderCreditNotePdf(request.user.tenant_id, parsed.data);
+      return reply.header('Content-Type', 'application/pdf').header('Content-Disposition', `inline; filename="document-${parsed.data}.pdf"`).send(pdf);
+    } catch (error) {
+      if (error instanceof Error && error.message.endsWith('not found')) return reply.status(404).send({ error: 'Document not found.' });
+      throw error;
+    }
   });
 
   fastify.get('/:id', async (request, reply) => {
@@ -110,7 +144,14 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const currency = body.currency || 'TZS';
+      let currency: string;
+      if (body.currency) {
+        currency = body.currency;
+      } else {
+        const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+        currency = s?.company?.currency || 'TZS';
+      }
       const exchangeRate = body.exchange_rate ?? 1;
       const lines = body.items.map((it, i) => ({
         name: it.name,

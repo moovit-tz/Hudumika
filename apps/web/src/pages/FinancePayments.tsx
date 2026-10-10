@@ -1,10 +1,13 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FormPage } from '../components/FormPage.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -12,14 +15,13 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 
 interface Payment {
   id: string;
-  /** 'customer' = money received against an invoice; 'vendor' = money paid on a bill. */
   kind: 'customer' | 'vendor';
   direction: 'in' | 'out';
   amount: number;
@@ -29,9 +31,7 @@ interface Payment {
   note: string | null;
   logged_by: string | null;
   created_at: string;
-  /** Invoice number (customer) or bill number (vendor). */
   document_number: string;
-  /** Customer name (in) or supplier name (out). */
   party_name: string | null;
   invoice_id?: string;
   bill_id?: string;
@@ -43,24 +43,29 @@ interface InvoiceOption {
   client_name: string | null;
   bl_number: string | null;
   received: number;
+  currency: string;
 }
 
-// -- Detail Panel (Aside) -------------------------------------------------------
+interface PaymentStats {
+  money_in: { currency: string; count: number; total: number }[];
+  money_out: { currency: string; count: number; total: number }[];
+  this_month_count: number;
+}
+
 function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; onClose: () => void; isMobile?: boolean }) {
-  const { fmt } = useCurrency();
+  const fmt = formatAmount;
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', minWidth: 0, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="fileText" size={18} color="var(--blue)" /> Payment
         </h2>
-        <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
+        <Button type="button" variant="ghost" size="icon" aria-label="Close payment details" onClick={onClose}>
           <Icon name="x" size={16} strokeWidth={2} />
-        </button>
+        </Button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-        {/* Total Badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>{payment.direction === 'in' ? 'Amount Received' : 'Amount Paid'}</div>
@@ -72,7 +77,6 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
           </div>
         </div>
 
-        {/* Links */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>{payment.direction === 'in' ? 'Linked Invoice' : 'Linked Bill'}</div>
@@ -88,7 +92,6 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
           </div>
         </div>
 
-        {/* Details List */}
         <SectionCard title="Transaction Details" padded={false}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
@@ -98,15 +101,12 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
             ].map((item, i, arr) => (
               <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)' }}>
                 <span style={{ fontSize: 13, color: 'var(--ink3)' }}>{item.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                  {item.value}
-                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.value}</span>
               </div>
             ))}
           </div>
         </SectionCard>
 
-        {/* Note */}
         {payment.note && (
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Internal Note</div>
@@ -120,12 +120,13 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
   );
 }
 
-// -- Main Page ------------------------------------------------------------------
-
 export const FinancePayments: React.FC = () => {
   const isMobile = useIsMobile();
-  const { fmt } = useCurrency();
+  const { currency: baseCurrency } = useCurrency();
+  const fmt = formatAmount;
+  const [selectedCurrency, setSelectedCurrency] = useState(baseCurrency);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [stats, setStats] = useState<PaymentStats | null>(null);
   const [invoices, setInvoices] = useState<InvoiceOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -133,27 +134,54 @@ export const FinancePayments: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const loadIdRef = useRef(0);
 
   const loadPayments = useCallback(async () => {
+    const id = ++loadIdRef.current;
     setLoading(true);
     try {
-      const res = await apiFetch('/v1/payments');
-      setPayments(Array.isArray(res) ? res : []);
+      const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+      if (search.trim()) params.set('search', search.trim());
+      if (activeTab === 'IN') params.set('direction', 'in');
+      if (activeTab === 'OUT') params.set('direction', 'out');
+      if (selectedCurrency) params.set('currency', selectedCurrency);
+      const res = await apiFetch(`/v1/payments?${params}`);
+      if (id !== loadIdRef.current) return;
+      if (res && typeof res === 'object' && 'items' in res) {
+        setPayments(res.items as Payment[]);
+        setTotalItems(res.total as number);
+      } else {
+        setPayments(Array.isArray(res) ? res : []);
+        setTotalItems(Array.isArray(res) ? res.length : 0);
+      }
     } catch (err: any) {
+      if (id !== loadIdRef.current) return;
       showAlert(err.message || 'Failed to load payments');
     } finally {
-      setLoading(false);
+      if (id === loadIdRef.current) setLoading(false);
     }
+  }, [page, pageSize, search, activeTab, selectedCurrency]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await apiFetch('/v1/payments/stats');
+      setStats(res as PaymentStats);
+    } catch { /* stats are non-critical */ }
   }, []);
 
   const loadInvoices = useCallback(async () => {
     try {
-      const res = await apiFetch('/v1/invoices');
-      setInvoices(Array.isArray(res) ? res.map((r: any) => ({ id: r.id, invoice_number: r.invoice_number, client_name: r.client_name, bl_number: r.bl_number, received: Number(r.received || 0) })) : []);
-    } catch { /* invoice picker just stays empty */ }
+      const res = await apiFetch('/v1/invoices?page=1&page_size=100');
+      const items = (res && 'items' in (res as any)) ? (res as any).items : (Array.isArray(res) ? res : []);
+      setInvoices(items.map((r: any) => ({ id: r.id, invoice_number: r.invoice_number, client_name: r.client_name, bl_number: r.bl_number, received: Number(r.received || 0), currency: r.currency || 'TZS' })));
+    } catch (err) { showAlert(err instanceof Error ? err.message : 'Could not load invoices.'); }
   }, []);
 
-  useEffect(() => { loadPayments(); loadInvoices(); }, [loadPayments, loadInvoices]);
+  useEffect(() => { loadStats(); loadInvoices(); }, [loadStats, loadInvoices]);
+  useEffect(() => { const t = setTimeout(() => { loadPayments(); }, 250); return () => clearTimeout(t); }, [loadPayments]);
 
   useEffect(() => {
     function handler(e: Event) {
@@ -165,7 +193,6 @@ export const FinancePayments: React.FC = () => {
 
   const isSplit = selectedPayment !== null;
 
-  // Modal State
   const [fInvoice, setFInvoice] = useState('');
   const [fAmount, setFAmount] = useState('');
   const [fDate, setFDate] = useState(new Date().toISOString().split('T')[0]);
@@ -175,19 +202,22 @@ export const FinancePayments: React.FC = () => {
 
   const selectedInvoice = invoices.find(i => i.id === fInvoice);
 
+  const paymentAttempt = useRef<{ signature: string; key: string } | null>(null);
+  const paymentBusy = useRef(false);
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fInvoice || !fAmount) return;
+    if (!fInvoice || !fAmount || paymentBusy.current) return;
+    const signature = JSON.stringify([fInvoice, fAmount, fMode, fDate, fNote]);
+    if (paymentAttempt.current?.signature !== signature) paymentAttempt.current = { signature, key: crypto.randomUUID() };
+    paymentBusy.current = true;
     setSaving(true);
 
     try {
       await apiFetch(`/v1/invoices/${fInvoice}/payment`, {
-        method: 'POST',
+        method: 'POST', headers: { 'Idempotency-Key': paymentAttempt.current.key },
         body: JSON.stringify({ amount: parseFloat(fAmount), method: fMode, payment_date: fDate, note: fNote || undefined }),
       });
 
-      // Attach the receipt/proof to the Cloud file manager (real backend —
-      // find/create the client + BL folders, then upload into it).
       if (fFile && selectedInvoice) {
         try {
           const clientName = selectedInvoice.client_name || 'Unknown Client';
@@ -210,55 +240,46 @@ export const FinancePayments: React.FC = () => {
         }
       }
 
+      paymentAttempt.current = null;
       setShowAdd(false);
       setFInvoice(''); setFAmount(''); setFNote(''); setFMode('Bank Transfer'); setFFile(null);
       loadPayments();
+      loadStats();
       loadInvoices();
     } catch (err: any) {
       showAlert(err.message || 'Failed to record payment');
     } finally {
       setSaving(false);
+      paymentBusy.current = false;
     }
   };
 
-  const filtered = payments.filter(p => {
-    const matchesTab = activeTab === 'ALL'
-      || (activeTab === 'IN' && p.direction === 'in')
-      || (activeTab === 'OUT' && p.direction === 'out');
-    const matchesSearch = !search ||
-      p.document_number?.toLowerCase().includes(search.toLowerCase()) ||
-      (p.party_name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (p.method || '').toLowerCase().includes(search.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
-
-  // Money in (customer receipts) vs money out (supplier payments), and the net.
-  const inRows = payments.filter(p => p.direction === 'in');
-  const outRows = payments.filter(p => p.direction === 'out');
-  const inTotal = inRows.reduce((sum, p) => sum + Number(p.amount), 0);
-  const outTotal = outRows.reduce((sum, p) => sum + Number(p.amount), 0);
+  // Derive summary from stats (server-aggregated, not local list).
+  const inStat = stats?.money_in.find(s => s.currency === selectedCurrency);
+  const outStat = stats?.money_out.find(s => s.currency === selectedCurrency);
+  const inTotal = inStat?.total ?? 0;
+  const inCount = inStat?.count ?? 0;
+  const outTotal = outStat?.total ?? 0;
+  const outCount = outStat?.count ?? 0;
   const netTotal = inTotal - outTotal;
+  const thisMonth = stats?.this_month_count ?? 0;
+  const allCurrencies = [...new Set([
+    baseCurrency,
+    ...(stats?.money_in.map(s => s.currency) ?? []),
+    ...(stats?.money_out.map(s => s.currency) ?? []),
+  ])].sort();
 
-  const thisMonth = payments.filter(p => {
-    if (!p.payment_date) return false;
-    const d = new Date(p.payment_date);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-
-  const paymentColumns: TableColumn<Payment>[] = [
+  const paymentColumns = [
     {
-      key: 'document', header: 'Document', accessor: 'document_number', sortable: true,
-      render: payment => <div className="flex items-center gap-2"><Badge variant={payment.direction === 'in' ? 'info' : 'warning'}>{payment.direction === 'in' ? 'Received' : 'Paid'}</Badge><span className="font-semibold text-foreground">{payment.document_number}</span></div>,
+      key: 'document', header: 'Document', accessor: 'document_number' as keyof Payment, sortable: true,
+      render: (payment: Payment) => <div className="flex items-center gap-2"><Badge variant={payment.direction === 'in' ? 'info' : 'warning'}>{payment.direction === 'in' ? 'Received' : 'Paid'}</Badge><span className="font-semibold text-foreground">{payment.document_number}</span></div>,
     },
-    { key: 'party', header: 'Party', accessor: 'party_name', sortable: true, render: payment => payment.party_name || 'Unknown' },
+    { key: 'party', header: 'Party', accessor: 'party_name' as keyof Payment, sortable: true, render: (payment: Payment) => payment.party_name || 'Unknown' },
     ...(!isSplit ? [{ key: 'method', header: 'Mode', accessor: 'method' as keyof Payment, sortable: true, render: (payment: Payment) => payment.method || '—' }] : []),
-    { key: 'date', header: 'Date', accessor: 'payment_date', sortable: true, hideAt: 'sm' as const, render: payment => payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : '—' },
-    { key: 'amount', header: 'Amount', accessor: 'amount', sortable: true, align: 'right' as const, render: payment => <span className={payment.direction === 'in' ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>{payment.direction === 'in' ? '+' : '−'}{fmt(Number(payment.amount), (payment.currency || 'TZS') as any)}</span> },
+    { key: 'date', header: 'Date', accessor: 'payment_date' as keyof Payment, sortable: true, hideAt: 'sm' as const, render: (payment: Payment) => payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('en-GB') : '—' },
+    { key: 'amount', header: 'Amount', accessor: 'amount' as keyof Payment, sortable: true, align: 'right' as const, render: (payment: Payment) => <span className={payment.direction === 'in' ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>{payment.direction === 'in' ? '+' : '−'}{fmt(Number(payment.amount), (payment.currency || 'TZS') as any)}</span> },
   ];
 
-  // Full page, matching Quotations: the form replaces the list rather than
-  // floating over it. Submit stays on the <form> so Enter still saves.
   if (showAdd) {
     return (
       <FormPage
@@ -267,8 +288,8 @@ export const FinancePayments: React.FC = () => {
         onCancel={() => setShowAdd(false)}
         actions={
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)} disabled={saving} data-ui-native-button="">Cancel</button>
-            <button type="submit" form="payment-form" className="btn btn-primary" disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Save Payment'}</button>
+            <Button type="button" variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</Button>
+            <Button type="submit" form="payment-form" disabled={saving || !fInvoice || !Number.isFinite(Number(fAmount)) || Number(fAmount) <= 0}>{saving ? 'Saving…' : 'Save payment'}</Button>
           </>
         }
       >
@@ -287,10 +308,10 @@ export const FinancePayments: React.FC = () => {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Amount (TZS)</label>
-                  <input type="number" className="input-field" value={fAmount} onChange={e => setFAmount(e.target.value)} required />
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Amount ({selectedInvoice?.currency || baseCurrency})</label>
+                  <Input aria-label="Payment amount" type="number" min="0.01" step="0.01" value={fAmount} onChange={e => setFAmount(e.target.value)} required />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
@@ -301,7 +322,7 @@ export const FinancePayments: React.FC = () => {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Payment Mode</label>
                 <Select value={fMode} onValueChange={setFMode}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Payment method"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                     <SelectItem value="Cash">Cash</SelectItem>
@@ -313,16 +334,16 @@ export const FinancePayments: React.FC = () => {
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Internal Note</label>
-                <textarea className="input-field" rows={2} value={fNote} onChange={e => setFNote(e.target.value)}></textarea>
+                <Textarea aria-label="Internal note" maxLength={2000} rows={2} value={fNote} onChange={e => setFNote(e.target.value)}></Textarea>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Proof of Payment (Receipt / Docs)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="file" id="fFile" style={{ display: 'none' }} onChange={e => setFFile(e.target.files?.[0] || null)} />
-                  <button type="button" onClick={() => document.getElementById('fFile')?.click()} style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-                    <Icon name="upload" size={14} /> {fFile ? 'Change File' : 'Upload File'}
-                  </button>
+                  <Button type="button" variant="outline" onClick={() => document.getElementById('fFile')?.click()}>
+                    <Icon name="upload" size={14} /> {fFile ? 'Change file' : 'Upload file'}
+                  </Button>
                   {fFile && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fFile.name}</span>}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>File will automatically be saved to File Manager &gt; Client Folder &gt; BL Number.</div>
@@ -334,7 +355,6 @@ export const FinancePayments: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
-      {/* -- Header -- */}
       <div style={{ padding: 0 }}>
         <PageHeader
           crumbs={['FINANCE', 'PAYMENTS']}
@@ -346,77 +366,99 @@ export const FinancePayments: React.FC = () => {
         <MetricsRow cards={[
           {
             title: 'MONEY IN',
-            value: fmt(inTotal, 'TZS'),
-            sub1Label: 'RECEIPTS', sub1Value: String(inRows.length),
+            value: fmt(inTotal, selectedCurrency),
+            sub1Label: 'RECEIPTS', sub1Value: String(inCount),
             sub2Label: 'THIS MONTH', sub2Value: String(thisMonth),
             barHighlight: 'var(--green)'
           },
           {
             title: 'MONEY OUT',
-            value: fmt(outTotal, 'TZS'),
-            sub1Label: 'PAYMENTS', sub1Value: String(outRows.length),
-            sub2Label: 'OUTBOUND', sub2Value: String(outRows.length),
+            value: fmt(outTotal, selectedCurrency),
+            sub1Label: 'PAYMENTS', sub1Value: String(outCount),
+            sub2Label: 'OUTBOUND', sub2Value: String(outCount),
             barHighlight: 'var(--red)'
           },
           {
             title: 'NET POSITION',
-            value: fmt(netTotal, 'TZS'),
+            value: fmt(netTotal, selectedCurrency),
             sub1Label: netTotal >= 0 ? 'SURPLUS' : 'DEFICIT', sub1Value: netTotal >= 0 ? 'IN' : 'OUT',
             sub2Label: 'STATUS', sub2Value: netTotal >= 0 ? 'NET POSITIVE' : 'NET NEGATIVE',
             barHighlight: netTotal >= 0 ? 'var(--teal)' : 'var(--gold)'
           },
           {
             title: 'ALL MOVEMENTS',
-            value: String(payments.length),
-            sub1Label: 'INBOUND', sub1Value: String(inRows.length),
-            sub2Label: 'OUTBOUND', sub2Value: String(outRows.length),
+            value: String(totalItems),
+            sub1Label: 'INBOUND', sub1Value: String(inCount),
+            sub2Label: 'OUTBOUND', sub2Value: String(outCount),
             barHighlight: 'var(--blue)'
           },
         ]} />
       </div>
 
-      {/* -- Main Content Area -- */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', marginTop: 16 }}>
-
-        {/* -- Left: List -- */}
         <div style={{ flex: 1, display: isSplit ? 'none' : 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setPage(1); }}>
                 <TabsList>
-                  <TabsTrigger value="ALL">All ({payments.length})</TabsTrigger>
-                  <TabsTrigger value="IN">Received ({inRows.length})</TabsTrigger>
-                  <TabsTrigger value="OUT">Paid ({outRows.length})</TabsTrigger>
+                  <TabsTrigger value="ALL">All</TabsTrigger>
+                  <TabsTrigger value="IN">Received</TabsTrigger>
+                  <TabsTrigger value="OUT">Paid</TabsTrigger>
                 </TabsList>
               </Tabs>
 
               <SearchToolbar
                 search={search}
-                onSearch={setSearch}
+                onSearch={v => { setSearch(v); setPage(1); }}
                 placeholder="Search payments…"
-                actions={<Button size="sm" onClick={() => setShowAdd(true)}><Icon name="plus" size={14} /> Record payment</Button>}
+                actions={<><Select value={selectedCurrency} onValueChange={v => { setSelectedCurrency(v); setPage(1); }}><SelectTrigger aria-label="Payment currency"><SelectValue /></SelectTrigger><SelectContent>{allCurrencies.map(currency => <SelectItem key={currency} value={currency}>{currency}</SelectItem>)}</SelectContent></Select><Button size="sm" onClick={() => setShowAdd(true)}><Icon name="plus" size={14} /> Record payment</Button></>}
               />
             </div>
 
-            <DataTable
-              columns={paymentColumns}
-              rows={filtered}
-              loading={loading}
-              filteredEmpty={(!!search || activeTab !== 'ALL') && filtered.length === 0}
-              empty={!loading && payments.length === 0}
-              emptyIcon="creditCard"
-              emptyTitle="No payment transactions"
-              emptyMessage="Customer receipts and supplier payments appear here after they are recorded."
-              defaultSortKey="date"
-              defaultSortDir="desc"
-              pageSize={15}
-              onRowClick={setSelectedPayment}
-            />
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 48, color: 'var(--ink3)', fontSize: 13 }}>Loading payments…</div>
+            ) : !payments.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 48, gap: 8 }}>
+                <Icon name="creditCard" size={32} style={{ color: 'var(--ink3)', opacity: 0.5 }} />
+                <strong style={{ color: 'var(--ink2)' }}>No payment transactions</strong>
+                <span style={{ color: 'var(--ink3)', fontSize: 13 }}>Customer receipts and supplier payments appear here after they are recorded.</span>
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>{paymentColumns.map(col => <th key={col.key} style={{ padding: '10px 14px', textAlign: (col.align as any) || 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>{col.header}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {payments.map(payment => (
+                      <tr key={payment.id} onClick={() => setSelectedPayment(payment)} style={{ cursor: 'pointer' }}>
+                        {paymentColumns.map(col => (
+                          <td key={col.key} style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink)', borderBottom: '1px solid var(--border)', textAlign: (col.align as any) || 'left' }}>
+                            {col.render(payment)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ borderTop: '1px solid var(--border)', padding: '6px 14px' }}>
+              <PaginationBar
+                page={page}
+                pageSize={pageSize}
+                total={totalItems}
+                onPageChange={setPage}
+                onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+                pageSizeOptions={[10, 25, 50]}
+                itemLabel="payment"
+              />
+            </div>
           </div>
         </div>
 
-        {/* -- Right: Aside Detail Panel -- */}
         {isSplit && selectedPayment && (
           <PaymentDetailPanel
             payment={selectedPayment}
@@ -425,7 +467,6 @@ export const FinancePayments: React.FC = () => {
           />
         )}
       </div>
-
     </div>
   );
 };

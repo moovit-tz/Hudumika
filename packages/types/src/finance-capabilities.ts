@@ -44,7 +44,7 @@ export const FINANCE_CAPABILITIES: readonly FinanceCapabilityDefinition[] = [
   { key: 'finance.multi_currency', name: 'Multi-currency', description: 'Foreign-currency transactions, rates and reporting.', category: 'accounting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'available' },
   { key: 'finance.inventory', name: 'Inventory', description: 'Stock-aware products, movements, valuation and availability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
   { key: 'finance.procurement', name: 'Procurement', description: 'Purchase requisitions, orders and supplier fulfilment.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
-  { key: 'finance.pos', name: 'Point of sale', description: 'Counter sales, shifts and payment capture using the shared catalogue.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'], status: 'available' },
+  { key: 'finance.pos', name: 'Point of Sale', description: 'Counter sales, shifts and payment capture using the shared catalogue.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'], status: 'available' },
   { key: 'finance.warehouse', name: 'Warehouse operations', description: 'Multi-warehouse allocation, picking and fulfilment.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory'], status: 'planned' },
   { key: 'finance.manufacturing', name: 'Manufacturing', description: 'Bills of materials, production orders, WIP and material planning.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.inventory', 'finance.accounting.advanced'], status: 'planned' },
   { key: 'finance.professional_services', name: 'Professional services', description: 'Service delivery, time and project profitability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'planned' },
@@ -66,6 +66,7 @@ export const FINANCE_INDUSTRY_KEYS = [
   'professional_services',
   'consulting',
   'printing',
+  'construction',
 ] as const;
 
 export type FinanceIndustryKey = (typeof FINANCE_INDUSTRY_KEYS)[number];
@@ -85,6 +86,7 @@ export const FINANCE_INDUSTRIES: readonly FinanceIndustryDefinition[] = [
   { key: 'professional_services', name: 'Professional services', description: 'Time, project delivery and profitability.', recommendedCapabilities: ['finance.professional_services', 'finance.project_accounting'] },
   { key: 'consulting', name: 'Consulting', description: 'Client engagements, expenses and project profitability.', recommendedCapabilities: ['finance.professional_services', 'finance.project_accounting'] },
   { key: 'printing', name: 'Printing', description: 'Stock, purchasing and production workflows.', recommendedCapabilities: ['finance.inventory', 'finance.procurement', 'finance.manufacturing'] },
+  { key: 'construction', name: 'Construction', description: 'Projects, estimates, materials, subcontracted work and progress billing.', recommendedCapabilities: ['finance.inventory', 'finance.procurement', 'finance.project_accounting'] },
 ] as const;
 
 export interface FinanceBusinessLine {

@@ -361,3 +361,9 @@
     gap: 12px;
   }
 }
+@media(max-width:480px) {
+ .asb-session-box { grid-template-columns:minmax(0,1fr); gap:var(--space-3,12px); }
+ .asb-session-info { min-width:0; }
+ .asb-action-btn { width:100%; justify-content:center; white-space:normal; }
+ .asb-session-sub { white-space:normal; overflow-wrap:anywhere; }
+}

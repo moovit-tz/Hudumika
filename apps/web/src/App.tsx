@@ -1,3 +1,4 @@
+import { InvoicePaymentPage } from './pages/InvoicePaymentPage.js';
 import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
@@ -299,6 +300,7 @@ const CustomerShell: React.FC = () => {
             <Route path="/chat"            element={<Chat />} />
             <Route element={<PageLayout />}>
               <Route path="/profile" element={<UserProfile />} />
+              <Route path="/pay/invoice/:id" element={<InvoicePaymentPage />} />
             </Route>
             <Route path="/clearance/:id"   element={<ShipmentDetail />} />
             <Route path="comply"      element={<CompliancePage />} />
@@ -400,7 +402,8 @@ const AppContentBody: React.FC = () => {
         <Route path="/site/:tenantSlug/m/:modelKey/:entrySlug" element={<OneSitePublic />} />
         <Route path="/site/:tenantSlug/:pageSlug"          element={<OneSitePublic />} />
         {/* eSign public routes — external signers access these without a Hudumika account */}
-        <Route path="/sign/public/:token"  element={<SignPublicPage />} />
+        <Route element={<PageLayout />}><Route path="/pay/invoice/:id" element={<InvoicePaymentPage />} /></Route>
+            <Route path="/sign/public/:token"  element={<SignPublicPage />} />
         <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
         <Route path="/sign/verify"         element={<SignVerifyPage />} />
         {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
@@ -613,6 +616,7 @@ const AppContentBody: React.FC = () => {
             <Route path="/track/shipment-report/:token" element={<ShipmentReportShared />} />
             <Route path="/r/:token" element={<SharedLandedCostReport />} />
             {/* eSign public routes accessible while authenticated too */}
+            <Route element={<PageLayout />}><Route path="/pay/invoice/:id" element={<InvoicePaymentPage />} /></Route>
             <Route path="/sign/public/:token"  element={<SignPublicPage />} />
             <Route path="/sign/verify/:code"   element={<SignVerifyPage />} />
             <Route path="/sign/verify"         element={<SignVerifyPage />} />

@@ -5,6 +5,8 @@
 // read from the stored row/lines (line totals are recomputed the same way
 // each document's own route computes them); nothing here invents a number.
 import PDFDocument from 'pdfkit';
+import { documentBranding, drawDocumentHeader, type DocumentBranding } from './document-branding.service.js';
+import type { DocumentKind } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
 
 const INK = '#0b1220';
@@ -23,6 +25,7 @@ function dateFmt(d: unknown): string {
 
 interface PdfLine { description: string; qty: number; rate: number; taxPct: number; amount: number }
 interface PdfSpec {
+  branding?: DocumentBranding;
   title: string;
   number: string;
   companyName: string;
@@ -46,27 +49,25 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
+    const accent = spec.branding?.accent ?? TEAL;
     const M = 40;
     const W = 595.28 - M * 2;
     let y = M;
 
-    doc.font('Helvetica-Bold').fontSize(18).fillColor(INK).text(spec.companyName, M, y);
-    if (spec.companyAddress) doc.font('Helvetica').fontSize(8.5).fillColor(MUTED).text(spec.companyAddress, M, doc.y + 2);
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(TEAL).text(spec.title, M, y, { width: W, align: 'right' });
-    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(spec.number, M, doc.y + 2, { width: W, align: 'right' });
-    y = Math.max(doc.y, y + 50) + 16;
+    y = drawDocumentHeader(doc, spec.branding ?? { layout: 'classic', accent: TEAL, logo: null },
+      {name: spec.companyName, address: spec.companyAddress}, spec.title, spec.number, M, y, W);
     doc.moveTo(M, y).lineTo(M + W, y).strokeColor(BORDER).lineWidth(1).stroke();
     y += 16;
 
     const leftW = W * 0.55, rightW = W - leftW - 16;
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED).text(spec.partyLabel, M, y);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(INK).text(spec.partyName || '—', M, doc.y + 4, { width: leftW });
+    doc.font('Document-Bold').fontSize(9).fillColor(MUTED).text(spec.partyLabel, M, y);
+    doc.font('Document-Bold').fontSize(11).fillColor(INK).text(spec.partyName || '—', M, doc.y + 4, { width: leftW });
 
     const metaX = M + leftW + 16;
     let my = y;
     for (const [label, value] of spec.meta) {
-      doc.font('Helvetica').fontSize(8.5).fillColor(MUTED).text(label, metaX, my, { width: rightW * 0.45 });
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(INK).text(value, metaX + rightW * 0.45, my, { width: rightW * 0.55, align: 'right' });
+      doc.font('Document-Regular').fontSize(8.5).fillColor(MUTED).text(label, metaX, my, { width: rightW * 0.45 });
+      doc.font('Document-Bold').fontSize(8.5).fillColor(INK).text(value, metaX + rightW * 0.45, my, { width: rightW * 0.55, align: 'right' });
       my += 14;
     }
     y = Math.max(doc.y, my) + 20;
@@ -81,30 +82,31 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
     doc.rect(M, y, W, 22).fill('#f1f5f4');
     let cx = M;
     for (const c of cols) {
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(MUTED).text(c.label.toUpperCase(), cx + 8, y + 7, { width: c.w - 8, align: c.align });
+      doc.font('Document-Bold').fontSize(8).fillColor(MUTED).text(c.label.toUpperCase(), cx + 8, y + 7, { width: c.w - 8, align: c.align });
       cx += c.w;
     }
     y += 22;
 
     for (const l of spec.lines) {
-      const rowH = 20;
-      if (y + rowH > 780) { doc.addPage(); y = M; }
+      const rowH = Math.max(24, doc.font('Document-Regular').fontSize(9).heightOfString(l.description, {width: cols[0].w - 16}) + 12);
+      if (y + rowH > 780) { doc.addPage(); y = M; doc.font('Document-Bold').fontSize(9).fillColor(INK).text(`${spec.title} · ${spec.number}`, M, y); y += 24; }
       cx = M;
-      doc.font('Helvetica').fontSize(9).fillColor(INK).text(l.description, cx + 8, y + 5, { width: cols[0].w - 8, lineBreak: false, ellipsis: true }); cx += cols[0].w;
+      doc.font('Document-Regular').fontSize(9).fillColor(INK).text(l.description, cx + 8, y + 5, { width: cols[0].w - 8 }); cx += cols[0].w;
       doc.text(String(l.qty), cx, y + 5, { width: cols[1].w - 8, align: 'right' }); cx += cols[1].w;
       doc.text(`${spec.currency} ${money(l.rate)}`, cx, y + 5, { width: cols[2].w - 8, align: 'right' }); cx += cols[2].w;
       doc.text(`${l.taxPct}%`, cx, y + 5, { width: cols[3].w - 8, align: 'right' }); cx += cols[3].w;
-      doc.font('Helvetica-Bold').text(`${spec.currency} ${money(l.amount)}`, cx, y + 5, { width: cols[4].w - 8, align: 'right' });
+      doc.font('Document-Bold').text(`${spec.currency} ${money(l.amount)}`, cx, y + 5, { width: cols[4].w - 8, align: 'right' });
       doc.moveTo(M, y + rowH).lineTo(M + W, y + rowH).strokeColor(BORDER).lineWidth(0.5).stroke();
       y += rowH;
     }
     y += 12;
 
+    if (y + (spec.totals.length + 1) * 20 + 12 > 780) { doc.addPage(); y = M; }
     const totalsX = M + W * 0.55, totalsW = W * 0.45;
     const row = (label: string, value: string, bold = false) => {
-      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 11 : 9.5).fillColor(bold ? INK : MUTED)
+      doc.font(bold ? 'Document-Bold' : 'Document-Regular').fontSize(bold ? 11 : 9.5).fillColor(bold ? INK : MUTED)
         .text(label, totalsX, y, { width: totalsW * 0.5 });
-      doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 11 : 9.5).fillColor(bold ? TEAL : INK)
+      doc.font(bold ? 'Document-Bold' : 'Document-Regular').fontSize(bold ? 11 : 9.5).fillColor(bold ? accent : INK)
         .text(value, totalsX + totalsW * 0.5, y, { width: totalsW * 0.5, align: 'right' });
       y += bold ? 20 : 16;
     };
@@ -115,19 +117,20 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
 
     if (spec.notes) {
       y += 20;
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED).text('NOTES', M, y);
-      doc.font('Helvetica').fontSize(9).fillColor(INK).text(spec.notes, M, doc.y + 4, { width: W });
+      doc.font('Document-Bold').fontSize(9).fillColor(MUTED).text('NOTES', M, y);
+      doc.font('Document-Regular').fontSize(9).fillColor(INK).text(spec.notes, M, doc.y + 4, { width: W });
     }
     doc.end();
   });
 }
 
-async function company(trx: any, tenantId: string): Promise<{ name: string; address: string }> {
+async function company(trx: any, tenantId: string, kind?: DocumentKind): Promise<{ name: string; address: string; branding?: DocumentBranding }> {
   const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
   const tenant = await trx.selectFrom('tenants').select('name').where('id', '=', tenantId).executeTakeFirst();
   const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
   const c = settings?.company ?? {};
   return {
+    branding: kind ? await documentBranding(settings, kind) : undefined,
     name: c.name || tenant?.name || 'Hudumika',
     address: [c.address, [c.city, c.country].filter(Boolean).join(', ')].filter(Boolean).join(' · '),
   };
@@ -140,11 +143,12 @@ export async function renderCreditNotePdf(tenantId: string, id: string): Promise
     const cn = await trx.selectFrom('credit_notes').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!cn) throw new Error('Credit note not found');
     const lines = await trx.selectFrom('credit_note_lines').selectAll().where('credit_note_id', '=', id).orderBy('sort_order').execute();
-    const co = await company(trx, tenantId);
+    const co = await company(trx, tenantId, 'credit_note');
     const pdfLines = lines.map(l => ({ description: l.name, qty: Number(l.qty), rate: Number(l.rate), taxPct: Number(l.tax_pct), amount: lineAmt(Number(l.qty), Number(l.rate), Number(l.tax_pct)) }));
     const net = pdfLines.reduce((s, l) => s + l.qty * l.rate, 0);
     const grand = pdfLines.reduce((s, l) => s + l.amount, 0);
     return {
+      branding: co.branding,
       title: 'CREDIT NOTE', number: cn.credit_note_number, companyName: co.name, companyAddress: co.address,
       partyLabel: 'CREDITED TO', partyName: cn.client_name || '',
       meta: [['Credit Date', dateFmt(cn.credit_date)], ['Status', String(cn.status)], ...(cn.reason ? [['Reason', cn.reason] as [string, string]] : [])],
@@ -160,8 +164,9 @@ export async function renderQuotationPdf(tenantId: string, id: string): Promise<
     if (!q) throw new Error('Quotation not found');
     const lines = await trx.selectFrom('quotation_lines').selectAll().where('quotation_id', '=', id).orderBy('line_number').execute();
     const cust = await trx.selectFrom('customers').select('name').where('id', '=', q.customer_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-    const co = await company(trx, tenantId);
+    const co = await company(trx, tenantId, 'quotation');
     return {
+      branding: co.branding,
       title: 'QUOTATION', number: q.quote_number, companyName: co.name, companyAddress: co.address,
       partyLabel: 'PREPARED FOR', partyName: cust?.name || '',
       meta: [
@@ -182,8 +187,9 @@ export async function renderPurchaseOrderPdf(tenantId: string, id: string): Prom
     const po = await trx.selectFrom('purchase_orders').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!po) throw new Error('Purchase order not found');
     const lines = await trx.selectFrom('purchase_order_lines').selectAll().where('po_id', '=', id).orderBy('sort_order').execute();
-    const co = await company(trx, tenantId);
+    const co = await company(trx, tenantId, 'purchase_order');
     return {
+      branding: co.branding,
       title: 'PURCHASE ORDER', number: po.po_number, companyName: co.name, companyAddress: co.address,
       partyLabel: 'SUPPLIER', partyName: po.supplier_name || '',
       meta: [

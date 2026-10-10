@@ -14,6 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useTaxCodes } from '../data/taxCodeData.js';
+import { getCompany } from '../data/companyStore.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -383,7 +384,7 @@ function QuoteModal({
     title:              editQuote?.title ?? '',
     customer_id:        editQuote?.customer_id ?? '',
     shipment_type:      editQuote?.shipment_type ?? 'SEA',
-    currency:           editQuote?.currency ?? 'USD',
+    currency:           editQuote?.currency ?? getCompany().currency ?? 'USD',
     origin_port:        editQuote?.origin_port ?? '',
     origin_city:        editQuote?.origin_city ?? '',
     destination_port:   editQuote?.destination_port ?? '',

@@ -26,6 +26,7 @@ import { ComposeEmailButton } from '../../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../../components/crm/StartCallButton.js';
 import type { Customer } from './customer-types.js';
 import { fmtDateShort, maskTin } from './customer-types.js';
+import { useFieldPolicy } from '../../hooks/useFieldPolicy.js';
 import './CustomerDetailPage.css';
 
 /* ── Statement of Account — print/PDF ── */
@@ -174,6 +175,7 @@ export const CustomerDetailPage: React.FC = () => {
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState<'not_found' | 'forbidden' | null>(null);
   const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
+  const { canSee } = useFieldPolicy('customers');
 
   useEffect(() => {
     apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch(() => {});
@@ -545,12 +547,8 @@ export const CustomerDetailPage: React.FC = () => {
                 name={sel.name}
                 size={64}
                 shape="square"
-                onChange={async (dataUrl: string | null) => {
-                  try {
-                    await apiFetch(`/v1/customers/${sel.id}`, { method: 'PUT', body: JSON.stringify({ avatar_url: dataUrl }) });
-                    setSelected(prev => prev ? { ...prev, avatar_url: dataUrl || undefined } : prev);
-                    showAlert('Company logo updated.', { variant: 'success' });
-                  } catch { showAlert('Could not update logo.'); }
+                onChange={() => {
+                  showAlert('Company logo updated.', { variant: 'success' });
                 }}
               />
               <div className="cust-verified-badge" title="Verified CRM Account">
@@ -595,25 +593,27 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
 
               <div className="cust-meta-chips-row">
-                {custPhone && (
-                  <span className="cust-meta-chip">
-                    <Icon name="phone" size={13} style={{ color: 'var(--ink3)' }} />
-                    <a href={`tel:${custPhone}`}>{custPhone}</a>
-                  </span>
-                )}
-                {sel.email && (
-                  <span className="cust-meta-chip">
-                    <Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} />
-                    <a href={`mailto:${sel.email}`}>{sel.email}</a>
-                  </span>
-                )}
-                {(sel.city || sel.country) && (
-                  <span className="cust-meta-chip">
-                    <Icon name="mapPin" size={13} style={{ color: 'var(--ink3)' }} />
-                    <span>{[sel.city, sel.country].filter(Boolean).join(', ')}</span>
-                  </span>
-                )}
-                {sel.tax_id && (
+                {canSee('contact') && (<>
+                  {custPhone && (
+                    <span className="cust-meta-chip">
+                      <Icon name="phone" size={13} style={{ color: 'var(--ink3)' }} />
+                      <a href={`tel:${custPhone}`}>{custPhone}</a>
+                    </span>
+                  )}
+                  {sel.email && (
+                    <span className="cust-meta-chip">
+                      <Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} />
+                      <a href={`mailto:${sel.email}`}>{sel.email}</a>
+                    </span>
+                  )}
+                  {(sel.city || sel.country) && (
+                    <span className="cust-meta-chip">
+                      <Icon name="mapPin" size={13} style={{ color: 'var(--ink3)' }} />
+                      <span>{[sel.city, sel.country].filter(Boolean).join(', ')}</span>
+                    </span>
+                  )}
+                </>)}
+                {sel.tax_id && canSee('financial') && (
                   <span className="cust-meta-chip">
                     <TinChip tin={sel.tax_id} />
                   </span>
@@ -690,38 +690,40 @@ export const CustomerDetailPage: React.FC = () => {
 
         {/* Live 6-KPI Executive Ribbon */}
         <div className="cust-hero-kpi-bar">
-          <div className="cust-kpi-item">
-            <div className="cust-kpi-top">
-              <span className="cust-kpi-label">Total Invoiced</span>
-              <Icon name="fileText" size={14} style={{ color: 'var(--ink3)' }} />
+          {canSee('financial') && (<>
+            <div className="cust-kpi-item">
+              <div className="cust-kpi-top">
+                <span className="cust-kpi-label">Total Invoiced</span>
+                <Icon name="fileText" size={14} style={{ color: 'var(--ink3)' }} />
+              </div>
+              <div className="cust-kpi-val">TZS {Math.round(customerFinancials.totalInvoiced).toLocaleString()}</div>
+              <div className="cust-kpi-sub">Lifetime billing</div>
             </div>
-            <div className="cust-kpi-val">TZS {Math.round(customerFinancials.totalInvoiced).toLocaleString()}</div>
-            <div className="cust-kpi-sub">Lifetime billing</div>
-          </div>
 
-          <div className="cust-kpi-item">
-            <div className="cust-kpi-top">
-              <span className="cust-kpi-label">Collected Revenue</span>
-              <Icon name="check" size={14} style={{ color: 'var(--green)' }} />
+            <div className="cust-kpi-item">
+              <div className="cust-kpi-top">
+                <span className="cust-kpi-label">Collected Revenue</span>
+                <Icon name="check" size={14} style={{ color: 'var(--green)' }} />
+              </div>
+              <div className="cust-kpi-val is-green">TZS {Math.round(customerFinancials.totalPaid).toLocaleString()}</div>
+              <div className="cust-kpi-sub">
+                {customerFinancials.totalInvoiced > 0
+                  ? `${((customerFinancials.totalPaid / customerFinancials.totalInvoiced) * 100).toFixed(0)}% recovery rate`
+                  : '100% in good standing'}
+              </div>
             </div>
-            <div className="cust-kpi-val is-green">TZS {Math.round(customerFinancials.totalPaid).toLocaleString()}</div>
-            <div className="cust-kpi-sub">
-              {customerFinancials.totalInvoiced > 0
-                ? `${((customerFinancials.totalPaid / customerFinancials.totalInvoiced) * 100).toFixed(0)}% recovery rate`
-                : '100% in good standing'}
-            </div>
-          </div>
 
-          <div className="cust-kpi-item">
-            <div className="cust-kpi-top">
-              <span className="cust-kpi-label">Outstanding Balance</span>
-              <Icon name="alertTriangle" size={14} style={{ color: customerFinancials.outstanding > 0 ? 'var(--red)' : 'var(--ink3)' }} />
+            <div className="cust-kpi-item">
+              <div className="cust-kpi-top">
+                <span className="cust-kpi-label">Outstanding Balance</span>
+                <Icon name="alertTriangle" size={14} style={{ color: customerFinancials.outstanding > 0 ? 'var(--red)' : 'var(--ink3)' }} />
+              </div>
+              <div className={`cust-kpi-val ${customerFinancials.outstanding > 0 ? 'is-red' : 'is-green'}`}>
+                TZS {Math.round(customerFinancials.outstanding).toLocaleString()}
+              </div>
+              <div className="cust-kpi-sub">{customerFinancials.outstanding > 0 ? 'Requires follow-up' : 'No overdue debt'}</div>
             </div>
-            <div className={`cust-kpi-val ${customerFinancials.outstanding > 0 ? 'is-red' : 'is-green'}`}>
-              TZS {Math.round(customerFinancials.outstanding).toLocaleString()}
-            </div>
-            <div className="cust-kpi-sub">{customerFinancials.outstanding > 0 ? 'Requires follow-up' : 'No overdue debt'}</div>
-          </div>
+          </>)}
 
           <div className="cust-kpi-item">
             <div className="cust-kpi-top">
@@ -741,22 +743,24 @@ export const CustomerDetailPage: React.FC = () => {
             <div className="cust-kpi-sub">Sales pipeline</div>
           </div>
 
-          <div className="cust-kpi-item">
-            <div className="cust-kpi-top">
-              <span className="cust-kpi-label">Account Standing</span>
-              <Icon name="shield" size={14} style={{ color: 'var(--green)' }} />
+          {canSee('financial') && (
+            <div className="cust-kpi-item">
+              <div className="cust-kpi-top">
+                <span className="cust-kpi-label">Account Standing</span>
+                <Icon name="shield" size={14} style={{ color: 'var(--green)' }} />
+              </div>
+              <div className="cust-kpi-val is-green">
+                {customerFinancials.outstanding > 10000000 ? 'Review Needed' : 'Tier 1 Prime'}
+              </div>
+              <div className="cust-kpi-sub">{sel.payment_terms || 'Net 30'} approval</div>
             </div>
-            <div className="cust-kpi-val is-green">
-              {customerFinancials.outstanding > 10000000 ? 'Review Needed' : 'Tier 1 Prime'}
-            </div>
-            <div className="cust-kpi-sub">{sel.payment_terms || 'Net 30'} approval</div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* ── Sub-Navigation Tabs Strip ── */}
       <div className="cust-tab-nav" data-ds-tabs-exempt="crm-customers">
-        {MAIN_TABS.map(t => {
+        {MAIN_TABS.filter(t => t.key !== 'finance' || canSee('financial')).map(t => {
           const isActive = mainTab === t.key;
           let badgeCount: number | null = null;
           if (t.key === 'finance') badgeCount = custInvoices.length;
@@ -815,60 +819,64 @@ export const CustomerDetailPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
-                  {custPhone && (
-                    <Button variant="outline" size="xs" onClick={() => window.open(`tel:${custPhone}`)} style={{ width: '100%', justifyContent: 'center' }}>
-                      <Icon name="phone" size={12} />
-                      <span>Call</span>
-                    </Button>
-                  )}
-                  {sel.email && (
-                    <Button variant="outline" size="xs" onClick={() => window.open(`mailto:${sel.email}`)} style={{ width: '100%', justifyContent: 'center' }}>
-                      <Icon name="mail" size={12} />
-                      <span>Email</span>
-                    </Button>
-                  )}
-                </div>
+                {canSee('contact') && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+                    {custPhone && (
+                      <Button variant="outline" size="xs" onClick={() => window.open(`tel:${custPhone}`)} style={{ width: '100%', justifyContent: 'center' }}>
+                        <Icon name="phone" size={12} />
+                        <span>Call</span>
+                      </Button>
+                    )}
+                    {sel.email && (
+                      <Button variant="outline" size="xs" onClick={() => window.open(`mailto:${sel.email}`)} style={{ width: '100%', justifyContent: 'center' }}>
+                        <Icon name="mail" size={12} />
+                        <span>Email</span>
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Card 2: Commercial & Compliance Credentials */}
-            <div className="cust-widget-card">
-              <div className="cust-widget-header">
-                <h3 className="cust-widget-title">
-                  <Icon name="shield" size={15} style={{ color: 'var(--green)' }} />
-                  <span>Commercial & Tax Credentials</span>
-                </h3>
-              </div>
-              <div className="cust-widget-body">
-                <div className="cust-kv-list">
-                  <div className="cust-kv-row">
-                    <span className="cust-kv-label">Legal Name</span>
-                    <span className="cust-kv-val">{sel.name}</span>
-                  </div>
-                  <div className="cust-kv-row">
-                    <span className="cust-kv-label">Tax ID (TIN)</span>
-                    <span className="cust-kv-val"><TinChip tin={sel.tax_id} /></span>
-                  </div>
-                  <div className="cust-kv-row">
-                    <span className="cust-kv-label">VAT / VRN</span>
-                    <span className="cust-kv-val">{sel.vrn_number || sel.vat_number || 'Registered'}</span>
-                  </div>
-                  <div className="cust-kv-row">
-                    <span className="cust-kv-label">Port of Clearance</span>
-                    <span className="cust-kv-val">{sel.preferred_port || 'Dar es Salaam Port'}</span>
-                  </div>
-                  <div className="cust-kv-row">
-                    <span className="cust-kv-label">Incoterms</span>
-                    <span className="cust-kv-val">{sel.incoterms || sel.freight_terms || 'CIF / FOB'}</span>
-                  </div>
-                  <div className="cust-kv-row">
-                    <span className="cust-kv-label">Invoicing Terms</span>
-                    <span className="cust-kv-val">{sel.payment_terms || sel.credit_days || 'Net 30 Days'}</span>
+            {canSee('financial') && (
+              <div className="cust-widget-card">
+                <div className="cust-widget-header">
+                  <h3 className="cust-widget-title">
+                    <Icon name="shield" size={15} style={{ color: 'var(--green)' }} />
+                    <span>Commercial & Tax Credentials</span>
+                  </h3>
+                </div>
+                <div className="cust-widget-body">
+                  <div className="cust-kv-list">
+                    <div className="cust-kv-row">
+                      <span className="cust-kv-label">Legal Name</span>
+                      <span className="cust-kv-val">{sel.name}</span>
+                    </div>
+                    <div className="cust-kv-row">
+                      <span className="cust-kv-label">Tax ID (TIN)</span>
+                      <span className="cust-kv-val"><TinChip tin={sel.tax_id} /></span>
+                    </div>
+                    <div className="cust-kv-row">
+                      <span className="cust-kv-label">VAT / VRN</span>
+                      <span className="cust-kv-val">{sel.vrn_number || sel.vat_number || 'Registered'}</span>
+                    </div>
+                    <div className="cust-kv-row">
+                      <span className="cust-kv-label">Port of Clearance</span>
+                      <span className="cust-kv-val">{sel.preferred_port || 'Dar es Salaam Port'}</span>
+                    </div>
+                    <div className="cust-kv-row">
+                      <span className="cust-kv-label">Incoterms</span>
+                      <span className="cust-kv-val">{sel.incoterms || sel.freight_terms || 'CIF / FOB'}</span>
+                    </div>
+                    <div className="cust-kv-row">
+                      <span className="cust-kv-label">Invoicing Terms</span>
+                      <span className="cust-kv-val">{sel.payment_terms || sel.credit_days || 'Net 30 Days'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Card 3: Customer Portal & Automation Settings */}
             <div className="cust-widget-card">
@@ -1064,7 +1072,7 @@ export const CustomerDetailPage: React.FC = () => {
       )}
 
       {/* ── TAB CONTENT 2: COMMERCIAL & FINANCE ── */}
-      {mainTab === 'finance' && (
+      {mainTab === 'finance' && canSee('financial') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ display: 'flex', gap: 6, background: 'var(--card-bg, var(--white))', padding: 4, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>

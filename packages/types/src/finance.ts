@@ -249,3 +249,13 @@ export interface DeliveryNote {
   updated_at: string;
   lines?: DNLine[];
 }
+
+
+/** Opt-in GET /v1/invoices pagination; requests without page retain the array contract. */
+export interface InvoiceListPage<TInvoice> {
+  items: TInvoice[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

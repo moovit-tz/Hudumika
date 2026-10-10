@@ -24,6 +24,8 @@ export interface BrandingState {
   platformTagline: string;
   logoLight:     string;
   logoDark:      string;
+  logoVerticalLight: string;
+  logoVerticalDark: string;
   favicon:       string;
   loginHeadline: string;
   loginSubtext:  string;
@@ -88,6 +90,8 @@ function readBranding(platformOnly = false): BrandingState {
                      ?? localStorage.getItem('hudumika_brand_logo_light') ?? BRAND_LOGO_LIGHT,
     logoDark:        (platformOnly ? null : localStorage.getItem('hudumika_tenant_logo_dark'))
                      ?? localStorage.getItem('hudumika_brand_logo_dark')  ?? BRAND_LOGO_DARK,
+    logoVerticalLight: (platformOnly ? null : localStorage.getItem('hudumika_tenant_logo_vertical_light')) ?? localStorage.getItem('hudumika_brand_logo_vertical_light') ?? '',
+    logoVerticalDark: (platformOnly ? null : localStorage.getItem('hudumika_tenant_logo_vertical_dark')) ?? localStorage.getItem('hudumika_brand_logo_vertical_dark') ?? '',
     favicon:         (platformOnly ? null : localStorage.getItem('hudumika_tenant_favicon'))
                      ?? localStorage.getItem('hudumika_brand_favicon')    ?? BRAND_ICON,
     loginHeadline:   localStorage.getItem('hudumika_login_headline')   ?? 'Welcome back',
@@ -225,6 +229,9 @@ export function useBranding(platformOnly = false): BrandingState {
       if (data.platformName) localStorage.setItem('hudumika_platform_name', data.platformName);
       if (data.platformTagline) localStorage.setItem('hudumika_platform_tagline', data.platformTagline);
       if (data.logoLight) localStorage.setItem('hudumika_brand_logo_light', data.logoLight);
+      for (const [field, key] of [['logoVerticalLight', 'hudumika_brand_logo_vertical_light'], ['logoVerticalDark', 'hudumika_brand_logo_vertical_dark']]) {
+        if (data[field]) localStorage.setItem(key, data[field]); else localStorage.removeItem(key);
+      }
       if (data.logoDark) localStorage.setItem('hudumika_brand_logo_dark', data.logoDark);
       if (data.favicon) localStorage.setItem('hudumika_brand_favicon', data.favicon);
       if (data.loginHeadline) localStorage.setItem('hudumika_login_headline', data.loginHeadline);
@@ -288,6 +295,8 @@ export function useBranding(platformOnly = false): BrandingState {
         put('hudumika_tenant_name', t.workspaceName);
         put('hudumika_tenant_logo_light', t.logoLight);
         put('hudumika_tenant_logo_dark', t.logoDark);
+        put('hudumika_tenant_logo_vertical_light', t.logoVerticalLight);
+        put('hudumika_tenant_logo_vertical_dark', t.logoVerticalDark);
         put('hudumika_tenant_favicon', t.favicon);
         put('hudumika_tenant_accent', t.accentColor);
         for (const [appId, cfg] of Object.entries((t.apps ?? {}) as Record<string, { color?: string }>)) {

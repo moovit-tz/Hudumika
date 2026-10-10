@@ -3087,6 +3087,7 @@ export interface TaxCodesTable {
 }
 
 export interface InvoicePaymentsTable {
+  request_key: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   invoice_id: string;
@@ -3558,6 +3559,7 @@ export interface SupplierBillLinesTable {
 }
 
 export interface BillPaymentsTable {
+  request_key: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   bill_id: string;
@@ -5830,6 +5832,7 @@ export interface Database {
   petti_flags: PettiFlagsTable;
   petti_counters: PettiCountersTable;
   accounting_sync_logs: AccountingSyncLogsTable;
+  finance_accounting_outbox: FinanceAccountingOutboxTable;
   accounting_integration_entity_map: AccountingIntegrationEntityMapTable;
   user_totp: UserTotpTable;
   ondi_credentials: OndiCredentialsTable;
@@ -11825,4 +11828,12 @@ export interface ContainerStageHistoryTable {
   notes: string | null;
   recorded_by: string | null;
   recorded_at: Generated<Date>;
+}
+
+export interface FinanceAccountingOutboxTable {
+ id: Generated<string>; tenant_id: string; provider: 'QUICKBOOKS' | 'XERO'; provider_org_id: string;
+ entity_type: 'INVOICE' | 'BILL' | 'INVOICE_PAYMENT' | 'BILL_PAYMENT'; entity_id: string;
+ status: Generated<'PENDING' | 'RUNNING' | 'SUCCESS' | 'RETRY' | 'RECONCILE' | 'FAILED'>;
+ attempts: Generated<number>; next_attempt_at: Generated<Date>; last_error: string | null;
+ created_at: Generated<Date>; updated_at: Generated<Date>;
 }

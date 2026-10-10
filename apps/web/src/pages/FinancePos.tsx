@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { PosAnalytics, PosCashMovementDirection, PosHeldCart, PosPaymentMethod, PosSale, PosShift } from '@hudumika/types';
-import { PageHeader } from '../components/PageHeader.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Icon } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
@@ -30,7 +30,6 @@ const METHODS: { value: PosPaymentMethod; label: string }[] = [
   { value:'CASH', label:'Cash' }, { value:'CARD', label:'Card' }, { value:'MOBILE_MONEY', label:'Mobile money' },
   { value:'BANK', label:'Bank transfer' }, { value:'OTHER', label:'Other' },
 ];
-// Common EAF denominations; filter to those >= total at render time
 const QUICK_DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
 
 const cash = (value:number, currency='TZS') => new Intl.NumberFormat(undefined, { style:'currency', currency, maximumFractionDigits:2 }).format(value);
@@ -73,7 +72,10 @@ export function FinancePos() {
   const [receiptPageSize, setReceiptPageSize] = useState(10);
   const [receiptTotal, setReceiptTotal] = useState(0);
   const [usage, setUsage] = useState<PosUsage|null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
+  /* ── Data loading ── */
   const load = useCallback(async () => {
     const [bootstrap, report, held, registerHistory, posUsage] = await Promise.all([
       apiFetch('/v1/finance/pos/bootstrap'), apiFetch('/v1/finance/pos/analytics'),
@@ -103,8 +105,11 @@ export function FinancePos() {
       .then(r => setAvailability(r as Record<string,number>))
       .catch((e:any) => showAlert(e.message));
   }, [locationId]);
+  useEffect(() => {
+    if (!locationId && data?.locations.length === 1) setLocationId(data.locations[0].id);
+  }, [data, locationId]);
 
-  // Sorted unique categories derived from the product catalogue
+  /* ── Derived state ── */
   const categories = useMemo(() => {
     const seen = new Set<string>();
     const cats: string[] = [];
@@ -137,13 +142,13 @@ export function FinancePos() {
   const stockIssues = locationId ? cart.filter(l => availability[l.id] !== undefined && l.qty > availability[l.id]) : [];
   const canRefund = ['SUPER_ADMIN','ADMIN','TENANT_ADMIN','MANAGER','FINANCE'].includes(user?.role ?? '');
   const quotaExhausted = usage?.limit != null && usage.used >= usage.limit;
-
-  // Quick tender: denominations at or above the current cart total, up to 4 buttons
   const quickTenders = useMemo(
     () => QUICK_DENOMINATIONS.filter(d => d >= totals.total).slice(0, 4),
     [totals.total],
   );
+  const cartItemCount = cart.reduce((n, l) => n + l.qty, 0);
 
+  /* ── Cart actions ── */
   function addProduct(product:Product) {
     if (cart.length && cart[0].currency !== product.currency) {
       showAlert('A single sale cannot mix currencies. Complete or clear the current cart first.'); return;
@@ -204,6 +209,7 @@ export function FinancePos() {
 
   function clearCart() { setCart([]); setCustomerId(''); setLocationId(''); setSaleNotes(''); }
 
+  /* ── Shift / hold / checkout / refund — unchanged logic ── */
   async function holdCart() {
     if (!cart.length || !holdLabel.trim()) return;
     setSaving(true);
@@ -225,7 +231,7 @@ export function FinancePos() {
         const product = data?.products.find(p => p.id === item.product_id);
         return product ? { ...product, qty:item.qty, discount:item.discount, discountMode:'amount' as CartLine['discountMode'] } : null;
       });
-      if (mapped.some(l => l === null)) throw new Error('One or more products in this held cart are no longer available. The cart was kept on hold.');
+      if (mapped.some(l => l === null)) throw new Error('One or more products in this held cart are no longer available.');
       const restored = mapped.filter(Boolean) as CartLine[];
       await apiFetch(`/v1/finance/pos/holds/${held.id}`, { method:'DELETE' });
       setCart(restored); setCustomerId(held.customer_id ?? ''); setLocationId(held.inventory_location_id ?? ''); setHoldDialog(null); await load();
@@ -309,264 +315,361 @@ export function FinancePos() {
     } catch (e:any) { showAlert(e.message); } finally { setSaving(false); }
   }
 
-  if (!data) return <SectionLoading label="Loading point of sale…" />;
+  /* ── Keyboard shortcuts ── */
+  useEffect(() => {
+    function onTerminalKey(event:KeyboardEvent) {
+      if (event.key === 'F2') { event.preventDefault(); searchRef.current?.focus(); searchRef.current?.select(); }
+      else if (event.key === 'F4') { event.preventDefault(); setHoldDialog('list'); }
+      else if (event.key === 'F8' && totals.total > 0) {
+        event.preventDefault();
+        const target = payments.find(p => p.method === 'CASH') ?? payments[0];
+        updatePayment(target.id, { method:'CASH', amount:totals.total.toFixed(2) });
+      } else if (event.key === 'F9') { event.preventDefault(); setHistoryOpen(true); }
+      else if (event.ctrlKey && event.key === 'Enter' && paymentBalance <= 0.01 && !invalidChange && !saving) {
+        event.preventDefault(); void checkout();
+      }
+    }
+    window.addEventListener('keydown', onTerminalKey);
+    return () => window.removeEventListener('keydown', onTerminalKey);
+  }, [invalidChange, paymentBalance, payments, saving, totals.total]);
+
+  if (!data) return <SectionLoading label="Loading Point of Sale…" />;
+
+  const sel = data;
 
   return (
-    <div className="pos-page">
-      <PageHeader
-        crumbs={['Finance','Operations']}
-        titlePlain="" titleEm="POS"
-        subtitle="Sell from the shared catalogue, collect payment and post the transaction automatically."
-        actions={<>
-          <Button variant="outline" onClick={() => setShiftHistoryOpen(true)}><Icon name="receipt" size={15}/>Registers</Button>
-          {!readOnly && <>
-            <Button variant="outline" onClick={() => setHoldDialog('list')}><Icon name="clock" size={15}/>Held carts{holds.length > 0 && <Badge variant="brand">{holds.length}</Badge>}</Button>
-            {data.shift && <Button variant="outline" onClick={() => setCashMovementOpen(true)}><Icon name="coins" size={15}/>Cash movement</Button>}
-            {data.shift
-              ? <Button variant="outline" onClick={() => setShiftDialog('close')}><Icon name="lock" size={15}/>Close register</Button>
-              : <Button onClick={() => setShiftDialog('open')}><Icon name="unlock" size={15}/>Open register</Button>}
-          </>}
-        </>}
-      />
+    <div className="pos-terminal">
 
-      <div className="pos-statusbar">
-        <div>
-          <span className={`pos-statusdot ${data.shift ? 'is-open' : ''}`}/>
-          <strong>{data.shift ? 'Register open' : 'Register closed'}</strong>
-          {data.shift && <span>Since {new Date(data.shift.opened_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>}
+      {/* ═══ Top Toolbar ═══ */}
+      <div className="pos-toolbar">
+        <div className="pos-toolbar-brand">
+          <Icon name="shoppingCart" size={18} />
+          <span>POS Terminal</span>
         </div>
-        <div>
-          {data.shift && <>
-            <span>{data.shift.sales_count ?? 0} shift sales</span>
-            <strong>{cash(data.shift.sales_total ?? 0, currency)}</strong>
-            {(data.shift.cash_in ?? 0) > 0 && <span>+{cash(data.shift.cash_in ?? 0, currency)} added</span>}
-            {(data.shift.cash_out ?? 0) > 0 && <span>−{cash(data.shift.cash_out ?? 0, currency)} paid out</span>}
-            <span>Expected cash {cash(data.shift.expected_cash ?? 0, currency)}</span>
+
+        <div className={`pos-toolbar-status ${sel.shift ? 'is-open' : 'is-closed'}`}>
+          <span className="pos-toolbar-dot" />
+          {sel.shift ? 'Register open' : 'Register closed'}
+        </div>
+
+        {sel.shift && (
+          <div className="pos-toolbar-info">
+            <span>Since {new Date(sel.shift.opened_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
+            <span className="pos-toolbar-sep" />
+            <span><strong>{sel.shift.sales_count ?? 0}</strong> sales</span>
+            <span className="pos-toolbar-sep" />
+            <strong>{cash(sel.shift.sales_total ?? 0, currency)}</strong>
+            <span className="pos-toolbar-sep" />
+            <span>Expected {cash(sel.shift.expected_cash ?? 0, currency)}</span>
+          </div>
+        )}
+
+        <div className="pos-shortcut-hints">
+          <kbd>F2 Search</kbd>
+          <kbd>F4 Held</kbd>
+          <kbd>F8 Cash</kbd>
+          <kbd>F9 History</kbd>
+          <kbd>Ctrl+↵ Charge</kbd>
+        </div>
+
+        <div className="pos-toolbar-actions">
+          {!readOnly && <>
+            <Tip label="Receipt history"><Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}><Icon name="receipt" size={16}/></Button></Tip>
+            <Tip label="Register history"><Button variant="ghost" size="icon" onClick={() => setShiftHistoryOpen(true)}><Icon name="clock" size={16}/></Button></Tip>
+            {holds.length > 0 && (
+              <Tip label={`${holds.length} held cart${holds.length > 1 ? 's' : ''}`}><Button variant="ghost" size="icon" onClick={() => setHoldDialog('list')}><Icon name="pause" size={16}/><Badge variant="brand" style={{position:'absolute',top:-4,right:-4,minWidth:16,height:16,padding:'0 4px',fontSize:9}}>{holds.length}</Badge></Button></Tip>
+            )}
+            {sel.shift && <Tip label="Cash movement"><Button variant="ghost" size="icon" onClick={() => setCashMovementOpen(true)}><Icon name="coins" size={16}/></Button></Tip>}
+            <span className="pos-toolbar-sep" />
+            {sel.shift
+              ? <Button variant="outline" size="sm" onClick={() => setShiftDialog('close')}><Icon name="lock" size={14}/>Close register</Button>
+              : <Button size="sm" onClick={() => setShiftDialog('open')}><Icon name="unlock" size={14}/>Open register</Button>}
           </>}
-          <span>{usage?.limit == null ? `${usage?.used ?? 0} plan transactions · Unlimited` : `${usage.used} / ${usage.limit} plan transactions`}</span>
         </div>
       </div>
 
-      {analytics && <section className="pos-metrics" aria-label="Today's POS performance">
-        <div className="pos-metric"><span>Today sales</span><strong>{cash(analytics.today.revenue, currency)}</strong><small>{analytics.today.sales_count} transactions</small></div>
-        <div className="pos-metric"><span>Average sale</span><strong>{cash(analytics.today.average_sale, currency)}</strong><small>Per completed receipt</small></div>
-        <div className="pos-metric"><span>Gross margin</span><strong>{cash(analytics.today.margin, currency)}</strong><small>After tax and recorded cost</small></div>
-        <div className="pos-metric"><span>Discounts</span><strong>{cash(analytics.today.discounts, currency)}</strong><small>{analytics.today.revenue ? `${((analytics.today.discounts / analytics.today.revenue) * 100).toFixed(1)}% of revenue` : 'No discounts today'}</small></div>
-      </section>}
+      {/* ═══ Metrics strip ═══ */}
+      {analytics && (
+        <div className="pos-metrics">
+          <div className="pos-metric"><span>Today sales</span><strong>{cash(analytics.today.revenue, currency)}</strong><small>{analytics.today.sales_count} transactions</small></div>
+          <div className="pos-metric"><span>Average sale</span><strong>{cash(analytics.today.average_sale, currency)}</strong><small>Per receipt</small></div>
+          <div className="pos-metric"><span>Gross margin</span><strong>{cash(analytics.today.margin, currency)}</strong><small>After tax &amp; cost</small></div>
+          <div className="pos-metric"><span>Discounts</span><strong>{cash(analytics.today.discounts, currency)}</strong><small>{analytics.today.revenue ? `${((analytics.today.discounts / analytics.today.revenue) * 100).toFixed(1)}%` : '0%'} of revenue</small></div>
+        </div>
+      )}
 
-      {!readOnly && <div className="pos-workspace">
-        {/* ── Catalogue ── */}
-        <section className="pos-catalog card">
-          <div className="pos-section-head">
-            <div><h2>Catalogue</h2><p>{filtered.length} available items</p></div>
-            <div className="pos-search"><Icon name="search" size={16}/><Input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={handleCatalogueKey} placeholder="Search or scan product code…" /></div>
-          </div>
+      {/* ═══ Main Body: Catalogue + Cart ═══ */}
+      {!readOnly && (
+        <div className="pos-body">
 
-          {categories.length > 0 && (
-            <div className="pos-category-tabs">
-              <button type="button" className={`pos-cat-tab${!selectedCategory ? ' is-active' : ''}`} onClick={() => setSelectedCategory('')} data-ui-native-button="">All</button>
-              {categories.map(cat => (
-                <button type="button" key={cat} className={`pos-cat-tab${selectedCategory === cat ? ' is-active' : ''}`} onClick={() => setSelectedCategory(cat)} data-ui-native-button="">{cat}</button>
-              ))}
+          {/* ── LEFT: Catalogue ── */}
+          <div className="pos-catalogue">
+            <div className="pos-catalogue-head">
+              <div className="pos-catalogue-search">
+                <Icon name="search" size={16} />
+                <input
+                  ref={searchRef}
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onKeyDown={handleCatalogueKey}
+                  placeholder="Search or scan barcode…"
+                />
+              </div>
+              <span className="pos-catalogue-count">{filtered.length} items</span>
             </div>
-          )}
 
-          <div className="pos-product-grid">
-            {filtered.map(product => {
-              const available = availability[product.id];
-              const unavailable = !!locationId && available !== undefined && available <= 0;
-              return (
-                <button type="button" className={`pos-product${unavailable ? ' is-unavailable' : ''}`} key={product.id} onClick={() => addProduct(product)} disabled={!data.shift || unavailable} data-ui-native-button="">
-                  <div className="pos-product-icon"><Icon name="package" size={18}/></div>
-                  <div className="pos-product-copy"><strong>{product.name}</strong><span>{product.code || product.category || 'Catalogue item'}</span></div>
-                  <b>{cash(product.sale_price, product.currency)}</b>
-                  {locationId && available !== undefined && (
-                    <span className={`pos-stock${available <= 0 ? ' is-out' : available <= 5 ? ' is-low' : ''}`}>
-                      {available <= 0 ? 'Out of stock' : `${available} ${product.unit} available`}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            {!filtered.length && <div className="pos-empty">No catalogue items match this search.</div>}
-          </div>
-        </section>
-
-        {/* ── Cart ── */}
-        <aside className="pos-cart card">
-          <div className="pos-section-head">
-            <div><h2>Current sale</h2><p>{cart.reduce((n, l) => n + l.qty, 0)} items</p></div>
-            {cart.length > 0 && <Button size="xs" variant="ghost" onClick={clearCart}>Clear</Button>}
-          </div>
-
-          <div className="pos-cart-fields">
-            <Combobox
-              options={[{value:'',label:'Walk-in customer'}, ...data.customers.map(c => ({value:c.id,label:c.name,sublabel:c.email ?? undefined}))]}
-              value={customerId} onChange={setCustomerId} placeholder="Walk-in customer" searchPlaceholder="Search customers…" />
-            <Combobox
-              options={[{value:'',label:'No stock deduction'}, ...data.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
-              value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Search stock locations…" />
-            <Input value={saleNotes} onChange={e => setSaleNotes(e.target.value)} placeholder="Add sale note (optional)" />
-          </div>
-
-          <div className="pos-cart-lines">
-            {!cart.length && (
-              <div className="pos-empty">
-                <Icon name="shoppingCart" size={24}/>
-                <strong>Your cart is empty</strong>
-                <span>Select a catalogue item to begin.</span>
+            {categories.length > 0 && (
+              <div className="pos-categories">
+                <button type="button" className="pos-cat-btn" data-active={!selectedCategory || undefined} onClick={() => setSelectedCategory('')} data-ui-native-button="">All</button>
+                {categories.map(cat => (
+                  <button type="button" key={cat} className="pos-cat-btn" data-active={selectedCategory === cat || undefined} onClick={() => setSelectedCategory(cat)} data-ui-native-button="">{cat}</button>
+                ))}
               </div>
             )}
-            {cart.map(line => {
-              const lineMax = line.sale_price * line.qty;
-              // Display value: if pct mode, back-calculate the % from the stored absolute discount
-              const displayValue = line.discountMode === 'pct' && lineMax > 0
-                ? Math.round((line.discount / lineMax) * 10000) / 100
-                : line.discount;
-              return (
-                <div className="pos-cart-line" key={line.id}>
-                  <div><strong>{line.name}</strong><span>{cash(line.sale_price, line.currency)} · {line.tax_rate}% tax</span></div>
-                  <div className="pos-qty">
-                    <button onClick={() => changeQty(line.id, line.qty - 1)} data-ui-native-button="">−</button>
-                    <span>{line.qty}</span>
-                    <button onClick={() => changeQty(line.id, line.qty + 1)} data-ui-native-button="">+</button>
-                  </div>
-                  <div className="pos-line-discount">
-                    <Input
-                      aria-label={`Discount for ${line.name}`}
-                      type="number" min="0"
-                      max={line.discountMode === 'pct' ? 100 : lineMax}
-                      value={displayValue || ''}
-                      onChange={e => changeDiscount(line.id, Number(e.target.value))}
-                    />
-                    <Tip label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'}>
-                      <button type="button" className="pos-discount-mode-btn" aria-label={line.discountMode === 'pct' ? 'Switch to fixed amount' : 'Switch to percentage'} onClick={() => toggleDiscountMode(line.id)} data-ui-native-button="">
-                        {line.discountMode === 'pct' ? '%' : 'TZS'}
-                      </button>
-                    </Tip>
-                  </div>
-                  <b>{cash((line.sale_price * line.qty - line.discount) * (1 + line.tax_rate / 100), line.currency)}</b>
+
+            <div className="pos-grid">
+              {filtered.map(product => {
+                const available = availability[product.id];
+                const unavailable = !!locationId && available !== undefined && available <= 0;
+                return (
+                  <button type="button" className="pos-tile" key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable} data-ui-native-button="">
+                    <div className="pos-tile-top">
+                      <div className="pos-tile-icon"><Icon name="package" size={16}/></div>
+                      <div>
+                        <div className="pos-tile-name">{product.name}</div>
+                        <div className="pos-tile-code">{product.code || product.category || '—'}</div>
+                      </div>
+                    </div>
+                    <div className="pos-tile-price">{cash(product.sale_price, product.currency)}</div>
+                    {locationId && available !== undefined && (
+                      <span className={`pos-tile-stock ${available <= 0 ? 'out' : available <= 5 ? 'low' : 'in'}`}>
+                        {available <= 0 ? 'Out of stock' : `${available} ${product.unit}`}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {!filtered.length && (
+                <div className="pos-grid-empty">
+                  <Icon name="search" size={28} />
+                  <strong>No items found</strong>
+                  <span>Try a different search or category.</span>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="pos-totals">
-            <div><span>Subtotal</span><b>{cash(totals.subtotal, currency)}</b></div>
-            <div><span>Discount</span><b>− {cash(totals.discount, currency)}</b></div>
-            <div><span>Tax</span><b>{cash(totals.tax, currency)}</b></div>
-            <div className="pos-grand"><span>Total</span><b>{cash(totals.total, currency)}</b></div>
-          </div>
-
-          {stockIssues.length > 0 && (
-            <div className="pos-stock-warning"><Icon name="warning" size={15}/><span>{stockIssues.map(l => l.name).join(', ')} exceeds availability at the selected location.</span></div>
-          )}
-
-          <div className="pos-payments">
-            <div className="pos-payment-head"><strong>Payments</strong><Button size="xs" variant="ghost" onClick={addPayment}><Icon name="plus" size={14}/>Split payment</Button></div>
-            {payments.map((payment, index) => (
-              <div className="pos-payment-wrap" key={payment.id}>
-                <div className="pos-payment">
-                  <Select value={payment.method} onValueChange={value => updatePayment(payment.id, { method:value as PosPaymentMethod })}>
-                    <SelectTrigger><SelectValue/></SelectTrigger>
-                    <SelectContent>{METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={e => updatePayment(payment.id, { amount:e.target.value })} placeholder={index === 0 ? totals.total.toFixed(2) : 'Amount'} />
-                  <Input value={payment.reference} onChange={e => updatePayment(payment.id, { reference:e.target.value })} placeholder="Reference (optional)" />
-                  {payments.length > 1 && <Button size="icon" variant="ghost" aria-label="Remove payment" onClick={() => removePayment(payment.id)}><Icon name="trash" size={15}/></Button>}
-                </div>
-                {/* Quick cash denominations — only shown for the CASH method when a total exists */}
-                {payment.method === 'CASH' && totals.total > 0 && (
-                  <div className="pos-quick-tender">
-                    <button type="button" className="pos-tender-btn" onClick={() => updatePayment(payment.id, { amount:totals.total.toFixed(2) })} data-ui-native-button="">Exact</button>
-                    {quickTenders.map(d => (
-                      <button type="button" key={d} className="pos-tender-btn" onClick={() => updatePayment(payment.id, { amount:String(d) })} data-ui-native-button="">{fmtDenom(d)}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            <div className={`pos-payment-balance${paymentBalance === 0 && totals.total > 0 ? ' is-balanced' : ''}${invalidChange ? ' is-invalid' : ''}`}>
-              <span>{invalidChange ? 'Add cash tender for change' : paymentBalance > 0 ? 'Remaining' : paymentBalance < 0 ? 'Change due' : 'Fully allocated'}</span>
-              <b>{cash(Math.abs(paymentBalance), currency)}</b>
-              {paymentBalance > 0 && (
-                <button type="button" onClick={() => updatePayment(payments[payments.length - 1].id, { amount:String((Number(payments[payments.length - 1].amount) || 0) + paymentBalance) })} data-ui-native-button="">Pay balance</button>
               )}
             </div>
           </div>
 
-          {quotaExhausted && (
-            <div className="pos-quota-warning"><Icon name="lock" size={15}/><span>Your plan's monthly POS transaction allowance is used. Receipts and register controls remain available.</span></div>
-          )}
+          {/* ── RIGHT: Cart Panel ── */}
+          <div className="pos-cart-panel">
+            <div className="pos-cart-head">
+              <h2>Current sale <span>{cartItemCount} items</span></h2>
+              {cart.length > 0 && <Button size="xs" variant="ghost" onClick={clearCart}>Clear all</Button>}
+            </div>
 
-          <div className="pos-cart-actions">
-            <Button variant="outline" disabled={!cart.length || saving} onClick={() => {
-              setHoldLabel(customerId ? data.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
-              setHoldDialog('save');
-            }}><Icon name="clock" size={15}/>Hold</Button>
-            <Button size="lg" disabled={!data.shift || !cart.length || saving || quotaExhausted || stockIssues.length > 0 || paymentBalance > 0.01 || invalidChange} onClick={checkout}>
-              {saving ? 'Processing…' : `Charge ${cash(totals.total, currency)}`}
-            </Button>
+            <div className="pos-cart-fields">
+              <Combobox
+                options={[{value:'',label:'Walk-in customer'}, ...sel.customers.map(c => ({value:c.id,label:c.name,sublabel:c.email ?? undefined}))]}
+                value={customerId} onChange={setCustomerId} placeholder="Walk-in customer" searchPlaceholder="Search customers…" />
+              <Combobox
+                options={[{value:'',label:'No stock deduction'}, ...sel.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
+                value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Stock location…" />
+              <Input value={saleNotes} onChange={e => setSaleNotes(e.target.value)} placeholder="Sale note (optional)" />
+            </div>
+
+            {/* Line items */}
+            <div className="pos-lines">
+              {!cart.length && (
+                <div className="pos-lines-empty">
+                  <Icon name="shoppingCart" size={32} />
+                  <strong>Empty cart</strong>
+                  <span>Tap a product or scan a barcode to start.</span>
+                </div>
+              )}
+              {cart.map(line => {
+                const lineMax = line.sale_price * line.qty;
+                const displayValue = line.discountMode === 'pct' && lineMax > 0
+                  ? Math.round((line.discount / lineMax) * 10000) / 100
+                  : line.discount;
+                const lineTotal = (line.sale_price * line.qty - line.discount) * (1 + line.tax_rate / 100);
+                return (
+                  <div className="pos-line" key={line.id}>
+                    <div className="pos-line-info">
+                      <strong>{line.name}</strong>
+                      <small>{cash(line.sale_price, line.currency)} × {line.qty}{line.tax_rate > 0 ? ` · ${line.tax_rate}% tax` : ''}</small>
+                    </div>
+                    <div className="pos-line-qty">
+                      <button type="button" onClick={() => changeQty(line.id, line.qty - 1)} data-ui-native-button="">−</button>
+                      <span>{line.qty}</span>
+                      <button type="button" onClick={() => changeQty(line.id, line.qty + 1)} data-ui-native-button="">+</button>
+                    </div>
+                    <div className="pos-line-total">{cash(lineTotal, line.currency)}</div>
+                    {line.discount > 0 && (
+                      <div className="pos-line-discount-row">
+                        <Badge variant="success">−{cash(line.discount, line.currency)}</Badge>
+                        <Tip label={line.discountMode === 'pct' ? 'Switch to fixed' : 'Switch to %'}>
+                          <button type="button" className="pos-line-discount-toggle" onClick={() => toggleDiscountMode(line.id)} data-ui-native-button="">
+                            {line.discountMode === 'pct' ? '%' : currency}
+                          </button>
+                        </Tip>
+                        <Input
+                          type="number" min="0"
+                          max={line.discountMode === 'pct' ? 100 : lineMax}
+                          value={displayValue || ''}
+                          onChange={e => changeDiscount(line.id, Number(e.target.value))}
+                          style={{ width: 72, height: 26, fontSize: 11 }}
+                        />
+                      </div>
+                    )}
+                    {line.discount === 0 && (
+                      <div className="pos-line-discount-row">
+                        <button type="button" className="pos-line-discount-toggle" onClick={() => changeDiscount(line.id, 1)} style={{ fontSize: 10, color: 'var(--ink3)' }} data-ui-native-button="">+ Discount</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Cart Footer: Totals + Payment + Charge ── */}
+            <div className="pos-cart-footer">
+              <div className="pos-totals">
+                <div><span>Subtotal</span><b>{cash(totals.subtotal, currency)}</b></div>
+                {totals.discount > 0 && <div><span>Discount</span><b>−{cash(totals.discount, currency)}</b></div>}
+                {totals.tax > 0 && <div><span>Tax</span><b>{cash(totals.tax, currency)}</b></div>}
+                <div className="pos-total-grand"><span>Total</span><b>{cash(totals.total, currency)}</b></div>
+              </div>
+
+              {stockIssues.length > 0 && (
+                <div className="pos-stock-alert"><Icon name="warning" size={14}/><span>{stockIssues.map(l => l.name).join(', ')} exceeds availability.</span></div>
+              )}
+
+              {/* Payment section */}
+              <div className="pos-pay-section">
+                <div className="pos-pay-head">
+                  <span>Payment</span>
+                  <Button size="xs" variant="ghost" onClick={addPayment}><Icon name="plus" size={12}/>Split</Button>
+                </div>
+                {payments.map((payment, index) => (
+                  <React.Fragment key={payment.id}>
+                    <div className="pos-pay-row">
+                      <Select value={payment.method} onValueChange={value => updatePayment(payment.id, { method:value as PosPaymentMethod })}>
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>{METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={e => updatePayment(payment.id, { amount:e.target.value })} placeholder={index === 0 ? totals.total.toFixed(2) : 'Amount'} />
+                      <Input value={payment.reference} onChange={e => updatePayment(payment.id, { reference:e.target.value })} placeholder="Reference" />
+                      {payments.length > 1 && <Button size="icon" variant="ghost" onClick={() => removePayment(payment.id)}><Icon name="trash" size={14}/></Button>}
+                    </div>
+                    {payment.method === 'CASH' && totals.total > 0 && (
+                      <div className="pos-quick-cash">
+                        <button type="button" className="pos-quick-pill" onClick={() => updatePayment(payment.id, { amount:totals.total.toFixed(2) })} data-ui-native-button="">Exact</button>
+                        {quickTenders.map(d => (
+                          <button type="button" key={d} className="pos-quick-pill" onClick={() => updatePayment(payment.id, { amount:String(d) })} data-ui-native-button="">{fmtDenom(d)}</button>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Balance indicator */}
+              <div className={`pos-pay-balance ${invalidChange ? 'invalid' : paymentBalance > 0 ? 'remaining' : paymentBalance < 0 ? 'overpaid' : totals.total > 0 ? 'balanced' : 'remaining'}`}>
+                <span>{invalidChange ? 'Add cash tender for change' : paymentBalance > 0 ? 'Remaining' : paymentBalance < 0 ? 'Change due' : 'Fully allocated'}</span>
+                <b>{cash(Math.abs(paymentBalance), currency)}</b>
+                {paymentBalance > 0 && (
+                  <button type="button" onClick={() => updatePayment(payments[payments.length - 1].id, { amount:String((Number(payments[payments.length - 1].amount) || 0) + paymentBalance) })} data-ui-native-button="">Pay balance</button>
+                )}
+              </div>
+
+              {quotaExhausted && (
+                <div className="pos-quota-alert"><Icon name="lock" size={14}/><span>Monthly POS transaction allowance is used.</span></div>
+              )}
+
+              {/* Charge row */}
+              <div className="pos-charge-row">
+                <Button variant="outline" disabled={!cart.length || saving} onClick={() => {
+                  setHoldLabel(customerId ? sel.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
+                  setHoldDialog('save');
+                }}><Icon name="pause" size={14}/>Hold</Button>
+                <button
+                  type="button"
+                  className="pos-charge-btn"
+                  disabled={!sel.shift || !cart.length || saving || quotaExhausted || stockIssues.length > 0 || paymentBalance > 0.01 || invalidChange}
+                  onClick={checkout}
+                  data-ui-native-button=""
+                >
+                  {saving ? 'Processing…' : `Charge ${cash(totals.total, currency)}`}
+                </button>
+              </div>
+              {!sel.shift && <p className="pos-register-closed-note">Open the register to start selling.</p>}
+            </div>
           </div>
-          {!data.shift && <p className="pos-register-note">Open the register to start selling.</p>}
-        </aside>
-      </div>}
+        </div>
+      )}
 
-      {/* ── Receipt history ── */}
-      <section className="pos-history card">
-        <div className="pos-section-head pos-history-head">
-          <div><h2>Receipt history</h2><p>Find, review and refund workspace transactions</p></div>
+      {/* ═══ Receipt History Side Panel ═══ */}
+      {historyOpen && <>
+        <div className="pos-history-backdrop" onClick={() => setHistoryOpen(false)} />
+        <div className="pos-history-panel">
+          <div className="pos-history-head">
+            <h2>Receipt history</h2>
+            <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(false)}><Icon name="x" size={18}/></Button>
+          </div>
           <div className="pos-history-filters">
-            <div className="pos-search"><Icon name="search" size={16}/><Input value={receiptSearch} onChange={e => { setReceiptSearch(e.target.value); setReceiptPage(1); }} placeholder="Receipt or customer…" /></div>
+            <div className="pos-history-search">
+              <Icon name="search" size={14} />
+              <input value={receiptSearch} onChange={e => { setReceiptSearch(e.target.value); setReceiptPage(1); }} placeholder="Receipt or customer…" />
+            </div>
             <Select value={receiptStatus} onValueChange={v => { setReceiptStatus(v); setReceiptPage(1); }}>
-              <SelectTrigger aria-label="Receipt status"><SelectValue/></SelectTrigger>
+              <SelectTrigger><SelectValue/></SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All statuses</SelectItem>
+                <SelectItem value="ALL">All</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>
                 <SelectItem value="REFUNDED">Refunded</SelectItem>
-                <SelectItem value="POSTING_FAILED">Posting failed</SelectItem>
+                <SelectItem value="POSTING_FAILED">Failed</SelectItem>
                 <SelectItem value="VOIDED">Voided</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
-        <div className="pos-history-list">
-          {sales.map(sale => (
-            <button type="button" key={sale.id} onClick={() => apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => setReceipt(r as PosSale))} data-ui-native-button="">
-              <span><strong>{sale.sale_number}</strong><small>{sale.customer_name ?? 'Walk-in customer'} · {new Date(sale.sold_at).toLocaleString()}</small></span>
-              <Badge variant={sale.status === 'POSTING_FAILED' || sale.status === 'VOIDED' ? 'destructive' : sale.status === 'REFUNDED' ? 'warning' : 'success'}>{sale.status === 'POSTING_FAILED' ? 'Posting failed' : sale.status}</Badge>
-              <b>{cash(sale.grand_total, sale.currency)}</b>
-            </button>
-          ))}
-          {!sales.length && <div className="pos-empty">No receipts match these filters.</div>}
-        </div>
-        <PaginationBar page={receiptPage} pageSize={receiptPageSize} total={receiptTotal} onPageChange={setReceiptPage} onPageSizeChange={size => { setReceiptPageSize(size); setReceiptPage(1); }} pageSizeOptions={[10,20,50]} itemLabel="receipt" />
-      </section>
-
-      {/* ── Analytics ── */}
-      {analytics && <section className="pos-performance-grid">
-        <div className="card pos-performance">
-          <div className="pos-section-head"><div><h2>Cashier performance</h2><p>Completed sales today</p></div></div>
-          <div className="pos-performance-list">
-            {analytics.cashiers.map((c, i) => (
-              <div key={c.user_id}><span className="pos-rank">{i + 1}</span><span><strong>{c.name}</strong><small>{c.sales_count} sales · Avg {cash(c.average_sale, currency)}</small></span><b>{cash(c.revenue, currency)}</b></div>
+          <div className="pos-history-list">
+            {sales.map(sale => (
+              <button type="button" key={sale.id} className="pos-history-item" onClick={() => { apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => setReceipt(r as PosSale)); setHistoryOpen(false); }} data-ui-native-button="">
+                <span><strong>{sale.sale_number}</strong><small>{sale.customer_name ?? 'Walk-in'} · {new Date(sale.sold_at).toLocaleString()}</small></span>
+                <Badge variant={sale.status === 'POSTING_FAILED' || sale.status === 'VOIDED' ? 'destructive' : sale.status === 'REFUNDED' ? 'warning' : 'success'}>{sale.status === 'POSTING_FAILED' ? 'Failed' : sale.status}</Badge>
+                <b>{cash(sale.grand_total, sale.currency)}</b>
+              </button>
             ))}
-            {!analytics.cashiers.length && <div className="pos-empty">No completed sales today.</div>}
+            {!sales.length && <div className="pos-history-empty">No receipts match these filters.</div>}
           </div>
-        </div>
-        <div className="card pos-performance">
-          <div className="pos-section-head"><div><h2>Payment mix</h2><p>Tenders collected today</p></div></div>
-          <div className="pos-performance-list">
-            {analytics.payments.map(p => (
-              <div key={p.method}><span className="pos-payment-icon"><Icon name={p.method === 'CASH' ? 'coins' : 'creditCard'} size={16}/></span><span><strong>{METHODS.find(m => m.value === p.method)?.label ?? p.method}</strong><small>{p.count} payment entries</small></span><b>{cash(p.amount, currency)}</b></div>
-            ))}
-            {!analytics.payments.length && <div className="pos-empty">No payments collected today.</div>}
+          <div className="pos-history-footer">
+            <PaginationBar page={receiptPage} pageSize={receiptPageSize} total={receiptTotal} onPageChange={setReceiptPage} onPageSizeChange={size => { setReceiptPageSize(size); setReceiptPage(1); }} pageSizeOptions={[10,20,50]} itemLabel="receipt" />
           </div>
+
+          {/* Analytics inside history panel */}
+          {analytics && (
+            <div className="pos-analytics-grid">
+              <div className="pos-analytics-card">
+                <h3>Cashier leaderboard <small>Today</small></h3>
+                {analytics.cashiers.map((c, i) => (
+                  <div key={c.user_id} className="pos-analytics-row"><span className="pos-rank">{i + 1}</span><span><strong>{c.name}</strong><small>{c.sales_count} sales · Avg {cash(c.average_sale, currency)}</small></span><b>{cash(c.revenue, currency)}</b></div>
+                ))}
+                {!analytics.cashiers.length && <div className="pos-history-empty">No sales today.</div>}
+              </div>
+              <div className="pos-analytics-card">
+                <h3>Payment mix <small>Today</small></h3>
+                {analytics.payments.map(p => (
+                  <div key={p.method} className="pos-analytics-row"><span className="pos-pay-icon"><Icon name={p.method === 'CASH' ? 'coins' : 'creditCard'} size={14}/></span><span><strong>{METHODS.find(m => m.value === p.method)?.label ?? p.method}</strong><small>{p.count} entries</small></span><b>{cash(p.amount, currency)}</b></div>
+                ))}
+                {!analytics.payments.length && <div className="pos-history-empty">No payments today.</div>}
+              </div>
+            </div>
+          )}
         </div>
-      </section>}
+      </>}
 
-      {/* ── Dialogs ── */}
+      {/* ═══ Dialogs ═══ */}
 
+      {/* Register history */}
       <Dialog open={shiftHistoryOpen} onOpenChange={setShiftHistoryOpen}>
         <DialogContent size="lg"><DialogHeader><DialogTitle>Register history</DialogTitle></DialogHeader>
         <DialogBody>
@@ -582,38 +685,47 @@ export function FinancePos() {
                 <span className={(shift.variance ?? 0) === 0 ? 'is-even' : (shift.variance ?? 0) < 0 ? 'is-short' : 'is-over'}>{shift.variance == null ? 'Open' : cash(shift.variance, currency)}</span>
               </div>
             ))}
-            {!shifts.length && <div className="pos-empty">No register sessions recorded yet.</div>}
+            {!shifts.length && <div className="pos-history-empty">No register sessions recorded.</div>}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+            <Link to="/finance/products" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="package" size={14}/>Products &amp; stock</Link>
+            <Link to="/customers" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="users" size={14}/>Customers</Link>
+            <Link to="/finance/payments" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="creditCard" size={14}/>Payments</Link>
+            <Link to="/finance/reports/sales" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="barChart2" size={14}/>Sales report</Link>
+            <Link to="/finance/accounts/profit-loss" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="trendingUp" size={14}/>Profit &amp; loss</Link>
           </div>
         </DialogBody>
         <DialogFooter><Button onClick={() => setShiftHistoryOpen(false)}>Done</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Cash movement */}
       <Dialog open={cashMovementOpen} onOpenChange={setCashMovementOpen}>
-        <DialogContent size="sm"><DialogHeader><DialogTitle>Record cash movement</DialogTitle></DialogHeader>
+        <DialogContent size="sm"><DialogHeader><DialogTitle>Cash movement</DialogTitle></DialogHeader>
         <DialogBody>
-          <p className="pos-dialog-help">Record non-sale cash added to or removed from this drawer. The amount updates the expected cash for register reconciliation.</p>
-          <label className="pos-dialog-field"><span>Movement</span>
+          <p className="pos-dialog-help">Record non-sale cash added to or removed from the drawer.</p>
+          <label className="pos-dialog-field"><span>Direction</span>
             <Select value={cashDirection} onValueChange={v => setCashDirection(v as PosCashMovementDirection)}>
               <SelectTrigger><SelectValue/></SelectTrigger>
               <SelectContent><SelectItem value="IN">Cash in</SelectItem><SelectItem value="OUT">Cash out</SelectItem></SelectContent>
             </Select>
           </label>
           <label className="pos-dialog-field"><span>Amount</span><Input type="number" min="0.01" step="0.01" value={cashAmount} onChange={e => setCashAmount(e.target.value)} placeholder="0.00" /></label>
-          <label className="pos-dialog-field"><span>Reason</span><Input value={cashReason} onChange={e => setCashReason(e.target.value)} placeholder={cashDirection === 'IN' ? 'Float top-up or other reason' : 'Petty cash payout or other reason'} /></label>
+          <label className="pos-dialog-field"><span>Reason</span><Input value={cashReason} onChange={e => setCashReason(e.target.value)} placeholder={cashDirection === 'IN' ? 'Float top-up' : 'Petty cash payout'} /></label>
         </DialogBody>
         <DialogFooter>
           <Button variant="outline" onClick={() => setCashMovementOpen(false)}>Cancel</Button>
-          <Button disabled={saving || Number(cashAmount) <= 0 || cashReason.trim().length < 3} onClick={recordCashMovement}>{saving ? 'Recording…' : 'Record movement'}</Button>
+          <Button disabled={saving || Number(cashAmount) <= 0 || cashReason.trim().length < 3} onClick={recordCashMovement}>{saving ? 'Recording…' : 'Record'}</Button>
         </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Hold cart */}
       <Dialog open={holdDialog === 'save'} onOpenChange={open => !open && setHoldDialog(null)}>
         <DialogContent size="sm"><DialogHeader><DialogTitle>Hold current cart</DialogTitle></DialogHeader>
         <DialogBody>
           <label className="pos-dialog-field"><span>Cart label</span><Input autoFocus value={holdLabel} onChange={e => setHoldLabel(e.target.value)} placeholder="Customer, table or reference" /></label>
-          <p className="pos-dialog-help">The basket, discounts, customer, and stock location will remain available to other authorized cashiers.</p>
+          <p className="pos-dialog-help">The basket, discounts and stock location will remain available to other cashiers.</p>
         </DialogBody>
         <DialogFooter>
           <Button variant="outline" onClick={() => setHoldDialog(null)}>Cancel</Button>
@@ -622,25 +734,27 @@ export function FinancePos() {
         </DialogContent>
       </Dialog>
 
+      {/* Held carts list */}
       <Dialog open={holdDialog === 'list'} onOpenChange={open => !open && setHoldDialog(null)}>
         <DialogContent size="md"><DialogHeader><DialogTitle>Held carts</DialogTitle></DialogHeader>
         <DialogBody>
           <div className="pos-hold-list">
             {holds.map(held => (
               <div key={held.id}>
-                <span className="pos-payment-icon"><Icon name="shoppingCart" size={16}/></span>
-                <span><strong>{held.label}</strong><small>{held.items.reduce((s, i) => s + i.qty, 0)} items · {held.customer_name ?? 'Walk-in customer'} · Held by {held.held_by_name}</small><small>{new Date(held.held_at).toLocaleString()}</small></span>
+                <span className="pos-hold-icon"><Icon name="shoppingCart" size={14}/></span>
+                <span><strong>{held.label}</strong><small>{held.items.reduce((s, i) => s + i.qty, 0)} items · {held.customer_name ?? 'Walk-in'} · {held.held_by_name}</small><small>{new Date(held.held_at).toLocaleString()}</small></span>
                 <Button variant="outline" size="sm" disabled={saving || cart.length > 0} onClick={() => restoreHeld(held)}>Restore</Button>
               </div>
             ))}
-            {!holds.length && <div className="pos-empty"><Icon name="clock" size={22}/><strong>No held carts</strong><span>Suspended sales will appear here.</span></div>}
+            {!holds.length && <div className="pos-history-empty" style={{minHeight:140}}><Icon name="pause" size={22}/><strong>No held carts</strong></div>}
           </div>
-          {cart.length > 0 && holds.length > 0 && <p className="pos-dialog-help">Clear or hold the current cart before restoring another one.</p>}
+          {cart.length > 0 && holds.length > 0 && <p className="pos-dialog-help">Clear or hold the current cart first.</p>}
         </DialogBody>
         <DialogFooter><Button onClick={() => setHoldDialog(null)}>Done</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Open/close register */}
       <Dialog open={!!shiftDialog} onOpenChange={open => !open && setShiftDialog(null)}>
         <DialogContent size="sm"><DialogHeader><DialogTitle>{shiftDialog === 'open' ? 'Open register' : 'Close register'}</DialogTitle></DialogHeader>
         <DialogBody>
@@ -650,8 +764,8 @@ export function FinancePos() {
           </label>
           <p className="pos-dialog-help">
             {shiftDialog === 'open'
-              ? 'This creates your cashier session and records the starting cash amount.'
-              : `Expected cash is ${cash(data.shift?.expected_cash ?? 0, currency)} from the opening float and cash sales. Enter the physical drawer count to record the variance.`}
+              ? 'Creates your cashier session and records the starting cash.'
+              : `Expected cash is ${cash(sel.shift?.expected_cash ?? 0, currency)}. Enter the drawer count to record variance.`}
           </p>
         </DialogBody>
         <DialogFooter>
@@ -661,7 +775,7 @@ export function FinancePos() {
         </DialogContent>
       </Dialog>
 
-      {/* Receipt dialog — also the print target */}
+      {/* Receipt */}
       <Dialog open={!!receipt} onOpenChange={open => !open && setReceipt(null)}>
         <DialogContent size="md"><DialogHeader><DialogTitle>Sale receipt</DialogTitle></DialogHeader>
         <DialogBody>
@@ -674,10 +788,9 @@ export function FinancePos() {
                 <h2>{receipt.sale_number}</h2>
                 <p>{new Date(receipt.sold_at).toLocaleString()} · {receipt.customer_name ?? 'Walk-in customer'}</p>
                 {receipt.notes && <p className="pos-receipt-note">{receipt.notes}</p>}
-                {receipt.refund_reason && <p className="pos-refund-reason">Refund reason: {receipt.refund_reason}</p>}
+                {receipt.refund_reason && <p className="pos-refund-reason">Refund: {receipt.refund_reason}</p>}
                 {receipt.posting_error && <p className="pos-posting-error">{receipt.posting_error}</p>}
               </div>
-
               <div className="pos-receipt-lines">
                 {receipt.lines?.map(line => (
                   <div key={line.id}>
@@ -686,14 +799,11 @@ export function FinancePos() {
                   </div>
                 ))}
               </div>
-
               <div className="pos-receipt-subtotals">
                 {receipt.discount_total > 0 && <div><span>Discount</span><b>− {cash(receipt.discount_total, receipt.currency)}</b></div>}
                 {receipt.tax_total > 0 && <div><span>Tax</span><b>{cash(receipt.tax_total, receipt.currency)}</b></div>}
               </div>
-
               <div className="pos-receipt-total"><span>Total</span><b>{cash(receipt.grand_total, receipt.currency)}</b></div>
-
               {receipt.payments && receipt.payments.length > 0 && (
                 <div className="pos-receipt-payments">
                   <p className="pos-receipt-payments-label">Tendered</p>
@@ -712,23 +822,24 @@ export function FinancePos() {
           )}
         </DialogBody>
         <DialogFooter>
-          {!readOnly && canRefund && receipt?.status === 'POSTING_FAILED' && <Button disabled={saving} onClick={retryPosting}><Icon name="refresh" size={15}/>{saving ? 'Retrying…' : 'Retry accounting'}</Button>}
-          {!readOnly && canRefund && receipt?.status === 'COMPLETED' && <Button variant="destructive" onClick={() => { setRefundTarget(receipt); setReceipt(null); }}><Icon name="refresh" size={15}/>Refund sale</Button>}
-          <Button variant="outline" onClick={() => window.print()}><Icon name="fileText" size={15}/>Print receipt</Button>
+          {!readOnly && canRefund && receipt?.status === 'POSTING_FAILED' && <Button disabled={saving} onClick={retryPosting}><Icon name="refresh" size={14}/>{saving ? 'Retrying…' : 'Retry accounting'}</Button>}
+          {!readOnly && canRefund && receipt?.status === 'COMPLETED' && <Button variant="destructive" onClick={() => { setRefundTarget(receipt); setReceipt(null); }}><Icon name="refresh" size={14}/>Refund</Button>}
+          <Button variant="outline" onClick={() => window.print()}><Icon name="fileText" size={14}/>Print</Button>
           <Button onClick={() => setReceipt(null)}>Done</Button>
         </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Refund */}
       <Dialog open={!readOnly && !!refundTarget} onOpenChange={open => !open && setRefundTarget(null)}>
         <DialogContent size="sm"><DialogHeader><DialogTitle>Refund {refundTarget?.sale_number}</DialogTitle></DialogHeader>
         <DialogBody>
-          <p className="pos-dialog-help">This reverses the accounting journal and marks the full sale as refunded. Select a stock location only when the goods were physically returned.</p>
+          <p className="pos-dialog-help">Reverses the accounting journal and marks the sale as refunded.</p>
           <label className="pos-dialog-field"><span>Refund reason</span><Input value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Required audit reason" /></label>
           <label className="pos-dialog-field"><span>Return inventory to</span>
             <Combobox
-              options={[{value:'',label:'Do not return stock'}, ...data.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
-              value={refundLocationId} onChange={setRefundLocationId} placeholder="Do not return stock" searchPlaceholder="Search stock locations…" />
+              options={[{value:'',label:'Do not return stock'}, ...sel.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
+              value={refundLocationId} onChange={setRefundLocationId} placeholder="Do not return stock" searchPlaceholder="Stock locations…" />
           </label>
         </DialogBody>
         <DialogFooter>
@@ -737,6 +848,7 @@ export function FinancePos() {
         </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

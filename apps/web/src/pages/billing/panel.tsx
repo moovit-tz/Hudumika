@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
@@ -8,21 +7,23 @@ import { Badge } from '../../components/ui/badge.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../../components/ui/dropdown-menu.js';
 import { getCompany, subscribeCompany } from '../../data/companyStore.js';
 import { useIsDarkMode } from '../../hooks/useIsDarkMode.js';
-import { useCurrency } from '../../hooks/useCurrency.js';
 import { apiFetch, apiDownload } from '../../lib/api.js';
 import { EntityPicker, PickerItem } from '../../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Button } from '../../components/ui/button.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { showConfirm } from '../../lib/confirm.js';
+import { Input } from '../../components/ui/input.js';
+import { formatAmount } from '../../lib/currency.js';
 import { showAlert } from '../../lib/alert.js';
 import { useFinanceConfiguration } from '../../hooks/useFinanceConfiguration.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import type { Invoice, InvNote, InvTask, InvReminder, InvAuditEntry } from './shared.js';
-import { fmtTZS, fmtUSD, getStatusStyle, invoiceTotals, openPrintWindow } from './shared.js';
-import { ChargeSectionView } from './editor.js';
+import { getStatusVariant, invoiceTotals, openPrintWindow } from './shared.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
+import { InvoiceDocument } from './document.js';
 
 /* ── Invoice detail panel ── */
 type DetailTab = 'invoice' | 'tasks' | 'activity' | 'reminders' | 'notes';
@@ -30,14 +31,203 @@ type DetailTab = 'invoice' | 'tasks' | 'activity' | 'reminders' | 'notes';
 export interface DetailPanelProps {
   inv: Invoice;
   onClose: () => void; onEdit: () => void; onCopy: () => void;
-  onDelete: () => void; onRecordPayment: (amount: number, method: string, date: string) => void;
+  onDelete: () => void; onRecordPayment: (amount: number, method: string, date: string) => Promise<boolean>;
   onSubmitTRA?: () => Promise<void>;
 }
 
-/** Single-step "tag an approver + optional note" form – a Dialog, not a
- *  dedicated page, matching the same precedent SignTemplates.tsx's own
- *  BulkSendModal already established: CLAUDE.md's no-popup-forms rule is
- *  about *multi-step* forms, and this collects exactly one flat request. */
+/* ── Send for Signature dialog ── */
+function SendForSignatureDialog({ invoiceId, invoiceNumber, customerName, customerEmail, onClose }: {
+  invoiceId: string; invoiceNumber: string; customerName: string; customerEmail?: string; onClose: () => void;
+}) {
+  const [recipients, setRecipients] = useState<{ name: string; email: string }[]>([
+    { name: customerName || '', email: customerEmail || '' },
+  ]);
+  const [message, setMessage] = useState(`Please review and sign invoice ${invoiceNumber}.`);
+  const [requireOtp, setRequireOtp] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  function updateRecipient(idx: number, field: 'name' | 'email', value: string) {
+    setRecipients(r => r.map((rec, i) => i === idx ? { ...rec, [field]: value } : rec));
+  }
+  function addRecipient() { setRecipients(r => [...r, { name: '', email: '' }]); }
+  function removeRecipient(idx: number) { setRecipients(r => r.filter((_, i) => i !== idx)); }
+
+  async function submit() {
+    const valid = recipients.filter(r => r.name.trim() && r.email.trim());
+    if (!valid.length) return;
+    setSending(true);
+    try {
+      await apiFetch(`/v1/invoices/${invoiceId}/esign-envelope`, {
+        method: 'POST',
+        body: JSON.stringify({ recipients: valid, message: message.trim() || undefined, require_otp: requireOtp }),
+      });
+      setSent(true);
+    } catch (e: any) {
+      showAlert(e?.message || 'Failed to create the signing envelope', { title: 'Could not send for signature' });
+    } finally { setSending(false); }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => !o && onClose()}>
+      <DialogContent size="md">
+        <DialogHeader><DialogTitle>Send invoice for signature</DialogTitle></DialogHeader>
+        <DialogBody>
+          {sent ? (
+            <div className="space-y-3 py-4">
+              <div className="flex items-center gap-2 text-[var(--green)]">
+                <Icon name="checkCircle" size={20} />
+                <span className="font-semibold">Signing envelope created</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Recipients will receive an email with a link to sign {invoiceNumber}. You can track progress in the Sign app.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-[13px] text-muted-foreground">
+                Create an eSign envelope with the invoice PDF. Recipients will sign electronically via a secure link.
+              </p>
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-muted-foreground">Recipients</label>
+                {recipients.map((r, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input placeholder="Name" value={r.name} onChange={e => updateRecipient(i, 'name', e.target.value)} />
+                    <Input placeholder="Email" type="email" value={r.email} onChange={e => updateRecipient(i, 'email', e.target.value)} />
+                    {recipients.length > 1 && (
+                      <Button type="button" size="icon" variant="ghost" onClick={() => removeRecipient(i)}><Icon name="x" size={14} /></Button>
+                    )}
+                  </div>
+                ))}
+                <Button type="button" size="xs" variant="outline" onClick={addRecipient}>
+                  <Icon name="plus" size={12} /> Add recipient
+                </Button>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Message</label>
+                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3}
+                  className="w-full rounded-[var(--r-sm)] border border-input bg-background text-foreground text-[13px] p-2.5 resize-y focus:outline-none focus:ring-1 focus:ring-ring" />
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={requireOtp} onCheckedChange={v => setRequireOtp(!!v)} />
+                Require SMS/WhatsApp OTP verification
+              </label>
+            </div>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          {sent ? (
+            <Button onClick={onClose}>Done</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose}>Cancel</Button>
+              <Button onClick={submit} disabled={sending || !recipients.some(r => r.name.trim() && r.email.trim())}>
+                {sending ? <><ButtonSpinner /> Sending…</> : 'Send for Signature'}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ── Collect Online Payment dialog ── */
+function CollectOnlineDialog({ invoiceId, invoiceNumber, balance, currency, customerEmail, customerName, onClose }: {
+  invoiceId: string; invoiceNumber: string; balance: number; currency: string;
+  customerEmail?: string; customerName?: string; onClose: () => void;
+}) {
+  const [email, setEmail] = useState(customerEmail || '');
+  const [creating, setCreating] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [gatewayName, setGatewayName] = useState('');
+
+  async function createCheckout() {
+    if (!email.trim()) return;
+    setCreating(true);
+    try {
+      const res = await apiFetch(`/v1/invoices/${invoiceId}/gateway-checkout`, {
+        method: 'POST',
+        body: JSON.stringify({ customer_email: email.trim(), customer_name: customerName || '' }),
+      });
+      setCheckoutUrl(res.checkout_url);
+      setGatewayName(res.gateway);
+    } catch (e: any) {
+      showAlert(e?.message || 'Could not create a checkout link', { title: 'Gateway error' });
+    } finally { setCreating(false); }
+  }
+
+  function copyLink() {
+    if (!checkoutUrl) return;
+    navigator.clipboard.writeText(checkoutUrl).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); });
+  }
+
+  return (
+    <Dialog open onOpenChange={o => !o && onClose()}>
+      <DialogContent size="sm">
+        <DialogHeader><DialogTitle>Collect payment online</DialogTitle></DialogHeader>
+        <DialogBody>
+          {checkoutUrl ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-[var(--green)]">
+                <Icon name="checkCircle" size={18} />
+                <span className="text-sm font-semibold">Checkout link ready</span>
+              </div>
+              <p className="text-[13px] text-muted-foreground">
+                A {gatewayName} checkout page has been created for {formatAmount(balance, currency)}. Share this link with your customer or open it to complete payment.
+              </p>
+              <div className="flex gap-2">
+                <Input value={checkoutUrl} readOnly className="text-xs" />
+                <Tip label={linkCopied ? 'Copied!' : 'Copy link'}>
+                  <Button size="icon" variant="outline" onClick={copyLink}>
+                    <Icon name={linkCopied ? 'check' : 'copy'} size={14} />
+                  </Button>
+                </Tip>
+              </div>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={() => window.open(checkoutUrl!, '_blank')}>
+                  <Icon name="externalLink" size={14} /> Open Checkout
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  const body = encodeURIComponent(`Please complete your payment of ${formatAmount(balance, currency)} for invoice ${invoiceNumber}:\n\n${checkoutUrl}`);
+                  window.open(`mailto:${email}?subject=Payment for ${invoiceNumber}&body=${body}`, '_blank');
+                }}>
+                  <Icon name="mail" size={14} /> Email Link
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-[13px] text-muted-foreground">
+                Generate a hosted payment page for <strong>{invoiceNumber}</strong> ({formatAmount(balance, currency)} due).
+                Your customer pays on the gateway's secure page — no card details touch this platform.
+              </p>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer email</label>
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="customer@example.com" />
+              </div>
+            </div>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          {checkoutUrl ? (
+            <Button variant="outline" onClick={onClose}>Done</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose}>Cancel</Button>
+              <Button onClick={createCheckout} disabled={creating || !email.trim()}>
+                {creating ? <><ButtonSpinner /> Creating…</> : 'Create Checkout Link'}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Single-step "tag an approver + optional note" form */
 function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; onClose: () => void }) {
   const [approver, setApprover] = useState<PickerItem | null>(null);
   const [note, setNote] = useState('');
@@ -65,13 +255,13 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
       <DialogContent className="sm:max-w-105">
         <DialogHeader><DialogTitle>Request stamping</DialogTitle></DialogHeader>
         {sent ? (
-          <>
-            <p style={{ fontSize: 13.5, color: 'var(--ink2)' }}>Your request has been sent – you'll get a notification once it's decided.</p>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Your request has been sent – you'll get a notification once it's decided.</p>
             <Button variant="default" onClick={onClose}>Done</Button>
-          </>
+          </div>
         ) : (
-          <>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 10px' }}>
+          <div className="space-y-4">
+            <p className="text-[13px] text-muted-foreground">
               Your role doesn't have direct stamp access for <strong>{invoiceLabel}</strong>. Tag who should approve it.
             </p>
             <EntityPicker
@@ -82,18 +272,18 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
                 return rows.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
               }}
             />
-            <div style={{ marginTop: 10 }}>
-              <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Note (optional)</label>
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">Note (optional)</label>
               <textarea value={note} onChange={e => setNote(e.target.value)} rows={3}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+                className="w-full rounded-[var(--r-sm)] border border-input bg-background text-foreground text-[13px] p-2.5 resize-y focus:outline-none focus:ring-1 focus:ring-ring" />
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <Button variant="outline" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-              <Button variant="default" onClick={submit} disabled={!approver || sending} style={{ flex: 2 }}>
+            <div className="flex gap-2.5">
+              <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button variant="default" onClick={submit} disabled={!approver || sending} className="flex-[2]">
                 {sending ? 'Sending…' : 'Send Request'}
               </Button>
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -101,7 +291,6 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
 }
 
 export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onRecordPayment, onSubmitTRA, isMobile = false }: DetailPanelProps & { isMobile?: boolean }) {
-  const { fmt } = useCurrency();
   const financeConfiguration = useFinanceConfiguration();
   const businessLine = financeConfiguration.data?.businessLines.find(line => line.id === inv.businessLineId);
   const [co, setCo] = useState(getCompany);
@@ -110,6 +299,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
   const [tab, setTab]                 = useState<DetailTab>('invoice');
   const [showPayment, setShowPayment] = useState(false);
+  const [paymentSaving, setPaymentSaving] = useState(false);
   const [traSubmitting, setTraSubmitting] = useState(false);
   const [traError, setTraError]           = useState<string | null>(null);
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
@@ -123,7 +313,25 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const [reminders, setReminders] = useState<InvReminder[]>([]);
   const [activity, setActivity]   = useState<InvAuditEntry[]>([]);
 
+  const [pdfBusy,setPdfBusy]=useState(false);
+  const [linkBusy,setLinkBusy]=useState(false);
+  const [paymentLink,setPaymentLink]=useState<string|null>(null);
+  const [linkCopied,setLinkCopied]=useState(false);
   const dbId = inv._dbId;
+  async function downloadPdf() {
+    if(!dbId)return;setPdfBusy(true);
+    try {await apiDownload(`/v1/invoices/${dbId}/pdf`,`${inv.id.replace(/[^a-zA-Z0-9_.-]/g,'_')}.pdf`);}
+    catch(e){showAlert(e instanceof Error?e.message:'Could not download PDF.');}finally{setPdfBusy(false);}
+  }
+  async function createPaymentLink() {
+    if(!dbId)return;setLinkBusy(true);
+    try {const link=await apiFetch<{path:string}>(`/v1/invoices/${dbId}/payment-link`,{method:'POST'});setLinkCopied(false);setPaymentLink(new URL(link.path,window.location.origin).href);}
+    catch(e){showAlert(e instanceof Error?e.message:'Could not create payment link.');}finally{setLinkBusy(false);}
+  }
+  async function copyPaymentLink() {
+    try {if(paymentLink){await navigator.clipboard.writeText(paymentLink);setLinkCopied(true);}}
+    catch {showAlert('Copy the link from the field above.');}
+  }
   const navigate = useNavigate();
   function handleIssueCreditNote() {
     if (!dbId) return;
@@ -141,6 +349,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const [stampedFileUrl, setStampedFileUrl] = useState<string | null>(null);
   const [stamping, setStamping] = useState(false);
   const [showRequestStamp, setShowRequestStamp] = useState(false);
+  const [showEsign, setShowEsign] = useState(false);
+  const [showOnlinePayment, setShowOnlinePayment] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState<{ online: boolean; active_gateway: { id: string; sandbox: boolean } | null } | null>(null);
 
   function loadStampStatus() {
     if (!dbId) return;
@@ -161,11 +372,16 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     }
   }
 
+  function loadPaymentOptions() {
+    if (!dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/payment-options`).then(r => setPaymentOptions(r)).catch(() => setPaymentOptions(null));
+  }
+
   useEffect(() => {
     setNotes([]); setTasks([]); setReminders([]); setActivity([]);
-    setStampAllowed(null); setStampedFileUrl(null);
+    setStampAllowed(null); setStampedFileUrl(null); setPaymentOptions(null);
     if (!dbId) return;
-    loadNotes(); loadTasks(); loadReminders(); loadActivity(); loadStampStatus();
+    loadNotes(); loadTasks(); loadReminders(); loadActivity(); loadStampStatus(); loadPaymentOptions();
   }, [dbId]); // eslint-disable-line
 
   /* ── Notes state ── */
@@ -235,22 +451,26 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   function sendEmail() {
     const T = invoiceTotals(inv);
     const body = encodeURIComponent(
-      `Dear ${inv.client},\n\nPlease find attached Invoice ${inv.id} for ${fmtTZS(T.grandTotalTZS)}.\n\nBL/AWB: ${inv.blNumber}\nDue Date: ${inv.dueDate ?? 'Upon receipt'}\n\nKind regards,\n${co.name}`
+      `Dear ${inv.client},\n\nPlease find attached Invoice ${inv.id} for ${formatAmount(T.documentTotal, inv.documentCurrency || 'TZS')}.\n\nBL/AWB: ${inv.blNumber}\nDue Date: ${inv.dueDate ?? 'Upon receipt'}\n\nKind regards,\n${co.name}`
     );
     window.open(`mailto:?subject=Invoice ${inv.id} – ${inv.client}&body=${body}`, '_blank');
   }
 
   const T = invoiceTotals(inv);
-  const due = T.grandTotalTZS - inv.received;
-  const st = getStatusStyle(inv.status);
+  const due = T.documentTotal - inv.received;
+  const paymentDue = T.documentTotal - inv.received;
+  const paymentCurrency = inv.documentCurrency || 'TZS';
+  const st = getStatusVariant(inv.status);
 
-  const qrData = [inv.id, inv.blNumber, `TZS ${Math.round(T.grandTotalTZS).toLocaleString()}`, inv.refCode].join(' | ');
 
-  function submitPayment() {
+  async function submitPayment() {
     const amt = parseFloat(payAmt.replace(/,/g, ''));
-    if (!amt || amt <= 0) return;
-    onRecordPayment(Math.min(amt, due), payMethod, payDate);
-    setShowPayment(false); setPayAmt('');
+    if (!Number.isFinite(amt) || amt <= 0 || paymentSaving) return;
+    if (amt > paymentDue) { showAlert('Payment exceeds the invoice balance. Record an advance separately.'); return; }
+    setPaymentSaving(true);
+    try {
+      if (await onRecordPayment(amt, payMethod, payDate)) { setShowPayment(false); setPayAmt(''); }
+    } finally { setPaymentSaving(false); }
   }
 
   const traFiscalized = inv.traStatus === 'submitted' && inv.traAckCode === 0;
@@ -275,6 +495,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', overflow: 'hidden', minWidth: 0 }}>
+      {paymentLink&&<Dialog open onOpenChange={open=>{if(!open)setPaymentLink(null);}}><DialogContent size="sm"><DialogHeader><DialogTitle>Invoice payment link</DialogTitle></DialogHeader><DialogBody className="space-y-4"><p className="text-sm text-muted-foreground">The customer must sign in to view this invoice and download its PDF. Online payments await Selcom or Azam Pay integration.</p><Input aria-label="Invoice payment link" readOnly value={paymentLink}/></DialogBody><DialogFooter><Button variant="outline" onClick={()=>setPaymentLink(null)}>Close</Button><Button onClick={copyPaymentLink}>{linkCopied?'Copied':'Copy link'}</Button></DialogFooter></DialogContent></Dialog>}
+      {tab !== 'invoice'  && <div className="hidden"><InvoiceDocument inv={inv}/></div>}
 
       {/* Tab bar */}
       <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0 16px', flexShrink: 0 }}>
@@ -308,72 +530,113 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       </div>
 
       {/* Action bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <Badge style={{ background: st.bg, color: st.color }}>{st.label}</Badge>
+      <div className="flex items-center gap-1.5 flex-wrap px-4 py-2 border-b border-border shrink-0">
+        <Badge variant={st.variant as any}>{st.label}</Badge>
+
+        {/* TRA fiscalization */}
         {traFiscalized ? (
-          <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 11, fontWeight: 700, background: 'var(--green-l)', color: 'var(--green)' }}>
-            <Icon name="checkCircle" size={12} color="var(--green)" /> TRA Fiscalized
-          </span>
+          <Tip label={`Verification #: ${inv.traRctvnum}`}>
+            <Badge variant="success"><Icon name="checkCircle" size={12} /> TRA Fiscalized</Badge>
+          </Tip>
         ) : onSubmitTRA ? (
-          <button type="button" onClick={submitToTRA} disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
-            title={
-              inv.status === 'Draft' ? 'Save & Send this invoice first – drafts cannot be fiscalized'
-              : !inv._dbId ? 'This invoice only exists locally and was never saved to the server'
-              : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed – retry')
-              : 'Submit this invoice to TRA EFDMS for fiscalization'
-            }
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
-            {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
-          </button>
+          <Tip label={
+            inv.status === 'Draft' ? 'Save & Send this invoice first – drafts cannot be fiscalized'
+            : !inv._dbId ? 'This invoice only exists locally and was never saved to the server'
+            : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed – retry')
+            : 'Submit this invoice to TRA EFDMS for fiscalization'
+          }>
+            <Button type="button" size="xs" onClick={submitToTRA}
+              disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
+              variant={inv.status === 'Draft' || !inv._dbId ? 'secondary' : 'outline'}
+              className={inv.status === 'Draft' || !inv._dbId ? '' : inv.traStatus === 'failed' ? 'border-[var(--red-l)] bg-[var(--red-l)] text-[var(--red)] hover:bg-[var(--red-l)]' : 'border-[var(--gold-l)] bg-[var(--gold-l)] text-[var(--gold)] hover:bg-[var(--gold-l)]'}>
+              <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} />
+              {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA' : 'Submit to TRA'}
+            </Button>
+          </Tip>
         ) : null}
+
+        {/* Sign & Stamp */}
         {dbId && (
           stampedFileUrl ? (
-            <button type="button" onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}
-              title="Download the company-stamped copy"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--green-l)', color: 'var(--green)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-              <Icon name="checkCircle" size={12} color="var(--green)" /> Stamped
-            </button>
-          ) : stampAllowed === true ? (
-            <button type="button" onClick={handleSignAndStamp} disabled={stamping}
-              title="Apply the company stamp to this invoice"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: stamping ? 'default' : 'pointer', background: 'var(--blue-l)', color: 'var(--blue)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-              <Icon name="stamp" size={12} color="var(--blue)" /> {stamping ? 'Stamping…' : 'Sign & Stamp'}
-            </button>
-          ) : stampAllowed === false ? (
-            <button type="button" onClick={() => setShowRequestStamp(true)}
-              title="Your role doesn't have direct stamp access – tag someone who can approve it"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, cursor: 'pointer', background: 'var(--bg)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-              <Icon name="stamp" size={12} color="var(--ink3)" /> Request Stamping
-            </button>
-          ) : null
+            <Tip label="Download the company-stamped copy">
+              <Button type="button" size="xs" variant="outline"
+                className="border-[var(--green-l)] bg-[var(--green-l)] text-[var(--green)] hover:bg-[var(--green-l)]"
+                onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}>
+                <Icon name="checkCircle" size={12} /> Stamped
+              </Button>
+            </Tip>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" size="xs" variant="outline"
+                  className={stampAllowed === true ? 'border-[var(--blue-l)] bg-[var(--blue-l)] text-[var(--blue)] hover:bg-[var(--blue-l)]' : ''}>
+                  <Icon name="stamp" size={12} /> Sign & Stamp <Icon name="chevronDown" size={10} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {stampAllowed === true ? (
+                  <DropdownMenuItem onClick={handleSignAndStamp} disabled={stamping}>
+                    <Icon name="stamp" size={14} /> {stamping ? 'Stamping…' : 'Apply Company Stamp'}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => setShowRequestStamp(true)}>
+                    <Icon name="stamp" size={14} /> Request Company Stamp
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowEsign(true)} disabled={inv.status === 'Draft'}>
+                  <Icon name="edit" size={14} /> Send for Signature
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/sign/editor?attach_invoice=${dbId}`)}>
+                  <Icon name="externalLink" size={14} /> Open in Sign App
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
         )}
-        <div style={{ flex: 1 }} />
-        <Tip label="Edit"><Button type="button" size="icon" variant="outline" onClick={onEdit} aria-label="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></Button></Tip>
-        <Tip label="Duplicate"><Button type="button" size="icon" variant="outline" onClick={onCopy} aria-label="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></Button></Tip>
+
+        <div className="flex-1" />
+
+        <Tip label="Edit"><Button type="button" size="icon" variant="outline" onClick={onEdit} aria-label="Edit"><Icon name="edit" size={13} /></Button></Tip>
+        <Tip label="Duplicate"><Button type="button" size="icon" variant="outline" onClick={onCopy} aria-label="Duplicate"><Icon name="copy" size={13} /></Button></Tip>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm">More <Icon name="chevronDown" size={10} color="var(--ink3)" /></Button>
+            <Button type="button" variant="outline" size="sm">More <Icon name="chevronDown" size={10} /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} color="var(--ink3)" /> Send by Email</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} color="var(--ink3)" /> View / Print</DropdownMenuItem>
+            <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} /> Send by Email</DropdownMenuItem>
+            <DropdownMenuItem disabled={!dbId||pdfBusy} onClick={downloadPdf}>{pdfBusy?'Downloading…':'Download PDF'}</DropdownMenuItem>
+            <DropdownMenuItem disabled={!dbId||linkBusy||['Draft','Credited'].includes(inv.status)} onClick={createPaymentLink}>{linkBusy?'Creating link…':'Payment link'}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} /> View / Print</DropdownMenuItem>
             <DropdownMenuSeparator />
-            {/* Add Note / Assign Task / Audit Log dropped – each just
-                switched to a tab that's already one click away in the tab
-                bar above, with no other effect. Add Reminder earns its
-                keep by also pre-opening the new-reminder form. */}
-            <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} color="var(--ink3)" /> Add Reminder</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} /> Add Reminder</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleIssueCreditNote}><Icon name="minusCircle" size={14} color="var(--ink3)" /> Issue Credit Note</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleIssueCreditNote}><Icon name="minusCircle" size={14} /> Issue Credit Note</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Icon name="trash" size={14} color="var(--red)" /> Delete Invoice</DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Icon name="trash" size={14} /> Delete Invoice</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button type="button" size="sm" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>
-          <Icon name="dollarSign" size={13} color="hsl(var(--green-foreground))" /> Payment
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" size="sm" className="bg-[var(--green)] text-white hover:bg-[var(--green)]/90">
+              <Icon name="dollarSign" size={13} /> Payment <Icon name="chevronDown" size={10} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => { setShowPayment(true); setPayAmt(String(paymentDue)); }}>
+              <Icon name="edit" size={14} /> Record Manual Payment
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={!dbId || linkBusy || ['Draft', 'Credited'].includes(inv.status)} onClick={createPaymentLink}>
+              <Icon name="link" size={14} /> {linkBusy ? 'Creating…' : 'Generate Payment Link'}
+            </DropdownMenuItem>
+            {paymentOptions?.online && (
+              <DropdownMenuItem disabled={!dbId || ['Draft', 'Paid', 'Credited'].includes(inv.status)} onClick={() => setShowOnlinePayment(true)}>
+                <Icon name="creditCard" size={14} /> Collect Online{paymentOptions.active_gateway?.sandbox ? ' (Sandbox)' : ''}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {traError && (
@@ -384,31 +647,32 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
       {/* Payment form */}
       {showPayment && (
-        <div style={{ borderBottom: '1px solid var(--border)', padding: '12px 20px', background: 'var(--bg)', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Record Payment – {inv.id}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 8 }}>
-            {[['Amount (TZS)', payAmt, (v: string) => setPayAmt(v), 'number', 'var(--font)'],
-              ['Payment Date', payDate, (v: string) => setPayDate(v), 'text', 'var(--font)']].map(([label, val, setter, type]) => (
-              <div key={String(label)}>
-                <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{String(label)}</label>
-                <input type={String(type)} value={String(val)} onChange={e => (setter as (v: string) => void)(e.target.value)}
-                  style={{ width: '100%', padding: '7px 9px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
-              </div>
-            ))}
+        <div className="border-b border-border px-5 py-3 bg-muted shrink-0">
+          <div className="text-xs font-bold text-foreground mb-2.5">Record Payment – {inv.id}</div>
+          <div className={`grid gap-2.5 mb-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-3'}`}>
             <div>
-              <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Method</label>
-              <Select value={payMethod} onValueChange={setPayMethod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <label className="block text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Amount ({paymentCurrency})</label>
+              <Input disabled={paymentSaving} aria-label={`Amount (${paymentCurrency})`} type="number" value={payAmt} onChange={e => setPayAmt(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Payment Date</label>
+              <Input disabled={paymentSaving} aria-label="Payment Date" type="date" value={payDate} onChange={e => setPayDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Method</label>
+              <Select disabled={paymentSaving} value={payMethod} onValueChange={setPayMethod}>
+                <SelectTrigger aria-label="Payment method"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {['Bank Transfer', 'Cash', 'Cheque', 'Mobile Money'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--font)' }}>{fmt(due, 'TZS')}</strong></div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button type="button" onClick={submitPayment} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>Save Payment</Button>
-            <Button type="button" variant="outline" onClick={() => setShowPayment(false)}>Cancel</Button>
+          <div className="text-[11.5px] text-muted-foreground mb-2">Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)' }}>{formatAmount(paymentDue, paymentCurrency)}</strong></div>
+          <div className="flex gap-2">
+            <Button type="button" disabled={paymentSaving} onClick={submitPayment}
+              className="bg-[var(--green)] text-white hover:bg-[var(--green)]/90">Save Payment</Button>
+            <Button type="button" variant="outline" disabled={paymentSaving} onClick={() => setShowPayment(false)}>Cancel</Button>
           </div>
         </div>
       )}
@@ -416,158 +680,25 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       {showRequestStamp && dbId && (
         <RequestStampDialog invoiceLabel={inv.id} onClose={() => setShowRequestStamp(false)} />
       )}
+      {showEsign && dbId && (
+        <SendForSignatureDialog
+          invoiceId={dbId} invoiceNumber={inv.id}
+          customerName={inv.client} customerEmail={undefined}
+          onClose={() => { setShowEsign(false); loadActivity(); }}
+        />
+      )}
+      {showOnlinePayment && dbId && (
+        <CollectOnlineDialog
+          invoiceId={dbId} invoiceNumber={inv.id}
+          balance={paymentDue} currency={paymentCurrency}
+          customerEmail={undefined} customerName={inv.client}
+          onClose={() => setShowOnlinePayment(false)}
+        />
+      )}
 
       {/* Tab content */}
       {tab === 'invoice' ? (
-        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px 28px', fontFamily: 'var(--font)' }}>
-
-          {/* Header: from company ← QR code → bill-to */}
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
-            {/* From */}
-            <div>
-              <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>From</div>
-              {docLogoSrc
-                ? <img src={docLogoSrc} alt={co.name} style={{ height: 40, maxWidth: 140, objectFit: 'contain', marginBottom: 8, display: 'block' }} />
-                : <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>{co.name}</div>
-              }
-              <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.8 }}>
-                {co.address}<br />{co.city}, {co.country}<br />VAT: {co.taxId}
-              </div>
-            </div>
-
-            {/* QR Code – center. Once fiscalized, this must be the TRA verify-portal
-                URL (what a real EFD receipt prints), not an internal reference code. */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: traFiscalized ? 'var(--green-l)' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
-              <QRCodeSVG value={traFiscalized ? inv.traQrUrl! : qrData} size={88} level="M" />
-              <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
-                {traFiscalized ? (
-                  <>
-                    <div style={{ fontWeight: 700, color: 'var(--green)' }}>TRA Verified</div>
-                    <div>{inv.traRctvnum}</div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ fontWeight: 700 }}>Ref: {inv.refCode}</div>
-                    <div>v{inv.version}{inv.status !== 'Draft' ? ' · not fiscalized' : ''}</div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Bill To */}
-            <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
-              <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>Bill To</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)', marginBottom: 4 }}>{inv.client}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.8, marginBottom: 12 }}>
-                {inv.clientAddress.map((l, i) => <React.Fragment key={i}>{l}{i < inv.clientAddress.length - 1 && <br />}</React.Fragment>)}
-              </div>
-              <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>Invoice Details</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isMobile ? 'flex-start' : 'flex-end' }}>
-                <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Invoice #:</span><span style={{ color: 'var(--teal)', fontWeight: 700 }}>{inv.id}</span></div>
-                <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Invoice Date:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{inv.billDate}</span></div>
-                  {inv.dueDate && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Due Date:</span><span style={{ color: inv.status === 'Overdue' ? 'var(--red)' : 'var(--ink)', fontWeight: inv.status === 'Overdue' ? 700 : 600 }}>{inv.dueDate}</span></div>}
-                  <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Agent:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{inv.saleAgent}</span></div>
-                  {businessLine && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Business Line:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{businessLine.name} ({businessLine.code})</span></div>}
-                </div>
-            </div>
-          </div>
-
-          {/* Shipment details strip */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 20, border: '1px solid var(--border)' }}>
-            {[['BL / AWB', inv.blNumber], ['Mode', inv.mode], ['Origin', inv.origin], ['Destination', inv.destination]].map(([label, value]) => (
-              <div key={label}>
-                <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink3)', marginBottom: 3 }}>{label}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{value}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Three charge sections */}
-          <ChargeSectionView title="Clearing Charges – Paid in TZS" color="var(--teal)" currency="TZS" items={T.cl} subTotal={T.sub(T.cl)} taxAmt={T.tax(T.cl)} sectionTotal={T.clearingTotal} />
-          <ChargeSectionView title="Shipping Line Charges – Paid in USD" color="var(--ink)" currency="USD" items={T.sh} subTotal={T.sub(T.sh)} taxAmt={T.tax(T.sh)} sectionTotal={T.shippingTotal} />
-          <ChargeSectionView title="Other Charges – Paid in TZS" color="var(--ink2)" currency="TZS" items={T.ot} subTotal={T.sub(T.ot)} taxAmt={T.tax(T.ot)} sectionTotal={T.otherTotal} />
-
-          {/* Totals */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
-            <div style={{ minWidth: 340 }}>
-              {T.shippingTotal > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4, paddingBottom: 4, borderBottom: '1px dashed var(--border)' }}>
-                  <span>USD {fmtUSD(T.shippingTotal)} × {inv.exchangeRate.toLocaleString()}</span>
-                  <span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(T.shippingTotal * inv.exchangeRate)}</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 800 }}>TOTAL</span>
-                <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--font)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
-              </div>
-              {inv.received > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--green)', marginBottom: 4, paddingLeft: 4 }}>
-                  <span>Less: Received</span><span style={{ fontFamily: 'var(--font)' }}>({fmt(inv.received, 'TZS')})</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: due > 0 ? 'var(--red)' : 'var(--green)', borderTop: '2px solid var(--border)', paddingTop: 8 }}>
-                <span>Amount Due</span>
-                <span style={{ fontFamily: 'var(--font)' }}>{fmt(Math.max(0, due), 'TZS')}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Carbon segment – live from the linked shipment, not a tradeable credit */}
-          {inv.shipmentCarbon && (
-            <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Icon name="globe" size={15} color="var(--green)" strokeWidth={1.75} />
-                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>Carbon Footprint (Estimate)</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16 }}>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString('en')} kg</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Credits saved (est.)</div>
-                </div>
-                {inv.shipmentCarbon.distance_km != null && (
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{inv.shipmentCarbon.distance_km} km</div>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Route distance</div>
-                  </div>
-                )}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 10, fontStyle: 'italic' }}>
-                GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate – not a registry-issued or tradeable carbon credit.
-              </div>
-            </div>
-          )}
-
-          {/* Payment Info */}
-          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 24, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Payment Information</div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>
-              <div>
-                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Bank Name:</span><span>CRDB Bank Plc</span></div>
-                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Account Name:</span><span>Moovit ClearOS Ltd</span></div>
-                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Account No:</span><span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>0150244433200</span></div>
-                <div style={{ display: 'flex', gap: 8 }}><span style={{ minWidth: 100, fontWeight: 600 }}>Swift Code:</span><span style={{ fontFamily: 'var(--font)' }}>CORUTZTZ</span></div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>Pay Online</div>
-                <a href={`https://pay.moovit.co.tz/invoice/${inv.id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--blue)', textDecoration: 'none', fontWeight: 500 }}>
-                  https://pay.moovit.co.tz/invoice/{inv.id}
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Terms */}
-          {inv.terms && (
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 6 }}>Terms &amp; Conditions</div>
-              <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.8 }}>{inv.terms}</div>
-            </div>
-          )}
-        </div>
+        <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6"><InvoiceDocument inv={inv}/></div>
       ) : tab === 'notes' ? (
         <div className="inv-tab-panel">
           <div className="inv-tab-compose">

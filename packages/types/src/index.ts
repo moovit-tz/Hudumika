@@ -30,3 +30,10 @@ export * from './vendor-master.js';
 export * from './finance-tax-preparation.js';
 
 export * from './finance-dashboard.js';
+export * from './field-policy.js';
+
+export * from './finance-accounting-outbox.js';
+
+export * from './document-templates.js';
+
+export * from './invoice-payment-link.js';

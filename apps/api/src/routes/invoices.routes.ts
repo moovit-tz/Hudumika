@@ -1,9 +1,12 @@
+import crypto from 'node:crypto';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
-import { emitDomainEvent } from '../services/domain-events.service.js';
+import { emitDomainEvent, dispatchDomainEvent, type DomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import type { InvoiceListPage } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
+import { invoicePaymentSummary } from '../services/invoice-payment-link.service.js';
 import { renderInvoicePdf } from '../services/invoice-pdf.service.js';
 import { DocumentService } from '../services/document.service.js';
 import { applyStamp, StampAccessDeniedError } from '../services/stamp.service.js';
@@ -11,6 +14,7 @@ import { MinioIntegration } from '../integrations/minio.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { prepareIndustryBilling, attachIndustryInvoice } from '../services/finance-industry-work.service.js';
+import { getActiveGateway, getConfiguredGateways } from '../lib/payment-gateway.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
@@ -39,27 +43,27 @@ const invoiceLineSchema = z.object({
   tax_code_id: z.string().optional(),
 }).passthrough(); // resolveItemTaxCodes/buildInvoiceLines do their own per-line validation — this only guards the shape isn't a non-object.
 const invoiceCreateSchema = z.object({
-  industry_work_id: z.string().uuid().optional(),
+  industry_work_id: z.string().uuid().nullable().optional(),
   items: z.array(invoiceLineSchema).optional(),
-  invoice_number: z.string().max(100).optional(),
-  shipment_ref: z.string().max(100).optional(),
-  customer_id: z.string().uuid().optional(),
+  invoice_number: z.string().max(100).nullable().optional(),
+  shipment_ref: z.string().max(100).nullable().optional(),
+  customer_id: z.string().uuid().nullable().optional(),
   business_line_id: z.string().uuid().nullable().optional(),
   client_name: z.string().max(300).optional(),
   client_address: z.array(z.string()).optional(),
-  bl_number: z.string().max(100).optional(),
-  origin: z.string().max(200).optional(),
-  destination: z.string().max(200).optional(),
+  bl_number: z.string().max(100).nullable().optional(),
+  origin: z.string().max(200).nullable().optional(),
+  destination: z.string().max(200).nullable().optional(),
   mode: z.string().max(30).optional(),
-  bill_date: z.string().optional(),
-  due_date: z.string().optional(),
-  sale_agent: z.string().max(200).optional(),
-  payment_terms: z.string().max(200).optional(),
-  exchange_rate: z.number().positive().optional(),
+  bill_date: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  sale_agent: z.string().max(200).nullable().optional(),
+  payment_terms: z.string().max(200).nullable().optional(),
+  exchange_rate: z.number().positive().nullable().optional(),
   status: z.enum(INVOICE_STATUS).optional(),
-  ref_code: z.string().max(100).optional(),
-  notes: z.string().max(5000).optional(),
-  currency: z.string().max(10).optional(),
+  ref_code: z.string().max(100).nullable().optional(),
+  notes: z.string().max(5000).nullable().optional(),
+  currency: z.string().max(10).nullable().optional(),
   version: z.number().int().positive().optional(),
 });
 const recurringInvoiceSchema = z.object({
@@ -102,7 +106,7 @@ const invoiceReminderPatchSchema = z.object({
 import { requireRole } from '../middleware/rbac.js';
 import { sql, type SqlBool } from 'kysely';
 import { GLService } from '../services/gl.service.js';
-import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
+import { enqueueAccountingSync } from '../services/accounting-outbox.service.js';
 import { generateDueInvoices } from '../services/recurring-documents.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
@@ -115,69 +119,8 @@ import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { fiscaliseInvoice } from '../services/fiscalisation.service.js';
 
-/**
- * An invoice's grand total, expressed in the invoice's own currency.
- *
- * Every line is converted on its own currency against the invoice's, which is
- * the only thing that actually determines whether conversion is needed. This
- * used to be decided by `line_group`: anything tagged 'shipping' was treated
- * as foreign and multiplied by exchange_rate, anything else was assumed to be
- * base currency. That held only because a freight invoice happens to bill its
- * ocean leg under that label, and it is wrong twice over —
- *
- *   * it couples the finance core to a freight-specific grouping, so any other
- *     industry billing in a second currency is mis-totalled by construction;
- *   * there are already 4 USD lines sitting in the 'other' group. They total
- *     correctly today only because both their invoices carry exchange_rate 1.
- *     On a 2650 invoice the same line would be understated 2650-fold.
- *
- * Lines legitimately differ in currency from their invoice — a USD ocean
- * freight line on a TZS invoice is the normal shape of the document — so the
- * line currency stays. What changed is that it is now what gets read.
- */
-export function invoiceGrandTotal(
-  lines: { qty: unknown; rate: unknown; tax_pct: unknown; currency?: string | null }[],
-  invoiceCurrency: string,
-  exchangeRate: number,
-): number {
-  const base = (invoiceCurrency || 'TZS').toUpperCase();
-  const total = lines.reduce((sum, l) => {
-    // Round per-line before accumulating — floating-point drift on
-    // 18% tax (1.1799999…) compounds across many lines otherwise.
-    const lineGross = Math.round(Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100) * 100) / 100;
-    // A line with no currency recorded is in the invoice's currency; that is
-    // what the column's default has always meant.
-    const cur = (l.currency || base).toUpperCase();
-    const converted = cur === base ? lineGross : Math.round(lineGross * exchangeRate * 100) / 100;
-    return sum + converted;
-  }, 0);
-  return Math.round(total * 100) / 100;
-}
-
-/** The same conversion as invoiceGrandTotal, split into its net and tax parts.
- *
- * Both functions must use the same per-line gross, or net+tax drifts from
- * grandTotal. Derive tax as gross-net (not as net*rate) so that rounding
- * on net and on gross never produces a gap. */
-export function invoiceNetAndTax(
-  lines: { qty: unknown; rate: unknown; tax_pct: unknown; currency?: string | null }[],
-  invoiceCurrency: string,
-  exchangeRate: number,
-): { net: number; tax: number } {
-  const base = (invoiceCurrency || 'TZS').toUpperCase();
-  const result = lines.reduce((acc, l) => {
-    const cur = (l.currency || base).toUpperCase();
-    const fx = cur === base ? 1 : exchangeRate;
-    // Gross matches invoiceGrandTotal exactly — same formula, same rounding.
-    const lineGross = Math.round(Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100) * fx * 100) / 100;
-    const lineNet   = Math.round(Number(l.qty) * Number(l.rate) * fx * 100) / 100;
-    const lineTax   = Math.round((lineGross - lineNet) * 100) / 100;
-    acc.net = Math.round((acc.net + lineNet) * 100) / 100;
-    acc.tax = Math.round((acc.tax + lineTax) * 100) / 100;
-    return acc;
-  }, { net: 0, tax: 0 });
-  return result;
-}
+import { invoiceGrandTotal, invoiceNetAndTax } from '../services/invoice-totals.js';
+export { invoiceGrandTotal, invoiceNetAndTax } from '../services/invoice-totals.js';
 
 /**
  * The journal for an issued invoice.
@@ -318,19 +261,39 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/stats', async (request) => {
+  fastify.get('/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx.selectFrom('sales_invoices').selectAll().where('tenant_id', '=', user.tenant_id).execute();
-      const total_invoices = rows.length;
+      const result = await sql<{ status: string; currency: string; count: string; received: string; billed: string; outstanding: string; overdue: string }>`
+        WITH totals AS (
+          SELECT i.status, i.currency, coalesce(i.received, 0) received,
+            coalesce((SELECT round(sum(CASE WHEN coalesce(l.currency, i.currency) = i.currency
+              THEN round(l.qty*l.rate*(1+l.tax_pct/100), 2)
+              ELSE round(round(l.qty*l.rate*(1+l.tax_pct/100), 2)*i.exchange_rate, 2) END),2)
+              FROM sales_invoice_lines l WHERE l.invoice_id=i.id),0) billed
+          FROM sales_invoices i WHERE i.tenant_id=${user.tenant_id}
+        )
+        SELECT status, currency, count(*) count, sum(received) received, sum(billed) billed,
+          sum(greatest(0,billed-received)) outstanding,
+          sum(CASE WHEN status='Overdue' THEN greatest(0,billed-received) ELSE 0 END) overdue
+        FROM totals GROUP BY status,currency
+      `.execute(trx);
       const status_counts: Record<string, number> = {};
+      const currency_totals: Record<string, { count: number; received: number; billed: number; outstanding: number; overdue: number }> = {};
+      let total_invoices = 0;
       let total_received = 0;
-      for (const r of rows) {
-        const s = r.status as string;
-        status_counts[s] = (status_counts[s] || 0) + 1;
-        total_received += Number(r.received) || 0;
+      for (const group of result.rows) {
+        const count = Number(group.count);
+        const received = Number(group.received) || 0;
+        total_invoices += count;
+        total_received += received;
+        status_counts[group.status] = (status_counts[group.status] || 0) + count;
+        const totals = currency_totals[group.currency] ?? { count: 0, received: 0, billed: 0, outstanding: 0, overdue: 0 };
+        totals.count += count; totals.received += received;
+        totals.billed += Number(group.billed); totals.outstanding += Number(group.outstanding); totals.overdue += Number(group.overdue);
+        currency_totals[group.currency] = totals;
       }
-      return { total_invoices, total_received, status_counts };
+      return { total_invoices, total_received, status_counts, currency_totals };
     });
   });
 
@@ -338,11 +301,30 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   // The AR counterpart to bills.routes.ts's recurring_bills — must be
   // registered before GET /:id so 'recurring' isn't read as an invoice id.
 
-  fastify.get('/recurring', async (request) => {
+  fastify.get('/recurring', async (request, reply) => {
     const user = request.user;
+    const parsed = z.object({
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).default(25),
+      search: z.string().max(200).optional(),
+      state: z.enum(['ACTIVE', 'PAUSED', 'ENDED']).optional(),
+      frequency: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']).optional(),
+    }).safeParse(request.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid recurring invoice filters.' });
+    const { page, page_size, search, state, frequency } = parsed.data;
+
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('recurring_invoices').selectAll()
-        .where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').execute();
+      let q = trx.selectFrom('recurring_invoices').where('tenant_id', '=', user.tenant_id);
+      if (state) q = q.where('state', '=', state);
+      if (frequency) q = q.where('frequency', '=', frequency);
+      if (search) {
+        const pattern = `%${search.replace(/[\\%_]/g, c => `\\${c}`)}%`;
+        q = q.where(eb => eb.or([eb('name', 'ilike', pattern), eb('client_name', 'ilike', pattern)]));
+      }
+      if (page === undefined) return q.selectAll().orderBy('created_at', 'desc').execute();
+      const total = Number((await q.select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow()).count);
+      const items = await q.selectAll().orderBy('created_at', 'desc').orderBy('id', 'desc').limit(page_size).offset((page - 1) * page_size).execute();
+      return { items, total, page, page_size, total_pages: Math.ceil(total / page_size) };
     });
   });
 
@@ -360,6 +342,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           throw e;
         }
       }
+      let recDefaultCurrency = 'TZS';
+      if (!body.currency) {
+        const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+        recDefaultCurrency = s?.company?.currency || 'TZS';
+      }
       const rec = await trx.insertInto('recurring_invoices').values({
         tenant_id: user.tenant_id,
         name: body.name || null,
@@ -367,7 +355,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         project_id: body.project_id || null,
         client_name: body.client_name || null,
         frequency: body.frequency || 'MONTHLY',
-        currency: body.currency || 'TZS',
+        currency: body.currency || recDefaultCurrency,
         amount: body.amount ?? 0,
         tax_rate: taxRate,
         tax_code_id: body.tax_code_id || null,
@@ -428,7 +416,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/recurring/:id/generate', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const result = await generateDueInvoices(user.tenant_id, new Date().toISOString().slice(0, 10), id);
+    const result = await generateDueInvoices(user.tenant_id, undefined, id);
     if (result.generated.length === 0 && result.skipped.length > 0) {
       return reply.status(409).send({ error: result.skipped[0].reason });
     }
@@ -441,7 +429,18 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   // GET /v1/invoices
   fastify.get('/', async (request, reply) => {
     const user = request.user;
-    const { status, search, customer_id } = request.query as { status?: string; search?: string; customer_id?: string };
+    const parsed = z.object({
+      invoice_number: z.string().max(100).optional(),
+      status: z.enum(INVOICE_STATUS).optional(), search: z.string().max(200).optional(),
+      customer_id: z.string().uuid().optional(), mode: z.enum(['SEA', 'AIR', 'ROAD']).optional(),
+      date_from: z.string().date().optional(), date_to: z.string().date().optional(),
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).default(25),
+      sort: z.enum(['asc', 'desc']).default('desc'),
+    }).safeParse(request.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid invoice filters or pagination.' });
+    const { invoice_number, status, search, customer_id, mode, date_from, date_to, page, page_size, sort } = parsed.data;
+    if (date_from && date_to && date_from > date_to) return reply.status(400).send({ error: 'Start date must be on or before end date.' });
     // A CUSTOMER-role login is NOT its own customers row — that assumption is
     // what made every customer-scoped read come back empty (migration 207).
     // convention used elsewhere, e.g. shipment ownership checks) — they may
@@ -454,21 +453,32 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       ? (ownCustomerId ?? '00000000-0000-0000-0000-000000000000')
       : customer_id;
     return withTenant(user.tenant_id, async (trx) => {
-      let q = trx.selectFrom('sales_invoices').selectAll().where('tenant_id', '=', user.tenant_id);
-      if (status) q = q.where('status', '=', status);
-      if (scopedCustomerId) q = q.where('customer_id', '=', scopedCustomerId);
-      let rows = await q.orderBy('created_at', 'desc').execute();
+      let filtered = trx.selectFrom('sales_invoices').where('tenant_id', '=', user.tenant_id);
+      if (invoice_number) filtered = filtered.where('invoice_number', '=', invoice_number);
+      if (status) filtered = filtered.where('status', '=', status);
+      if (scopedCustomerId) filtered = filtered.where('customer_id', '=', scopedCustomerId);
+      if (mode) filtered = filtered.where('mode', '=', mode);
+      if (date_from) filtered = filtered.where('bill_date', '>=', date_from);
+      if (date_to) filtered = filtered.where('bill_date', '<=', date_to);
       if (search) {
-        const s = search.toLowerCase();
-        rows = rows.filter(r => (r.client_name || '').toLowerCase().includes(s) || (r.invoice_number || '').toLowerCase().includes(s));
+        const pattern = `%${search.replace(/[\\%_]/g, character => `\\${character}`)}%`;
+        filtered = filtered.where(eb => eb.or([
+          eb('client_name', 'ilike', pattern), eb('invoice_number', 'ilike', pattern), eb('bl_number', 'ilike', pattern),
+        ]));
       }
+      const total = page === undefined ? undefined : Number((await filtered.select(eb => eb.fn.countAll().as('total')).executeTakeFirstOrThrow()).total);
+      let query = page === undefined
+        ? filtered.selectAll().orderBy('created_at', 'desc').orderBy('id', 'desc')
+        : filtered.selectAll().orderBy('invoice_number', sort).orderBy('id', sort);
+      if (page !== undefined) query = query.limit(page_size).offset((page - 1) * page_size);
+      const rows = await query.execute();
 
       // The list view needs each invoice's grand total, which requires its
       // line items — batch-fetch all lines for the visible invoices in one
       // query instead of a per-row lookup.
       const ids = rows.map(r => r.id);
       const lines = ids.length > 0
-        ? await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', 'in', ids).orderBy('sort_order', 'asc').execute()
+        ? await trx.selectFrom('sales_invoice_lines').innerJoin('sales_invoices', 'sales_invoices.id', 'sales_invoice_lines.invoice_id').selectAll('sales_invoice_lines').where('sales_invoices.tenant_id', '=', user.tenant_id).where('sales_invoice_lines.invoice_id', 'in', ids).orderBy('sales_invoice_lines.sort_order', 'asc').execute()
         : [];
       const linesByInvoice = new Map<string, typeof lines>();
       for (const l of lines) {
@@ -477,12 +487,15 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         linesByInvoice.set(l.invoice_id, arr);
       }
 
-      return rows.map(r => ({ ...r, items: linesByInvoice.get(r.id) ?? [] }));
+      const items = rows.map(r => ({ ...r, items: linesByInvoice.get(r.id) ?? [] }));
+      if (page === undefined) return items;
+      const result: InvoiceListPage<(typeof items)[number]> = { items, total: total ?? 0, page, page_size, total_pages: Math.ceil((total ?? 0) / page_size) };
+      return result;
     });
   });
 
   // GET /v1/invoices/report
-  fastify.get('/report', async (request) => {
+  fastify.get('/report', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
     const user = request.user as any;
     const { report_type, date_from, date_to, customer_id, status } = request.query as {
       report_type?: string;
@@ -525,16 +538,24 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             // to the default and a USD invoice is totalled as shillings.
             .select(['id', 'invoice_number', 'exchange_rate', 'currency'])
             .where('tenant_id', '=', user.tenant_id)
+            .where('invoice_number', 'in', invoiceNumbers)
             .execute();
         }
         const invMap: Record<string, any> = {};
         for (const inv of invRows) invMap[inv.invoice_number] = inv;
 
-        data = await Promise.all(rows.map(async (r: any) => {
+        const reportIds = invRows.map(inv => inv.id);
+        const reportLines = reportIds.length ? await trx.selectFrom('sales_invoice_lines')
+          .innerJoin('sales_invoices', 'sales_invoices.id', 'sales_invoice_lines.invoice_id')
+          .selectAll('sales_invoice_lines').where('sales_invoices.tenant_id', '=', user.tenant_id)
+          .where('sales_invoice_lines.invoice_id', 'in', reportIds).execute() : [];
+        const groupedLines = new Map<string, typeof reportLines>();
+        for (const line of reportLines) { const group = groupedLines.get(line.invoice_id) ?? []; group.push(line); groupedLines.set(line.invoice_id, group); }
+        data = rows.map((r: any) => {
           const inv = invMap[r.invoice_number];
           let total_amount = 0;
           if (inv) {
-            const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', inv.id).execute();
+            const lines = groupedLines.get(inv.id) ?? [];
             total_amount = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
           }
           const paid_amount = Number(r.paid_amount) || 0;
@@ -548,7 +569,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             balance: total_amount - paid_amount,
             status: r.status,
           };
-        }));
+        });
 
       } else if (type === 'payables') {
         let q = trx
@@ -703,6 +724,13 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.post('/:id/payment-link', { preHandler: requireRole('SUPER_ADMIN','ADMIN','TENANT_ADMIN','MANAGER','FINANCE','SALES') }, async(request,reply)=>{
+    const parsed=z.string().uuid().safeParse((request.params as {id:string}).id);
+    if(!parsed.success) return reply.status(400).send({error:'Invalid invoice ID.'});
+    if(!await invoicePaymentSummary(request.user.tenant_id,parsed.data)) return reply.status(409).send({error:'Payment links are available for issued invoices only.'});
+    return {path:`/pay/invoice/${parsed.data}`};
+  });
+
   // GET /v1/invoices/:id/pdf — the real invoice PDF (invoice-pdf.service.ts),
   // the one M6 needs to exist before a stamp can be applied to it; also the
   // first genuine server-generated invoice PDF this app has ever had (the
@@ -819,6 +847,14 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           return reply.status(409).send({ error: `Invoice number ${invoiceNumber} is already in use.` });
         }
       }
+
+      let defaultCurrency = 'TZS';
+      if (!body.currency) {
+        const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+        defaultCurrency = s?.company?.currency || 'TZS';
+      }
+
       const [inv] = await trx.insertInto('sales_invoices').values({
         tenant_id: user.tenant_id,
         invoice_number: invoiceNumber,
@@ -830,21 +866,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         bl_number: body.bl_number || null,
         origin: body.origin || null,
         destination: body.destination || null,
-        // Not defaulted to 'SEA' — an invoice that does not say its transport
-        // mode is not thereby a sea freight invoice. See migration 183.
         mode: body.mode || null,
         bill_date: body.bill_date || null,
         due_date: body.due_date || null,
         sale_agent: body.sale_agent || null,
         payment_terms: body.payment_terms || null,
-        // Found while wiring FX revaluation (M7) to real invoices: this
-        // insert never set currency at all, so every invoice silently took
-        // the column's DB default ('TZS') no matter what the request body
-        // asked for — the Zod schema accepted `currency`, but nothing read
-        // it here. A genuinely foreign-currency invoice could never exist
-        // through this route; only the separate recurring-invoice path
-        // (line 297) ever set it correctly.
-        currency: body.currency || 'TZS',
+        currency: body.currency || defaultCurrency,
         exchange_rate: body.exchange_rate || 1,
         status: body.status || 'Draft',
         received: 0,
@@ -881,7 +908,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       // Trigger accounting integration sync in background
       if (inv.status !== 'Draft') {
-        AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
+        await enqueueAccountingSync(trx, user.tenant_id, 'INVOICE', inv.id);
         issuedId = inv.id;
         issuedNumber = inv.invoice_number;
       }
@@ -968,7 +995,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (!resolved.ok) return reply.status(400).send({ error: resolved.error });
 
       const updates: any = { updated_at: new Date() };
-      const fields = ['invoice_number', 'customer_id', 'business_line_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
+      const fields = ['invoice_number', 'customer_id', 'business_line_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'currency', 'status', 'notes', 'ref_code', 'version'];
       const b = body as Record<string, unknown>;
       for (const f of fields) {
         if (b[f] !== undefined) updates[f] = f === 'client_address' ? JSON.stringify(b[f]) : b[f];
@@ -1022,7 +1049,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       // Trigger accounting integration sync in background
       if (inv.status !== 'Draft') {
-        AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
+        await enqueueAccountingSync(trx, user.tenant_id, 'INVOICE', inv.id);
         // Idempotency-keyed on the invoice id (see fileIssuedInvoicePdf) — an
         // edit to an invoice that was already issued does not re-file a
         // second copy, it's a no-op past the first successful filing.
@@ -1122,15 +1149,26 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { amount, method, payment_date, note } = z.object({
-      amount: z.number().positive(),
+      amount: z.number().finite().positive().max(1e12),
       method: z.string().max(50).optional(),
-      payment_date: z.string().optional(),
+      payment_date: z.string().date().optional(),
       note: z.string().max(2000).optional(),
     }).parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
-      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+    const requestKey = z.string().trim().min(1).max(128).optional().parse(request.headers['idempotency-key']);
+    let committedEvent: DomainEvent | undefined;
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
-      await trx.insertInto('invoice_payments').values({
+      if (!['Unpaid', 'Partial', 'Paid', 'Overdue'].includes(inv.status)) return reply.status(409).send({ error: 'Only issued invoices can receive payments.' });
+      if (requestKey) {
+        const prior = await trx.selectFrom('invoice_payments').select(['amount', 'method', 'payment_date', 'note']).where('tenant_id', '=', user.tenant_id).where('invoice_id', '=', id).where('request_key', '=', requestKey).executeTakeFirst();
+        if (prior) {
+          if (Number(prior.amount) !== amount || (prior.method || '') !== (method || '') || (prior.note || '') !== (note || '') || (prior.payment_date ? new Date(prior.payment_date as any).toISOString().slice(0, 10) : null) !== (payment_date || null)) return reply.status(409).send({ error: 'Payment request key was already used with different details.' });
+          return { success: true, received: Number(inv.received), status: inv.status, replayed: true };
+        }
+      }
+      const payment = await trx.insertInto('invoice_payments').values({
+        request_key: requestKey ?? null,
         tenant_id: user.tenant_id,
         invoice_id: id,
         amount: Number(amount),
@@ -1138,15 +1176,15 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         payment_date: payment_date || null,
         note: note || null,
         created_by: user.sub,
-      }).execute();
+      }).returning('id').executeTakeFirstOrThrow();
       // Money received against an invoice — the closing leg of a consignment's
       // journey, and the trigger downstream apps care about.
-      emitDomainEvent(trx, user.tenant_id, {
+      committedEvent = await emitDomainEvent(trx, user.tenant_id, {
         type: 'invoice.payment_recorded', sourceApp: 'finops', entityType: 'invoice', entityId: id,
         payload: { amount: Number(amount), method: method || null, customerId: (inv as any).customer_id ?? null },
-      }).catch(err => console.error('[Finance] payment_recorded emit failed:', err.message));
+      }, { deferDispatch: true });
 
-      const payments = await trx.selectFrom('invoice_payments').select('amount').where('invoice_id', '=', id).execute();
+      const payments = await trx.selectFrom('invoice_payments').select('amount').where('invoice_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
       // Get lines to compute grand total
       const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
@@ -1186,7 +1224,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           ...(clearAmount > 0.01 ? [{ accountCode: '1100', debit: 0, credit: clearAmount, description: `Clear AR: ${inv.invoice_number}`, dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined }] : []),
           ...(excessAmount > 0.01 ? [{ accountCode: '2150', debit: 0, credit: excessAmount, description: `Overpayment credit: ${inv.invoice_number}`, dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined }] : []),
         ],
-      });
+      }, trx);
 
       if (excessAmount > 0.01) {
         await trx.insertInto('customer_credits').values({
@@ -1196,9 +1234,6 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         }).execute();
       }
 
-      // Trigger accounting integration payment sync in background
-      AccountingIntegrationService.syncPayment(user.tenant_id, id, 'INVOICE').catch(console.error);
-
       await trx.insertInto('invoice_activity_log').values({
         tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
         action: 'payment_recorded',
@@ -1206,8 +1241,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         created_at: new Date(),
       }).execute();
 
+      await enqueueAccountingSync(trx, user.tenant_id, 'INVOICE', id);
+      await enqueueAccountingSync(trx, user.tenant_id, 'INVOICE_PAYMENT', payment.id);
       return { success: true, received: totalPaid, status: newStatus, credit_issued: excessAmount };
     });
+    if (committedEvent && !reply.sent) dispatchDomainEvent(user.tenant_id, committedEvent);
+    return result;
   });
 
   // ── POST /v1/invoices/:id/submit-to-tra ──────────────────────────────────────
@@ -1462,6 +1501,216 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         .where('id', '=', reminderId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // eSign envelope creation from invoice
+  // ═══════════════════════════════════════════════════════════════
+  fastify.post('/:id/esign-envelope', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = z.object({
+      recipients: z.array(z.object({
+        name: z.string().min(1).max(200),
+        email: z.string().email().max(200),
+        phone: z.string().max(30).optional(),
+        role_label: z.string().max(100).optional(),
+      })).min(1),
+      message: z.string().max(2000).optional(),
+      require_otp: z.boolean().optional(),
+    }).parse(request.body);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const inv = await trx.selectFrom('sales_invoices').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
+      if (inv.status === 'Draft') return reply.status(409).send({ error: 'Issue the invoice before sending it for signature.' });
+
+      const pdfBytes = await renderInvoicePdf(user.tenant_id, id);
+      const docData = Buffer.from(pdfBytes).toString('base64');
+
+      const [envelope] = await trx.insertInto('sign_envelopes').values({
+        tenant_id: user.tenant_id,
+        created_by: user.sub,
+        title: `Invoice ${inv.invoice_number}`,
+        message: body.message ?? `Please review and sign invoice ${inv.invoice_number}.`,
+        document_data: docData,
+        file_name: `${inv.invoice_number}.pdf`,
+        order_mode: 'sequential',
+        require_otp: body.require_otp ?? false,
+        execution_type: 'NORMAL_SIGN' as any,
+      }).returningAll().execute();
+
+      const recipientRows = await trx.insertInto('sign_recipients').values(
+        body.recipients.map((r, i) => ({
+          envelope_id: envelope.id,
+          tenant_id: user.tenant_id,
+          name: r.name,
+          email: r.email,
+          phone: r.phone?.trim() || null,
+          sign_order: i + 1,
+          role_label: r.role_label || 'Signer',
+          status: 'pending' as any,
+          token: crypto.randomUUID(),
+        }))
+      ).returningAll().execute();
+
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub,
+        actor_name: user.name || user.email, action: 'esign_envelope_created',
+        detail: `eSign envelope created with ${body.recipients.length} recipient(s)`,
+        created_at: new Date(),
+      }).execute();
+
+      return reply.status(201).send({
+        envelope_id: envelope.id,
+        recipients: recipientRows.map(r => ({ id: r.id, name: r.name, email: r.email, status: r.status })),
+      });
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Gateway checkout — create a hosted payment URL
+  // ═══════════════════════════════════════════════════════════════
+  fastify.post('/:id/gateway-checkout', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = z.object({
+      gateway_id: z.string().max(50).optional(),
+      customer_email: z.string().email().max(200),
+      customer_name: z.string().max(200).optional(),
+    }).parse(request.body);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const inv = await trx.selectFrom('sales_invoices').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
+      if (['Draft', 'Paid', 'Credited'].includes(inv.status)) {
+        return reply.status(409).send({ error: 'Only issued, unpaid invoices can receive online payments.' });
+      }
+
+      const gateway = await getActiveGateway(user.tenant_id);
+      if (!gateway) return reply.status(422).send({ error: 'No payment gateway is configured. Set one up in Settings → Finance → Payment Gateways.' });
+
+      const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
+      const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
+      const balance = Math.max(0, grandTotal - Number(inv.received || 0));
+      if (balance <= 0) return reply.status(409).send({ error: 'This invoice has no outstanding balance.' });
+
+      const txRef = `INV-${inv.invoice_number}-${Date.now()}`;
+      const tenant = await trx.selectFrom('tenants').select('name').where('id', '=', user.tenant_id).executeTakeFirst();
+      const redirectUrl = `${request.protocol}://${request.hostname}/pay/invoice/${id}?status=complete`;
+
+      let checkoutUrl: string;
+      switch (gateway.id) {
+        case 'stripe': {
+          if (!gateway.config.secretKey) return reply.status(422).send({ error: 'Stripe secret key not configured.' });
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 15_000);
+          try {
+            const params = new URLSearchParams({
+              'payment_method_types[0]': 'card',
+              'line_items[0][price_data][currency]': inv.currency.toLowerCase(),
+              'line_items[0][price_data][unit_amount]': String(Math.round(balance * 100)),
+              'line_items[0][price_data][product_data][name]': `Invoice ${inv.invoice_number}`,
+              mode: 'payment',
+              success_url: redirectUrl,
+              cancel_url: redirectUrl.replace('status=complete', 'status=cancelled'),
+              'metadata[invoice_id]': id,
+              'metadata[tenant_id]': user.tenant_id,
+              'metadata[tx_ref]': txRef,
+              customer_email: body.customer_email,
+            });
+            const res = await fetch(`https://api.stripe.com/v1/checkout/sessions`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${gateway.config.secretKey}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params.toString(),
+              signal: ctrl.signal,
+            });
+            const session = await res.json();
+            if (!res.ok) throw new Error(session?.error?.message || `Stripe returned ${res.status}`);
+            checkoutUrl = session.url;
+          } finally { clearTimeout(timer); }
+          break;
+        }
+        case 'flutterwave': {
+          const key = gateway.config.secretKey || gateway.config.apiKey;
+          if (!key) return reply.status(422).send({ error: 'Flutterwave secret key not configured.' });
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 15_000);
+          try {
+            const res = await fetch('https://api.flutterwave.com/v3/payments', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tx_ref: txRef, amount: balance, currency: inv.currency,
+                redirect_url: redirectUrl,
+                customer: { email: body.customer_email, name: body.customer_name || inv.client_name || '' },
+                customizations: { title: `Invoice ${inv.invoice_number}`, description: `Payment for invoice ${inv.invoice_number} – ${tenant?.name || ''}` },
+                meta: { invoice_id: id, tenant_id: user.tenant_id },
+              }),
+              signal: ctrl.signal,
+            });
+            const data = await res.json();
+            if (data?.status !== 'success' || !data?.data?.link) throw new Error(data?.message || `Flutterwave returned ${res.status}`);
+            checkoutUrl = data.data.link;
+          } finally { clearTimeout(timer); }
+          break;
+        }
+        case 'paystack': {
+          const key = gateway.config.secretKey;
+          if (!key) return reply.status(422).send({ error: 'Paystack secret key not configured.' });
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 15_000);
+          try {
+            const res = await fetch('https://api.paystack.co/transaction/initialize', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: body.customer_email,
+                amount: Math.round(balance * 100),
+                currency: inv.currency,
+                reference: txRef,
+                callback_url: redirectUrl,
+                metadata: { invoice_id: id, tenant_id: user.tenant_id, invoice_number: inv.invoice_number },
+              }),
+              signal: ctrl.signal,
+            });
+            const data = await res.json();
+            if (!data?.status || !data?.data?.authorization_url) throw new Error(data?.message || `Paystack returned ${res.status}`);
+            checkoutUrl = data.data.authorization_url;
+          } finally { clearTimeout(timer); }
+          break;
+        }
+        default:
+          return reply.status(422).send({ error: `Online checkout is not yet available for the "${gateway.id}" gateway. Supported: Stripe, Flutterwave, Paystack.` });
+      }
+
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub,
+        actor_name: user.name || user.email, action: 'gateway_checkout_created',
+        detail: `${gateway.id} checkout link created for ${inv.currency} ${balance.toLocaleString()}`,
+        created_at: new Date(),
+      }).execute();
+
+      return { checkout_url: checkoutUrl, gateway: gateway.id, tx_ref: txRef, amount: balance, currency: inv.currency };
+    });
+  });
+
+  // GET /v1/invoices/:id/payment-options — what's available for this invoice
+  fastify.get('/:id/payment-options', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const gateways = await getConfiguredGateways(user.tenant_id);
+    const activeGateway = await getActiveGateway(user.tenant_id);
+    const enabledGateways = Object.entries(gateways).filter(([, v]) => v.enabled).map(([k, v]) => ({ id: k, sandbox: v.sandbox }));
+    return {
+      manual: true,
+      payment_link: `/pay/invoice/${id}`,
+      online: enabledGateways.length > 0,
+      active_gateway: activeGateway ? { id: activeGateway.id, sandbox: activeGateway.sandbox } : null,
+      gateways: enabledGateways,
+    };
   });
 
   // ═══════════════════════════════════════════════════════════════

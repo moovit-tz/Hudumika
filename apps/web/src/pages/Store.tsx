@@ -12,6 +12,7 @@ import { FilterBar, FilterBarLeft, FilterBarRight, FilterBarGroup, FilterBarPill
 import { Tip } from '../components/ui/tooltip.js';
 import { StoreEmailTemplatesManager } from './StoreEmailTemplatesManager.js';
 import './Store.css';
+import { StoreDocumentTemplates } from './StoreDocumentTemplates.js';
 
 interface AddonApp {
   id: string;
@@ -274,6 +275,8 @@ export const Store: React.FC = () => {
   }
 
   const categoryMeta = CATEGORY_META[activeCategory] ?? CATEGORY_META.all;
+
+  if (activeCategory === 'document-templates') return <StoreDocumentTemplates />;
 
   if (activeCategory === 'email-templates') {
     return <StoreEmailTemplatesManager />;

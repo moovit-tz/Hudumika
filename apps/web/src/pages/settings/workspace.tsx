@@ -23,7 +23,6 @@ import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { FeatureToggleRow } from '../../components/ui/list-item-row.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { EntityPicker } from '../../components/EntityPicker.js';
-import { Button } from '../../components/ui/button.js';
 import { Switch } from '../../components/ui/switch.js';
 import { LauncherAppSvg, LAUNCHER_APPS } from '../../components/LauncherApps.js';
 import { SignaturePad } from '../../components/SignaturePad.js';
@@ -51,6 +50,9 @@ export const CompanySection: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(co.logoUrl);
   const [logoUrlDark, setLogoUrlDark] = useState<string | null>(co.logoUrlDark);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(co.faviconUrl);
+  const [logoVerticalLight, setLogoVerticalLight] = useState<string | null>(co.logoVerticalLight);
+  const [logoVerticalDark, setLogoVerticalDark] = useState<string | null>(co.logoVerticalDark);
+  const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
 
   // organization_id lives on the real tenants row, not the tenant_settings
@@ -106,16 +108,17 @@ export const CompanySection: React.FC = () => {
 
   async function handleSave() {
     setSaving(true);
-    setCompany({ name: f.name, email: f.email, phone: f.phone, website: f.website, taxId: f.vat, address: f.address, city: f.city, tagline: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, faviconUrl });
-    try { await apiSave('company', { name: f.name, email: f.email, phone: f.phone, website: f.website, vat: f.vat, address: f.address, city: f.city, state: f.state, zip: f.zip, country: f.country, desc: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, faviconUrl, organizationId: linkedOrg?.id ?? null }); } catch {}
-    // Same logo/favicon, pushed to the in-app UI branding store too — one
-    // upload here is now the only place either gets set. Empty string clears
-    // an override and falls back to the platform default, same as
-    // pushTenantBranding's own contract, which is why logoUrl/faviconUrl are
-    // coerced to '' rather than omitted when unset. logoDark was already a
-    // supported field on that endpoint (TENANT_BRANDING_FIELDS in
-    // settings.routes.ts) — nothing on this page ever sent it until now.
-    try { await pushTenantBranding({ workspaceName: workspaceName.trim(), logoLight: logoUrl ?? '', logoDark: logoUrlDark ?? '', favicon: faviconUrl ?? '', accentColor: accentColor.trim() }); } catch {}
+    setSaved(false);
+    setSaveError('');
+    try {
+      await apiSave('company', { ...f, vat: f.vat, logoUrl, logoUrlDark, logoVerticalLight, logoVerticalDark, faviconUrl, organizationId: linkedOrg?.id ?? null });
+      await pushTenantBranding({ workspaceName: workspaceName.trim(), logoLight: logoUrl ?? '', logoDark: logoUrlDark ?? '', logoVerticalLight: logoVerticalLight ?? '', logoVerticalDark: logoVerticalDark ?? '', favicon: faviconUrl ?? '', accentColor: accentColor.trim() });
+      setCompany({ name: f.name, email: f.email, phone: f.phone, website: f.website, taxId: f.vat, address: f.address, city: f.city, tagline: f.desc, businessType: f.businessType, contactPerson: f.contactPerson, logoUrl, logoUrlDark, logoVerticalLight, logoVerticalDark, faviconUrl }, { persist: false });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Branding could not be saved. Please retry.');
+      setSaving(false);
+      return;
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -213,6 +216,35 @@ export const CompanySection: React.FC = () => {
             <input type="file" accept="image/*" className="hidden" onChange={handleLogoDarkChange} />
           </label>
         </Field>
+        {([
+          { label: 'Vertical Logo (Light)', value: logoVerticalLight, set: setLogoVerticalLight, dark: false },
+          { label: 'Vertical Logo (Dark)', value: logoVerticalDark, set: setLogoVerticalDark, dark: true },
+        ] as const).map(slot => (
+          <Field key={slot.label} label={slot.label} hint="Portrait or stacked logo for document templates. PNG, JPG or SVG · max 2 MB." full>
+            <label className={`s-upload${slot.value ? ' s-upload--on' : ''}`}>
+              {slot.value
+                ? slot.dark
+                  ? <div className="s-upload-preview-dark-wrap"><img src={slot.value} alt={slot.label} className="s-upload-preview s-upload-preview--vert" /></div>
+                  : <img src={slot.value} alt={slot.label} className="s-upload-preview s-upload-preview--vert" />
+                : <div className="s-upload-ph s-upload-ph--vert">VERT</div>
+              }
+              <div className="s-upload-info">
+                <div className={`s-upload-lbl${slot.value ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{slot.value ? 'Vertical logo uploaded · click to change' : 'Click to upload vertical logo'}</div>
+                <div className="s-upload-hint">PNG, SVG or JPG · max 2 MB</div>
+              </div>
+              {slot.value && (
+                <Tip label={`Remove ${slot.label.toLowerCase()}`}><button type="button" aria-label={`Remove ${slot.label.toLowerCase()}`} onClick={e => { e.preventDefault(); slot.set(null); }} className="s-upload-rm" data-ui-native-button="">
+                  <Icon name="x" size={13} color="var(--red)" />
+                </button></Tip>
+              )}
+              <input type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden" onChange={e => {
+                const file = e.target.files?.[0]; if (!file) return;
+                if (file.size > 2 * 1024 * 1024) { setSaveError('Choose a logo smaller than 2 MB.'); return; }
+                const reader = new FileReader(); reader.onload = () => slot.set(String(reader.result)); reader.readAsDataURL(file);
+              }} />
+            </label>
+          </Field>
+        ))}
         {co.logoHistory.length > 0 && (
           <Field label="Previous Logos" hint="Click to restore" full>
             <div className="s-logo-hist">
@@ -242,6 +274,7 @@ export const CompanySection: React.FC = () => {
           </label>
         </Field>
       </Card>
+      {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );

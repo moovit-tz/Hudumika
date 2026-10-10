@@ -1,6 +1,7 @@
 import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { isTaxCodeUserError, resolveLineTax } from '../services/tax-code.service.js';
@@ -77,38 +78,54 @@ export async function productRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request) => {
     const user = request.user;
-    const { search, status, customer_id } = request.query as { search?: string; status?: string; customer_id?: string };
+    const params = z.object({
+      page:z.coerce.number().int().min(1).optional(), page_size:z.coerce.number().int().min(1).max(100).default(25),
+      search:z.string().max(300).optional(), status:z.enum(['active','inactive']).optional(),
+      category:z.string().max(100).optional(), customer_id:z.string().uuid().optional(),
+      sort:z.enum(['name','price','category','created']).default('created'), direction:z.enum(['asc','desc']).default('desc'),
+    }).parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
-      let q = trx.selectFrom('products').selectAll().where('tenant_id', '=', user.tenant_id);
-      if (status) q = q.where('status', '=', status);
-      let rows: any[] = await q.orderBy('created_at', 'desc').execute();
-      if (customer_id) {
-        const overrides = await trx.selectFrom('customer_product_prices')
-          .select(['product_id', 'price', 'currency'])
-          .where('tenant_id', '=', user.tenant_id)
-          .where('customer_id', '=', customer_id)
-          .execute();
-        if (overrides.length) {
-          const byProduct = new Map(overrides.map(o => [o.product_id, o]));
-          rows = rows.map(r => {
-            const o = byProduct.get(r.id);
-            if (!o) return r;
-            // Keep the list price visible; the agreed one becomes the effective price.
-            return { ...r, list_price: r.sale_price, sale_price: Number(o.price), currency: o.currency, has_agreed_price: true };
-          });
-        }
+      let q = trx.selectFrom('products').where('products.tenant_id', '=', user.tenant_id);
+      if (params.status) q=q.where('status','=',params.status);
+      if (params.category) q=q.where('category','=',params.category);
+      if (params.search?.trim()) {
+        const term=`%${params.search.trim().replace(/[\\%_]/g, '\\$&')}%`;
+        q=q.where(eb=>eb.or(['name','code','category','description'].map(column=>eb(column as 'name','ilike',term))));
       }
-      if (search) {
-        const s = search.toLowerCase();
-        rows = rows.filter(r =>
-          r.name.toLowerCase().includes(s) ||
-          r.code.toLowerCase().includes(s) ||
-          (r.category || '').toLowerCase().includes(s)
-        );
+      const total=params.page ? Number((await q.select(trx.fn.countAll().as('count')).executeTakeFirstOrThrow()).count) : 0;
+      const column = {name:'name',price:'sale_price',category:'category',created:'created_at'} as const;
+      let pageQuery=q.selectAll().orderBy(column[params.sort],params.direction).orderBy('id','asc');
+      if(params.page) pageQuery=pageQuery.limit(params.page_size).offset((params.page-1)*params.page_size);
+      let rows:any[]=await pageQuery.execute();
+      if(params.customer_id) {
+        const customer=await trx.selectFrom('customers').select('id').where('tenant_id','=',user.tenant_id).where('id','=',params.customer_id).executeTakeFirst();
+        if(!customer) throw Object.assign(new Error('Customer not found'),{statusCode:404});
+        const overrides=await trx.selectFrom('customer_product_prices').select(['product_id','price','currency'])
+          .where('tenant_id','=',user.tenant_id).where('customer_id','=',params.customer_id).where('product_id','in',rows.map(row=>row.id)).execute();
+        const byProduct=new Map(overrides.map(override=>[override.product_id,override]));
+        rows=rows.map(row=>{const override=byProduct.get(row.id);return override?{...row,list_price:row.sale_price,sale_price:Number(override.price),currency:override.currency,has_agreed_price:true}:row;});
       }
-      return rows;
+      return params.page ? {items:rows,total,page:params.page,page_size:params.page_size} : rows;
     });
   });
+
+  fastify.get('/stats',async(request)=>withTenant(request.user.tenant_id,async trx=>{
+    const tenantId=request.user.tenant_id;
+    const counts=await trx.selectFrom('products').where('tenant_id','=',tenantId).select([
+      sql<number>`count(*)::int`.as('total'), sql<number>`count(*) filter(where status='active')::int`.as('active'),
+      sql<number>`count(*) filter(where status='inactive')::int`.as('inactive'),sql<number>`count(*) filter(where type='product')::int`.as('physical'),
+      sql<number>`count(*) filter(where type='product' and track_inventory)::int`.as('tracked'),
+      sql<number>`count(*) filter(where type='product' and track_inventory and stock_quantity>0 and stock_quantity<=low_stock_threshold)::int`.as('low_stock'),
+      sql<number>`count(*) filter(where type='product' and track_inventory and stock_quantity<=0)::int`.as('out_of_stock'),
+      sql<number>`count(*) filter(where sale_price>0)::int`.as('priced'),sql<number>`count(*) filter(where sale_price=0)::int`.as('free'),
+    ]).executeTakeFirstOrThrow();
+    const categories=await trx.selectFrom('products').select(['category',sql<number>`count(*)::int`.as('count')]).where('tenant_id','=',tenantId).groupBy('category').orderBy('count','desc').orderBy('category','asc').execute();
+    const currencies=await trx.selectFrom('products').select(['currency',
+      sql<number>`coalesce(avg(sale_price) filter(where sale_price>0),0)`.as('average_price'),
+      sql<number>`coalesce(sum(stock_quantity*sale_price) filter(where type='product' and track_inventory),0)`.as('inventory_value'),
+    ]).where('tenant_id','=',tenantId).groupBy('currency').orderBy('currency','asc').execute();
+    return {...counts,categories,currencies:currencies.map(row=>({...row,average_price:Number(row.average_price),inventory_value:Number(row.inventory_value)}))};
+  }));
 
   // GET /v1/products/:id
   fastify.get('/:id', async (request, reply) => {

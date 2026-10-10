@@ -10,17 +10,18 @@ import { generateDueBills, generateDueInvoices } from '../services/recurring-doc
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
 export async function runRecurringDocumentsJob(): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
+  // Enumeration is a superset for UTC-12..UTC+14; each tenant selects its own due date.
+  const through = new Date(Date.now() + 24 * 60 * 60_000).toISOString().slice(0, 10);
 
   try {
     const billTenants = await sql<{ tenant_id: string }>`
-      SELECT DISTINCT tenant_id FROM recurring_bills WHERE state = 'ACTIVE' AND next_due <= ${today}
+      SELECT DISTINCT tenant_id FROM recurring_bills WHERE state = 'ACTIVE' AND next_due <= ${through}
     `.execute(dbPlatform);
     let billsGenerated = 0;
     for (const { tenant_id } of billTenants.rows) {
       try {
         if (!(await tenantHasEnabledFinanceCapability(tenant_id, 'finance.core'))) continue;
-        const result = await generateDueBills(tenant_id, today);
+        const result = await generateDueBills(tenant_id);
         billsGenerated += result.generated.length;
       } catch (err) {
         console.error(`❌ Recurring bill generation failed for tenant ${tenant_id}:`, err);
@@ -33,13 +34,13 @@ export async function runRecurringDocumentsJob(): Promise<void> {
 
   try {
     const invoiceTenants = await sql<{ tenant_id: string }>`
-      SELECT DISTINCT tenant_id FROM recurring_invoices WHERE state = 'ACTIVE' AND next_due <= ${today}
+      SELECT DISTINCT tenant_id FROM recurring_invoices WHERE state = 'ACTIVE' AND next_due <= ${through}
     `.execute(dbPlatform);
     let invoicesGenerated = 0;
     for (const { tenant_id } of invoiceTenants.rows) {
       try {
         if (!(await tenantHasEnabledFinanceCapability(tenant_id, 'finance.core'))) continue;
-        const result = await generateDueInvoices(tenant_id, today);
+        const result = await generateDueInvoices(tenant_id);
         invoicesGenerated += result.generated.length;
       } catch (err) {
         console.error(`❌ Recurring invoice generation failed for tenant ${tenant_id}:`, err);

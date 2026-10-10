@@ -8,7 +8,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -95,96 +95,6 @@ function mapApiProduct(p: any): Product {
 
 function mapApiWarehouse(w: any): Warehouse {
   return { id: w.id, name: w.name };
-}
-
-// Real print/PDF export — opens a formatted print window and triggers the
-// browser's native print dialog (the same window.open + window.print()
-// mechanism Billing.tsx and Quotations.tsx already use for invoice/quote
-// PDFs). Replaces a setTimeout that faked a "Downloaded PDF successfully!"
-// toast without ever producing a file.
-function openPOPrintWindow(
-  po: PurchaseOrder, vendor: Supplier | undefined, warehouse: Warehouse | undefined,
-  totals: { subtotal: number; discount: number; tax: number; total: number }, products: Product[]
-) {
-  const co = getCompany();
-  const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
-  const rows = po.items.map(item => {
-    const prod = products.find(p => p.id === item.productId);
-    const base = item.qty * item.unitPrice;
-    const disc = base * (item.discountPct / 100);
-    const taxable = base - disc;
-    const taxAmt = prod ? prod.taxRates.reduce((s, t) => s + taxable * (t.rate / 100), 0) : 0;
-    return `<tr>
-      <td>${prod?.name || 'Item'}<br><span style="color:#9ca3af;font-size:9px">${prod?.sku || ''}</span></td>
-      <td style="text-align:center">${item.qty}</td>
-      <td style="text-align:right;font-family:monospace">${fmt(item.unitPrice)}</td>
-      <td style="text-align:right;font-family:monospace">${item.discountPct > 0 ? `-${fmt(disc)}` : '—'}</td>
-      <td style="text-align:right;font-family:monospace">${fmt(taxAmt)}</td>
-      <td style="text-align:right;font-family:monospace;font-weight:700">${fmt(taxable + taxAmt)}</td>
-    </tr>`;
-  }).join('');
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${po.po_number}</title><style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
-.top{display:flex;justify-content:space-between;margin-bottom:16px}
-.po-no{font-size:18px;font-weight:900;color:#0b1e3a;margin-bottom:4px}
-.from{line-height:1.6;color:#555}.from strong{color:#111;font-size:12px}
-.meta{text-align:right;font-size:11px;color:#6b7280}
-.meta div{display:flex;justify-content:flex-end;gap:12px;margin-bottom:3px}
-.mid{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;margin-bottom:14px}
-.lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:3px}
-table{width:100%;border-collapse:collapse;margin-bottom:12px}
-thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
-th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em}
-td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:top}
-.totals{margin-left:auto;width:260px}
-.totals div{display:flex;justify-content:space-between;padding:4px 8px;font-size:11px}
-.grand{background:#0b1e3a;color:#fff;font-weight:800;font-size:12px;border-radius:6px;margin-top:4px}
-.notes{margin-top:16px;padding-top:10px;border-top:1px solid #e5e7eb}
-.notes h4{font-size:10px;font-weight:700;margin-bottom:4px;color:#374151}
-.notes p{font-size:10px;color:#6b7280;line-height:1.6}
-@media print{body{padding:10px 16px}}
-</style></head><body>
-<div class="top">
-  <div class="from">
-    <div style="font-size:16px;font-weight:800;color:#111;margin-bottom:4px">${co.name}</div>
-    ${co.address}<br>${co.city}, ${co.country}
-  </div>
-  <div class="meta">
-    <div class="po-no" style="justify-content:flex-end">${po.po_number}</div>
-    <div><span>Order Date:</span><strong style="color:#111">${po.orderDate || '—'}</strong></div>
-    <div><span>Due Date:</span><strong style="color:#111">${po.dueDate || '—'}</strong></div>
-    <div><span>Payment Terms:</span><strong style="color:#111">${po.paymentTerms || '—'}</strong></div>
-  </div>
-</div>
-<div class="mid">
-  <div>
-    <div class="lbl">Vendor</div>
-    <div style="font-size:13px;font-weight:700">${vendor?.name || 'Unknown Vendor'}</div>
-    <div style="color:#555">${vendor?.email || ''}</div>
-  </div>
-  <div style="text-align:right">
-    <div class="lbl">Warehouse</div>
-    <div style="font-size:13px;font-weight:700">${warehouse?.name || '—'}</div>
-  </div>
-</div>
-<table><thead><tr>
-  <th>Product</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th>
-  <th style="text-align:right">Discount</th><th style="text-align:right">Tax</th><th style="text-align:right">Total</th>
-</tr></thead><tbody>${rows || '<tr><td colspan="6" style="color:#9ca3af;font-style:italic">No items</td></tr>'}</tbody></table>
-<div class="totals">
-  <div><span>Subtotal</span><span style="font-family:monospace">${fmt(totals.subtotal)}</span></div>
-  ${totals.discount > 0 ? `<div><span>Discount</span><span style="font-family:monospace;color:#dc2626">-${fmt(totals.discount)}</span></div>` : ''}
-  <div><span>Tax</span><span style="font-family:monospace">${fmt(totals.tax)}</span></div>
-  <div class="grand"><span>Total</span><span style="font-family:monospace">${fmt(totals.total)}</span></div>
-</div>
-${po.notes ? `<div class="notes"><h4>NOTES</h4><p>${po.notes}</p></div>` : ''}
-<script>window.onload=function(){window.print()}</script>
-</body></html>`;
-
-  const win = window.open('', '_blank', 'width=860,height=1000');
-  if (win) { win.document.write(html); win.document.close(); }
 }
 
 // Purchase orders are now real rows served by /v1/purchase-orders
@@ -708,14 +618,13 @@ export const PurchaseOrders: React.FC = () => {
 
   // Real PDF export via the browser print dialog (see openPOPrintWindow)
   const [downloading, setDownloading] = useState<string | null>(null);
-  const handleDownloadPDF = (id: string) => {
+  const handleDownloadPDF = async (id: string) => {
     const po = pos.find(p => p.id === id);
     if (!po) return;
     setDownloading(po.po_number);
-    const vendor = allSuppliers.find(s => s.id === po.vendorId);
-    const warehouse = warehouses.find(w => w.id === po.warehouseId);
-    openPOPrintWindow(po, vendor, warehouse, getPOTotals(po.items), products);
-    setDownloading(null);
+    try { await apiViewBlob(`/v1/purchase-orders/${id}/pdf`); }
+    catch (error) { showToast(error instanceof Error ? error.message : 'Could not open the purchase order PDF.', 'error'); }
+    finally { setDownloading(null); }
   };
 
   // Toggle sort field helper

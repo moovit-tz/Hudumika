@@ -10,7 +10,7 @@ const Card = React.forwardRef<
     ref={ref}
     data-ui-card=""
     className={cn(
-      "rounded-[var(--card-radius,8px)] text-card-foreground",
+      "min-w-0 rounded-[var(--card-radius,8px)] text-card-foreground",
       className
     )}
     style={{ border: 'var(--card-border)', background: 'var(--card-bg)', boxShadow: 'var(--card-shadow)', borderRadius: 'var(--card-radius, 8px)', ...style }}
@@ -25,7 +25,8 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    data-ui-card-header=""
+    className={cn("min-w-0 flex flex-col space-y-1.5 p-6 max-sm:p-4", className)}
     {...props}
   />
 ))
@@ -37,6 +38,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    data-ui-card-title=""
     className={cn("font-semibold leading-none tracking-tight", className)}
     {...props}
   />
@@ -49,6 +51,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
+    data-ui-card-description=""
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
@@ -59,7 +62,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div ref={ref} data-ui-card-content="" className={cn("min-w-0 p-6 pt-0 max-sm:px-4 max-sm:pb-4", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 
@@ -69,7 +72,8 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    data-ui-card-footer=""
+    className={cn("min-w-0 flex items-center p-6 pt-0 max-sm:px-4 max-sm:pb-4", className)}
     {...props}
   />
 ))

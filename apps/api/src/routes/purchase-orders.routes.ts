@@ -1,3 +1,4 @@
+import { renderPurchaseOrderPdf } from '../services/finance-document-pdf.service.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import type { FastifyInstance } from 'fastify';
@@ -183,7 +184,11 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
           status: body.status || 'DRAFT',
           order_date: body.order_date ? new Date(body.order_date) : null,
           expected_date: body.expected_date ? new Date(body.expected_date) : null,
-          currency: body.currency || 'TZS',
+          currency: body.currency || await (async () => {
+            const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+            const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+            return s?.company?.currency || 'TZS';
+          })(),
           subtotal,
           tax_amount,
           total,
@@ -208,6 +213,18 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   });
 
   // GET /v1/purchase-orders/:id
+  fastify.get('/:id/pdf', async (request, reply) => {
+    const parsed = z.string().uuid().safeParse((request.params as {id: string}).id);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid document ID.' });
+    try {
+      const pdf = await renderPurchaseOrderPdf(request.user.tenant_id, parsed.data);
+      return reply.header('Content-Type', 'application/pdf').header('Content-Disposition', `inline; filename="document-${parsed.data}.pdf"`).send(pdf);
+    } catch (error) {
+      if (error instanceof Error && error.message.endsWith('not found')) return reply.status(404).send({ error: 'Document not found.' });
+      throw error;
+    }
+  });
+
   fastify.get('/:id', async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };

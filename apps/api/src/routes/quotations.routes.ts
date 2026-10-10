@@ -1,3 +1,4 @@
+import { renderQuotationPdf } from '../services/finance-document-pdf.service.js';
 import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -54,13 +55,33 @@ export async function quotationRoutes(app: FastifyInstance) {
   // whatever the query/param says.
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    const query = req.query as any;
-    const customerId = user.role === 'CUSTOMER' ? (await resolveCustomerId(user)) ?? '00000000-0000-0000-0000-000000000000' : query.customer_id;
-    const quotes = await quotationService.list(user.tenant_id, {
-      status: query.status,
-      customer_id: customerId,
-    });
-    return quotes;
+    const parsed = z.object({
+      status: z.string().max(50).optional(),
+      customer_id: z.string().uuid().optional(),
+      search: z.string().max(200).optional(),
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).optional(),
+    }).safeParse(req.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid quotation filters.' });
+    const { status, customer_id, search, page, page_size } = parsed.data;
+    const customerId = user.role === 'CUSTOMER' ? (await resolveCustomerId(user)) ?? '00000000-0000-0000-0000-000000000000' : customer_id;
+    return quotationService.list(user.tenant_id, { status, customer_id: customerId, search, page, page_size });
+  });
+
+  app.get('/:id/pdf', async (request, reply) => {
+    const parsed = z.string().uuid().safeParse((request.params as {id: string}).id);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid document ID.' });
+    try {
+      if (request.user.role === 'CUSTOMER') {
+        const quote = await quotationService.getById(request.user.tenant_id, parsed.data);
+        if (!quote || quote.customer_id !== await resolveCustomerId(request.user)) return reply.status(404).send({ error: 'Quotation not found.' });
+      }
+      const pdf = await renderQuotationPdf(request.user.tenant_id, parsed.data);
+      return reply.header('Content-Type', 'application/pdf').header('Content-Disposition', `inline; filename="document-${parsed.data}.pdf"`).send(pdf);
+    } catch (error) {
+      if (error instanceof Error && error.message.endsWith('not found')) return reply.status(404).send({ error: 'Document not found.' });
+      throw error;
+    }
   });
 
   app.get('/:id', async (req: FastifyRequest, reply: FastifyReply) => {

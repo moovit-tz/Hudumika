@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
@@ -14,7 +14,10 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Input } from '../components/ui/input.js';
+import { formatAmount } from '../lib/currency.js';
 import { Button } from '../components/ui/button.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
@@ -147,7 +150,7 @@ function mapApiBill(d: any): Bill {
     efd_verified: !!d.efd_verified,
     efd_verified_at: d.efd_verified_at || undefined,
     efd_verification_data: d.efd_verification_data || undefined,
-    lines: Array.isArray(d.lines) ? d.lines.map((l: any) => ({
+    lines: Array.isArray(d.items ?? d.lines) ? (d.items ?? d.lines).map((l: any) => ({
       _key: l.id || String(Math.random()), description: l.description || '',
       category: (l.category || 'OTHER') as BillCat,
       qty: Number(l.qty), unit_price: Number(l.unit_price), tax_rate: Number(l.tax_rate),
@@ -226,10 +229,11 @@ function FreqBadge({ freq }: { freq: RecurFreq }) {
 
 function PayModal({ bill, onPay, onClose }: {
   bill: Bill;
-  onPay: (amount: number, date: string, method: string, ref: string, note: string) => void;
+  onPay: (amount: number, date: string, method: string, ref: string, note: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const { fmt } = useCurrency();
+  const fmt = formatAmount;
+  const [saving, setSaving] = useState(false);
   const balance = bill.total - bill.paid_amount;
   const [amount, setAmount]   = useState(balance);
   const [date, setDate]       = useState(new Date().toISOString().split('T')[0]);
@@ -239,7 +243,7 @@ function PayModal({ bill, onPay, onClose }: {
   const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   return (
-    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+    <Dialog open onOpenChange={o => { if (!o && !saving) onClose(); }}>
       <DialogContent className="max-w-110 gap-0" style={{ padding:28 }}>
         <DialogTitle style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</DialogTitle>
         <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} · Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
@@ -247,28 +251,28 @@ function PayModal({ bill, onPay, onClose }: {
           <label style={lbl}>Payment Amount *</label>
           <div style={{ position:'relative' }}>
             <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:12, fontWeight:700, color:'var(--ink3)' }}>{bill.currency}</span>
-            <input type="number" title="Amount" value={amount} min={0.01} step={0.01} max={balance}
+            <Input type="number" aria-label="Payment amount" value={amount} min={0.01} step={0.01} max={balance}
               onChange={e => setAmount(parseFloat(e.target.value) || 0)}
               style={{ ...inp, paddingLeft: bill.currency.length * 8 + 12 }} />
           </div>
           {amount > balance && <div style={{ fontSize:11.5, color:'var(--red)', marginTop:4 }}>Amount exceeds outstanding balance ({fmt(balance, bill.currency)})</div>}
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+        <div className="mb-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div><label style={lbl}>Payment Date *</label><DatePicker date={parseDateOnly(date)} onChange={d => setDate(toDateOnlyString(d))} /></div>
-          <div><label style={lbl}>Method</label><Select value={method} onValueChange={setMethod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
+          <div><label style={lbl}>Method</label><Select value={method} onValueChange={setMethod}><SelectTrigger aria-label="Payment method"><SelectValue /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
         </div>
-        <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><input type="text" title="Reference" placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--font)', fontSize:12 }} /></div>
-        <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><input type="text" title="Note" placeholder="Payment note…" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
+        <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><Input type="text" aria-label="Payment reference" maxLength={200} placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--font)', fontSize:12 }} /></div>
+        <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><Input type="text" aria-label="Payment note" maxLength={2000} placeholder="Payment note…" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
         <div style={{ background:'var(--teal-l)', borderRadius: 'var(--r)', padding:'11px 14px', marginBottom:20, display:'flex', justifyContent:'space-between', fontSize:13 }}>
           <span style={{ color:'var(--ink2)' }}>After this payment</span>
           <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? '✓ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
         </div>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-          <button type="button" disabled={amount <= 0 || amount > balance} onClick={() => onPay(amount, date, method, ref, note)}
-            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'hsl(var(--primary))' : 'var(--border)', color: amount > 0 && amount <= balance ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            Confirm Payment
-          </button>
+          <Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
+          <Button type="button" disabled={saving || !Number.isFinite(amount) || amount <= 0 || amount > balance || !date} onClick={async () => {
+            setSaving(true);
+            try { await onPay(amount, date, method, ref, note); } finally { setSaving(false); }
+          }}>{saving ? 'Recording…' : 'Confirm payment'}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -279,8 +283,10 @@ function PayModal({ bill, onPay, onClose }: {
 
 function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave, onClose }: {
   initial?: Bill; allBills: Bill[]; suppliers: any[]; onSupplierCreated: (s: any) => void;
-  onSave: (f: BillForm) => void; onClose: () => void;
+  onSave: (f: BillForm) => Promise<void>; onClose: () => void;
 }) {
+  const [savingBill, setSavingBill] = useState(false);
+  const saveBillBusy = useRef(false);
   const { fmt } = useCurrency();
   // Purchase-side treatments only: a sales-only code has no meaning on a bill,
   // and the API refuses one anyway.
@@ -386,9 +392,9 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
       onCancel={onClose}
       actions={
         <>
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="button" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}>
-            <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
+          <Button type="button" variant="outline" disabled={savingBill} onClick={onClose}>Cancel</Button>
+          <Button type="button" disabled={savingBill} onClick={async () => { if (saveBillBusy.current) return; if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } saveBillBusy.current = true; setSavingBill(true); try { await onSave(f); } finally { saveBillBusy.current = false; setSavingBill(false); } }}>
+            <Icon name="save" size={13} /> {savingBill ? 'Saving…' : initial ? 'Update Bill' : 'Save Bill'}
           </Button>
         </>
       }
@@ -892,24 +898,25 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
 
 // ── Recurring Tab ──────────────────────────────────────────────────────────────
 
-function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMobile = false }: {
+interface RecurringSummary { active: number; generated: number; monthly: {currency:string;amount:number}[] }
+function RecurringTab({ recurring, summary, onEdit, onToggle, onGenerate, onDelete, isMobile = false }: {
   recurring: RecurringBill[];
+  summary: RecurringSummary;
   onEdit: (r: RecurringBill) => void;
   onToggle: (r: RecurringBill) => void;
   onGenerate: (r: RecurringBill) => void;
   onDelete: (r: RecurringBill) => void;
   isMobile?: boolean;
 }) {
-  const totalMonthly = recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').reduce((a,r) => a + r.amount * (1 + r.tax_rate/100), 0);
 
   return (
     <div>
       {/* Recurring summary cards */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:14, marginBottom:20 }}>
         {[
-          { label:'Active Recurring', value:String(recurring.filter(r => r.state==='ACTIVE').length), color:'var(--teal)', bg:'var(--teal-l)', icon:'refresh' as const },
-          { label:'Monthly Commitment', value:`$${totalMonthly.toFixed(0)}`, color:'var(--blue)', bg:'var(--blue-l)', icon:'dollarSign' as const },
-          { label:'Bills Generated', value:String(recurring.reduce((a,r) => a+r.bills_generated,0)), color:'var(--green)', bg:'var(--green-l)', icon:'receipt' as const },
+          { label:'Active Recurring', value:String(summary.active), color:'var(--teal)', bg:'var(--teal-l)', icon:'refresh' as const },
+          { label:'Monthly Commitment', value:summary.monthly.map(item => fmt(item.amount,item.currency)).join(' · ') || '—', color:'var(--blue)', bg:'var(--blue-l)', icon:'dollarSign' as const },
+          { label:'Bills Generated', value:String(summary.generated), color:'var(--green)', bg:'var(--green-l)', icon:'receipt' as const },
         ].map(c => (
           <div key={c.label} style={{ background:c.bg, borderRadius: 'var(--r)', padding:'16px 18px', display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ width:36, height:36, borderRadius: 'var(--r)', background:c.color, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={c.icon} size={16} color="#fff" /></div>
@@ -980,6 +987,12 @@ export const Bills: React.FC = () => {
   const { fmt } = useCurrency();
   const [bills, setBills]           = useState<Bill[]>([]);
   const [recurring, setRecurring]   = useState<RecurringBill[]>([]);
+  const [recurringPage,setRecurringPage] = useState(1);
+  const [recurringTotal,setRecurringTotal] = useState(0);
+  const [recurringSummary,setRecurringSummary] = useState<RecurringSummary>({active:0,generated:0,monthly:[]});
+  const [recurringRefresh,setRecurringRefresh] = useState(0);
+  const [recurringLoading,setRecurringLoading] = useState(true);
+  const [recurringError,setRecurringError] = useState('');
   const [payments, setPayments]     = useState<Payment[]>([]);
   const [suppliers, setSuppliers]   = useState<any[]>([]);
   const [tab, setTab]               = useState<MainTab>('bills');
@@ -998,17 +1011,51 @@ export const Bills: React.FC = () => {
   const [voidTarget, setVoidTarget] = useState<Bill | null>(null);
   const [voidReason, setVoidReason] = useState('');
 
+  const [page, setPage] = useState(1);
+  const [matchCount, setMatchCount] = useState(0);
+  const [loadingBills, setLoadingBills] = useState(false);
+  const [billError, setBillError] = useState('');
+  const [billRefresh, setBillRefresh] = useState(0);
+  const [billSummary, setBillSummary] = useState<any>(null);
+  const filterKey = JSON.stringify([search, statusFilter, supFilter, sortBy, sortDir]);
+  const previousFilters = useRef(filterKey);
+  useEffect(() => {
+    if (previousFilters.current !== filterKey) { previousFilters.current = filterKey; setPage(1); }
+  }, [filterKey]);
+  const billQuery = new URLSearchParams({ page: String(page), page_size: '25', sort_by: sortBy, sort_dir: sortDir });
+  if (search.trim()) billQuery.set('search', search.trim());
+  if (statusFilter !== 'ALL') billQuery.set('status', statusFilter);
+  if (supFilter !== 'ALL') billQuery.set('supplier_id', supFilter);
+  const billListUrl = `/v1/bills?${billQuery}`;
+  useEffect(() => {
+    let active = true;
+    setLoadingBills(true);
+    const timer = setTimeout(() => {
+      apiFetch(billListUrl).then((data: any) => {
+        if (!active) return;
+        setBills(data.items.map(mapApiBill)); setMatchCount(data.total); setBillError('');
+        if (page > 1 && !data.items.length) setPage(Math.max(1, data.total_pages));
+      }).catch(error => { if (active) { setBills([]); setBillError(error.message); } })
+        .finally(() => { if (active) setLoadingBills(false); });
+    }, 250);
+    return () => { active = false; clearTimeout(timer); };
+  }, [billListUrl, billRefresh]);
+  useEffect(() => {
+    let active = true;
+    apiFetch('/v1/bills/stats').then(data => { if (active) setBillSummary(data); }).catch(error => { if (active) setBillError(error.message); });
+    return () => { active = false; };
+  }, [billRefresh]);
+  useEffect(() => {
+    let active=true;setRecurringLoading(true);setRecurringError('');
+    apiFetch(`/v1/bills/recurring?page=${recurringPage}&page_size=25`).then(data=>{
+      if(!active)return;
+      setRecurring(data.items.map(mapApiRecurring));setRecurringTotal(data.total);setRecurringSummary(data.summary);
+      if(recurringPage>1&&!data.items.length)setRecurringPage(Math.max(1,Math.ceil(data.total/25)));
+    }).catch(error=>{if(active){setRecurring([]);setRecurringError(error.message);}}).finally(()=>{if(active)setRecurringLoading(false);});
+    return()=>{active=false;};
+  },[recurringPage,recurringRefresh]);
   // Load from API on mount
   useEffect(() => {
-    apiFetch('/v1/bills')
-      .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
-      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load bills.'));
-    apiFetch('/v1/bills/recurring')
-      .then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApiRecurring)); })
-      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load recurring bills.'));
-    apiFetch('/v1/bills/payments')
-      .then((d: any) => { if (Array.isArray(d)) setPayments(d.map(mapApiPayment)); })
-      .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load bill payments.'));
     apiFetch('/v1/suppliers')
       .then((d: any) => { if (Array.isArray(d)) setSuppliers(d); })
       .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load suppliers.'));
@@ -1027,25 +1074,20 @@ export const Bills: React.FC = () => {
   // computed status for display (inject OVERDUE dynamically)
   const effectiveBills = useMemo(() => bills.map(b => isOverdue(b) ? { ...b, status: 'OVERDUE' as BillStatus } : b), [bills]);
 
-  const displayed = useMemo(() => effectiveBills
-    .filter(b => {
-      if (statusFilter !== 'ALL' && b.status !== statusFilter) return false;
-      if (supFilter !== 'ALL' && b.supplier_id !== supFilter) return false;
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        return b.bill_number.toLowerCase().includes(q) || b.supplier_name.toLowerCase().includes(q) || (b.shipment_ref||'').toLowerCase().includes(q) || (b.po_number||'').toLowerCase().includes(q);
-      }
-      return true;
-    })
-    .sort((a,b) => {
-      let cmp = 0;
-      if (sortBy==='bill_date') cmp = a.bill_date.localeCompare(b.bill_date);
-      if (sortBy==='due_date')  cmp = a.due_date.localeCompare(b.due_date);
-      if (sortBy==='total')     cmp = a.total - b.total;
-      if (sortBy==='supplier')  cmp = a.supplier_name.localeCompare(b.supplier_name);
-      return sortDir === 'asc' ? cmp : -cmp;
-    }), [effectiveBills, statusFilter, supFilter, search, sortBy, sortDir]);
+  const displayed = loadingBills ? [] : effectiveBills;
 
+  const openBillSequence = useRef(0);
+  async function openBill(id: string, edit = false) {
+    const sequence = ++openBillSequence.current;
+    try {
+      const payload = await apiFetch(`/v1/bills/${id}`);
+      const full = mapApiBill(payload);
+      if (sequence !== openBillSequence.current) return;
+      setPayments((payload.payments ?? []).map((payment: any) => mapApiPayment({ ...payment, bill_number: payload.bill_number, supplier_name: payload.supplier_name })));
+      if (edit) { setFormBill(full); setShowBillForm(true); }
+      else { setSelected(full); setView('detail'); }
+    } catch (error) { showAlert(error instanceof Error ? error.message : 'Could not open bill.'); }
+  }
   function toggleSort(col: typeof sortBy) {
     if (sortBy === col) setSortDir(d => d==='asc'?'desc':'asc');
     else { setSortBy(col); setSortDir('asc'); }
@@ -1070,8 +1112,7 @@ export const Bills: React.FC = () => {
       await apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
         method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
       });
-      const data = await apiFetch('/v1/bills');
-      if (Array.isArray(data)) setBills(data.map(mapApiBill));
+      setBillRefresh(value => value + 1);
       setShowBillForm(false); setFormBill(null);
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not save this bill.');
@@ -1085,8 +1126,7 @@ export const Bills: React.FC = () => {
       await apiFetch(isEdit ? `/v1/bills/recurring/${formRecur!.id}` : '/v1/bills/recurring', {
         method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
       });
-      const data = await apiFetch('/v1/bills/recurring');
-      if (Array.isArray(data)) setRecurring(data.map(mapApiRecurring));
+      setRecurringRefresh(value=>value+1);
       setShowRecurForm(false); setFormRecur(null);
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not save this recurring bill.');
@@ -1099,7 +1139,8 @@ export const Bills: React.FC = () => {
       const updated = await apiFetch(`/v1/bills/${bill.id}/${action}`, { method:'POST' });
       const mapped = mapApiBill(updated);
       setBills(p => p.map(b => b.id === bill.id ? mapped : b));
-      if (selected?.id === bill.id) setSelected(mapped);
+      if (selected?.id === bill.id) setSelected({ ...mapped, lines: selected.lines });
+      setBillRefresh(value => value + 1);
       showAlert(mapped.status === 'PENDING_APPROVAL' ? 'Bill submitted for approval.' : 'Bill posted successfully.', { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not submit this bill.');
@@ -1115,6 +1156,7 @@ export const Bills: React.FC = () => {
       if (selected?.id === bill.id) setSelected(updated);
       setVoidTarget(null);
       setVoidReason('');
+      setBillRefresh(value => value + 1);
       showAlert('Bill voided and its journal entries were reversed.', { variant: 'success' });
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not void this bill.');
@@ -1137,23 +1179,34 @@ export const Bills: React.FC = () => {
     return result;
   }
 
+  const paymentAttempt = useRef<{signature:string;key:string}|null>(null);
+  const paymentBusy = useRef(false);
   async function handlePay(bill: Bill, amount: number, date: string, method: string, ref: string, note: string) {
+    if (paymentBusy.current) return;
+    const signature = JSON.stringify([bill.id,amount,date,method,ref,note]);
+    if(paymentAttempt.current?.signature !== signature) paymentAttempt.current = {signature,key:crypto.randomUUID()};
+    paymentBusy.current = true;
     try {
-      await apiFetch(`/v1/bills/${bill.id}/payment`, {
-        method: 'POST', body: JSON.stringify({ amount, currency: bill.currency, payment_date: date, method, reference: ref, note }),
+      const recorded = await apiFetch(`/v1/bills/${bill.id}/payment`, {
+        method: 'POST', headers: {'Idempotency-Key':paymentAttempt.current!.key}, body: JSON.stringify({ amount, currency: bill.currency, payment_date: date, method, reference: ref, note }),
       });
-      const [billsRes, paymentsRes] = await Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/payments')]);
-      if (Array.isArray(billsRes)) {
-        const mapped = billsRes.map(mapApiBill);
-        setBills(mapped);
-        const refreshed = mapped.find(b => b.id === bill.id);
-        if (refreshed && selected?.id === bill.id) setSelected(refreshed);
-      }
-      if (Array.isArray(paymentsRes)) setPayments(paymentsRes.map(mapApiPayment));
+      const paidBill = { ...bill, paid_amount: Number(recorded.paid_amount), status: recorded.status as BillStatus };
+      setBills(prev => prev.map(item => item.id === bill.id ? paidBill : item));
+      if (selected?.id === bill.id) setSelected(paidBill);
+      paymentAttempt.current = null;
       setPayTarget(null);
+      setBillRefresh(value => value + 1);
+      try {
+      const full = await apiFetch(`/v1/bills/${bill.id}`);
+      if (selected?.id === bill.id) {
+        setSelected(mapApiBill(full));
+        setPayments((full.payments ?? []).map((payment: any) => mapApiPayment({ ...payment, bill_number: full.bill_number, supplier_name: full.supplier_name })));
+      }
+      } catch { showAlert('Payment recorded. Could not refresh bills; reload to see the latest history.'); }
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not record this payment.');
     }
+    finally { paymentBusy.current = false; }
   }
 
   function handleGenerate(r: RecurringBill) {
@@ -1162,17 +1215,16 @@ export const Bills: React.FC = () => {
     // template. Previously this button built the bill and PATCHed the
     // template's counters entirely client-side.
     apiFetch(`/v1/bills/recurring/${r.id}/generate`, { method: 'POST' })
-      .then(() => Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/recurring')]))
-      .then(([billsRes, recurRes]: any) => {
-        if (Array.isArray(billsRes)) setBills(billsRes.map(mapApiBill));
-        if (Array.isArray(recurRes)) setRecurring(recurRes.map(mapApiRecurring));
+      .then(() => {
+        setBillRefresh(value => value + 1);
+        setRecurringRefresh(value=>value+1);
       })
       .catch((err: any) => showAlert(err.message || 'Failed to generate bill'));
   }
 
   // ── Metrics ─────────────────────────────────────────────────────────────────
 
-  const totalBills   = bills.length;
+  const totalBills   = billSummary?.total_bills ?? 0;
   const unpaidBills  = effectiveBills.filter(b => b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE');
   const overdueBills = effectiveBills.filter(b => b.status === 'OVERDUE');
   const currentMonthStr = new Date().toISOString().slice(0, 7);
@@ -1182,7 +1234,7 @@ export const Bills: React.FC = () => {
 
   const thS: React.CSSProperties = { padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none' };
 
-  const uniqueSups = Array.from(new Set(bills.map(b => b.supplier_id)));
+  const uniqueSups = suppliers.map(supplier => supplier.id);
 
   // Full page rather than a 620px drawer — a bill carries a supplier picker,
   // dates, a line-item table and totals.
@@ -1217,6 +1269,7 @@ export const Bills: React.FC = () => {
                 <button type="button" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
                 <Button type="button" variant="destructive" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
               </div>
+
             </>
           )}
         </DialogContent>
@@ -1250,9 +1303,9 @@ export const Bills: React.FC = () => {
 
           {/* Metrics Row matching reference format */}
           <MetricsRow cards={[
-            { title:'TOTAL BILLS', value:String(totalBills), sub1Label:'DRAFT', sub1Value:String(bills.filter(b=>b.status==='DRAFT').length), sub2Label:'PAID', sub2Value:String(bills.filter(b=>b.status==='PAID').length), barHighlight:'var(--teal)' },
-            { title:'OUTSTANDING BALANCE', value:`TZS ${outstanding.toLocaleString()}`, invertTrend:true, sub1Label:'UNPAID BILLS', sub1Value:String(unpaidBills.length), sub2Label:'PARTIAL', sub2Value:String(bills.filter(b=>b.status==='PARTIAL').length), barHighlight:'var(--gold)' },
-            { title:'OVERDUE BILLS', value:String(overdueBills.length), sub1Label:'OVERDUE AMOUNT', sub1Value:`TZS ${overdueAmt.toLocaleString()}`, sub2Label:'AVG DAYS OVERDUE', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', barHighlight:'var(--red)' },
+            { title:'TOTAL BILLS', value:String(totalBills), sub1Label:'DRAFT', sub1Value:String(billSummary?.status_counts?.DRAFT ?? 0), sub2Label:'PAID', sub2Value:String(billSummary?.status_counts?.PAID ?? 0), barHighlight:'var(--teal)' },
+            { title:'OUTSTANDING · TZS', value:formatAmount(billSummary?.currency_totals?.TZS?.outstanding ?? 0, 'TZS'), invertTrend:true, sub1Label:'UNPAID BILLS', sub1Value:String((billSummary?.status_counts?.POSTED ?? 0) + (billSummary?.status_counts?.PARTIAL ?? 0)), sub2Label:'PARTIAL', sub2Value:String(billSummary?.status_counts?.PARTIAL ?? 0), barHighlight:'var(--gold)' },
+            { title:'OVERDUE · TZS', value:String(billSummary?.currency_totals?.TZS?.overdue_count ?? 0), sub1Label:'OVERDUE AMOUNT', sub1Value:formatAmount(billSummary?.currency_totals?.TZS?.overdue_amount ?? 0, 'TZS'), sub2Label:'CURRENCY', sub2Value:'TZS', barHighlight:'var(--red)' },
           ]} />
 
           {/* Toolbar — tabs + filters on the left, search + New Bill on the right,
@@ -1261,7 +1314,7 @@ export const Bills: React.FC = () => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
               <Tabs value={tab} onValueChange={v => setTab(v as MainTab)} variant="segmented">
                 <TabsList>
-                  {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
+                  {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurringTotal})`}] as {k:MainTab;l:string}[]).map(t => (
                     <TabsTrigger key={t.k} value={t.k} title={t.l}>{t.l}</TabsTrigger>
                   ))}
                 </TabsList>
@@ -1283,7 +1336,7 @@ export const Bills: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
-              <div style={{ position: 'relative', flex: isMobile ? 1 : '0 0 220px' }}>
+              {tab === 'bills' && <div style={{ position: 'relative', flex: isMobile ? 1 : '0 0 220px' }}>
                 <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                   type="search"
@@ -1292,26 +1345,25 @@ export const Bills: React.FC = () => {
                   onChange={e => setSearch(e.target.value)}
                   style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
                 />
-              </div>
-              <button
-                type="button"
-                onClick={() => { setFormBill(null); setShowBillForm(true); }}
-                style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
-               data-ui-native-button="">
-                <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Bill
-              </button>
+              </div>}
+              <Button onClick={() => { if(tab==='recurring'){setFormRecur(null);setShowRecurForm(true);}else{setFormBill(null);setShowBillForm(true);} }}>
+                <Icon name="plus" size={14} /> {tab==='recurring'?'New recurring bill':'New Bill'}
+              </Button>
             </div>
           </div>
 
           {tab === 'recurring' ? (
-            <RecurringTab
+            <>
+            {recurringError && <div role="alert">{recurringError} <Button variant="outline" onClick={()=>setRecurringRefresh(value=>value+1)}>Retry</Button></div>}
+            {recurringLoading ? <SectionLoading label="Loading recurring bills…" /> : <RecurringTab
               recurring={recurring}
+              summary={recurringSummary}
               onEdit={r => { setFormRecur(r); setShowRecurForm(true); }}
               onToggle={async r => {
                 const newState = r.state === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
                 try {
                   await apiFetch(`/v1/bills/recurring/${r.id}`, { method:'PATCH', body:JSON.stringify({ state:newState }) });
-                  setRecurring(p => p.map(x => x.id===r.id ? { ...x, state:newState } : x));
+                  setRecurringRefresh(value=>value+1);
                 } catch (err) {
                   showAlert(err instanceof Error ? err.message : 'Could not update this recurring bill.');
                 }
@@ -1320,15 +1372,18 @@ export const Bills: React.FC = () => {
               onDelete={async r => {
                 try {
                   await apiFetch(`/v1/bills/recurring/${r.id}`, { method:'DELETE' });
-                  setRecurring(p => p.filter(x => x.id!==r.id));
+                  setRecurringRefresh(value=>value+1);
                 } catch (err) {
                   showAlert(err instanceof Error ? err.message : 'Could not delete this recurring bill.');
                 }
               }}
               isMobile={isMobile}
-            />
+            />}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><span>{recurringTotal} templates · Page {recurringPage} of {Math.max(1,Math.ceil(recurringTotal/25))}</span><div className="flex gap-2"><Button variant="outline" disabled={recurringLoading||recurringPage===1} onClick={()=>setRecurringPage(value=>value-1)}>Previous</Button><Button variant="outline" disabled={recurringLoading||recurringPage*25>=recurringTotal} onClick={()=>setRecurringPage(value=>value+1)}>Next</Button></div></div>
+            </>
           ) : (
             <>
+              {billError && <div role="alert" className="mb-3 text-sm" style={{color:'var(--red)'}}>{billError} <Button variant="outline" onClick={() => setBillRefresh(value => value + 1)}>Retry</Button></div>}
               {/* Bills Table */}
               <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
                 {displayed.length === 0 ? (
@@ -1336,7 +1391,7 @@ export const Bills: React.FC = () => {
                     <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                       <Icon name="receipt" size={32} color="var(--ink3)" />
                     </div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>No bills found</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{loadingBills ? 'Loading bills…' : billError ? 'Could not load bills' : 'No bills found'}</div>
                     <div style={{ fontSize:13, color:'var(--ink3)', marginTop:4 }}>Adjust filters or use "+ New Bill" above.</div>
                   </div>
                 ) : (
@@ -1363,7 +1418,7 @@ export const Bills: React.FC = () => {
                           const over = b.status === 'OVERDUE';
                           return (
                             <tr key={b.id}
-                              onClick={() => { setSelected(bills.find(x => x.id===b.id) ?? null); setView('detail'); }}
+                              onClick={() => void openBill(b.id)}
                               style={{ borderBottom:'1px solid var(--border)', cursor:'pointer', transition:'background 0.1s', background: over && bal>0 ? 'rgba(239,68,68,0.02)' : '' }}
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                               onMouseLeave={e => (e.currentTarget.style.background = over && bal>0 ? 'rgba(239,68,68,0.02)' : '')}>
@@ -1380,16 +1435,16 @@ export const Bills: React.FC = () => {
                                 {fmtDate(b.due_date)}
                                 {over && <div style={{ fontSize:10, color:'var(--red)', fontWeight:600 }}>{daysOverdue(b.due_date)}d late</div>}
                               </td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight:700 }}>{fmt(b.total, b.currency)}</td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', color:'var(--green)', fontWeight: b.paid_amount>0 ? 700 : 400 }}>{b.paid_amount > 0 ? fmt(b.paid_amount, b.currency) : '—'}</td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight: bal>0 ? 700 : 400, color: bal>0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)' }}>{bal > 0 ? fmt(bal, b.currency) : '—'}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight:700 }}>{formatAmount(b.total, b.currency)}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', color:'var(--green)', fontWeight: b.paid_amount>0 ? 700 : 400 }}>{b.paid_amount > 0 ? formatAmount(b.paid_amount, b.currency) : '—'}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight: bal>0 ? 700 : 400, color: bal>0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)' }}>{bal > 0 ? formatAmount(bal, b.currency) : '—'}</td>
                               <td style={{ padding:'11px 14px', fontFamily:'var(--font)', fontSize:11.5, color:'var(--blue)' }}>{b.shipment_ref || '—'}</td>
                               <td style={{ padding:'11px 14px' }}><StatusBadge status={b.status} /></td>
                               <td style={{ padding:'11px 10px' }} onClick={e => e.stopPropagation()}>
                                 <div style={{ display:'flex', gap:2 }}>
-                                  <Tip label="View bill"><button type="button" aria-label="View bill" onClick={() => { setSelected(bills.find(x=>x.id===b.id)??null); setView('detail'); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="eye" size={14} /></button></Tip>
+                                  <Tip label="View bill"><button type="button" aria-label="View bill" onClick={() => void openBill(b.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="eye" size={14} /></button></Tip>
                                   {(b.status==='POSTED'||b.status==='PARTIAL'||b.status==='OVERDUE') && <Tip label="Record payment"><button type="button" aria-label="Record payment" onClick={() => setPayTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--teal-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="dollarSign" size={14} /></button></Tip>}
-                                  <Tip label="Edit bill"><button type="button" aria-label="Edit bill" onClick={() => { setFormBill(bills.find(x=>x.id===b.id)??null); setShowBillForm(true); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="edit" size={14} /></button></Tip>
+                                  <Tip label="Edit bill"><button type="button" aria-label="Edit bill" onClick={() => void openBill(b.id, true)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="edit" size={14} /></button></Tip>
                                   {b.status!=='PAID'&&b.status!=='VOID' && <Tip label="Void bill"><button type="button" aria-label="Void bill" onClick={() => setVoidTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--red-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="xCircle" size={14} /></button></Tip>}
                                 </div>
                               </td>
@@ -1400,11 +1455,18 @@ export const Bills: React.FC = () => {
                     </table>
                   </div>
                   <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border)', fontSize:12, color:'var(--ink3)', display:'flex', justifyContent:'space-between' }}>
-                    <span>Showing {displayed.length} of {bills.length} bills</span>
-                    <span>{overdueBills.length} overdue · {unpaidBills.length} outstanding</span>
+                    <span>Showing {displayed.length} of {matchCount} matching bills</span>
+                    <span>Page records: {overdueBills.length} overdue · {unpaidBills.length} outstanding</span>
                   </div>
                   </>
                 )}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 py-3" aria-label="Bill pagination">
+                <span>Page {page} of {Math.max(1, Math.ceil(matchCount/25))}</span>
+                <div className="flex gap-2">
+                  <Button variant="outline" disabled={loadingBills || page===1} onClick={() => setPage(value => value-1)}>Previous</Button>
+                  <Button variant="outline" disabled={loadingBills || page*25>=matchCount} onClick={() => setPage(value => value+1)}>Next</Button>
+                </div>
               </div>
             </>
           )}

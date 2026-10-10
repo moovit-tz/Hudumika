@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
@@ -10,7 +11,7 @@ import { requireFinanceCapability } from '../middleware/finance-capability.js';
 const BILL_STATUS = ['DRAFT', 'PENDING_APPROVAL', 'POSTED', 'PAID', 'PARTIAL', 'VOID'] as const;
 const recurringBillSchema = z.object({
   name: z.string().max(200).optional(),
-  supplier_id: z.string().optional(),
+  supplier_id: z.string().uuid().optional(),
   supplier_name: z.string().max(300).optional(),
   business_line_id: z.string().uuid().nullable().optional(),
   frequency: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']).optional(),
@@ -50,7 +51,7 @@ const billLineSchema = z.object({
 const billCreateSchema = z.object({
   items: z.array(billLineSchema).optional(),
   bill_number: z.string().max(100).optional(),
-  supplier_id: z.string().optional(),
+  supplier_id: z.string().uuid().optional(),
   supplier_name: z.string().max(300).optional(),
   business_line_id: z.string().uuid().nullable().optional(),
   shipment_ref: z.string().max(100).optional(),
@@ -68,9 +69,10 @@ import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { computePoMatch } from '../services/po-bill-matching.service.js';
 import { isApApprovalRequired, resolveApprovalWorkflow, canActOnWorkflow } from '../services/ap-approval.service.js';
-import { emitDomainEvent } from '../services/domain-events.service.js';
-import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
+import { emitDomainEvent, dispatchDomainEvent, type DomainEvent } from '../services/domain-events.service.js';
+import { enqueueAccountingSync } from '../services/accounting-outbox.service.js';
 import { generateDueBills } from '../services/recurring-documents.service.js';
+import { tenantAccountingDate } from '../services/finance-date.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { isTaxCodeUserError, resolveLineTax, resolveTaxCode, splitInputTax } from '../services/tax-code.service.js';
 import {
@@ -117,14 +119,17 @@ async function buildBillLines(
   }
 
   // Withholding tax classification (M1) — a line only attracts WHT once
-  // tagged with a real, tenant-owned wht_rates row; a foreign id is silently
-  // dropped rather than trusted, same discipline every cross-tenant FK
-  // reference in this platform gets.
+  // tagged with a real, tenant-owned wht_rates row. Reject invalid references
+  // rather than silently saving a different tax treatment.
   const whtRateIds = [...new Set(items.map(it => it?.wht_rate_id).filter(Boolean))] as string[];
   const validWhtRateIds = whtRateIds.length
     ? new Set((await trx.selectFrom('wht_rates').select('id')
         .where('id', 'in', whtRateIds).where('tenant_id', '=', tenantId).execute()).map(r => r.id))
     : new Set<string>();
+
+  if (whtRateIds.some(id => !validWhtRateIds.has(id))) {
+    return { ok: false, error: 'Select a withholding-tax rate from this workspace.' };
+  }
 
   let subtotal = 0, tax = 0, recoverable = 0, nonRecoverable = 0;
   // Cost is accumulated per expense account, so a bill mixing freight and
@@ -272,6 +277,10 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireEntitlement('finops'));
   fastify.addHook('preHandler', requireFinanceCapability('finance.core', { preserveReadAccess: true }));
 
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.method === 'GET') return requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES')(request, reply);
+  });
+
   // ── Stats ─────────────────────────────────────────────────────────────────
 
   // GET /v1/bills/stats  (must be before /:id)
@@ -285,35 +294,50 @@ export async function billRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/stats', async (request) => {
+  fastify.get('/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx.selectFrom('supplier_bills').selectAll().where('tenant_id', '=', user.tenant_id).execute();
-      const total_bills = rows.length;
+      const today = await tenantAccountingDate(trx, user.tenant_id);
+      const result = await sql<{ status: string; currency: string; count: string; paid: string; outstanding: string; overdue_count: string; overdue_amount: string }>`
+        SELECT status, currency, count(*) count, sum(coalesce(paid_amount,0)) paid,
+          sum(greatest(0,coalesce(total,0)-coalesce(paid_amount,0))) outstanding,
+          count(*) FILTER (WHERE status IN ('POSTED','PARTIAL') AND due_date < ${today}::date) overdue_count,
+          coalesce(sum(greatest(0,coalesce(total,0)-coalesce(paid_amount,0))) FILTER (WHERE status IN ('POSTED','PARTIAL') AND due_date < ${today}::date),0) overdue_amount
+        FROM supplier_bills WHERE tenant_id=${user.tenant_id} GROUP BY status,currency
+      `.execute(trx);
       const status_counts: Record<string, number> = {};
-      let total_paid = 0;
-      let total_outstanding = 0;
-      for (const r of rows) {
-        const s = r.status as string;
-        status_counts[s] = (status_counts[s] || 0) + 1;
-        total_paid += Number(r.paid_amount) || 0;
-        total_outstanding += Math.max(0, Number(r.total) - Number(r.paid_amount));
+      const currency_totals: Record<string, { count: number; paid: number; outstanding: number; overdue_count: number; overdue_amount: number }> = {};
+      let total_bills = 0, total_paid = 0, total_outstanding = 0;
+      for (const row of result.rows) {
+        const count = Number(row.count), paid = Number(row.paid), outstanding = Number(row.outstanding);
+        total_bills += count; total_paid += paid; total_outstanding += outstanding;
+        status_counts[row.status] = (status_counts[row.status] || 0) + count;
+        const totals = currency_totals[row.currency] ?? { count: 0, paid: 0, outstanding: 0, overdue_count: 0, overdue_amount: 0 };
+        totals.count += count; totals.paid += paid;
+        if (['POSTED','PARTIAL'].includes(row.status)) totals.outstanding += outstanding;
+        totals.overdue_count += Number(row.overdue_count); totals.overdue_amount += Number(row.overdue_amount);
+        currency_totals[row.currency] = totals;
       }
-      return { total_bills, total_paid, total_outstanding, status_counts };
+      return { total_bills, total_paid, total_outstanding, status_counts, currency_totals };
     });
   });
 
   // ── Recurring Bills ───────────────────────────────────────────────────────
 
   // GET /v1/bills/recurring  (must be before /:id)
-  fastify.get('/recurring', async (request) => {
+  fastify.get('/recurring', async (request, reply) => {
     const user = request.user;
+    const parsed = z.object({page:z.coerce.number().int().min(1).max(100000).optional(),page_size:z.coerce.number().int().min(1).max(100).default(25)}).safeParse(request.query);
+    if (!parsed.success) return reply.status(400).send({error:'Invalid recurring bill pagination.'});
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('recurring_bills')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .orderBy('created_at', 'desc')
-        .execute();
+      const query = trx.selectFrom('recurring_bills').where('tenant_id','=',user.tenant_id);
+      const sorted = query.selectAll().orderBy('created_at','desc').orderBy('id','desc');
+      if (!parsed.data.page) return sorted.execute();
+      const {page,page_size}=parsed.data;
+      const totals=await query.select([trx.fn.countAll().as('count'),trx.fn.sum('bills_generated').as('generated')]).executeTakeFirstOrThrow();
+      const active=await query.where('state','=','ACTIVE').select(trx.fn.countAll().as('count')).executeTakeFirstOrThrow();
+      const monthly=await query.where('state','=','ACTIVE').where('frequency','=','MONTHLY').select(['currency',sql<string>`sum(amount * (1 + tax_rate / 100.0))`.as('amount')]).groupBy('currency').execute();
+      return {items:await sorted.limit(page_size).offset((page-1)*page_size).execute(),total:Number(totals.count),page,page_size,summary:{active:Number(active.count),generated:Number(totals.generated ?? 0),monthly:monthly.map(row=>({currency:row.currency,amount:Number(row.amount)}))}};
     });
   });
 
@@ -325,6 +349,12 @@ export async function billRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
     }
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['id', 'status'])
+          .where('id', '=', body.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!supplier) return reply.status(400).send({ error: 'Select a supplier from this workspace.' });
+        if (supplier.status === 'blocked') return reply.status(409).send({ error: 'Reactivate the blocked supplier before scheduling bills.' });
+      }
       if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
         return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
       }
@@ -351,6 +381,12 @@ export async function billRoutes(fastify: FastifyInstance) {
         if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
         throw e;
       }
+      let recBillCurrency = body.currency;
+      if (!recBillCurrency) {
+        const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+        recBillCurrency = s?.company?.currency || 'USD';
+      }
       const rec = await trx.insertInto('recurring_bills').values({
         tenant_id: user.tenant_id,
         name: body.name || null,
@@ -358,7 +394,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         supplier_name: body.supplier_name || null,
         business_line_id: resolvedBusinessLineId,
         frequency: body.frequency || 'MONTHLY',
-        currency: body.currency || 'USD',
+        currency: recBillCurrency,
         amount: Number(body.amount) || 0,
         tax_rate: recTax.rate,
         tax_code_id: recTax.tax_code_id,
@@ -386,6 +422,12 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (body.business_line_id && body.business_line_id !== existing.business_line_id
         && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
         return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
+      }
+      if (body.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['id', 'status'])
+          .where('id', '=', body.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!supplier) return reply.status(400).send({ error: 'Select a supplier from this workspace.' });
+        if (supplier.status === 'blocked') return reply.status(409).send({ error: 'Reactivate the blocked supplier before scheduling bills.' });
       }
       if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
         return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
@@ -420,7 +462,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/recurring/:id/generate', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const result = await generateDueBills(user.tenant_id, new Date().toISOString().slice(0, 10), id);
+    const result = await generateDueBills(user.tenant_id, undefined, id);
     if (result.generated.length === 0 && result.skipped.length > 0) {
       return reply.status(409).send({ error: result.skipped[0].reason });
     }
@@ -467,22 +509,35 @@ export async function billRoutes(fastify: FastifyInstance) {
   });
 
   // GET /v1/bills
-  fastify.get('/', async (request) => {
+  fastify.get('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const { status, search, supplier_id } = request.query as { status?: string; search?: string; supplier_id?: string };
-    return withTenant(user.tenant_id, async (trx) => {
-      let q = trx.selectFrom('supplier_bills').selectAll().where('tenant_id', '=', user.tenant_id);
-      if (status) q = q.where('status', '=', status);
-      if (supplier_id) q = q.where('supplier_id', '=', supplier_id);
-      const rows = await q.orderBy('created_at', 'desc').execute();
+    const parsed = z.object({
+      status: z.enum([...BILL_STATUS, 'OVERDUE']).optional(),
+      search: z.string().max(200).optional(), supplier_id: z.string().uuid().optional(),
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).default(25),
+      sort_by: z.enum(['bill_date', 'due_date', 'total', 'supplier']).default('due_date'),
+      sort_dir: z.enum(['asc', 'desc']).default('asc'),
+    }).safeParse(request.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid bill filters or pagination.' });
+    const { status, search, supplier_id, page, page_size, sort_by, sort_dir } = parsed.data;
+    return withTenant(user.tenant_id, async trx => {
+      let filtered = trx.selectFrom('supplier_bills').where('tenant_id', '=', user.tenant_id);
+      if (status === 'OVERDUE') filtered = filtered.where('status', 'in', ['POSTED', 'PARTIAL']).where('due_date', '<', await tenantAccountingDate(trx, user.tenant_id));
+      else if (status) filtered = filtered.where('status', '=', status);
+      if (supplier_id) filtered = filtered.where('supplier_id', '=', supplier_id);
       if (search) {
-        const s = search.toLowerCase();
-        return rows.filter(r =>
-          (r.supplier_name || '').toLowerCase().includes(s) ||
-          (r.bill_number || '').toLowerCase().includes(s)
-        );
+        const pattern = `%${search.replace(/[\\%_]/g, character => `\\${character}`)}%`;
+        filtered = filtered.where(eb => eb.or([
+          eb('supplier_name', 'ilike', pattern), eb('bill_number', 'ilike', pattern),
+          eb('shipment_ref', 'ilike', pattern), eb('po_number', 'ilike', pattern),
+        ]));
       }
-      return rows;
+      if (page === undefined) return filtered.selectAll().orderBy('created_at', 'desc').orderBy('id', 'desc').execute();
+      const total = Number((await filtered.select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow()).count);
+      const column = sort_by === 'supplier' ? 'supplier_name' : sort_by;
+      const items = await filtered.selectAll().orderBy(column, sort_dir).orderBy('id', sort_dir).limit(page_size).offset((page-1)*page_size).execute();
+      return { items, total, page, page_size, total_pages: Math.ceil(total/page_size) };
     });
   });
 
@@ -505,7 +560,8 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (body.supplier_id) {
         const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
           .where('id', '=', body.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-        if (supplier?.status === 'blocked') {
+        if (!supplier) return reply.status(400).send({ error: 'Select a supplier from this workspace.' });
+        if (supplier.status === 'blocked') {
           return reply.status(400).send({
             error: `${supplier.name} is blocked and cannot be billed${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
           });
@@ -550,6 +606,12 @@ export async function billRoutes(fastify: FastifyInstance) {
         if (workflow) { effectiveStatus = 'PENDING_APPROVAL'; approvalWorkflowId = workflow.id; }
       }
 
+      let billDefaultCurrency = body.currency;
+      if (!billDefaultCurrency) {
+        const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+        billDefaultCurrency = s?.company?.currency || 'USD';
+      }
       const bill = await trx.insertInto('supplier_bills').values({
         tenant_id: user.tenant_id,
         bill_number: billNumber,
@@ -562,7 +624,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         bill_date: body.bill_date || null,
         due_date: body.due_date || null,
         status: effectiveStatus,
-        currency: body.currency || 'USD',
+        currency: billDefaultCurrency,
         subtotal,
         tax_amount,
         total,
@@ -593,7 +655,7 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       // Trigger accounting integration sync in background
       if (bill.status === 'POSTED') {
-        AccountingIntegrationService.syncBill(user.tenant_id, bill.id).catch(console.error);
+        await enqueueAccountingSync(trx, user.tenant_id, 'BILL', bill.id);
       }
 
       await trx.insertInto('bill_activity_log').values({
@@ -613,7 +675,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });
       const lines = await trx.selectFrom('supplier_bill_lines').selectAll().where('bill_id', '=', id).orderBy('sort_order', 'asc').execute();
-      const payments = await trx.selectFrom('bill_payments').selectAll().where('bill_id', '=', id).orderBy('created_at', 'desc').execute();
+      const payments = await trx.selectFrom('bill_payments').selectAll().where('tenant_id', '=', user.tenant_id).where('bill_id', '=', id).orderBy('created_at', 'desc').execute();
       return { ...bill, items: lines, payments };
     });
   });
@@ -661,7 +723,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         .set({ status: 'POSTED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
 
-      AccountingIntegrationService.syncBill(user.tenant_id, id).catch(console.error);
+      await enqueueAccountingSync(trx, user.tenant_id, 'BILL', id);
       await trx.insertInto('bill_activity_log').values({
         tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
         action: 'approved', detail: `Bill ${bill.bill_number} approved and posted`, created_at: new Date(),
@@ -687,7 +749,8 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (bill.supplier_id) {
         const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
           .where('id', '=', bill.supplier_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-        if (supplier?.status === 'blocked') {
+        if (!supplier) return reply.status(400).send({ error: 'Select a supplier from this workspace.' });
+        if (supplier.status === 'blocked') {
           return reply.status(400).send({
             error: `${supplier.name} is blocked and cannot be billed${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
           });
@@ -731,7 +794,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         .set({ status: 'POSTED', updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
-      AccountingIntegrationService.syncBill(user.tenant_id, id).catch(console.error);
+      await enqueueAccountingSync(trx, user.tenant_id, 'BILL', id);
       await trx.insertInto('bill_activity_log').values({
         tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
         action: 'posted', detail: `Bill ${bill.bill_number} posted`, created_at: new Date(),
@@ -828,7 +891,8 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (effectiveSupplierId && (changingSupplier || postingNow)) {
         const supplier = await trx.selectFrom('suppliers').select(['status', 'name', 'notes'])
           .where('id', '=', effectiveSupplierId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-        if (supplier?.status === 'blocked') {
+        if (!supplier) return reply.status(400).send({ error: 'Select a supplier from this workspace.' });
+        if (supplier.status === 'blocked') {
           return reply.status(400).send({
             error: `${supplier.name} is blocked and cannot be billed${supplier.notes ? ` (${supplier.notes})` : ''}. Reactivate the supplier first if this was a mistake.`,
           });
@@ -918,7 +982,7 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       // Trigger accounting integration sync in background
       if (bill.status === 'POSTED') {
-        AccountingIntegrationService.syncBill(user.tenant_id, bill.id).catch(console.error);
+        await enqueueAccountingSync(trx, user.tenant_id, 'BILL', bill.id);
       }
 
       await trx.insertInto('bill_activity_log').values({
@@ -1006,18 +1070,31 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { amount, currency, payment_date, method, reference, note } = z.object({
-      amount: z.number().positive(),
+      amount: z.number().finite().positive().max(1e12),
       currency: z.string().max(10).optional(),
-      payment_date: z.string().optional(),
+      payment_date: z.string().date().optional(),
       method: z.string().max(50).optional(),
       reference: z.string().max(200).optional(),
       note: z.string().max(2000).optional(),
     }).parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
-      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+    const requestKey = z.string().trim().min(1).max(128).optional().parse(request.headers['idempotency-key']);
+    let committedEvent: DomainEvent | undefined;
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });
+      if (!['POSTED', 'PARTIAL', 'PAID'].includes(bill.status)) return reply.status(409).send({ error: 'Only posted bills can receive payments.' });
+      if (currency && currency !== bill.currency) return reply.status(400).send({ error: 'Payment currency must match the bill currency.' });
+      if (requestKey) {
+        const prior = await trx.selectFrom('bill_payments').select(['amount', 'method', 'payment_date', 'reference', 'note']).where('tenant_id', '=', user.tenant_id).where('bill_id', '=', id).where('request_key', '=', requestKey).executeTakeFirst();
+        if (prior) {
+          if (Number(prior.amount) !== amount || (prior.method || '') !== (method || '') || (prior.reference || '') !== (reference || '') || (prior.note || '') !== (note || '') || (prior.payment_date ? new Date(prior.payment_date as any).toISOString().slice(0, 10) : null) !== (payment_date || null)) return reply.status(409).send({ error: 'Payment request key was already used with different details.' });
+          return { success: true, paid_amount: Number(bill.paid_amount), status: bill.status, replayed: true };
+        }
+      }
 
+      if (amount > Number(bill.total) - Number(bill.paid_amount) + 1e-8) return reply.status(409).send({ error: 'Payment exceeds the bill balance. Record supplier advances separately.' });
       const payment = await trx.insertInto('bill_payments').values({
+        request_key: requestKey ?? null,
         tenant_id: user.tenant_id,
         bill_id: id,
         amount: Number(amount),
@@ -1031,10 +1108,10 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       // Money paid out to a supplier — the A/P counterpart of an invoice
       // payment, so cross-app subscribers see cash leaving, not just cash in.
-      emitDomainEvent(trx, user.tenant_id, {
+      committedEvent = await emitDomainEvent(trx, user.tenant_id, {
         type: 'bill.payment_recorded', sourceApp: 'finops', entityType: 'bill', entityId: id,
         payload: { amount: Number(amount), method: method || null, supplierId: (bill as any).supplier_id ?? null },
-      }).catch(err => console.error('[Finance] bill payment_recorded emit failed:', err.message));
+      }, { deferDispatch: true });
 
       // Recalculate paid_amount from all payments
       const payments = await trx.selectFrom('bill_payments').select('amount').where('bill_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
@@ -1087,7 +1164,7 @@ export async function billRoutes(fastify: FastifyInstance) {
           { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
           { accountCode: '1010', debit: 0, credit: Number(amount), description: 'Cash paid', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
         ],
-      });
+      }, trx);
 
       if (whtAmount > 0.01) {
         await trx.insertInto('wht_deductions').values({
@@ -1097,9 +1174,6 @@ export async function billRoutes(fastify: FastifyInstance) {
         }).execute();
       }
 
-      // Trigger accounting integration payment sync in background
-      AccountingIntegrationService.syncPayment(user.tenant_id, id, 'BILL').catch(console.error);
-
       await trx.insertInto('bill_activity_log').values({
         tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
         action: 'payment_recorded',
@@ -1107,8 +1181,12 @@ export async function billRoutes(fastify: FastifyInstance) {
         created_at: new Date(),
       }).execute();
 
+      await enqueueAccountingSync(trx, user.tenant_id, 'BILL', id);
+      await enqueueAccountingSync(trx, user.tenant_id, 'BILL_PAYMENT', payment.id);
       return { success: true, paid_amount: totalPaid, status: newStatus, wht_deducted: whtAmount };
     });
+    if (committedEvent && !reply.sent) dispatchDomainEvent(user.tenant_id, committedEvent);
+    return result;
   });
 
   // ── POST /v1/bills/:id/verify-efd ─────────────────────────────────────────

@@ -111,6 +111,37 @@
 
 .inv-toolbar-cta { flex-shrink: 0; }
 
+.inv-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 9px;
+  background: var(--card-sunken, #f1f3f3);
+}
+.inv-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink2);
+  font: 600 12.5px/1 var(--font);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+.inv-view-toggle button:hover { color: var(--ink); }
+.inv-view-toggle button.is-active {
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+.inv-view-toggle button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
 /* Status filter row itself is now the shared .ds-tabs-list/.ds-tabs-trigger
    (segmented variant, ds-tabs.css) — only the per-chip count bubble is
    still local, since the shared tab trigger has no built-in badge slot. */
@@ -136,6 +167,14 @@
   width: 220px;
   outline: none;
 }
+.inv-search-wrap--primary .inv-search-input {
+  width: clamp(220px, 24vw, 380px);
+  min-height: 40px;
+  padding-left: 34px;
+  border-radius: 8px;
+  background: var(--white);
+}
+.inv-search-wrap--primary .inv-search-icon { left: 11px; }
 .inv-body--split .inv-search-input { width: 160px; }
 
 /* ── Filters popover — the popover shell itself (position, background,
@@ -206,6 +245,65 @@
 .inv-table tbody tr:last-child td { border-bottom: none; }
 .inv-table tbody tr:hover { background: var(--teal-l); }
 .inv-table tbody tr.inv-row--selected { background: var(--teal-l); border-left-color: var(--teal); }
+
+/* Board view follows the reference's wide, horizontally scrollable columns
+   while keeping invoice totals, due dates and detail navigation intact. */
+.inv-board {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+  background: var(--card-sunken, #f8fafc);
+}
+.inv-board-column { width: 310px; min-width: 310px; }
+.inv-board-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 5px 12px;
+  color: var(--ink2);
+  font-size: 12px;
+}
+.inv-board-column-head > div { display: flex; align-items: center; gap: 8px; }
+.inv-board-column-head strong { color: var(--ink); font-size: 13px; }
+.inv-board-dot { width: 9px; height: 9px; border-radius: 50%; }
+.inv-board-cards { display: flex; flex-direction: column; gap: 10px; }
+.inv-board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  text-align: left;
+  font-family: var(--font);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.inv-board-card:hover { transform: translateY(-1px); border-color: var(--teal); box-shadow: var(--elev-sm); }
+.inv-board-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.inv-board-card-top, .inv-board-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inv-board-card-top strong { color: var(--ink); font-size: 13px; }
+.inv-board-client { color: var(--ink2); font-size: 13px; }
+.inv-board-card-meta { color: var(--ink3); font-size: 11.5px; }
+.inv-board-card-meta strong { color: var(--ink); font-size: 12px; }
+.inv-board-overdue { color: var(--red); font-weight: 700; }
+.inv-board-empty {
+  padding: 28px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--ink3);
+  text-align: center;
+  font-size: 12px;
+}
+.inv-board-loading { color: var(--ink3); font-size: 13px; padding: 40px 8px; white-space: nowrap; }
 
 .th--checkbox { width: 36px; padding-right: 0 !important; text-align: center; }
 .th--checkbox input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--teal); cursor: pointer; margin: 0; }

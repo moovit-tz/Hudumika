@@ -7,6 +7,7 @@
 // column is meaningful for every type (containers is RO/DO-only,
 // delivery_document_lines is DELIVERY_NOTE-only).
 import PDFDocument from 'pdfkit';
+import { documentBranding, drawDocumentHeader, applyDocumentFonts, type DocumentBranding } from './document-branding.service.js';
 import { withTenant } from '../db/client.js';
 
 export interface ContainerLine {
@@ -251,7 +252,7 @@ const SECTION_BG = '#fef9f5';
 const BORDER = '#e5e7eb';
 const INK = '#111111';
 
-interface CompanyInfo { name: string; address: string; city: string; country: string; phone: string; email: string; website: string; }
+interface CompanyInfo { branding: DocumentBranding; name: string; address: string; city: string; country: string; phone: string; email: string; website: string; }
 
 async function getCompanyInfo(tenantId: string): Promise<CompanyInfo> {
   return withTenant(tenantId, async (trx) => {
@@ -262,6 +263,7 @@ async function getCompanyInfo(tenantId: string): Promise<CompanyInfo> {
     const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
     const c = (settings as any)?.company || {};
     return {
+      branding: await documentBranding(settings, 'delivery_note'),
       name: c.name || tenant?.name || 'Hudumika',
       address: c.address || '',
       city: c.city || '',
@@ -276,7 +278,7 @@ async function getCompanyInfo(tenantId: string): Promise<CompanyInfo> {
 function sectionHeader(doc: PDFKit.PDFDocument, x: number, y: number, w: number, title: string): number {
   doc.rect(x, y, w, 16).fill(SECTION_BG);
   doc.rect(x, y, 3, 16).fill(ORANGE);
-  doc.font('Helvetica-Bold').fontSize(8).fillColor(INK).text(title.toUpperCase(), x + 10, y + 4, { characterSpacing: 0.4 });
+  doc.font('Document-Bold').fontSize(8).fillColor(INK).text(title.toUpperCase(), x + 10, y + 4, { characterSpacing: 0.4 });
   return y + 16;
 }
 
@@ -293,8 +295,8 @@ function fieldGrid(doc: PDFKit.PDFDocument, x: number, y: number, w: number, fie
     const row = Math.floor(i / cols);
     const fx = x + col * colW;
     const fy = y + row * rowH;
-    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(ORANGE).text(label.toUpperCase(), fx, fy, { width: colW - 8, height: 8, ellipsis: true, characterSpacing: 0.2 });
-    doc.font('Helvetica').fontSize(8.5).fillColor(INK).text(value || ' ', fx, fy + 9, { width: colW - 8, height: 11, ellipsis: true });
+    doc.font('Document-Bold').fontSize(6.5).fillColor(ORANGE).text(label.toUpperCase(), fx, fy, { width: colW - 8, height: 8, ellipsis: true, characterSpacing: 0.2 });
+    doc.font('Document-Regular').fontSize(8.5).fillColor(INK).text(value || ' ', fx, fy + 9, { width: colW - 8, height: 11, ellipsis: true });
     doc.moveTo(fx, fy + 20).lineTo(fx + colW - 8, fy + 20).strokeColor(BORDER).lineWidth(0.5).stroke();
   });
   return y + Math.ceil(fields.length / cols) * rowH;
@@ -303,43 +305,33 @@ function fieldGrid(doc: PDFKit.PDFDocument, x: number, y: number, w: number, fie
 /** Bordered table: orange header row, alternating body rows, optional totals row. */
 function documentTable(doc: PDFKit.PDFDocument, x: number, y: number, colWidths: number[], headers: string[], rows: (string | number)[][], totals?: (string | number)[]): number {
   const w = colWidths.reduce((a, b) => a + b, 0);
-  const rowH = 16;
   let cy = y;
-
-  doc.rect(x, cy, w, rowH).fill(ORANGE);
-  let cx = x;
-  headers.forEach((h, i) => {
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff').text(h, cx + 5, cy + 4, { width: colWidths[i] - 8 });
-    cx += colWidths[i];
-  });
-  cy += rowH;
-
-  rows.forEach((row, ri) => {
-    doc.rect(x, cy, w, rowH).fill(ri % 2 === 1 ? '#fafafa' : '#ffffff');
-    cx = x;
-    row.forEach((cell, ci) => {
-      doc.font('Helvetica').fontSize(7.5).fillColor(INK).text(String(cell ?? ''), cx + 5, cy + 4, { width: colWidths[ci] - 8, ellipsis: true });
-      cx += colWidths[ci];
+  const header = () => {
+    doc.rect(x, cy, w, 20).fill(ORANGE);
+    let cx = x;
+    headers.forEach((h, i) => {
+      doc.font('Document-Bold').fontSize(7.5).fillColor('#ffffff').text(h, cx + 5, cy + 4, { width: colWidths[i] - 8, height: 16 });
+      cx += colWidths[i];
     });
-    cy += rowH;
-  });
-
-  // grid lines
-  doc.rect(x, y, w, cy - y).strokeColor(BORDER).lineWidth(0.5).stroke();
-  let lx = x;
-  colWidths.forEach((cw) => { lx += cw; doc.moveTo(lx, y).lineTo(lx, cy).strokeColor(BORDER).lineWidth(0.5).stroke(); });
-  for (let ly = y + rowH; ly < cy; ly += rowH) doc.moveTo(x, ly).lineTo(x + w, ly).strokeColor(BORDER).lineWidth(0.5).stroke();
-
-  if (totals) {
-    doc.rect(x, cy, w, rowH).fill(SECTION_BG);
-    doc.rect(x, cy, w, rowH).strokeColor(BORDER).lineWidth(0.5).stroke();
-    cx = x;
-    totals.forEach((cell, ci) => {
-      if (cell !== '') doc.font('Helvetica-Bold').fontSize(7.5).fillColor(ORANGE).text(String(cell), cx + 5, cy + 4, { width: colWidths[ci] - 8 });
-      cx += colWidths[ci];
+    cy += 20;
+  };
+  header();
+  const drawRow = (row: (string | number)[], ri: number, total = false) => {
+    const height = Math.max(20, ...row.map((cell, i) => doc.font('Document-Regular').fontSize(7.5).heightOfString(String(cell ?? ''), {width: colWidths[i] - 10}) + 8));
+    if (cy + height > doc.page.height - 50) { doc.addPage(); cy = doc.page.margins.top; header(); }
+    doc.rect(x, cy, w, height).fill(total ? SECTION_BG : ri % 2 ? '#fafafa' : '#ffffff');
+    let cx = x;
+    row.forEach((cell, i) => {
+      doc.font(total ? 'Document-Bold' : 'Document-Regular').fontSize(7.5).fillColor(total ? ORANGE : INK)
+        .text(String(cell ?? ''), cx + 5, cy + 4, {width: colWidths[i] - 10});
+      doc.rect(cx, cy, colWidths[i], height).strokeColor(BORDER).lineWidth(.5).stroke();
+      cx += colWidths[i];
     });
-    cy += rowH;
-  }
+    cy += height;
+  };
+  rows.forEach((row, ri) => drawRow(row, ri));
+  if (totals) drawRow(totals, rows.length, true);
+
   return cy;
 }
 
@@ -364,6 +356,7 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 32 });
+    applyDocumentFonts(doc, isDeliveryNote ? company.branding : undefined);
     const chunks: Buffer[] = [];
     doc.on('data', (b) => chunks.push(b));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -379,23 +372,30 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
     const leftW = 150, rightW = 130, midW = W - leftW - rightW;
     let y = M;
 
+    if (isDeliveryNote) {
+      y = drawDocumentHeader(doc, company.branding,
+        { name: company.name, address: [company.address, company.city, company.country, company.phone, company.email].filter(Boolean).join(' · ') },
+        'DELIVERY NOTE', r.doc_number || 'DRAFT', M, y, W);
+      doc.font('Document-Regular').fontSize(8).fillColor(INK).text(`Delivery: ${dateFmt(r.delivery_date)} · Status: ${r.status}`, M, y);
+      y = doc.y + 12;
+    } else {
     // ── Header band ──
     const headerH = 74;
     doc.rect(M, y, leftW, headerH).fill(DARK);
     doc.rect(M, y, 4, headerH).fill(ORANGE);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#ffffff').text(company.name, M + 14, y + 10, { width: leftW - 24, height: 26, ellipsis: true });
-    doc.font('Helvetica').fontSize(7).fillColor('#c7ccd6').text(
+    doc.font('Document-Bold').fontSize(12).fillColor('#ffffff').text(company.name, M + 14, y + 10, { width: leftW - 24, height: 26, ellipsis: true });
+    doc.font('Document-Regular').fontSize(7).fillColor('#c7ccd6').text(
       [company.address, [company.city, company.country].filter(Boolean).join(', ')].filter(Boolean).join('\n'),
       M + 14, doc.y + 4, { width: leftW - 24 }
     );
-    doc.font('Helvetica').fontSize(7).fillColor('#c7ccd6').text(
+    doc.font('Document-Regular').fontSize(7).fillColor('#c7ccd6').text(
       [company.phone, company.email].filter(Boolean).join('  ·  '), M + 14, doc.y + 2, { width: leftW - 24 }
     );
 
     doc.rect(M + leftW, y, midW, headerH).fill(DARK);
-    doc.font('Helvetica-Bold').fontSize(20).fillColor('#ffffff')
+    doc.font('Document-Bold').fontSize(20).fillColor('#ffffff')
       .text(DOC_TITLE[r.doc_type] ?? r.doc_type, M + leftW + 14, y + 20, { width: midW - 24, height: 24, ellipsis: true });
-    doc.font('Helvetica').fontSize(8).fillColor('#9aa3b2').text(company.website || '', M + leftW + 14, y + 50, { width: midW - 24 });
+    doc.font('Document-Regular').fontSize(8).fillColor('#9aa3b2').text(company.website || '', M + leftW + 14, y + 50, { width: midW - 24 });
 
     doc.rect(M + leftW + midW, y, rightW, headerH).fill(CREAM);
     const metaFields: [string, string][] = isDeliveryNote
@@ -403,12 +403,14 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
       : [['Order No', r.doc_number || 'DRAFT'], ['Issued', dateFmt(r.issued_at)], ['Valid To', dateFmt(r.valid_until)], ['Status', r.status.toUpperCase()]];
     let mfy = y + 6;
     metaFields.forEach(([label, value]) => {
-      doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#8a8578').text(`${label.toUpperCase()}:`, M + leftW + midW + 10, mfy, { width: rightW - 20 });
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(INK).text(value, M + leftW + midW + 10, mfy + 8, { width: rightW - 20 });
+      doc.font('Document-Bold').fontSize(6.5).fillColor('#8a8578').text(`${label.toUpperCase()}:`, M + leftW + midW + 10, mfy, { width: rightW - 20 });
+      doc.font('Document-Bold').fontSize(8.5).fillColor(INK).text(value, M + leftW + midW + 10, mfy + 8, { width: rightW - 20 });
       doc.moveTo(M + leftW + midW + 10, mfy + 18).lineTo(M + leftW + midW + rightW - 10, mfy + 18).strokeColor(ORANGE).lineWidth(1).stroke();
       mfy += 18;
     });
     y += headerH + 12;
+
+    }
 
     // ── Consignee + Transport boxes ──
     const boxW = (W - 8) / 2;
@@ -475,16 +477,16 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
         const cy = sy + Math.floor(i / 2) * 16;
         const checked = r.status === key;
         doc.rect(cx, cy, 8, 8).fillAndStroke(checked ? ORANGE : '#ffffff', checked ? ORANGE : BORDER);
-        if (checked) doc.font('Helvetica-Bold').fontSize(7).fillColor('#ffffff').text('✓', cx + 1.5, cy);
-        doc.font('Helvetica').fontSize(7.5).fillColor(INK).text(label, cx + 12, cy, { width: 85 });
+        if (checked) doc.font('Document-Bold').fontSize(7).fillColor('#ffffff').text('✓', cx + 1.5, cy);
+        doc.font('Document-Regular').fontSize(7.5).fillColor(INK).text(label, cx + 12, cy, { width: 85 });
       });
       sy += 40;
-      doc.font('Helvetica-Bold').fontSize(7).fillColor(ORANGE).text('DISCREPANCY NOTES', M + 10, sy);
-      doc.font('Helvetica').fontSize(7.5).fillColor(INK).text(r.discrepancy_notes || '—', M + 10, sy + 10, { width: leftBoxW - 20, height: 30 });
+      doc.font('Document-Bold').fontSize(7).fillColor(ORANGE).text('DISCREPANCY NOTES', M + 10, sy);
+      doc.font('Document-Regular').fontSize(7.5).fillColor(INK).text(r.discrepancy_notes || '—', M + 10, sy + 10, { width: leftBoxW - 20, height: 30 });
     } else {
       doc.rect(M, bottomTop, leftBoxW, 110).strokeColor(BORDER).lineWidth(0.5).stroke();
       let sy = sectionHeader(doc, M, bottomTop, leftBoxW, 'Release Conditions') + 8;
-      doc.font('Helvetica').fontSize(7.5).fillColor(INK).text(r.release_conditions || 'None specified.', M + 10, sy, { width: leftBoxW - 20, height: 70, align: 'justify' });
+      doc.font('Document-Regular').fontSize(7.5).fillColor(INK).text(r.release_conditions || 'None specified.', M + 10, sy, { width: leftBoxW - 20, height: 70, align: 'justify' });
     }
 
     doc.rect(M + leftBoxW + 8, bottomTop, sigBoxW, 110).strokeColor(BORDER).lineWidth(0.5).stroke();
@@ -494,10 +496,10 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
     parties.forEach((party, i) => {
       const px = M + leftBoxW + 8 + i * partyW;
       doc.rect(px, bottomTop + 16, partyW, 16).fill(ORANGE);
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#ffffff').text(party, px + 6, bottomTop + 20, { width: partyW - 12 });
+      doc.font('Document-Bold').fontSize(7.5).fillColor('#ffffff').text(party, px + 6, bottomTop + 20, { width: partyW - 12 });
       ['Name', 'Sig', 'Date'].forEach((f, fi) => {
         const fy = bottomTop + 42 + fi * 22;
-        doc.font('Helvetica-Bold').fontSize(6.5).fillColor(INK).text(`${f}:`, px + 6, fy);
+        doc.font('Document-Bold').fontSize(6.5).fillColor(INK).text(`${f}:`, px + 6, fy);
         doc.moveTo(px + 6, fy + 12).lineTo(px + partyW - 8, fy + 12).strokeColor(ORANGE).lineWidth(0.75).stroke();
       });
     });
@@ -507,13 +509,13 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
     doc.rect(M, y, W, 20).fill(DARK);
     const footerText = [company.name.toUpperCase(), [company.address, company.city].filter(Boolean).join(', '), company.phone, company.email, company.website]
       .filter(Boolean).join('   ·   ');
-    doc.font('Helvetica').fontSize(6.5).fillColor('#c7ccd6').text(footerText, M + 10, y + 6, { width: W - 20 });
+    doc.font('Document-Regular').fontSize(6.5).fillColor('#c7ccd6').text(footerText, M + 10, y + 6, { width: W - 20 });
 
     // Placed relative to the footer bar, not pinned to the physical page
     // bottom — a fixed page-height offset sat inside pdfkit's own bottom
     // margin and silently forced a near-blank second page (seen on a real
     // rendered PDF before this fix).
-    doc.font('Helvetica').fontSize(6).fillColor('#999999').text(`Generated by ${company.name} via Hudumika — ${r.id} — ${new Date().toISOString()}.`, M, y + 26, { width: W });
+    doc.font('Document-Regular').fontSize(6).fillColor('#999999').text(`Generated by ${company.name} via Hudumika — ${r.id} — ${new Date().toISOString()}.`, M, y + 26, { width: W });
 
     doc.end();
   });

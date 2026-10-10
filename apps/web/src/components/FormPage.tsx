@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from './Icon.js';
+import { PageHeader } from './PageHeader.js';
 import { BackButton } from './ui/BackButton.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -34,17 +34,7 @@ export function FormPage({ title, subtitle, onCancel, actions, children }: FormP
   return (
     <div style={{ padding: isMobile ? '16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
       <BackButton onClick={onCancel} label="Back" color="var(--ink2)" />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{title}</h1>
-          {subtitle && (
-            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>{subtitle}</div>
-          )}
-        </div>
-        {actions && (
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>{actions}</div>
-        )}
-      </div>
+      <PageHeader crumbs={[]} titlePlain={title.split(' ').slice(0,-1).join(' ')} titleEm={title.split(' ').slice(-1)[0]} subtitle={subtitle} actions={actions}/>
       {children}
     </div>
   );

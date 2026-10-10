@@ -66,7 +66,8 @@ export function titleFromPath(pathname: string): string | null {
   const segments = pathname.split('/').filter(Boolean).filter(s => !isOpaque(s));
   const last = segments[segments.length - 1];
   if (!last) return null;
-  return last
+  const ACRONYMS: Record<string, string> = { pos: 'POS', hr: 'HR', crm: 'CRM', sms: 'SMS', ess: 'ESS', sso: 'SSO', api: 'API', gl: 'GL', fx: 'FX', dg: 'DG', eir: 'EIR', rls: 'RLS' };
+  return ACRONYMS[last.toLowerCase()] ?? last
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, ch => ch.toUpperCase());
 }

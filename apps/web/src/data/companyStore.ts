@@ -14,6 +14,8 @@ export interface CompanyInfo {
   name: string;
   logoUrl: string | null;     // null = use default / text fallback
   logoUrlDark: string | null; // null = fall back to logoUrl — shown wherever a document/preview renders on a dark background (see readers in CustomerInvoices/PurchaseOrders/Billing/Quotations/TopBar)
+  logoVerticalLight: string | null;
+  logoVerticalDark: string | null;
   logoHistory: string[];      // previously set logos, newest first — local-only, not persisted to the server
   faviconUrl: string | null;  // null = use /favicon.png
   address: string;
@@ -45,6 +47,8 @@ const DEFAULTS: CompanyInfo = {
   name:        'Vihilox Logistics Ltd',
   logoUrl:     null,
   logoUrlDark: null,
+  logoVerticalLight: null,
+  logoVerticalDark: null,
   logoHistory: [],
   faviconUrl:  null,
   address:     '14 Msasani Road, Kinondoni',
@@ -169,6 +173,8 @@ export async function hydrateCompanyFromServer(): Promise<void> {
       name:        c.name ?? t.name ?? _company.name,
       logoUrl:     c.logoUrl ?? t.logo_url ?? _company.logoUrl,
       logoUrlDark: c.logoUrlDark ?? _company.logoUrlDark,
+      logoVerticalLight: c.logoVerticalLight ?? null,
+      logoVerticalDark: c.logoVerticalDark ?? null,
       faviconUrl:  c.faviconUrl ?? _company.faviconUrl,
       address:     c.address ?? _company.address,
       city:        c.city ?? _company.city,
@@ -178,7 +184,7 @@ export async function hydrateCompanyFromServer(): Promise<void> {
       website:     c.website ?? _company.website,
       taxId:       c.taxId ?? c.vat ?? _company.taxId,
       regNumber:   c.regNumber ?? _company.regNumber,
-      tagline:     c.tagline ?? _company.tagline,
+      tagline:     c.tagline ?? c.desc ?? _company.tagline,
       businessType: c.businessType ?? _company.businessType,
       contactPerson: c.contactPerson ?? _company.contactPerson,
       customsAgentLicence: c.customsAgentLicence ?? _company.customsAgentLicence,

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useIdleLock } from '../hooks/useIdleLock.js';
+import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
+import { useBranding } from '../hooks/useBranding.js';
+import { toggleThemeWithAnimation } from '../lib/theme.js';
 import { Icon } from './Icon.js';
 import { Input } from './ui/input.js';
 import { Button } from './ui/button.js';
@@ -8,32 +11,25 @@ import { Banner } from './ui/alert.js';
 import { PersonAvatar } from './PersonAvatar.js';
 
 /**
- * The idle-lock overlay — rendered *alongside* the mounted app (see
- * LockScreenGate in App.tsx), never in place of it, so anything already
- * polling underneath keeps running and the session stays genuinely alive.
- *
- * Deliberately built on the platform's real, always-live design tokens
- * (--white/--ink/--border/--primary/...) rather than Login.css's --lp-*
- * variables: those are only ever set by Login.tsx's own theme effect, which
- * this overlay never runs, so every --lp-* read here would silently fall
- * back to its hardcoded *light-mode* default regardless of the app's actual
- * theme — a white card with light-mode text over a dark workspace. The
- * tokens used below are already correct for the current theme the instant
- * this mounts, because the real app underneath already set them.
+ * The idle-lock overlay — rendered alongside the mounted app,
+ * preserving session state while requiring password re-authentication.
+ * Styled dynamically with Hudumika Design System tokens and platform colors.
  */
 export function LockScreen() {
   const { user, logout } = useAuth();
   const { unlock } = useIdleLock();
+  const isDark = useIsDarkMode();
+  const branding = useBranding(true);
 
   const [password, setPassword] = useState('');
   const [totp, setTotp] = useState('');
   const [needs2fa, setNeeds2fa] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // One stable key per character position — a new key causes React to remount
-  // that dot span, which re-fires the pop animation. Deleting trims from the right.
+  // One stable key per character position for the pop animation.
   const [dotKeys, setDotKeys] = useState<string[]>([]);
   const prevLenRef = useRef(0);
   useEffect(() => {
@@ -48,6 +44,12 @@ export function LockScreen() {
     }
   }, [password.length]);
 
+  const handleKeyActivity = (e: React.KeyboardEvent) => {
+    if (e.getModifierState) {
+      setCapsLock(e.getModifierState('CapsLock'));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) return;
@@ -59,7 +61,6 @@ export function LockScreen() {
         setNeeds2fa(true);
         setError(null);
       }
-      // 'ok' needs no further action — useIdleLock's own state flip removes this overlay.
     } catch (err: any) {
       setError(err.message || 'Incorrect password');
     } finally {
@@ -68,62 +69,176 @@ export function LockScreen() {
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'rgba(15, 17, 21, 0.54)', backdropFilter: 'blur(9px)', WebkitBackdropFilter: 'blur(9px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-    }}>
-      <div className="card" style={{
-        width: '100%', maxWidth: 460, padding: 'clamp(32px, 5vw, 44px)',
-        background: 'color-mix(in srgb, var(--white) 88%, transparent)',
-        border: '1px solid color-mix(in srgb, var(--border) 72%, transparent)',
-        boxShadow: 'var(--elev-lg)',
-        backdropFilter: 'blur(20px) saturate(1.12)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.12)',
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 28 }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        background: 'radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 22%, transparent), color-mix(in srgb, var(--navy, #0f172a) 85%, transparent)), color-mix(in srgb, var(--navy2, #1e293b) 80%, #030712 92%)',
+        backdropFilter: 'blur(20px) saturate(1.3)',
+        WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        fontFamily: 'var(--font)',
+      }}
+    >
+      {/* Floating Rounded Light/Dark Mode Switcher */}
+      <button
+        type="button"
+        className="ls-theme-toggle"
+        onClick={(e) => toggleThemeWithAnimation(e, !isDark)}
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      >
+        <Icon name={isDark ? 'sun' : 'moon'} size={18} color="var(--ink)" />
+      </button>
+
+      <div
+        className="card"
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          padding: 'clamp(28px, 4.5vw, 36px) clamp(24px, 4vw, 32px)',
+          background: 'color-mix(in srgb, var(--white) 94%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--teal) 24%, var(--border))',
+          borderRadius: 'var(--card-radius, var(--r-xl, 24px))',
+          boxShadow: '0 24px 64px -12px color-mix(in srgb, var(--navy, #000) 45%, black), 0 0 0 1px color-mix(in srgb, var(--white) 10%, transparent)',
+          backdropFilter: 'blur(24px) saturate(1.15)',
+          WebkitBackdropFilter: 'blur(24px) saturate(1.15)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        {/* Workspace Locked Badge */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '4px 12px',
+            borderRadius: 'var(--badge-radius, 9999px)',
+            fontSize: 'var(--text-xs, 11px)',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            background: 'var(--teal-l, color-mix(in srgb, var(--teal) 12%, transparent))',
+            color: 'var(--teal)',
+            border: '1px solid color-mix(in srgb, var(--teal) 28%, transparent)',
+            marginBottom: 22,
+          }}
+        >
+          <Icon name="lock" size={12} color="var(--teal)" />
+          <span>{branding.platformName || 'Workspace'} Locked</span>
+        </div>
+
+        {/* User Profile Avatar with Lock Emblem */}
+        <div style={{ position: 'relative', marginBottom: 14 }}>
           <PersonAvatar
             userId={(user as any)?.id}
             name={user?.name ?? 'User'}
-            size={76}
-            style={{ border: '1px solid var(--border)' }}
+            size={80}
+            style={{
+              border: '2.5px solid color-mix(in srgb, var(--teal) 35%, var(--border))',
+              boxShadow: '0 8px 24px -4px color-mix(in srgb, var(--teal) 25%, rgba(0, 0, 0, 0.2))',
+            }}
           />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 700, fontSize: 20, color: 'var(--ink)' }}>{user?.name}</div>
-            <div style={{ fontSize: 14, color: 'var(--ink3)', marginTop: 4 }}>Session locked after 15 minutes of inactivity</div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: -2,
+              right: -2,
+              width: 26,
+              height: 26,
+              borderRadius: '50%',
+              background: 'var(--teal)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2.5px solid var(--white)',
+              boxShadow: '0 2px 8px color-mix(in srgb, var(--teal) 45%, black)',
+            }}
+          >
+            <Icon name="lock" size={12} color="var(--primary-foreground, #ffffff)" />
           </div>
         </div>
 
+        {/* User Identity Details */}
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ fontWeight: 800, fontSize: 'var(--text-xl, 20px)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+            {user?.name}
+          </div>
+          <div style={{ fontSize: 'var(--text-sm, 13px)', color: 'var(--ink3)', marginTop: 4 }}>
+            Enter your password to unlock your workspace
+          </div>
+        </div>
+
+        {/* Error Alert */}
         {error && (
-          <div style={{ marginBottom: 18 }}><Banner variant="error">{error}</Banner></div>
+          <div style={{ width: '100%', marginBottom: 16 }}>
+            <Banner variant="error">{error}</Banner>
+          </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Unlock Form */}
+        <form onSubmit={handleSubmit} noValidate style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ position: 'relative' }}>
-            {/* Real input — hidden text so the animated dot overlay shows instead */}
+            {/* Left Lock Icon */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 14,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+                color: 'var(--ink3)',
+                display: 'flex',
+                alignItems: 'center',
+                zIndex: 2,
+              }}
+            >
+              <Icon name="key" size={16} />
+            </div>
+
+            {/* Real Input */}
             <Input
               type={showPass ? 'text' : 'password'}
               placeholder={showPass ? 'Password' : ''}
               value={password}
               onChange={e => setPassword(e.target.value)}
+              onKeyDown={handleKeyActivity}
+              onKeyUp={handleKeyActivity}
               autoComplete="current-password"
               autoFocus
               style={{
-                minHeight: 'var(--ctl-h-lg)', paddingRight: 52, fontSize: 15,
+                minHeight: 'var(--ctl-h-lg, 46px)',
+                paddingLeft: 40,
+                paddingRight: 48,
+                fontSize: 'var(--text-md, 15px)',
                 color: showPass ? 'var(--ink)' : 'transparent',
                 caretColor: showPass ? 'var(--ink)' : 'transparent',
+                borderRadius: 'var(--r, 10px)',
               }}
             />
 
-            {/* Animated dot display — rendered over the input when in mask mode */}
+            {/* Animated dot display overlay */}
             {!showPass && (
-              <div style={{
-                position: 'absolute', inset: 0, pointerEvents: 'none',
-                display: 'flex', alignItems: 'center',
-                paddingLeft: 14, paddingRight: 52, gap: 7,
-              }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingLeft: 40,
+                  paddingRight: 48,
+                  gap: 7,
+                }}
+              >
                 {dotKeys.length === 0 ? (
-                  <span style={{ fontSize: 15, color: 'var(--ink3)' }}>Password</span>
+                  <span style={{ fontSize: 'var(--text-md, 14.5px)', color: 'var(--ink3)' }}>Password</span>
                 ) : (
                   <>
                     {dotKeys.map((k, i) => (
@@ -138,44 +253,161 @@ export function LockScreen() {
               </div>
             )}
 
+            {/* Eye Toggle Button */}
             <button
               type="button"
               onClick={() => setShowPass(p => !p)}
               title={showPass ? 'Hide password' : 'Show password'}
               style={{
-                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 'var(--r-sm)',
+                position: 'absolute',
+                right: 6,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 36,
+                height: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                borderRadius: 'var(--r-sm)',
                 color: 'var(--ink3)',
+                zIndex: 2,
               }}
-             data-ui-native-button="">
-              <Icon name={showPass ? 'eyeOff' : 'eye'} size={19} />
+              data-ui-native-button=""
+            >
+              <Icon name={showPass ? 'eyeOff' : 'eye'} size={18} />
             </button>
           </div>
 
-          {needs2fa && (
-            <Input
-              type="text"
-              inputMode="numeric"
-              placeholder="6-digit authentication code"
-              value={totp}
-              onChange={e => setTotp(e.target.value)}
-              autoComplete="one-time-code"
-              autoFocus
-              style={{ minHeight: 'var(--ctl-h-lg)', fontSize: 15 }}
-            />
+          {/* Caps Lock Warning */}
+          {capsLock && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 'var(--text-xs, 11.5px)',
+                color: 'var(--gold, #d97706)',
+                fontWeight: 600,
+                paddingLeft: 2,
+              }}
+            >
+              <Icon name="alertTriangle" size={12} color="var(--gold, #d97706)" />
+              Caps Lock is on
+            </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 12 }}>
-            <Button type="button" variant="ghost" size="lg" onClick={logout} style={{ color: 'var(--ink3)' }}>
-              Log out instead
+          {/* 2FA One-Time Code Field */}
+          {needs2fa && (
+            <div style={{ position: 'relative' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: 'var(--teal)',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Icon name="shield" size={16} color="var(--teal)" />
+              </div>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="6-digit authentication code"
+                value={totp}
+                onChange={e => setTotp(e.target.value)}
+                autoComplete="one-time-code"
+                autoFocus
+                style={{
+                  minHeight: 'var(--ctl-h-lg, 46px)',
+                  paddingLeft: 40,
+                  fontSize: 'var(--text-md, 15px)',
+                  borderRadius: 'var(--r, 10px)',
+                }}
+              />
+            </div>
+          )}
+
+          {/* Actions Bar — Shortened "Log out" Button */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 6,
+              gap: 12,
+            }}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              onClick={logout}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--ink2)',
+                fontWeight: 600,
+                borderRadius: 'var(--r, 10px)',
+              }}
+            >
+              <Icon name="logOut" size={15} color="var(--ink2)" />
+              Log out
             </Button>
-            <Button type="submit" size="lg" disabled={submitting || !password}>
-              {submitting ? 'Unlocking…' : 'Unlock'}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={submitting || !password}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                minWidth: 118,
+                justifyContent: 'center',
+                fontWeight: 700,
+                borderRadius: 'var(--r, 10px)',
+                background: 'var(--teal)',
+                color: 'var(--primary-foreground, #ffffff)',
+                boxShadow: submitting || !password ? 'none' : '0 4px 14px color-mix(in srgb, var(--teal) 35%, transparent)',
+              }}
+            >
+              {submitting ? (
+                'Unlocking…'
+              ) : (
+                <>
+                  <span>Unlock</span>
+                  <Icon name="arrowRight" size={14} color="currentColor" />
+                </>
+              )}
             </Button>
           </div>
         </form>
+
+        {/* Security Footer Note */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            marginTop: 24,
+            fontSize: 'var(--text-xs, 11px)',
+            color: 'var(--ink3)',
+            opacity: 0.8,
+          }}
+        >
+          <Icon name="shield" size={12} color="var(--teal)" />
+          Encrypted Session · {branding.platformName || 'Hudumika'} Security
+        </div>
       </div>
     </div>
   );
 }
+

@@ -110,7 +110,7 @@
 
 .cust-verified-badge {
   position: absolute;
-  bottom: -2px;
+  top: -2px;
   right: -2px;
   width: 22px;
   height: 22px;

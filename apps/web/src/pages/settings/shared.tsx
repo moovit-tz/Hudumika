@@ -60,6 +60,7 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     // favicon, all in one place; see CompanySection). ?s=branding still
     // resolves, via renderSection's redirect below, so old links don't 404.
     { key: 'modules',            label: 'Modules & Extensions', icon: 'grid'          },
+    { key: 'data-access',        label: 'Data Access',          icon: 'shield'        },
     { key: 'email',              label: 'Email',                icon: 'mail'          },
     { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
     { key: 'communications',     label: 'Communications',       icon: 'zap'           },

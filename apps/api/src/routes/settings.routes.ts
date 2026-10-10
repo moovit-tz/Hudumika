@@ -1,3 +1,4 @@
+import { DOCUMENT_KINDS, DOCUMENT_TEMPLATES } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant, dbPlatform } from '../db/client.js';
@@ -214,6 +215,14 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   fastify.patch('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
     const { $replace, ...updates } = settingsPatchSchema.parse(request.body);
+    if (updates.documentTemplates !== undefined) {
+      const choices = updates.documentTemplates;
+      if (!choices || typeof choices !== 'object' || Array.isArray(choices) ||
+          Object.entries(choices).some(([kind, layout]) => !DOCUMENT_KINDS.some(doc => doc.id === kind) || !DOCUMENT_TEMPLATES.some(template => template.id === layout))) {
+        return reply.status(400).send({ error: 'Choose a supported document type and template: modern, compact or classic.' });
+      }
+    }
+
 
     // Same restricted set MANAGER always had — a delegated settings.manage
     // holder is never more trusted than a real MANAGER, only ever as
@@ -420,7 +429,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
    * rebranding it would rebrand it for everybody. Neither is the platform's own
    * name. What is here is everything a person sees *inside* their workspace.
    */
-  const TENANT_BRANDING_FIELDS = ['workspaceName', 'logoLight', 'logoDark', 'favicon', 'accentColor'] as const;
+  const TENANT_BRANDING_FIELDS = ['workspaceName', 'logoLight', 'logoDark', 'logoVerticalLight', 'logoVerticalDark', 'favicon', 'accentColor'] as const;
 
   fastify.get('/branding', async (request) => {
     const user = request.user;
@@ -447,7 +456,12 @@ export async function settingsRoutes(fastify: FastifyInstance) {
      */
     const branding: Record<string, any> = {};
     for (const key of TENANT_BRANDING_FIELDS) {
-      if (body[key] !== undefined) branding[key] = body[key] === null ? null : String(body[key]).slice(0, 512_000);
+      if (body[key] !== undefined) {
+        const value = body[key] === null ? null : String(body[key]);
+        const limit = key.startsWith('logo') ? 3 * 1024 * 1024 : 512_000;
+        if (value && value.length > limit) return reply.status(400).send({ error: `${key} exceeds the supported size.` });
+        branding[key] = value;
+      }
     }
 
     // Per-app colour is the documented per-tenant override point: it is what

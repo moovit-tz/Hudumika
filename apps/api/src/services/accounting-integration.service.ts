@@ -1,5 +1,7 @@
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret } from './onsite-secrets.service.js';
+import { invoiceGrandTotal } from './invoice-totals.js';
 import { env } from '../config/env.js';
 
 export type AccountingProvider = 'QUICKBOOKS' | 'XERO';
@@ -83,18 +85,18 @@ const XERO: ProviderAdapter = {
   createContactBody: (name, email) => ({ Contacts: [{ Name: name, ...(email ? { EmailAddress: email } : {}) }] }),
   parseContactId: (json) => json?.Contacts?.[0]?.ContactID ?? null,
   createInvoicePath: () => `/Invoices`,
-  createInvoiceBody: ({ contactExternalId, number, date, total, description }) => ({
+  createInvoiceBody: ({ contactExternalId, number, date, total, description, currency }) => ({
     Invoices: [{
-      Type: 'ACCREC', Contact: { ContactID: contactExternalId }, Date: date, InvoiceNumber: number,
+      Type: 'ACCREC', CurrencyCode: currency, Contact: { ContactID: contactExternalId }, Date: date, InvoiceNumber: number,
       LineItems: [{ Description: description, Quantity: 1, UnitAmount: total, AccountCode: '200' }],
       Status: 'AUTHORISED',
     }],
   }),
   parseDocId: (json) => json?.Invoices?.[0]?.InvoiceID ?? json?.Payments?.[0]?.PaymentID ?? null,
   createBillPath: () => `/Invoices`,
-  createBillBody: ({ contactExternalId, number, date, total, description }) => ({
+  createBillBody: ({ contactExternalId, number, date, total, description, currency }) => ({
     Invoices: [{
-      Type: 'ACCPAY', Contact: { ContactID: contactExternalId }, Date: date, InvoiceNumber: number,
+      Type: 'ACCPAY', CurrencyCode: currency, Contact: { ContactID: contactExternalId }, Date: date, InvoiceNumber: number,
       LineItems: [{ Description: description, Quantity: 1, UnitAmount: total, AccountCode: '400' }],
       Status: 'AUTHORISED',
     }],
@@ -116,6 +118,11 @@ export function isProviderConfigured(provider: AccountingProvider): boolean {
   return !!(a.clientId && a.clientSecret);
 }
 
+function providerFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  // A stalled provider must not hold a database connection indefinitely.
+  return fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
+}
+
 async function logSync(trx: any, tenantId: string, provider: string, entityType: 'COA' | 'INVOICE' | 'BILL' | 'PAYMENT' | 'TEST_CONNECTION', entityId: string, status: 'SUCCESS' | 'FAILED', externalId?: string | null, errorMessage?: string) {
   await trx.insertInto('accounting_sync_logs').values({
     tenant_id: tenantId, provider, entity_type: entityType, entity_id: entityId,
@@ -123,7 +130,31 @@ async function logSync(trx: any, tenantId: string, provider: string, entityType:
   }).execute();
 }
 
+async function alreadySynced(trx: any, tenantId: string, provider: AccountingProvider, entityType: 'INVOICE' | 'BILL' | 'PAYMENT', entityId: string): Promise<boolean> {
+  // Serializing a provider connection also prevents concurrent contact creation/token refresh.
+  await sql`select pg_advisory_xact_lock(hashtextextended(${`accounting-sync:${tenantId}:${provider}`}, 0))`.execute(trx);
+  const previous = await trx.selectFrom('accounting_sync_logs').select('id')
+    .where('tenant_id', '=', tenantId).where('provider', '=', provider)
+    .where('entity_type', '=', entityType).where('entity_id', '=', entityId)
+    .where('status', '=', 'SUCCESS').where('external_id', 'is not', null).executeTakeFirst();
+  if (previous) return true;
+  const uncertain = await trx.selectFrom('accounting_sync_logs').select('id')
+    .where('tenant_id', '=', tenantId).where('provider', '=', provider)
+    .where('entity_type', '=', entityType).where('entity_id', '=', entityId)
+    .where('status', '=', 'FAILED').where('error_message', 'like', 'RECONCILIATION_REQUIRED:%').executeTakeFirst();
+  return !!uncertain;
+}
+
 export class AccountingIntegrationService {
+  static async readXeroInvoice(trx: any, tenantId: string, externalId: string) {
+    const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, 'XERO');
+    const response = await providerFetch(`${XERO.apiBase(orgId)}/Invoices/${encodeURIComponent(externalId)}`, { headers: XERO.authHeaders(accessToken, orgId) });
+    if (!response.ok) throw new Error(`Xero record lookup failed (${response.status}).`);
+    const result = await response.json() as { Invoices?: Array<{ InvoiceID: string; InvoiceNumber: string; Type: string; Status: string; CurrencyCode: string; Total: number; Contact?: { ContactID: string } }> };
+    const invoice = result.Invoices?.find(item => item.InvoiceID === externalId);
+    if (!invoice) throw new Error('Xero did not return the requested invoice.');
+    return invoice;
+  }
   static async getIntegrations(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).execute();
@@ -167,7 +198,7 @@ export class AccountingIntegrationService {
     }
 
     const refreshToken = decryptSecret(row.refresh_token_enc);
-    const res = await fetch(adapter.tokenUrl, {
+    const res = await providerFetch(adapter.tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -202,7 +233,7 @@ export class AccountingIntegrationService {
       const adapter = getAdapter(provider);
       try {
         const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
-        const res = await fetch(`${adapter.apiBase(orgId)}${adapter.companyInfoPath(orgId)}`, { headers: adapter.authHeaders(accessToken, orgId) });
+        const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.companyInfoPath(orgId)}`, { headers: adapter.authHeaders(accessToken, orgId) });
         if (!res.ok) throw new Error(`${provider} responded ${res.status}`);
         const json = await res.json();
         await logSync(trx, tenantId, provider, 'TEST_CONNECTION', orgId, 'SUCCESS');
@@ -223,7 +254,7 @@ export class AccountingIntegrationService {
       const row = await trx.selectFrom('accounting_integrations').select('id').where('tenant_id', '=', tenantId).where('provider', '=', provider).executeTakeFirst();
       try {
         const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
-        const res = await fetch(`${adapter.apiBase(orgId)}${adapter.accountsPath(orgId)}`, { headers: adapter.authHeaders(accessToken, orgId) });
+        const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.accountsPath(orgId)}`, { headers: adapter.authHeaders(accessToken, orgId) });
         if (!res.ok) throw new Error(`${provider} responded ${res.status}`);
         const json = await res.json();
         const accounts = provider === 'QUICKBOOKS' ? (json?.QueryResponse?.Account ?? []) : (json?.Accounts ?? []);
@@ -248,14 +279,15 @@ export class AccountingIntegrationService {
 
     const adapter = getAdapter(provider);
     const q = adapter.findContactQuery(orgId, name);
-    const findRes = await fetch(`${adapter.apiBase(orgId)}${q.path}`, { headers: adapter.authHeaders(accessToken, orgId), ...q.init });
+    const findRes = await providerFetch(`${adapter.apiBase(orgId)}${q.path}`, { headers: adapter.authHeaders(accessToken, orgId), ...q.init });
+    if (!findRes.ok) throw new Error(`${provider} contact lookup failed (${findRes.status}); no contact was created.`);
     let externalId: string | null = null;
     if (findRes.ok) {
       const findJson = await findRes.json();
       externalId = adapter.parseContactId(findJson);
     }
     if (!externalId) {
-      const createRes = await fetch(`${adapter.apiBase(orgId)}${adapter.createContactPath(orgId)}`, {
+      const createRes = await providerFetch(`${adapter.apiBase(orgId)}${adapter.createContactPath(orgId)}`, {
         method: 'POST', headers: adapter.authHeaders(accessToken, orgId), body: JSON.stringify(adapter.createContactBody(name, email)),
       });
       if (!createRes.ok) throw new Error(`Could not create ${provider} contact for "${name}" (${createRes.status})`);
@@ -270,23 +302,27 @@ export class AccountingIntegrationService {
     return externalId;
   }
 
-  static async syncInvoice(tenantId: string, invoiceId: string) {
+  static async syncInvoice(tenantId: string, invoiceId: string, onlyProvider?: AccountingProvider) {
     return withTenant(tenantId, async (trx) => {
-      const connected = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).where('status', '=', 'CONNECTED').execute();
+      const connected = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).where('status', '=', 'CONNECTED').orderBy('provider').execute();
       if (connected.length === 0) return;
-      const invoice = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', invoiceId).executeTakeFirst();
+      const invoice = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', invoiceId).where('tenant_id', '=', tenantId).executeTakeFirst();
       if (!invoice) return;
       const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', invoiceId).execute();
-      const total = lines.reduce((sum: number, l: any) => sum + Number(l.rate) * Number(l.qty) * (1 + Number(l.tax_pct ?? 0) / 100), 0);
+      const total = invoiceGrandTotal(lines, invoice.currency || 'TZS', Number(invoice.exchange_rate) || 1);
 
       for (const integration of connected) {
+        if (onlyProvider && integration.provider !== onlyProvider) continue;
         const provider = integration.provider as AccountingProvider;
         if (!(provider in ADAPTERS)) continue;
         const adapter = getAdapter(provider);
+        let providerWriteStarted = false;
         try {
+          if (await alreadySynced(trx, tenantId, provider, 'INVOICE', invoiceId)) continue;
           const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
+          providerWriteStarted = true;
           const contactExternalId = await this.resolveExternalContact(trx, tenantId, provider, accessToken, orgId, 'customer', invoice.customer_id ?? invoice.id, invoice.client_name ?? 'Customer', null);
-          const res = await fetch(`${adapter.apiBase(orgId)}${adapter.createInvoicePath(orgId)}`, {
+          const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.createInvoicePath(orgId)}`, {
             method: 'POST', headers: adapter.authHeaders(accessToken, orgId),
             body: JSON.stringify(adapter.createInvoiceBody({
               contactExternalId, number: invoice.invoice_number, date: invoice.bill_date ? String(invoice.bill_date) : new Date().toISOString().slice(0, 10),
@@ -296,29 +332,35 @@ export class AccountingIntegrationService {
           if (!res.ok) throw new Error(`${provider} responded ${res.status}: ${await res.text()}`);
           const json = await res.json();
           const externalId = adapter.parseDocId(json);
+          if (!externalId) throw new Error(`${provider} did not confirm a document ID; reconcile in the provider before retrying.`);
           await logSync(trx, tenantId, provider, 'INVOICE', invoiceId, 'SUCCESS', externalId);
         } catch (err: any) {
-          await logSync(trx, tenantId, provider, 'INVOICE', invoiceId, 'FAILED', null, err.message);
+          await logSync(trx, tenantId, provider, 'INVOICE', invoiceId, 'FAILED', null, providerWriteStarted ? `RECONCILIATION_REQUIRED: ${err.message}` : err.message);
         }
       }
     });
   }
 
-  static async syncBill(tenantId: string, billId: string) {
+  static async syncBill(tenantId: string, billId: string, onlyProvider?: AccountingProvider) {
     return withTenant(tenantId, async (trx) => {
-      const connected = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).where('status', '=', 'CONNECTED').execute();
+      const connected = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).where('status', '=', 'CONNECTED').orderBy('provider').execute();
       if (connected.length === 0) return;
-      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', billId).executeTakeFirst();
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', billId).where('tenant_id', '=', tenantId).executeTakeFirst();
       if (!bill) return;
 
       for (const integration of connected) {
+        if (onlyProvider && integration.provider !== onlyProvider) continue;
         const provider = integration.provider as AccountingProvider;
         if (!(provider in ADAPTERS)) continue;
         const adapter = getAdapter(provider);
+        let providerWriteStarted = false;
         try {
+          if (await alreadySynced(trx, tenantId, provider, 'BILL', billId)) continue;
+          if (provider === 'QUICKBOOKS') throw new Error('QuickBooks supplier export requires a verified Vendor adapter; no bill was sent.');
           const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
+          providerWriteStarted = true;
           const contactExternalId = await this.resolveExternalContact(trx, tenantId, provider, accessToken, orgId, 'supplier', bill.supplier_id ?? bill.id, bill.supplier_name ?? 'Supplier', null);
-          const res = await fetch(`${adapter.apiBase(orgId)}${adapter.createBillPath(orgId)}`, {
+          const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.createBillPath(orgId)}`, {
             method: 'POST', headers: adapter.authHeaders(accessToken, orgId),
             body: JSON.stringify(adapter.createBillBody({
               contactExternalId, number: bill.bill_number, date: bill.bill_date ? String(bill.bill_date) : new Date().toISOString().slice(0, 10),
@@ -328,30 +370,35 @@ export class AccountingIntegrationService {
           if (!res.ok) throw new Error(`${provider} responded ${res.status}: ${await res.text()}`);
           const json = await res.json();
           const externalId = adapter.parseDocId(json);
+          if (!externalId) throw new Error(`${provider} did not confirm a document ID; reconcile in the provider before retrying.`);
           await logSync(trx, tenantId, provider, 'BILL', billId, 'SUCCESS', externalId);
         } catch (err: any) {
-          await logSync(trx, tenantId, provider, 'BILL', billId, 'FAILED', null, err.message);
+          await logSync(trx, tenantId, provider, 'BILL', billId, 'FAILED', null, providerWriteStarted ? `RECONCILIATION_REQUIRED: ${err.message}` : err.message);
         }
       }
     });
   }
 
-  static async syncPayment(tenantId: string, paymentId: string, type: 'INVOICE' | 'BILL') {
+  static async syncPayment(tenantId: string, paymentId: string, type: 'INVOICE' | 'BILL', onlyProvider?: AccountingProvider) {
     return withTenant(tenantId, async (trx) => {
-      const connected = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).where('status', '=', 'CONNECTED').execute();
+      const connected = await trx.selectFrom('accounting_integrations').selectAll().where('tenant_id', '=', tenantId).where('status', '=', 'CONNECTED').orderBy('provider').execute();
       if (connected.length === 0) return;
 
       const paymentTable = type === 'INVOICE' ? 'invoice_payments' : 'bill_payments';
       const docIdColumn = type === 'INVOICE' ? 'invoice_id' : 'bill_id';
-      const payment = await trx.selectFrom(paymentTable as any).selectAll().where('id', '=', paymentId).executeTakeFirst();
+      const payment = await trx.selectFrom(paymentTable as any).selectAll().where('id', '=', paymentId).where('tenant_id', '=', tenantId).executeTakeFirst();
       if (!payment) return;
       const docId = (payment as any)[docIdColumn];
 
       for (const integration of connected) {
+        if (onlyProvider && integration.provider !== onlyProvider) continue;
         const provider = integration.provider as AccountingProvider;
         if (!(provider in ADAPTERS)) continue;
         const adapter = getAdapter(provider);
+        let providerWriteStarted = false;
         try {
+          if (await alreadySynced(trx, tenantId, provider, 'PAYMENT', paymentId)) continue;
+          if (type === 'BILL' && provider === 'QUICKBOOKS') throw new Error('QuickBooks bill-payment export is not implemented; no payment was sent.');
           // The originating document must already have been synced (its
           // accounting_sync_logs row carries the provider's real doc id) —
           // a payment can't be linked to a document the provider never saw.
@@ -363,7 +410,8 @@ export class AccountingIntegrationService {
           if (!docSync?.external_id) throw new Error(`${type === 'INVOICE' ? 'Invoice' : 'Bill'} was never synced to ${provider} — sync it before its payment.`);
 
           const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
-          const res = await fetch(`${adapter.apiBase(orgId)}${adapter.createPaymentPath(orgId)}`, {
+          providerWriteStarted = true;
+          const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.createPaymentPath(orgId)}`, {
             method: 'POST', headers: adapter.authHeaders(accessToken, orgId),
             body: JSON.stringify(adapter.createPaymentBody({
               docExternalId: docSync.external_id, amount: Number((payment as any).amount),
@@ -373,9 +421,10 @@ export class AccountingIntegrationService {
           if (!res.ok) throw new Error(`${provider} responded ${res.status}: ${await res.text()}`);
           const json = await res.json();
           const externalId = adapter.parseDocId(json);
+          if (!externalId) throw new Error(`${provider} did not confirm a document ID; reconcile in the provider before retrying.`);
           await logSync(trx, tenantId, provider, 'PAYMENT', paymentId, 'SUCCESS', externalId);
         } catch (err: any) {
-          await logSync(trx, tenantId, provider, 'PAYMENT', paymentId, 'FAILED', null, err.message);
+          await logSync(trx, tenantId, provider, 'PAYMENT', paymentId, 'FAILED', null, providerWriteStarted ? `RECONCILIATION_REQUIRED: ${err.message}` : err.message);
         }
       }
     });

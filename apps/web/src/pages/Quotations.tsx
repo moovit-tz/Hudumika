@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { getCompany, useCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -19,6 +19,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import {
   DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
   DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
@@ -280,108 +281,7 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
 // -- PDF Print -----------------------------------------------------------------
 
 function printQuote(q: Quote) {
-  const co = getCompany();
-  const lines = q.lines??[];
-  const logoHtml = co.logoUrl
-    ? `<img src="${co.logoUrl}" style="height:48px;max-width:160px;object-fit:contain" alt="${co.name}"/>`
-    : `<div style="font-size:22px;font-weight:800;color:#0d1a35">${co.name}</div>`;
-
-  const rowsHtml = lines.map((l,i)=>`
-    <tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:8px 10px;color:#94a3b8;font-size:12px">${i+1}</td>
-      <td style="padding:8px 10px">
-        <div style="font-weight:600;font-size:13px">${l.description}</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${CAT_LABEL[l.category]??l.category}</div>
-      </td>
-      <td style="padding:8px 10px;text-align:right;font-size:13px">${l.quantity}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:13px">${fmt(l.unit_price,q.currency)}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:12px;color:#94a3b8">${l.tax_rate}%</td>
-      <td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:700">${fmt(l.line_total,q.currency)}</td>
-    </tr>`).join('');
-
-  const win = window.open('','_blank','width=920,height=750');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>${q.quote_number} – ${q.title}</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;color:#1e293b;background:#fff;padding:48px}
-    .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:24px;border-bottom:3px solid #0d7a6b}
-    .co-sub{font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5}
-    .qnum{font-size:26px;font-weight:800;color:#0d7a6b;font-family:monospace;letter-spacing:-0.5px}
-    .qtitle{font-size:14px;color:#64748b;margin-top:4px}
-    .status{display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;margin-top:8px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px}
-    .box{background:#f8fafc;border-radius:10px;padding:18px;border:1px solid #e2e8f0}
-    .box-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-    .box-val{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
-    .box-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:#475569}
-    .box-row span:last-child{font-weight:600;color:#1e293b}
-    .route{display:flex;align-items:center;gap:12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:16px;margin-bottom:32px}
-    .route-port{flex:1} .route-lbl{font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-    .route-val{font-size:15px;font-weight:800;color:#064e3b}
-    .route-arrow{font-size:20px;color:#059669;font-weight:700}
-    table{width:100%;border-collapse:collapse;margin-bottom:24px}
-    th{padding:9px 10px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;background:#f8fafc;border-bottom:2px solid #e2e8f0;letter-spacing:.04em}
-    th.r{text-align:right}
-    .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:32px}
-    .totals{width:260px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
-    .trow{display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;border-bottom:1px solid #e2e8f0}
-    .trow:last-child{border:none;background:#ecfdf5;font-weight:800;font-size:15px;color:#059669}
-    .trow span:last-child{font-weight:600}
-    .section{margin-bottom:24px}
-    .section h4{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
-    .section p{font-size:12px;color:#475569;line-height:1.75;white-space:pre-line}
-    .footer{border-top:2px solid #e2e8f0;padding-top:16px;display:flex;justify-content:space-between;align-items:center;margin-top:32px}
-    .footer-co{font-size:11px;color:#94a3b8}
-    .sig-box{border-top:1px solid #cbd5e1;width:200px;padding-top:8px;font-size:11px;color:#94a3b8;text-align:center}
-    @media print{body{padding:24px}@page{margin:1cm}}
-  </style></head><body>
-  <div class="hdr">
-    <div>${logoHtml}<div class="co-sub">${co.tagline||''}<br>${co.address?co.address+', ':''} ${co.city||''}<br>${co.phone||''} – ${co.email||''}</div></div>
-    <div style="text-align:right">
-      <div class="qnum">${q.quote_number}</div>
-      <div class="qtitle">${q.title}</div>
-      <div class="status" style="background:${STATUS_CFG[q.status]?.bg??'#f1f5f9'};color:${STATUS_CFG[q.status]?.color??'#64748b'}">${STATUS_CFG[q.status]?.label??q.status}</div>
-    </div>
-  </div>
-  <div class="grid2">
-    <div class="box">
-      <div class="box-lbl">Bill To</div>
-      <div class="box-val">${q.customer_name}</div>
-      ${q.customer_company?`<div style="font-size:12px;color:#64748b;margin-bottom:8px">${q.customer_company}</div>`:''}
-      ${q.customer_email?`<div class="box-row"><span>Email</span><span>${q.customer_email}</span></div>`:''}
-      ${q.customer_phone?`<div class="box-row"><span>Phone</span><span>${q.customer_phone}</span></div>`:''}
-    </div>
-    <div class="box">
-      <div class="box-lbl">Quote Details</div>
-      <div class="box-row"><span>Date Issued</span><span>${fmtDate(q.created_at)}</span></div>
-      <div class="box-row"><span>Valid Until</span><span>${fmtDate(q.valid_until)}</span></div>
-      <div class="box-row"><span>Currency</span><span>${q.currency}</span></div>
-      <div class="box-row"><span>Shipment Type</span><span>${SHIP_TYPE_LABEL[q.shipment_type]??q.shipment_type}</span></div>
-    </div>
-  </div>
-  ${(q.origin_port||q.destination_port)?`<div class="route">
-    <div class="route-port"><div class="route-lbl">Origin</div><div class="route-val">${q.origin_port||'—'}</div></div>
-    <div class="route-arrow">→</div>
-    <div class="route-port"><div class="route-lbl">Destination</div><div class="route-val">${q.destination_port||'—'}</div></div>
-  </div>`:''}
-  <table>
-    <thead><tr><th>#</th><th>Description</th><th class="r">Qty</th><th class="r">Unit Price</th><th class="r">Tax</th><th class="r">Amount</th></tr></thead>
-    <tbody>${rowsHtml}</tbody>
-  </table>
-  <div class="totals-wrap"><div class="totals">
-    <div class="trow"><span>Subtotal</span><span>${fmt(q.subtotal,q.currency)}</span></div>
-    <div class="trow"><span style="color:#94a3b8">Tax</span><span style="color:#94a3b8">${fmt(q.tax_amount,q.currency)}</span></div>
-    <div class="trow"><span>Total</span><span>${fmt(q.total_amount,q.currency)}</span></div>
-  </div></div>
-  ${q.notes?`<div class="section"><h4>Notes</h4><p>${q.notes}</p></div>`:''}
-  ${q.terms?`<div class="section"><h4>Terms &amp; Conditions</h4><p>${q.terms}</p></div>`:''}
-  <div class="footer">
-    <div class="footer-co"><strong>${co.name}</strong><br>${co.website||''} – ${co.email||''}</div>
-    <div class="sig-box">Authorised Signature</div>
-  </div>
-  <script>window.onload=()=>{window.print()}</script></body></html>`);
-  win.document.close();
+  void apiViewBlob(`/v1/quotations/${q.id}/pdf`).catch(error => showAlert(error instanceof Error ? error.message : 'Could not open the quotation PDF.', {variant: 'error'}));
 }
 
 // -- Contact Selector (Customers + Leads) --------------------------------------
@@ -1041,21 +941,41 @@ export const Quotations: React.FC = () => {
   const { fmt } = useCurrency();
   const [view,      setView]      = useState<View>('list');
   const [quotes,    setQuotes]    = useState<Quote[]>([]);
+  const [totalQuotes, setTotalQuotes] = useState(0);
+  const [qPage,    setQPage]     = useState(1);
+  const [qPageSize, setQPageSize] = useState(25);
   const [selected,  setSelected]  = useState<Quote|null>(null);
   const [loading,   setLoading]   = useState(true);
   const [filter,    setFilter]    = useState<StatusFilter>('ALL');
   const [search,    setSearch]    = useState('');
   const [customers, setCustomers] = useState<SysCustomer[]>([]);
   const [leads,     setLeads]     = useState<SysLead[]>([]);
+  const loadIdRef = useRef(0);
 
-  const fetchQuotes = async (f=filter) => {
+  const fetchQuotes = useCallback(async (f = filter, p = qPage, ps = qPageSize, s = search) => {
+    const id = ++loadIdRef.current;
     setLoading(true);
     try {
-      const qs = f!=='ALL' ? `?status=${f}` : '';
-      const data = await apiFetch(`/v1/quotations${qs}`);
-      setQuotes(Array.isArray(data)?data:(data.data??[]));
-    } catch(e:any) { setQuotes([]); showAlert(e?.message || 'Could not load quotations.'); } finally { setLoading(false); }
-  };
+      const params = new URLSearchParams({ page: String(p), page_size: String(ps) });
+      if (f !== 'ALL') params.set('status', f);
+      if (s.trim()) params.set('search', s.trim());
+      const data = await apiFetch(`/v1/quotations?${params}`);
+      if (id !== loadIdRef.current) return;
+      if (data && typeof data === 'object' && 'items' in data) {
+        setQuotes(data.items as Quote[]);
+        setTotalQuotes(data.total);
+      } else {
+        const arr = Array.isArray(data) ? data : (data.data ?? []);
+        setQuotes(arr);
+        setTotalQuotes(arr.length);
+      }
+    } catch(e:any) {
+      if (id !== loadIdRef.current) return;
+      setQuotes([]); showAlert(e?.message || 'Could not load quotations.');
+    } finally {
+      if (id === loadIdRef.current) setLoading(false);
+    }
+  }, [filter, qPage, qPageSize, search]);
 
   const fetchDetail = async (id:string) => {
     try { const data = await apiFetch(`/v1/quotations/${id}`); setSelected(data); setView('detail'); }
@@ -1066,8 +986,7 @@ export const Quotations: React.FC = () => {
     fetchQuotes();
     apiFetch('/v1/customers').then(d=>setCustomers(Array.isArray(d)?d:(d.data??[]))).catch((e:any)=>showAlert(e?.message || 'Could not load customers.'));
     apiFetch('/v1/leads').then(d=>setLeads(Array.isArray(d)?d:(d.data??[]))).catch((e:any)=>showAlert(e?.message || 'Could not load leads.'));
-  },[]);
-  useEffect(()=>{ fetchQuotes(filter); },[filter]);
+  },[fetchQuotes]);
   useEffect(() => {
     function handler(e: Event) {
       if ((e as CustomEvent).detail?.section === 'quotations') setView('create');
@@ -1075,6 +994,11 @@ export const Quotations: React.FC = () => {
     window.addEventListener('fin:new-doc', handler);
     return () => window.removeEventListener('fin:new-doc', handler);
   }, []);
+
+  function handleFilterChange(f: StatusFilter) { setFilter(f); setQPage(1); }
+  function handleSearchChange(s: string) { setSearch(s); setQPage(1); }
+  function handleQPageChange(p: number) { setQPage(p); }
+  function handleQPageSizeChange(ps: number) { setQPageSize(ps); setQPage(1); }
 
   async function handleStatusChange(id:string,status:string,reason?:string){
     await apiFetch(`/v1/quotations/${id}/status`,{method:'PATCH',body:JSON.stringify({status,reason})});
@@ -1122,11 +1046,7 @@ export const Quotations: React.FC = () => {
     }
   }
 
-  const displayed = quotes.filter(q=>{
-    if(!search.trim()) return true;
-    const s=search.toLowerCase();
-    return q.quote_number.toLowerCase().includes(s)||q.title.toLowerCase().includes(s)||q.customer_name.toLowerCase().includes(s)||(q.origin_port??'').toLowerCase().includes(s)||(q.destination_port??'').toLowerCase().includes(s);
-  });
+  const displayed = quotes;
 
   function exportCsv() {
     const rows = [
@@ -1157,7 +1077,7 @@ export const Quotations: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title:'TOTAL QUOTES', value:String(quotes.length), sub1Label:'DRAFT', sub1Value:String(quotes.filter(q=>q.status==='DRAFT').length), sub2Label:'PENDING', sub2Value:String(quotes.filter(q=>q.status==='PENDING').length), barHighlight:'var(--teal)' },
+        { title:'TOTAL QUOTES', value:String(totalQuotes), sub1Label:'THIS PAGE', sub1Value:String(quotes.length), sub2Label:'PAGES', sub2Value:String(Math.ceil(totalQuotes / qPageSize)), barHighlight:'var(--teal)' },
         { title:'CONVERTED', value:String(quotes.filter(q=>q.status==='CONVERTED').length), sub1Label:'WIN RATE', sub1Value:quotes.length?`${Math.round(quotes.filter(q=>q.status==='CONVERTED').length/quotes.length*100)}%`:'0%', sub2Label:'APPROVED', sub2Value:String(quotes.filter(q=>q.status==='APPROVED').length), barHighlight:'var(--green)' },
         { title:'PIPELINE VALUE', value:`TZS ${(quotes.filter(q=>!['REJECTED','EXPIRED'].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0)).toLocaleString()}`, sub1Label:'AVG QUOTE', sub1Value:`TZS ${quotes.length?Math.round(quotes.reduce((s,q)=>s+(q.total_amount||0),0)/quotes.length).toLocaleString():'0'}`, sub2Label:'PENDING VALUE', sub2Value:`TZS ${quotes.filter(q=>q.status==='PENDING').reduce((s,q)=>s+(q.total_amount||0),0).toLocaleString()}`, barHighlight:'var(--gold)' },
         { title:'REJECTED / EXPIRED', value:String(quotes.filter(q=>['REJECTED','EXPIRED'].includes(q.status)).length), sub1Label:'REJECTED', sub1Value:String(quotes.filter(q=>q.status==='REJECTED').length), sub2Label:'EXPIRED', sub2Value:String(quotes.filter(q=>q.status==='EXPIRED').length), barHighlight:'var(--red)' },
@@ -1166,19 +1086,16 @@ export const Quotations: React.FC = () => {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap: 'wrap' }}>
         <div style={{ display:'flex', gap:6, flexWrap: 'wrap' }}>
           {STATUS_TABS.map(t=>(
-            <button key={t.key} type="button" onClick={()=>setFilter(t.key)}
+            <button key={t.key} type="button" onClick={()=>handleFilterChange(t.key)}
               style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }} data-ui-native-button="">
               {t.label}
-              {t.key!=='ALL'&&quotes.filter(q=>q.status===t.key).length>0&&(
-                <span style={{ marginLeft:6, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 'var(--r)', padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
-              )}
             </button>
           ))}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap: 'wrap' }}>
           <div style={{ position:'relative', minWidth:220 }}>
             <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties}/>
-            <input type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>setSearch(e.target.value)}
+            <input type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>handleSearchChange(e.target.value)}
               style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
           <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
@@ -1238,6 +1155,16 @@ export const Quotations: React.FC = () => {
                 </table>
               </div>
         }
+        {totalQuotes > qPageSize && (
+          <PaginationBar
+            page={qPage}
+            pageSize={qPageSize}
+            total={totalQuotes}
+            onPageChange={handleQPageChange}
+            onPageSizeChange={handleQPageSizeChange}
+            itemLabel="quotation"
+          />
+        )}
       </div>
     </div>
   );

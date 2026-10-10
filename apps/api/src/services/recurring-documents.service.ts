@@ -1,8 +1,9 @@
 import { withTenant } from '../db/client.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { GLService } from './gl.service.js';
-import { AccountingIntegrationService } from './accounting-integration.service.js';
+import { enqueueAccountingSync } from './accounting-outbox.service.js';
 import { tenantHasEnabledFinanceCapability } from './finance-capability.service.js';
+import { tenantAccountingDate } from './finance-date.service.js';
 
 async function assertCoreFinanceEnabled(tenantId: string): Promise<void> {
   if (!(await tenantHasEnabledFinanceCapability(tenantId, 'finance.core'))) {
@@ -19,10 +20,10 @@ async function assertCoreFinanceEnabled(tenantId: string): Promise<void> {
  *  a human clicking "Generate now" or by the daily job. */
 function advanceDate(dateStr: string, frequency: string): string {
   const d = new Date(dateStr);
-  if (frequency === 'WEEKLY') d.setDate(d.getDate() + 7);
-  else if (frequency === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
-  else if (frequency === 'ANNUAL') d.setFullYear(d.getFullYear() + 1);
-  else d.setMonth(d.getMonth() + 1); // MONTHLY, and the fallback for anything unrecognised
+  if (frequency === 'WEEKLY') d.setUTCDate(d.getUTCDate() + 7);
+  else if (frequency === 'QUARTERLY') d.setUTCMonth(d.getUTCMonth() + 3);
+  else if (frequency === 'ANNUAL') d.setUTCFullYear(d.getUTCFullYear() + 1);
+  else d.setUTCMonth(d.getUTCMonth() + 1); // MONTHLY, and the fallback for anything unrecognised
   return d.toISOString().slice(0, 10);
 }
 
@@ -37,16 +38,18 @@ export interface GenerationResult {
  * always run client-side (build a payload, POST /v1/bills, then PATCH the
  * template's counters), lifted server-side so a daily job can call it too.
  */
-export async function generateDueBills(tenantId: string, today = new Date().toISOString().slice(0, 10), templateId?: string): Promise<GenerationResult> {
+export async function generateDueBills(tenantId: string, dateOverride?: string, templateId?: string): Promise<GenerationResult> {
   await assertCoreFinanceEnabled(tenantId);
-  return withTenant(tenantId, async (trx) => {
+  const result = await withTenant(tenantId, async (trx) => {
+    const today = dateOverride ?? await tenantAccountingDate(trx, tenantId);
     let q = trx.selectFrom('recurring_bills').selectAll()
       .where('tenant_id', '=', tenantId).where('state', '=', 'ACTIVE');
     // A manual "Generate now" targets one template regardless of its due
     // date (matching the button's pre-existing behavior); the daily job
     // omits templateId and only picks up what's actually due.
     q = templateId ? q.where('id', '=', templateId) : q.where('next_due', '<=', today);
-    const due = await q.execute();
+    // Concurrent workers must not generate the same scheduled occurrence.
+    const due = await q.orderBy('id').forUpdate().skipLocked().execute();
 
     const result: GenerationResult = { generated: [], skipped: [] };
     for (const r of due) {
@@ -66,7 +69,11 @@ export async function generateDueBills(tenantId: string, today = new Date().toIS
       if (r.supplier_id) {
         const supplier = await trx.selectFrom('suppliers').select('status')
           .where('id', '=', r.supplier_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (supplier?.status === 'blocked') {
+        if (!supplier) {
+          result.skipped.push({ templateId: r.id, reason: 'supplier is outside this workspace' });
+          continue;
+        }
+        if (supplier.status === 'blocked') {
           result.skipped.push({ templateId: r.id, reason: 'supplier is blocked' });
           continue;
         }
@@ -115,7 +122,7 @@ export async function generateDueBills(tenantId: string, today = new Date().toIS
             { accountCode: accountForBillCategory(r.category), debit: amount + taxAmount, credit: 0, description: 'Recurring charge', dimensions: r.business_line_id ? { business_line_id: r.business_line_id } : undefined },
             { accountCode: '2000', debit: 0, credit: total, description: 'Accounts payable', dimensions: r.business_line_id ? { business_line_id: r.business_line_id } : undefined },
           ],
-        });
+        }, trx);
       }
 
       await trx.insertInto('bill_activity_log').values({
@@ -123,30 +130,33 @@ export async function generateDueBills(tenantId: string, today = new Date().toIS
         action: 'created', detail: `Bill ${bill.bill_number} generated from recurring template "${r.name || r.supplier_name}"`,
       }).execute();
 
-      AccountingIntegrationService.syncBill(tenantId, bill.id).catch(() => {});
 
       await trx.updateTable('recurring_bills').set({
         next_due: advanceDate(r.next_due ?? today, r.frequency),
         bills_generated: (r.bills_generated ?? 0) + 1,
         total_spend: Number(r.total_spend ?? 0) + total,
         updated_at: new Date(),
-      }).where('id', '=', r.id).execute();
+      }).where('id', '=', r.id).where('tenant_id', '=', tenantId).execute();
 
+      await enqueueAccountingSync(trx, tenantId, 'BILL', bill.id);
       result.generated.push({ templateId: r.id, documentId: bill.id, documentNumber: bill.bill_number, amount: total });
     }
     return result;
   });
+  return result;
 }
 
 /** The AR counterpart — generates a real invoice from every due, active
  *  recurring_invoices template. */
-export async function generateDueInvoices(tenantId: string, today = new Date().toISOString().slice(0, 10), templateId?: string): Promise<GenerationResult> {
+export async function generateDueInvoices(tenantId: string, dateOverride?: string, templateId?: string): Promise<GenerationResult> {
   await assertCoreFinanceEnabled(tenantId);
-  return withTenant(tenantId, async (trx) => {
+  const result = await withTenant(tenantId, async (trx) => {
+    const today = dateOverride ?? await tenantAccountingDate(trx, tenantId);
     let q = trx.selectFrom('recurring_invoices').selectAll()
       .where('tenant_id', '=', tenantId).where('state', '=', 'ACTIVE');
     q = templateId ? q.where('id', '=', templateId) : q.where('next_due', '<=', today);
-    const due = await q.execute();
+    // Concurrent workers must not generate the same scheduled occurrence.
+    const due = await q.orderBy('id').forUpdate().skipLocked().execute();
 
     const result: GenerationResult = { generated: [], skipped: [] };
     for (const r of due) {
@@ -202,26 +212,27 @@ export async function generateDueInvoices(tenantId: string, today = new Date().t
           { accountCode: '4500', debit: 0, credit: amount, description: 'Recurring revenue' },
           ...(taxAmount > 0 ? [{ accountCode: '2200', debit: 0, credit: taxAmount, description: 'VAT output' }] : []),
         ],
-      });
+      }, trx);
 
       await trx.insertInto('invoice_activity_log').values({
         tenant_id: tenantId, invoice_id: inv.id, actor_id: null, actor_name: 'Recurring billing',
         action: 'created', detail: `Invoice ${inv.invoice_number} generated from recurring template "${r.name || r.client_name}"`,
       }).execute();
 
-      AccountingIntegrationService.syncInvoice(tenantId, inv.id).catch(() => {});
 
       await trx.updateTable('recurring_invoices').set({
         next_due: advanceDate(r.next_due ?? today, r.frequency),
         invoices_generated: (r.invoices_generated ?? 0) + 1,
         total_billed: Number(r.total_billed ?? 0) + total,
         updated_at: new Date(),
-      }).where('id', '=', r.id).execute();
+      }).where('id', '=', r.id).where('tenant_id', '=', tenantId).execute();
 
+      await enqueueAccountingSync(trx, tenantId, 'INVOICE', inv.id);
       result.generated.push({ templateId: r.id, documentId: inv.id, documentNumber: inv.invoice_number, amount: total });
     }
     return result;
   });
+  return result;
 }
 
 /** Identical to bills.routes.ts's own (unexported) CATEGORY_ACCOUNT map —

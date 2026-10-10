@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { Button } from '../components/ui/button.js';
+import { formatAmount } from '../lib/currency.js';
+import type { InvoiceListPage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
@@ -8,10 +11,10 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { PickerItem } from '../components/EntityPicker.js';
+import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
-import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import './Billing.css';
 
@@ -32,7 +35,6 @@ export { InvoiceDetailPanel };
 /* ── Main Billing page ── */
 export const Billing: React.FC = () => {
   const isMobile = useIsMobile();
-  const { fmt } = useCurrency();
   const location = useLocation();
   const [invoices, setInvoices]         = useState<Invoice[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
@@ -40,18 +42,17 @@ export const Billing: React.FC = () => {
   const [presetCustomer, setPresetCustomer] = useState<PickerItem | null>(null);
   const [presetShipment, setPresetShipment] = useState<any | null>(null);
 
-  useEffect(() => {
-    apiFetch('/v1/invoices')
-      .then((data: any) => {
-        setInvoices(Array.isArray(data) ? data.map(mapApiInvoice) : []);
-      })
-      .catch(() => setInvoices([]))
-      .finally(() => setApiLoading(false));
-  }, []);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadError, setLoadError] = useState('');
+  const [refresh, setRefresh] = useState(0);
+  const [summary, setSummary] = useState<any>(null);
+  const [detailInvoice, setDetailInvoice] = useState<Invoice | null>(null);
   const [mode, setMode]                 = useState<PageMode>('list');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [search, setSearch]             = useState('');
   const [sortAsc, setSortAsc]           = useState(false);
+  const [viewMode, setViewMode]         = useState<'board' | 'list'>('board');
 
   // Arriving from a customer's profile (Customers.tsx "+ Create Invoice" /
   // "+ Record Payment") – previously this query param was silently ignored,
@@ -90,20 +91,16 @@ export const Billing: React.FC = () => {
   // straight to that invoice's detail panel instead of the generic list.
   // Waits on `invoices` since the id only resolves once the list has loaded.
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const invoiceId = params.get('id');
-    if (!invoiceId || !invoices.length) return;
-    // A deep link may carry either the display id (invoice_number, what
-    // this page's own rows are keyed by) or the real database UUID
-    // (_dbId) – a note's subject_id (NotesApp.tsx's "Related to" link)
-    // always stores the real UUID, never the display number, so matching
-    // on i.id alone silently failed for any invoice linked from a note.
-    const match = invoices.find(i => i.id === invoiceId || i._dbId === invoiceId);
-    if (match) {
-      setSelectedId(match.id);
-      setMode('view');
-    }
-  }, [location.search, invoices]);
+    const invoiceId = new URLSearchParams(location.search).get('id');
+    if (!invoiceId) return;
+    let active = true;
+    const query = /^[0-9a-f-]{36}$/i.test(invoiceId) ? `/v1/invoices/${invoiceId}` : `/v1/invoices?invoice_number=${encodeURIComponent(invoiceId)}&page=1&page_size=1`;
+    apiFetch(query).then((data: any) => {
+      const row = data.items && Array.isArray(data.items) && !data.id ? data.items.find((i: any) => i.invoice_number === invoiceId) : data;
+      if (active && row) { const invoice = mapApiInvoice(row); setDetailInvoice(invoice); setSelectedId(invoice.id); setMode('view'); }
+    }).catch(error => { if (active) setLoadError(error.message); });
+    return () => { active = false; };
+  }, [location.search]);
 
   /* ── Filters popover ── */
   const [showFilters, setShowFilters]     = useState(false);
@@ -117,37 +114,52 @@ export const Billing: React.FC = () => {
      with the status tabs / filters / search afterward. */
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const selectedInvoice = selectedId ? (invoices.find(i => i.id === selectedId) ?? null) : null;
+  const selectedInvoice = selectedId ? (invoices.find(i => i.id === selectedId) ?? (detailInvoice?.id === selectedId ? detailInvoice : null)) : null;
   const isSplit = mode !== 'list';
 
-  const maxNumber = Math.max(...invoices.map(i => parseInt(i.id.match(/\d{4}/g)?.pop() || '0')), 0);
-  const nextId = `CLR-2026-${String(maxNumber + 1).padStart(4, '0')} INV`;
-
-  const billDateToIso = (d: string) => { const [dd, mm, yyyy] = d.split('-'); return `${yyyy}-${mm}-${dd}`; };
-
-  const filtered = invoices
-    .filter(inv => filterStatus === 'all' || inv.status === filterStatus)
-    .filter(inv => filterMode === 'all' || inv.mode === filterMode)
-    .filter(inv => !filterDateFrom || (inv.billDate && billDateToIso(inv.billDate) >= filterDateFrom))
-    .filter(inv => !filterDateTo || (inv.billDate && billDateToIso(inv.billDate) <= filterDateTo))
-    .filter(inv => !search || [inv.client, inv.id, inv.blNumber].some(s => s.toLowerCase().includes(search.toLowerCase())))
-    .sort((a, b) => sortAsc ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id));
-
-  const invStats = (() => {
-    const draftCount = invoices.filter(i => i.status === 'Draft').length;
-    const paidCount = invoices.filter(i => i.status === 'Paid').length;
-    const overdueInvoices = invoices.filter(i => i.status === 'Overdue');
-    const overdueTotal = overdueInvoices.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0);
-    const outstandingTotal = invoices.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0);
-    const totalReceived = invoices.reduce((s, i) => s + i.received, 0);
-    const totalBilled = invoices.reduce((s, i) => s + invoiceTotal(i), 0);
-    return {
-      total: invoices.length, draftCount, paidCount,
-      outstandingTotal, overdueTotal, dueSoonTotal: Math.max(0, outstandingTotal - overdueTotal),
-      totalReceived,
-      collectionRate: totalBilled ? Math.round((totalReceived / totalBilled) * 100) : 0,
-    };
-  })();
+  const nextId = 'Assigned on save';
+  const filterKey = JSON.stringify([filterStatus, filterMode, filterDateFrom, filterDateTo, search, sortAsc]);
+  const previousFilter = useRef(filterKey);
+  useEffect(() => {
+    if (previousFilter.current !== filterKey) { previousFilter.current = filterKey; setPage(1); }
+    setSelectedIds(new Set());
+  }, [filterKey, page]);
+  useEffect(() => {
+    let active = true;
+    setApiLoading(true);
+    const timer = setTimeout(() => {
+      const query = new URLSearchParams({ page: String(page), page_size: '25', sort: sortAsc ? 'asc' : 'desc' });
+      if (filterStatus !== 'all') query.set('status', filterStatus);
+      if (filterMode !== 'all') query.set('mode', filterMode);
+      if (filterDateFrom) query.set('date_from', filterDateFrom);
+      if (filterDateTo) query.set('date_to', filterDateTo);
+      if (search) query.set('search', search);
+      const customerId = new URLSearchParams(location.search).get('customer_id');
+      if (customerId) query.set('customer_id', customerId);
+      apiFetch(`/v1/invoices?${query}`).then((data: InvoiceListPage<any>) => {
+        if (!active) return;
+        setInvoices(data.items.map(mapApiInvoice)); setTotal(data.total); setLoadError('');
+        if (page > 1 && data.items.length === 0) setPage(Math.max(1, data.total_pages));
+      }).catch(error => { if (active) setLoadError(error.message); }).finally(() => { if (active) setApiLoading(false); });
+    }, 250);
+    return () => { active = false; clearTimeout(timer); };
+  }, [filterKey, page, refresh, location.search]);
+  useEffect(() => {
+    let active = true;
+    apiFetch('/v1/invoices/stats').then(data => { if (active) setSummary(data); }).catch(error => { if (active) setLoadError(error.message); });
+    return () => { active = false; };
+  }, [refresh]);
+  const filtered = invoices;
+  const boardStatuses: Status[] = filterStatus === 'all'
+    ? ['Draft', 'Unpaid', 'Partial', 'Overdue', 'Paid', 'Credited']
+    : [filterStatus];
+  const money = summary?.currency_totals?.TZS;
+  const invStats = {
+    total: summary?.total_invoices ?? 0, draftCount: summary?.status_counts?.Draft ?? 0,
+    paidCount: summary?.status_counts?.Paid ?? 0, outstandingTotal: money?.outstanding ?? 0,
+    overdueTotal: money?.overdue ?? 0, dueSoonTotal: Math.max(0, (money?.outstanding ?? 0) - (money?.overdue ?? 0)),
+    totalReceived: money?.received ?? 0, collectionRate: money?.billed ? Math.round(money.received / money.billed * 100) : 0,
+  };
 
   const selectedInvoicesList = invoices.filter(inv => selectedIds.has(inv.id));
   const allFilteredSelected = filtered.length > 0 && filtered.every(inv => selectedIds.has(inv.id));
@@ -170,9 +182,9 @@ export const Billing: React.FC = () => {
 
   function exportSelectedCsv() {
     const rows = [
-      ['Invoice ID', 'Client', 'BL/AWB', 'Origin', 'Destination', 'Mode', 'Date', 'Due Date', 'Status', 'Grand Total (TZS)', 'Received (TZS)', 'Balance Due (TZS)'],
+      ['Invoice ID', 'Client', 'BL/AWB', 'Origin', 'Destination', 'Mode', 'Date', 'Due Date', 'Status', 'Grand Total', 'Received (TZS)', 'Balance Due (TZS)'],
       ...selectedInvoicesList.map(inv => {
-        const total = invoiceTotal(inv);
+        const total = invoiceTotals(inv).documentTotal;
         return [inv.id, inv.client, inv.blNumber, inv.origin, inv.destination, inv.mode, inv.billDate, inv.dueDate ?? '', inv.status, Math.round(total), Math.round(inv.received), Math.round(Math.max(0, total - inv.received))];
       }),
     ];
@@ -201,18 +213,10 @@ export const Billing: React.FC = () => {
     setDownloadingAll(false);
   }
 
-  function handleSaveInvoice(inv: Invoice) {
+  async function handleSaveInvoice(inv: Invoice): Promise<void> {
     const isCreate = mode === 'create';
-    if (isCreate) {
-      setInvoices(prev => [inv, ...prev]);
-      setSelectedId(inv.id);
-    } else {
-      setInvoices(prev => prev.map(i => i.id === inv.id ? inv : i));
-    }
-    setMode('view');
-
     const apiPayload = {
-      invoice_number: inv.id,
+      invoice_number: isCreate ? undefined : inv.id,
       // Both accepted by the backend (see fastify.post/patch '/v1/invoices'
       // in invoices.routes.ts) since before this page existed – the editor's
       // Client and Linked Shipment pickers set inv.customerId/inv.shipmentRef
@@ -232,7 +236,7 @@ export const Billing: React.FC = () => {
       sale_agent: inv.saleAgent,
       payment_terms: inv.terms,
       exchange_rate: inv.exchangeRate,
-      ref_code: inv.refCode,
+      ref_code: isCreate ? undefined : inv.refCode,
       version: inv.version,
       notes: '',
       items: inv.items.map((it, i) => ({
@@ -241,46 +245,69 @@ export const Billing: React.FC = () => {
       })),
     };
     const dbId = (!isCreate && selectedInvoice?._dbId) ? selectedInvoice._dbId : null;
-    apiFetch(dbId ? `/v1/invoices/${dbId}` : '/v1/invoices', {
+    const saved = await apiFetch(dbId ? `/v1/invoices/${dbId}` : '/v1/invoices', {
       method: dbId ? 'PATCH' : 'POST',
-      body: JSON.stringify(apiPayload),
-    }).then(() => apiFetch('/v1/invoices'))
-      .then((data: any) => { if (Array.isArray(data)) setInvoices(data.map(mapApiInvoice)); })
-      .catch(() => {});
+      body: JSON.stringify({ ...apiPayload, status: inv.status, currency: inv.documentCurrency || undefined }),
+    });
+    // Mutation responses contain the header; use the submitted lines until a later refresh.
+    const canonical = mapApiInvoice({ ...saved, items: apiPayload.items });
+    setInvoices(prev => [canonical, ...prev.filter(i => i._dbId !== canonical._dbId && i.id !== inv.id)]);
+    setDetailInvoice(canonical);
+    setRefresh(value => value + 1);
+    setSelectedId(canonical.id);
+    setMode('view');
   }
 
   function handleCopyInvoice() {
     if (!selectedInvoice) return;
-    const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
-    const newId = nextId;
-    const copy: Invoice = { ...selectedInvoice, id: newId, status: 'Draft', received: 0, billDate: today, dueDate: null, version: 1, refCode: genRefCode(newId, 1) };
-    setInvoices(prev => [copy, ...prev]);
-    setSelectedId(copy.id);
-    setMode('view');
+    saveInvoiceDraft({
+      client: selectedInvoice.client, addr: selectedInvoice.clientAddress.join('\n'),
+      billDate: new Date().toLocaleDateString('en-GB').split('/').join('-'), dueDate: '',
+      agent: selectedInvoice.saleAgent, blNo: selectedInvoice.blNumber,
+      origin: selectedInvoice.origin, dest: selectedInvoice.destination, mode: selectedInvoice.mode,
+      exRate: String(selectedInvoice.exchangeRate), terms: selectedInvoice.terms,
+      businessLineId: selectedInvoice.businessLineId || '',
+      documentCurrency: selectedInvoice.documentCurrency,
+      clearing: selectedInvoice.items.filter(i => i.group === 'clearing').map((i, n) => ({ ...i, uid: `copy-clearing-${n}` })),
+      shipping: selectedInvoice.items.filter(i => i.group === 'shipping').map((i, n) => ({ ...i, uid: `copy-shipping-${n}` })),
+      other: selectedInvoice.items.filter(i => i.group === 'other').map((i, n) => ({ ...i, uid: `copy-other-${n}` })),
+    });
+    setPresetCustomer(selectedInvoice.customerId ? { id: selectedInvoice.customerId, label: selectedInvoice.client } : null);
+    setSelectedId(null);
+    setMode('create');
   }
+
+  const paymentRequest = useRef<{ signature: string; key: string } | null>(null);
+  const paymentInFlight = useRef(false);
 
   async function handleDeleteInvoice() {
     if (!selectedInvoice || !(await showConfirm(`Delete ${selectedInvoice.id}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     if (selectedInvoice._dbId) {
-      apiFetch(`/v1/invoices/${selectedInvoice._dbId}`, { method: 'DELETE' }).catch(() => {});
+      try { await apiFetch(`/v1/invoices/${selectedInvoice._dbId}`, { method: 'DELETE' }); }
+      catch (err) { showAlert(err instanceof Error ? err.message : 'Could not delete invoice.'); return; }
     }
     setInvoices(prev => prev.filter(i => i.id !== selectedInvoice.id));
+    setRefresh(value => value + 1);
     setSelectedId(null); setMode('list');
   }
 
-  function handleRecordPayment(amount: number, payMethod: string, payDate: string) {
-    if (!selectedInvoice) return;
-    const newReceived = Math.min(selectedInvoice.received + amount, invoiceTotal(selectedInvoice));
-    const newStatus: Status = newReceived >= invoiceTotal(selectedInvoice) ? 'Paid' : 'Partial';
-    setInvoices(prev => prev.map(i => i.id === selectedInvoice.id ? { ...i, received: newReceived, status: newStatus } : i));
-    if (selectedInvoice._dbId) {
-      apiFetch(`/v1/invoices/${selectedInvoice._dbId}/payment`, {
-        method: 'POST',
+  async function handleRecordPayment(amount: number, payMethod: string, payDate: string) {
+    if (!selectedInvoice?._dbId || paymentInFlight.current) return false;
+    const signature = JSON.stringify([selectedInvoice._dbId, amount, payMethod, payDate]);
+    if (paymentRequest.current?.signature !== signature) paymentRequest.current = { signature, key: crypto.randomUUID() };
+    paymentInFlight.current = true;
+    try {
+      const recorded = await apiFetch(`/v1/invoices/${selectedInvoice._dbId}/payment`, {
+        method: 'POST', headers: { 'Idempotency-Key': paymentRequest.current.key },
         body: JSON.stringify({ amount, method: payMethod, payment_date: payDate }),
-      }).then(() => apiFetch('/v1/invoices'))
-        .then((data: any) => { if (Array.isArray(data)) setInvoices(data.map(mapApiInvoice)); })
-        .catch(() => {});
-    }
+      });
+      setInvoices(prev => prev.map(invoice => invoice.id === selectedInvoice.id ? { ...invoice, received: Number(recorded.received), status: recorded.status } : invoice));
+      setDetailInvoice({ ...selectedInvoice, received: Number(recorded.received), status: recorded.status });
+      setRefresh(value => value + 1);
+      paymentRequest.current = null;
+      return true;
+    } catch (err) { showAlert(err instanceof Error ? err.message : 'Could not record payment.'); return false; }
+    finally { paymentInFlight.current = false; }
   }
 
   async function handleSubmitTRA() {
@@ -317,18 +344,18 @@ export const Billing: React.FC = () => {
           sub2Label: 'SENT', sub2Value: String(invStats.total - invStats.draftCount), barHighlight: 'var(--teal)',
         },
         {
-          title: 'Outstanding', value: fmt(invStats.outstandingTotal, 'TZS'),
+          title: 'Outstanding · TZS', value: formatAmount(invStats.outstandingTotal, 'TZS'),
           invertTrend: true,
-          sub1Label: 'DUE SOON', sub1Value: fmt(invStats.dueSoonTotal, 'TZS'),
-          sub2Label: 'OVERDUE', sub2Value: fmt(invStats.overdueTotal, 'TZS'), barHighlight: 'var(--red)',
+          sub1Label: 'NOT OVERDUE', sub1Value: formatAmount(invStats.dueSoonTotal, 'TZS'),
+          sub2Label: 'OVERDUE', sub2Value: formatAmount(invStats.overdueTotal, 'TZS'), barHighlight: 'var(--red)',
         },
         {
-          title: 'Total Received', value: fmt(invStats.totalReceived, 'TZS'),
+          title: 'Received · TZS', value: formatAmount(invStats.totalReceived, 'TZS'),
           sub1Label: 'PAID', sub1Value: String(invStats.paidCount),
           sub2Label: 'ALL INVOICES', sub2Value: String(invStats.total), barHighlight: 'var(--green)',
         },
         {
-          title: 'Collection Rate', value: `${invStats.collectionRate}%`,
+          title: 'Collection · TZS', value: `${invStats.collectionRate}%`,
           sub1Label: 'PAID', sub1Value: String(invStats.paidCount),
           sub2Label: 'TOTAL', sub2Value: String(invStats.total), barHighlight: 'var(--blue)',
         },
@@ -352,10 +379,16 @@ export const Billing: React.FC = () => {
           <div className="inv-list-toolbar">
           <div className="inv-toolbar-scroll">
             {!isSplit && (
+              <div className="inv-search-wrap inv-search-wrap--primary">
+                <Icon name="search" size={15} color="var(--ink3)" className="inv-search-icon" />
+                <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices or customers…" aria-label="Search invoices or customers" />
+              </div>
+            )}
+            {!isSplit && (
               <Tabs value={filterStatus} onValueChange={v => setFilterStatus(v as FilterStatus)} variant="segmented">
                 <TabsList>
                   {(['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as FilterStatus[]).map(s => {
-                    const cnt = s === 'all' ? invoices.length : invoices.filter(i => i.status === s).length;
+                    const cnt = s === 'all' ? (summary?.total_invoices ?? 0) : (summary?.status_counts?.[s] ?? 0);
                     return (
                       <TabsTrigger key={s} value={s}>
                         {s === 'all' ? 'All' : STATUS_STYLE[s as Status].label}
@@ -372,7 +405,7 @@ export const Billing: React.FC = () => {
                   checked, rather than a permanently-visible "Export"
                   button that acted on the whole filtered list regardless
                   of what (if anything) the user had actually picked. */}
-              {selectedIds.size > 0 && (
+              {viewMode === 'list' && selectedIds.size > 0 && (
                 <div className="inv-bulk-actions">
                   <span className="inv-bulk-count">{selectedIds.size} selected</span>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={exportSelectedCsv} data-ui-native-button="">
@@ -434,10 +467,20 @@ export const Billing: React.FC = () => {
               <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
                 <Icon name="calendar" size={13} /> Recurring
               </Link>
-              <div className="inv-search-wrap">
+              {isSplit && <div className="inv-search-wrap">
                 <Icon name="search" size={13} color="var(--ink3)" className="inv-search-icon" />
                 <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…" />
-              </div>
+              </div>}
+              {!isSplit && (
+                <div className="inv-view-toggle" role="group" aria-label="Invoice view">
+                  <button type="button" className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-pressed={viewMode === 'board'} data-ui-native-button="">
+                    <Icon name="columns" size={14} /> Board
+                  </button>
+                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} data-ui-native-button="">
+                    <Icon name="list" size={14} /> List
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
@@ -447,8 +490,8 @@ export const Billing: React.FC = () => {
           </button>
           </div>
 
-          {/* Table */}
-          <div className="inv-table-wrap">
+          {/* List and board share the same filters and invoice detail panel. */}
+          {viewMode === 'list' || isSplit ? <div className="inv-table-wrap">
             <table className="rtbl inv-table">
               <thead>
                 <tr>
@@ -465,22 +508,22 @@ export const Billing: React.FC = () => {
                   {!isSplit && <th>BL / AWB</th>}
                   <th>Customer</th>
                   {!isSplit && <th>Mode</th>}
-                  <th className="th--right">Total (TZS)</th>
+                  <th className="th--right">Total</th>
                   <th>Date</th>
                   {!isSplit && <th>Due</th>}
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(inv => {
+                {(!apiLoading ? filtered : []).map(inv => {
                   const isSelected = inv.id === selectedId;
                   const isChecked = selectedIds.has(inv.id);
                   const st = getStatusStyle(inv.status);
-                  const total = invoiceTotal(inv);
+                  const total = invoiceTotals(inv).documentTotal;
                   return (
                     <tr key={inv.id}
                       className={isSelected ? 'inv-row--selected' : ''}
-                      onClick={() => { if (mode !== 'edit' && mode !== 'create') { setSelectedId(inv.id); setMode('view'); } }}>
+                      onClick={() => { if (mode !== 'edit' && mode !== 'create') { setDetailInvoice(inv); setSelectedId(inv.id); setMode('view'); } }}>
                       <td className="th--checkbox" onClick={e => e.stopPropagation()}>
                         <Checkbox className="mx-auto" checked={isChecked} onCheckedChange={() => toggleSelect(inv.id)} />
                       </td>
@@ -505,7 +548,7 @@ export const Billing: React.FC = () => {
                         </Link>
                       </td>
                       {!isSplit && <td><span className="inv-mode-badge" data-mode={inv.mode}>{inv.mode}</span></td>}
-                      <td className="inv-cell-total">{fmt(total, 'TZS')}</td>
+                      <td className="inv-cell-total">{formatAmount(total, inv.documentCurrency || 'TZS')}</td>
                       <td className="inv-cell-date">{inv.billDate}</td>
                       {!isSplit && <td className={`inv-cell-due${inv.status === 'Overdue' ? ' inv-cell-due--overdue' : ''}`}>{inv.dueDate ?? '–'}</td>}
                       <td><span className="inv-status-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span></td>
@@ -515,7 +558,7 @@ export const Billing: React.FC = () => {
                 {apiLoading && (
                   <tr><td colSpan={10} className="inv-table-msg">Loading invoices…</td></tr>
                 )}
-                {!apiLoading && filtered.length === 0 && invoices.length === 0 && (
+                {!apiLoading && !loadError && filtered.length === 0 && !search && filterStatus === 'all' && !activeFilterCount && (
                   <tr><td colSpan={10} className="inv-table-msg">
                     <div className="inv-empty-title">No invoices yet</div>
                     <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
@@ -524,20 +567,56 @@ export const Billing: React.FC = () => {
                     </button>
                   </td></tr>
                 )}
-                {!apiLoading && filtered.length === 0 && invoices.length > 0 && (
+                {!apiLoading && !loadError && filtered.length === 0 && (!!search || filterStatus !== 'all' || activeFilterCount > 0) && (
                   <tr><td colSpan={10} className="inv-table-msg">No invoices match your filters</td></tr>
                 )}
               </tbody>
             </table>
-          </div>
+          </div> : (
+            <div className="inv-board" aria-label="Invoices board">
+              {boardStatuses.map(status => {
+                const statusInvoices = filtered.filter(invoice => invoice.status === status);
+                const style = getStatusStyle(status);
+                const statusTotal = statusInvoices.reduce((sum, invoice) => sum + invoiceTotals(invoice).documentTotal, 0);
+                return (
+                  <section className="inv-board-column" key={status} aria-labelledby={`invoice-column-${status}`}>
+                    <header className="inv-board-column-head">
+                      <div><span className="inv-board-dot" style={{ background: style.color }} /><strong id={`invoice-column-${status}`}>{style.label}</strong><span>{statusInvoices.length}</span></div>
+                      <span>{statusInvoices.length ? formatAmount(statusTotal, statusInvoices[0].documentCurrency || 'TZS') : '—'}</span>
+                    </header>
+                    <div className="inv-board-cards">
+                      {statusInvoices.map(invoice => {
+                        const totalValue = invoiceTotals(invoice).documentTotal;
+                        return (
+                          <button key={invoice.id} type="button" className="inv-board-card" onClick={() => { setDetailInvoice(invoice); setSelectedId(invoice.id); setMode('view'); }} data-ui-native-button="">
+                            <span className="inv-board-card-top"><strong>{invoice.id}</strong><span className="inv-mode-badge" data-mode={invoice.mode}>{invoice.mode}</span></span>
+                            <span className="inv-board-client">{invoice.client}</span>
+                            <span className="inv-board-card-meta"><span>{invoice.blNumber || 'No BL / AWB'}</span><strong>{formatAmount(totalValue, invoice.documentCurrency || 'TZS')}</strong></span>
+                            <span className="inv-board-card-meta"><span>Issued {invoice.billDate}</span><span className={invoice.status === 'Overdue' ? 'inv-board-overdue' : ''}>Due {invoice.dueDate ?? '—'}</span></span>
+                          </button>
+                        );
+                      })}
+                      {!apiLoading && statusInvoices.length === 0 && <div className="inv-board-empty">No {style.label.toLowerCase()} invoices</div>}
+                    </div>
+                  </section>
+                );
+              })}
+              {apiLoading && <div className="inv-board-loading">Loading invoices…</div>}
+            </div>
+          )}
 
           {/* Footer summary */}
-          {!isSplit && filtered.length > 0 && (
+          {loadError && <div role="alert" className="p-3 text-sm" style={{ color: 'var(--red)' }}>{loadError} <Button variant="outline" onClick={() => setRefresh(value => value + 1)}>Retry</Button></div>}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3" aria-label="Invoice pagination">
+            <span className="text-sm">Page {page} of {Math.max(1, Math.ceil(total / 25))} · {total} matches</span>
+            <div className="flex gap-2">
+              <Button variant="outline" disabled={apiLoading || page === 1} onClick={() => setPage(value => value - 1)}>Previous</Button>
+              <Button variant="outline" disabled={apiLoading || page * 25 >= total} onClick={() => setPage(value => value + 1)}>Next</Button>
+            </div>
+          </div>
+          {!apiLoading && !isSplit && filtered.length > 0 && (
             <div className="inv-list-footer">
-              <span style={{ color: 'var(--ink3)' }}>{filtered.length} invoices</span>
-              <span style={{ color: 'var(--ink2)' }}>Total: <strong style={{ fontFamily: 'var(--font)', color: 'var(--ink)' }}>{fmt(filtered.reduce((s, i) => s + invoiceTotal(i), 0), 'TZS')}</strong></span>
-              <span style={{ color: 'var(--ink2)' }}>Received: <strong style={{ fontFamily: 'var(--font)', color: 'var(--green)' }}>{fmt(filtered.reduce((s, i) => s + i.received, 0), 'TZS')}</strong></span>
-              <span style={{ color: 'var(--ink2)' }}>Outstanding: <strong style={{ fontFamily: 'var(--font)', color: 'var(--red)' }}>{fmt(filtered.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0), 'TZS')}</strong></span>
+              <span style={{ color: 'var(--ink3)' }}>{filtered.length} of {total} invoices · Select visible rows to export</span>
             </div>
           )}
         </div>

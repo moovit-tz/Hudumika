@@ -82,6 +82,7 @@ import { activityRoutes } from './routes/activity.routes.js';
 import { activityMonitorRoutes } from './routes/activity-monitor.routes.js';
 import { orgChartRoutes }   from './routes/org-chart.routes.js';
 import { permissionsRoutes } from './routes/permissions.routes.js';
+import { invoicePaymentRoutes } from './routes/invoice-payment.routes.js';
 import { invoiceRoutes }  from './routes/invoices.routes.js';
 import { creditNoteRoutes } from './routes/credit-notes.routes.js';
 import { fixedAssetRoutes } from './routes/fixed-assets.routes.js';
@@ -248,6 +249,7 @@ import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 import { setupGuideRoutes } from './routes/setup-guide.routes.js';
 import { developerRoutes } from './routes/developer.routes.js';
 import { projectOsRoutes } from './routes/project-os.routes.js';
+import { fieldPolicyRoutes } from './routes/field-policy.routes.js';
 import { dsrRoutes } from './routes/data-subject-requests.routes.js';
 import { consentRoutes } from './routes/consent.routes.js';
 import { privacyAdminRoutes } from './routes/privacy-admin.routes.js';
@@ -608,6 +610,7 @@ export async function registerApp() {
     await server.register(workflowEngineRoutes, { prefix: '/v1/workflow-engine' });
     await server.register(orgChartRoutes,   { prefix: '/v1/org-chart' });
     await server.register(permissionsRoutes, { prefix: '/v1/permissions' });
+    await server.register(invoicePaymentRoutes, { prefix: '/v1/invoice-payment' });
     await server.register(invoiceRoutes,  { prefix: '/v1/invoices' });
     await server.register(creditNoteRoutes, { prefix: '/v1/credit-notes' });
     await server.register(fixedAssetRoutes, { prefix: '/v1/fixed-assets' });
@@ -773,6 +776,7 @@ export async function registerApp() {
     await server.register(setupGuideRoutes, { prefix: '/v1/setup-guide' });
     await server.register(developerRoutes, { prefix: '/v1/developer' });
     await server.register(projectOsRoutes, { prefix: '/v1/project-os' });
+    await server.register(fieldPolicyRoutes, { prefix: '/v1/field-policies' });
 
 
     // Health check

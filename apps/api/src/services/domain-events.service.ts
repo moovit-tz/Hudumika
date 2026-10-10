@@ -50,12 +50,14 @@ export function registerSubscriber(eventType: string, handler: Subscriber): void
  * approved marketplace app that registered a webhook_url (third-party /
  * future apps). Call this alongside a mutation, inside the same
  * transaction if you have one; the log write is part of that transaction,
- * but subscriber/webhook dispatch always happens fire-and-forget after —
+ * but subscriber/webhook dispatch is fire-and-forget. Use deferDispatch and
+ * dispatchDomainEvent after commit when the owning transaction must succeed
+ * before consumers run —
  * a subscriber's failure must never fail the caller's own request, the
  * same non-blocking rule this codebase already applies to
  * dispatchAutoComms's immediate-channel sends.
  */
-export async function emitDomainEvent(trx: Transaction<Database>, tenantId: string, event: DomainEvent): Promise<void> {
+export async function emitDomainEvent(trx: Transaction<Database>, tenantId: string, event: DomainEvent, options?: { deferDispatch?: boolean }): Promise<DomainEvent> {
   const row = await trx.insertInto('domain_events').values({
     tenant_id: tenantId,
     event_type: event.type,
@@ -69,9 +71,15 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
   // Handlers receive the persisted row id so they can deduplicate a redelivery.
   const delivered: DomainEvent = { ...event, id: row.id };
 
+  if (!options?.deferDispatch) dispatchDomainEvent(tenantId, delivered);
+  return delivered;
+}
+
+/** Dispatch an event after its owning transaction commits. */
+export function dispatchDomainEvent(tenantId: string, event: DomainEvent): void {
   const handlers = subscribers.get(event.type) ?? [];
   for (const handler of handlers) {
-    handler(tenantId, delivered).catch(err =>
+    handler(tenantId, event).catch(err =>
       console.error(`[DomainEvents] subscriber for "${event.type}" failed:`, err.message),
     );
   }

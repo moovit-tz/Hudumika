@@ -45,17 +45,24 @@ export function EntityPicker({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchVersion = useRef(0);
+  useEffect(() => () => {
+    searchVersion.current += 1;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
   const runSearch = useCallback((q: string) => {
+    const version = ++searchVersion.current;
     setLoading(true);
     setError(null);
     search(q)
-      .then((results) => setItems(results))
-      .catch(() => setError('Search failed'))
-      .finally(() => setLoading(false));
+      .then((results) => { if (version === searchVersion.current) setItems(results); })
+      .catch(() => { if (version === searchVersion.current) setError('Search failed'); })
+      .finally(() => { if (version === searchVersion.current) setLoading(false); });
   }, [search]);
 
   function handleFocus() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setOpen(true);
     setQuery('');
     runSearch('');
@@ -64,6 +71,7 @@ export function EntityPicker({
   }
 
   function handleInput(v: string) {
+    searchVersion.current += 1;
     setQuery(v);
     setOpen(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -71,6 +79,9 @@ export function EntityPicker({
   }
 
   function selectItem(item: PickerItem) {
+    searchVersion.current += 1;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setLoading(false);
     onChange(item);
     setQuery('');
     setOpen(false);
@@ -109,7 +120,7 @@ export function EntityPicker({
           {label}
         </label>
       )}
-      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(''); }}>
+      <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { searchVersion.current += 1; if (debounceRef.current) clearTimeout(debounceRef.current); setLoading(false); setQuery(''); } }}>
         <PopoverAnchor asChild>
           <div style={{ position: 'relative' }}>
             <input

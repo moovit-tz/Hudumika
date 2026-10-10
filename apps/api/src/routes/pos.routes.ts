@@ -9,6 +9,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { checkAppUsageLimit, getAppUsageSummary } from '../lib/usage.js';
 import { InventoryService, InvalidMovement, UnknownUom } from '../services/inventory.service.js';
 import { GLService } from '../services/gl.service.js';
+import { emitDomainEventStandalone } from '../services/domain-events.service.js';
 
 const POS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 const POS_MANAGER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']);
@@ -224,6 +225,28 @@ export async function posRoutes(fastify: FastifyInstance) {
         grand_total: Number(row.grand_total), amount_paid: Number(row.amount_paid), change_due: Number(row.change_due), sold_at: iso(row.sold_at),
       }));
       return { items, total:Number(count?.count??0), page:query.page, page_size:query.page_size };
+    });
+  });
+
+  // POS receipts stay out of sales_invoices so they do not create a second
+  // receivable. The shared sales report combines this feed with invoices.
+  fastify.get('/sales-report', async (request) => {
+    const user = request.user;
+    const query = z.object({ from:z.string().date().optional(), to:z.string().date().optional() }).parse(request.query);
+    return withTenant(user.tenant_id, async trx => {
+      let rows = trx.selectFrom('pos_sales').select([
+        'id', 'sale_number', 'customer_id', 'customer_name', 'currency',
+        'grand_total', 'tax_total', 'discount_total', 'sold_at', 'status',
+      ]).where('tenant_id', '=', user.tenant_id).where('status', '=', 'COMPLETED');
+      if (query.from) rows = rows.where('sold_at', '>=', new Date(`${query.from}T00:00:00.000Z`));
+      if (query.to) {
+        const exclusive = new Date(`${query.to}T00:00:00.000Z`);
+        exclusive.setUTCDate(exclusive.getUTCDate() + 1);
+        rows = rows.where('sold_at', '<', exclusive);
+      }
+      const result = await rows.orderBy('sold_at', 'desc').execute();
+      return result.map(row => ({ ...row, grand_total:Number(row.grand_total), tax_total:Number(row.tax_total),
+        discount_total:Number(row.discount_total), sold_at:iso(row.sold_at) }));
     });
   });
 
@@ -463,6 +486,11 @@ export async function posRoutes(fastify: FastifyInstance) {
         const journalId = await postSaleJournal(user.tenant_id, user.sub, sale, sale.payments);
         await withTenant(user.tenant_id, trx => trx.updateTable('pos_sales').set({ journal_entry_id:journalId, posting_error:null, posting_attempts:1, last_posting_attempt_at:new Date() })
           .where('tenant_id', '=', user.tenant_id).where('id', '=', sale.id).execute());
+        await emitDomainEventStandalone(user.tenant_id, {
+          type:'pos.sale_completed', sourceApp:'finops', entityType:'pos_sale', entityId:sale.id, actorId:user.sub,
+          payload:{ saleNumber:sale.sale_number, customerId:body.customer_id ?? null, total:sale.grand_total,
+            currency:sale.currency, paymentMethods:[...new Set(body.payments.map(payment => payment.method))] },
+        });
         return reply.status(201).send({ ...sale, journal_entry_id:journalId, posting_attempts:1 });
       } catch (postingError:any) {
         const message = postingError?.message || 'Accounting journal could not be posted.';
@@ -495,6 +523,11 @@ export async function posRoutes(fastify: FastifyInstance) {
       const journalId = snapshot.existingJournalId ?? await postSaleJournal(user.tenant_id, user.sub, snapshot.sale, snapshot.payments);
       const updated = await withTenant(user.tenant_id, trx => trx.updateTable('pos_sales').set({ status:'COMPLETED', journal_entry_id:journalId, posting_error:null,
         posting_attempts:sql`posting_attempts + 1`, last_posting_attempt_at:new Date() }).where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('status', '=', 'POSTING_FAILED').returningAll().executeTakeFirstOrThrow());
+      await emitDomainEventStandalone(user.tenant_id, {
+        type:'pos.sale_completed', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+        payload:{ saleNumber:updated.sale_number, customerId:updated.customer_id, total:Number(updated.grand_total),
+          currency:updated.currency, recoveredPosting:true },
+      });
       return { ...updated, subtotal:Number(updated.subtotal), discount_total:Number(updated.discount_total), tax_total:Number(updated.tax_total), grand_total:Number(updated.grand_total), amount_paid:Number(updated.amount_paid), change_due:Number(updated.change_due), sold_at:iso(updated.sold_at) };
     } catch (error:any) {
       const message = error?.message || 'Accounting journal could not be posted.';
@@ -545,6 +578,12 @@ export async function posRoutes(fastify: FastifyInstance) {
           status: 'REFUNDED', refunded_at: new Date(), refunded_by: user.sub, refund_reason: body.reason,
           reversal_journal_entry_id: reversalId,
         }).where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('status', '=', 'COMPLETED').executeTakeFirstOrThrow();
+      });
+      await emitDomainEventStandalone(user.tenant_id, {
+        type:'pos.sale_refunded', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+        payload:{ saleNumber:snapshot.sale.sale_number, customerId:snapshot.sale.customer_id,
+          total:Number(snapshot.sale.grand_total), currency:snapshot.sale.currency, reason:body.reason,
+          inventoryReturned:!!snapshot.restockLocationId },
       });
       return { success: true, reversal_journal_entry_id: reversalId };
     } catch (error: any) {

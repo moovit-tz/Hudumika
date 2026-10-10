@@ -75,6 +75,7 @@ import {
   GenericSection,
   ElsewhereSection,
 } from './settings/misc.js';
+import { DataAccessSection } from './settings/data-access.js';
 
 export function splitTitle(title: string): { plain: string; em: string } {
   const words = title.trim().split(/\s+/);
@@ -258,6 +259,7 @@ export function renderSection(key: string): React.ReactNode {
     case 'int-tancis':          return <TRASection />;
     case 'other-esign':         return <EsignSection />;
     case 'modules':             return <ModulesSection />;
+    case 'data-access':         return <DataAccessSection />;
     case 'developer-api':       return <ApiKeysSection />;
     case 'siem-export':         return <SiemExportSection />;
     default: {

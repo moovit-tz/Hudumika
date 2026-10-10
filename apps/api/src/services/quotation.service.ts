@@ -2,37 +2,37 @@ import { db, withTenant } from '../db/client.js';
 import { resolveTaxCode } from './tax-code.service.js';
 
 export const quotationService = {
-  async list(tenantId: string, filters?: { status?: string; customer_id?: string }) {
+  async list(tenantId: string, filters?: { status?: string; customer_id?: string; search?: string; page?: number; page_size?: number }) {
     return withTenant(tenantId, async (trx) => {
-      let query = trx
-        .selectFrom('quotations')
+      const cols = [
+        'quotations.id', 'quotations.quote_number', 'quotations.title',
+        'quotations.shipment_type', 'quotations.origin_port', 'quotations.destination_port',
+        'quotations.subtotal', 'quotations.tax_amount', 'quotations.total_amount',
+        'quotations.currency', 'quotations.status', 'quotations.valid_until',
+        'quotations.created_at', 'customers.name as customer_name',
+      ] as const;
+
+      let q = trx.selectFrom('quotations')
         .leftJoin('customers', 'customers.id', 'quotations.customer_id')
-        .where('quotations.tenant_id', '=', tenantId)
-        .select([
-          'quotations.id',
-          'quotations.quote_number',
-          'quotations.title',
-          'quotations.shipment_type',
-          'quotations.origin_port',
-          'quotations.destination_port',
-          'quotations.subtotal',
-          'quotations.tax_amount',
-          'quotations.total_amount',
-          'quotations.currency',
-          'quotations.status',
-          'quotations.valid_until',
-          'quotations.created_at',
-          'customers.name as customer_name',
-        ]);
+        .where('quotations.tenant_id', '=', tenantId);
 
-      if (filters?.status) {
-        query = query.where('quotations.status', '=', filters.status);
-      }
-      if (filters?.customer_id) {
-        query = query.where('quotations.customer_id', '=', filters.customer_id);
+      if (filters?.status) q = q.where('quotations.status', '=', filters.status);
+      if (filters?.customer_id) q = q.where('quotations.customer_id', '=', filters.customer_id);
+      if (filters?.search) {
+        const pattern = `%${filters.search.replace(/[\\%_]/g, c => `\\${c}`)}%`;
+        q = q.where(eb => eb.or([
+          eb('quotations.quote_number', 'ilike', pattern),
+          eb('quotations.title', 'ilike', pattern),
+          eb('customers.name', 'ilike', pattern),
+        ]));
       }
 
-      return query.orderBy('quotations.created_at', 'desc').execute();
+      const page = filters?.page;
+      const page_size = Math.min(Math.max(filters?.page_size ?? 25, 1), 100);
+      if (page === undefined) return q.select(cols).orderBy('quotations.created_at', 'desc').execute();
+      const total = Number((await q.select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow()).count);
+      const items = await q.select(cols).orderBy('quotations.created_at', 'desc').orderBy('quotations.id', 'desc').limit(page_size).offset((page - 1) * page_size).execute();
+      return { items, total, page, page_size, total_pages: Math.ceil(total / page_size) };
     });
   },
 
@@ -168,7 +168,11 @@ export const quotationService = {
           subtotal,
           tax_amount: totalTax,
           total_amount: subtotal + totalTax,
-          currency: data.currency || 'USD',
+          currency: data.currency || await (async () => {
+            const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+            const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
+            return s?.company?.currency || 'USD';
+          })(),
           valid_from: data.valid_from ? new Date(data.valid_from) : null,
           valid_until: data.valid_until ? new Date(data.valid_until) : null,
           prepared_by: userId,

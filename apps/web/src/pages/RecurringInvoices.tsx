@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -20,6 +20,7 @@ import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 
 type Freq = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
 type State = 'ACTIVE' | 'PAUSED' | 'ENDED';
@@ -149,15 +150,47 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
 export function RecurringInvoices() {
   const { fmt } = useCurrency();
   const [recurring, setRecurring] = useState<RecurringInvoice[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RecurringInvoice | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState<string | null>(null);
+  const loadIdRef = useRef(0);
 
-  const load = () => apiFetch('/v1/invoices/recurring').then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApi)); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load recurring invoices.')).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
+  const load = useCallback(async (p = page, ps = pageSize, s = search, sf = stateFilter) => {
+    const id = ++loadIdRef.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(p), page_size: String(ps) });
+      if (s.trim()) params.set('search', s.trim());
+      if (sf) params.set('state', sf);
+      const d = await apiFetch(`/v1/invoices/recurring?${params}`);
+      if (id !== loadIdRef.current) return;
+      if (d && typeof d === 'object' && 'items' in d) {
+        setRecurring((d.items as any[]).map(mapApi));
+        setTotal(d.total);
+      } else if (Array.isArray(d)) {
+        setRecurring(d.map(mapApi));
+        setTotal(d.length);
+      }
+    } catch (err) {
+      if (id !== loadIdRef.current) return;
+      showAlert(err instanceof Error ? err.message : 'Could not load recurring invoices.');
+    } finally {
+      if (id === loadIdRef.current) setLoading(false);
+    }
+  }, [page, pageSize, search, stateFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  function handlePageChange(p: number) { setPage(p); }
+  function handlePageSizeChange(ps: number) { setPageSize(ps); setPage(1); }
+  function handleSearchChange(s: string) { setSearch(s); setPage(1); }
+  function handleStateFilterChange(sf: string | null) { setStateFilter(sf); setPage(1); }
 
   async function handleSave(data: any) {
     try {
@@ -207,11 +240,7 @@ export function RecurringInvoices() {
   const pausedCount = recurring.filter(r => r.state === 'PAUSED').length;
   const invoicesGenerated = recurring.reduce((s, r) => s + r.invoices_generated, 0);
   const totalBilled = recurring.reduce((s, r) => s + r.total_billed, 0);
-  const query = search.trim().toLowerCase();
-  const filtered = recurring.filter(r => {
-    const matchesQuery = !query || [r.name, r.client_name, r.description, r.frequency].some(value => value?.toLowerCase().includes(query));
-    return matchesQuery && (!stateFilter || r.state === stateFilter);
-  });
+  const totalPages = Math.ceil(total / pageSize);
 
   const columns: TableColumn<RecurringInvoice>[] = [
     {
@@ -283,10 +312,10 @@ export function RecurringInvoices() {
       <div className="py-4">
         <SearchToolbar
           search={search}
-          onSearch={setSearch}
+          onSearch={handleSearchChange}
           placeholder="Search templates, customers, or frequency…"
           quickFilter={{
-            label: 'State', value: stateFilter, onChange: setStateFilter, allLabel: 'All states',
+            label: 'State', value: stateFilter, onChange: handleStateFilterChange, allLabel: 'All states',
             options: [{ value: 'ACTIVE', label: 'Active' }, { value: 'PAUSED', label: 'Paused' }, { value: 'ENDED', label: 'Ended' }],
           }}
           actions={<><Button asChild variant="outline" size="sm"><Link to="/finance/invoices"><Icon name="arrowLeft" size={13} />All invoices</Link></Button><Button size="sm" onClick={() => { setEditing(null); setShowForm(true); }}><Icon name="plus" size={14} />New template</Button></>}
@@ -296,18 +325,27 @@ export function RecurringInvoices() {
       <SectionCard collapsible={false} padded={false}>
         <DataTable
           columns={columns}
-          rows={filtered}
+          rows={recurring}
           loading={loading}
-          filteredEmpty={(!!query || !!stateFilter) && filtered.length === 0}
-          empty={!loading && recurring.length === 0}
+          filteredEmpty={(!!search.trim() || !!stateFilter) && recurring.length === 0}
+          empty={!loading && total === 0}
           emptyIcon="refresh"
           emptyTitle="No recurring invoices"
           emptyMessage="Create a template to generate invoices automatically on a schedule."
           emptyAction={{ label: 'New template', onClick: () => { setEditing(null); setShowForm(true); } }}
           defaultSortKey="due"
           defaultSortDir="asc"
-          pageSize={12}
         />
+        {total > pageSize && (
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            itemLabel="template"
+          />
+        )}
       </SectionCard>
 
       {showForm && <RecurFormPanel initial={editing} onSave={handleSave} onClose={() => { setShowForm(false); setEditing(null); }} />}

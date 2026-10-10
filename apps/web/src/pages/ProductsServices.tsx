@@ -1,9 +1,10 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
@@ -877,18 +878,28 @@ export const ProductsServices: React.FC = () => {
   const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('asc');
   const [page, setPage]           = useState(1);
 
+  const [total,setTotal]=useState(0);
+  const [stats,setStats]=useState({total:0,active:0,inactive:0,physical:0,tracked:0,low_stock:0,out_of_stock:0,priced:0,free:0,categories:[] as {category:string|null;count:number}[],currencies:[] as {currency:string;average_price:number;inventory_value:number}[]});
+  const loadId=useRef(0);
+
   // -- Load -------------------------------------------------------------------
 
-  function loadProducts() {
-    setLoading(true);
-    setLoadError('');
-    apiFetch('/v1/products')
-      .then(data => setProducts(Array.isArray(data) ? data : (data.data ?? [])))
-      .catch(err => setLoadError(err.message || 'Failed to load the service catalog.'))
-      .finally(() => setLoading(false));
+  async function loadProducts() {
+    const requestId=++loadId.current;
+    setLoading(true);setLoadError('');
+    const params=new URLSearchParams({page:String(page),page_size:String(PAGE_SIZE),sort:sortBy,direction:sortDir});
+    if(search.trim())params.set('search',search.trim());
+    if(catFilter!=='ALL')params.set('category',catFilter);
+    if(statusFilter!=='ALL')params.set('status',statusFilter);
+    try {
+      const [result,summary]=await Promise.all([apiFetch(`/v1/products?${params}`),apiFetch('/v1/products/stats')]);
+      if(requestId!==loadId.current)return;
+      setProducts(result.items);setTotal(result.total);setStats(summary);
+      if(page>Math.max(1,Math.ceil(result.total/PAGE_SIZE)))setPage(Math.max(1,Math.ceil(result.total/PAGE_SIZE)));
+    }catch(error:any){if(requestId===loadId.current)setLoadError(error.message || 'Failed to load the catalog.');}
+    finally{if(requestId===loadId.current)setLoading(false);}
   }
-
-  useEffect(() => { loadProducts(); }, []);
+  useEffect(()=>{const timer=setTimeout(()=>void loadProducts(),200);return()=>{clearTimeout(timer);++loadId.current;};},[page,search,catFilter,statusFilter,sortBy,sortDir]);
 
   // -- CRUD -------------------------------------------------------------------
   // Every mutation round-trips through the real API and reconciles local state
@@ -902,12 +913,12 @@ export const ProductsServices: React.FC = () => {
     const isNew = editing === 'new';
     if (isNew) {
       const created: Product = await apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(data) });
-      setProducts(prev => [created, ...prev]);
+      void loadProducts();
       return created;
     }
     const target = editing as Product;
     const updated: Product = await apiFetch(`/v1/products/${target.id}`, { method: 'PATCH', body: JSON.stringify(data) });
-    setProducts(prev => prev.map(p => p.id === target.id ? updated : p));
+    void loadProducts();
     if (selected?.id === target.id) setSelected(updated);
     return updated;
   }
@@ -915,7 +926,7 @@ export const ProductsServices: React.FC = () => {
   async function handleDelete(product: Product) {
     try {
       await apiFetch(`/v1/products/${product.id}`, { method: 'DELETE' });
-      setProducts(prev => prev.filter(p => p.id !== product.id));
+      void loadProducts();
       if (selected?.id === product.id) setSelected(null);
       setDeleting(null);
     } catch (err: any) {
@@ -927,7 +938,7 @@ export const ProductsServices: React.FC = () => {
     const nextStatus = product.status === 'active' ? 'inactive' : 'active';
     try {
       const updated: Product = await apiFetch(`/v1/products/${product.id}`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus }) });
-      setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
+      void loadProducts();
       if (selected?.id === product.id) setSelected(updated);
     } catch (err: any) {
       showAlert(err.message || 'Failed to update this service.');
@@ -939,7 +950,7 @@ export const ProductsServices: React.FC = () => {
     setLoadingStarter(true);
     try {
       const created = await Promise.all(STARTER_CATALOG.map(p => apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(p) })));
-      setProducts(prev => [...created, ...prev]);
+      void loadProducts();
     } catch (err: any) {
       showAlert(err.message || 'Failed to add the starter catalog — some services may not have been added.');
       loadProducts();
@@ -996,7 +1007,7 @@ export const ProductsServices: React.FC = () => {
           status: 'active',
         }),
       })));
-      setProducts(prev => [...created, ...prev]);
+      void loadProducts();
       setTariffSelected(new Set());
       setTariffSheetOpen(false);
     } catch (err: any) {
@@ -1009,30 +1020,12 @@ export const ProductsServices: React.FC = () => {
 
   // -- Filter + Sort ----------------------------------------------------------
 
-  const displayed = products
-    .filter(p => {
-      if (catFilter !== 'ALL' && p.category !== catFilter) return false;
-      if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
-      if (search.trim()) {
-        const s = search.toLowerCase();
-        return p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s) || p.category.toLowerCase().includes(s);
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === 'name')     cmp = a.name.localeCompare(b.name);
-      if (sortBy === 'price')    cmp = a.sale_price - b.sale_price;
-      if (sortBy === 'category') cmp = a.category.localeCompare(b.category);
-      if (sortBy === 'created')  cmp = a.created_at.localeCompare(b.created_at);
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-
-  const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paginated = displayed.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const displayed = products;
+  const safePage = page;
+  const paginated = products;
 
   function toggleSort(col: typeof sortBy) {
+    setPage(1);
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('asc'); }
   }
@@ -1044,18 +1037,9 @@ export const ProductsServices: React.FC = () => {
 
   // -- Metrics ----------------------------------------------------------------
 
-  const active    = products.filter(p => p.status === 'active').length;
-  const inactive  = products.filter(p => p.status === 'inactive').length;
-  const priced    = products.filter(p => Number(p.sale_price) > 0);
-  const avgPrice  = priced.length ? priced.reduce((s, p) => s + Number(p.sale_price), 0) / priced.length : 0;
-  const topCat    = CATEGORIES.reduce((best, c) => products.filter(p => p.category === c).length > products.filter(p => p.category === best).length ? c : best, 'FREIGHT');
-
-  // Product inventory KPIs (only meaningful when there are tracked products)
-  const physicalProducts = products.filter(p => p.type === 'product');
-  const tracked = physicalProducts.filter(p => (p as any).track_inventory);
-  const lowStock = tracked.filter(p => { const pany = p as any; return pany.stock_quantity !== null && pany.stock_quantity <= (pany.low_stock_threshold ?? 5) && pany.stock_quantity > 0; });
-  const outOfStock = tracked.filter(p => (p as any).stock_quantity !== null && (p as any).stock_quantity <= 0);
-  const inventoryValue = tracked.reduce((sum, p) => sum + (Number((p as any).stock_quantity) || 0) * Number(p.sale_price), 0);
+  const {active,inactive}=stats;
+  const topCategory=stats.categories[0];
+  const currencyMetric=(field:'average_price'|'inventory_value')=>stats.currencies.length===1 ? formatAmount(stats.currencies[0][field],stats.currencies[0].currency) : stats.currencies.length ? `${stats.currencies.length} currencies` : '—';
 
   // -- Render -----------------------------------------------------------------
 
@@ -1140,19 +1124,20 @@ export const ProductsServices: React.FC = () => {
 
         {/* Metrics */}
         <MetricsRow cards={[
-          { title: 'Total Catalog', value: String(products.length), sub1Label: 'PRODUCTS', sub1Value: String(physicalProducts.length), sub2Label: 'SERVICES', sub2Value: String(products.length - physicalProducts.length), barHighlight: 'var(--blue)' },
-          { title: 'Active', value: String(active), sub1Label: 'WITH PRICE', sub1Value: String(priced.length), sub2Label: 'INACTIVE', sub2Value: String(inactive), barHighlight: 'var(--green)' },
-          ...(physicalProducts.length > 0 ? [
-            { title: 'Low Stock', value: String(lowStock.length), sub1Label: 'OUT OF STOCK', sub1Value: String(outOfStock.length), sub2Label: 'TRACKED', sub2Value: String(tracked.length), barHighlight: lowStock.length > 0 ? 'var(--gold)' : 'var(--green)' },
-            { title: 'Inventory Value', value: inventoryValue > 0 ? `$${Math.round(inventoryValue).toLocaleString()}` : '—', sub1Label: 'PRODUCTS', sub1Value: String(physicalProducts.length), sub2Label: 'TRACKED', sub2Value: String(tracked.length), barHighlight: 'var(--purple)' },
+          {title:'Total Catalog',value:String(stats.total),sub1Label:'PRODUCTS',sub1Value:String(stats.physical),sub2Label:'SERVICES',sub2Value:String(stats.total-stats.physical),barHighlight:'var(--blue)'},
+          {title:'Active',value:String(active),sub1Label:'WITH PRICE',sub1Value:String(stats.priced),sub2Label:'INACTIVE',sub2Value:String(inactive),barHighlight:'var(--green)'},
+          ...(stats.physical>0 ? [
+            {title:'Low Stock',value:String(stats.low_stock),sub1Label:'OUT OF STOCK',sub1Value:String(stats.out_of_stock),sub2Label:'TRACKED',sub2Value:String(stats.tracked),barHighlight:'var(--gold)'},
+            {title:'Stock Sale Value',value:currencyMetric('inventory_value'),sub1Label:'PRODUCTS',sub1Value:String(stats.physical),sub2Label:'TRACKED',sub2Value:String(stats.tracked),barHighlight:'var(--purple)'},
           ] : [
-            { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', sub1Label: 'PRICED', sub1Value: String(priced.length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => Number(p.sale_price) === 0).length), barHighlight: 'var(--gold)' },
-            { title: 'Categories', value: String(new Set(products.map(p => p.category)).size), sub1Label: 'TOP CATEGORY', sub1Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', sub2Label: 'ITEMS', sub2Value: String(products.filter(p => p.category === topCat).length), barHighlight: 'var(--purple)' },
+            {title:'Avg Unit Price',value:currencyMetric('average_price'),sub1Label:'PRICED',sub1Value:String(stats.priced),sub2Label:'FREE/DUTY',sub2Value:String(stats.free),barHighlight:'var(--gold)'},
+            {title:'Categories',value:String(stats.categories.length),sub1Label:'TOP CATEGORY',sub1Value:topCategory?.category ? (CAT_CFG[topCategory.category]?.label ?? topCategory.category) : '—',sub2Label:'ITEMS',sub2Value:String(topCategory?.count ?? 0),barHighlight:'var(--purple)'},
           ]),
-        ]} />
+        ]}/>
+        {stats.currencies.length>1 && <SectionCard><div className="flex flex-wrap gap-x-8 gap-y-3">{stats.currencies.map(row=><div key={row.currency} className="text-sm"><strong>{row.currency}</strong><div className="text-muted-foreground">Average unit price: {formatAmount(row.average_price,row.currency)}</div>{stats.physical>0 && <div className="text-muted-foreground">Stock sale value: {formatAmount(row.inventory_value,row.currency)}</div>}</div>)}</div></SectionCard>}
 
         <div className="products-action-bar">
-          {!loading && products.length === 0 && (
+          {!loading && stats.total === 0 && (
             <button type="button" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm" data-ui-native-button="">
               <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
             </button>
@@ -1181,9 +1166,9 @@ export const ProductsServices: React.FC = () => {
             placeholder="Search products, services, codes, or categories"
             quickFilters={[
               {
-                label: 'Category', allLabel: `All Categories (${products.length})`, value: catFilter === 'ALL' ? null : catFilter,
+                label: 'Category', allLabel: `All Categories (${stats.total})`, value: catFilter === 'ALL' ? null : catFilter,
                 onChange: value => { setCatFilter((value || 'ALL') as CatFilter); setPage(1); },
-                options: CATEGORIES.map(category => ({ value: category, label: `${CAT_CFG[category].label} (${products.filter(product => product.category === category).length})` })),
+                options: CATEGORIES.map(category => ({ value: category, label: `${CAT_CFG[category].label} (${stats.categories.find(row=>row.category===category)?.count ?? 0})` })),
                 columns: 2,
               },
               {
@@ -1287,7 +1272,7 @@ export const ProductsServices: React.FC = () => {
               <PaginationBar
                 page={safePage}
                 pageSize={PAGE_SIZE}
-                total={displayed.length}
+                total={total}
                 itemLabel="service"
                 onPageChange={setPage}
               />

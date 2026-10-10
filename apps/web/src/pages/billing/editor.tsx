@@ -4,6 +4,12 @@ import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Button } from '../../components/ui/button.js';
+import { Input } from '../../components/ui/input.js';
+import { Textarea } from '../../components/ui/textarea.js';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
+import { InvoiceLinesEditor } from './lines-editor.js';
+import { formatAmount } from '../../lib/currency.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { apiFetch } from '../../lib/api.js';
 import { EntityPicker, PickerItem } from '../../components/EntityPicker.js';
@@ -14,16 +20,12 @@ import { useFinanceCapabilities } from '../../hooks/useFinanceCapabilities.js';
 import type { Invoice, LineItem, ChargeGroup, Currency, InvoiceDraft, EditItem } from './shared.js';
 export type { EditItem };
 import { fmtTZS, fmtUSD, fmtAmt, genRefCode, UNIT_OPTIONS, saveInvoiceDraft, takeInvoiceDraft } from './shared.js';
+import { getCompany } from '../../data/companyStore.js';
 
 /* ── Small helpers ── */
 function FormField({ label, value, onChange, placeholder, disabled, mono }: { label: string; value: string; onChange?: (v: string) => void; placeholder?: string; disabled?: boolean; mono?: boolean }) {
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</label>
-      <input value={value} onChange={e => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: disabled ? 'var(--bg)' : 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontFamily: mono ? 'var(--font)' : 'var(--font)', outline: 'none', boxSizing: 'border-box' as const }} />
-    </div>
-  );
+  const id = React.useId();
+  return <div><label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label><Input id={id} value={value} onChange={e => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled}/></div>;
 }
 
 /* ── Charge section table (view mode) ── */
@@ -339,7 +341,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
 /* ── Invoice Editor (Create + Edit) ── */
 export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = false, presetCustomer = null, presetShipment = null }: {
   initial: Invoice | null; nextId: string;
-  onSave: (inv: Invoice) => void; onCancel: () => void; isMobile?: boolean; presetCustomer?: PickerItem | null;
+  onSave: (inv: Invoice) => Promise<void>; onCancel: () => void; isMobile?: boolean; presetCustomer?: PickerItem | null;
   /** The full shipment record when arriving back from "create a new
    *  shipment" mid-invoice (see createShipment below) – already has
    *  everything handleShipmentChange needs, no second fetch required. */
@@ -355,6 +357,9 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   // Consumed once (takeInvoiceDraft clears the key) so a plain page refresh
   // afterwards doesn't keep re-applying a stale draft.
   const [draft] = useState<InvoiceDraft | null>(() => (initial ? null : takeInvoiceDraft()));
+  const tenantCurrency = getCompany().currency || 'TZS';
+  const [documentCurrency,setDocumentCurrency] = useState(initial?.documentCurrency || draft?.documentCurrency || tenantCurrency);
+  const [includeShipment,setIncludeShipment] = useState(Boolean(initial?.shipmentRef || initial?.blNumber || presetShipment || draft?.blNo));
   const [client, setClient]       = useState(initial?.client ?? draft?.client ?? presetCustomer?.label ?? '');
   const [addr, setAddr]           = useState(draft?.addr ?? initial?.clientAddress.join('\n') ?? '');
   const [billDate, setBillDate]   = useState(draft?.billDate ?? initial?.billDate ?? today);
@@ -364,16 +369,16 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const [origin, setOrigin]       = useState(draft?.origin ?? initial?.origin ?? '');
   const [dest, setDest]           = useState(draft?.dest ?? initial?.destination ?? '');
   const [mode, setMode]           = useState<Invoice['mode']>((draft?.mode as Invoice['mode']) ?? initial?.mode ?? 'SEA');
-  const [exRate, setExRate]       = useState(draft?.exRate ?? String(initial?.exchangeRate ?? 2650));
+  const [exRate, setExRate]       = useState(draft?.exRate ?? (initial ? String(initial.exchangeRate) : ''));
   // Never auto-applied – a fetched rate only fills the field when the user
   // clicks "Use this", same provenance rule editable duty/VAT/FX overrides
   // already follow elsewhere: a typed figure must never look system-sourced,
   // and a system-sourced one must stay visibly distinct until accepted.
   const [todayFxRate, setTodayFxRate] = useState<{ rate: number; date: string } | null>(null);
   useEffect(() => {
-    apiFetch('/v1/fx-rates/latest?base=USD&quote=TZS').then(setTodayFxRate).catch(() => setTodayFxRate(null));
+    if (tenantCurrency && tenantCurrency !== 'USD') apiFetch(`/v1/fx-rates/latest?base=USD&quote=${tenantCurrency}`).then(setTodayFxRate).catch(() => setTodayFxRate(null));
   }, []);
-  const [terms, setTerms]         = useState(draft?.terms ?? initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
+  const [terms, setTerms]         = useState(draft?.terms ?? initial?.terms ?? '');
   const [businessLineId, setBusinessLineId] = useState(draft?.businessLineId ?? initial?.businessLineId ?? '');
 
   const [customer, setCustomer] = useState<PickerItem | null>(
@@ -456,7 +461,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   function createCustomer(name: string): Promise<PickerItem> {
     saveInvoiceDraft({
       client, addr, billDate, dueDate, agent, blNo, origin, dest, mode, exRate, terms,
-      clearing, shipping, other, businessLineId,
+      clearing, shipping, other, businessLineId, documentCurrency,
     });
     navigate(`/crm/customers/new?name=${encodeURIComponent(name)}&returnTo=${encodeURIComponent('/finance/invoices')}`);
     // Never resolves – the page is navigating away, so EntityPicker's own
@@ -502,7 +507,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   function createShipment(): Promise<PickerItem> {
     saveInvoiceDraft({
       client, addr, billDate, dueDate, agent, blNo, origin, dest, mode, exRate, terms,
-      clearing, shipping, other, businessLineId,
+      clearing, shipping, other, businessLineId, documentCurrency,
     });
     const qs = new URLSearchParams({ returnTo: '/finance/invoices' });
     if (customer?.id) qs.set('customer_id', customer.id);
@@ -522,7 +527,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const activeShipmentFull = shipment ? shipmentCacheRef.current.get(shipment.id) : null;
 
   const allItems: LineItem[] = [...clearing, ...shipping, ...other].map(({ uid: _uid, ...rest }) => rest);
-  const exRateNum = parseFloat(exRate) || 2650;
+  const hasForeignLines = allItems.some(item => item.currency !== documentCurrency);
+  const exRateNum = exRate.trim() ? Number(exRate) : (hasForeignLines ? 0 : 1);
 
   const clTotal = clearing.reduce((s, i) => s + i.qty * i.rate * (1 + i.taxPct / 100), 0);
   const shTotal = shipping.reduce((s, i) => s + i.qty * i.rate * (1 + i.taxPct / 100), 0);
@@ -532,14 +538,30 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const version = (initial?.version ?? 0) + (initial ? 1 : 0);
   const invId = initial?.id ?? nextId;
 
-  function handleSave(asDraft: boolean) {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const saveInFlight = useRef(false);
+
+  async function handleSave(asDraft: boolean) {
+    if (saveInFlight.current) return;
+    if (!client.trim()) { setSaveError('Choose a customer or enter a client name.'); return; }
+    if (!billDate) { setSaveError('Choose an invoice date.'); return; }
+    if (dueDate && dueDate.split('-').reverse().join('-') < billDate.split('-').reverse().join('-')) { setSaveError('Due date cannot be before the invoice date.'); return; }
+    if (!asDraft && allItems.length === 0) { setSaveError('Add at least one charge before issuing an invoice.'); return; }
+    if (!Number.isFinite(exRateNum) || exRateNum <= 0) { setSaveError('Enter a positive exchange rate.'); return; }
+    if (allItems.some(item => !item.name.trim() || !Number.isFinite(item.qty) || item.qty <= 0 || !Number.isFinite(item.rate) || item.rate < 0 || !Number.isFinite(item.taxPct) || item.taxPct < 0 || item.taxPct > 100)) { setSaveError('Check item names, quantities, rates and tax percentages.'); return; }
+    if (new Set(allItems.map(item => item.currency).filter(currency => currency !== documentCurrency)).size > 1) { setSaveError('Use one foreign currency per invoice so the recorded exchange rate applies consistently.'); return; }
+    saveInFlight.current = true;
+    setSaving(true);
+    setSaveError('');
     const newVersion = (initial?.version ?? 0) + 1;
     const inv: Invoice = {
+      documentCurrency,
       id: invId, client: client || 'Unknown Client',
-      customerId: customer?.id || undefined, shipmentRef: shipment?.id || undefined,
+      customerId: customer?.id || undefined, shipmentRef: includeShipment ? shipment?.id || undefined : undefined,
       businessLineId: canUseBusinessLines ? (businessLineId || undefined) : initial?.businessLineId,
       clientAddress: addr.split('\n').filter(Boolean),
-      blNumber: blNo, origin, destination: dest, mode,
+      blNumber: includeShipment ? blNo : '', origin: includeShipment ? origin : '', destination: includeShipment ? dest : '', mode,
       billDate, dueDate: dueDate || null,
       saleAgent: agent, terms,
       items: allItems,
@@ -549,157 +571,51 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
       status: asDraft ? 'Draft' : (initial?.status === 'Paid' || initial?.status === 'Partial' ? initial.status : 'Unpaid'),
       received: initial?.received ?? 0,
     };
-    onSave(inv);
+    try { await onSave(inv); }
+    catch (error: any) {
+      let msg = error instanceof Error ? error.message : 'Could not save invoice.';
+      const details: any[] | undefined = error?.body?.details;
+      if (details?.length) msg += ' — ' + details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+      setSaveError(msg);
+    }
+    finally { saveInFlight.current = false; setSaving(false); }
   }
 
   return (
-    <FormPage
-      title={initial ? `Edit ${initial.id}` : 'New Invoice'}
-      subtitle="Parties, dates, the linked shipment and every charge line."
-      onCancel={onCancel}
-      actions={
-        <>
-          <button type="button" onClick={onCancel} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
-          <button type="button" onClick={() => handleSave(true)} className="btn btn-secondary" data-ui-native-button="">Save Draft</button>
-          <button type="button" onClick={() => handleSave(false)} className="btn btn-primary" data-ui-native-button="">
-            <Icon name="send" size={13} color="hsl(var(--primary-foreground))" /> Save &amp; Send
-          </button>
-        </>
-      }
+    <FormPage title={initial ? `Edit ${initial.id}` : 'New invoice'} subtitle="Choose a customer, add products or services, then review and save."
+      onCancel={() => { if (!saveInFlight.current) onCancel(); }}
+      actions={<><Button variant="outline" disabled={saving} onClick={() => void handleSave(true)}>Save draft</Button><Button disabled={saving} onClick={() => void handleSave(false)}>{saving ? 'Saving…' : 'Issue invoice'}</Button></>}
     >
-        {/* Top grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px 20px', marginBottom: 18 }}>
-          <FormField label="Invoice #" value={invId} disabled />
-          <EntityPicker
-            label="Client / Company" value={customer ?? (client ? { id: '', label: client } : null)} onChange={handleCustomerChange}
-            search={searchCustomers} onCreate={createCustomer}
-            createLabel={(q) => `Create new customer "${q}"`}
-            placeholder="Search customers…"
-          />
-          <FormField label="Sale Agent" value={agent} onChange={setAgent} placeholder="Agent name" />
-          {canUseBusinessLines && (
-            <div>
-              <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Business Line (optional)</label>
-              <Combobox
-                options={financeConfiguration.data?.businessLines.filter(line => line.active || line.id === businessLineId).map(line => ({ value: line.id, label: `${line.name} · ${line.code}` })) ?? []}
-                value={businessLineId}
-                onChange={setBusinessLineId}
-                placeholder="All business lines"
-                disabled={Boolean(initial && initial.status !== 'Draft')}
-              />
-            </div>
-          )}
-          <FormField label="Invoice Date" value={billDate} onChange={setBillDate} placeholder="DD-MM-YYYY" />
-          <FormField label="Due Date (optional)" value={dueDate} onChange={setDueDate} placeholder="DD-MM-YYYY" />
-          <div>
-            <FormField label="Exchange Rate (TZS/USD)" value={exRate} onChange={setExRate} placeholder="2650" mono />
-            {todayFxRate && (
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                Today's rate: <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{todayFxRate.rate.toLocaleString()}</span>
-                <button type="button" onClick={() => setExRate(String(todayFxRate.rate))}
-                  style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontWeight: 700, fontSize: 11, padding: 0 }} data-ui-native-button="">
-                  Use this
-                </button>
-              </div>
-            )}
-          </div>
+      <div className="min-w-0 space-y-6">
+        {saveError && <div role="alert" className="rounded-lg border border-destructive bg-background p-4 text-destructive">{saveError}</div>}
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+          <Card><CardHeader><CardTitle>Customer</CardTitle></CardHeader><CardContent className="space-y-4">
+            <EntityPicker label="Customer or company" value={customer ?? (client ? {id:'',label:client}:null)} onChange={handleCustomerChange} search={searchCustomers} onCreate={createCustomer} createLabel={query=>`Create customer “${query}”`} placeholder="Search CRM customers…" />
+            <label className="block text-sm font-medium" htmlFor="invoice-address">Billing address</label><Textarea id="invoice-address" value={addr} onChange={event=>setAddr(event.target.value)} rows={4} placeholder="Street, city and tax details" />
+            {canUseBusinessLines && <div><label className="mb-2 block text-sm font-medium">Business line</label><Combobox options={financeConfiguration.data?.businessLines.filter(line=>line.active || line.id===businessLineId).map(line=>({value:line.id,label:`${line.name} · ${line.code}`})) ?? []} value={businessLineId} onChange={setBusinessLineId} placeholder="Choose a business line" disabled={Boolean(initial && initial.status!=='Draft')} /></div>}
+          </CardContent></Card>
+          <Card><CardHeader><CardTitle>Invoice details</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Invoice number" value={initial?.id || 'Assigned when saved'} disabled />
+            <FormField label="Sales agent" value={agent} onChange={setAgent} />
+            <div><label className="mb-2 block text-sm font-medium">Invoice date</label><DatePicker date={parseDateOnly(billDate.split('-').reverse().join('-'))} onChange={date=>setBillDate(toDateOnlyString(date).split('-').reverse().join('-'))} /></div>
+            <div><label className="mb-2 block text-sm font-medium">Due date</label><DatePicker date={parseDateOnly(dueDate.split('-').reverse().join('-'))} onChange={date=>setDueDate(toDateOnlyString(date).split('-').reverse().join('-'))} /></div>
+            <div><label className="mb-2 block text-sm font-medium">Invoice currency</label><Select value={documentCurrency} onValueChange={setDocumentCurrency} disabled={Boolean(initial && initial.status!=='Draft')}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Array.from(new Set([documentCurrency,'TZS','USD','EUR','GBP','KES','ZAR','AED'])).map(code=><SelectItem key={code} value={code}>{code}</SelectItem>)}</SelectContent></Select></div>
+            <FormField label="Foreign line exchange rate" value={exRate} onChange={setExRate} placeholder="Foreign amount → invoice currency" />
+            <p className="text-sm text-muted-foreground sm:col-span-2">All foreign lines use this recorded conversion rate. Use one foreign currency per invoice.</p>
+          </CardContent></Card>
         </div>
-
-        {/* Bill To */}
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Client Address – one line per entry</label>
-          <textarea value={addr} onChange={e => setAddr(e.target.value)} rows={3} placeholder={'Company Name\nStreet / P.O. Box\nCity, Country\nVAT Number'}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
-        </div>
-
-        {/* Shipment details */}
-        <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 22, border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 10 }}>Shipment Details</div>
-          <div style={{ marginBottom: 10 }}>
-            <EntityPicker
-              label="Linked Shipment (optional)" value={shipment} onChange={handleShipmentChange}
-              search={searchShipments} onCreate={createShipment}
-              createLabel={() => 'Create a new shipment…'}
-              placeholder="Search by ref, BL number or goods description…"
-              hint={shipment ? undefined : 'Link a shipment to auto-fill BL/AWB, origin, destination and mode below.'}
-            />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 120px', gap: '10px 16px' }}>
-            <FormField label="BL / AWB Number" value={blNo} onChange={setBlNo} placeholder="e.g. MSCU2456789" />
-            <FormField label="Origin" value={origin} onChange={setOrigin} placeholder="e.g. SINGAPORE" />
-            <FormField label="Destination" value={dest} onChange={setDest} placeholder="e.g. DAR ES SALAAM" />
-            <div>
-              <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Mode</label>
-              <Select value={mode} onValueChange={v => setMode(v as Invoice['mode'])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SEA">SEA</SelectItem>
-                  <SelectItem value="AIR">AIR</SelectItem>
-                  <SelectItem value="ROAD">ROAD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        {/* Timesheet Import Modal */}
-        {showTimesheets && activeShipmentFull && (
-          <ImportTimesheetsModal
-            shipmentId={activeShipmentFull.id}
-            shipmentRef={activeShipmentFull.ref_number}
-            sectionCurrency="TZS"
-            onClose={() => setShowTimesheets(false)}
-            onImport={(lines) => {
-              setOther(prev => [
-                ...prev,
-                ...lines.map((l, i) => ({ ...l, uid: `ts-${Date.now()}-${i}` }))
-              ]);
-              setShowTimesheets(false);
-            }}
-          />
-        )}
-
-        {/* Three charge sections. The customer flows in so the catalog picker
-            offers each service at this customer's agreed price when one exists. */}
-        <ChargeSectionEditor title="Clearing Charges – Paid in TZS" color="var(--teal)" group="clearing" currency="TZS" items={clearing} onChange={setClearing} customerId={customer?.id || undefined} />
-        <ChargeSectionEditor title="Shipping Line Charges – Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} customerId={customer?.id || undefined} />
-        <div style={{ position: 'relative' }}>
-          {shipment && activeShipmentFull && (
-            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-              <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
-            </button>
-          )}
-          <ChargeSectionEditor title="Other Charges – Paid in TZS" color="var(--purple)" group="other" currency="TZS" items={other} onChange={setOther} customerId={customer?.id || undefined} />
-        </div>
-
-        {/* Grand total */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingRight: 8, marginBottom: 24 }}>
-          <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--ink2)' }}>
-            <span>Clearing:</span><span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(clTotal)}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--ink2)' }}>
-            <span>Shipping (USD → TZS @ {exRateNum}):</span><span style={{ fontFamily: 'var(--font)' }}>{fmtUSD(shTotal)} → {fmtTZS(shTotal * exRateNum)}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 24, fontSize: 12, color: 'var(--ink2)' }}>
-            <span>Other:</span><span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(otTotal)}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 24, fontSize: 15, fontWeight: 800, color: 'var(--red)', borderTop: '2px solid var(--border)', paddingTop: 8, marginTop: 4, minWidth: 320 }}>
-            <span style={{ flex: 1 }}>GRAND TOTAL</span>
-            <span style={{ fontFamily: 'var(--font)' }}>{fmtTZS(grandTotal)}</span>
-          </div>
-        </div>
-
-        {/* Version info */}
-        <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 18 }}>
-          Invoice version will be: <strong>{version}</strong> · Ref: <span style={{ fontFamily: 'var(--font)', color: 'var(--teal)' }}>{genRefCode(invId, version)}</span>
-        </div>
-
-        {/* Terms */}
-        <div>
-          <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Terms &amp; Conditions</label>
-          <textarea value={terms} onChange={e => setTerms(e.target.value)} rows={3}
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
-        </div>
+        <div className="flex items-center gap-3"><Checkbox id="invoice-shipment" checked={includeShipment} onCheckedChange={value=>setIncludeShipment(value===true)} /><label htmlFor="invoice-shipment" className="text-sm font-medium">Include shipment details</label></div>
+        {includeShipment && <Card><CardHeader><CardTitle>Shipment</CardTitle></CardHeader><CardContent className="space-y-4">
+          <EntityPicker label="Linked shipment" value={shipment} onChange={handleShipmentChange} search={searchShipments} onCreate={createShipment} createLabel={()=>'Create shipment'} placeholder="Search shipment reference…" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><FormField label="BL or AWB" value={blNo} onChange={setBlNo}/><FormField label="Origin" value={origin} onChange={setOrigin}/><FormField label="Destination" value={dest} onChange={setDest}/><div><label className="mb-2 block text-sm font-medium">Mode</label><Select value={mode} onValueChange={value=>setMode(value as Invoice['mode'])}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{['SEA','AIR','ROAD'].map(value=><SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div></div>
+        </CardContent></Card>}
+        <Card><CardHeader><CardTitle>Products and services</CardTitle></CardHeader><CardContent>
+          <InvoiceLinesEditor items={[...clearing,...shipping,...other]} currency={documentCurrency} customerId={customer?.id || undefined} onChange={items=>{setClearing(items.filter(item=>item.group==='clearing'));setShipping(items.filter(item=>item.group==='shipping'));setOther(items.filter(item=>item.group==='other'));}} />
+          {activeShipmentFull && <Button className="mt-4" variant="outline" onClick={()=>setShowTimesheets(true)}>Import unbilled time</Button>}
+        </CardContent></Card>
+        {showTimesheets && activeShipmentFull && <ImportTimesheetsModal shipmentId={activeShipmentFull.id} shipmentRef={activeShipmentFull.ref_number} sectionCurrency={documentCurrency} onClose={()=>setShowTimesheets(false)} onImport={lines=>{setOther(previous=>[...previous,...lines.map(line=>({...line,uid:crypto.randomUUID()}))]);setShowTimesheets(false);}} />}
+        <div className="grid gap-6 lg:grid-cols-2"><Card><CardHeader><CardTitle>Terms and payment instructions</CardTitle></CardHeader><CardContent><Textarea aria-label="Terms and payment instructions" value={terms} onChange={event=>setTerms(event.target.value)} rows={5}/></CardContent></Card><Card><CardHeader><CardTitle>Summary</CardTitle></CardHeader><CardContent><div className="flex justify-between gap-4 text-lg font-semibold"><span>Total · {documentCurrency}</span><span>{formatAmount(Math.round(allItems.reduce((sum,item)=>{const gross=Math.round(item.qty*item.rate*(1+item.taxPct/100)*100)/100;return sum+((item.currency || documentCurrency)===documentCurrency?gross:Math.round(gross*exRateNum*100)/100);},0)*100)/100,documentCurrency)}</span></div><p className="mt-4 text-sm text-muted-foreground">Totals include line taxes. Invoice numbers are assigned by the server when saved.</p></CardContent></Card></div>
+      </div>
     </FormPage>
   );
 }

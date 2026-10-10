@@ -22,6 +22,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from './ui/dropdown-menu.js';
 import { Popover, PopoverAnchor, PopoverContent } from './ui/popover.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
@@ -685,6 +688,7 @@ export function AppHeader({
           {/* Right actions */}
           <div className="app-header-actions">
 
+            <div className="app-header-secondary-actions">
             {/* Clock in / out.
                 Every app shell renders this header, and none of them had a
                 check-in control — the only component that did, TopBar, is not
@@ -811,6 +815,20 @@ export function AppHeader({
                     {language === l.code && <Icon name="check" size={14} className="text-primary" />}
                   </DropdownMenuItem>
                 ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><button type="button" className="app-header-icon-btn app-header-mobile-more" aria-label="More header actions"><Icon name="moreHorizontal" size={20} /></button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-32px)]">
+                {isStaff && <DropdownMenuItem onSelect={() => triggerOpen(clockContext())}><Icon name="clock" size={18} />{isCheckedIn ? 'Manage current task' : t('header.clockIn')}</DropdownMenuItem>}
+                <DropdownMenuItem disabled={landingStyleSaving} onSelect={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}><Icon name="sparkle" size={18} />{isAgentic ? 'Normal View' : 'Agentic View'}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => toggleTheme()}><Icon name={isDark ? 'sun' : 'moon'} size={18} />{isDark ? t('header.lightMode') : t('header.darkMode')}</DropdownMenuItem>
+                {filterControl && <DropdownMenuItem onSelect={filterControl.onToggle}><Icon name="filter" size={18} />{filterControl.open ? 'Collapse filters' : 'Expand filters'}</DropdownMenuItem>}
+                <DropdownMenuItem onSelect={toggleFullPage}><Icon name={isFs ? 'minimize' : 'maximize'} size={18} />{isFs ? t('header.exitFullPage') : t('header.fullPage')}</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub><DropdownMenuSubTrigger><Icon name="globe" size={18} />{t('header.language')}</DropdownMenuSubTrigger><DropdownMenuSubContent>{LANGUAGES.map(item => <DropdownMenuItem key={item.code} onSelect={() => setLanguage(item.code)}>{item.nativeLabel}{language === item.code && <Icon name="check" size={14} />}</DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
 

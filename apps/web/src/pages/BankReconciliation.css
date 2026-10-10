@@ -1,0 +1,477 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Bank Reconciliation — Hudumika Design System
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.bank-rec-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 24px);
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font);
+}
+
+/* ── Match Center Hero Banner ───────────────────────────────────────── */
+.bank-rec-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
+  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 70%),
+              radial-gradient(ellipse 50% 60% at 5% 110%, color-mix(in srgb, var(--navy) 10%, transparent), transparent 60%),
+              var(--white);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  padding: clamp(20px, 2.5vw, 26px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6, 24px);
+  flex-wrap: wrap;
+}
+
+.bank-rec-hero-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5, 20px);
+  min-width: 0;
+}
+
+.bank-rec-ring {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--teal) 10%, var(--bg));
+  border: 3px solid color-mix(in srgb, var(--teal) 25%, transparent);
+  border-top-color: var(--teal);
+  border-right-color: var(--teal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 18%, transparent);
+}
+
+.bank-rec-ring strong {
+  font-size: 1.45rem;
+  font-weight: 850;
+  color: var(--teal);
+  line-height: 1;
+}
+
+.bank-rec-ring span {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.bank-rec-hero-copy h2 {
+  margin: 0 0 6px;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bank-rec-hero-copy p {
+  margin: 0;
+  font-size: 0.845rem;
+  color: var(--ink3);
+  line-height: 1.55;
+}
+
+.bank-rec-hero-stats {
+  display: flex;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.bank-rec-stat-tile {
+  background: color-mix(in srgb, var(--bg) 65%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: var(--r, 12px);
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+}
+
+.bank-rec-stat-tile span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bank-rec-stat-tile strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+/* ── 2-Column Match Studio ──────────────────────────────────────────── */
+.bank-rec-studio {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: var(--space-6, 24px);
+  align-items: start;
+}
+
+/* ── Feed List (Left Panel) ─────────────────────────────────────────── */
+.bank-rec-feeds-card {
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid var(--border);
+  background: var(--white);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bank-rec-feeds-header {
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 40%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bank-rec-feeds-header h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  color: var(--ink);
+}
+
+.bank-rec-feeds-list {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3, 12px);
+  gap: 8px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+}
+
+.bank-rec-feed-item {
+  position: relative;
+  padding: 14px;
+  border-radius: var(--r, 12px);
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bank-rec-feed-item:hover {
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+  background: color-mix(in srgb, var(--teal) 3%, var(--white));
+  transform: translateY(-1px);
+}
+
+.bank-rec-feed-item--active {
+  border: 1.5px solid var(--teal);
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--teal) 8%, transparent), transparent), var(--white);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--teal) 14%, transparent), var(--shadow-sm);
+}
+
+.bank-rec-feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bank-rec-feed-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bank-rec-feed-title strong {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bank-rec-feed-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--ink3);
+}
+
+.bank-rec-feed-balance {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.bank-rec-feed-progress {
+  width: 100%;
+  height: 4px;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bank-rec-feed-progress-bar {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── Workspace (Right Panel) ────────────────────────────────────────── */
+.bank-rec-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  min-width: 0;
+}
+
+.bank-rec-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3, 12px);
+}
+
+.bank-rec-summary-card {
+  padding: 12px 16px;
+  border-radius: var(--r, 12px);
+  border: 1px solid var(--border);
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bank-rec-summary-card span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bank-rec-summary-card strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.bank-rec-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+}
+
+.bank-rec-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  padding: 3px;
+  border-radius: var(--badge-radius, 9999px);
+  border: 1px solid var(--border);
+}
+
+.bank-rec-filter-pill {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  border-radius: var(--badge-radius, 9999px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bank-rec-filter-pill:hover {
+  color: var(--ink);
+}
+
+.bank-rec-filter-pill--active {
+  background: var(--white);
+  color: var(--teal);
+  font-weight: 750;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Reconciliation Table ───────────────────────────────────────────── */
+.bank-rec-table-wrap {
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+  border: 1px solid var(--border);
+  background: var(--white);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.bank-rec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.bank-rec-table thead tr {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.bank-rec-table th {
+  padding: 12px 16px;
+  font-size: 0.6875rem;
+  font-weight: 750;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.bank-rec-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s ease;
+}
+
+.bank-rec-table tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.bank-rec-table tbody tr:hover {
+  background: color-mix(in srgb, var(--bg) 35%, transparent);
+}
+
+.bank-rec-table td {
+  padding: 13px 16px;
+  color: var(--ink2);
+  vertical-align: middle;
+}
+
+.bank-rec-table td strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.bank-rec-amount {
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bank-rec-amount--pos {
+  color: var(--green);
+}
+
+.bank-rec-amount--neg {
+  color: var(--red);
+}
+
+.bank-rec-empty-state {
+  padding: 60px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: var(--card-radius, var(--r-lg, 16px));
+}
+
+.bank-rec-empty-state h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 750;
+  color: var(--ink);
+}
+
+.bank-rec-empty-state p {
+  margin: 0;
+  font-size: 0.845rem;
+  color: var(--ink3);
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+/* ── Candidate Match Modal ──────────────────────────────────────────── */
+.bank-rec-candidate-btn {
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: var(--r, 10px);
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 8px;
+  transition: all 0.15s ease;
+}
+
+.bank-rec-candidate-btn:hover {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 4%, var(--white));
+  transform: translateY(-1px);
+}
+
+.bank-rec-candidate-btn--exact {
+  background: color-mix(in srgb, var(--teal) 7%, var(--white));
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+}
+
+/* ── Responsive Rules ───────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .bank-rec-studio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bank-rec-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .bank-rec-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .bank-rec-hero-stats {
+    width: 100%;
+  }
+  .bank-rec-stat-tile {
+    flex: 1;
+  }
+  .bank-rec-summary-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

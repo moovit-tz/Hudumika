@@ -122,6 +122,7 @@ function buildNav(t: TFunction): SidebarSection[] {
       title: t('finance.nav.integrations'),
       items: [
         { label: t('finance.nav.accountingSync'), icon: 'zap', path: '/finance/integrations' },
+        { label: 'Accounting deliveries', icon: 'zap', path: '/finance/integrations/deliveries' },
       ],
     },
     {
@@ -201,6 +202,7 @@ import { ChartOfAccounts }            from '../pages/ChartOfAccounts.js';
 import { JournalEntries }             from '../pages/JournalEntries.js';
 import { DeliveryDocumentsPage }       from '../pages/DeliveryDocumentsPage.js';
 import { AccountingIntegrations }      from '../pages/AccountingIntegrations.js';
+import { AccountingDeliveries } from '../pages/AccountingDeliveries.js';
 import { RecurringInvoices }           from '../pages/RecurringInvoices.js';
 import { CreditNotes }                 from '../pages/CreditNotes.js';
 import { FixedAssets }                 from '../pages/FixedAssets.js';
@@ -314,6 +316,7 @@ export function FinOpsShell() {
 
           {/* Integrations */}
           <Route path="integrations" element={<RequireRoles roles={FIN_ROLES}><AccountingIntegrations /></RequireRoles>} />
+          <Route path="integrations/deliveries" element={<RequireRoles roles={FIN_ROLES}><AccountingDeliveries /></RequireRoles>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/finance" replace />} />
