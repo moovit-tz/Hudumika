@@ -1,83 +1,28 @@
+import { randomUUID } from 'node:crypto';
 import { type Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
-import type { ProjectIndustry, ProjectIndustryData } from '@hudumika/types';
-
+import type { ProjectIndustry } from '@hudumika/types';
+const response = (row: any) => ({ ...row, data_type: row.entity_type, record_data: row.data });
 export class ProjectIndustryService {
-  /**
-   * List modular industry records (BOQ lines, RFIs, Site Diaries, BOMs, Logframes, Sprints)
-   */
   static async listRecords(trx: Transaction<Database>, tenantId: string, projectId: string, dataType?: string) {
-    let query = trx
-      .selectFrom('project_industry_data')
-      .leftJoin('users', 'users.id', 'project_industry_data.created_by')
-      .where('project_industry_data.tenant_id', '=', tenantId)
-      .where('project_industry_data.project_id', '=', projectId);
-
-    if (dataType) {
-      query = query.where('project_industry_data.data_type', '=', dataType);
-    }
-
-    return await query
-      .select([
-        'project_industry_data.id',
-        'project_industry_data.tenant_id',
-        'project_industry_data.project_id',
-        'project_industry_data.industry',
-        'project_industry_data.data_type',
-        'project_industry_data.record_data',
-        'project_industry_data.created_by',
-        'project_industry_data.created_at',
-        'project_industry_data.updated_at',
-        'users.name as creator_name',
-      ])
-      .orderBy('project_industry_data.created_at', 'desc')
-      .execute();
+    let query = trx.selectFrom('project_industry_data').where('tenant_id', '=', tenantId).where('project_id', '=', projectId);
+    if (dataType) query = query.where('entity_type', '=', dataType);
+    return (await query.selectAll().orderBy('created_at', 'desc').execute()).map(response);
   }
-
-  /**
-   * Create an industry record (Construction BOQ line, RFI, Daily Site Diary, Manufacturing BOM, NGO Logframe)
-   */
-  static async createRecord(
-    trx: Transaction<Database>,
-    tenantId: string,
-    projectId: string,
-    userId: string,
-    industry: ProjectIndustry,
-    dataType: string,
-    recordData: Record<string, any>
-  ) {
-    return await trx
-      .insertInto('project_industry_data')
-      .values({
-        tenant_id: tenantId,
-        project_id: projectId,
-        industry,
-        data_type: dataType,
-        record_data: recordData,
-        created_by: userId,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+  static async createRecord(trx: Transaction<Database>, tenantId: string, projectId: string, userId: string, industry: ProjectIndustry, dataType: string, recordData: Record<string, any>) {
+    const project = await trx.selectFrom('projects').select('industry').where('tenant_id', '=', tenantId).where('id', '=', projectId).executeTakeFirstOrThrow();
+    if (project.industry !== industry) throw Object.assign(new Error('Record industry must match its project'), { statusCode: 400 });
+    return response(await trx.insertInto('project_industry_data').values({ tenant_id: tenantId, project_id: projectId,
+      industry, entity_type: dataType, entity_code: `REC-${randomUUID()}`,
+      title: String(recordData.title || recordData.subject || recordData.description || dataType).slice(0, 255),
+      data: recordData, created_by: userId,
+    }).returningAll().executeTakeFirstOrThrow());
   }
-
-  /**
-   * Update an industry record
-   */
-  static async updateRecord(
-    trx: Transaction<Database>,
-    tenantId: string,
-    recordId: string,
-    recordData: Record<string, any>
-  ) {
-    return await trx
-      .updateTable('project_industry_data')
-      .set({
-        record_data: recordData,
-        updated_at: new Date(),
-      })
-      .where('id', '=', recordId)
-      .where('tenant_id', '=', tenantId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
+  static async updateRecord(trx: Transaction<Database>, tenantId: string, recordId: string, recordData: Record<string, any>) {
+    const row = await trx.updateTable('project_industry_data').set({ data: recordData,
+      title: String(recordData.title || recordData.subject || recordData.description || 'Industry record').slice(0, 255), updated_at: new Date() })
+      .where('id', '=', recordId).where('tenant_id', '=', tenantId).returningAll().executeTakeFirst();
+    if (!row) throw Object.assign(new Error('Industry record not found'), { statusCode: 404 });
+    return response(row);
   }
 }

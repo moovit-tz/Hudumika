@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
+import { Banner } from '../../components/ui/alert.js';
 import { apiFetch } from '../../lib/api.js';
 import type { ProjectCommandCenterMetrics } from '@hudumika/types';
 import '../OperationalDashboards.css';
@@ -29,6 +31,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
 }) => {
   const [data, setData] = useState<ProjectCommandCenterMetrics | null>(propsMetrics || null);
   const [loading, setLoading] = useState(propsLoading !== undefined ? propsLoading : !propsMetrics);
+  const [loadError, setLoadError] = useState(false);
 
   const loadMetrics = useCallback(async () => {
     if (propsMetrics) {
@@ -36,11 +39,13 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
       return;
     }
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await apiFetch('/v1/project-os/command-center');
       setData(res.data || res);
     } catch {
       setData(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -50,12 +55,19 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
     loadMetrics();
   }, [loadMetrics]);
 
-  if (loading || !data) {
+  if (loading) {
+    return <SectionLoading label="Loading project portfolio…" size={32} style={{ minHeight: 300 }} />;
+  }
+
+  if (loadError || !data) {
     return (
-      <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-        <div style={{ width: 32, height: 32, border: '3px solid var(--teal)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: 12 }} />
-        <p style={{ fontSize: 13.5, fontWeight: 600 }}>Loading project portfolio...</p>
-      </div>
+      <Banner
+        variant="warning"
+        title="Portfolio overview is temporarily unavailable"
+        action={<Button size="sm" variant="outline" onClick={loadMetrics}>Try again</Button>}
+      >
+        Your projects are still available in the Projects tab while the portfolio data service is being restored.
+      </Banner>
     );
   }
 

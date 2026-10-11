@@ -1,4 +1,5 @@
 import type { OnboardingPaymentInput } from '@hudumika/types';
+import { env } from '../config/env.js';
 
 export interface ChargeResult {
   success: boolean;
@@ -42,6 +43,10 @@ export class PaymentsIntegration {
    * unless the input is malformed or a known test-decline card is used.
    */
   static simulateCharge(amount: number, input: OnboardingPaymentInput): ChargeResult {
+    // Signup and billing share this simulator; neither may treat demo money as paid in production.
+    if (env.APP_ENV === 'production') {
+      return { success: false, tx_ref: '', error: 'Online payments are unavailable. Please contact the platform administrator.' };
+    }
     const txRef = `TXN-${Date.now()}`;
 
     if (input.method === 'card') {

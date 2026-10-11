@@ -197,11 +197,11 @@ export function BrandingIdentitySection() {
           {saveErrors.logos && <p className="text-sm text-red-600 mt-2">{saveErrors.logos}</p>}
           {savedSection === 'logos' && <p className="text-sm text-green-600 mt-2">Saved.</p>}
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
 
           <div className="flex flex-col gap-2">
             <Label>Favicon (Browser Tab)</Label>
-            <div className="h-32 border rounded-md flex items-center justify-center bg-muted/30 overflow-hidden relative">
+            <div className="border rounded-md flex items-center justify-center overflow-hidden relative" style={{ background: 'var(--bg)', minHeight: 128 }}>
               {favicon ? (
                 <img src={favicon} alt="Favicon" className="w-8 h-8 object-contain" />
               ) : <span className="text-muted-foreground text-sm">No Favicon</span>}
@@ -217,10 +217,10 @@ export function BrandingIdentitySection() {
 
           <div className="flex flex-col gap-2">
             <Label>Primary Logo (Light Mode)</Label>
-            <div className="h-32 border rounded-md flex items-center justify-center bg-white overflow-hidden p-4">
+            <div className="border rounded-md flex items-center justify-center bg-white overflow-hidden p-4" style={{ minHeight: 128 }}>
               {logoLight ? (
                 <img src={logoLight} alt="Light Logo" className="max-h-full max-w-full object-contain" />
-              ) : <span className="text-gray-400 text-sm">No Light Logo</span>}
+              ) : <span className="text-muted-foreground text-sm">No Light Logo</span>}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full relative overflow-hidden">
@@ -233,10 +233,10 @@ export function BrandingIdentitySection() {
 
           <div className="flex flex-col gap-2">
             <Label>Inverse Logo (Dark Mode)</Label>
-            <div className="h-32 border rounded-md flex items-center justify-center bg-slate-900 overflow-hidden p-4">
+            <div className="border rounded-md flex items-center justify-center overflow-hidden p-4" style={{ background: 'var(--ink)', minHeight: 128 }}>
               {logoDark ? (
                 <img src={logoDark} alt="Dark Logo" className="max-h-full max-w-full object-contain" />
-              ) : <span className="text-slate-500 text-sm">No Dark Logo</span>}
+              ) : <span style={{ color: 'var(--ink3)' }} className="text-sm">No Dark Logo</span>}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full relative overflow-hidden">
@@ -250,8 +250,8 @@ export function BrandingIdentitySection() {
           {([{ key: 'verticalLight', label: 'Vertical logo · light background', value: logoVerticalLight }, { key: 'verticalDark', label: 'Vertical logo · dark background', value: logoVerticalDark }] as const).map(slot => (
             <div key={slot.key} className="flex flex-col gap-2">
               <Label>{slot.label}</Label>
-              <div className="flex h-40 items-center justify-center rounded-lg border p-4" style={{ background: slot.key === 'verticalDark' ? 'var(--ink)' : 'var(--surface)' }}>
-                {slot.value ? <img src={slot.value} alt={slot.label} className="h-full max-w-full object-contain" /> : <span className="text-sm text-muted-foreground">No vertical logo</span>}
+              <div className="flex items-center justify-center rounded-lg border p-4" style={{ background: slot.key === 'verticalDark' ? 'var(--ink)' : 'var(--surface)', minHeight: 160 }}>
+                {slot.value ? <img src={slot.value} alt={slot.label} style={{ maxHeight: 128 }} className="max-w-full object-contain" /> : <span className="text-sm text-muted-foreground">No vertical logo</span>}
               </div>
               <Button variant="outline" asChild><label>Upload<input type="file" accept="image/png,image/jpeg,image/svg+xml" className="sr-only" onChange={e => handleLogoUpload(slot.key, e)} /></label></Button>
               {slot.value && <Button variant="ghost" onClick={() => clearLogo(slot.key)}>Remove</Button>}

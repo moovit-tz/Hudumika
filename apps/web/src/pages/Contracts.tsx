@@ -190,7 +190,7 @@ export const Contracts: React.FC = () => {
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{r.end_date || '—'}</td>
                     <td style={{ padding: '10px 14px' }}>
                       {(() => {
-                        const meta = r.sign_envelope_id ? (SIGN_STATUS_META[r.envelope_status || 'draft'] || SIGN_STATUS_META.draft) : { label: 'Not Sent', variant: 'gray' as const };
+                        const meta = r.sign_envelope_id ? (SIGN_STATUS_META[r.envelope_status || 'draft'] || SIGN_STATUS_META.draft) : { label: r.status === 'draft' ? 'Draft' : 'Not Sent', variant: 'gray' as const };
                         return <Badge variant={meta.variant}>{meta.label}</Badge>;
                       })()}
                     </td>

@@ -74,9 +74,11 @@ export function LockScreen() {
         position: 'fixed',
         inset: 0,
         zIndex: 99999,
-        background: 'radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 22%, transparent), color-mix(in srgb, var(--navy, #0f172a) 85%, transparent)), color-mix(in srgb, var(--navy2, #1e293b) 80%, #030712 92%)',
-        backdropFilter: 'blur(20px) saturate(1.3)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+        background: isDark
+          ? 'radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 5%, transparent), rgba(0,0,0,0.25)), rgba(0,0,0,0.20)'
+          : 'radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 4%, transparent), rgba(255,255,255,0.18)), rgba(255,255,255,0.12)',
+        backdropFilter: `blur(20px) saturate(1.3) brightness(${isDark ? '0.5' : '0.82'})`,
+        WebkitBackdropFilter: `blur(20px) saturate(1.3) brightness(${isDark ? '0.5' : '0.82'})`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -101,12 +103,16 @@ export function LockScreen() {
           width: '100%',
           maxWidth: 440,
           padding: 'clamp(28px, 4.5vw, 36px) clamp(24px, 4vw, 32px)',
-          background: 'color-mix(in srgb, var(--white) 94%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--teal) 24%, var(--border))',
+          background: isDark
+            ? 'rgba(30, 41, 59, 0.50)'
+            : 'rgba(255, 255, 255, 0.50)',
+          border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
           borderRadius: 'var(--card-radius, var(--r-xl, 24px))',
-          boxShadow: '0 24px 64px -12px color-mix(in srgb, var(--navy, #000) 45%, black), 0 0 0 1px color-mix(in srgb, var(--white) 10%, transparent)',
-          backdropFilter: 'blur(24px) saturate(1.15)',
-          WebkitBackdropFilter: 'blur(24px) saturate(1.15)',
+          boxShadow: isDark
+            ? '0 24px 64px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)'
+            : '0 24px 64px -12px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.25)',
+          backdropFilter: 'blur(48px) saturate(1.2)',
+          WebkitBackdropFilter: 'blur(48px) saturate(1.2)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

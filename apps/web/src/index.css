@@ -600,7 +600,7 @@ button[disabled],
 [type="submit"][disabled],
 [type="reset"][disabled] { cursor: not-allowed; }
 
-html, body, #root { height: 100%; }
+html, body, #root { height: 100%; overflow: hidden; }
 
 body {
   font-family: var(--font);
@@ -610,7 +610,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
 }
 
 /* ── AUTH PAGES ──

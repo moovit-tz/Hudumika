@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -108,12 +109,12 @@ export function SealStockAccount() {
         titlePlain="Stock"
         titleEm="account"
         subtitle="The periodic compliance report — opening/closing balances per lot, reconstructed from the movement ledger, never hand-entered."
+        actions={
+          <Button onClick={() => setShowNew(v => !v)}>
+            <Icon name="plus" size={14} /><span>Generate Period</span>
+          </Button>
+        }
       />
-      <div className="seal-page-hdr">
-        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)} data-ui-native-button="">
-          <Icon name="plus" size={14} /><span>Generate Period</span>
-        </button>
-      </div>
 
       {showNew && (
         <form onSubmit={handleGenerate} className="seal-card" style={{ marginBottom: 20 }}>
@@ -121,7 +122,7 @@ export function SealStockAccount() {
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
-                <SelectTrigger className="input-field"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -134,8 +135,9 @@ export function SealStockAccount() {
               <DatePicker date={periodEnd} onChange={setPeriodEnd} />
             </div>
           </div>
-          <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="btn btn-primary" disabled={generating || !newCompartmentId} data-ui-native-button="">{generating ? 'Generating…' : 'Generate from Ledger'}</button>
+          <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
+            <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
+            <Button type="submit" disabled={generating || !newCompartmentId}>{generating ? 'Generating…' : 'Generate from Ledger'}</Button>
           </div>
         </form>
       )}

@@ -4,10 +4,16 @@ import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Combobox } from '../../components/ui/combobox.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
+import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
+import { ListPagination, paginate } from '../../components/ui/list-pagination.js';
+import { useIsMobile } from '../../hooks/useIsMobile.js';
 import type {
   ProjectResource,
   ProjectResourceAllocation,
@@ -27,9 +33,18 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
   resources: propsResources,
   allocations: propsAllocations,
   onRefresh: propsOnRefresh,
-  currency = 'KES',
+  currency = 'TZS',
 }) => {
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const canManageFleet = !!user && ['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN'].includes(user.role);
   const [activeTab, setActiveTab] = useState<'allocations' | 'fleet'>(projectId ? 'allocations' : 'fleet');
+
+  // Pagination
+  const [allocPage, setAllocPage] = useState(1);
+  const [allocPageSize, setAllocPageSize] = useState(25);
+  const [fleetPage, setFleetPage] = useState(1);
+  const [fleetPageSize, setFleetPageSize] = useState(25);
 
   const [resources, setResources] = useState<ProjectResource[]>(propsResources || []);
   const [allocations, setAllocations] = useState<ProjectResourceAllocation[]>(propsAllocations || []);
@@ -46,6 +61,8 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
   const [resCapacity, setResCapacity] = useState('');
   const [resRateHourly, setResRateHourly] = useState('');
   const [resRateDaily, setResRateDaily] = useState('');
+  const [editingResource, setEditingResource] = useState<ProjectResource | null>(null);
+  const [resStatus, setResStatus] = useState<ProjectResource['status']>('available');
 
   // Allocation Form
   const [allocResourceId, setAllocResourceId] = useState('');
@@ -55,6 +72,7 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
   const [allocPct, setAllocPct] = useState('100');
 
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const loadData = useCallback(async () => {
     if (propsResources && (propsAllocations || !projectId)) {
@@ -63,6 +81,7 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
       return;
     }
     setLoading(true);
+    setLoadError('');
     try {
       const promises: Promise<any>[] = [apiFetch('/v1/project-os/resources')];
       if (projectId) {
@@ -73,9 +92,8 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
       if (allocData) {
         setAllocations(Array.isArray(allocData) ? allocData : allocData.data || []);
       }
-    } catch {
-      setResources([]);
-      setAllocations([]);
+    } catch (err: any) {
+      setLoadError(err.message || 'Unable to load resources');
     } finally {
       setLoading(false);
     }
@@ -85,6 +103,12 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
     loadData();
   }, [loadData]);
 
+  // Reset pagination on tab change
+  useEffect(() => {
+    setAllocPage(1);
+    setFleetPage(1);
+  }, [activeTab]);
+
   const handleCreateResource = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resName.trim()) {
@@ -93,21 +117,22 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
     }
     setSaving(true);
     try {
-      await apiFetch('/v1/project-os/resources', {
-        method: 'POST',
+      await apiFetch(editingResource ? `/v1/project-os/resources/${editingResource.id}` : '/v1/project-os/resources', {
+        method: editingResource ? 'PATCH' : 'POST',
         body: JSON.stringify({
           resource_type: resType,
           name: resName.trim(),
           code: resCode.trim() || null,
           make_model: resMakeModel.trim() || null,
           capacity_rating: resCapacity.trim() || null,
-          cost_rate_hourly: parseFloat(resRateHourly) || 0,
-          cost_rate_daily: parseFloat(resRateDaily) || 0,
+          cost_rate_hourly: resRateHourly === '' ? undefined : Number(resRateHourly),
+          cost_rate_daily: resRateDaily === '' ? undefined : Number(resRateDaily),
           currency,
-          status: 'available',
+          status: editingResource ? resStatus : 'available',
         }),
       });
-      showAlert('Resource registered in enterprise fleet', { variant: 'success' });
+      showAlert(editingResource ? 'Asset updated' : 'Resource registered in enterprise fleet', { variant: 'success' });
+      setEditingResource(null);
       setShowAddResourceModal(false);
       setResName('');
       setResCode('');
@@ -126,8 +151,8 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
 
   const handleCreateAllocation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!allocResourceId || !projectId) {
-      showAlert('Please select an asset to allocate', { variant: 'error' });
+    if (!allocResourceId || !projectId || !allocStart || !allocEnd) {
+      showAlert('Select an asset and both allocation dates', { variant: 'error' });
       return;
     }
     setSaving(true);
@@ -142,7 +167,7 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
           allocated_pct: parseInt(allocPct, 10) || 100,
         }),
       });
-      showAlert('Resource allocated to project work package', { variant: 'success' });
+      showAlert('Resource allocation saved', { variant: 'success' });
       setShowAddAllocModal(false);
       setAllocResourceId('');
       setAllocStart('');
@@ -156,20 +181,31 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
     }
   };
 
-  const formatCurrency = (val: number) => `${currency} ${Number(val || 0).toLocaleString()}`;
+  const formatCurrency = (val: number, rateCurrency = currency) => `${rateCurrency} ${Number(val || 0).toLocaleString()}`;
+  function editResource(resource: ProjectResource) {
+    setEditingResource(resource); setResName(resource.name); setResCode(resource.code || ''); setResType(resource.resource_type);
+    setResMakeModel(resource.make_model || ''); setResCapacity(resource.capacity_rating || '');
+    setResRateHourly(String(resource.cost_rate_hourly)); setResRateDaily(String(resource.cost_rate_daily)); setResStatus(resource.status); setShowAddResourceModal(true);
+  }
+  async function releaseAllocation(id: string) {
+    setSaving(true);
+    try { await apiFetch(`/v1/project-os/projects/${projectId}/allocations/${id}/release`, { method: 'POST' }); await loadData(); propsOnRefresh?.(); showAlert('Allocation released; history retained', { variant: 'success' }); }
+    catch (err: any) { showAlert(err.message, { variant: 'error' }); }
+    finally { setSaving(false); }
+  }
 
   return (
     <div className="space-y-6">
       {/* Sub-tab Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-3">
         <div className="flex items-center gap-2" data-ds-tabstrip="">
           {projectId && (
             <button
               onClick={() => setActiveTab('allocations')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                 activeTab === 'allocations'
-                  ? 'bg-teal-600 text-white'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
               }`}
              data-ds-selected={activeTab === 'allocations'} data-ui-native-button="" aria-pressed={activeTab === 'allocations'}>
               Project Asset Allocations ({allocations.length})
@@ -179,8 +215,8 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
             onClick={() => setActiveTab('fleet')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeTab === 'fleet'
-                ? 'bg-teal-600 text-white'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
            data-ds-selected={activeTab === 'fleet'} data-ui-native-button="" aria-pressed={activeTab === 'fleet'}>
             Enterprise Machinery & Fleet ({resources.length})
@@ -189,116 +225,126 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
 
         <div className="flex items-center gap-2">
           {activeTab === 'allocations' && projectId && (
-            <Button size="sm" onClick={() => setShowAddAllocModal(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button size="sm" onClick={() => setShowAddAllocModal(true)}>
               <Icon name="plus" size={14} className="mr-1" /> Allocate Fleet Asset
             </Button>
           )}
-          <Button size="sm" onClick={() => setShowAddResourceModal(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
+          <Button size="sm" onClick={() => { setEditingResource(null); setResName(''); setResCode(''); setResMakeModel(''); setResCapacity(''); setResRateHourly(''); setResRateDaily(''); setShowAddResourceModal(true); }}>
             <Icon name="plus" size={14} className="mr-1" /> Register New Asset
           </Button>
         </div>
       </div>
 
+      {loadError && <Card><CardContent className="pt-4"><p role="alert">{loadError}</p><Button variant="outline" onClick={loadData}>Retry</Button></CardContent></Card>}
       {loading ? (
         <SectionLoading />
       ) : activeTab === 'allocations' && projectId ? (
         /* Allocations Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <>
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
           {allocations.length === 0 ? (
-            <div className="col-span-full p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 text-xs">
+            <div className="col-span-full p-8 text-center bg-muted rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-muted-foreground text-xs">
               No machinery or specialized equipment allocated to this project yet.
             </div>
           ) : (
-            allocations.map((al) => (
+            paginate(allocations, allocPage, allocPageSize).visible.map((al) => (
               <div
                 key={al.id}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-3"
+                className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
                       {al.resource_type ? al.resource_type.replace('_', ' ') : 'Asset'}
                     </span>
-                    <h4 className="font-bold text-base text-slate-900 dark:text-white mt-0.5">
+                    <h4 className="font-bold text-base text-foreground mt-0.5">
                       {al.resource_name || 'Equipment'}
                     </h4>
                   </div>
                   <Badge variant="brand">{al.allocated_pct}% Capacity</Badge>
                 </div>
+                <div className="flex flex-wrap items-center justify-between gap-2"><Badge variant={al.status === 'RELEASED' ? 'gray' : 'brand'}>{al.status || 'CONFIRMED'}</Badge>{['REQUESTED', 'CONFIRMED'].includes(al.status || 'CONFIRMED') && <Button size="sm" variant="outline" disabled={saving} onClick={() => void releaseAllocation(al.id)}>Release allocation</Button>}</div>
 
-                <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border">
                   <div className="flex justify-between">
                     <span>Planned Operating Hours:</span>
-                    <strong className="text-slate-900 dark:text-white">{al.hours_planned} Hrs</strong>
+                    <strong className="text-foreground">{al.hours_planned} Hrs</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span>Active Window:</span>
-                    <strong className="text-slate-900 dark:text-white">{al.start_date} → {al.end_date}</strong>
+                    <span>Allocation Window:</span>
+                    <strong className="text-foreground">{al.start_date} → {al.end_date}</strong>
                   </div>
                 </div>
               </div>
             ))
           )}
         </div>
-      ) : (
-        /* Fleet List */
+        <ListPagination total={allocations.length} page={allocPage} pageSize={allocPageSize} onPageChange={setAllocPage} onPageSizeChange={setAllocPageSize} noun="allocations" />
+        </>
+      ) : (<>
+        {/* Fleet List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {resources.length === 0 ? (
-            <div className="col-span-full p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 text-xs">
+            <div className="col-span-full p-8 text-center bg-muted rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-muted-foreground text-xs">
               No fleet resources registered. Add machinery, cranes, drilling rigs, or specialized equipment.
             </div>
-          ) : (
-            resources.map((res) => (
+          ) : (<>
+            {paginate(resources, fleetPage, fleetPageSize).visible.map((res) => (
               <div
                 key={res.id}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm flex flex-col justify-between"
+                className="bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-bold text-slate-500 font-mono">
-                      {res.code || 'ASSET-00'}
+                    <span className="text-[11px] font-bold text-muted-foreground font-mono">
+                      {res.code || 'No code'}
                     </span>
                     <Badge variant={res.status === 'available' ? 'success' : res.status === 'allocated' ? 'brand' : 'warning'}>
                       {res.status.toUpperCase()}
                     </Badge>
                   </div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">{res.name}</h3>
-                  <div className="text-xs text-slate-500 mt-0.5">
-                    {res.make_model || 'Standard Specification'} {res.capacity_rating && `• ${res.capacity_rating}`}
+                  <h3 className="font-bold text-base text-foreground">{res.name}</h3>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {res.make_model || 'Specifications not recorded'} {res.capacity_rating && `• ${res.capacity_rating}`}
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 text-xs space-y-1.5">
+                <div className="mt-4 pt-4 border-t border-border text-xs space-y-1.5">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Hourly Rate:</span>
-                    <strong className="text-slate-900 dark:text-white">{formatCurrency(res.cost_rate_hourly)}/hr</strong>
+                    <span className="text-muted-foreground">Hourly Rate:</span>
+                    <strong className="text-foreground">{formatCurrency(res.cost_rate_hourly, res.currency)}/hr</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Daily Rate:</span>
-                    <strong className="text-slate-900 dark:text-white">{formatCurrency(res.cost_rate_daily)}/day</strong>
+                    <span className="text-muted-foreground">Daily Rate:</span>
+                    <strong className="text-foreground">{formatCurrency(res.cost_rate_daily, res.currency)}/day</strong>
                   </div>
+                  {canManageFleet && <Button size="sm" variant="outline" onClick={() => editResource(res)}>Edit asset</Button>}
                 </div>
               </div>
-            ))
-          )}
+            ))}
+          </>)}
         </div>
-      )}
+        <ListPagination total={resources.length} page={fleetPage} pageSize={fleetPageSize} onPageChange={setFleetPage} onPageSizeChange={setFleetPageSize} noun="assets" />
+      </>)}
 
-      {/* MODAL: ADD RESOURCE */}
+      {/* Resource registration */}
       <Dialog open={showAddResourceModal} onOpenChange={setShowAddResourceModal}>
-          <DialogContent className="max-w-md">
+        <DialogContent size="md">
+          <form onSubmit={handleCreateResource}>
             <DialogHeader>
-              <DialogTitle>Register Fleet Asset</DialogTitle>
+              <DialogTitle>{editingResource ? 'Edit Fleet Asset' : 'Register Fleet Asset'}</DialogTitle>
             </DialogHeader>
+            <DialogBody className="space-y-4">
 
-            <form onSubmit={handleCreateResource} className="mt-4 space-y-4">
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Asset Type *
                   </label>
                   <Select
                     value={resType}
+                    disabled={!!editingResource}
                     onValueChange={value => setResType(value as ProjectResourceType)}
                   >
                     <SelectTrigger className="w-full text-xs"><SelectValue /></SelectTrigger>
@@ -306,121 +352,127 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                       <SelectItem value="heavy_machinery">Heavy Machinery</SelectItem>
                       <SelectItem value="vehicle">Vehicle / Hauler</SelectItem>
                       <SelectItem value="equipment">Specialized Equipment</SelectItem>
+                      <SelectItem value="tool">Tool</SelectItem>
                       <SelectItem value="facility">Plant / Facility</SelectItem>
                       <SelectItem value="personnel">Specialist Personnel</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Asset Code
                   </label>
-                  <input
+                  <Input
                     type="text"
-                    value={resCode}
+                    aria-label="Asset code" value={resCode}
+                    disabled={!!editingResource}
                     onChange={(e) => setResCode(e.target.value)}
                     placeholder="EQ-CAT-320"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Asset / Equipment Name *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
-                  value={resName}
+                  aria-label="Asset name" value={resName}
                   onChange={(e) => setResName(e.target.value)}
                   placeholder="e.g., Caterpillar 320 Hydraulic Excavator"
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Make / Model
                   </label>
-                  <input
+                  <Input
                     type="text"
-                    value={resMakeModel}
+                    aria-label="Make or model" value={resMakeModel}
                     onChange={(e) => setResMakeModel(e.target.value)}
                     placeholder="CAT 320 GC"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Capacity Rating
                   </label>
-                  <input
+                  <Input
                     type="text"
-                    value={resCapacity}
+                    aria-label="Capacity rating" value={resCapacity}
                     onChange={(e) => setResCapacity(e.target.value)}
                     placeholder="22.5 Tonnes"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Hourly Cost ({currency})
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Hourly Cost ({editingResource?.currency || currency})
                   </label>
-                  <input
-                    type="number"
-                    value={resRateHourly}
+                  <Input
+                    type="number" min="0" step="any"
+                    aria-label="Hourly cost" value={resRateHourly}
                     onChange={(e) => setResRateHourly(e.target.value)}
                     placeholder="4500"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Daily Cost ({currency})
+                  <label className="text-xs font-semibold text-foreground block mb-1">
+                    Daily Cost ({editingResource?.currency || currency})
                   </label>
-                  <input
-                    type="number"
-                    value={resRateDaily}
+                  <Input
+                    type="number" min="0" step="any"
+                    aria-label="Daily cost" value={resRateDaily}
                     onChange={(e) => setResRateDaily(e.target.value)}
                     placeholder="35000"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              {editingResource && <div><label>Availability</label><Select value={resStatus} onValueChange={value => setResStatus(value as ProjectResource['status'])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['available', 'allocated', 'maintenance', 'decommissioned'].map(value => <SelectItem key={value} value={value}>{value.replaceAll('_', ' ')}</SelectItem>)}</SelectContent></Select></div>}
+            </DialogBody>
+            <DialogFooter>
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowAddResourceModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
-                  {saving ? 'Registering...' : 'Register Asset'}
+                <Button type="submit" size="sm" disabled={saving}>
+                  {saving ? 'Saving…' : editingResource ? 'Save asset' : 'Register Asset'}
                 </Button>
-              </div>
+            </DialogFooter>
             </form>
-          </DialogContent>
+        </DialogContent>
       </Dialog>
 
-      {/* MODAL: ALLOCATE ASSET */}
+      {/* Dated allocation */}
       <Dialog open={showAddAllocModal && Boolean(projectId)} onOpenChange={setShowAddAllocModal}>
-          <DialogContent className="max-w-md">
+        <DialogContent size="md">
+          <form onSubmit={handleCreateAllocation}>
             <DialogHeader>
               <DialogTitle>Allocate Asset to Project</DialogTitle>
             </DialogHeader>
+            <DialogBody className="space-y-4">
 
-            <form onSubmit={handleCreateAllocation} className="mt-4 space-y-4">
+
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Select Asset *
                 </label>
                 <Combobox
                   value={allocResourceId}
                   onChange={setAllocResourceId}
-                  options={resources.map(resource => ({ value: resource.id, label: resource.name, sublabel: resource.code || resource.resource_type }))}
+                  options={resources.filter(resource => ['available', 'allocated'].includes(resource.status)).map(resource => ({ value: resource.id, label: resource.name, sublabel: resource.code || resource.resource_type }))}
                   placeholder="Select machinery or equipment"
                   searchPlaceholder="Search fleet assets"
                 />
@@ -428,68 +480,57 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Start Date
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={allocStart}
-                    onChange={(e) => setAllocStart(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  />
+                  <DatePicker date={parseDateOnly(allocStart)} onChange={date => setAllocStart(toDateOnlyString(date))} placeholder="Start date" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     End Date
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={allocEnd}
-                    onChange={(e) => setAllocEnd(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  />
+                  <DatePicker date={parseDateOnly(allocEnd)} onChange={date => setAllocEnd(toDateOnlyString(date))} placeholder="End date" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Planned Operating Hours
                   </label>
-                  <input
-                    type="number"
-                    value={allocHours}
+                  <Input
+                    type="number" min="0" step="any"
+                    aria-label="Planned operating hours" value={allocHours}
                     onChange={(e) => setAllocHours(e.target.value)}
                     placeholder="80"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Allocated Capacity (%)
                   </label>
-                  <input
+                  <Input
                     type="number"
-                    value={allocPct}
+                    min={1} max={100} step={1} aria-label="Allocated capacity percentage" value={allocPct}
                     onChange={(e) => setAllocPct(e.target.value)}
                     placeholder="100"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+            </DialogBody>
+            <DialogFooter>
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowAddAllocModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
+                <Button type="submit" size="sm" disabled={saving}>
                   {saving ? 'Allocating...' : 'Allocate Asset'}
                 </Button>
-              </div>
+            </DialogFooter>
             </form>
-          </DialogContent>
+        </DialogContent>
       </Dialog>
     </div>
   );

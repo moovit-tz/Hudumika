@@ -6,6 +6,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Button } from '../components/ui/button.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
@@ -159,7 +160,7 @@ export const ContractDetail: React.FC = () => {
           subtitle={contract.ref ? `${contract.subject} — ${contract.ref}` : contract.subject}
           actions={<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {(() => {
-              const meta = contract.sign_envelope_id ? (SIGN_STATUS_META[contract.envelope_status || 'draft'] || SIGN_STATUS_META.draft) : { label: 'Not Sent', variant: 'gray' as const };
+              const meta = contract.sign_envelope_id ? (SIGN_STATUS_META[contract.envelope_status || 'draft'] || SIGN_STATUS_META.draft) : { label: contract.status === 'draft' ? 'Draft' : 'Not Sent', variant: 'gray' as const };
               const badge = <Badge variant={meta.variant}>{meta.label}</Badge>;
               return contract.sign_envelope_id
                 ? <Link to={`/sign/envelope/${contract.sign_envelope_id}`} style={{ textDecoration: 'none' }} title="Open in eSign">{badge}</Link>
@@ -267,7 +268,8 @@ export const ContractDetail: React.FC = () => {
 
         {tab === 'content' && (
           <SectionCard collapsible={false}>
-            <textarea
+            <Textarea
+              aria-label="Contract body and terms"
               defaultValue={contract.content ?? ''}
               onBlur={e => patch({ content: e.target.value })}
               rows={20}

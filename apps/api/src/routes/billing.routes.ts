@@ -248,6 +248,12 @@ export default async function billingRoutes(fastify: FastifyInstance) {
           reply.status(409);
           return { error: 'USE_CHECKOUT', message: 'Pay this invoice through the secure checkout.' };
         } else {
+          if (env.APP_ENV === 'production') {
+            return reply.status(503).send({
+              error: 'PAYMENT_NOT_CONFIGURED',
+              message: 'Online payments are unavailable. Please contact your workspace administrator.',
+            });
+          }
           // Simulated charge, same house convention as onboarding — no live
           // gateway is wired up, but the result genuinely reflects the stored
           // method (a mobile_money method routes through the mpesa branch).

@@ -28,13 +28,18 @@ const projectCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   description: z.string().max(5000).optional(),
   color: z.string().max(30).optional(),
-  startDate: z.string().optional(),
-  targetDate: z.string().optional(),
+  startDate: z.string().date().nullable().optional(),
+  targetDate: z.string().date().nullable().optional(),
   customerId: uuidSchema.nullable().optional(),
   billingType: z.enum(BILLING_TYPES).optional(),
   totalRate: z.number().min(0).max(100000000).nullable().optional(),
   currency: z.string().max(5).optional(),
   templateId: uuidSchema.optional(),
+  industry: z.enum(['construction','engineering','real_estate','manufacturing','mining','energy','agriculture','transport','public_sector','ngo','telecom','it_software','aerospace','pharma','professional_services','general']).optional(),
+  project_type: z.enum(['capital_expenditure','customer_delivery','internal','r_and_d','maintenance']).optional(),
+  portfolio_id: uuidSchema.nullable().optional(), program_id: uuidSchema.nullable().optional(),
+  contract_value: z.number().min(0).optional(), baseline_budget: z.number().min(0).optional(),
+  location_address: z.string().max(1000).optional(), tags: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
 });
 const saveAsTemplateSchema = z.object({
   id: uuidSchema,
@@ -57,12 +62,20 @@ const projectPatchSchema = z.object({
   description: z.string().max(5000).nullable().optional(),
   color: z.string().max(30).optional(),
   status: z.enum(PROJECT_STATUSES).optional(),
-  startDate: z.string().nullable().optional(),
-  targetDate: z.string().nullable().optional(),
+  startDate: z.string().date().nullable().optional(),
+  targetDate: z.string().date().nullable().optional(),
   customerId: uuidSchema.nullable().optional(),
   billingType: z.enum(BILLING_TYPES).optional(),
   totalRate: z.number().min(0).max(100000000).nullable().optional(),
   currency: z.string().max(5).optional(),
+  industry: projectCreateSchema.shape.industry,
+  project_type: projectCreateSchema.shape.project_type,
+  portfolio_id: projectCreateSchema.shape.portfolio_id,
+  program_id: projectCreateSchema.shape.program_id,
+  contract_value: projectCreateSchema.shape.contract_value,
+  baseline_budget: projectCreateSchema.shape.baseline_budget,
+  location_address: projectCreateSchema.shape.location_address,
+  tags: projectCreateSchema.shape.tags,
 });
 const memberAddSchema = z.object({ userId: uuidSchema, role: z.enum(MEMBER_ROLES).optional() });
 const memberPatchSchema = z.object({ role: z.enum(MEMBER_ROLES) });
@@ -120,8 +133,8 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const isAdmin = ADMIN_ROLES.includes(user.role);
       let q = trx.selectFrom('projects')
-        .leftJoin('users as owner_user', 'owner_user.id', 'projects.owner_id')
-        .leftJoin('customers', 'customers.id', 'projects.customer_id')
+        .leftJoin('users as owner_user', join => join.onRef('owner_user.id', '=', 'projects.owner_id').on('owner_user.tenant_id', '=', user.tenant_id))
+        .leftJoin('customers', join => join.onRef('customers.id', '=', 'projects.customer_id').on('customers.tenant_id', '=', user.tenant_id))
         .where('projects.tenant_id', '=', user.tenant_id)
         .where(eb => {
           const conds = [eb('projects.owner_id', '=', user.sub)];
@@ -136,6 +149,10 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const rows = await q
         .select([
           'projects.id', 'projects.ref', 'projects.name', 'projects.description', 'projects.color', 'projects.status',
+          'projects.industry', 'projects.project_type', 'projects.health_status', 'projects.progress_pct',
+          'projects.contract_value', 'projects.baseline_budget', 'projects.current_budget', 'projects.actual_cost',
+          'projects.portfolio_id', 'projects.program_id', 'projects.location_address',
+          sql<string[]>`coalesce(projects.custom_fields->'tags', '[]'::jsonb)`.as('project_tags'),
           'projects.owner_id', 'projects.start_date', 'projects.target_date',
           'projects.customer_id', 'projects.billing_type', 'projects.total_rate', 'projects.currency',
           'projects.created_at', 'projects.updated_at',
@@ -162,7 +179,9 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
 
       return {
         data: rows.map(p => ({
-          ...p, member_count: memberCountByProject.get(p.id) || 0,
+          ...p, progress_pct: Number(p.progress_pct ?? 0), contract_value: Number(p.contract_value ?? 0),
+          baseline_budget: Number(p.baseline_budget ?? 0), current_budget: Number(p.current_budget ?? 0), actual_cost: Number(p.actual_cost ?? 0),
+          member_count: memberCountByProject.get(p.id) || 0,
           task_count: taskCountByProject.get(p.id)?.total || 0,
           task_done_count: taskCountByProject.get(p.id)?.done || 0,
           is_pinned: pinnedSet.has(p.id),
@@ -200,7 +219,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
-      const source = await trx.selectFrom('projects').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+      const source = await trx.selectFrom('projects').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).executeTakeFirstOrThrow();
       const ref = await getNextDocNumber(trx, user.tenant_id, 'project');
       // Copies the project + its milestones — NOT tasks, matching the
       // reference's own "Copy Project" behavior (a duplicate is a fresh
@@ -234,11 +253,22 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = projectCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.startDate && body.targetDate && body.targetDate < body.startDate) return reply.code(400).send({ error: 'Target date must be on or after start date' });
+      if (body.customerId && !await trx.selectFrom('customers').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.customerId).executeTakeFirst()) return reply.code(404).send({ error: 'Customer not found' });
+      if (body.portfolio_id && !await trx.selectFrom('project_portfolios').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.portfolio_id).executeTakeFirst()) return reply.code(404).send({ error: 'Portfolio not found' });
+      if (body.program_id) {
+        const program = await trx.selectFrom('project_programs').select(['id', 'portfolio_id']).where('tenant_id', '=', user.tenant_id).where('id', '=', body.program_id).executeTakeFirst();
+        if (!program || (body.portfolio_id && program.portfolio_id !== body.portfolio_id)) return reply.code(404).send({ error: 'Program not found in the selected portfolio' });
+      }
       const ref = await getNextDocNumber(trx, user.tenant_id, 'project');
       const row = await trx.insertInto('projects').values({
         id: body.id, tenant_id: user.tenant_id, name: body.name.trim(), ref,
         description: body.description || null, color: body.color || '#0d7a6b',
         owner_id: user.sub, start_date: body.startDate || null, target_date: body.targetDate || null,
+        industry: body.industry ?? 'general', project_type: body.project_type ?? 'internal',
+        portfolio_id: body.portfolio_id ?? null, program_id: body.program_id ?? null,
+        contract_value: body.contract_value ?? 0, baseline_budget: body.baseline_budget ?? 0, current_budget: body.baseline_budget ?? 0,
+        location_address: body.location_address ?? null, custom_fields: { tags: body.tags ?? [] },
         customer_id: body.customerId || null, billing_type: body.billingType || 'fixed',
         total_rate: body.totalRate != null ? String(body.totalRate) : null, currency: body.currency || 'TZS',
       }).returningAll().executeTakeFirstOrThrow();
@@ -438,8 +468,19 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
       if (!canManageProject(resolved.access)) return reply.status(403).send({ error: 'Only a project owner or admin can edit this project' });
-      const existing = await trx.selectFrom('projects').select(['status', 'name'])
-        .where('id', '=', request.params.id).executeTakeFirstOrThrow();
+      const existing = await trx.selectFrom('projects').selectAll()
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).executeTakeFirstOrThrow();
+      const startDate = body.startDate !== undefined ? body.startDate : existing.start_date;
+      const targetDate = body.targetDate !== undefined ? body.targetDate : existing.target_date;
+      if (startDate && targetDate && new Date(targetDate) < new Date(startDate)) return reply.status(400).send({ error: 'Target date must be on or after start date' });
+      if (body.customerId && !await trx.selectFrom('customers').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.customerId).executeTakeFirst()) return reply.status(400).send({ error: 'Customer not found in this workspace' });
+      const portfolioId = body.portfolio_id !== undefined ? body.portfolio_id : existing.portfolio_id;
+      const programId = body.program_id !== undefined ? body.program_id : existing.program_id;
+      if (portfolioId && !await trx.selectFrom('project_portfolios').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', portfolioId).executeTakeFirst()) return reply.status(400).send({ error: 'Portfolio not found in this workspace' });
+      if (programId) {
+        const program = await trx.selectFrom('project_programs').select(['id', 'portfolio_id']).where('tenant_id', '=', user.tenant_id).where('id', '=', programId).executeTakeFirst();
+        if (!program || (portfolioId && program.portfolio_id !== portfolioId)) return reply.status(400).send({ error: 'Program must belong to the selected portfolio in this workspace' });
+      }
 
       const updates: Record<string, unknown> = { updated_at: new Date() };
       if (body.name !== undefined) updates.name = body.name.trim();
@@ -452,9 +493,13 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       if (body.billingType !== undefined) updates.billing_type = body.billingType;
       if (body.totalRate !== undefined) updates.total_rate = body.totalRate != null ? String(body.totalRate) : null;
       if (body.currency !== undefined) updates.currency = body.currency;
+      for (const field of ['industry', 'project_type', 'portfolio_id', 'program_id', 'contract_value', 'baseline_budget', 'location_address'] as const) {
+        if (body[field] !== undefined) updates[field] = body[field];
+      }
+      if (body.tags !== undefined) updates.custom_fields = JSON.stringify({ ...existing.custom_fields, tags: body.tags });
 
       const row = await trx.updateTable('projects').set(updates)
-        .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
 
       // Real activity feed (migration 320) — only status changes, not every
       // field PATCH, same "worth a timeline row" bar tasks.routes.ts uses.
@@ -628,7 +673,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
       if (!canManageProject(resolved.access)) return reply.status(403).send({ error: 'Only a project owner or admin can invoice this project' });
-      const project = await trx.selectFrom('projects').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+      const project = await trx.selectFrom('projects').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).executeTakeFirstOrThrow();
       if (!project.customer_id) return reply.status(400).send({ error: 'This project has no customer to bill — set a customer on the project first.' });
 
       const invoiceNumber = await getNextDocNumber(trx, user.tenant_id, 'invoice');
@@ -752,14 +797,14 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
           .innerJoin('users', 'users.id', 'project_activity_log.actor_id')
           .where('project_activity_log.project_id', '=', request.params.id)
           .select(['project_activity_log.id', 'project_activity_log.action', 'project_activity_log.detail',
-            'project_activity_log.created_at', 'users.name as actor_name'])
+            'project_activity_log.created_at', 'project_activity_log.actor_id', 'users.name as actor_name'])
           .execute(),
         trx.selectFrom('task_activity_log')
           .innerJoin('tasks', 'tasks.id', 'task_activity_log.task_id')
           .innerJoin('users', 'users.id', 'task_activity_log.actor_id')
           .where('tasks.project_id', '=', request.params.id)
           .select(['task_activity_log.id', 'task_activity_log.action', 'task_activity_log.detail',
-            'task_activity_log.created_at', 'users.name as actor_name', 'tasks.title as task_title'])
+            'task_activity_log.created_at', 'task_activity_log.actor_id', 'users.name as actor_name', 'tasks.title as task_title'])
           .execute(),
       ]);
       const combined = [

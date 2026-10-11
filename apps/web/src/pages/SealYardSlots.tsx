@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -66,12 +68,13 @@ export function SealYardSlots() {
         titlePlain="Yard"
         titleEm="slots"
         subtitle="Where a gated-in container sits before/during devanning — a different physical spot from the rack/bin a devanned lot is put away into."
+        actions={
+          <Button onClick={() => setShowNew(v => !v)}>
+            <Icon name="plus" size={14} />
+            <span>New Slot</span>
+          </Button>
+        }
       />
-      <div className="seal-page-hdr">
-        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)} data-ui-native-button="">
-          <Icon name="plus" size={14} /><span>New Slot</span>
-        </button>
-      </div>
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
@@ -79,21 +82,22 @@ export function SealYardSlots() {
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
-                <SelectTrigger className="input-field"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Code</label>
-              <input type="text" className="input-field" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. Y-A12" />
+              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. Y-A12" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Capacity (TEU)</label>
-              <input type="number" min="1" className="input-field" value={newCapacity} onChange={e => setNewCapacity(e.target.value)} />
+              <Input type="number" min="1" value={newCapacity} onChange={e => setNewCapacity(e.target.value)} />
             </div>
           </div>
-          <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="btn btn-primary" disabled={saving || !newCompartmentId || !newCode.trim()} data-ui-native-button="">{saving ? 'Creating…' : 'Create Slot'}</button>
+          <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
+            <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving || !newCompartmentId || !newCode.trim()}>{saving ? 'Creating…' : 'Create Slot'}</Button>
           </div>
         </form>
       )}

@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { SearchToolbar, SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { apiFetch } from '../../lib/api.js';
 import {
@@ -82,34 +83,37 @@ export function SealExWarehouseEntries() {
       />
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 12, marginBottom: 20 }}>
+      <div className="seal-kpi-strip">
         {[
-          { label: 'Draft',     value: drafts,   color: 'var(--ink3)',  icon: 'file' },
-          { label: 'Assessed',  value: assessed, color: 'var(--teal)',  icon: 'clipboardCheck' },
-          { label: 'Paid',      value: paid,     color: 'var(--blue)',  icon: 'creditCard' },
-          { label: 'Released',  value: released, color: 'var(--green)', icon: 'checkCircle' },
-          { label: 'Queried',   value: queried,  color: 'var(--gold)',  icon: 'alertCircle' },
-          { label: `Total Duty (${currency})`, value: totalDuty.toLocaleString(), color: 'var(--ink2)', icon: 'dollarSign' },
+          { label: 'Draft',     value: drafts,   variant: 'gray' as const,    icon: 'file' },
+          { label: 'Assessed',  value: assessed, variant: 'brand' as const,   icon: 'clipboardCheck' },
+          { label: 'Paid',      value: paid,     variant: 'info' as const,    icon: 'creditCard' },
+          { label: 'Released',  value: released, variant: 'success' as const, icon: 'checkCircle' },
+          { label: 'Queried',   value: queried,  variant: 'warning' as const, icon: 'alertCircle' },
+          { label: `Total Duty (${currency})`, value: totalDuty.toLocaleString(), variant: 'brand' as const, icon: 'dollarSign' },
         ].map(k => (
-          <div key={k.label} className="seal-card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ color: k.color, opacity: 0.75, flexShrink: 0 }}><Icon name={k.icon as any} size={18} /></div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
-              <div style={{ fontSize: 9.5, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.label}</div>
+          <div key={k.label} className="seal-kpi-card">
+            <FeaturedIcon variant={k.variant} size="md" shape="squircle">
+              <Icon name={k.icon as any} size={20} />
+            </FeaturedIcon>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="seal-kpi-value">{k.value}</div>
+              <div className="seal-kpi-label">{k.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <SingleSelectFilter
           label="Status"
-          value={statusFilter}
-          options={STATUS_OPTIONS}
+          value={statusFilter === STATUS_ALL ? null : statusFilter}
+          options={Object.entries(SEAL_DECLARATION_STATUS_LABELS).map(([k, label]) => ({ value: k, label }))}
+          allLabel="All statuses"
           onChange={v => setStatusFilter(v ?? STATUS_ALL)}
         />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
           <SearchToolbar
             search={search}
             onSearch={setSearch}

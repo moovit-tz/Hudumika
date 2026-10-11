@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -212,26 +214,25 @@ export function SealConsignmentDetail() {
   return (
     <div className="seal-page">
       <PageHeader
-        crumbs={['SEAL', 'Consignment']}
-        titlePlain="Inbound"
-        titleEm="consignment"
-        subtitle="Pre-arrival through gate-in to devanning."
+        crumbs={['SEAL', { label: 'Consignments', to: '/seal/consignments' }, consignment.transport_doc_number || consignment.transport_doc_type]}
+        titlePlain={consignment.transport_doc_type}
+        titleEm={consignment.transport_doc_number || 'Consignment'}
+        subtitle={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <PersonAvatar userId={consignment.owner_id} kind="customers" name={consignment.owner_name ?? 'Unknown owner'} size={20} />
+            <strong style={{ color: 'var(--ink)' }}>{consignment.owner_name ?? 'Unknown owner'}</strong>
+            <span style={{ color: 'var(--ink3)' }}>&middot;</span>
+            <span>{consignment.goods_description ?? 'No goods description'}</span>
+          </span>
+        }
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Badge variant={STATUS_VARIANT[consignment.status] ?? 'brand'}>
+              {consignment.status.replace(/_/g, ' ')}
+            </Badge>
+          </div>
+        }
       />
-      {/* Header */}
-      <div className="seal-page-hdr">
-        <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/consignments')} style={{ marginBottom: 12 }} data-ui-native-button="">
-            <Icon name="arrowLeft" size={13} />
-            <span>Back to Consignments</span>
-          </button>
-          <h2 className="seal-entity-title">{consignment.transport_doc_type} {consignment.transport_doc_number ?? ''}</h2>
-          <p className="seal-page-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <PersonAvatar userId={consignment.owner_id} kind="customers" name={consignment.owner_name ?? 'Unknown owner'} size={18} />
-            {consignment.owner_name ?? 'Unknown owner'} · {consignment.goods_description ?? 'No description'}
-          </p>
-        </div>
-        <Badge variant={STATUS_VARIANT[consignment.status] ?? 'brand'}>{consignment.status.replace(/_/g, ' ')}</Badge>
-      </div>
 
       <div style={{ marginBottom: 20 }}>
         <SealDocumentPanel entityType="consignment" entityId={consignment.id} />
@@ -243,9 +244,9 @@ export function SealConsignmentDetail() {
         <form onSubmit={handleAddContainer} className="seal-form-row">
           <div className="seal-field-row" style={{ flex: '1 1 220px' }}>
             <label className="seal-field-label">Container Number</label>
-            <input
+            <Input
               type="text"
-              className="seal-input-control seal-mono"
+              className="seal-mono font-bold tracking-wider"
               value={newContainerNumber}
               onChange={e => setNewContainerNumber(e.target.value.toUpperCase())}
               placeholder="MSCU1234567"
@@ -260,20 +261,18 @@ export function SealConsignmentDetail() {
           <div className="seal-field-row" style={{ width: 140 }}>
             <label className="seal-field-label">Size</label>
             <Select value={newContainerSize} onValueChange={setNewContainerSize}>
-              <SelectTrigger className="seal-input-control"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>{CONTAINER_SIZES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary"
-            style={{ height: 38, padding: '0 20px', whiteSpace: 'nowrap' }}
             disabled={!check?.valid || addingContainer}
-           data-ui-native-button="">
+          >
             <Icon name="plus" size={14} />
             <span>{addingContainer ? 'Adding…' : 'Add Container'}</span>
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -290,8 +289,10 @@ export function SealConsignmentDetail() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   const details = getContainerDetails(c.container_number, {
                     size_type: c.container_size === '40HC' ? 'High Cube - 40 feet Container' : 'Dry - 20 feet Container',
@@ -311,12 +312,10 @@ export function SealConsignmentDetail() {
                   });
                   setInspectingContainer(details);
                 }}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-               data-ui-native-button="">
+              >
                 <Icon name="container" size={13} color="var(--teal)" />
                 <span>3D Specs &amp; Survey</span>
-              </button>
+              </Button>
               <Badge variant={c.gate_in_at ? 'success' : 'gray'}>
                 {c.gate_in_at ? 'Gated In' : 'Awaiting Gate-In'}
               </Badge>
@@ -329,26 +328,26 @@ export function SealConsignmentDetail() {
                 <div className="seal-form-row">
                   <div className="seal-field-row" style={{ flex: '1 1 160px' }}>
                     <label className="seal-field-label">Seal Number</label>
-                    <input type="text" className="seal-input-control" value={sealNumber} onChange={e => setSealNumber(e.target.value)} placeholder="SL482910" />
+                    <Input type="text" value={sealNumber} onChange={e => setSealNumber(e.target.value)} placeholder="SL482910" />
                   </div>
                   <div className="seal-field-row" style={{ flex: '1 1 120px' }}>
                     <label className="seal-field-label">Gross (kg)</label>
-                    <input type="number" className="seal-input-control" value={grossWeight} onChange={e => setGrossWeight(e.target.value)} />
+                    <Input type="number" value={grossWeight} onChange={e => setGrossWeight(e.target.value)} />
                   </div>
                   <div className="seal-field-row" style={{ flex: '1 1 120px' }}>
                     <label className="seal-field-label">Tare (kg)</label>
-                    <input type="number" className="seal-input-control" value={tareWeight} onChange={e => setTareWeight(e.target.value)} />
+                    <Input type="number" value={tareWeight} onChange={e => setTareWeight(e.target.value)} />
                   </div>
-                  <button type="button" className="btn btn-primary" disabled={gating} onClick={() => handleGateIn(c.id)} data-ui-native-button="">
+                  <Button disabled={gating} onClick={() => handleGateIn(c.id)}>
                     <Icon name="truck" size={14} /><span>{gating ? 'Recording…' : 'Confirm Gate-In'}</span>
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setGateActionId(null)} data-ui-native-button="">Cancel</button>
+                  </Button>
+                  <Button variant="outline" onClick={() => setGateActionId(null)}>Cancel</Button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setGateActionId(c.id)} data-ui-native-button="">
+                  <Button onClick={() => setGateActionId(c.id)}>
                     <Icon name="truck" size={14} /><span>Gate In</span>
-                  </button>
+                  </Button>
                 </div>
               )
             ) : (
@@ -364,7 +363,7 @@ export function SealConsignmentDetail() {
                       Gated in {new Date(c.gate_in_at).toLocaleString()}
                     </span>
                     <Select value={c.yard_slot_id ?? '__none__'} onValueChange={v => handleAssignYardSlot(c.id, v === '__none__' ? '' : v)} disabled={assigningSlot === c.id}>
-                      <SelectTrigger className="seal-input-control" style={{ width: 160, height: 32 }}><SelectValue placeholder="Yard slot…" /></SelectTrigger>
+                      <SelectTrigger style={{ width: 160, height: 36 }}><SelectValue placeholder="Yard slot…" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Unassigned</SelectItem>
                         {yardSlots.map(s => <SelectItem key={s.id} value={s.id}>{s.code} ({s.occupiedCount}/{s.capacityTeu})</SelectItem>)}
@@ -372,7 +371,7 @@ export function SealConsignmentDetail() {
                     </Select>
                     {vehicles.length > 0 && (
                       <Select value={c.vehicle_id ?? '__none__'} onValueChange={v => handleAssignVehicle(c.id, v === '__none__' ? '' : v)} disabled={assigningVehicle === c.id}>
-                        <SelectTrigger className="seal-input-control" style={{ width: 180, height: 32 }}><SelectValue placeholder="Vehicle (HuduFreight)…" /></SelectTrigger>
+                        <SelectTrigger style={{ width: 180, height: 36 }}><SelectValue placeholder="Vehicle (HuduFreight)…" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Unassigned</SelectItem>
                           {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}{v.plateNumber ? ` (${v.plateNumber})` : ''}</SelectItem>)}
@@ -380,7 +379,7 @@ export function SealConsignmentDetail() {
                       </Select>
                     )}
                     {c.vehicle_id && (
-                      <Link to={`/tracking/vehicles/${c.vehicle_id}`} className="btn btn-secondary" style={{ height: 32 }}>
+                      <Link to={`/tracking/vehicles/${c.vehicle_id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--r-sm)] border border-border text-xs font-semibold text-foreground hover:bg-accent transition-colors" style={{ height: 36 }}>
                         <Icon name="mapPin" size={13} /><span>Track on Map</span>
                       </Link>
                     )}
@@ -388,14 +387,14 @@ export function SealConsignmentDetail() {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     {c.eir_reference && (
-                      <button type="button" className="btn btn-secondary" onClick={() => handlePrintEir(c)} data-ui-native-button="">
+                      <Button variant="outline" size="sm" onClick={() => handlePrintEir(c)}>
                         <Icon name="printer" size={13} /><span>Print EIR ({c.eir_reference})</span>
-                      </button>
+                      </Button>
                     )}
                     {devanActionId !== c.id && (
-                      <button type="button" className="btn btn-primary" onClick={() => setDevanActionId(c.id)} data-ui-native-button="">
+                      <Button size="sm" onClick={() => setDevanActionId(c.id)}>
                         <Icon name="package" size={14} /><span>Devan / Tally</span>
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -408,13 +407,13 @@ export function SealConsignmentDetail() {
                     </div>
                     {tallyLines.map((line, i) => (
                       <div key={i} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                        <input type="text" className="seal-input-control" style={{ flex: '2 1 180px' }} placeholder="Description" value={line.description} onChange={e => updateLine(i, { description: e.target.value })} />
+                        <Input style={{ flex: '2 1 180px' }} placeholder="Description" value={line.description} onChange={e => updateLine(i, { description: e.target.value })} />
                         {!line.discrepancy && (
                           <>
-                            <input type="text" className="seal-input-control" style={{ flex: '1 1 90px' }} placeholder="HS code" value={line.hsCode} onChange={e => updateLine(i, { hsCode: e.target.value })} />
-                            <input type="number" className="seal-input-control" style={{ flex: '1 1 80px' }} placeholder="Qty" value={line.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
-                            <input type="text" className="seal-input-control" style={{ flex: '1 1 70px' }} placeholder="UOM" value={line.uom} onChange={e => updateLine(i, { uom: e.target.value })} />
-                            <input type="number" className="seal-input-control" style={{ flex: '1 1 100px' }} placeholder="Value ($)" value={line.customsValue} onChange={e => updateLine(i, { customsValue: e.target.value })} />
+                            <Input style={{ flex: '1 1 90px' }} placeholder="HS code" value={line.hsCode} onChange={e => updateLine(i, { hsCode: e.target.value })} />
+                            <Input type="number" style={{ flex: '1 1 80px' }} placeholder="Qty" value={line.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
+                            <Input style={{ flex: '1 1 70px' }} placeholder="UOM" value={line.uom} onChange={e => updateLine(i, { uom: e.target.value })} />
+                            <Input type="number" style={{ flex: '1 1 100px' }} placeholder="Value ($)" value={line.customsValue} onChange={e => updateLine(i, { customsValue: e.target.value })} />
                           </>
                         )}
                         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', height: 38 }}>
@@ -423,25 +422,25 @@ export function SealConsignmentDetail() {
                         </label>
                         {line.discrepancy && (
                           <Select value={line.discrepancyType} onValueChange={v => updateLine(i, { discrepancyType: v })}>
-                            <SelectTrigger className="seal-input-control" style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                            <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {['shortage', 'overage', 'damage', 'misdescription', 'weight_variance'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         )}
-                        <button type="button" className="btn btn-secondary btn-xs" style={{ width: 'var(--ctl-h-xs)', padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))} data-ui-native-button="">
+                        <Button variant="ghost" size="icon" onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
                           <Icon name="trash" size={14} />
-                        </button>
+                        </Button>
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => setTallyLines(lines => [...lines, emptyLine()])} data-ui-native-button="">
+                      <Button variant="outline" onClick={() => setTallyLines(lines => [...lines, emptyLine()])}>
                         <Icon name="plus" size={13} /><span>Add Line</span>
-                      </button>
-                      <button type="button" className="btn btn-primary" disabled={devanning} onClick={() => handleDevan(c.id)} data-ui-native-button="">
+                      </Button>
+                      <Button disabled={devanning} onClick={() => handleDevan(c.id)}>
                         <Icon name="check" size={14} /><span>{devanning ? 'Recording…' : 'Submit Tally'}</span>
-                      </button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setDevanActionId(null)} data-ui-native-button="">Cancel</button>
+                      </Button>
+                      <Button variant="outline" onClick={() => setDevanActionId(null)}>Cancel</Button>
                     </div>
                   </div>
                 )}

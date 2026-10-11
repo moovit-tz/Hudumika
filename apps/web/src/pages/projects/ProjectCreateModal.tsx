@@ -1,373 +1,395 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button.js';
-import { Icon } from '../../components/Icon.js';
+import { Input } from '../../components/ui/input.js';
+import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Combobox } from '../../components/ui/combobox.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
+import { SectionCard } from '../../components/SectionCard.js';
+import { Alert, AlertDescription } from '../../components/ui/alert.js';
 import { apiFetch } from '../../lib/api.js';
-import { showAlert } from '../../lib/alert.js';
-import type { ProjectIndustry, ProjectType, ProjectPortfolio, ProjectProgram } from '@hudumika/types';
-import { ColorSwatchPicker } from '../../components/ui/color-swatch-picker.js';
+import { rowsOf } from './projectData.js';
 
-interface ProjectCreateModalProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (newProjectId: string) => void;
+  onSuccess: (id: string) => void;
+  initialProject?: Record<string, any>;
+  standalone?: boolean;
 }
 
-const INDUSTRY_OPTIONS: { id: ProjectIndustry; label: string; icon: string; desc: string }[] = [
-  { id: 'construction', label: 'Construction & Civil Engineering', icon: 'hardHat', desc: 'BOQ, RFIs, Daily Site Diary, Subcontractor claims, HSE incidents' },
-  { id: 'engineering', label: 'Heavy Engineering & Infrastructure', icon: 'wrench', desc: 'Structural calculations, Engineering reviews, CAD gates' },
-  { id: 'real_estate', label: 'Real Estate & Property Development', icon: 'building', desc: 'Unit sales inventory, Buyer milestones, Phased handovers' },
-  { id: 'manufacturing', label: 'Manufacturing & Plant Operations', icon: 'box', desc: 'Multi-level BOM, Production work orders, Scrap tracking' },
-  { id: 'mining', label: 'Mining, Metals & Extraction', icon: 'layers', desc: 'Concession blocks, Equipment telemetry, Environmental compliance' },
-  { id: 'energy', label: 'Energy, Oil & Renewables', icon: 'zap', desc: 'Grid interconnects, Power purchase agreements, Safety gates' },
-  { id: 'ngo', label: 'NGO & International Development', icon: 'globe', desc: 'Results framework / Logframe, OVI metrics, Donor tracking' },
-  { id: 'it_software', label: 'IT, Cloud & DevOps Software', icon: 'cpu', desc: 'Sprint planning, DORA telemetry, Release gates, CI/CD' },
-  { id: 'general', label: 'General Corporate & Turnkey Projects', icon: 'briefcase', desc: 'Standard WBS, Earned Value, Governance & Deliverables' },
+const industries = [
+  'construction',
+  'engineering',
+  'real_estate',
+  'manufacturing',
+  'mining',
+  'energy',
+  'agriculture',
+  'transport',
+  'public_sector',
+  'ngo',
+  'telecom',
+  'it_software',
+  'aerospace',
+  'pharma',
+  'professional_services',
+  'general',
 ];
 
-export const ProjectCreateModal: React.FC<ProjectCreateModalProps> = ({
+export const ProjectCreateModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onSuccess,
+  initialProject,
+  standalone = false,
 }) => {
-  const [portfolios, setPortfolios] = useState<ProjectPortfolio[]>([]);
-  const [programs, setPrograms] = useState<ProjectProgram[]>([]);
-  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [industry, setIndustry] = useState('general');
+  const [classification, setClassification] = useState('internal');
+  const [currency, setCurrency] = useState('TZS');
+  const [budget, setBudget] = useState('');
+  const [value, setValue] = useState('');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [location, setLocation] = useState('');
+  const [tags, setTags] = useState('');
+
+  const [portfolio, setPortfolio] = useState('');
+  const [program, setProgram] = useState('');
+  const [customer, setCustomer] = useState('');
+  const [portfolios, setPortfolios] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    ref: `PRJ-${Math.floor(1000 + Math.random() * 9000)}`,
-    industry: 'construction' as ProjectIndustry,
-    project_type: 'capital_expenditure' as ProjectType,
-    portfolio_id: '__none__',
-    program_id: '__none__',
-    customer_id: '__none__',
-    color: '#0d7a6b',
-    contract_value: 50000000,
-    baseline_budget: 42000000,
-    currency: 'KES',
-    start_date: new Date().toISOString().split('T')[0],
-    target_date: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
-    location_address: 'Nairobi, Kenya',
-    latitude: -1.286389,
-    longitude: 36.817223,
-    description: '',
-  });
+  useEffect(() => {
+    if (!initialProject) return;
+    const p = initialProject;
+    setName(p.name || '');
+    setDescription(p.description || '');
+    setIndustry(p.industry || 'general');
+    setClassification(p.project_type || 'internal');
+    setCurrency(p.currency || 'TZS');
+    setBudget(String(p.baseline_budget ?? 0));
+    setValue(String(p.contract_value ?? 0));
+    setStart(p.start_date?.slice(0, 10) || '');
+    setEnd(p.target_date?.slice(0, 10) || '');
+    setLocation(p.location_address || '');
+    setTags((p.custom_fields?.tags || []).join(', '));
+    setPortfolio(p.portfolio_id || '');
+    setProgram(p.program_id || '');
+    setCustomer(p.customer_id || '');
+  }, [initialProject]);
 
   useEffect(() => {
     if (!isOpen) return;
-    apiFetch('/v1/project-os/portfolios').then(res => setPortfolios(Array.isArray(res) ? res : res.data || [])).catch(() => setPortfolios([]));
-    apiFetch('/v1/project-os/programs').then(res => setPrograms(Array.isArray(res) ? res : res.data || [])).catch(() => setPrograms([]));
-    apiFetch('/v1/crm/customers').then(res => setCustomers(Array.isArray(res) ? res : res.data || [])).catch(() => setCustomers([]));
+    Promise.allSettled([
+      apiFetch('/v1/project-os/portfolios'),
+      apiFetch('/v1/project-os/programs'),
+      apiFetch('/v1/customers'),
+    ]).then(results => {
+      if (results[0].status === 'fulfilled') setPortfolios(rowsOf(results[0].value));
+      if (results[1].status === 'fulfilled') setPrograms(rowsOf(results[1].value));
+      if (results[2].status === 'fulfilled') setCustomers(rowsOf(results[2].value));
+    });
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  const handleCreate = async () => {
-    if (!formData.name.trim()) {
-      showAlert('Project Name is required', { variant: 'error' });
+  async function create(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (start && end && end < start) {
+      setError('Target date must be on or after start date');
       return;
     }
     setSaving(true);
     try {
-      const id = crypto.randomUUID();
-      const payload: any = {
-        id,
-        name: formData.name.trim(),
-        color: formData.color,
-        industry: formData.industry,
-        project_type: formData.project_type,
-        contract_value: Number(formData.contract_value) || 0,
-        baseline_budget: Number(formData.baseline_budget) || 0,
-        current_budget: Number(formData.baseline_budget) || 0,
-        currency: formData.currency,
-        start_date: formData.start_date || null,
-        target_date: formData.target_date || null,
-        location_address: formData.location_address || null,
-        latitude: formData.latitude || null,
-        longitude: formData.longitude || null,
-        description: formData.description || null,
-      };
-
-      if (formData.portfolio_id !== '__none__') payload.portfolio_id = formData.portfolio_id;
-      if (formData.program_id !== '__none__') payload.program_id = formData.program_id;
-      if (formData.customer_id !== '__none__') payload.customer_id = formData.customer_id;
-
-      await apiFetch('/v1/tasks/projects', {
-        method: 'POST',
-        body: JSON.stringify(payload),
+      const id = initialProject?.id || crypto.randomUUID();
+      const result = await apiFetch(initialProject ? `/v1/tasks/projects/${id}` : '/v1/tasks/projects', {
+        method: initialProject ? 'PATCH' : 'POST',
+        body: JSON.stringify({
+          id,
+          name: name.trim(),
+          description,
+          industry,
+          project_type: classification,
+          currency,
+          baseline_budget: Number(budget) || 0,
+          contract_value: Number(value) || 0,
+          startDate: start || null,
+          targetDate: end || null,
+          location_address: location,
+          portfolio_id: portfolio || null,
+          program_id: program || null,
+          customerId: customer || null,
+          tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        }),
       });
-
-      showAlert(`Project "${formData.name}" successfully created!`, { variant: 'success' });
-      onSuccess(id);
-    } catch {
-      // apiFetch handles errors
+      onSuccess(result.data?.id || id);
+    } catch (err: any) {
+      setError(err.message || 'Unable to create project');
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--white)',
-          borderRadius: 'var(--r-lg)',
-          width: '100%',
-          maxWidth: 780,
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Modal Header */}
-        <div
-          style={{
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--bg-subtle)',
-          }}
-        >
+  if (!isOpen) return null;
+
+  const formFields = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Identity & Classification */}
+      <SectionCard title="1. Project Identity & Classification">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--teal)', letterSpacing: '0.05em' }}>
-              Hudumika Project OS
-            </div>
-            <h2 style={{ margin: '2px 0 0', fontSize: 19, fontWeight: 800, color: 'var(--ink)' }}>
-              Create Enterprise Project
-            </h2>
+            <label htmlFor="project-name" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Project Name *
+            </label>
+            <Input
+              id="project-name"
+              required
+              maxLength={200}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Serengeti Phase 2 Expansion"
+            />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
-           data-ui-native-button="">
-            <Icon name="x" size={20} />
-          </button>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Industry Sector
+            </label>
+            <Select value={industry} onValueChange={setIndustry}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {industries.map(ind => (
+                  <SelectItem key={ind} value={ind}>
+                    {ind.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Delivery Classification
+            </label>
+            <Select value={classification} onValueChange={setClassification}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {['internal', 'customer_delivery', 'capital_expenditure', 'r_and_d', 'maintenance'].map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Currency
+            </label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {['TZS', 'KES', 'USD', 'EUR', 'GBP', 'UGX'].map(code => (
+                  <SelectItem key={code} value={code}>
+                    {code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Industry Selection */}
+        <div style={{ marginTop: 14 }}>
+          <label htmlFor="project-scope" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+            Scope & Objectives
+          </label>
+          <Textarea
+            id="project-scope"
+            maxLength={5000}
+            rows={4}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Define project deliverables, scope boundaries, and core objectives…"
+          />
+        </div>
+      </SectionCard>
+
+      {/* Strategic Hierarchy */}
+      <SectionCard title="2. Strategic Alignment & Client">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
           <div>
-            <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', display: 'block', marginBottom: 8 }}>
-              Select Industry Pack *
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Portfolio (Optional)
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-              {INDUSTRY_OPTIONS.map((ind) => {
-                const isSelected = formData.industry === ind.id;
-                return (
-                  <div
-                    key={ind.id}
-                    onClick={() => setFormData({ ...formData, industry: ind.id })}
-                    style={{
-                      border: `2px solid ${isSelected ? 'var(--teal)' : 'var(--border)'}`,
-                      borderRadius: 'var(--r)',
-                      padding: '10px 12px',
-                      cursor: 'pointer',
-                      background: isSelected ? 'var(--teal-l)' : 'var(--white)',
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: isSelected ? 'var(--teal)' : 'var(--ink3)' }}>
-                        <Icon name={ind.icon as any} size={16} />
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? 'var(--teal-d)' : 'var(--ink)' }}>
-                        {ind.label}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.3 }}>
-                      {ind.desc}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <Combobox
+              value={portfolio}
+              onChange={id => {
+                setPortfolio(id);
+                setProgram('');
+              }}
+              options={[{ value: '', label: 'No Portfolio (Standalone)' }, ...portfolios.map(row => ({ value: row.id, label: row.name }))]}
+              placeholder="Select portfolio"
+            />
           </div>
 
-          {/* Project Identity */}
-          <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Project Name *</label>
-              <input
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                placeholder="e.g. Menengai Geothermal Phase 2 Transmission"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Project Code / Ref</label>
-              <input
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={formData.ref}
-                onChange={(e) => setFormData({ ...formData, ref: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Project Color</label>
-              <div style={{ marginTop: 4 }}>
-                <ColorSwatchPicker value={formData.color} onChange={color => setFormData({ ...formData, color })} />
-              </div>
-            </div>
-          </div>
-
-          {/* Governance Hierarchy */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Portfolio</label>
-              <Select value={formData.portfolio_id} onValueChange={(val) => setFormData({ ...formData, portfolio_id: val })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select Portfolio" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No Portfolio Assigned</SelectItem>
-                  {portfolios.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.code})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Program</label>
-              <Select value={formData.program_id} onValueChange={(val) => setFormData({ ...formData, program_id: val })}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select Program" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No Program Assigned</SelectItem>
-                  {programs.map((pr) => <SelectItem key={pr.id} value={pr.id}>{pr.name} ({pr.code})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Project Classification</label>
-              <Select value={formData.project_type} onValueChange={(val) => setFormData({ ...formData, project_type: val as ProjectType })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="capital_expenditure">Capital Expenditure (CAPEX)</SelectItem>
-                  <SelectItem value="customer_delivery">Customer Delivery Contract</SelectItem>
-                  <SelectItem value="internal">Internal Operational</SelectItem>
-                  <SelectItem value="r_and_d">R&D / Product Innovation</SelectItem>
-                  <SelectItem value="maintenance">SLA / Facility Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Financials & Budget */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Contract Value ({formData.currency})</label>
-              <input
-                type="number"
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={formData.contract_value}
-                onChange={(e) => setFormData({ ...formData, contract_value: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Baseline Budget (BAC)</label>
-              <input
-                type="number"
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={formData.baseline_budget}
-                onChange={(e) => setFormData({ ...formData, baseline_budget: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Currency</label>
-              <Select value={formData.currency} onValueChange={(val) => setFormData({ ...formData, currency: val })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="KES">KES — Kenyan Shilling</SelectItem>
-                  <SelectItem value="USD">USD — US Dollar</SelectItem>
-                  <SelectItem value="EUR">EUR — Euro</SelectItem>
-                  <SelectItem value="GBP">GBP — British Pound</SelectItem>
-                  <SelectItem value="TZS">TZS — Tanzanian Shilling</SelectItem>
-                  <SelectItem value="UGX">UGX — Ugandan Shilling</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Dates & Location */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Start Date</label>
-              <input
-                type="date"
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Target Completion Date</label>
-              <input
-                type="date"
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                value={formData.target_date}
-                onChange={(e) => setFormData({ ...formData, target_date: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Site Location / Address</label>
-              <input
-                className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-                placeholder="e.g. Plot 408, Olkaria Road, Naivasha"
-                value={formData.location_address}
-                onChange={(e) => setFormData({ ...formData, location_address: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {/* Description */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Project Charter / Scope Summary</label>
-            <textarea
-              className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
-              rows={2}
-              placeholder="Key strategic objectives, contractual constraints, and executive goals"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Program (Optional)
+            </label>
+            <Combobox
+              value={program}
+              onChange={setProgram}
+              options={[{ value: '', label: 'No Program' }, ...programs.filter(row => !portfolio || row.portfolio_id === portfolio).map(row => ({ value: row.id, label: row.name }))]}
+              placeholder="Select program"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Customer / Client (Optional)
+            </label>
+            <Combobox
+              value={customer}
+              onChange={setCustomer}
+              options={[{ value: '', label: 'Internal / No Customer' }, ...customers.map(row => ({ value: row.id, label: row.name }))]}
+              placeholder="Select customer"
             />
           </div>
         </div>
+      </SectionCard>
 
-        {/* Modal Footer */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 12,
-            background: 'var(--bg-subtle)',
-          }}
-        >
-          <Button variant="outline" onClick={onClose}>
+      {/* Schedule, Baselines & Location */}
+      <SectionCard title="3. Financial Baselines & Schedule Dates">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+          <div>
+            <label htmlFor="project-budget" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Baseline Budget ({currency})
+            </label>
+            <Input
+              id="project-budget"
+              type="number"
+              min="0"
+              step="any"
+              value={budget}
+              onChange={e => setBudget(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="project-value" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Contract Value ({currency})
+            </label>
+            <Input
+              id="project-value"
+              type="number"
+              min="0"
+              step="any"
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Planned Start Date
+            </label>
+            <DatePicker date={parseDateOnly(start)} onChange={date => setStart(toDateOnlyString(date))} placeholder="Start date" />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Planned Target Date
+            </label>
+            <DatePicker date={parseDateOnly(end)} onChange={date => setEnd(toDateOnlyString(date))} placeholder="Target date" />
+          </div>
+
+          <div>
+            <label htmlFor="project-location" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Site Location / Address
+            </label>
+            <Input
+              id="project-location"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="e.g. Dar es Salaam, Tanzania"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="project-tags" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+              Tags (Comma separated)
+            </label>
+            <Input
+              id="project-tags"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+              placeholder="e.g. priority-1, civil, phase-2"
+            />
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  );
+
+  if (standalone) {
+    return (
+      <form onSubmit={create}>
+        {formFields}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={saving}>
-            {saving ? 'Creating Project OS...' : 'Create Project'}
+          <Button type="submit" disabled={saving || !name.trim()}>
+            {saving ? 'Saving…' : initialProject ? 'Save Changes' : 'Initialize Project'}
           </Button>
         </div>
-      </div>
-    </div>
+      </form>
+    );
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent size="lg">
+        <form onSubmit={create}>
+          <DialogHeader>
+            <DialogTitle>
+              {initialProject ? 'Edit Project Details' : 'New Project Setup'}
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            {formFields}
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving || !name.trim()}>
+              {saving ? 'Saving…' : initialProject ? 'Save Changes' : 'Create Project'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -70,39 +72,39 @@ export function SealGuarantees() {
         titlePlain="Guarantees & Bond"
         titleEm="headroom"
         subtitle="The financial instruments securing suspended duty — attach one to a compartment and every receipt into bond checks it in real time."
+        actions={
+          <Button onClick={() => setShowNew(v => !v)}>
+            <Icon name="plus" size={14} />
+            <span>New Guarantee</span>
+          </Button>
+        }
       />
-      <div className="seal-page-hdr">
-        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)} data-ui-native-button="">
-          <Icon name="plus" size={14} />
-          <span>New Guarantee</span>
-        </button>
-      </div>
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
           <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Reference</label>
-              <input type="text" className="input-field" value={reference} onChange={e => setReference(e.target.value)} placeholder="BG-2026-0041" />
+              <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="BG-2026-0041" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Instrument Type</label>
               <Select value={instrumentType} onValueChange={setInstrumentType}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>{INSTRUMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Issuer</label>
-              <input type="text" className="input-field" value={issuer} onChange={e => setIssuer(e.target.value)} placeholder="CRDB Bank PLC" />
+              <Input value={issuer} onChange={e => setIssuer(e.target.value)} placeholder="CRDB Bank PLC" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Face Value</label>
-              <input type="number" min="0" step="any" className="input-field" value={faceValue} onChange={e => setFaceValue(e.target.value)} placeholder="0.00" />
+              <Input type="number" min="0" step="any" value={faceValue} onChange={e => setFaceValue(e.target.value)} placeholder="0.00" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Currency</label>
-              <input type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Effective From</label>
@@ -112,8 +114,9 @@ export function SealGuarantees() {
               <label className="seal-field-label">Expires On</label>
               <DatePicker date={expiresOn} onChange={setExpiresOn} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button type="submit" className="btn btn-primary" disabled={saving} data-ui-native-button="">{saving ? 'Creating…' : 'Create'}</button>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+              <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
+              <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create'}</Button>
             </div>
           </div>
         </form>

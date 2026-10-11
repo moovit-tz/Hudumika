@@ -4122,6 +4122,7 @@ export interface ProjectsTable {
   actual_cost: Generated<number>;
   earned_value: Generated<number>;
   planned_value: Generated<number>;
+  custom_fields: Generated<Record<string, any>>;
   location_address: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -4168,6 +4169,14 @@ export interface ProjectDiscussionsTable {
 
 export interface ProjectPinsTable {
   id: string;
+  tenant_id: string;
+  project_id: string;
+  user_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface ProjectBookmarksTable {
+  id: Generated<string>;
   tenant_id: string;
   project_id: string;
   user_id: string;
@@ -4234,7 +4243,7 @@ export interface ContractsTable {
   end_date: DateOnlyNull;
   description: string | null;
   content: string | null; // the actual contract body/terms text (migration 317)
-  status: Generated<string>; // 'active' | 'void'
+  status: Generated<string>; // 'draft' | 'active' | 'void'
   sign_envelope_id: string | null;
   owner_id: string;
   deleted_at: ColumnType<Date | null, string | null, string | null>;
@@ -5775,6 +5784,7 @@ export interface Database {
   project_activity_log: ProjectActivityLogTable;
   project_templates: ProjectTemplatesTable;
   project_pins: ProjectPinsTable;
+  project_bookmarks: ProjectBookmarksTable;
   store_installed_apps: StoreInstalledAppsTable;
   project_discussions: ProjectDiscussionsTable;
   contract_comments: ContractCommentsTable;
@@ -6512,12 +6522,12 @@ export interface ProjectPortfoliosTable {
   name: string;
   code: string;
   description: string | null;
-  owner_id: string | null;
-  target_roi: number | null;
-  allocated_budget: Generated<number>;
-  spent_budget: Generated<number>;
+  manager_id: string | null;
+  target_budget: Generated<number>;
+  currency: Generated<string>;
+  start_date: string | null;
+  end_date: string | null;
   status: Generated<string>;
-  strategic_alignment: Generated<Record<string, any>>;
   metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -6530,9 +6540,9 @@ export interface ProjectProgramsTable {
   name: string;
   code: string;
   description: string | null;
-  program_manager_id: string | null;
+  manager_id: string | null;
   budget: Generated<number>;
-  target_benefits: string[] | null;
+  currency: Generated<string>;
   status: Generated<string>;
   start_date: string | null;
   end_date: string | null;
@@ -6546,16 +6556,15 @@ export interface ProjectPhasesTable {
   tenant_id: string;
   project_id: string;
   name: string;
-  code: string | null;
-  sequence_order: Generated<number>;
+  code: string;
+  sort_order: Generated<number>;
+  phase_number: Generated<number>;
+  progress_pct: Generated<number>;
+  description: string | null;
+  metadata: Generated<Record<string, any>>;
   start_date: string | null;
   end_date: string | null;
-  gate_review_date: string | null;
   status: Generated<string>;
-  gate_approver_role: string | null;
-  gate_criteria: Generated<Record<string, any>>;
-  gate_passed: Generated<boolean>;
-  notes: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6565,21 +6574,15 @@ export interface ProjectWorkPackagesTable {
   tenant_id: string;
   project_id: string;
   phase_id: string | null;
-  parent_id: string | null;
   wbs_code: string;
   name: string;
   description: string | null;
-  lead_id: string | null;
-  planned_start: string | null;
-  planned_end: string | null;
-  actual_start: string | null;
-  actual_end: string | null;
-  planned_cost: Generated<number>;
-  actual_cost: Generated<number>;
-  earned_value: Generated<number>;
+  manager_id: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  budget: Generated<number>;
   progress_pct: Generated<number>;
   status: Generated<string>;
-  deliverables_summary: Generated<Record<string, any>>;
   metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -6591,20 +6594,20 @@ export interface ProjectDeliverablesTable {
   project_id: string;
   phase_id: string | null;
   work_package_id: string | null;
-  title: string;
-  code: string | null;
-  description: string | null;
-  owner_id: string | null;
-  due_date: string | null;
-  acceptance_criteria: string | null;
+  name: string;
+  code: string;
+  deliverable_type: Generated<string>;
   status: Generated<string>;
-  approved_by: string | null;
-  approved_at: Date | null;
-  rejection_reason: string | null;
-  sign_document_id: string | null;
-  sign_package_id: string | null;
-  contract_id: string | null;
-  attachments: Generated<Record<string, any>>;
+  owner_id: string;
+  reviewer_id: string | null;
+  due_date: string | null;
+  delivered_date: string | null;
+  acceptance_criteria: string | null;
+  review_notes: string | null;
+  document_id: string | null;
+  version: Generated<string>;
+  is_client_visible: Generated<boolean>;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6685,19 +6688,22 @@ export interface ProjectRisksTable {
   id: Generated<string>;
   tenant_id: string;
   project_id: string;
+  risk_code: string;
   title: string;
   description: string | null;
-  category: Generated<string>;
-  probability: Generated<string>;
-  impact: Generated<string>;
+  category: string;
+  probability: number;
+  impact: number;
   score: Generated<number>;
+  severity: Generated<string>;
   financial_exposure: Generated<number>;
-  strategy: Generated<string>;
-  mitigation_plan: string | null;
-  contingency_plan: string | null;
+  schedule_exposure_days: Generated<number>;
   owner_id: string | null;
+  mitigation_strategy: string | null;
+  contingency_plan: string | null;
+  trigger_condition: string | null;
   status: Generated<string>;
-  review_date: string | null;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6706,16 +6712,21 @@ export interface ProjectIssuesTable {
   id: Generated<string>;
   tenant_id: string;
   project_id: string;
+  task_id: string | null;
+  risk_id: string | null;
+  issue_code: string;
   title: string;
   description: string | null;
   severity: Generated<string>;
   status: Generated<string>;
-  assigned_to: string | null;
-  impact_schedule_days: Generated<number>;
-  impact_cost: Generated<number>;
+  impact: string | null;
   root_cause: string | null;
-  resolution: string | null;
+  corrective_action: string | null;
+  owner_id: string;
+  due_date: string | null;
+  resolution_notes: string | null;
   resolved_at: Date | null;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6724,21 +6735,21 @@ export interface ProjectChangeRequestsTable {
   id: Generated<string>;
   tenant_id: string;
   project_id: string;
-  cr_number: string;
+  change_code: string;
   title: string;
-  reason: string;
-  scope_impact: string | null;
+  original_scope: string;
+  requested_change: string;
+  justification: string;
+  requester_id: string;
   cost_impact: Generated<number>;
   schedule_impact_days: Generated<number>;
+  resource_impact: string | null;
   risk_impact: string | null;
   status: Generated<string>;
-  requested_by: string | null;
-  evaluated_by: string | null;
   approved_by: string | null;
   approved_at: Date | null;
-  client_approval_required: Generated<boolean>;
-  client_approved_at: Date | null;
-  attachments: Generated<Record<string, any>>;
+  decision_notes: string | null;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6750,11 +6761,13 @@ export interface ProjectApprovalsTable {
   entity_type: string;
   entity_id: string;
   title: string;
+  description: string | null;
+  workflow_type: Generated<string>;
   current_step: Generated<number>;
   total_steps: Generated<number>;
   status: Generated<string>;
   requester_id: string;
-  metadata: Generated<Record<string, any>>;
+  due_date: string | null;
   completed_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -6764,14 +6777,15 @@ export interface ProjectApprovalStepsTable {
   id: Generated<string>;
   tenant_id: string;
   approval_id: string;
-  step_order: number;
-  step_name: string;
-  required_role: string | null;
-  assigned_user_id: string | null;
+  step_number: Generated<number>;
+  approver_role: string | null;
+  approver_user_id: string | null;
   status: Generated<string>;
-  action_by: string | null;
-  action_at: Date | null;
+  decision: string | null;
   comments: string | null;
+  signature_envelope_id: string | null;
+  decided_at: Date | null;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
 }
 
@@ -6780,15 +6794,16 @@ export interface ProjectPurchaseRequestsTable {
   tenant_id: string;
   project_id: string;
   work_package_id: string | null;
-  pr_number: string;
+  cost_code_id: string | null;
+  req_number: string;
   title: string;
-  justification: string | null;
-  estimated_cost: Generated<number>;
-  required_date: string | null;
+  total_estimated_cost: Generated<number>;
+  currency: Generated<string>;
   status: Generated<string>;
   requested_by: string;
   approved_by: string | null;
-  items: Generated<Record<string, any>>;
+  items: Generated<any[]>;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6800,11 +6815,9 @@ export interface ProjectRfqsTable {
   purchase_request_id: string | null;
   rfq_number: string;
   title: string;
-  scope_description: string | null;
-  issue_date: string | null;
-  closing_date: string | null;
+  submission_deadline: string;
   status: Generated<string>;
-  created_by: string;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6813,15 +6826,13 @@ export interface ProjectRfqSuppliersTable {
   id: Generated<string>;
   tenant_id: string;
   rfq_id: string;
-  supplier_name: string;
-  contact_email: string | null;
+  supplier_id: string;
   quoted_amount: number | null;
-  delivery_lead_time_days: number | null;
-  technical_compliance_score: number | null;
-  commercial_score: number | null;
-  bid_currency: Generated<string>;
-  is_selected: Generated<boolean>;
+  currency: Generated<string>;
+  quote_document_id: string | null;
+  is_awarded: Generated<boolean>;
   notes: string | null;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
 }
 
@@ -6830,21 +6841,15 @@ export interface ProjectPurchaseOrdersTable {
   tenant_id: string;
   project_id: string;
   rfq_id: string | null;
-  purchase_request_id: string | null;
   po_number: string;
-  supplier_name: string;
-  supplier_id: string | null;
+  supplier_id: string;
   total_amount: Generated<number>;
   currency: Generated<string>;
-  issue_date: string;
-  expected_delivery_date: string | null;
+  issued_at: Generated<Date>;
+  delivery_due_date: string | null;
   status: Generated<string>;
-  payment_terms: string | null;
-  incoterms: string | null;
-  delivery_location: string | null;
-  created_by: string;
-  approved_by: string | null;
-  items: Generated<Record<string, any>>;
+  metadata: Generated<Record<string, any>>;
+  items: Generated<any[]>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6852,57 +6857,32 @@ export interface ProjectPurchaseOrdersTable {
 export interface ProjectGoodsReceiptsTable {
   id: Generated<string>;
   tenant_id: string;
-  po_id: string;
+  purchase_order_id: string;
   project_id: string;
   grn_number: string;
-  received_date: string;
-  received_by: string;
-  carrier_delivery_note_ref: string | null;
-  status: Generated<string>;
-  items_received: Generated<Record<string, any>>;
-  inspector_notes: string | null;
+  received_at: Generated<Date>;
+  inspector_id: string;
+  inspection_status: Generated<string>;
+  received_items: Generated<any[]>;
+  notes: string | null;
+  metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>;
 }
 
 export interface ProjectResourcesTable {
-  id: Generated<string>;
-  tenant_id: string;
-  resource_type: string;
-  name: string;
-  code: string | null;
-  make_model: string | null;
-  serial_number: string | null;
-  license_plate: string | null;
-  capacity_rating: string | null;
-  user_id: string | null;
-  cost_rate_hourly: Generated<number>;
-  cost_rate_daily: Generated<number>;
-  currency: Generated<string>;
-  telemetry_id: string | null;
-  last_maintenance_date: string | null;
-  next_maintenance_date: string | null;
-  status: Generated<string>;
-  location: string | null;
-  metadata: Generated<Record<string, any>>;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
+  id: Generated<string>; tenant_id: string; resource_type: string; name: string; code: string;
+  category: string | null; model_or_specs: string | null; serial_number: string | null;
+  cost_rate: Generated<number>; billing_rate: Generated<number>; rate_unit: Generated<string>;
+  currency: Generated<string>; owner_vendor_id: string | null; status: Generated<string>;
+  availability_calendar: Generated<Record<string, any>>; metadata: Generated<Record<string, any>>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
 }
 
 export interface ProjectResourceAllocationsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  project_id: string;
-  work_package_id: string | null;
-  resource_id: string;
-  start_date: string;
-  end_date: string;
-  allocated_pct: Generated<number>;
-  hours_planned: Generated<number>;
-  hours_actual: Generated<number>;
-  operator_id: string | null;
-  notes: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
+  id: Generated<string>; tenant_id: string; project_id: string; task_id: string | null; resource_id: string;
+  start_date: string; end_date: string; allocation_pct: Generated<number>; allocated_cost: Generated<number>;
+  status: Generated<string>; metadata: Generated<Record<string, any>>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
 }
 
 export interface ProjectIndustryDataTable {
@@ -6910,8 +6890,11 @@ export interface ProjectIndustryDataTable {
   tenant_id: string;
   project_id: string;
   industry: string;
-  data_type: string;
-  record_data: Generated<Record<string, any>>;
+  entity_type: string;
+  entity_code: string;
+  title: string;
+  data: Generated<Record<string, any>>;
+  status: Generated<string>;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

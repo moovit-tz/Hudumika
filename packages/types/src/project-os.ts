@@ -27,8 +27,8 @@ export type ProjectType =
   | 'r_and_d'
   | 'maintenance';
 
-export type ProjectPortfolioStatus = 'active' | 'planning' | 'on_hold' | 'archived';
-export type ProjectProgramStatus = 'active' | 'planning' | 'on_hold' | 'completed' | 'cancelled';
+export type ProjectPortfolioStatus = 'active' | 'planning' | 'on_hold' | 'completed' | 'archived';
+export type ProjectProgramStatus = 'active' | 'planning' | 'on_hold' | 'completed' | 'archived';
 export type ProjectPhaseStatus = 'not_started' | 'in_progress' | 'under_review' | 'completed' | 'on_hold';
 export type ProjectWorkPackageStatus = 'draft' | 'approved' | 'in_progress' | 'completed' | 'cancelled';
 export type ProjectDeliverableStatus = 'pending' | 'in_progress' | 'submitted' | 'approved' | 'rejected';
@@ -42,7 +42,8 @@ export interface ProjectPortfolio {
   owner_id?: string | null;
   target_roi?: number | null;
   allocated_budget: number;
-  spent_budget: number;
+  currency: string;
+  spent_budget: number | null;
   status: ProjectPortfolioStatus;
   strategic_alignment?: Record<string, any> | null;
   metadata?: Record<string, any> | null;
@@ -59,6 +60,7 @@ export interface ProjectProgram {
   description?: string | null;
   program_manager_id?: string | null;
   budget: number;
+  currency: string;
   target_benefits?: string[] | null;
   status: ProjectProgramStatus;
   start_date?: string | null;
@@ -239,7 +241,7 @@ export interface ProjectEvmSnapshot {
 // ─── Governance, Risk, Issue & Change Management ─────────────────────
 
 export type ProjectRiskImpact = 'negligible' | 'low' | 'medium' | 'high' | 'critical';
-export type ProjectRiskProbability = 'unlikely' | 'possible' | 'likely' | 'almost_certain';
+export type ProjectRiskProbability = 'unlikely' | 'possible' | 'moderate' | 'likely' | 'almost_certain';
 export type ProjectRiskStrategy = 'mitigate' | 'avoid' | 'transfer' | 'accept';
 export type ProjectRiskStatus = 'open' | 'monitoring' | 'mitigated' | 'closed';
 
@@ -249,13 +251,13 @@ export interface ProjectRisk {
   project_id: string;
   title: string;
   description?: string | null;
-  category: 'technical' | 'commercial' | 'safety' | 'environmental' | 'legal' | 'operational' | 'schedule';
+  category: 'technical' | 'commercial' | 'safety' | 'environmental' | 'legal' | 'operational' | 'schedule' | 'cost' | 'resource' | 'external';
   probability: ProjectRiskProbability;
   impact: ProjectRiskImpact;
   score: number; // 1-25
   risk_score?: number; // alias
   financial_exposure: number;
-  strategy: ProjectRiskStrategy;
+  strategy: ProjectRiskStrategy | null;
   mitigation_plan?: string | null;
   contingency_plan?: string | null;
   owner_id?: string | null;
@@ -286,7 +288,7 @@ export interface ProjectIssue {
   updated_at: string;
 }
 
-export type ProjectChangeRequestStatus = 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'implemented';
+export type ProjectChangeRequestStatus = 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'implemented' | 'cancelled';
 
 export interface ProjectChangeRequest {
   id: string;
@@ -295,6 +297,8 @@ export interface ProjectChangeRequest {
   cr_number: string;
   title: string;
   reason: string;
+  original_scope: string;
+  requested_change: string;
   scope_impact?: string | null;
   cost_impact: number;
   schedule_impact_days: number;
@@ -314,7 +318,7 @@ export interface ProjectChangeRequest {
 // ─── Multi-step Approval Engine ───────────────────────────────────────
 
 export type ProjectApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled';
-export type ProjectApprovalEntityType = 'change_request' | 'purchase_request' | 'purchase_order' | 'deliverable' | 'budget' | 'phase_gate' | 'claim';
+export type ProjectApprovalEntityType = 'change_request' | 'purchase_request' | 'purchase_order' | 'deliverable' | 'budget' | 'phase_gate' | 'claim' | 'invoice' | 'drawing' | 'variation' | 'milestone' | 'contract' | 'inspection';
 
 export interface ProjectApproval {
   id: string;
@@ -352,8 +356,8 @@ export interface ProjectApprovalStep {
 // ─── Procurement, Requisitions & Supply Chain ────────────────────────
 
 export type ProjectPurchaseRequestStatus = 'draft' | 'submitted' | 'approved' | 'in_procurement' | 'ordered' | 'received' | 'rejected' | 'converted_to_po';
-export type ProjectRfqStatus = 'draft' | 'issued' | 'closed' | 'awarded' | 'cancelled';
-export type ProjectPurchaseOrderStatus = 'draft' | 'issued' | 'partially_received' | 'received' | 'fulfilled' | 'invoiced' | 'closed' | 'cancelled';
+export type ProjectRfqStatus = 'draft' | 'issued' | 'evaluation' | 'closed' | 'awarded' | 'cancelled';
+export type ProjectPurchaseOrderStatus = 'draft' | 'issued' | 'partially_delivered' | 'delivered' | 'partially_received' | 'received' | 'fulfilled' | 'invoiced' | 'closed' | 'cancelled';
 export type ProjectGoodsReceiptStatus = 'pending_inspection' | 'accepted' | 'rejected' | 'partially_accepted';
 
 export interface ProjectPurchaseRequest {
@@ -402,6 +406,7 @@ export interface ProjectRfqSupplier {
   id: string;
   tenant_id: string;
   rfq_id: string;
+  supplier_id: string;
   supplier_name: string;
   contact_email?: string | null;
   quoted_amount?: number | null;
@@ -459,10 +464,12 @@ export interface ProjectGoodsReceipt {
   items_received?: Array<{
     item_code?: string;
     description: string;
-    ordered_qty: number;
-    received_qty: number;
-    accepted_qty: number;
-    rejected_qty: number;
+    quantity: number;
+    unit: string;
+    ordered_qty?: number;
+    received_qty?: number;
+    accepted_qty?: number;
+    rejected_qty?: number;
     defect_reason?: string;
   }> | null;
   inspector_notes?: string | null;
@@ -504,6 +511,7 @@ export interface ProjectResourceAllocation {
   project_id: string;
   work_package_id?: string | null;
   resource_id: string;
+  status?: 'REQUESTED' | 'CONFIRMED' | 'RELEASED' | 'COMPLETED';
   resource_name?: string | null;
   resource_type?: string | null;
   start_date: string;

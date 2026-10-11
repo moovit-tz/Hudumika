@@ -7,6 +7,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { Icon } from '../components/Icon.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { useSealCapabilities } from '../hooks/useSealCapabilities.js';
@@ -86,38 +87,39 @@ export function SealLots() {
       />
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 12, marginBottom: 20 }}>
+      <div className="seal-kpi-strip">
         {[
-          { label: 'Total Lots',  value: lots.length,  color: 'var(--teal)',  icon: 'package' },
-          { label: 'Expired',     value: expired,      color: 'var(--red)',   icon: 'alertCircle' },
-          { label: 'Near Expiry', value: nearExpiry,   color: 'var(--gold)',  icon: 'clock' },
+          { label: 'Total Lots',  value: lots.length,  variant: 'brand' as const,   icon: 'package' },
+          { label: 'Expired',     value: expired,      variant: 'error' as const,   icon: 'alertCircle' },
+          { label: 'Near Expiry', value: nearExpiry,   variant: 'warning' as const, icon: 'clock' },
           ...(caps.customs
-            ? [{ label: 'Held / Exam', value: held,   color: 'var(--red)',   icon: 'shield' }]
-            : [{ label: 'With SKU',   value: withSku,  color: 'var(--green)', icon: 'tag' }]),
+            ? [{ label: 'Held / Exam', value: held,   variant: 'error' as const,   icon: 'shield' }]
+            : [{ label: 'With SKU',   value: withSku,  variant: 'success' as const, icon: 'tag' }]),
         ].map(k => (
-          <div key={k.label} className="seal-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ color: k.color, opacity: 0.75, flexShrink: 0 }}>
+          <div key={k.label} className="seal-kpi-card">
+            <FeaturedIcon variant={k.variant} size="md" shape="squircle">
               <Icon name={k.icon as any} size={20} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 3, whiteSpace: 'nowrap' }}>{k.label}</div>
+            </FeaturedIcon>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="seal-kpi-value">{k.value}</div>
+              <div className="seal-kpi-label">{k.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         {caps.customs && (
           <SingleSelectFilter
             label="Customs status"
-            value={statusFilter}
-            options={statusOptions}
+            value={statusFilter === STATUS_ALL ? null : statusFilter}
+            options={CUSTOMS_STATUSES.map(s => ({ value: s, label: CUSTOMS_STATUS_LABELS[s] }))}
+            allLabel="All statuses"
             onChange={v => setStatusFilter(v ?? STATUS_ALL)}
           />
         )}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
           <SearchToolbar
             search={search}
             onSearch={setSearch}
@@ -130,7 +132,20 @@ export function SealLots() {
       <div className="seal-card">
         <div className="seal-card-body">
           {loading ? <SectionLoading /> : lots.length === 0 ? (
-            <div className="seal-empty">No lots match these filters.</div>
+            <div className="seal-empty">
+              <FeaturedIcon variant="gray" size="lg" shape="squircle">
+                <Icon name="package" size={24} />
+              </FeaturedIcon>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', margin: '14px 0 6px' }}>
+                No lots match these filters
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 16px' }}>
+                Try adjusting your customs status filter or search query.
+              </p>
+              {statusFilter !== STATUS_ALL && (
+                <Button variant="outline" onClick={() => setStatusFilter(STATUS_ALL)}>Clear Status Filter</Button>
+              )}
+            </div>
           ) : (
             <table className="seal-table">
               <thead>

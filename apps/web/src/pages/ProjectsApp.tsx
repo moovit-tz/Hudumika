@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
+import './projects/ProjectWorkspaceHeader.css';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { Badge } from '../components/ui/badge.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -23,6 +26,8 @@ import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
+import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
+import { ListPagination, paginate } from '../components/ui/list-pagination.js';
 import './OperationalDashboards.css';
 
 // Project OS Enterprise Modules
@@ -35,6 +40,10 @@ import { ProjectProcurement } from './projects/ProjectProcurement.js';
 import { ProjectResources } from './projects/ProjectResources.js';
 import { ProjectIndustryPack } from './projects/ProjectIndustryPack.js';
 import { ProjectCreateModal } from './projects/ProjectCreateModal.js';
+import { ProjectRisksDashboard } from './projects/ProjectRisksDashboard.js';
+import { ProjectScheduleGantt } from './projects/ProjectScheduleGantt.js';
+import { ProjectKanbanSwimlanes } from './projects/ProjectKanbanSwimlanes.js';
+import { ProjectBudgetTracking } from './projects/ProjectBudgetTracking.js';
 import type { ProjectIndustry, ProjectType } from '@hudumika/types';
 
 interface ProjectSummary {
@@ -45,6 +54,7 @@ interface ProjectSummary {
   member_count: number; task_count: number; task_done_count: number;
   is_pinned: boolean;
   industry?: ProjectIndustry;
+  project_tags?: string[];
   project_type?: ProjectType;
   health_status?: 'on_track' | 'at_risk' | 'critical' | 'completed';
   progress_pct?: number;
@@ -77,7 +87,7 @@ interface ProjectFileRow {
   id: string; name: string; size: number | null; mime_type: string | null; created_at: string;
   shared: { name: string; role: string; principal_type: string | null; principal_id: string | null }[];
 }
-interface ProjectActivityEntry { id: string; action: string; detail: Record<string, any>; created_at: string; actor_name: string; task_title: string | null }
+interface ProjectActivityEntry { id: string; action: string; detail: Record<string, any>; created_at: string; actor_id?: string; actor_name: string; task_title: string | null }
 interface DiscussionRow { id: string; content: string; mentions: { user_id: string; name: string }[]; created_at: string; author_id: string; author_name: string }
 interface ProjectTicketRow { id: string; ref_number: string; subject: string; status: string; priority: string; category: string; created_at: string; resolved_at: string | null }
 interface ProjectInvoiceRow { id: string; invoice_number: string; status: string; currency: string; received: string; bill_date: string | null; due_date: string | null; created_at: string; total: number }
@@ -158,7 +168,7 @@ const STATUS_BAR_COLOR: Record<TaskStatus, string> = {
 };
 function dayDiff(a: Date, b: Date): number { return Math.round((b.getTime() - a.getTime()) / 86400000); }
 
-const CUSTOMER_VISIBLE_TABS = new Set(['overview', 'wbs_schedule', 'financials_evm', 'industry_pack', 'board', 'gantt', 'files', 'milestones']);
+const CUSTOMER_VISIBLE_TABS = new Set(['overview', 'schedule', 'kanban', 'risks', 'budget_tracking', 'wbs_schedule', 'financials_evm', 'industry_pack', 'board', 'gantt', 'files', 'milestones']);
 
 async function searchColleagues(q: string): Promise<PickerItem[]> {
   const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
@@ -209,21 +219,56 @@ function formatHM(totalMinutes: number): string {
 }
 
 export interface ProjectsAppProps {
-  initialMode?: 'command_center' | 'portfolios' | 'projects_list' | 'resources';
+  initialMode?:
+    | 'command_center'
+    | 'portfolios'
+    | 'projects_list'
+    | 'resources'
+    | 'risks_dashboard'
+    | 'budget_tracking'
+    | 'schedule'
+    | 'kanban'
+    | 'wbs'
+    | 'financials_evm'
+    | 'governance'
+    | 'industry';
+  autoSelectProjectId?: string;
+  autoSelectTab?: string;
 }
 
-export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command_center' }) => {
+export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command_center', autoSelectProjectId, autoSelectTab }) => {
   const isMobile = useIsMobile();
+  const [workspaceBoundary, setWorkspaceBoundary] = useState<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const allTodos = useTodos();
-  const [appViewMode, setAppViewMode] = useState<'command_center' | 'portfolios' | 'projects_list' | 'resources'>(initialMode);
+  const [appViewMode, setAppViewMode] = useState<
+    'command_center' | 'portfolios' | 'projects_list' | 'resources' | 'risks_dashboard' | 'budget_tracking'
+  >(() => {
+    if (['command_center', 'portfolios', 'projects_list', 'resources', 'risks_dashboard', 'budget_tracking'].includes(initialMode as any)) {
+      return initialMode as any;
+    }
+    return 'projects_list';
+  });
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [listStatusFilter, setListStatusFilter] = useState<string>('all');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [listViewMode, setListViewMode] = useState<'grid' | 'rows'>('grid');
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (autoSelectProjectId) return autoSelectProjectId;
+    if (['schedule', 'kanban', 'wbs', 'financials_evm', 'governance', 'industry'].includes(initialMode)) {
+      return 'proj-software-dev';
+    }
+    return null;
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Tab State inside a selected project
   const [tab, setTab] = useState<
     | 'overview'
+    | 'schedule'
+    | 'kanban'
+    | 'risks'
+    | 'budget_tracking'
     | 'wbs_schedule'
     | 'financials_evm'
     | 'governance'
@@ -240,16 +285,26 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
     | 'activity'
     | 'milestones'
     | 'members'
-  >('overview');
+  >(() => {
+    const VALID_TABS = ['overview','schedule','kanban','risks','budget_tracking','wbs_schedule','financials_evm','governance','procurement','resources','industry_pack','board','gantt','timesheets','files','discussions','tickets','sales','activity','milestones','members'];
+    if (autoSelectTab && VALID_TABS.includes(autoSelectTab)) return autoSelectTab as any;
+    if (initialMode === 'kanban') return 'kanban';
+    if (initialMode === 'wbs') return 'wbs_schedule';
+    if (initialMode === 'financials_evm') return 'financials_evm';
+    if (initialMode === 'governance') return 'governance';
+    if (initialMode === 'industry') return 'industry_pack';
+    return 'schedule';
+  });
 
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
+  const [detailError, setDetailError] = useState('');
   const [members, setMembers] = useState<ProjectMember[] | null>(null);
   const [milestones, setMilestones] = useState<MilestoneRow[] | null>(null);
   const [templates, setTemplates] = useState<{ id: string; name: string; description: string | null }[] | null>(null);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [quickAddTitle, setQuickAddTitle] = useState('');
-  const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(() => searchParams.get('task'));
   const { user } = useAuth();
   const [boardView, setBoardView] = useState<'kanban' | 'table' | 'milestone'>('kanban');
   const [excludeCompletedMs, setExcludeCompletedMs] = useState(false);
@@ -285,13 +340,47 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   const [settingUpRetainer, setSettingUpRetainer] = useState(false);
   const [retainerAmount, setRetainerAmount] = useState('');
   const [retainerFrequency, setRetainerFrequency] = useState('MONTHLY');
+  const [tsPage, setTsPage] = useState(1);
+  const [tsSize, setTsSize] = useState(25);
+  const [actPage, setActPage] = useState(1);
+  const [actSize, setActSize] = useState(25);
+  const [discPage, setDiscPage] = useState(1);
+  const [discSize, setDiscSize] = useState(25);
 
   useEffect(() => {
-    setAppViewMode(initialMode);
-  }, [initialMode]);
+    if (autoSelectProjectId) { setSelectedId(autoSelectProjectId); return; }
+    if (initialMode === 'schedule') {
+      setSelectedId('proj-software-dev');
+      setTab('schedule');
+    } else if (initialMode === 'kanban') {
+      setSelectedId('proj-software-dev');
+      setTab('kanban');
+    } else if (initialMode === 'wbs') {
+      setSelectedId('proj-software-dev');
+      setTab('wbs_schedule');
+    } else if (initialMode === 'financials_evm') {
+      setSelectedId('proj-software-dev');
+      setTab('financials_evm');
+    } else if (initialMode === 'governance') {
+      setSelectedId('proj-software-dev');
+      setTab('governance');
+    } else if (initialMode === 'industry') {
+      setSelectedId('proj-software-dev');
+      setTab('industry_pack');
+    } else if (['command_center', 'portfolios', 'projects_list', 'resources', 'risks_dashboard', 'budget_tracking'].includes(initialMode as any)) {
+      setSelectedId(null);
+      setAppViewMode(initialMode as any);
+    }
+  }, [initialMode, autoSelectProjectId]);
 
   const loadProjects = useCallback(() => {
-    apiFetch('/v1/tasks/projects').then(res => setProjects(res.data || [])).catch(() => setProjects([]));
+    apiFetch('/v1/tasks/projects').then(res => {
+      const data: ProjectSummary[] = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+      setProjects(data);
+    }).catch(() => {
+      setProjects([]);
+      showAlert('Unable to load projects. Please retry.', { variant: 'error' });
+    });
   }, []);
   useEffect(() => { loadProjects(); }, [loadProjects]);
 
@@ -314,13 +403,14 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   }
 
   const loadDetail = useCallback((id: string) => {
-    apiFetch(`/v1/tasks/projects/${id}`).then(res => setDetail(res.data || null)).catch(() => setDetail(null));
+    setDetailError('');
+    apiFetch(`/v1/tasks/projects/${id}`).then(res => setDetail(res.data || null)).catch(err => { setDetail(null); setDetailError(err.message || 'Unable to load project details'); });
     apiFetch(`/v1/tasks/projects/${id}/members`).then(res => setMembers(res.data || [])).catch(() => setMembers([]));
     apiFetch(`/v1/tasks/projects/${id}/milestones`).then(res => setMilestones(res.data || [])).catch(() => setMilestones([]));
   }, []);
   useEffect(() => {
     if (selectedId) {
-      setDetail(null); setMembers(null); setMilestones(null); setTab('overview'); setTimesheets(null); setTimesheetTotals(null);
+      setDetail(null); setMembers(null); setMilestones(null); setTimesheets(null); setTimesheetTotals(null);
       setProjectFiles(null); setProjectActivity(null); setWorkload(null); setDiscussions(null); setProjectTickets(null); setProjectInvoices(null); setRetainer(undefined);
       loadDetail(selectedId);
       apiFetch(`/v1/tasks/projects/${selectedId}/retainer`).then(res => setRetainer(res.data || null)).catch(() => setRetainer(null));
@@ -383,12 +473,14 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
       });
       setDiscussions(prev => [...(prev || []), res.data]);
       setDiscussionDraft(''); setDiscussionMentions([]);
-    } catch { /* apiFetch already surfaces errors globally */ }
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
     finally { setPostingDiscussion(false); }
   }
   async function removeDiscussion(id: string) {
-    setDiscussions(prev => (prev || []).filter(d => d.id !== id));
-    await apiFetch(`/v1/tasks/projects/${selectedId}/discussions/${id}`, { method: 'DELETE' }).catch(() => {});
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/discussions/${id}`, { method: 'DELETE' });
+      setDiscussions(prev => (prev || []).filter(d => d.id !== id));
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
 
   const loadTickets = useCallback(() => {
@@ -406,9 +498,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
   async function linkTicket() {
     if (!selectedId || linkTicketId === '__none__') return;
-    await apiFetch(`/v1/tasks/projects/${selectedId}/tickets/link`, { method: 'POST', body: JSON.stringify({ ticketId: linkTicketId }) }).catch(() => {});
-    setLinkTicketId('__none__');
-    loadTickets();
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/tickets/link`, { method: 'POST', body: JSON.stringify({ ticketId: linkTicketId }) });
+      setLinkTicketId('__none__'); loadTickets();
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
   async function createProjectTicket() {
     if (!selectedId || !ticketSubject.trim()) return;
@@ -416,7 +509,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
       await apiFetch(`/v1/tasks/projects/${selectedId}/tickets`, { method: 'POST', body: JSON.stringify({ subject: ticketSubject.trim(), category: 'General' }) });
       setTicketSubject(''); setCreatingTicket(false);
       loadTickets();
-    } catch { /* apiFetch already surfaces errors globally */ }
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
 
   useEffect(() => {
@@ -432,15 +525,18 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
       const drives = await apiFetch('/v1/drives');
       const driveList = Array.isArray(drives) ? drives : (drives.data ?? []);
       const driveId = driveList[0]?.id;
-      if (!driveId) return;
+      if (!driveId) throw new Error('Create a workspace drive in Cloud before uploading project files');
       for (const file of fileList) {
         const form = new FormData();
         form.append('file', file);
         await apiFetch(`/v1/files/upload?drive_id=${driveId}&entity_type=project&entity_id=${selectedId}`, { method: 'POST', body: form });
       }
       loadFiles();
+    } catch (err: any) {
+      showAlert(err.message || 'Unable to upload project files', { variant: 'error' });
     } finally {
       setUploadingFiles(false);
+      loadFiles();
     }
   }
 
@@ -589,7 +685,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
     try {
       await apiFetch(`/v1/tasks/projects/${selectedId}/invoice`, { method: 'POST' });
       loadDetail(selectedId);
-    } catch { /* handled */ }
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
     finally { setInvoicing(false); }
   }
 
@@ -600,22 +696,23 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         name: `${selected.name} — Retainer`, customer_id: selected.customer_id, project_id: selectedId,
         frequency: retainerFrequency, amount: Number(retainerAmount), currency: selected.currency,
       }),
-    }).catch(() => null);
+    }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
     if (res) { setRetainer(res); setSettingUpRetainer(false); setRetainerAmount(''); }
   }
 
   async function copyProject() {
     if (!selectedId) return;
-    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/copy`, { method: 'POST' }).catch(() => null);
-    if (res?.data) { loadProjects(); setSelectedId(res.data.id); }
+    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/copy`, { method: 'POST' }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
+    if (res?.data) { loadProjects(); if (autoSelectProjectId) navigate(`/projects/${res.data.id}/overview`); else setSelectedId(res.data.id); }
   }
 
   async function deleteProjectAction() {
     if (!selectedId || !selected) return;
     if (!window.confirm(`Delete "${selected.name}"? This cannot be undone.`)) return;
-    await apiFetch(`/v1/tasks/projects/${selectedId}`, { method: 'DELETE' }).catch(() => {});
-    setSelectedId(null);
-    loadProjects();
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}`, { method: 'DELETE' });
+      setSelectedId(null); loadProjects(); navigate('/projects/directory');
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
 
   async function saveAsTemplate() {
@@ -626,7 +723,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
       });
       setSavingTemplate(false);
       setTemplates(null);
-    } catch { /* handled */ }
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
 
   function quickAddTask() {
@@ -651,155 +748,104 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   async function addMilestone(name: string) {
     if (!selectedId || !name.trim()) return;
     const id = crypto.randomUUID();
-    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/milestones`, { method: 'POST', body: JSON.stringify({ id, name: name.trim() }) }).catch(() => null);
+    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/milestones`, { method: 'POST', body: JSON.stringify({ id, name: name.trim() }) }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
     if (res) setMilestones(prev => [...(prev || []), res.data]);
   }
 
   async function updateMilestone(id: string, patch: { status?: string; dueDate?: string | null }) {
     if (!selectedId) return;
-    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/milestones/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(() => null);
+    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/milestones/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
     if (res) setMilestones(prev => (prev || []).map(m => m.id === id ? { ...m, ...res.data } : m));
   }
 
   async function deleteMilestone(id: string) {
     if (!selectedId) return;
-    setMilestones(prev => (prev || []).filter(m => m.id !== id));
-    await apiFetch(`/v1/tasks/projects/${selectedId}/milestones/${id}`, { method: 'DELETE' }).catch(() => {});
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/milestones/${id}`, { method: 'DELETE' });
+      setMilestones(prev => (prev || []).filter(m => m.id !== id));
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
 
   async function addMember(picked: PickerItem) {
     if (!selectedId) return;
-    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/members`, { method: 'POST', body: JSON.stringify({ userId: picked.id, role: 'member' }) }).catch(() => null);
+    const res = await apiFetch(`/v1/tasks/projects/${selectedId}/members`, { method: 'POST', body: JSON.stringify({ userId: picked.id, role: 'member' }) }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
     if (res) { setMembers(prev => [...(prev || []).filter(m => m.user_id !== picked.id), res.data]); loadDetail(selectedId); loadProjects(); }
   }
 
   async function removeMember(userId: string) {
     if (!selectedId) return;
-    setMembers(prev => (prev || []).filter(m => m.user_id !== userId));
-    await apiFetch(`/v1/tasks/projects/${selectedId}/members/${userId}`, { method: 'DELETE' }).catch(() => {});
-    loadProjects();
+    try {
+      await apiFetch(`/v1/tasks/projects/${selectedId}/members/${userId}`, { method: 'DELETE' });
+      setMembers(prev => (prev || []).filter(m => m.user_id !== userId)); loadProjects();
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
   }
 
   // ═════════════════════════════════════════════════════════════════════
   // NO PROJECT SELECTED: High-Level Operating System Views
   // ═════════════════════════════════════════════════════════════════════
   if (!selectedId || !selected) {
+    if (autoSelectProjectId) return projects === null ? <SectionLoading label="Loading project workspace…" /> : <Banner variant="warning" title="Project is unavailable" action={<Button variant="outline" onClick={() => navigate('/projects/directory')}>All projects</Button>}>This project could not be loaded or is outside your access. <Button variant="ghost" onClick={loadProjects}>Retry</Button></Banner>;
+    const viewTitle = appViewMode === 'command_center'
+      ? ['Portfolio', 'overview']
+      : appViewMode === 'risks_dashboard'
+        ? ['Risks', 'dashboard']
+        : appViewMode === 'budget_tracking'
+          ? ['Budget', 'tracking']
+          : appViewMode === 'portfolios'
+            ? ['Strategic', 'portfolios']
+            : appViewMode === 'resources'
+              ? ['Resource', 'fleet']
+              : ['Project', 'directory'];
+
     return (
       <div className="ops-dashboard" style={{ flex: 1, overflowY: 'auto', background: 'transparent', fontFamily: 'var(--font)' }}>
-        {/* Top OS App Navigation Bar */}
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em' }}>
-                  Hudumika Project OS
-                </span>
-                <span style={{ fontSize: 13, color: 'var(--ink3)', fontWeight: 600 }}>Enterprise Edition</span>
-              </div>
-              <h1 style={{ margin: '4px 0 0', fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-                {appViewMode === 'command_center' && 'Project Portfolio Overview'}
-                {appViewMode === 'portfolios' && 'Strategic Portfolios & Programs'}
-                {appViewMode === 'resources' && 'Heavy Machinery & Resource Fleet'}
-                {appViewMode === 'projects_list' && 'Enterprise Projects Directory'}
-              </h1>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Button
-                size="sm"
-                onClick={() => setShowCreateModal(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
-              >
-                <Icon name="plus" size={15} /> New Enterprise Project
+        <div style={{ padding: isMobile ? '16px 16px 12px' : '24px 32px 12px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
+          <PageHeader
+            crumbs={['Projects', viewTitle[1]]}
+            titlePlain={viewTitle[0]}
+            titleEm={viewTitle[1]}
+            subtitle="Plan delivery, monitor portfolio health, and keep every team aligned from one workspace."
+            actions={(
+              <Button size="sm" onClick={() => navigate('/projects/new')}>
+                <Icon name="plus" size={15} /> New project
               </Button>
-            </div>
-          </div>
+            )}
+          />
 
-          {/* View Mode Switcher Buttons */}
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 12 }}>
-            <button
-              type="button"
-              onClick={() => setAppViewMode('command_center')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 'var(--r)',
-                border: 'none',
-                background: appViewMode === 'command_center' ? 'hsl(var(--primary))' : 'transparent',
-                color: appViewMode === 'command_center' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-             data-ui-native-button="">
-              <Icon name="activity" size={15} /> Portfolio Overview
-            </button>
-            <button
-              type="button"
-              onClick={() => setAppViewMode('portfolios')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 'var(--r)',
-                border: 'none',
-                background: appViewMode === 'portfolios' ? 'hsl(var(--primary))' : 'transparent',
-                color: appViewMode === 'portfolios' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-             data-ui-native-button="">
-              <Icon name="layers" size={15} /> Portfolios & Programs
-            </button>
-            <button
-              type="button"
-              onClick={() => setAppViewMode('projects_list')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 'var(--r)',
-                border: 'none',
-                background: appViewMode === 'projects_list' ? 'hsl(var(--primary))' : 'transparent',
-                color: appViewMode === 'projects_list' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-             data-ui-native-button="">
-              <Icon name="briefcase" size={15} /> Projects Directory ({projects?.length ?? 0})
-            </button>
-            <button
-              type="button"
-              onClick={() => setAppViewMode('resources')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 'var(--r)',
-                border: 'none',
-                background: appViewMode === 'resources' ? 'hsl(var(--primary))' : 'transparent',
-                color: appViewMode === 'resources' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-             data-ui-native-button="">
-              <Icon name="truck" size={15} /> Heavy Machinery Fleet
-            </button>
-          </div>
+          <Tabs value={appViewMode} onValueChange={(value) => setAppViewMode(value as typeof appViewMode)}>
+            <TabsList style={{ maxWidth: '100%', overflowX: 'auto' }}>
+              <TabsTrigger value="projects_list"><Icon name="briefcase" size={14} /> Projects ({projects?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="command_center"><Icon name="activity" size={14} /> Portfolio overview</TabsTrigger>
+              <TabsTrigger value="risks_dashboard"><Icon name="shield" size={14} /> Risks Dashboard</TabsTrigger>
+              <TabsTrigger value="budget_tracking"><Icon name="dollarSign" size={14} /> Budget Tracking</TabsTrigger>
+              <TabsTrigger value="portfolios"><Icon name="layers" size={14} /> Portfolios</TabsTrigger>
+              <TabsTrigger value="resources"><Icon name="truck" size={14} /> Resources</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* View Mode Content */}
         {appViewMode === 'command_center' && (
           <div style={{ padding: isMobile ? 16 : 32 }}>
             <ProjectCommandCenter onSelectProject={(id) => setSelectedId(id)} />
+          </div>
+        )}
+
+        {appViewMode === 'risks_dashboard' && (
+          <div style={{ padding: isMobile ? 16 : 32 }}>
+            <ProjectRisksDashboard />
+          </div>
+        )}
+
+        {appViewMode === 'budget_tracking' && (
+          <div style={{ padding: isMobile ? 16 : 32 }}>
+            <ProjectBudgetTracking
+              onNewProject={() => navigate('/projects/new')}
+              onSelectProject={(id) => {
+                const found = projects?.find(p => p.id === id);
+                if (found) setSelectedId(id);
+              }}
+            />
           </div>
         )}
 
@@ -840,46 +886,25 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               </div>
             </div>
 
-            {/* Status Filter Bar */}
-            <div className="ops-dashboard-toolbar" style={{ flexWrap: 'wrap', marginBottom: 20 }}>
-              <button
-                type="button"
-                onClick={() => setListStatusFilter('all')}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 'var(--r)',
-                  border: `1px solid ${listStatusFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`,
-                  background: 'var(--white)',
-                  cursor: 'pointer',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  color: listStatusFilter === 'all' ? 'var(--teal)' : 'var(--ink2)',
-                }}
-               data-ui-native-button="">
-                All Projects ({projects?.length ?? 0})
-              </button>
-              {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setListStatusFilter((prev) => (prev === k ? 'all' : k))}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 'var(--r)',
-                    border: `1px solid ${listStatusFilter === k ? 'var(--teal)' : 'var(--border)'}`,
-                    background: 'var(--white)',
-                    cursor: 'pointer',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    color: listStatusFilter === k ? 'var(--teal)' : 'var(--ink2)',
-                  }}
-                 data-ui-native-button="">
-                  {listCounts[k] ?? 0} {m.label}
-                </button>
-              ))}
+            {/* Status Filter Bar + View Switcher */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+              <Tabs value={listStatusFilter} onValueChange={setListStatusFilter}>
+                <TabsList>
+                  <TabsTrigger value="all">All Projects ({projects?.length ?? 0})</TabsTrigger>
+                  {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
+                    <TabsTrigger key={k} value={k}>{listCounts[k] ?? 0} {m.label}</TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              <Tabs value={listViewMode} onValueChange={v => setListViewMode(v as 'grid' | 'rows')}>
+                <TabsList>
+                  <TabsTrigger value="grid"><Icon name="grid" size={14} /></TabsTrigger>
+                  <TabsTrigger value="rows"><Icon name="list" size={14} /></TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
-            {/* Projects Grid */}
+            {/* Projects List */}
             {filteredProjects === null ? (
               <SectionLoading />
             ) : filteredProjects.length === 0 ? (
@@ -888,7 +913,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   ? 'No projects match this status filter.'
                   : 'No projects registered in the OS yet. Click "New Enterprise Project" to create your first portfolio project.'}
               </div>
-            ) : (
+            ) : listViewMode === 'grid' ? (
               <div className="ops-dashboard-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
                 {filteredProjects.map((p) => {
                   const statusMeta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.not_started;
@@ -928,34 +953,16 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                         <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            padding: '2px 8px',
-                            borderRadius: 'var(--r-sm)',
-                            color: healthMeta.color,
-                            background: healthMeta.bg,
-                            letterSpacing: '0.04em',
-                          }}
-                        >
-                          {healthMeta.label}
-                        </span>
+                        <Badge variant={
+                          p.health_status === 'critical' ? 'error'
+                          : p.health_status === 'at_risk' ? 'warning'
+                          : p.health_status === 'completed' ? 'brand'
+                          : 'success'
+                        }>{healthMeta.label}</Badge>
                         {p.industry && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 'var(--r-sm)',
-                              color: 'var(--ink3)',
-                              background: 'var(--bg-subtle)',
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            {p.industry.replace('_', ' ')}
-                          </span>
+                          <Badge variant="gray">{p.industry.replace('_', ' ')}</Badge>
                         )}
+                        {p.project_tags?.map(tag => <Badge key={tag} variant="gray">{tag}</Badge>)}
                       </div>
 
                       {(p.ref || p.customer_name) && (
@@ -1010,6 +1017,77 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   );
                 })}
               </div>
+            ) : (
+              /* Row / table view */
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Project</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Health</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Progress</th>
+                      <th style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Value</th>
+                      <th style={{ textAlign: 'center', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Team</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 700, fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Target</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProjects.map((p) => {
+                      const statusMeta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.not_started;
+                      const healthMeta = HEALTH_STATUS_META[p.health_status || 'on_track'] || HEALTH_STATUS_META.on_track;
+                      const pct = p.progress_pct || (p.task_count > 0 ? Math.round((p.task_done_count / p.task_count) * 100) : 0);
+                      return (
+                        <tr
+                          key={p.id}
+                          onClick={() => setSelectedId(p.id)}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s ease' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}
+                        >
+                          <td style={{ padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{p.name}</div>
+                                {p.ref && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{p.ref}</div>}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <Badge variant={
+                              p.health_status === 'critical' ? 'error'
+                              : p.health_status === 'at_risk' ? 'warning'
+                              : p.health_status === 'completed' ? 'brand'
+                              : 'success'
+                            }>{healthMeta.label}</Badge>
+                          </td>
+                          <td style={{ padding: '12px 14px', minWidth: 120 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <ProgressBar done={p.task_done_count} total={p.task_count} color={p.color} />
+                              </div>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{pct}%</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontSize: 12.5, color: 'var(--ink2)', whiteSpace: 'nowrap' }}>
+                            {p.contract_value ? `${p.currency} ${Number(p.contract_value).toLocaleString()}` : '—'}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
+                            {p.member_count}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                            {p.target_date || '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
@@ -1036,73 +1114,68 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
   function patchProject(patch: Record<string, unknown>) {
     apiFetch(`/v1/tasks/projects/${selected!.id}`, { method: 'PATCH', body: JSON.stringify(patch) })
-      .then(() => { loadProjects(); loadDetail(selected!.id); });
+      .then(() => { loadProjects(); loadDetail(selected!.id); }).catch(err => showAlert(err.message, { variant: 'error' }));
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent', fontFamily: 'var(--font)' }}>
+    <div ref={setWorkspaceBoundary} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent', fontFamily: 'var(--font)' }}>
       {/* Project Workspace Top Bar */}
-      <div style={{ padding: isMobile ? '16px 16px 0' : '20px 32px 0', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        <button
-          type="button"
-          onClick={() => setSelectedId(null)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--ink3)',
-            fontSize: 12.5,
-            fontWeight: 700,
-            padding: 0,
-            marginBottom: 10,
-          }}
-         data-ui-native-button="">
-          <Icon name="arrowLeft" size={13} /> Return to Projects
-        </button>
+      <div style={{ padding: '0 0 16px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
+        <PageHeader crumbs={[{ label: 'Projects', to: '/projects/directory' }, selected.ref || 'Workspace']} titlePlain={selected.name.split(' ').slice(0, -1).join(' ')} titleEm={selected.name.split(' ').at(-1) || 'Project'} />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ width: 14, height: 14, borderRadius: '50%', background: selected.color, flexShrink: 0 }} />
-            <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
-              {selected.name}
-            </h1>
-            {selected.ref && (
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
-                {selected.ref}
-              </span>
-            )}
-            <span
-              style={{
-                fontSize: 10.5,
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: 'var(--r-sm)',
-                color: healthMeta.color,
-                background: healthMeta.bg,
-                letterSpacing: '0.04em',
-              }}
-            >
-              {healthMeta.label}
-            </span>
+        <div className="project-workspace-toolbar">
+          <div className="project-workspace-toolbar-main">
+            <div className="project-workspace-status-row">
+            <span className="project-workspace-color" style={{ width: 14, height: 14, borderRadius: '50%', background: selected.color, flexShrink: 0 }} />
+            {selected.ref && <Badge variant="gray">{selected.ref}</Badge>}
+            <Badge variant={
+              selected.health_status === 'critical' ? 'error'
+              : selected.health_status === 'at_risk' ? 'warning'
+              : selected.health_status === 'completed' ? 'brand'
+              : 'success'
+            }>{healthMeta.label}</Badge>
             <Select value={selected.status} onValueChange={(v) => patchProject({ status: v })}>
-              <SelectTrigger className="h-7 text-xs" style={{ width: 120 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="project-workspace-status text-xs" aria-label="Project status"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(PROJECT_STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            </div>
+
+            {projects && projects.length > 1 && (
+              <Select value={selected.id} onValueChange={(id) => { if (autoSelectProjectId) navigate(`/projects/${id}/${tab}`); else { setSelectedId(id); loadDetail(id); } }}>
+                <SelectTrigger className="project-workspace-switch min-w-0 text-xs" aria-label="Switch project">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Icon name="briefcase" size={12} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.name}</span>
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                        <span style={{ fontWeight: 600, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{p.name}</span>
+                        {p.ref && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>({p.ref})</span>}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="project-workspace-options">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Button variant="outline" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <Icon name="moreHorizontal" size={14} /> Options
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate(`/projects/${selected.id}/edit`)}>
+                  <Icon name="edit" size={13} /> Edit project details
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => togglePin(selected, e as unknown as React.MouseEvent)}>
                   <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
                 </DropdownMenuItem>
@@ -1136,30 +1209,91 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         )}
 
         {/* Enterprise Navigation Tabs */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} variant="segmented" style={{ marginTop: 16 }}>
-          <TabsList style={{ overflowX: 'auto' }}>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="wbs_schedule">WBS & Gates</TabsTrigger>
-            <TabsTrigger value="financials_evm">Financials & EVM</TabsTrigger>
-            <TabsTrigger value="governance">Governance & Risk</TabsTrigger>
-            <TabsTrigger value="procurement">Procurement</TabsTrigger>
-            <TabsTrigger value="resources">Fleet & Resources</TabsTrigger>
-            <TabsTrigger value="industry_pack">Industry Pack</TabsTrigger>
-            <TabsTrigger value="board">Tasks & Board ({projectTasks.length})</TabsTrigger>
-            <TabsTrigger value="gantt">Gantt</TabsTrigger>
-            <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
-            <TabsTrigger value="files">Files ({projectFiles ? projectFiles.length : '0'})</TabsTrigger>
-            <TabsTrigger value="discussions">Discussions ({discussions ? discussions.length : '0'})</TabsTrigger>
-            <TabsTrigger value="tickets">Tickets ({projectTickets ? projectTickets.length : '0'})</TabsTrigger>
-            <TabsTrigger value="sales">Billing & Contracts</TabsTrigger>
-            <TabsTrigger value="activity">Audit Activity</TabsTrigger>
-            <TabsTrigger value="members">Team ({members ? members.length : '0'})</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginTop: 16 }}>
+          <Tabs className="min-w-0 max-w-full" value={tab} onValueChange={(v) => { setTab(v as typeof tab); if (autoSelectProjectId) navigate(`/projects/${selected.id}/${v}`); }}>
+            <TabsList wrap style={{ maxWidth: '100%', height: 'auto', justifyContent: 'flex-start' }}>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="schedule">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="star" size={13} color="#F59E0B" /> Schedule
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="kanban">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="star" size={13} color="#F59E0B" /> Kanban
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="risks">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="shield" size={13} /> Risks
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="budget_tracking">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="dollarSign" size={13} /> Budget
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="board">Tasks ({projectTasks.length})</TabsTrigger>
+              <TabsTrigger value="financials_evm">Financials</TabsTrigger>
+              <TabsTrigger value="governance">Governance</TabsTrigger>
+              <TabsTrigger value="procurement">Procurement</TabsTrigger>
+              <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="files">Files ({projectFiles ? projectFiles.length : '0'})</TabsTrigger>
+              <TabsTrigger value="members">Team ({members ? members.length : '0'})</TabsTrigger>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 'var(--tab-size, 13px)', fontWeight: 600,
+                  color: ['wbs_schedule', 'industry_pack', 'timesheets', 'discussions', 'tickets', 'sales', 'activity'].includes(tab) ? 'var(--teal)' : 'var(--ink3)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '0 10px', height: 'var(--tab-hit-height)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                More <Icon name="chevronDown" size={13} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={isMobile ? 'start' : 'end'} collisionPadding={{
+              left: (workspaceBoundary?.getBoundingClientRect().left ?? 0) + 8,
+              right: workspaceBoundary ? Math.max(8, window.innerWidth - workspaceBoundary.getBoundingClientRect().right + 8) : 8,
+              top: 8, bottom: 8,
+            }} className="project-workspace-more-menu">
+              <DropdownMenuItem onClick={() => { setTab('wbs_schedule'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/wbs_schedule`); }}>
+                <Icon name="gitBranch" size={14} /> WBS & Gates
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setTab('industry_pack'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/industry_pack`); }}>
+                <Icon name="package" size={14} /> Industry Pack
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setTab('timesheets'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/timesheets`); }}>
+                <Icon name="clock" size={14} /> Timesheets
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { setTab('discussions'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/discussions`); }}>
+                <Icon name="messageSquare" size={14} /> Discussions ({discussions ? discussions.length : '0'})
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setTab('tickets'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/tickets`); }}>
+                <Icon name="ticket" size={14} /> Tickets ({projectTickets ? projectTickets.length : '0'})
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => { setTab('sales'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/sales`); }}>
+                <Icon name="receipt" size={14} /> Billing & Contracts
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setTab('activity'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/activity`); }}>
+                <Icon name="fileText" size={14} /> Audit Activity
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* Main Workspace Content Area */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 28 }}>
+      <div style={{ flex: 1, minWidth: 0, padding: '20px 0 0' }}>
+        {detailError && <Banner variant="warning" title="Project details could not load" action={<Button variant="outline" onClick={() => loadDetail(selected.id)}>Retry</Button>}>{detailError}</Banner>}
         {/* TAB 1: OVERVIEW */}
         {tab === 'overview' && (
           detail === null ? (
@@ -1168,18 +1302,19 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: 20, alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <SectionCard title="Project Charter & Metadata">
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
                     <OverviewField label="Project Code / Ref" value={detail.ref || '—'} />
                     <OverviewField label="Client / Stakeholder" value={detail.customer_name || '—'} />
                     <OverviewField label="Industry Pack" value={(detail.industry || 'general').toUpperCase().replace('_', ' ')} />
                     <OverviewField label="Classification" value={(detail.project_type || 'capital_expenditure').toUpperCase().replace('_', ' ')} />
-                    <OverviewField label="Contract Value" value={`${detail.currency} ${(detail.contract_value || 0).toLocaleString()}`} />
-                    <OverviewField label="Baseline Budget (BAC)" value={`${detail.currency} ${(detail.baseline_budget || detail.current_budget || 0).toLocaleString()}`} />
+                    <OverviewField label="Contract Value" value={`${detail.currency} ${Number(detail.contract_value || 0).toLocaleString()}`} />
+                    <OverviewField label="Baseline Budget (BAC)" value={`${detail.currency} ${Number(detail.baseline_budget ?? detail.current_budget ?? 0).toLocaleString()}`} />
                     <OverviewField label="Start Date" value={detail.start_date || '—'} />
                     <OverviewField label="Target Delivery Date" value={detail.target_date || '—'} />
                     <OverviewField label="Site Location" value={detail.location_address || '—'} />
                     <OverviewField label="Total Logged Hours" value={formatHM(detail.total_logged_minutes)} />
                   </div>
+                  {!!selected.project_tags?.length && <div className="mt-4 flex flex-wrap gap-2" aria-label="Project tags">{selected.project_tags.map(tag => <Badge key={tag} variant="gray">{tag}</Badge>)}</div>}
                   {detail.description && (
                     <>
                       <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 18, marginBottom: 6 }}>
@@ -1207,22 +1342,19 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                {/* Executive Progress & Schedule Health */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Work Package Completion</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>
-                      {detail.task_done_count} / {detail.task_count} Work Packages
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                  <SectionCard title="Work Package Completion">
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>
+                      {projectTasks.filter(task => task.completed).length} / {projectTasks.length} Tasks
                     </div>
-                    <ProgressBar done={detail.task_done_count} total={detail.task_count} color="var(--green)" />
-                  </div>
-                  <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Schedule Elapsed</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 8px' }}>
+                    <ProgressBar done={projectTasks.filter(task => task.completed).length} total={projectTasks.length} color="var(--green)" />
+                  </SectionCard>
+                  <SectionCard title="Schedule Elapsed">
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>
                       {detail.days_left ?? '—'} Days Left / {detail.days_total ?? '—'} Total
                     </div>
-                    <ProgressBar done={detail.days_left ?? 0} total={detail.days_total ?? 0} color="var(--teal)" />
-                  </div>
+                    <ProgressBar done={Math.max(0, (detail.days_total ?? 0) - (detail.days_left ?? 0))} total={detail.days_total ?? 0} color="var(--teal)" />
+                  </SectionCard>
                 </div>
 
                 {/* Expenses & Retainers */}
@@ -1235,7 +1367,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                       </Button>
                     ) : undefined}
                   >
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
                       <ExpenseStat label="Total" value={detail.expenses.total} color="var(--ink)" currency={detail.currency} />
                       <ExpenseStat label="Billable" value={detail.expenses.billable} color="var(--blue)" currency={detail.currency} />
                       <ExpenseStat label="Billed" value={detail.expenses.billed} color="var(--green)" currency={detail.currency} />
@@ -1260,9 +1392,9 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                       </div>
                     ) : settingUpRetainer ? (
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input
+                        <Input
                           autoFocus type="number" min={0} step={1} value={retainerAmount} onChange={e => setRetainerAmount(e.target.value)}
-                          placeholder="Amount…" style={{ width: 110, padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
+                          placeholder="Amount…" style={{ width: 110 }}
                         />
                         <Select value={retainerFrequency} onValueChange={setRetainerFrequency}>
                           <SelectTrigger className="h-8 text-xs" style={{ width: 110 }}><SelectValue /></SelectTrigger>
@@ -1284,6 +1416,46 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               </div>
             </div>
           )
+        )}
+
+        {/* ENTERPRISE VIEW 1: SCHEDULE / GANTT (Screenshot 2) */}
+        {(tab === 'schedule' || tab === 'gantt') && (
+          <ProjectScheduleGantt
+            projectName={selected.name}
+            projectId={selected.id}
+            onNewTask={() => setTab('board')}
+            onSelectTask={setDetailTaskId}
+          />
+        )}
+
+        {/* ENTERPRISE VIEW 2: KANBAN WITH SWIMLANES (Screenshot 4) */}
+        {tab === 'kanban' && (
+          <ProjectKanbanSwimlanes
+            projectName={selected.name}
+            projectId={selected.id}
+            onNewTask={() => setTab('board')}
+            onSelectTask={setDetailTaskId}
+          />
+        )}
+
+        {/* ENTERPRISE VIEW 3: RISKS DASHBOARD (Screenshot 1 & 3) */}
+        {tab === 'risks' && (
+          <ProjectRisksDashboard
+            projectName={selected.name}
+            projectId={selected.id}
+          />
+        )}
+
+        {/* ENTERPRISE VIEW 4: BUDGET TRACKING (Screenshot 5) */}
+        {tab === 'budget_tracking' && (
+          <ProjectBudgetTracking
+            projectId={selected.id}
+            onNewProject={() => navigate('/projects/new')}
+            onSelectProject={(id) => {
+              const found = projects?.find(p => p.id === id);
+              if (found) setSelectedId(id);
+            }}
+          />
         )}
 
         {/* TAB 2: WBS & SCHEDULE */}
@@ -1324,11 +1496,11 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         {tab === 'board' && (
           <>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, maxWidth: 480 }}>
-              <input
+              <Input
                 value={quickAddTitle} onChange={e => setQuickAddTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') quickAddTask(); }}
                 placeholder="Quick-add a task or work package…"
-                style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--white)', color: 'var(--ink)' }}
+                className="flex-1"
               />
               <Button size="sm" onClick={quickAddTask} disabled={!quickAddTitle.trim()}>Add</Button>
             </div>
@@ -1348,14 +1520,13 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: 2 }}>
-                  {(['kanban', 'table', 'milestone'] as const).map(v => (
-                    <button key={v} type="button" onClick={() => setBoardView(v)}
-                      style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: boardView === v ? 'var(--white)' : 'transparent', color: boardView === v ? 'var(--teal)' : 'var(--ink3)', boxShadow: boardView === v ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center', gap: 5 }} data-ui-native-button="">
-                      <Icon name={v === 'kanban' ? 'columns' : v === 'table' ? 'list' : 'flag'} size={13} /> {v === 'kanban' ? 'Board' : v === 'table' ? 'Table' : 'Milestones'}
-                    </button>
-                  ))}
-                </div>
+                <Tabs value={boardView} onValueChange={v => setBoardView(v as typeof boardView)}>
+                  <TabsList>
+                    <TabsTrigger value="kanban"><Icon name="columns" size={13} /> Board</TabsTrigger>
+                    <TabsTrigger value="table"><Icon name="list" size={13} /> Table</TabsTrigger>
+                    <TabsTrigger value="milestone"><Icon name="flag" size={13} /> Milestones</TabsTrigger>
+                  </TabsList>
+                </Tabs>
                 <Select value={taskPriorityFilter} onValueChange={setTaskPriorityFilter}>
                   <SelectTrigger className="h-8 text-xs" style={{ width: 130 }}><SelectValue placeholder="Priority" /></SelectTrigger>
                   <SelectContent>
@@ -1363,9 +1534,9 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                     {(Object.keys(TASK_PRIORITY_META) as TaskPriority[]).map(p => <SelectItem key={p} value={p}>{TASK_PRIORITY_META[p].label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <input
+                <Input
                   value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Filter tasks…"
-                  style={{ padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, width: 160, background: 'var(--white)', color: 'var(--ink)' }}
+                  style={{ width: 160 }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -1382,44 +1553,31 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
             {/* Kanban Columns */}
             {boardView === 'kanban' && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(5, 1fr)', gap: 12, alignItems: 'start' }}>
-                {KANBAN_COLUMNS.map(col => {
-                  const tasksInCol = sortedTasks.filter(t => (t.completed || t.status === 'completed' ? 'completed' : t.status) === col.status);
-                  return (
-                    <div key={col.status} style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--r-lg)', padding: 12, minHeight: 300 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink2)' }}>{col.title}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--white)', padding: '2px 6px', borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }}>{tasksInCol.length}</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {tasksInCol.map(t => (
-                          <div
-                            key={t.id}
-                            onClick={() => setDetailTaskId(t.id)}
-                            style={{
-                              background: 'var(--white)',
-                              border: '1px solid var(--border)',
-                              borderRadius: 'var(--r)',
-                              padding: 12,
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                            }}
-                          >
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.title}</div>
-                            {t.due && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Due: {t.due}</div>}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                              <Badge variant={TASK_STATUS_META[t.completed ? 'completed' : t.status]?.variant || 'gray'}>
-                                {t.priority || 'medium'}
-                              </Badge>
-                              {t.assigneeName && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{t.assigneeName}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+              <KanbanBoard
+                columns={KANBAN_COLUMNS.map(c => ({ id: c.status, label: c.title, color: STATUS_BAR_COLOR[c.status] }))}
+                items={sortedTasks.map(t => ({ ...t, columnId: t.completed || t.status === 'completed' ? 'completed' : t.status } as Todo & KanbanCardData))}
+                onDrop={(itemId, _from, to) => moveTask(itemId, to as TaskStatus)}
+                defaultPageSize={5}
+                pageSizeOptions={[5, 10, 15, 25]}
+                boardStyle={isMobile ? { gridTemplateColumns: '1fr' } : undefined}
+                renderCard={t => (
+                  <div onClick={() => setDetailTaskId(t.id)} style={{ cursor: 'pointer' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.title}</div>
+                    {t.due && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Due: {t.due}</div>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                      <Badge variant={TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.color === 'var(--red)' ? 'error' : (t.priority || 'medium') === 'high' ? 'warning' : 'gray'}>
+                        {TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.label || 'Medium'}
+                      </Badge>
+                      {t.assigneeName && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={18} />
+                          <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{t.assigneeName}</span>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                )}
+              />
             )}
           </>
         )}
@@ -1498,19 +1656,25 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   </tr>
                 </thead>
                 <tbody>
-                  {(timesheets || []).map((t) => (
+                  {paginate(timesheets || [], tsPage, tsSize).visible.map((t) => (
                     <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '10px 14px' }}>{t.started_at.slice(0, 10)}</td>
-                      <td style={{ padding: '10px 14px', fontWeight: 600 }}>{t.user_name}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <PersonAvatar userId={t.user_id} name={t.user_name} size={20} />
+                          <span style={{ fontWeight: 600 }}>{t.user_name}</span>
+                        </div>
+                      </td>
                       <td style={{ padding: '10px 14px' }}>{t.task_title}</td>
                       <td style={{ textAlign: 'right', padding: '10px 14px' }}>{((t.duration_minutes || 0) / 60).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 14px' }}>{t.hourly_rate ? `$${t.hourly_rate}` : '—'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>${Number(t.amount || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 14px' }}>{t.hourly_rate ? `${selected?.currency || 'TZS'} ${t.hourly_rate}` : '—'}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>{selected?.currency || 'TZS'} {Number(t.amount || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <ListPagination total={(timesheets || []).length} page={tsPage} pageSize={tsSize} onPageChange={setTsPage} onPageSizeChange={setTsSize} noun="entries" />
           </SectionCard>
         )}
 
@@ -1532,8 +1696,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
                     Uploaded: {new Date(f.created_at).toLocaleDateString()}
                   </div>
+                  <Button size="sm" variant="outline" onClick={() => void apiDownload(`/v1/files/${f.id}/download`, f.name).catch(err => showAlert(err.message || 'Unable to download file', { variant: 'error' }))}><Icon name="download" size={14} /> Download</Button>
                 </div>
               ))}
+              {projectFiles && !projectFiles.length && <p className="text-sm text-muted-foreground">No project files yet. Upload a document to attach it to this workspace.</p>}
             </div>
           </SectionCard>
         )}
@@ -1542,26 +1708,30 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         {tab === 'discussions' && (
           <SectionCard title="Collaborative Team & Stakeholder Stream" collapsible={false}>
             <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-              <input
-                className="w-full px-3 py-2 border rounded-md text-sm"
+              <Input
                 placeholder="Post an update or mention @colleague..."
                 value={discussionDraft}
                 onChange={(e) => setDiscussionDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') postDiscussion(); }}
+                className="flex-1"
               />
               <Button onClick={postDiscussion} disabled={postingDiscussion || !discussionDraft.trim()}>Post</Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(discussions || []).map((d) => (
+              {paginate(discussions || [], discPage, discSize).visible.map((d) => (
                 <div key={d.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <strong style={{ fontSize: 13 }}>{d.author_name}</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <PersonAvatar userId={d.author_id} name={d.author_name} size={24} />
+                      <strong style={{ fontSize: 13 }}>{d.author_name}</strong>
+                    </div>
                     <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
                   </div>
                   <p style={{ fontSize: 13.5, color: 'var(--ink)', margin: 0 }}>{d.content}</p>
                 </div>
               ))}
             </div>
+            <ListPagination total={(discussions || []).length} page={discPage} pageSize={discSize} onPageChange={setDiscPage} onPageSizeChange={setDiscSize} noun="posts" />
           </SectionCard>
         )}
 
@@ -1569,11 +1739,11 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         {tab === 'tickets' && (
           <SectionCard title="Linked Support & Field Tickets" collapsible={false}>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-              <input
-                className="w-full px-3 py-2 border rounded-md text-sm"
+              <Input
                 placeholder="Create new field support ticket..."
                 value={ticketSubject}
                 onChange={(e) => setTicketSubject(e.target.value)}
+                className="flex-1"
               />
               <Button onClick={createProjectTicket} disabled={!ticketSubject.trim()}>Create Ticket</Button>
             </div>
@@ -1593,7 +1763,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
         {/* TAB 14: SALES & INVOICES */}
         {tab === 'sales' && (
-          <SectionCard title="Customer Invoices & Billing Milestones" collapsible={false}>
+          <SectionCard title="Customer Invoices & Billing Milestones" collapsible={false}
+            action={<div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/finance/invoices')}><Icon name="dollarSign" size={13} /> Finance App</Button>
+            </div>}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
@@ -1606,8 +1779,10 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 </thead>
                 <tbody>
                   {(projectInvoices || []).map((inv) => (
-                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700 }}>{inv.invoice_number}</td>
+                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                      onClick={() => navigate(`/finance/invoices/${inv.id}`)}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--teal)' }}>{inv.invoice_number}</td>
                       <td style={{ padding: '10px 14px' }}>
                         <Badge variant={INVOICE_STATUS_META[inv.status]?.variant || 'gray'}>{inv.status}</Badge>
                       </td>
@@ -1619,6 +1794,9 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   ))}
                 </tbody>
               </table>
+              {(projectInvoices || []).length === 0 && (
+                <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices linked to this project. Create one in the Finance app.</div>
+              )}
             </div>
           </SectionCard>
         )}
@@ -1627,13 +1805,15 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         {tab === 'activity' && (
           <SectionCard title="Project Audit Trail & State Transitions" collapsible={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(projectActivity || []).map((a) => (
-                <div key={a.id} style={{ fontSize: 13, color: 'var(--ink2)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
-                  <strong style={{ color: 'var(--ink)' }}>{a.actor_name}</strong> {describeProjectActivity(a)}
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 8 }}>{new Date(a.created_at).toLocaleString()}</span>
+              {paginate(projectActivity || [], actPage, actSize).visible.map((a) => (
+                <div key={a.id} style={{ fontSize: 13, color: 'var(--ink2)', borderBottom: '1px solid var(--border)', paddingBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <PersonAvatar userId={a.actor_id} name={a.actor_name} size={22} />
+                  <div><strong style={{ color: 'var(--ink)' }}>{a.actor_name}</strong> {describeProjectActivity(a)}
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 8 }}>{new Date(a.created_at).toLocaleString()}</span></div>
                 </div>
               ))}
             </div>
+            <ListPagination total={(projectActivity || []).length} page={actPage} pageSize={actSize} onPageChange={setActPage} onPageSizeChange={setActSize} noun="events" />
           </SectionCard>
         )}
 
@@ -1647,15 +1827,15 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               {(members || []).map((m) => (
                 <div key={m.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <PersonAvatar name={m.name} size={36} />
+                    <PersonAvatar userId={m.user_id} name={m.name} size={36} />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.name}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{m.email}</div>
                     </div>
                   </div>
-                  <button type="button" onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }} data-ui-native-button="">
+                  <Button variant="ghost" size="sm" onClick={() => removeMember(m.user_id)} style={{ color: 'var(--red)', padding: 4 }}>
                     <Icon name="x" size={15} />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -1699,7 +1879,7 @@ function TaskDetailDrawer({
   }, [task.id]);
 
   async function addCollaborator(picked: PickerItem, kind: 'assignee' | 'follower') {
-    const res = await apiFetch(`/v1/tasks/items/${task.id}/collaborators`, { method: 'POST', body: JSON.stringify({ userId: picked.id, kind }) }).catch(() => null);
+    const res = await apiFetch(`/v1/tasks/items/${task.id}/collaborators`, { method: 'POST', body: JSON.stringify({ userId: picked.id, kind }) }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
     if (res?.data) setCollaborators(prev => [...(prev || []), res.data]);
   }
   async function removeCollaborator(id: string) {
@@ -1709,7 +1889,7 @@ function TaskDetailDrawer({
 
   async function addDependency() {
     if (addingDepId === '__none__') return;
-    const res = await apiFetch(`/v1/tasks/items/${task.id}/dependencies`, { method: 'POST', body: JSON.stringify({ dependsOnTaskId: addingDepId }) }).catch(() => null);
+    const res = await apiFetch(`/v1/tasks/items/${task.id}/dependencies`, { method: 'POST', body: JSON.stringify({ dependsOnTaskId: addingDepId }) }).catch(err => { showAlert(err.message, { variant: 'error' }); return null; });
     if (res?.data) {
       const t = otherTasks.find(t => t.id === addingDepId);
       if (t) setDeps(prev => ({ blockedBy: [...(prev?.blockedBy || []), { id: res.data.id, task_id: t.id, title: t.title, status: t.status, completed: t.completed, due: t.due || null }], blocks: prev?.blocks || [] }));
@@ -1789,12 +1969,12 @@ function TaskDetailDrawer({
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Notes</div>
-            <textarea
+            <Textarea
               defaultValue={task.notes || ''}
               onBlur={e => updateTodo(task.id, { notes: e.target.value })}
               rows={4}
               placeholder="Add notes…"
-              style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }}
+              style={{ resize: 'vertical' }}
             />
           </div>
           <Button variant="outline" size="sm" onClick={onDelete} style={{ marginTop: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }}>

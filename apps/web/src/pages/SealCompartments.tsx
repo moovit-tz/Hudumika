@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
@@ -131,17 +133,13 @@ export function SealCompartments() {
         titlePlain="Bonded"
         titleEm="compartments"
         subtitle="Separately-licensed bonded perimeters — each with its own zones and locations underneath."
+        actions={
+          <Button onClick={() => setShowNewCompartment(v => !v)}>
+            <Icon name="plus" size={14} />
+            <span>New Compartment</span>
+          </Button>
+        }
       />
-      <div className="seal-page-hdr">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => setShowNewCompartment(v => !v)}
-         data-ui-native-button="">
-          <Icon name="plus" size={14} />
-          <span>+ New Compartment</span>
-        </button>
-      </div>
 
       {/* New Compartment Collapsible Form */}
       {showNewCompartment && (
@@ -150,16 +148,16 @@ export function SealCompartments() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
             <div>
               <label className="seal-field-label">Code</label>
-              <input type="text" className="input-field" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="CFS-DSM-01" required />
+              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="CFS-DSM-01" required />
             </div>
             <div>
               <label className="seal-field-label">Name</label>
-              <input type="text" className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Dar es Salaam Container Freight Station" required />
+              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Dar es Salaam Container Freight Station" required />
             </div>
             <div>
               <label className="seal-field-label">Type</label>
               <Select value={newType} onValueChange={setNewType}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {WAREHOUSE_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</SelectItem>)}
                 </SelectContent>
@@ -167,12 +165,12 @@ export function SealCompartments() {
             </div>
             <div>
               <label className="seal-field-label">License Number</label>
-              <input type="text" className="input-field" value={newLicence} onChange={e => setNewLicence(e.target.value)} placeholder="BW-TZ-9821" />
+              <Input value={newLicence} onChange={e => setNewLicence(e.target.value)} placeholder="BW-TZ-9821" />
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowNewCompartment(false)} data-ui-native-button="">Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving} data-ui-native-button="">{saving ? 'Creating…' : 'Create Compartment'}</button>
+            <Button type="button" variant="outline" onClick={() => setShowNewCompartment(false)}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Compartment'}</Button>
           </div>
         </form>
       )}

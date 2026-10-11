@@ -5,28 +5,65 @@ import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { PageLayout } from '../components/PageLayout.js';
-import { ProjectsApp } from '../pages/ProjectsApp.js';
 import { Contracts } from '../pages/Contracts.js';
 import { ContractDetail } from '../pages/ContractDetail.js';
+import { ProjectCreatePage } from '../pages/projects/ProjectCreatePage.js';
+import { ProjectEditPage } from '../pages/projects/ProjectEditPage.js';
+import { ProjectDashboard } from '../pages/projects/ProjectDashboard.js';
+import { ProjectDirectory } from '../pages/projects/ProjectDirectory.js';
+import { ProjectPortfoliosPage } from '../pages/projects/ProjectPortfoliosPage.js';
+import { ProjectTimeline } from '../pages/projects/ProjectTimeline.js';
+import { ProjectMyTasks } from '../pages/projects/ProjectMyTasks.js';
+import { ProjectMilestonesPage } from '../pages/projects/ProjectMilestonesPage.js';
+import { ProjectBudgetsPage } from '../pages/projects/ProjectBudgetsPage.js';
+import { ProjectProcurementPage } from '../pages/projects/ProjectProcurementPage.js';
+import { ProjectRisksPage } from '../pages/projects/ProjectRisksPage.js';
+import { ProjectApprovalsPage } from '../pages/projects/ProjectApprovalsPage.js';
+import { ProjectReportsPage } from '../pages/projects/ProjectReportsPage.js';
+import { ProjectTeamPage } from '../pages/projects/ProjectTeamPage.js';
+import { ProjectEquipmentPage } from '../pages/projects/ProjectEquipmentPage.js';
+import { ProjectDocumentsPage } from '../pages/projects/ProjectDocumentsPage.js';
+import { ProjectWorkspace } from '../pages/projects/ProjectWorkspace.js';
 
-// Hudumika Project OS — Enterprise project operations, EVM, governance,
-// procurement, heavy machinery fleet, and industry packs.
-//
-// TEMPORARY MITIGATION (see docs/project-os-hardening-review.md Round 4):
-// the Command Center / Portfolios / Resources views call `/v1/project-os/*`,
-// which currently 500s on every request (the routes/services/client.ts were
-// built against a schema that was never migrated). Landing `/projects` on
-// the Command Center left the whole app stuck on an infinite spinner. Until
-// that API is reconciled, `/projects` renders the working project list and
-// the dead Project OS views are kept routed (for whoever fixes the API to
-// test against) but pulled out of the nav. Restore the two-group NAV +
-// `initialMode="command_center"` index once `/v1/project-os` runs.
 const NAV: SidebarSection[] = [
   {
-    title: 'Operations & Commercial',
+    title: 'Overview',
     items: [
-      { label: 'Projects', icon: 'briefcase', path: '/projects', exact: true },
-      { label: 'Contracts & Tenders', icon: 'fileText', path: '/projects/contracts' },
+      { label: 'Dashboard', icon: 'activity', path: '/projects', exact: true },
+      { label: 'All Projects', icon: 'briefcase', path: '/projects/directory' },
+      { label: 'Portfolios', icon: 'layers', path: '/projects/portfolios' },
+    ],
+  },
+  {
+    title: 'Planning',
+    items: [
+      { label: 'Timeline', icon: 'calendar', path: '/projects/timeline' },
+      { label: 'My Tasks', icon: 'checkCircle', path: '/projects/tasks' },
+      { label: 'Milestones', icon: 'flag', path: '/projects/milestones' },
+    ],
+  },
+  {
+    title: 'Financial',
+    items: [
+      { label: 'Budgets', icon: 'dollarSign', path: '/projects/budgets' },
+      { label: 'Contracts', icon: 'fileText', path: '/projects/contracts' },
+      { label: 'Procurement', icon: 'shoppingCart', path: '/projects/procurement' },
+    ],
+  },
+  {
+    title: 'Controls',
+    items: [
+      { label: 'Risk Register', icon: 'shield', path: '/projects/risks' },
+      { label: 'Approvals', icon: 'clipboardList', path: '/projects/approvals' },
+      { label: 'Reports', icon: 'barChart2', path: '/projects/reports' },
+    ],
+  },
+  {
+    title: 'Resources',
+    items: [
+      { label: 'Team & Workload', icon: 'users', path: '/projects/team' },
+      { label: 'Equipment', icon: 'tool', path: '/projects/equipment' },
+      { label: 'Documents', icon: 'archive', path: '/projects/documents' },
     ],
   },
 ];
@@ -35,21 +72,47 @@ export function ProjectsShell() {
   return (
     <WorkspaceApp appId="projects">
       <div className="app-shell">
-        <AppSidebar appId="projects" sections={NAV} />
+        <AppSidebar
+          appId="projects"
+          sections={NAV}
+        />
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
-                {/* index → working project list (was `command_center`, which 500s — see NAV comment) */}
-                <Route index element={<ProjectsApp initialMode="projects_list" />} />
-                <Route path="all" element={<ProjectsApp initialMode="projects_list" />} />
-                {/* Project OS views kept routed but out of nav until /v1/project-os is reconciled */}
-                <Route path="command-center" element={<ProjectsApp initialMode="command_center" />} />
-                <Route path="portfolios" element={<ProjectsApp initialMode="portfolios" />} />
-                <Route path="resources" element={<ProjectsApp initialMode="resources" />} />
+                {/* Overview */}
+                <Route index element={<ProjectDashboard />} />
+                <Route path="new" element={<ProjectCreatePage />} />
+                <Route path="directory" element={<ProjectDirectory />} />
+                <Route path="portfolios" element={<ProjectPortfoliosPage />} />
+
+                {/* Planning */}
+                <Route path="timeline" element={<ProjectTimeline />} />
+                <Route path="tasks" element={<ProjectMyTasks />} />
+                <Route path="milestones" element={<ProjectMilestonesPage />} />
+
+                {/* Financial */}
+                <Route path="budgets" element={<ProjectBudgetsPage />} />
                 <Route path="contracts" element={<Contracts />} />
                 <Route path="contracts/:id" element={<ContractDetail />} />
+                <Route path="procurement" element={<ProjectProcurementPage />} />
+
+                {/* Controls */}
+                <Route path="risks" element={<ProjectRisksPage />} />
+                <Route path="approvals" element={<ProjectApprovalsPage />} />
+                <Route path="reports" element={<ProjectReportsPage />} />
+
+                {/* Resources */}
+                <Route path="team" element={<ProjectTeamPage />} />
+                <Route path="equipment" element={<ProjectEquipmentPage />} />
+                <Route path="documents" element={<ProjectDocumentsPage />} />
+
+                {/* Individual project workspace */}
+                <Route path=":id/edit" element={<ProjectEditPage />} />
+                <Route path=":id" element={<ProjectWorkspace />} />
+                <Route path=":id/:tab" element={<ProjectWorkspace />} />
+
                 <Route path="*" element={<Navigate to="/projects" replace />} />
               </Route>
             </Routes>

@@ -204,8 +204,7 @@ export const Login: React.FC = () => {
             setTheme(next);
             toggleThemeWithAnimation(e, next === 'dark');
           }}
-          className="login-toggle"
-         data-ui-native-button="">
+          className="login-toggle">
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>
@@ -497,8 +496,7 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
             setTheme(next);
             toggleThemeWithAnimation(e, next === 'dark');
           }}
-          className="login-toggle"
-         data-ui-native-button="">
+          className="login-toggle">
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>

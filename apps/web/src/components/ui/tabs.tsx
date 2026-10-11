@@ -41,9 +41,9 @@ Tabs.displayName = TabsPrimitive.Root.displayName
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List ref={ref} className={cn("ds-tabs-list", className)} {...props} />
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & { wrap?: boolean }
+>(({ className, wrap, ...props }, ref) => (
+  <TabsPrimitive.List ref={ref} data-wrap={wrap || undefined} className={cn("ds-tabs-list", className)} {...props} />
 ))
 TabsList.displayName = TabsPrimitive.List.displayName
 

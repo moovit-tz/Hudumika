@@ -65,8 +65,8 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
   const bac = rawEvm.budget_at_completion ?? rawEvm.bac ?? project.baseline_budget ?? project.current_budget ?? 0;
   const cv = rawEvm.cost_variance ?? rawEvm.cv ?? (ev - ac);
   const sv = rawEvm.schedule_variance ?? rawEvm.sv ?? (ev - pv);
-  const cpi = rawEvm.cpi || (ac > 0 ? ev / ac : 1.0);
-  const spi = rawEvm.spi || (pv > 0 ? ev / pv : 1.0);
+  const cpi = ac > 0 ? (rawEvm.cpi ?? ev / ac) : 0;
+  const spi = pv > 0 ? (rawEvm.spi ?? ev / pv) : 0;
   const eac = rawEvm.estimate_at_completion ?? rawEvm.eac ?? (cpi > 0 ? bac / cpi : bac);
   const etc = rawEvm.estimate_to_complete ?? rawEvm.etc ?? Math.max(0, eac - ac);
   const vac = rawEvm.variance_at_completion ?? rawEvm.vac ?? (bac - eac);
@@ -75,8 +75,8 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
   const activeCurrency = project.currency || currency;
   const formatCurrency = (val: number) => `${activeCurrency} ${Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const cpiBadge = cpi >= 1.0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300' : cpi >= 0.85 ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 border-amber-300' : 'text-rose-500 bg-rose-50 dark:bg-rose-950/50 border-rose-300';
-  const spiBadge = spi >= 1.0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300' : spi >= 0.85 ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 border-amber-300' : 'text-rose-500 bg-rose-50 dark:bg-rose-950/50 border-rose-300';
+  const cpiBadge = ac <= 0 ? 'text-muted-foreground bg-muted border-border' : cpi >= 1.0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300' : cpi >= 0.85 ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 border-amber-300' : 'text-rose-500 bg-rose-50 dark:bg-rose-950/50 border-rose-300';
+  const spiBadge = pv <= 0 ? 'text-muted-foreground bg-muted border-border' : spi >= 1.0 ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300' : spi >= 0.85 ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 border-amber-300' : 'text-rose-500 bg-rose-50 dark:bg-rose-950/50 border-rose-300';
 
   return (
     <div className="space-y-6">
@@ -89,7 +89,7 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
               <span className="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
                 ANSI/PMI Standard EVM Engine
               </span>
-              <span className="text-xs text-slate-400">Real-time DB-calculated indicators</span>
+              <span className="text-xs text-muted-foreground">Real-time DB-calculated indicators</span>
             </div>
             <h2 className="text-2xl font-bold tracking-tight">
               Earned Value Management (EVM) Financial Cockpit
@@ -102,14 +102,14 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
           <div className="flex items-center gap-4">
             <div className={`p-4 rounded-xl border ${cpiBadge} text-center min-w-[110px]`}>
               <div className="text-xs font-bold uppercase tracking-wider opacity-80">CPI</div>
-              <div className="text-2xl font-black mt-1">{(cpi || 1).toFixed(2)}</div>
-              <div className="text-[10px] mt-0.5 opacity-90">{cpi >= 1.0 ? 'Under Budget' : 'Cost Overrun'}</div>
+              <div className="text-2xl font-black mt-1">{ac > 0 ? cpi.toFixed(2) : '—'}</div>
+              <div className="text-[10px] mt-0.5 opacity-90">{ac <= 0 ? 'No recorded actuals' : cpi === 1 ? 'On budget' : cpi > 1 ? 'Under budget' : 'Cost overrun'}</div>
             </div>
 
             <div className={`p-4 rounded-xl border ${spiBadge} text-center min-w-[110px]`}>
               <div className="text-xs font-bold uppercase tracking-wider opacity-80">SPI</div>
-              <div className="text-2xl font-black mt-1">{(spi || 1).toFixed(2)}</div>
-              <div className="text-[10px] mt-0.5 opacity-90">{spi >= 1.0 ? 'Ahead of Sched' : 'Behind Sched'}</div>
+              <div className="text-2xl font-black mt-1">{pv > 0 ? spi.toFixed(2) : '—'}</div>
+              <div className="text-[10px] mt-0.5 opacity-90">{pv <= 0 ? 'No planned value yet' : spi === 1 ? 'On schedule' : spi > 1 ? 'Ahead of schedule' : 'Behind schedule'}</div>
             </div>
           </div>
         </div>
@@ -118,57 +118,57 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
       {/* Primary Mathematical Triad: PV, EV, AC, BAC */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Planned Value */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between text-muted-foreground dark:text-muted-foreground text-xs font-semibold uppercase">
             <span>Planned Value (PV)</span>
             <Icon name="calendar" size={16} className="text-blue-500" />
           </div>
-          <div className="text-xl font-bold text-slate-900 dark:text-white mt-2">
+          <div className="text-xl font-bold text-foreground mt-2">
             {formatCurrency(pv)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Budgeted cost of work scheduled to date
           </p>
         </div>
 
         {/* Earned Value */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between text-muted-foreground dark:text-muted-foreground text-xs font-semibold uppercase">
             <span>Earned Value (EV)</span>
             <Icon name="checkCircle" size={16} className="text-emerald-500" />
           </div>
           <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
             {formatCurrency(ev)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Budgeted cost of work performed (physical progress)
           </p>
         </div>
 
         {/* Actual Cost */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between text-muted-foreground dark:text-muted-foreground text-xs font-semibold uppercase">
             <span>Actual Cost (AC)</span>
             <Icon name="dollarSign" size={16} className="text-rose-500" />
           </div>
           <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-2">
             {formatCurrency(ac)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Total actual expenditure incurred on work
           </p>
         </div>
 
         {/* Budget At Completion */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase">
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+          <div className="flex items-center justify-between text-muted-foreground dark:text-muted-foreground text-xs font-semibold uppercase">
             <span>Budget at Completion (BAC)</span>
-            <Icon name="layers" size={16} className="text-teal-500" />
+            <Icon name="layers" size={16} className="text-primary" />
           </div>
-          <div className="text-xl font-bold text-slate-900 dark:text-white mt-2">
+          <div className="text-xl font-bold text-foreground mt-2">
             {formatCurrency(bac)}
           </div>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Total baseline contractual project budget
           </p>
         </div>
@@ -177,19 +177,19 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
       {/* EVM Variances & Forecast Projections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Variances Card */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Icon name="activity" size={16} className="text-teal-500" />
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Icon name="activity" size={16} className="text-primary" />
             Cost & Schedule Variances
           </h3>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-border/50">
               <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-bold text-foreground">
                   Cost Variance (CV = EV - AC)
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   {cv >= 0 ? 'Surplus / under planned expenditure' : 'Deficit / cost overrun'}
                 </div>
               </div>
@@ -198,12 +198,12 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-border/50">
               <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-bold text-foreground">
                   Schedule Variance (SV = EV - PV)
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   {sv >= 0 ? 'Ahead of baseline schedule' : 'Behind schedule milestones'}
                 </div>
               </div>
@@ -212,12 +212,12 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-border/50">
               <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-bold text-foreground">
                   Variance at Completion (VAC = BAC - EAC)
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   Projected budget variance at final project handover
                 </div>
               </div>
@@ -229,52 +229,52 @@ export const ProjectFinancialsEvm: React.FC<ProjectFinancialsEvmProps> = ({
         </div>
 
         {/* Forecast Projections Card */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Icon name="trendingUp" size={16} className="text-teal-500" />
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Icon name="trendingUp" size={16} className="text-primary" />
             Forecast Projections & TCPI
           </h3>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-border/50">
               <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-bold text-foreground">
                   Estimate at Completion (EAC = BAC / CPI)
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   Total expected final cost based on current performance
                 </div>
               </div>
-              <div className="text-base font-bold text-slate-900 dark:text-white">
+              <div className="text-base font-bold text-foreground">
                 {formatCurrency(eac)}
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-border/50">
               <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-bold text-foreground">
                   Estimate to Complete (ETC = EAC - AC)
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   Remaining capital needed to complete the project
                 </div>
               </div>
-              <div className="text-base font-bold text-slate-900 dark:text-white">
+              <div className="text-base font-bold text-foreground">
                 {formatCurrency(etc)}
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-border/50">
               <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-xs font-bold text-foreground">
                   To-Complete Performance Index (TCPI)
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-muted-foreground">
                   Cost efficiency required on remaining work to meet BAC
                 </div>
               </div>
-              <div className="text-base font-bold text-teal-600 dark:text-teal-400">
-                {(tcpi || 1).toFixed(2)}
+              <div className="text-base font-bold text-primary">
+                {Number(tcpi).toFixed(2)}
               </div>
             </div>
           </div>

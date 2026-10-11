@@ -436,6 +436,7 @@
 
 /* Scroll the strip rather than shrink targets or push the page sideways. */
 .ds-tabs-list, [role="tablist"]:not([data-ds-tabs-exempt="crm-customers"]), [data-ds-tabstrip] { min-width: 0; box-sizing: border-box; flex-wrap: nowrap !important; }
+.ds-tabs-list[data-wrap="true"] { flex-wrap: wrap !important; overflow: visible; }
 .ds-tabs-trigger { flex: 0 0 auto; }
 .ds-tabs-trigger:disabled, [role="tab"][aria-disabled="true"] { cursor: not-allowed; opacity: .5; }
 

@@ -1,4 +1,4 @@
-﻿/* ── SEAL shared tokens & layout ──
+/* ── SEAL shared tokens & layout ──
    Brand accent (--seal) tracks the app's configured color exactly like
    ComplyOS's [data-complyos] block (see ComplyOS.css) — scoped to
    [data-seal="true"] (inside .app-color-scope, which WorkspaceApp.tsx
@@ -52,43 +52,50 @@
 
 .seal-kpi-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .seal-kpi-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--card-bg, var(--white));
+  border: var(--card-border, 1px solid var(--border));
+  border-radius: var(--card-radius, var(--r));
   padding: 16px 18px;
-  box-shadow: var(--elev-sm);
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
-.seal-kpi-value { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+.seal-kpi-card:hover {
+  box-shadow: var(--elev);
+}
+.seal-kpi-value { font-size: 24px; font-weight: 800; color: var(--ink); line-height: 1.1; font-variant-numeric: tabular-nums; }
 .seal-kpi-value--alert { color: var(--gold); }
-.seal-kpi-label { font-size: 11.5px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.seal-kpi-label { font-size: 11px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; line-height: 1.25; }
 
 .seal-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--card-bg, var(--white));
+  border: var(--card-border, 1px solid var(--border));
+  border-radius: var(--card-radius, var(--r));
   overflow: hidden;
-  box-shadow: var(--elev-sm);
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  transition: box-shadow 0.15s ease;
 }
 .seal-card-hdr {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
 }
-.seal-card-title { font-size: 13.5px; font-weight: 800; color: var(--ink); margin: 0; }
+.seal-card-title { font-size: 13.5px; font-weight: 700; color: var(--ink); margin: 0; }
 .seal-card-body { padding: 0; overflow-x: auto; }
 
 .seal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .seal-table th {
-  padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700;
-  color: var(--ink3); text-transform: uppercase; letter-spacing: 0.04em;
-  border-bottom: 2px solid var(--border); white-space: nowrap;
+  padding: 12px 18px; text-align: left; font-size: 11px; font-weight: 700;
+  color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em;
+  background: var(--card-sunken, var(--bg));
+  border-bottom: 1px solid var(--border); white-space: nowrap;
 }
-.seal-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-.seal-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.seal-table td { padding: 13px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--ink); }
+.seal-table tbody tr { cursor: pointer; transition: background 0.12s ease; }
 .seal-table tbody tr:hover { background: var(--hover-bg); }
 .seal-table tbody tr:last-child td { border-bottom: none; }
 

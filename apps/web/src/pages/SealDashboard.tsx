@@ -6,6 +6,11 @@ import {
 import { Icon } from '../components/Icon.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter, DialogDescription } from '../components/ui/dialog.js';
 import './SealInventoryDashboard.css';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -288,7 +293,6 @@ export function SealDashboard() {
   const [dateRangeText, setDateRangeText] = useState('Jul 1 – Jul 20');
 
   // Dropdown States
-  const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
 
   // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -346,30 +350,14 @@ export function SealDashboard() {
     return `$${val.toLocaleString()}`;
   };
 
-  // Status Badge Renderer
   const renderStatusBadge = (status: InventoryItem['status']) => {
-    if (status === 'in_stock') {
-      return (
-        <span className="sid-pill sid-pill--in-stock">
-          <span className="sid-pill-dot" />
-          In Stock
-        </span>
-      );
-    }
-    if (status === 'low_stock') {
-      return (
-        <span className="sid-pill sid-pill--low-stock">
-          <span className="sid-pill-dot" />
-          Low Stock
-        </span>
-      );
-    }
-    return (
-      <span className="sid-pill sid-pill--out-of-stock">
-        <span className="sid-pill-dot" />
-        Out of Stock
-      </span>
-    );
+    const map = {
+      in_stock:     { label: 'In Stock',     variant: 'success' as const },
+      low_stock:    { label: 'Low Stock',    variant: 'warning' as const },
+      out_of_stock: { label: 'Out of Stock', variant: 'error'   as const },
+    };
+    const { label, variant } = map[status];
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
   // Add Item Handler
@@ -484,14 +472,14 @@ export function SealDashboard() {
   };
 
   return (
-    <div className="seal-page" onClick={() => setActiveActionMenuId(null)}>
+    <div className="seal-page">
       <PageHeader
         crumbs={['SEAL']}
         titlePlain="Warehouse"
         titleEm="dashboard"
         subtitle="Stock levels, movement and reorder health across all warehouses."
         actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select
               value={compartmentId ?? '__all__'}
               onValueChange={v => {
@@ -507,15 +495,15 @@ export function SealDashboard() {
                 {dbCompartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" className="sid-btn-outline" onClick={() => setShowImportModal(true)} data-ui-native-button="">
-              <Icon name="fileText" size={14} color="var(--ink2)" /><span>Import</span>
-            </button>
-            <button type="button" className="sid-btn-outline" onClick={handleExportCSV} data-ui-native-button="">
-              <Icon name="send" size={14} color="var(--ink2)" /><span>Export</span>
-            </button>
-            <button type="button" className="sid-btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
-              <Icon name="plus" size={14} color="currentColor" /><span>Add Item</span>
-            </button>
+            <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+              <Icon name="fileText" size={14} />Import
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Icon name="send" size={14} />Export
+            </Button>
+            <Button size="sm" onClick={() => setShowAddModal(true)}>
+              <Icon name="plus" size={14} />Add Item
+            </Button>
           </div>
         }
       />
@@ -732,47 +720,27 @@ export function SealDashboard() {
       </div>
 
       {/* ── Search & Filter Bar ── */}
-      <div className="sid-filter-bar">
-        <div className="sid-search-wrap">
-          <Icon name="search" size={16} />
-          <input
-            type="text"
-            className="sid-search-input"
-            placeholder="Search by product or SKU..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }}
-             data-ui-native-button="">
-              <Icon name="x" size={14} />
-            </button>
-          )}
-        </div>
-
-        {/* Category Filter */}
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-          {CATEGORY_OPTIONS.map(c => (
-            <SelectItem key={c} value={c}>{c}</SelectItem>
-          ))}
-          </SelectContent>
-        </Select>
-
-        {/* Status Filter */}
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-          {STATUS_OPTIONS.map(s => (
-            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-          ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <SearchToolbar
+        search={searchQuery}
+        onSearch={setSearchQuery}
+        placeholder="Search by product or SKU..."
+        quickFilters={[
+          {
+            label: 'Category',
+            allLabel: 'All Categories',
+            value: selectedCategory === 'All Categories' ? null : selectedCategory,
+            onChange: v => setSelectedCategory(v ?? 'All Categories'),
+            options: CATEGORY_OPTIONS.filter(c => c !== 'All Categories').map(c => ({ value: c, label: c })),
+          },
+          {
+            label: 'Status',
+            allLabel: 'All Statuses',
+            value: selectedStatus === 'ALL' ? null : selectedStatus,
+            onChange: v => setSelectedStatus(v ?? 'ALL'),
+            options: STATUS_OPTIONS.filter(s => s.value !== 'all').map(s => ({ value: s.value, label: s.label })),
+          },
+        ]}
+      />
 
       {/* ── Products Inventory Table ── */}
       <div className="sid-table-card">
@@ -819,74 +787,26 @@ export function SealDashboard() {
                     <td style={{ color: 'var(--ink3)' }}>{item.reorderLevel}</td>
                     <td className="sid-val-col">{formatCurrency(item.value)}</td>
                     <td>{renderStatusBadge(item.status)}</td>
-                    <td style={{ textAlign: 'center', position: 'relative' }}>
-                      <button
-                        type="button"
-                        className="sid-action-btn"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setActiveActionMenuId(activeActionMenuId === item.id ? null : item.id);
-                        }}
-                       data-ui-native-button="">
-                        <Icon name="moreVertical" size={15} />
-                      </button>
-
-                      {/* Row Action Dropdown Menu */}
-                      {activeActionMenuId === item.id && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            right: 12,
-                            marginTop: 2,
-                            background: 'var(--white)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--r-sm)',
-                            boxShadow: 'var(--elev-lg, 0 10px 25px rgba(0,0,0,0.15))',
-                            zIndex: 60,
-                            minWidth: 160,
-                            padding: 4,
-                            textAlign: 'left',
-                          }}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <div
-                            onClick={() => {
-                              setAdjustingItem(item);
-                              setAdjustQty(0);
-                              setActiveActionMenuId(null);
-                            }}
-                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                          >
+                    <td style={{ textAlign: 'center' }}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Icon name="moreVertical" size={15} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setAdjustingItem(item); setAdjustQty(0); }}>
                             Adjust Stock
-                          </div>
-                          <div
-                            onClick={() => {
-                              showAlert(`Barcode printed for ${item.sku}`, { variant: 'success' });
-                              setActiveActionMenuId(null);
-                            }}
-                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                          >
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => showAlert(`Barcode printed for ${item.sku}`, { variant: 'success' })}>
                             Print Barcode
-                          </div>
-                          <div
-                            onClick={() => {
-                              setItems(prev => prev.filter(i => i.id !== item.id));
-                              showAlert(`Deleted ${item.name}`, { variant: 'warning' });
-                              setActiveActionMenuId(null);
-                            }}
-                            style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--red)', cursor: 'pointer', borderRadius: 'var(--r-sm)' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(225,29,72,0.1)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                          >
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-(--red)" onClick={() => { setItems(prev => prev.filter(i => i.id !== item.id)); showAlert(`Deleted ${item.name}`, { variant: 'warning' }); }}>
                             Delete SKU
-                          </div>
-                        </div>
-                      )}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))
@@ -896,254 +816,201 @@ export function SealDashboard() {
         </div>
       </div>
 
-      {/* ── Add Item Modal Dialog ── */}
-      {showAddModal && (
-        <div className="sid-modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="sid-modal" onClick={e => e.stopPropagation()}>
-            <div className="sid-modal-hdr">
-              <div className="sid-modal-title">Add Inventory Item</div>
-              <button
-                type="button"
-                className="sid-action-btn"
-                onClick={() => setShowAddModal(false)}
-               data-ui-native-button="">
-                <Icon name="x" size={16} />
-              </button>
-            </div>
-            <form onSubmit={handleAddItem}>
-              <div className="sid-modal-body">
-                <div className="sid-form-group">
-                  <label className="sid-form-label">Product Name</label>
-                  <input
-                    type="text"
-                    className="sid-input"
-                    placeholder="e.g. Smart Watch Ultra"
-                    value={newItem.name}
-                    onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">SKU Code</label>
-                    <input
-                      type="text"
-                      className="sid-input"
-                      placeholder="e.g. SKU-48120"
-                      value={newItem.sku}
-                      onChange={e => setNewItem({ ...newItem, sku: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">Category</label>
-                    <Select value={newItem.category} onValueChange={value => setNewItem({ ...newItem, category: value })}>
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                      {CATEGORY_OPTIONS.filter(c => c !== 'All Categories').map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">Warehouse</label>
-                    <Select value={newItem.warehouse} onValueChange={value => setNewItem({ ...newItem, warehouse: value })}>
-                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                      {WAREHOUSE_OPTIONS.filter(w => w !== 'All Warehouses').map(w => (
-                        <SelectItem key={w} value={w}>{w}</SelectItem>
-                      ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">Reorder Level</label>
-                    <input
-                      type="number"
-                      className="sid-input"
-                      value={newItem.reorderLevel}
-                      onChange={e => setNewItem({ ...newItem, reorderLevel: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">Initial Qty</label>
-                    <input
-                      type="number"
-                      className="sid-input"
-                      value={newItem.qty}
-                      onChange={e => setNewItem({ ...newItem, qty: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">Reserved Qty</label>
-                    <input
-                      type="number"
-                      className="sid-input"
-                      value={newItem.reserved}
-                      onChange={e => setNewItem({ ...newItem, reserved: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="sid-form-group">
-                    <label className="sid-form-label">Unit Value ($)</label>
-                    <input
-                      type="number"
-                      className="sid-input"
-                      value={newItem.unitValue}
-                      onChange={e => setNewItem({ ...newItem, unitValue: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="sid-modal-footer">
-                <button
-                  type="button"
-                  className="sid-btn-outline"
-                  onClick={() => setShowAddModal(false)}
-                 data-ui-native-button="">
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="sid-btn-primary"
-                 data-ui-native-button="">
-                  Save Item
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Import CSV Modal Dialog ── */}
-      {showImportModal && (
-        <div className="sid-modal-backdrop" onClick={() => setShowImportModal(false)}>
-          <div className="sid-modal" onClick={e => e.stopPropagation()}>
-            <div className="sid-modal-hdr">
-              <div className="sid-modal-title">Bulk Import Inventory</div>
-              <button
-                type="button"
-                className="sid-action-btn"
-                onClick={() => setShowImportModal(false)}
-               data-ui-native-button="">
-                <Icon name="x" size={16} />
-              </button>
-            </div>
-            <div className="sid-modal-body">
-              <div
-                style={{
-                  border: '2px dashed var(--border2)',
-                  borderRadius: 'var(--r)',
-                  padding: '32px 20px',
-                  textAlign: 'center',
-                  background: 'var(--bg)',
-                  cursor: 'pointer',
-                }}
-                onClick={() => {
-                  showAlert('Sample CSV imported successfully: +10 SKUs synced.', { variant: 'success' });
-                  setShowImportModal(false);
-                }}
-              >
-                <Icon name="upload" size={32} color="var(--teal)" style={{ margin: '0 auto 12px' }} />
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
-                  Drag & drop CSV or Excel spreadsheet
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
-                  Supports .csv, .xlsx up to 25MB (Product, SKU, Qty, Warehouse)
-                </div>
-              </div>
-            </div>
-            <div className="sid-modal-footer">
-              <button
-                type="button"
-                className="sid-btn-outline"
-                onClick={() => setShowImportModal(false)}
-               data-ui-native-button="">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Stock Adjustment Modal Dialog ── */}
-      {adjustingItem && (
-        <div className="sid-modal-backdrop" onClick={() => setAdjustingItem(null)}>
-          <div className="sid-modal" onClick={e => e.stopPropagation()}>
-            <div className="sid-modal-hdr">
-              <div className="sid-modal-title">Adjust Stock Level &middot; {adjustingItem.name}</div>
-              <button
-                type="button"
-                className="sid-action-btn"
-                onClick={() => setAdjustingItem(null)}
-               data-ui-native-button="">
-                <Icon name="x" size={16} />
-              </button>
-            </div>
-            <div className="sid-modal-body">
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>CURRENT ON HAND</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{adjustingItem.qty} units</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>RESERVED</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink2)' }}>{adjustingItem.reserved} units</div>
-                </div>
-              </div>
-
+      {/* ── Add Item Dialog ── */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>Add Inventory Item</DialogTitle>
+            <DialogDescription>Add a new product to your warehouse inventory.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddItem}>
+            <DialogBody>
               <div className="sid-form-group">
-                <label className="sid-form-label">Adjustment Quantity (+ / −)</label>
+                <label className="sid-form-label">Product Name</label>
                 <input
-                  type="number"
+                  type="text"
                   className="sid-input"
-                  placeholder="e.g. +10 or -5"
-                  value={adjustQty}
-                  onChange={e => setAdjustQty(Number(e.target.value))}
+                  placeholder="e.g. Smart Watch Ultra"
+                  value={newItem.name}
+                  onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                  required
                 />
               </div>
 
-              <div className="sid-form-group">
-                <label className="sid-form-label">Reason Code</label>
-                <Select value={adjustReason} onValueChange={setAdjustReason}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Cycle Count Adjustment">Cycle Count Adjustment</SelectItem>
-                    <SelectItem value="Purchase Receipt">Purchase Receipt</SelectItem>
-                    <SelectItem value="Customer Return">Customer Return</SelectItem>
-                    <SelectItem value="Damaged / Scrap">Damaged / Scrap</SelectItem>
-                    <SelectItem value="Internal Transfer">Internal Transfer</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">SKU Code</label>
+                  <input
+                    type="text"
+                    className="sid-input"
+                    placeholder="e.g. SKU-48120"
+                    value={newItem.sku}
+                    onChange={e => setNewItem({ ...newItem, sku: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Category</label>
+                  <Select value={newItem.category} onValueChange={value => setNewItem({ ...newItem, category: value })}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                    {CATEGORY_OPTIONS.filter(c => c !== 'All Categories').map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Warehouse</label>
+                  <Select value={newItem.warehouse} onValueChange={value => setNewItem({ ...newItem, warehouse: value })}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                    {WAREHOUSE_OPTIONS.filter(w => w !== 'All Warehouses').map(w => (
+                      <SelectItem key={w} value={w}>{w}</SelectItem>
+                    ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Reorder Level</label>
+                  <input
+                    type="number"
+                    className="sid-input"
+                    value={newItem.reorderLevel}
+                    onChange={e => setNewItem({ ...newItem, reorderLevel: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Initial Qty</label>
+                  <input
+                    type="number"
+                    className="sid-input"
+                    value={newItem.qty}
+                    onChange={e => setNewItem({ ...newItem, qty: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Reserved Qty</label>
+                  <input
+                    type="number"
+                    className="sid-input"
+                    value={newItem.reserved}
+                    onChange={e => setNewItem({ ...newItem, reserved: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="sid-form-group">
+                  <label className="sid-form-label">Unit Value ($)</label>
+                  <input
+                    type="number"
+                    className="sid-input"
+                    value={newItem.unitValue}
+                    onChange={e => setNewItem({ ...newItem, unitValue: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+            </DialogBody>
+
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setShowAddModal(false)}>Cancel</Button>
+              <Button type="submit">Save Item</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Import CSV Dialog ── */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Bulk Import Inventory</DialogTitle>
+            <DialogDescription>Upload a CSV or Excel file to import inventory items.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div
+              style={{
+                border: '2px dashed var(--border2)',
+                borderRadius: 'var(--r)',
+                padding: '32px 20px',
+                textAlign: 'center',
+                background: 'var(--bg)',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                showAlert('Sample CSV imported successfully: +10 SKUs synced.', { variant: 'success' });
+                setShowImportModal(false);
+              }}
+            >
+              <Icon name="upload" size={32} color="var(--teal)" style={{ margin: '0 auto 12px' }} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+                Drag & drop CSV or Excel spreadsheet
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
+                Supports .csv, .xlsx up to 25MB (Product, SKU, Qty, Warehouse)
               </div>
             </div>
-            <div className="sid-modal-footer">
-              <button
-                type="button"
-                className="sid-btn-outline"
-                onClick={() => setAdjustingItem(null)}
-               data-ui-native-button="">
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="sid-btn-primary"
-                onClick={handleSaveAdjustment}
-               data-ui-native-button="">
-                Confirm Adjustment
-              </button>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImportModal(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Stock Adjustment Dialog ── */}
+      <Dialog open={!!adjustingItem} onOpenChange={open => { if (!open) setAdjustingItem(null); }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Adjust Stock Level &middot; {adjustingItem?.name}</DialogTitle>
+            <DialogDescription>Change the on-hand quantity and record the reason.</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>CURRENT ON HAND</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{adjustingItem?.qty} units</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>RESERVED</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink2)' }}>{adjustingItem?.reserved} units</div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="sid-form-group">
+              <label className="sid-form-label">Adjustment Quantity (+ / −)</label>
+              <input
+                type="number"
+                className="sid-input"
+                placeholder="e.g. +10 or -5"
+                value={adjustQty}
+                onChange={e => setAdjustQty(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="sid-form-group">
+              <label className="sid-form-label">Reason Code</label>
+              <Select value={adjustReason} onValueChange={setAdjustReason}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cycle Count Adjustment">Cycle Count Adjustment</SelectItem>
+                  <SelectItem value="Purchase Receipt">Purchase Receipt</SelectItem>
+                  <SelectItem value="Customer Return">Customer Return</SelectItem>
+                  <SelectItem value="Damaged / Scrap">Damaged / Scrap</SelectItem>
+                  <SelectItem value="Internal Transfer">Internal Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustingItem(null)}>Cancel</Button>
+            <Button onClick={handleSaveAdjustment}>Confirm Adjustment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

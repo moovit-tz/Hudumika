@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -7,6 +8,7 @@ import { ProjectGovernanceService } from '../services/project-governance.service
 import { ProjectProcurementService } from '../services/project-procurement.service.js';
 import { ProjectResourcesService } from '../services/project-resources.service.js';
 import { ProjectIndustryService } from '../services/project-industry.service.js';
+import { resolveProjectAccess, canEditProject } from './task-projects.routes.js';
 
 const uuidSchema = z.string().uuid();
 
@@ -25,6 +27,16 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Not available for this account type.' });
     }
   });
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (!request.routeOptions.url?.includes('/projects/:id/')) return;
+    const projectId = uuidSchema.parse((request.params as { id: string }).id);
+    const user = request.user;
+    const access = await withTenant(user.tenant_id, (trx) =>
+      resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, projectId));
+    if (!access || (request.method !== 'GET' && !canEditProject(access.access))) {
+      return reply.code(403).send({ error: 'You do not have access to this project operation.' });
+    }
+  });
 
   // ─── Command Center ───────────────────────────────────────────────
 
@@ -32,6 +44,45 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       return await ProjectOsService.getCommandCenterMetrics(trx, user.tenant_id);
+    });
+  });
+
+  // ─── Bookmarks (per-user favorites) ────────────────────────────────
+
+  fastify.get('/bookmarks', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('project_bookmarks')
+        .select('project_id')
+        .where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at', 'desc')
+        .execute();
+      return rows.map(r => r.project_id);
+    });
+  });
+
+  fastify.post('/bookmarks/:projectId', async (request, reply) => {
+    const user = request.user;
+    const projectId = uuidSchema.parse((request.params as { projectId: string }).projectId);
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('project_bookmarks')
+        .select('id')
+        .where('project_id', '=', projectId)
+        .where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (existing) {
+        await trx.deleteFrom('project_bookmarks').where('id', '=', existing.id).execute();
+        return { bookmarked: false };
+      }
+      await trx.insertInto('project_bookmarks').values({
+        id: randomUUID(),
+        tenant_id: user.tenant_id,
+        project_id: projectId,
+        user_id: user.sub,
+      }).execute();
+      return reply.code(201).send({ bookmarked: true });
     });
   });
 
@@ -53,11 +104,16 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       owner_id: uuidSchema.optional().nullable(),
       target_roi: z.number().optional().nullable(),
       allocated_budget: z.number().min(0).optional(),
-      status: z.enum(['active', 'planning', 'on_hold', 'archived']).optional(),
+      currency: z.string().regex(/^[A-Z]{3}$/).optional(),
+      status: z.enum(['active', 'planning', 'on_hold', 'completed', 'archived']).optional(),
       strategic_alignment: z.record(z.any()).optional(),
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.owner_id && !await trx.selectFrom('users').select('id')
+        .where('id', '=', body.owner_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()) {
+        return reply.code(404).send({ error: 'Portfolio manager not found' });
+      }
       const portfolio = await ProjectOsService.createPortfolio(trx, user.tenant_id, body);
       return reply.code(201).send(portfolio);
     });
@@ -85,13 +141,22 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       description: z.string().optional().nullable(),
       program_manager_id: uuidSchema.optional().nullable(),
       budget: z.number().min(0).optional(),
+      currency: z.string().regex(/^[A-Z]{3}$/).optional(),
       target_benefits: z.array(z.string()).optional(),
-      status: z.enum(['active', 'planning', 'on_hold', 'completed', 'cancelled']).optional(),
+      status: z.enum(['active', 'planning', 'on_hold', 'completed', 'archived']).optional(),
       start_date: z.string().optional().nullable(),
       end_date: z.string().optional().nullable(),
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.portfolio_id && !await trx.selectFrom('project_portfolios').select('id')
+        .where('id', '=', body.portfolio_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()) {
+        return reply.code(404).send({ error: 'Portfolio not found' });
+      }
+      if (body.program_manager_id && !await trx.selectFrom('users').select('id')
+        .where('id', '=', body.program_manager_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()) {
+        return reply.code(404).send({ error: 'Program manager not found' });
+      }
       const program = await ProjectOsService.createProgram(trx, user.tenant_id, body);
       return reply.code(201).send(program);
     });
@@ -144,7 +209,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/phases/:id/gate', async (request) => {
+  fastify.patch('/phases/:id/gate', async (request, reply) => {
     const user = request.user;
     const params = z.object({ id: uuidSchema }).parse(request.params);
     const body = z.object({
@@ -153,7 +218,12 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      return await ProjectOsService.updatePhaseGate(trx, user.tenant_id, params.id, body.passed, body.status);
+      if (body.status && body.status !== (body.passed ? 'completed' : 'under_review')) return reply.code(400).send({ error: 'Gate status must match its decision' });
+      const phase = await trx.selectFrom('project_phases').select('project_id').where('tenant_id', '=', user.tenant_id).where('id', '=', params.id).executeTakeFirst();
+      if (!phase) return reply.code(404).send({ error: 'Phase not found' });
+      const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, phase.project_id);
+      if (!access || !['owner', 'admin'].includes(access.access)) return reply.code(403).send({ error: 'Only project owners and administrators can review gates' });
+      return await ProjectOsService.updatePhaseGate(trx, user.tenant_id, params.id, body.passed);
     });
   });
 
@@ -186,6 +256,12 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.phase_id && !await trx.selectFrom('project_phases').select('id').where('tenant_id', '=', user.tenant_id).where('project_id', '=', params.id).where('id', '=', body.phase_id).executeTakeFirst())
+        return reply.code(404).send({ error: 'Phase not found in this project' });
+      if (body.parent_id && !await trx.selectFrom('project_work_packages').select('id').where('tenant_id', '=', user.tenant_id).where('project_id', '=', params.id).where('id', '=', body.parent_id).executeTakeFirst())
+        return reply.code(404).send({ error: 'Parent package not found in this project' });
+      if (body.lead_id && !await trx.selectFrom('users').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.lead_id).executeTakeFirst())
+        return reply.code(404).send({ error: 'Manager not found' });
       const wp = await ProjectOsService.createWorkPackage(trx, user.tenant_id, params.id, body);
       return reply.code(201).send(wp);
     });
@@ -219,12 +295,20 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const deliv = await ProjectDeliverablesService(trx, user.tenant_id, params.id, body);
+      if (body.sign_document_id) return reply.code(501).send({ error: 'Deliverable signing-document links are not configured' });
+      if (body.phase_id && !await trx.selectFrom('project_phases').select('id').where('tenant_id', '=', user.tenant_id).where('project_id', '=', params.id).where('id', '=', body.phase_id).executeTakeFirst()) return reply.code(404).send({ error: 'Phase not found in this project' });
+      const workPackage = body.work_package_id ? await trx.selectFrom('project_work_packages').select(['id', 'phase_id']).where('tenant_id', '=', user.tenant_id).where('project_id', '=', params.id).where('id', '=', body.work_package_id).executeTakeFirst() : null;
+      if (body.work_package_id && !workPackage) return reply.code(404).send({ error: 'Work package not found in this project' });
+      if (body.phase_id && workPackage?.phase_id && body.phase_id !== workPackage.phase_id) return reply.code(400).send({ error: 'Phase must match the work package' });
+      const ownerId = body.owner_id ?? user.sub;
+      if (!await trx.selectFrom('users').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', ownerId).executeTakeFirst()) return reply.code(404).send({ error: 'Owner not found' });
+      if (body.contract_id && !await trx.selectFrom('contracts').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.contract_id).executeTakeFirst()) return reply.code(404).send({ error: 'Contract not found' });
+      const deliv = await ProjectOsService.createDeliverable(trx, user.tenant_id, params.id, { ...body, owner_id: ownerId, phase_id: body.phase_id ?? workPackage?.phase_id ?? null });
       return reply.code(201).send(deliv);
     });
   });
 
-  fastify.patch('/deliverables/:id/review', async (request) => {
+  fastify.patch('/deliverables/:id/review', async (request, reply) => {
     const user = request.user;
     const params = z.object({ id: uuidSchema }).parse(request.params);
     const body = z.object({
@@ -233,6 +317,10 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      const deliverable = await trx.selectFrom('project_deliverables').select('project_id').where('tenant_id', '=', user.tenant_id).where('id', '=', params.id).executeTakeFirst();
+      if (!deliverable) return reply.code(404).send({ error: 'Deliverable not found' });
+      const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, deliverable.project_id);
+      if (!access || !['owner', 'admin'].includes(access.access)) return reply.code(403).send({ error: 'Only project owners and administrators can review deliverables' });
       return await ProjectOsService.reviewDeliverable(trx, user.tenant_id, params.id, user.sub, body.status, body.rejection_reason);
     });
   });
@@ -254,8 +342,8 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const body = z.object({
       title: z.string().trim().min(1).max(200),
       description: z.string().optional().nullable(),
-      category: z.string().optional(),
-      probability: z.enum(['unlikely', 'possible', 'likely', 'almost_certain']),
+      category: z.enum(['technical', 'commercial', 'safety', 'environmental', 'legal', 'operational', 'schedule', 'cost', 'resource', 'external']).optional(),
+      probability: z.enum(['unlikely', 'possible', 'moderate', 'likely', 'almost_certain']),
       impact: z.enum(['negligible', 'low', 'medium', 'high', 'critical']),
       financial_exposure: z.number().min(0).optional(),
       strategy: z.enum(['mitigate', 'avoid', 'transfer', 'accept']).optional(),
@@ -266,12 +354,13 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.owner_id && !await trx.selectFrom('users').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.owner_id).executeTakeFirst()) return reply.code(404).send({ error: 'Risk owner not found' });
       const risk = await ProjectGovernanceService.createRisk(trx, user.tenant_id, params.id, body);
       return reply.code(201).send(risk);
     });
   });
 
-  fastify.patch('/risks/:id/status', async (request) => {
+  fastify.patch('/risks/:id/status', async (request, reply) => {
     const user = request.user;
     const params = z.object({ id: uuidSchema }).parse(request.params);
     const body = z.object({
@@ -280,6 +369,10 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      const entity = await trx.selectFrom('project_risks').select('project_id').where('tenant_id', '=', user.tenant_id).where('id', '=', params.id).executeTakeFirst();
+      if (!entity) return reply.code(404).send({ error: 'Record not found' });
+      const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, entity.project_id);
+      if (!access || !canEditProject(access.access)) return reply.code(403).send({ error: 'Project edit access required' });
       return await ProjectGovernanceService.updateRiskStatus(trx, user.tenant_id, params.id, body.status, body.mitigation_plan);
     });
   });
@@ -309,12 +402,14 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const issue = await ProjectGovernanceService.createIssue(trx, user.tenant_id, params.id, body);
+      const ownerId = body.assigned_to ?? user.sub;
+      if (!await trx.selectFrom('users').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', ownerId).executeTakeFirst()) return reply.code(404).send({ error: 'Issue owner not found' });
+      const issue = await ProjectGovernanceService.createIssue(trx, user.tenant_id, params.id, { ...body, assigned_to: ownerId });
       return reply.code(201).send(issue);
     });
   });
 
-  fastify.patch('/issues/:id/resolve', async (request) => {
+  fastify.patch('/issues/:id/resolve', async (request, reply) => {
     const user = request.user;
     const params = z.object({ id: uuidSchema }).parse(request.params);
     const body = z.object({
@@ -322,6 +417,10 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      const entity = await trx.selectFrom('project_issues').select('project_id').where('tenant_id', '=', user.tenant_id).where('id', '=', params.id).executeTakeFirst();
+      if (!entity) return reply.code(404).send({ error: 'Record not found' });
+      const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, entity.project_id);
+      if (!access || !canEditProject(access.access)) return reply.code(403).send({ error: 'Project edit access required' });
       return await ProjectGovernanceService.resolveIssue(trx, user.tenant_id, params.id, body.resolution);
     });
   });
@@ -344,7 +443,8 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       cr_number: z.string().trim().min(1).max(50),
       title: z.string().trim().min(1).max(200),
       reason: z.string().trim().min(1),
-      scope_impact: z.string().optional().nullable(),
+      original_scope: z.string().trim().min(1),
+      requested_change: z.string().trim().min(1),
       cost_impact: z.number().optional(),
       schedule_impact_days: z.number().int().optional(),
       risk_impact: z.string().optional().nullable(),
@@ -359,18 +459,47 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
 
   // ─── Approvals ────────────────────────────────────────────────────
 
-  fastify.get('/approvals', async (request) => {
+  fastify.get('/projects/:id/approval-approvers', async request => {
+    const { id } = z.object({ id: uuidSchema }).parse(request.params);
+    return withTenant(request.user.tenant_id, trx => ProjectGovernanceService.eligibleApprovers(trx, request.user.tenant_id, id));
+  });
+
+  fastify.patch('/projects/:id/change-requests/:changeId', async request => {
+    const params = z.object({ id: uuidSchema, changeId: uuidSchema }).parse(request.params);
+    const body = z.object({ title: z.string().trim().min(1).max(200), reason: z.string().trim().min(1),
+      original_scope: z.string().trim().min(1), requested_change: z.string().trim().min(1),
+      cost_impact: z.number().optional(), schedule_impact_days: z.number().int().optional(),
+      risk_impact: z.string().nullable().optional(), client_approval_required: z.boolean().optional(),
+    }).parse(request.body);
+    return withTenant(request.user.tenant_id, trx => ProjectGovernanceService.editChangeRequest(trx, request.user.tenant_id, params.id, params.changeId, body));
+  });
+
+  fastify.post('/projects/:id/change-requests/:changeId/submit', async (request, reply) => {
+    const params = z.object({ id: uuidSchema, changeId: uuidSchema }).parse(request.params);
+    const body = z.object({ steps: z.array(z.object({ step_name: z.string().trim().min(1).max(120), assigned_user_id: uuidSchema })).min(1).max(10) }).parse(request.body);
+    const user = request.user;
+    return withTenant(user.tenant_id, async trx => {
+      const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, params.id);
+      if (!access || !['owner', 'admin'].includes(access.access)) return reply.code(403).send({ error: 'Project owner or administrator access required to configure approvals' });
+      return reply.code(201).send(await ProjectGovernanceService.initiateApprovalWorkflow(trx, user.tenant_id, params.id,
+        'change_request', params.changeId, 'Change request review', user.sub,
+        body.steps.map((step, index) => ({ ...step, step_order: index + 1 }))));
+    });
+  });
+
+  fastify.get('/approvals', async (request, reply) => {
     const user = request.user;
     const query = z.object({
       projectId: uuidSchema.optional(),
     }).parse(request.query);
 
     return withTenant(user.tenant_id, async (trx) => {
-      return await ProjectGovernanceService.listApprovals(trx, user.tenant_id, query.projectId);
+      if (query.projectId && !await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, query.projectId)) return reply.code(403).send({ error: 'Project access required' });
+      return await ProjectGovernanceService.listApprovals(trx, user.tenant_id, user.sub, user.role, query.projectId);
     });
   });
 
-  fastify.post('/approvals/:id/steps/:stepId/decision', async (request) => {
+  fastify.post('/approvals/:id/steps/:stepId/decision', async (request, reply) => {
     const user = request.user;
     const params = z.object({
       id: uuidSchema,
@@ -383,6 +512,12 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      const approval = await trx.selectFrom('project_approvals').select(['project_id']).where('tenant_id', '=', user.tenant_id).where('id', '=', params.id).executeTakeFirst();
+      if (!approval) return reply.code(404).send({ error: 'Approval not found' });
+      if (approval.project_id) {
+        const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, approval.project_id);
+        if (!access || !canEditProject(access.access)) return reply.code(403).send({ error: 'Project edit access required' });
+      }
       return await ProjectGovernanceService.submitApprovalDecision(
         trx,
         user.tenant_id,
@@ -444,16 +579,15 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       rfq_number: z.string().trim().min(1).max(50),
       title: z.string().trim().min(1).max(200),
       scope_description: z.string().optional().nullable(),
-      issue_date: z.string().optional().nullable(),
-      closing_date: z.string().optional().nullable(),
+      issue_date: z.string().date().optional(),
+      closing_date: z.string().date(),
       suppliers: z.array(z.object({
-        supplier_name: z.string().trim().min(1),
-        contact_email: z.string().email().optional().nullable(),
-        quoted_amount: z.number().optional().nullable(),
-        delivery_lead_time_days: z.number().int().optional().nullable(),
-        technical_compliance_score: z.number().optional().nullable(),
-        commercial_score: z.number().optional().nullable(),
-      })).optional(),
+        supplier_id: uuidSchema,
+        quoted_amount: z.number().min(0).optional().nullable(),
+        delivery_lead_time_days: z.number().int().min(0).optional().nullable(),
+        technical_compliance_score: z.number().min(0).max(100).optional().nullable(),
+        commercial_score: z.number().min(0).max(100).optional().nullable(),
+      })).min(1).max(50),
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
@@ -480,12 +614,11 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       rfq_id: uuidSchema.optional().nullable(),
       purchase_request_id: uuidSchema.optional().nullable(),
       po_number: z.string().trim().min(1).max(50),
-      supplier_name: z.string().trim().min(1).max(200),
-      supplier_id: uuidSchema.optional().nullable(),
+      supplier_id: uuidSchema,
       total_amount: z.number().min(0),
       currency: z.string().max(5).optional(),
-      issue_date: z.string().optional(),
-      expected_delivery_date: z.string().optional().nullable(),
+      issue_date: z.string().date().optional(),
+      expected_delivery_date: z.string().date().optional().nullable(),
       payment_terms: z.string().optional().nullable(),
       incoterms: z.string().optional().nullable(),
       delivery_location: z.string().optional().nullable(),
@@ -515,10 +648,10 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const body = z.object({
       po_id: uuidSchema,
       grn_number: z.string().trim().min(1).max(50),
-      received_date: z.string().optional(),
+      received_date: z.string().date().optional(),
       carrier_delivery_note_ref: z.string().optional().nullable(),
       status: z.enum(['pending_inspection', 'accepted', 'rejected', 'partially_accepted']).optional(),
-      items_received: z.array(z.any()).optional(),
+      items_received: z.array(z.object({ description: z.string().trim().min(1).max(500), quantity: z.number().positive(), unit: z.string().trim().min(1).max(50) })).min(1).max(100),
       inspector_notes: z.string().optional().nullable(),
     }).parse(request.body);
 
@@ -546,7 +679,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const body = z.object({
       resource_type: z.enum(['personnel', 'heavy_machinery', 'equipment', 'tool', 'facility', 'vehicle']),
       name: z.string().trim().min(1).max(200),
-      code: z.string().optional().nullable(),
+      code: z.string().trim().max(50).optional().nullable(),
       make_model: z.string().optional().nullable(),
       serial_number: z.string().optional().nullable(),
       license_plate: z.string().optional().nullable(),
@@ -556,8 +689,8 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       cost_rate_daily: z.number().min(0).optional(),
       currency: z.string().max(5).optional(),
       telemetry_id: z.string().optional().nullable(),
-      last_maintenance_date: z.string().optional().nullable(),
-      next_maintenance_date: z.string().optional().nullable(),
+      last_maintenance_date: z.string().date().optional().nullable(),
+      next_maintenance_date: z.string().date().optional().nullable(),
       status: z.enum(['available', 'allocated', 'maintenance', 'decommissioned']).optional(),
       location: z.string().optional().nullable(),
     }).parse(request.body);
@@ -566,6 +699,20 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       const res = await ProjectResourcesService.createResource(trx, user.tenant_id, body);
       return reply.code(201).send(res);
     });
+  });
+
+  fastify.patch('/resources/:resourceId', async (request, reply) => {
+    const user = request.user;
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN'].includes(user.role)) return reply.code(403).send({ error: 'Only workspace administrators can edit fleet assets' });
+    const params = z.object({ resourceId: uuidSchema }).parse(request.params);
+    const body = z.object({ name: z.string().trim().min(1).max(200).optional(), make_model: z.string().max(1000).nullable().optional(), capacity_rating: z.string().max(1000).nullable().optional(), cost_rate_hourly: z.number().min(0).optional(), cost_rate_daily: z.number().min(0).optional(), status: z.enum(['available', 'allocated', 'maintenance', 'decommissioned']).optional() }).parse(request.body);
+    return withTenant(user.tenant_id, trx => ProjectResourcesService.updateResource(trx, user.tenant_id, params.resourceId, body));
+  });
+
+  fastify.post('/projects/:id/allocations/:allocationId/release', async (request) => {
+    const user = request.user;
+    const params = z.object({ id: uuidSchema, allocationId: uuidSchema }).parse(request.params);
+    return withTenant(user.tenant_id, trx => ProjectResourcesService.releaseAllocation(trx, user.tenant_id, params.id, params.allocationId));
   });
 
   fastify.get('/projects/:id/allocations', async (request) => {
@@ -583,9 +730,9 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const body = z.object({
       work_package_id: uuidSchema.optional().nullable(),
       resource_id: uuidSchema,
-      start_date: z.string(),
-      end_date: z.string(),
-      allocated_pct: z.number().min(1).max(100).optional(),
+      start_date: z.string().date(),
+      end_date: z.string().date(),
+      allocated_pct: z.number().int().min(1).max(100).optional(),
       hours_planned: z.number().min(0).optional(),
       operator_id: uuidSchema.optional().nullable(),
       notes: z.string().optional().nullable(),
@@ -616,7 +763,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const params = z.object({ id: uuidSchema }).parse(request.params);
     const body = z.object({
       industry: z.string(),
-      data_type: z.string().trim().min(1),
+      data_type: z.string().trim().min(1).max(50),
       record_data: z.record(z.any()),
     }).parse(request.body);
 
@@ -642,11 +789,11 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      const record = await trx.selectFrom('project_industry_data').select('project_id').where('tenant_id', '=', user.tenant_id).where('id', '=', params.id).executeTakeFirst();
+      if (!record) throw Object.assign(new Error('Industry record not found'), { statusCode: 404 });
+      const access = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, record.project_id);
+      if (!access || !canEditProject(access.access)) throw Object.assign(new Error('You cannot edit this project record'), { statusCode: 403 });
       return await ProjectIndustryService.updateRecord(trx, user.tenant_id, params.id, body.record_data);
     });
   });
-}
-
-function ProjectDeliverablesService(trx: any, tenant_id: string, id: string, body: any) {
-  return ProjectOsService.createDeliverable(trx, tenant_id, id, body);
 }

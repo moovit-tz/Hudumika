@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { sql, type Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import type {
@@ -74,7 +75,7 @@ export class ProjectOsService {
   static async listPortfolios(trx: Transaction<Database>, tenantId: string) {
     const rows = await trx
       .selectFrom('project_portfolios')
-      .leftJoin('users', 'users.id', 'project_portfolios.owner_id')
+      .leftJoin('users', (join) => join.on(sql<boolean>`users.id = project_portfolios.manager_id and users.tenant_id = ${tenantId}`))
       .where('project_portfolios.tenant_id', '=', tenantId)
       .select([
         'project_portfolios.id',
@@ -82,12 +83,10 @@ export class ProjectOsService {
         'project_portfolios.name',
         'project_portfolios.code',
         'project_portfolios.description',
-        'project_portfolios.owner_id',
-        'project_portfolios.target_roi',
-        'project_portfolios.allocated_budget',
-        'project_portfolios.spent_budget',
+        'project_portfolios.manager_id',
+        'project_portfolios.target_budget',
+        'project_portfolios.currency',
         'project_portfolios.status',
-        'project_portfolios.strategic_alignment',
         'project_portfolios.metadata',
         'project_portfolios.created_at',
         'project_portfolios.updated_at',
@@ -113,6 +112,13 @@ export class ProjectOsService {
 
     return rows.map(r => ({
       ...r,
+      owner_id: r.manager_id,
+      allocated_budget: Number(r.target_budget),
+      // The schema has no reconciled portfolio expenditure; expose unavailable instead of a fabricated zero.
+      spent_budget: null,
+      target_roi: r.metadata?.target_roi ?? null,
+      strategic_alignment: r.metadata?.strategic_alignment ?? {},
+      status: r.status.toLowerCase(),
       project_count: Number(statMap.get(r.id)?.project_count || 0),
       total_contract_value: Number(statMap.get(r.id)?.total_contract_value || 0),
     }));
@@ -125,25 +131,29 @@ export class ProjectOsService {
     owner_id?: string | null;
     target_roi?: number | null;
     allocated_budget?: number;
+    currency?: string;
     status?: string;
     strategic_alignment?: Record<string, any>;
   }) {
-    return await trx
+    const row = await trx
       .insertInto('project_portfolios')
       .values({
         tenant_id: tenantId,
         name: data.name,
         code: data.code.toUpperCase(),
         description: data.description ?? null,
-        owner_id: data.owner_id ?? null,
-        target_roi: data.target_roi ?? null,
-        allocated_budget: data.allocated_budget ?? 0,
-        spent_budget: 0,
-        status: data.status ?? 'active',
-        strategic_alignment: data.strategic_alignment ?? {},
+        manager_id: data.owner_id ?? null,
+        target_budget: data.allocated_budget ?? 0,
+        currency: data.currency ?? 'TZS',
+        start_date: null,
+        end_date: null,
+        status: (data.status ?? 'active').toUpperCase(),
+        metadata: { target_roi: data.target_roi ?? null, strategic_alignment: data.strategic_alignment ?? {} },
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+    return { ...row, owner_id: row.manager_id, allocated_budget: Number(row.target_budget), spent_budget: null,
+      target_roi: row.metadata.target_roi ?? null, strategic_alignment: row.metadata.strategic_alignment ?? {}, status: row.status.toLowerCase() };
   }
 
   // ─── Programs ─────────────────────────────────────────────────────
@@ -151,8 +161,8 @@ export class ProjectOsService {
   static async listPrograms(trx: Transaction<Database>, tenantId: string, portfolioId?: string) {
     let query = trx
       .selectFrom('project_programs')
-      .leftJoin('project_portfolios', 'project_portfolios.id', 'project_programs.portfolio_id')
-      .leftJoin('users', 'users.id', 'project_programs.program_manager_id')
+      .leftJoin('project_portfolios', (join) => join.on(sql<boolean>`project_portfolios.id = project_programs.portfolio_id and project_portfolios.tenant_id = ${tenantId}`))
+      .leftJoin('users', (join) => join.on(sql<boolean>`users.id = project_programs.manager_id and users.tenant_id = ${tenantId}`))
       .where('project_programs.tenant_id', '=', tenantId);
 
     if (portfolioId) {
@@ -167,9 +177,10 @@ export class ProjectOsService {
         'project_programs.name',
         'project_programs.code',
         'project_programs.description',
-        'project_programs.program_manager_id',
+        'project_programs.manager_id',
         'project_programs.budget',
-        'project_programs.target_benefits',
+        'project_programs.metadata',
+        'project_programs.currency',
         'project_programs.status',
         'project_programs.start_date',
         'project_programs.end_date',
@@ -181,7 +192,8 @@ export class ProjectOsService {
       .orderBy('project_programs.created_at', 'desc')
       .execute();
 
-    return rows;
+    return rows.map(r => ({ ...r, program_manager_id: r.manager_id, budget: Number(r.budget),
+      target_benefits: r.metadata?.target_benefits ?? [], status: r.status.toLowerCase() }));
   }
 
   static async createProgram(trx: Transaction<Database>, tenantId: string, data: {
@@ -191,12 +203,13 @@ export class ProjectOsService {
     description?: string | null;
     program_manager_id?: string | null;
     budget?: number;
+    currency?: string;
     target_benefits?: string[];
     status?: string;
     start_date?: string | null;
     end_date?: string | null;
   }) {
-    return await trx
+    const row = await trx
       .insertInto('project_programs')
       .values({
         tenant_id: tenantId,
@@ -204,27 +217,40 @@ export class ProjectOsService {
         name: data.name,
         code: data.code.toUpperCase(),
         description: data.description ?? null,
-        program_manager_id: data.program_manager_id ?? null,
+        manager_id: data.program_manager_id ?? null,
         budget: data.budget ?? 0,
-        target_benefits: data.target_benefits ?? [],
-        status: data.status ?? 'active',
+        currency: data.currency ?? 'TZS',
+        metadata: { target_benefits: data.target_benefits ?? [] },
+        status: (data.status ?? 'active').toUpperCase(),
         start_date: data.start_date ?? null,
         end_date: data.end_date ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+    return { ...row, program_manager_id: row.manager_id, budget: Number(row.budget),
+      target_benefits: row.metadata.target_benefits ?? [], status: row.status.toLowerCase() };
   }
 
   // ─── Phases ───────────────────────────────────────────────────────
 
+  static phaseResponse(row: any) {
+    return { ...row, sequence_order: row.sort_order,
+      status: ({ PLANNED: 'not_started', REVIEW: 'under_review' } as Record<string, string>)[row.status] ?? row.status.toLowerCase(),
+      gate_review_date: row.metadata.gate_review_date ?? null,
+      gate_approver_role: row.metadata.gate_approver_role ?? 'Project Director',
+      gate_criteria: row.metadata.gate_criteria ?? {}, gate_passed: row.metadata.gate_passed ?? false,
+      notes: row.description };
+  }
+
   static async listPhases(trx: Transaction<Database>, tenantId: string, projectId: string) {
-    return await trx
+    const rows = await trx
       .selectFrom('project_phases')
       .where('tenant_id', '=', tenantId)
       .where('project_id', '=', projectId)
       .selectAll()
-      .orderBy('sequence_order', 'asc')
+      .orderBy('sort_order', 'asc')
       .execute();
+    return rows.map(this.phaseResponse);
   }
 
   static async createPhase(trx: Transaction<Database>, tenantId: string, projectId: string, data: {
@@ -238,86 +264,72 @@ export class ProjectOsService {
     gate_criteria?: Record<string, any>;
     notes?: string | null;
   }) {
+    await trx.selectFrom('projects').select('id').where('tenant_id', '=', tenantId).where('id', '=', projectId).forUpdate().executeTakeFirstOrThrow();
     const maxOrder = await trx
       .selectFrom('project_phases')
       .where('tenant_id', '=', tenantId)
       .where('project_id', '=', projectId)
-      .select(({ fn }) => fn.max('sequence_order').as('max_order'))
+      .select(({ fn }) => fn.max('sort_order').as('max_order'))
       .executeTakeFirst();
 
     const order = data.sequence_order ?? ((maxOrder?.max_order ?? 0) + 1);
 
-    return await trx
+    const row = await trx
       .insertInto('project_phases')
       .values({
         tenant_id: tenantId,
         project_id: projectId,
         name: data.name,
-        code: data.code ?? null,
-        sequence_order: order,
+        code: data.code?.trim() || `PH-${randomUUID()}`,
+        sort_order: order,
+        phase_number: order,
         start_date: data.start_date ?? null,
         end_date: data.end_date ?? null,
-        gate_review_date: data.gate_review_date ?? null,
-        status: 'not_started',
-        gate_approver_role: data.gate_approver_role ?? 'Project Director',
-        gate_criteria: data.gate_criteria ?? {},
-        notes: data.notes ?? null,
+        status: 'PLANNED',
+        description: data.notes ?? null,
+        metadata: { gate_review_date: data.gate_review_date ?? null, gate_approver_role: data.gate_approver_role ?? 'Project Director', gate_criteria: data.gate_criteria ?? {}, gate_passed: false },
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+    return this.phaseResponse(row);
   }
 
-  static async updatePhaseGate(trx: Transaction<Database>, tenantId: string, phaseId: string, passed: boolean, status?: string) {
-    return await trx
+  static async updatePhaseGate(trx: Transaction<Database>, tenantId: string, phaseId: string, passed: boolean) {
+    const row = await trx
       .updateTable('project_phases')
       .set({
-        gate_passed: passed,
-        status: status ?? (passed ? 'completed' : 'under_review'),
+        metadata: sql`metadata || ${JSON.stringify({ gate_passed: passed })}::jsonb`,
+        status: passed ? 'COMPLETED' : 'REVIEW',
         updated_at: new Date(),
       })
       .where('id', '=', phaseId)
       .where('tenant_id', '=', tenantId)
       .returningAll()
       .executeTakeFirstOrThrow();
+    return this.phaseResponse(row);
   }
 
   // ─── Work Packages / WBS ──────────────────────────────────────────
 
+  static workPackageResponse(row: any) {
+    return { ...row, parent_id: row.metadata.parent_id ?? null, lead_id: row.manager_id,
+      planned_start: row.start_date, planned_end: row.end_date, actual_start: row.metadata.actual_start ?? null,
+      actual_end: row.metadata.actual_end ?? null, planned_cost: Number(row.budget), actual_cost: Number(row.actual_cost ?? 0),
+      earned_value: Number(row.budget) * Number(row.progress_pct) / 100, deliverables_summary: {},
+      status: row.metadata.workflow_status ?? ({ PLANNED: 'draft', REVIEW: 'approved', ON_HOLD: 'cancelled' } as Record<string, string>)[row.status] ?? row.status.toLowerCase() };
+  }
+
   static async listWorkPackages(trx: Transaction<Database>, tenantId: string, projectId: string) {
-    return await trx
-      .selectFrom('project_work_packages')
-      .leftJoin('project_phases', 'project_phases.id', 'project_work_packages.phase_id')
-      .leftJoin('users', 'users.id', 'project_work_packages.lead_id')
-      .where('project_work_packages.tenant_id', '=', tenantId)
-      .where('project_work_packages.project_id', '=', projectId)
-      .select([
-        'project_work_packages.id',
-        'project_work_packages.tenant_id',
-        'project_work_packages.project_id',
-        'project_work_packages.phase_id',
-        'project_work_packages.parent_id',
-        'project_work_packages.wbs_code',
-        'project_work_packages.name',
-        'project_work_packages.description',
-        'project_work_packages.lead_id',
-        'project_work_packages.planned_start',
-        'project_work_packages.planned_end',
-        'project_work_packages.actual_start',
-        'project_work_packages.actual_end',
-        'project_work_packages.planned_cost',
-        'project_work_packages.actual_cost',
-        'project_work_packages.earned_value',
-        'project_work_packages.progress_pct',
-        'project_work_packages.status',
-        'project_work_packages.deliverables_summary',
-        'project_work_packages.metadata',
-        'project_work_packages.created_at',
-        'project_work_packages.updated_at',
-        'project_phases.name as phase_name',
-        'users.name as lead_name',
-      ])
-      .orderBy('project_work_packages.wbs_code', 'asc')
-      .execute();
+    const rows = await trx.selectFrom('project_work_packages')
+      .leftJoin('project_phases', join => join.on(sql<boolean>`project_phases.id = project_work_packages.phase_id and project_phases.tenant_id = ${tenantId} and project_phases.project_id = ${projectId}`))
+      .leftJoin('users', join => join.on(sql<boolean>`users.id = project_work_packages.manager_id and users.tenant_id = ${tenantId}`))
+      .where('project_work_packages.tenant_id', '=', tenantId).where('project_work_packages.project_id', '=', projectId)
+      .selectAll('project_work_packages').select(['project_phases.name as phase_name', 'users.name as lead_name'])
+      .select(sql<number>`(select coalesce(sum(tasks.actual_cost), 0) from tasks
+        where tasks.tenant_id = ${tenantId} and tasks.project_id = ${projectId}
+        and tasks.work_package_id = project_work_packages.id)`.as('actual_cost'))
+      .orderBy('project_work_packages.wbs_code').execute();
+    return rows.map(this.workPackageResponse);
   }
 
   static async createWorkPackage(trx: Transaction<Database>, tenantId: string, projectId: string, data: {
@@ -333,118 +345,74 @@ export class ProjectOsService {
     progress_pct?: number;
     status?: string;
   }) {
-    return await trx
+    const row = await trx
       .insertInto('project_work_packages')
       .values({
         tenant_id: tenantId,
         project_id: projectId,
         phase_id: data.phase_id ?? null,
-        parent_id: data.parent_id ?? null,
+        metadata: { parent_id: data.parent_id ?? null, workflow_status: data.status ?? 'draft' },
         wbs_code: data.wbs_code,
         name: data.name,
         description: data.description ?? null,
-        lead_id: data.lead_id ?? null,
-        planned_start: data.planned_start ?? null,
-        planned_end: data.planned_end ?? null,
-        planned_cost: data.planned_cost ?? 0,
-        actual_cost: 0,
-        earned_value: 0,
+        manager_id: data.lead_id ?? null,
+        start_date: data.planned_start ?? null,
+        end_date: data.planned_end ?? null,
+        budget: data.planned_cost ?? 0,
         progress_pct: data.progress_pct ?? 0,
-        status: data.status ?? 'draft',
+        status: ({ draft: 'PLANNED', approved: 'REVIEW', in_progress: 'IN_PROGRESS', completed: 'COMPLETED', cancelled: 'ON_HOLD' } as Record<string, string>)[data.status ?? 'draft'],
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+    return this.workPackageResponse(row);
   }
 
   // ─── Deliverables ─────────────────────────────────────────────────
 
+  static deliverableResponse(row: any) {
+    const approved = ['APPROVED', 'DELIVERED'].includes(row.status);
+    return { ...row, title: row.name, description: row.metadata.description ?? null,
+      status: ({ DRAFT: 'pending', INTERNAL_REVIEW: 'submitted', CLIENT_REVIEW: 'submitted',
+        REVISION_REQUESTED: 'in_progress', APPROVED: 'approved', DELIVERED: 'approved', REJECTED: 'rejected' } as Record<string, string>)[row.status],
+      approved_by: approved ? row.reviewer_id : null, approved_at: approved ? row.metadata.approved_at ?? null : null,
+      rejection_reason: row.status === 'REJECTED' ? row.review_notes : null,
+      sign_document_id: null, sign_package_id: null, contract_id: row.metadata.contract_id ?? null,
+      attachments: row.metadata.attachments ?? {} };
+  }
+
   static async listDeliverables(trx: Transaction<Database>, tenantId: string, projectId: string) {
-    return await trx
-      .selectFrom('project_deliverables')
-      .leftJoin('project_phases', 'project_phases.id', 'project_deliverables.phase_id')
-      .leftJoin('project_work_packages', 'project_work_packages.id', 'project_deliverables.work_package_id')
-      .leftJoin('users as owner', 'owner.id', 'project_deliverables.owner_id')
-      .leftJoin('users as approver', 'approver.id', 'project_deliverables.approved_by')
-      .where('project_deliverables.tenant_id', '=', tenantId)
-      .where('project_deliverables.project_id', '=', projectId)
-      .select([
-        'project_deliverables.id',
-        'project_deliverables.tenant_id',
-        'project_deliverables.project_id',
-        'project_deliverables.phase_id',
-        'project_deliverables.work_package_id',
-        'project_deliverables.title',
-        'project_deliverables.code',
-        'project_deliverables.description',
-        'project_deliverables.owner_id',
-        'project_deliverables.due_date',
-        'project_deliverables.acceptance_criteria',
-        'project_deliverables.status',
-        'project_deliverables.approved_by',
-        'project_deliverables.approved_at',
-        'project_deliverables.rejection_reason',
-        'project_deliverables.sign_document_id',
-        'project_deliverables.sign_package_id',
-        'project_deliverables.contract_id',
-        'project_deliverables.attachments',
-        'project_deliverables.created_at',
-        'project_deliverables.updated_at',
-        'project_phases.name as phase_name',
-        'project_work_packages.name as work_package_name',
-        'owner.name as owner_name',
-        'approver.name as approver_name',
-      ])
-      .orderBy('project_deliverables.due_date', 'asc')
-      .execute();
+    const rows = await trx.selectFrom('project_deliverables')
+      .leftJoin('project_phases', join => join.on(sql<boolean>`project_phases.id = project_deliverables.phase_id and project_phases.tenant_id = ${tenantId} and project_phases.project_id = ${projectId}`))
+      .leftJoin('project_work_packages', join => join.on(sql<boolean>`project_work_packages.id = project_deliverables.work_package_id and project_work_packages.tenant_id = ${tenantId} and project_work_packages.project_id = ${projectId}`))
+      .leftJoin('users as owner', join => join.on(sql<boolean>`owner.id = project_deliverables.owner_id and owner.tenant_id = ${tenantId}`))
+      .leftJoin('users as approver', join => join.on(sql<boolean>`approver.id = project_deliverables.reviewer_id and approver.tenant_id = ${tenantId}`))
+      .where('project_deliverables.tenant_id', '=', tenantId).where('project_deliverables.project_id', '=', projectId)
+      .selectAll('project_deliverables').select(['project_phases.name as phase_name', 'project_work_packages.name as work_package_name', 'owner.name as owner_name', 'approver.name as approver_name'])
+      .orderBy('project_deliverables.due_date').execute();
+    return rows.map(this.deliverableResponse);
   }
 
   static async createDeliverable(trx: Transaction<Database>, tenantId: string, projectId: string, data: {
-    phase_id?: string | null;
-    work_package_id?: string | null;
-    title: string;
-    code?: string | null;
-    description?: string | null;
-    owner_id?: string | null;
-    due_date?: string | null;
-    acceptance_criteria?: string | null;
-    sign_document_id?: string | null;
-    contract_id?: string | null;
+    phase_id?: string | null; work_package_id?: string | null; title: string; code?: string | null;
+    description?: string | null; owner_id: string; due_date?: string | null;
+    acceptance_criteria?: string | null; contract_id?: string | null;
   }) {
-    return await trx
-      .insertInto('project_deliverables')
-      .values({
-        tenant_id: tenantId,
-        project_id: projectId,
-        phase_id: data.phase_id ?? null,
-        work_package_id: data.work_package_id ?? null,
-        title: data.title,
-        code: data.code ?? null,
-        description: data.description ?? null,
-        owner_id: data.owner_id ?? null,
-        due_date: data.due_date ?? null,
-        acceptance_criteria: data.acceptance_criteria ?? null,
-        status: 'pending',
-        sign_document_id: data.sign_document_id ?? null,
-        contract_id: data.contract_id ?? null,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    const row = await trx.insertInto('project_deliverables').values({ tenant_id: tenantId, project_id: projectId,
+      phase_id: data.phase_id ?? null, work_package_id: data.work_package_id ?? null,
+      name: data.title, code: data.code?.trim() || `DL-${randomUUID()}`, owner_id: data.owner_id,
+      due_date: data.due_date ?? null, acceptance_criteria: data.acceptance_criteria ?? null, status: 'DRAFT',
+      metadata: { description: data.description ?? null, contract_id: data.contract_id ?? null },
+    }).returningAll().executeTakeFirstOrThrow();
+    return this.deliverableResponse(row);
   }
 
   static async reviewDeliverable(trx: Transaction<Database>, tenantId: string, deliverableId: string, reviewerId: string, status: 'approved' | 'rejected', rejectionReason?: string) {
-    return await trx
-      .updateTable('project_deliverables')
-      .set({
-        status,
-        approved_by: status === 'approved' ? reviewerId : null,
-        approved_at: status === 'approved' ? new Date() : null,
-        rejection_reason: status === 'rejected' ? rejectionReason ?? 'Rejected by reviewer' : null,
-        updated_at: new Date(),
-      })
-      .where('id', '=', deliverableId)
-      .where('tenant_id', '=', tenantId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    const now = new Date();
+    const row = await trx.updateTable('project_deliverables').set({ status: status.toUpperCase(), reviewer_id: reviewerId,
+      review_notes: status === 'rejected' ? rejectionReason ?? 'Rejected by reviewer' : null,
+      metadata: sql`metadata || ${JSON.stringify({ approved_at: status === 'approved' ? now.toISOString() : null })}::jsonb`, updated_at: now,
+    }).where('id', '=', deliverableId).where('tenant_id', '=', tenantId).returningAll().executeTakeFirstOrThrow();
+    return this.deliverableResponse(row);
   }
 
   // ─── Comprehensive Project OS Detail & EVM Rollup ─────────────────
@@ -598,11 +566,11 @@ export class ProjectOsService {
         ({ fn }) => fn.sum<number>('actual_cost').as('total_cost'),
         ({ fn }) => fn.sum<number>('earned_value').as('total_ev'),
       ]).executeTakeFirst(),
-      trx.selectFrom('project_approvals').where('tenant_id', '=', tenantId).where('status', 'in', ['pending', 'in_progress']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_rfqs').where('tenant_id', '=', tenantId).where('status', '=', 'issued').select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_resources').where('tenant_id', '=', tenantId).where('resource_type', 'in', ['heavy_machinery', 'equipment']).select([
+      trx.selectFrom('project_approvals').where('tenant_id', '=', tenantId).where('status', 'in', ['PENDING', 'APPROVED']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_rfqs').where('tenant_id', '=', tenantId).where('status', '=', 'OPEN').select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_resources').where('tenant_id', '=', tenantId).where('resource_type', 'in', ['HEAVY_MACHINERY', 'EQUIPMENT']).select([
         ({ fn }) => fn.countAll<number>().as('total'),
-        ({ fn }) => fn.count<number>('id').filterWhere('status', '=', 'allocated').as('allocated'),
+        ({ fn }) => fn.count<number>('id').filterWhere('status', '=', 'ALLOCATED').as('allocated'),
       ]).executeTakeFirst(),
     ]);
 
@@ -620,9 +588,9 @@ export class ProjectOsService {
     let totalAc = 0;
 
     for (const p of allProjects) {
-      const h = (p.health_status as keyof typeof healthDistribution) || 'green';
-      if (healthDistribution[h] !== undefined) {
-        healthDistribution[h]++;
+      const raw = (p.health_status || 'GREEN').toLowerCase() as keyof typeof healthDistribution;
+      if (healthDistribution[raw] !== undefined) {
+        healthDistribution[raw]++;
       } else {
         healthDistribution.green++;
       }

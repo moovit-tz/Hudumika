@@ -1,3 +1,6 @@
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
+import { Input } from '../../components/ui/input.js';
+import { Textarea } from '../../components/ui/textarea.js';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
@@ -7,6 +10,7 @@ import { showAlert } from '../../lib/alert.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Combobox } from '../../components/ui/combobox.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
+import { ListPagination, paginate } from '../../components/ui/list-pagination.js';
 import type { ProjectPhase, ProjectWorkPackage, ProjectDeliverable } from '@hudumika/types';
 
 interface ProjectWbsScheduleProps {
@@ -31,6 +35,14 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
   const [workPackages, setWorkPackages] = useState<ProjectWorkPackage[]>(propsWorkPackages || []);
   const [deliverables, setDeliverables] = useState<ProjectDeliverable[]>(propsDeliverables || []);
   const [loading, setLoading] = useState(!propsPhases && !propsWorkPackages && !propsDeliverables);
+  const [wbsPage, setWbsPage] = useState(1);
+  const [wbsPageSize, setWbsPageSize] = useState(25);
+  const [phPage, setPhPage] = useState(1);
+  const [phPageSize, setPhPageSize] = useState(25);
+  const [delPage, setDelPage] = useState(1);
+  const [delPageSize, setDelPageSize] = useState(25);
+
+  useEffect(() => { setWbsPage(1); setPhPage(1); setDelPage(1); }, [activeSubTab]);
 
   const [showAddWbsModal, setShowAddWbsModal] = useState(false);
   const [showAddPhaseModal, setShowAddPhaseModal] = useState(false);
@@ -226,14 +238,14 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
   return (
     <div className="space-y-6">
       {/* Sub-tab Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-3">
         <div className="flex items-center gap-2" data-ds-tabstrip="">
           <button
             onClick={() => setActiveSubTab('wbs')}
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeSubTab === 'wbs'
                 ? 'bg-teal-600 text-white'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
            data-ds-selected={activeSubTab === 'wbs'} data-ui-native-button="" aria-pressed={activeSubTab === 'wbs'}>
             WBS Tree ({workPackages.length})
@@ -243,7 +255,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeSubTab === 'phases'
                 ? 'bg-teal-600 text-white'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
            data-ds-selected={activeSubTab === 'phases'} data-ui-native-button="" aria-pressed={activeSubTab === 'phases'}>
             Phases & Stage Gates ({phases.length})
@@ -253,7 +265,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
             className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeSubTab === 'deliverables'
                 ? 'bg-teal-600 text-white'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
            data-ds-selected={activeSubTab === 'deliverables'} data-ui-native-button="" aria-pressed={activeSubTab === 'deliverables'}>
             Deliverables & Signoffs ({deliverables.length})
@@ -262,17 +274,17 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
 
         <div className="flex items-center gap-2">
           {activeSubTab === 'wbs' && (
-            <Button size="sm" onClick={() => setShowAddWbsModal(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button size="sm" onClick={() => setShowAddWbsModal(true)} className="bg-primary text-primary-foreground">
               <Icon name="plus" size={14} className="mr-1" /> Add Work Package
             </Button>
           )}
           {activeSubTab === 'phases' && (
-            <Button size="sm" onClick={() => setShowAddPhaseModal(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button size="sm" onClick={() => setShowAddPhaseModal(true)} className="bg-primary text-primary-foreground">
               <Icon name="plus" size={14} className="mr-1" /> Add Project Phase
             </Button>
           )}
           {activeSubTab === 'deliverables' && (
-            <Button size="sm" onClick={() => setShowAddDeliverableModal(true)} className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button size="sm" onClick={() => setShowAddDeliverableModal(true)} className="bg-primary text-primary-foreground">
               <Icon name="plus" size={14} className="mr-1" /> Add Deliverable
             </Button>
           )}
@@ -283,11 +295,11 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
         <SectionLoading />
       ) : activeSubTab === 'wbs' ? (
         /* WBS Tree Table */
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">
+                <tr className="bg-slate-50 dark:bg-slate-900 border-b border-border text-muted-foreground font-bold uppercase tracking-wider">
                   <th className="py-3 px-4">WBS Code</th>
                   <th className="py-3 px-4">Work Package Name</th>
                   <th className="py-3 px-4">Phase</th>
@@ -300,26 +312,26 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
                 {workPackages.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
                       No Work Packages configured. Add items to establish the hierarchical Work Breakdown Structure.
                     </td>
                   </tr>
                 ) : (
-                  workPackages.map((wp) => (
+                  paginate(workPackages, wbsPage, wbsPageSize).visible.map((wp) => (
                     <tr key={wp.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/30">
-                      <td className="py-3 px-4 font-mono font-bold text-teal-600 dark:text-teal-400">
+                      <td className="py-3 px-4 font-mono font-bold text-primary">
                         {wp.wbs_code}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900 dark:text-white">{wp.name}</div>
+                        <div className="font-bold text-foreground">{wp.name}</div>
                         {wp.description && (
-                          <div className="text-[11px] text-slate-400 line-clamp-1">{wp.description}</div>
+                          <div className="text-[11px] text-muted-foreground line-clamp-1">{wp.description}</div>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-500">
+                      <td className="py-3 px-4 text-muted-foreground">
                         {wp.phase_name || '—'}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
+                      <td className="py-3 px-4 text-right font-bold text-foreground">
                         {formatCurrency(wp.planned_cost)}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -340,7 +352,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                           {wp.status.toUpperCase()}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-slate-500 text-[11px]">
+                      <td className="py-3 px-4 text-muted-foreground text-[11px]">
                         {wp.planned_start && wp.planned_end
                           ? `${wp.planned_start} → ${wp.planned_end}`
                           : '—'}
@@ -351,23 +363,24 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
               </tbody>
             </table>
           </div>
+          <ListPagination total={workPackages.length} page={wbsPage} pageSize={wbsPageSize} onPageChange={setWbsPage} onPageSizeChange={setWbsPageSize} noun="packages" />
         </div>
       ) : activeSubTab === 'phases' ? (
         /* Phases & Stage Gates List */
         <div className="space-y-4">
           {phases.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 text-xs">
+            <div className="p-8 text-center bg-muted rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-muted-foreground text-xs">
               No project phases defined. Add phases to enforce stage-gate approval reviews.
             </div>
-          ) : (
-            phases.map((ph) => (
+          ) : (<>
+            {paginate(phases, phPage, phPageSize).visible.map((ph) => (
               <div
                 key={ph.id}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
+                    <span className="text-[11px] font-bold text-primary bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
                       Phase {ph.sequence_order || 1}
                     </span>
                     <Badge variant={ph.status === 'completed' ? 'success' : ph.status === 'in_progress' ? 'brand' : 'gray'}>
@@ -379,11 +392,11 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                       </span>
                     )}
                   </div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">{ph.name}</h3>
-                  <div className="text-xs text-slate-500 mt-1 flex items-center gap-4 flex-wrap">
-                    <span>Approver Role: <strong className="text-slate-700 dark:text-slate-300">{ph.gate_approver_role || 'Project Director'}</strong></span>
+                  <h3 className="font-bold text-base text-foreground">{ph.name}</h3>
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-4 flex-wrap">
+                    <span>Approver Role: <strong className="text-foreground">{ph.gate_approver_role || 'Project Director'}</strong></span>
                     {ph.gate_review_date && (
-                      <span>Gate Review Due: <strong className="text-slate-700 dark:text-slate-300">{ph.gate_review_date}</strong></span>
+                      <span>Gate Review Due: <strong className="text-foreground">{ph.gate_review_date}</strong></span>
                     )}
                   </div>
                 </div>
@@ -409,44 +422,45 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   )}
                 </div>
               </div>
-            ))
-          )}
+            ))}
+            <ListPagination total={phases.length} page={phPage} pageSize={phPageSize} onPageChange={setPhPage} onPageSizeChange={setPhPageSize} noun="phases" />
+          </>)}
         </div>
       ) : (
         /* Deliverables List */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {deliverables.length === 0 ? (
-            <div className="col-span-full p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-slate-500 text-xs">
+            <div className="col-span-full p-8 text-center bg-muted rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-muted-foreground text-xs">
               No deliverables registered. Add contractual deliverables with acceptance criteria.
             </div>
-          ) : (
-            deliverables.map((deliv) => (
+          ) : (<>
+            {paginate(deliverables, delPage, delPageSize).visible.map((deliv) => (
               <div
                 key={deliv.id}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm flex flex-col justify-between"
+                className="bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-bold text-slate-500 font-mono">
+                    <span className="text-[11px] font-bold text-muted-foreground font-mono">
                       {deliv.code || 'DEL-00'}
                     </span>
                     <Badge variant={deliv.status === 'approved' ? 'success' : deliv.status === 'rejected' ? 'error' : 'warning'}>
                       {deliv.status.toUpperCase()}
                     </Badge>
                   </div>
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">
+                  <h4 className="font-bold text-sm text-foreground line-clamp-1">
                     {deliv.title}
                   </h4>
                   {deliv.acceptance_criteria && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 line-clamp-2">
-                      <strong className="text-slate-700 dark:text-slate-300">Acceptance Criteria: </strong>
+                    <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-2 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 line-clamp-2">
+                      <strong className="text-foreground">Acceptance Criteria: </strong>
                       {deliv.acceptance_criteria}
                     </p>
                   )}
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
+                <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">
                     Due: {deliv.due_date || 'N/A'}
                   </span>
                   {deliv.status !== 'approved' && (
@@ -470,8 +484,9 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   )}
                 </div>
               </div>
-            ))
-          )}
+            ))}
+            <ListPagination total={deliverables.length} page={delPage} pageSize={delPageSize} onPageChange={setDelPage} onPageSizeChange={setDelPageSize} noun="deliverables" />
+          </>)}
         </div>
       )}
 
@@ -483,20 +498,20 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
             <form onSubmit={handleCreateWbs} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     WBS Code *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     required
                     value={wbsCode}
                     onChange={(e) => setWbsCode(e.target.value)}
                     placeholder="e.g., 1.1.2"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Phase
                   </label>
                   <Combobox
@@ -510,74 +525,64 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Work Package Name *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={wbsName}
                   onChange={(e) => setWbsName(e.target.value)}
                   placeholder="e.g., Substructure Concrete Pouring"
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Planned Cost ({currency})
                   </label>
-                  <input
+                  <Input
                     type="number"
                     value={wbsPlannedCost}
                     onChange={(e) => setWbsPlannedCost(e.target.value)}
                     placeholder="450000"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Planned Start
                   </label>
-                  <input
-                    type="date"
-                    value={wbsPlannedStart}
-                    onChange={(e) => setWbsPlannedStart(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  />
+                  <DatePicker date={parseDateOnly(wbsPlannedStart)} onChange={date => setWbsPlannedStart(toDateOnlyString(date))} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Planned End
                   </label>
-                  <input
-                    type="date"
-                    value={wbsPlannedEnd}
-                    onChange={(e) => setWbsPlannedEnd(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  />
+                  <DatePicker date={parseDateOnly(wbsPlannedEnd)} onChange={date => setWbsPlannedEnd(toDateOnlyString(date))} />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Scope Description
                 </label>
-                <textarea
+                <Textarea
                   rows={2}
                   value={wbsDesc}
                   onChange={(e) => setWbsDesc(e.target.value)}
                   placeholder="Detailed work package specifications..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowAddWbsModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
+                <Button type="submit" size="sm" disabled={saving} className="bg-primary text-primary-foreground">
                   {saving ? 'Adding...' : 'Add Work Package'}
                 </Button>
               </div>
@@ -592,49 +597,44 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
 
             <form onSubmit={handleCreatePhase} className="mt-4 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Phase Name *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={phaseName}
                   onChange={(e) => setPhaseName(e.target.value)}
                   placeholder="e.g., Phase 1: Ground Engineering & Civil Foundation"
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Stage Gate Review Date
                   </label>
-                  <input
-                    type="date"
-                    value={phaseGateDate}
-                    onChange={(e) => setPhaseGateDate(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  />
+                  <DatePicker date={parseDateOnly(phaseGateDate)} onChange={date => setPhaseGateDate(toDateOnlyString(date))} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Approver Role
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={phaseRole}
                     onChange={(e) => setPhaseRole(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowAddPhaseModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
+                <Button type="submit" size="sm" disabled={saving} className="bg-primary text-primary-foreground">
                   {saving ? 'Creating...' : 'Create Phase'}
                 </Button>
               </div>
@@ -649,63 +649,58 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
 
             <form onSubmit={handleCreateDeliverable} className="mt-4 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Deliverable Title *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={delivTitle}
                   onChange={(e) => setDelivTitle(e.target.value)}
                   placeholder="e.g., As-Built Structural Engineering Drawings"
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Deliverable Code
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={delivCode}
                     onChange={(e) => setDelivCode(e.target.value)}
                     placeholder="DEL-STR-01"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  <label className="text-xs font-semibold text-foreground block mb-1">
                     Due Date
                   </label>
-                  <input
-                    type="date"
-                    value={delivDueDate}
-                    onChange={(e) => setDelivDueDate(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
-                  />
+                  <DatePicker date={parseDateOnly(delivDueDate)} onChange={date => setDelivDueDate(toDateOnlyString(date))} />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                <label className="text-xs font-semibold text-foreground block mb-1">
                   Acceptance Criteria
                 </label>
-                <textarea
+                <Textarea
                   rows={2}
                   value={delivCriteria}
                   onChange={(e) => setDelivCriteria(e.target.value)}
                   placeholder="Specific technical verification requirements..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowAddDeliverableModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
+                <Button type="submit" size="sm" disabled={saving} className="bg-primary text-primary-foreground">
                   {saving ? 'Creating...' : 'Create Deliverable'}
                 </Button>
               </div>

@@ -6,11 +6,11 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { randomUUID } from 'crypto';
 
-const gw = vi.hoisted(() => ({ verification: null as any }));
+const gw = vi.hoisted(() => ({ verification: null as any, configured: true }));
 vi.mock('../integrations/payment-gateway.js', () => ({
   PaymentGateway: {
     name: 'flutterwave',
-    isConfigured: () => true,
+    isConfigured: () => gw.configured,
     createCheckout: async () => ({ url: 'https://checkout.test/pay/abc' }),
     verifyWebhookSignature: (h: unknown) => h === 'test-secret',
     verifyById: async () => gw.verification,
@@ -27,6 +27,8 @@ import { runCloudTrashExpiryJob } from '../jobs/cloud-trash-expiry.job.js';
 import { runStorageIntegrityCheck } from '../jobs/cloud-storage-maintenance.job.js';
 import { getStorageQuota, wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import { getApp, createTestTenant, authHeaders, type TestTenant } from './helpers.js';
+import { env } from '../config/env.js';
+import { PaymentsIntegration } from '../integrations/payments.js';
 
 async function enableApps(tenantId: string, apps: Record<string, boolean>) {
   const settings = JSON.stringify({ 'enabled-apps': apps }) as any;
@@ -126,12 +128,53 @@ describe('Storage add-ons, proration and billing', () => {
 
     it('refuses the simulated charge once a live gateway is configured', async () => {
       const app = await getApp();
-      const pm = await app.inject({ method: 'POST', url: '/v1/billing/payment-methods', headers: authHeaders(T.token), payload: { type: 'mobile_money', mobile_number: '255700000123' } });
+      const pm = await app.inject({ method: 'POST', url: '/v1/billing/payment-methods', headers: authHeaders(T.token), payload: { type: 'mobile_money', phone: '255700000123' } });
+      expect(pm.statusCode, pm.body).toBe(201);
       const methodId = pm.json()?.id;
-      if (!methodId) return; // payment-method shape is owned by billing.routes; the guard itself is what matters
       const pay = await app.inject({ method: 'POST', url: `/v1/billing/invoices/${invoiceId}/pay`, headers: authHeaders(T.token), payload: { payment_method_id: methodId } });
       expect(pay.statusCode).toBe(409);
       expect(pay.json().error).toBe('USE_CHECKOUT');
+    });
+
+    it('keeps production invoices unpaid when the external gateway is unavailable', async () => {
+      const app = await getApp();
+      const originalEnv = env.APP_ENV;
+      gw.configured = false;
+      env.APP_ENV = 'production';
+      try {
+        const before = await withTenant(T.tenantId, (trx) => trx.selectFrom('subscription_invoices')
+          .selectAll().where('id', '=', invoiceId).where('tenant_id', '=', T.tenantId).executeTakeFirstOrThrow());
+        for (const payload of [
+          { type: 'mobile_money', phone: '255700000123' },
+          { type: 'card', card_number: '4242424242424242', card_expiry: '12/39', card_cvc: '123' },
+          { type: 'bank', label: 'Test bank' },
+        ]) {
+          const pm = await app.inject({ method: 'POST', url: '/v1/billing/payment-methods', headers: authHeaders(T.token), payload });
+          expect(pm.statusCode, pm.body).toBe(201);
+          const pay = await app.inject({ method: 'POST', url: `/v1/billing/invoices/${invoiceId}/pay`,
+            headers: authHeaders(T.token), payload: { payment_method_id: pm.json().id } });
+          expect(pay.statusCode, pay.body).toBe(503);
+          expect(pay.json().error).toBe('PAYMENT_NOT_CONFIGURED');
+        }
+        const after = await withTenant(T.tenantId, (trx) => trx.selectFrom('subscription_invoices')
+          .selectAll().where('id', '=', invoiceId).where('tenant_id', '=', T.tenantId).executeTakeFirstOrThrow());
+        expect(after).toEqual(before);
+      } finally {
+        env.APP_ENV = originalEnv;
+        gw.configured = true;
+      }
+    });
+
+    it('refuses production simulation for signup as well as billing', () => {
+      const originalEnv = env.APP_ENV;
+      env.APP_ENV = 'production';
+      try {
+        const result = PaymentsIntegration.simulateCharge(50, { method: 'mpesa', mobile_number: '255700000123' });
+        expect(result.success).toBe(false);
+        expect(result.tx_ref).toBe('');
+      } finally {
+        env.APP_ENV = originalEnv;
+      }
     });
 
     it('rejects a webhook with a bad signature, and one whose amount is too low', async () => {

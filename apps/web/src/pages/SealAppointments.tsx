@@ -163,7 +163,7 @@ export function SealAppointments() {
                 </div>
               </DialogBody>
               <DialogFooter>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowNew(false)} data-ui-native-button="">Cancel</button>
+                <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
                 <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Appointment'}</Button>
               </DialogFooter>
             </form>

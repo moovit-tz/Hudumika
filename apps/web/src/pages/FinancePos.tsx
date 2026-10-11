@@ -15,6 +15,11 @@ import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion.js';
 import './FinancePos.css';
 
 interface Product { id:string; code:string; name:string; category:string|null; unit:string; type:string; sale_price:number; currency:string; tax_rate:number }
@@ -47,6 +52,8 @@ export function FinancePos() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [productPage, setProductPage] = useState(1);
+  const [productPageSize, setProductPageSize] = useState(12);
   const [customerId, setCustomerId] = useState('');
   const [locationId, setLocationId] = useState('');
   const [saleNotes, setSaleNotes] = useState('');
@@ -73,7 +80,9 @@ export function FinancePos() {
   const [receiptTotal, setReceiptTotal] = useState(0);
   const [usage, setUsage] = useState<PosUsage|null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'products'|'sale'>('products');
   const searchRef = useRef<HTMLInputElement>(null);
+  const productGridRef = useRef<HTMLDivElement>(null);
 
   /* ── Data loading ── */
   const load = useCallback(async () => {
@@ -127,6 +136,11 @@ export function FinancePos() {
     return list.filter(p => `${p.name} ${p.code} ${p.category ?? ''}`.toLowerCase().includes(query));
   }, [data, search, selectedCategory]);
 
+  const safeProductPage = Math.min(productPage, Math.max(1, Math.ceil(filtered.length / productPageSize)));
+  const pageProducts = filtered.slice((safeProductPage - 1) * productPageSize, safeProductPage * productPageSize);
+  useEffect(() => { setProductPage(1); }, [search, selectedCategory, productPageSize]);
+  useEffect(() => { productGridRef.current?.scrollTo({ top: 0 }); }, [safeProductPage, search, selectedCategory, productPageSize]);
+
   const currency = cart[0]?.currency ?? 'TZS';
   const totals = useMemo(() => {
     const subtotal = cart.reduce((s, l) => s + l.sale_price * l.qty, 0);
@@ -150,6 +164,7 @@ export function FinancePos() {
 
   /* ── Cart actions ── */
   function addProduct(product:Product) {
+    if (!data?.shift || readOnly || saving) return;
     if (cart.length && cart[0].currency !== product.currency) {
       showAlert('A single sale cannot mix currencies. Complete or clear the current cart first.'); return;
     }
@@ -318,6 +333,7 @@ export function FinancePos() {
   /* ── Keyboard shortcuts ── */
   useEffect(() => {
     function onTerminalKey(event:KeyboardEvent) {
+      if (document.querySelector('[role="dialog"]')) return;
       if (event.key === 'F2') { event.preventDefault(); searchRef.current?.focus(); searchRef.current?.select(); }
       else if (event.key === 'F4') { event.preventDefault(); setHoldDialog('list'); }
       else if (event.key === 'F8' && totals.total > 0) {
@@ -338,13 +354,13 @@ export function FinancePos() {
   const sel = data;
 
   return (
-    <div className="pos-terminal">
+    <div className="pos-terminal" data-pane={mobilePane}>
 
       {/* ═══ Top Toolbar ═══ */}
       <div className="pos-toolbar">
         <div className="pos-toolbar-brand">
-          <Icon name="shoppingCart" size={18} />
-          <span>POS Terminal</span>
+          <FeaturedIcon size="sm" variant="brand"><Icon name="shoppingCart" size={18} /></FeaturedIcon>
+          <div><strong>Point of sale</strong><small>Counter sales &amp; checkout</small></div>
         </div>
 
         <div className={`pos-toolbar-status ${sel.shift ? 'is-open' : 'is-closed'}`}>
@@ -373,13 +389,13 @@ export function FinancePos() {
         </div>
 
         <div className="pos-toolbar-actions">
+          <Button variant="outline" size="sm" aria-label="Receipt history" onClick={() => setHistoryOpen(true)}><Icon name="receipt" size={16}/>Receipts</Button>
+          <Tip label="Register history"><Button variant="ghost" size="icon" aria-label="Register history" onClick={() => setShiftHistoryOpen(true)}><Icon name="clock" size={16}/></Button></Tip>
           {!readOnly && <>
-            <Tip label="Receipt history"><Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}><Icon name="receipt" size={16}/></Button></Tip>
-            <Tip label="Register history"><Button variant="ghost" size="icon" onClick={() => setShiftHistoryOpen(true)}><Icon name="clock" size={16}/></Button></Tip>
             {holds.length > 0 && (
-              <Tip label={`${holds.length} held cart${holds.length > 1 ? 's' : ''}`}><Button variant="ghost" size="icon" onClick={() => setHoldDialog('list')}><Icon name="pause" size={16}/><Badge variant="brand" style={{position:'absolute',top:-4,right:-4,minWidth:16,height:16,padding:'0 4px',fontSize:9}}>{holds.length}</Badge></Button></Tip>
+              <Tip label={`${holds.length} held cart${holds.length > 1 ? 's' : ''}`}><Button variant="ghost" size="icon" aria-label="Held carts" onClick={() => setHoldDialog('list')}><Icon name="pause" size={16}/><Badge variant="brand" style={{position:'absolute',top:-4,right:-4,minWidth:16,height:16,padding:'0 4px',fontSize:9}}>{holds.length}</Badge></Button></Tip>
             )}
-            {sel.shift && <Tip label="Cash movement"><Button variant="ghost" size="icon" onClick={() => setCashMovementOpen(true)}><Icon name="coins" size={16}/></Button></Tip>}
+            {sel.shift && <Tip label="Cash movement"><Button variant="ghost" size="icon" aria-label="Cash movement" onClick={() => setCashMovementOpen(true)}><Icon name="coins" size={16}/></Button></Tip>}
             <span className="pos-toolbar-sep" />
             {sel.shift
               ? <Button variant="outline" size="sm" onClick={() => setShiftDialog('close')}><Icon name="lock" size={14}/>Close register</Button>
@@ -398,16 +414,23 @@ export function FinancePos() {
         </div>
       )}
 
+      {!readOnly && <div className="pos-mobile-nav" role="group" aria-label="POS view">
+        <Button size="sm" variant={mobilePane === 'products' ? 'secondary' : 'ghost'} aria-pressed={mobilePane === 'products'} onClick={() => setMobilePane('products')}><Icon name="package" size={16}/>Products</Button>
+        <Button size="sm" variant={mobilePane === 'sale' ? 'secondary' : 'ghost'} aria-pressed={mobilePane === 'sale'} onClick={() => setMobilePane('sale')}><Icon name="shoppingCart" size={16}/>Current sale <Badge variant="brand">{cartItemCount}</Badge></Button>
+      </div>}
+
       {/* ═══ Main Body: Catalogue + Cart ═══ */}
       {!readOnly && (
         <div className="pos-body">
 
           {/* ── LEFT: Catalogue ── */}
           <div className="pos-catalogue">
+            <div className="pos-section-heading"><div><h2>Product catalogue</h2><p>Select an item or scan its barcode.</p></div><Badge variant="secondary">{filtered.length} products</Badge></div>
             <div className="pos-catalogue-head">
               <div className="pos-catalogue-search">
                 <Icon name="search" size={16} />
-                <input
+                <Input
+                  aria-label="Search products or scan barcode"
                   ref={searchRef}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -415,38 +438,35 @@ export function FinancePos() {
                   placeholder="Search or scan barcode…"
                 />
               </div>
-              <span className="pos-catalogue-count">{filtered.length} items</span>
+              {categories.length > 0 && <label className="pos-category-filter"><span>Category</span><Combobox
+                options={[{value:'',label:'All categories'}, ...categories.map(category => ({value:category,label:category}))]}
+                value={selectedCategory} onChange={setSelectedCategory} placeholder="All categories" searchPlaceholder="Search categories…" />
+              </label>}
             </div>
 
-            {categories.length > 0 && (
-              <div className="pos-categories">
-                <button type="button" className="pos-cat-btn" data-active={!selectedCategory || undefined} onClick={() => setSelectedCategory('')} data-ui-native-button="">All</button>
-                {categories.map(cat => (
-                  <button type="button" key={cat} className="pos-cat-btn" data-active={selectedCategory === cat || undefined} onClick={() => setSelectedCategory(cat)} data-ui-native-button="">{cat}</button>
-                ))}
-              </div>
-            )}
+            {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="warning" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
 
-            <div className="pos-grid">
-              {filtered.map(product => {
+            <div className="pos-grid" ref={productGridRef}>
+              {pageProducts.map(product => {
                 const available = availability[product.id];
                 const unavailable = !!locationId && available !== undefined && available <= 0;
+                const inCart = cart.find(line => line.id === product.id)?.qty ?? 0;
                 return (
-                  <button type="button" className="pos-tile" key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable} data-ui-native-button="">
+                  <Button variant="ghost" size="xs" type="button" className="pos-tile" data-in-cart={inCart > 0 || undefined} key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable}>
+                    <div className="pos-tile-visual"><FeaturedIcon size="sm" variant="brand"><Icon name="package" size={18}/></FeaturedIcon><span className="pos-tile-category">{product.category ?? product.type}</span>{inCart > 0 && <Badge variant="brand">{inCart} in sale</Badge>}</div>
                     <div className="pos-tile-top">
-                      <div className="pos-tile-icon"><Icon name="package" size={16}/></div>
                       <div>
                         <div className="pos-tile-name">{product.name}</div>
                         <div className="pos-tile-code">{product.code || product.category || '—'}</div>
                       </div>
                     </div>
-                    <div className="pos-tile-price">{cash(product.sale_price, product.currency)}</div>
+                    <div className="pos-tile-bottom"><div className="pos-tile-price">{cash(product.sale_price, product.currency)}<small>per {product.unit}</small></div><span className="pos-tile-add" aria-hidden="true"><Icon name="plus" size={16}/></span></div>
                     {locationId && available !== undefined && (
-                      <span className={`pos-tile-stock ${available <= 0 ? 'out' : available <= 5 ? 'low' : 'in'}`}>
+                      <Badge variant={available <= 0 ? 'destructive' : available <= 5 ? 'warning' : 'success'} className="pos-tile-stock">
                         {available <= 0 ? 'Out of stock' : `${available} ${product.unit}`}
-                      </span>
+                      </Badge>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
               {!filtered.length && (
@@ -457,32 +477,38 @@ export function FinancePos() {
                 </div>
               )}
             </div>
+            <PaginationBar className="pos-product-pagination" page={safeProductPage} pageSize={productPageSize} total={filtered.length} onPageChange={setProductPage} onPageSizeChange={setProductPageSize} pageSizeOptions={[8,12,24]} itemLabel="product" />
           </div>
 
           {/* ── RIGHT: Cart Panel ── */}
           <div className="pos-cart-panel">
             <div className="pos-cart-head">
-              <h2>Current sale <span>{cartItemCount} items</span></h2>
+              <div><small className="pos-eyebrow">CHECKOUT</small><h2>Current sale <Badge variant="brand">{cartItemCount}</Badge></h2></div>
               {cart.length > 0 && <Button size="xs" variant="ghost" onClick={clearCart}>Clear all</Button>}
             </div>
 
+            <div className="pos-cart-scroll">
+            <Accordion type="single" collapsible className="pos-sale-settings">
+              <AccordionItem value="details"><AccordionTrigger>Customer &amp; sale details<span className="pos-settings-summary">{customerId ? sel.customers.find(customer => customer.id === customerId)?.name : 'Walk-in customer'}</span></AccordionTrigger><AccordionContent>
             <div className="pos-cart-fields">
-              <Combobox
+              <label className="pos-field"><span>Customer</span><Combobox
                 options={[{value:'',label:'Walk-in customer'}, ...sel.customers.map(c => ({value:c.id,label:c.name,sublabel:c.email ?? undefined}))]}
-                value={customerId} onChange={setCustomerId} placeholder="Walk-in customer" searchPlaceholder="Search customers…" />
-              <Combobox
+                value={customerId} onChange={setCustomerId} placeholder="Walk-in customer" searchPlaceholder="Search customers…" /></label>
+              <label className="pos-field"><span>Stock location</span><Combobox
                 options={[{value:'',label:'No stock deduction'}, ...sel.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
-                value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Stock location…" />
-              <Input value={saleNotes} onChange={e => setSaleNotes(e.target.value)} placeholder="Sale note (optional)" />
+                value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Stock location…" /></label>
+              <label className="pos-field"><span>Sale note <small>Optional</small></span><Input aria-label="Sale note" value={saleNotes} onChange={e => setSaleNotes(e.target.value)} placeholder="Add a customer or order reference" /></label>
             </div>
+              </AccordionContent></AccordionItem>
+            </Accordion>
 
             {/* Line items */}
             <div className="pos-lines">
               {!cart.length && (
                 <div className="pos-lines-empty">
-                  <Icon name="shoppingCart" size={32} />
-                  <strong>Empty cart</strong>
-                  <span>Tap a product or scan a barcode to start.</span>
+                  <FeaturedIcon variant="gray" size="lg"><Icon name="shoppingCart" size={28} /></FeaturedIcon>
+                  <strong>Your sale starts here</strong>
+                  <span>Add products from the catalogue.</span>
                 </div>
               )}
               {cart.map(line => {
@@ -498,31 +524,31 @@ export function FinancePos() {
                       <small>{cash(line.sale_price, line.currency)} × {line.qty}{line.tax_rate > 0 ? ` · ${line.tax_rate}% tax` : ''}</small>
                     </div>
                     <div className="pos-line-qty">
-                      <button type="button" onClick={() => changeQty(line.id, line.qty - 1)} data-ui-native-button="">−</button>
+                      <Button variant="ghost" size="xs" type="button" aria-label={`Decrease quantity of ${line.name}`} onClick={() => changeQty(line.id, line.qty - 1)}>−</Button>
                       <span>{line.qty}</span>
-                      <button type="button" onClick={() => changeQty(line.id, line.qty + 1)} data-ui-native-button="">+</button>
+                      <Button variant="ghost" size="xs" type="button" aria-label={`Increase quantity of ${line.name}`} onClick={() => changeQty(line.id, line.qty + 1)}>+</Button>
                     </div>
                     <div className="pos-line-total">{cash(lineTotal, line.currency)}</div>
                     {line.discount > 0 && (
                       <div className="pos-line-discount-row">
                         <Badge variant="success">−{cash(line.discount, line.currency)}</Badge>
                         <Tip label={line.discountMode === 'pct' ? 'Switch to fixed' : 'Switch to %'}>
-                          <button type="button" className="pos-line-discount-toggle" onClick={() => toggleDiscountMode(line.id)} data-ui-native-button="">
+                          <Button variant="ghost" size="xs" type="button" aria-label={`Switch discount mode for ${line.name}`} className="pos-line-discount-toggle" onClick={() => toggleDiscountMode(line.id)}>
                             {line.discountMode === 'pct' ? '%' : currency}
-                          </button>
+                          </Button>
                         </Tip>
                         <Input
-                          type="number" min="0"
+                          aria-label={`Discount for ${line.name}`} type="number" min="0"
                           max={line.discountMode === 'pct' ? 100 : lineMax}
                           value={displayValue || ''}
                           onChange={e => changeDiscount(line.id, Number(e.target.value))}
-                          style={{ width: 72, height: 26, fontSize: 11 }}
+                          className="pos-discount-input"
                         />
                       </div>
                     )}
                     {line.discount === 0 && (
                       <div className="pos-line-discount-row">
-                        <button type="button" className="pos-line-discount-toggle" onClick={() => changeDiscount(line.id, 1)} style={{ fontSize: 10, color: 'var(--ink3)' }} data-ui-native-button="">+ Discount</button>
+                        <Button variant="ghost" size="xs" type="button" className="pos-line-discount-toggle" onClick={() => changeDiscount(line.id, 1)} style={{ fontSize: 10, color: 'var(--ink3)' }}>+ Discount</Button>
                       </div>
                     )}
                   </div>
@@ -546,25 +572,25 @@ export function FinancePos() {
               {/* Payment section */}
               <div className="pos-pay-section">
                 <div className="pos-pay-head">
-                  <span>Payment</span>
+                  <span><Icon name="creditCard" size={16}/>Payment details</span>
                   <Button size="xs" variant="ghost" onClick={addPayment}><Icon name="plus" size={12}/>Split</Button>
                 </div>
                 {payments.map((payment, index) => (
                   <React.Fragment key={payment.id}>
                     <div className="pos-pay-row">
                       <Select value={payment.method} onValueChange={value => updatePayment(payment.id, { method:value as PosPaymentMethod })}>
-                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectTrigger aria-label={`Payment ${index + 1} method`}><SelectValue/></SelectTrigger>
                         <SelectContent>{METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Input type="number" min="0.01" step="0.01" value={payment.amount} onChange={e => updatePayment(payment.id, { amount:e.target.value })} placeholder={index === 0 ? totals.total.toFixed(2) : 'Amount'} />
-                      <Input value={payment.reference} onChange={e => updatePayment(payment.id, { reference:e.target.value })} placeholder="Reference" />
-                      {payments.length > 1 && <Button size="icon" variant="ghost" onClick={() => removePayment(payment.id)}><Icon name="trash" size={14}/></Button>}
+                      <Input aria-label={`Payment ${index + 1} amount`} inputMode="decimal" type="number" min="0.01" step="0.01" value={payment.amount} onChange={e => updatePayment(payment.id, { amount:e.target.value })} placeholder={index === 0 ? totals.total.toFixed(2) : 'Amount'} />
+                      <Input aria-label={`Payment ${index + 1} reference`} value={payment.reference} onChange={e => updatePayment(payment.id, { reference:e.target.value })} placeholder="Reference (optional)" />
+                      {payments.length > 1 && <Button size="icon" variant="ghost" aria-label={`Remove payment ${index + 1}`} onClick={() => removePayment(payment.id)}><Icon name="trash" size={14}/></Button>}
                     </div>
                     {payment.method === 'CASH' && totals.total > 0 && (
                       <div className="pos-quick-cash">
-                        <button type="button" className="pos-quick-pill" onClick={() => updatePayment(payment.id, { amount:totals.total.toFixed(2) })} data-ui-native-button="">Exact</button>
+                        <Button variant="ghost" size="xs" type="button" className="pos-quick-pill" onClick={() => updatePayment(payment.id, { amount:totals.total.toFixed(2) })}>Exact</Button>
                         {quickTenders.map(d => (
-                          <button type="button" key={d} className="pos-quick-pill" onClick={() => updatePayment(payment.id, { amount:String(d) })} data-ui-native-button="">{fmtDenom(d)}</button>
+                          <Button variant="ghost" size="xs" type="button" key={d} className="pos-quick-pill" onClick={() => updatePayment(payment.id, { amount:String(d) })}>{fmtDenom(d)}</Button>
                         ))}
                       </div>
                     )}
@@ -577,7 +603,7 @@ export function FinancePos() {
                 <span>{invalidChange ? 'Add cash tender for change' : paymentBalance > 0 ? 'Remaining' : paymentBalance < 0 ? 'Change due' : 'Fully allocated'}</span>
                 <b>{cash(Math.abs(paymentBalance), currency)}</b>
                 {paymentBalance > 0 && (
-                  <button type="button" onClick={() => updatePayment(payments[payments.length - 1].id, { amount:String((Number(payments[payments.length - 1].amount) || 0) + paymentBalance) })} data-ui-native-button="">Pay balance</button>
+                  <Button variant="ghost" size="xs" type="button" onClick={() => updatePayment(payments[payments.length - 1].id, { amount:String((Number(payments[payments.length - 1].amount) || 0) + paymentBalance) })}>Pay balance</Button>
                 )}
               </div>
 
@@ -586,42 +612,40 @@ export function FinancePos() {
               )}
 
               {/* Charge row */}
+            </div>
+            </div>
               <div className="pos-charge-row">
                 <Button variant="outline" disabled={!cart.length || saving} onClick={() => {
                   setHoldLabel(customerId ? sel.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
                   setHoldDialog('save');
                 }}><Icon name="pause" size={14}/>Hold</Button>
-                <button
+                <Button size="lg"
                   type="button"
                   className="pos-charge-btn"
                   disabled={!sel.shift || !cart.length || saving || quotaExhausted || stockIssues.length > 0 || paymentBalance > 0.01 || invalidChange}
                   onClick={checkout}
-                  data-ui-native-button=""
                 >
+                  <Icon name="creditCard" size={18}/>
                   {saving ? 'Processing…' : `Charge ${cash(totals.total, currency)}`}
-                </button>
+                </Button>
               </div>
               {!sel.shift && <p className="pos-register-closed-note">Open the register to start selling.</p>}
-            </div>
           </div>
         </div>
       )}
 
+      {!readOnly && <div className="pos-mobile-basket"><div><small>{cartItemCount} items in your sale</small><strong>{cash(totals.total, currency)}</strong></div><Button onClick={() => setMobilePane('sale')}>Review sale<Icon name="shoppingCart" size={16}/></Button></div>}
+
       {/* ═══ Receipt History Side Panel ═══ */}
-      {historyOpen && <>
-        <div className="pos-history-backdrop" onClick={() => setHistoryOpen(false)} />
-        <div className="pos-history-panel">
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent className="pos-history-panel" aria-describedby={undefined}>
           <div className="pos-history-head">
-            <h2>Receipt history</h2>
-            <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(false)}><Icon name="x" size={18}/></Button>
+            <SheetTitle>Receipt history</SheetTitle>
           </div>
           <div className="pos-history-filters">
-            <div className="pos-history-search">
-              <Icon name="search" size={14} />
-              <input value={receiptSearch} onChange={e => { setReceiptSearch(e.target.value); setReceiptPage(1); }} placeholder="Receipt or customer…" />
-            </div>
+            <SearchToolbar search={receiptSearch} onSearch={value => { setReceiptSearch(value); setReceiptPage(1); }} placeholder="Receipt or customer…" />
             <Select value={receiptStatus} onValueChange={v => { setReceiptStatus(v); setReceiptPage(1); }}>
-              <SelectTrigger><SelectValue/></SelectTrigger>
+              <SelectTrigger aria-label="Receipt status"><SelectValue/></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>
@@ -633,11 +657,11 @@ export function FinancePos() {
           </div>
           <div className="pos-history-list">
             {sales.map(sale => (
-              <button type="button" key={sale.id} className="pos-history-item" onClick={() => { apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => setReceipt(r as PosSale)); setHistoryOpen(false); }} data-ui-native-button="">
+              <Button variant="ghost" size="xs" type="button" key={sale.id} className="pos-history-item" onClick={() => { apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => { setReceipt(r as PosSale); setHistoryOpen(false); }).catch((e:Error) => showAlert(e.message)); }}>
                 <span><strong>{sale.sale_number}</strong><small>{sale.customer_name ?? 'Walk-in'} · {new Date(sale.sold_at).toLocaleString()}</small></span>
                 <Badge variant={sale.status === 'POSTING_FAILED' || sale.status === 'VOIDED' ? 'destructive' : sale.status === 'REFUNDED' ? 'warning' : 'success'}>{sale.status === 'POSTING_FAILED' ? 'Failed' : sale.status}</Badge>
                 <b>{cash(sale.grand_total, sale.currency)}</b>
-              </button>
+              </Button>
             ))}
             {!sales.length && <div className="pos-history-empty">No receipts match these filters.</div>}
           </div>
@@ -650,8 +674,8 @@ export function FinancePos() {
             <div className="pos-analytics-grid">
               <div className="pos-analytics-card">
                 <h3>Cashier leaderboard <small>Today</small></h3>
-                {analytics.cashiers.map((c, i) => (
-                  <div key={c.user_id} className="pos-analytics-row"><span className="pos-rank">{i + 1}</span><span><strong>{c.name}</strong><small>{c.sales_count} sales · Avg {cash(c.average_sale, currency)}</small></span><b>{cash(c.revenue, currency)}</b></div>
+                {analytics.cashiers.map(c => (
+                  <div key={c.user_id} className="pos-analytics-row"><PersonAvatar userId={c.user_id} name={c.name} size={28} /><span><strong>{c.name}</strong><small>{c.sales_count} sales · Avg {cash(c.average_sale, currency)}</small></span><b>{cash(c.revenue, currency)}</b></div>
                 ))}
                 {!analytics.cashiers.length && <div className="pos-history-empty">No sales today.</div>}
               </div>
@@ -664,8 +688,8 @@ export function FinancePos() {
               </div>
             </div>
           )}
-        </div>
-      </>}
+        </SheetContent>
+      </Sheet>
 
       {/* ═══ Dialogs ═══ */}
 
