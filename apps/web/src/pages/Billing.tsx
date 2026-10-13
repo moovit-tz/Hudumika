@@ -4,8 +4,7 @@ import { Button } from '../components/ui/button.js';
 import { formatAmount } from '../lib/currency.js';
 import type { InvoiceListPage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -52,7 +51,8 @@ export const Billing: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [search, setSearch]             = useState('');
   const [sortAsc, setSortAsc]           = useState(false);
-  const [viewMode, setViewMode]         = useState<'board' | 'list'>('board');
+  const [viewMode, setViewMode]         = useState<'row' | 'grid'>('grid');
+  const [pageSize, setPageSize]         = useState(25);
 
   // Arriving from a customer's profile (Customers.tsx "+ Create Invoice" /
   // "+ Record Payment") – previously this query param was silently ignored,
@@ -103,7 +103,6 @@ export const Billing: React.FC = () => {
   }, [location.search]);
 
   /* ── Filters popover ── */
-  const [showFilters, setShowFilters]     = useState(false);
   const [filterMode, setFilterMode]       = useState<'all' | Invoice['mode']>('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo]     = useState('');
@@ -128,7 +127,7 @@ export const Billing: React.FC = () => {
     let active = true;
     setApiLoading(true);
     const timer = setTimeout(() => {
-      const query = new URLSearchParams({ page: String(page), page_size: '25', sort: sortAsc ? 'asc' : 'desc' });
+      const query = new URLSearchParams({ page: String(page), page_size: String(pageSize), sort: sortAsc ? 'asc' : 'desc' });
       if (filterStatus !== 'all') query.set('status', filterStatus);
       if (filterMode !== 'all') query.set('mode', filterMode);
       if (filterDateFrom) query.set('date_from', filterDateFrom);
@@ -143,16 +142,13 @@ export const Billing: React.FC = () => {
       }).catch(error => { if (active) setLoadError(error.message); }).finally(() => { if (active) setApiLoading(false); });
     }, 250);
     return () => { active = false; clearTimeout(timer); };
-  }, [filterKey, page, refresh, location.search]);
+  }, [filterKey, page, pageSize, refresh, location.search]);
   useEffect(() => {
     let active = true;
     apiFetch('/v1/invoices/stats').then(data => { if (active) setSummary(data); }).catch(error => { if (active) setLoadError(error.message); });
     return () => { active = false; };
   }, [refresh]);
   const filtered = invoices;
-  const boardStatuses: Status[] = filterStatus === 'all'
-    ? ['Draft', 'Unpaid', 'Partial', 'Overdue', 'Paid', 'Credited']
-    : [filterStatus];
   const money = summary?.currency_totals?.TZS;
   const invStats = {
     total: summary?.total_invoices ?? 0, draftCount: summary?.status_counts?.Draft ?? 0,
@@ -370,136 +366,100 @@ export const Billing: React.FC = () => {
         {/* List panel */}
         <div className="inv-list-panel">
 
-          {/* Toolbar – tabs, actions and search all in one row. The tabs +
-              actions + search live inside .inv-toolbar-scroll, which scrolls
-              sideways on a viewport too narrow to fit them all (instead of
-              wrapping into a second row); Create Invoice sits outside that
-              scroller as a fixed sibling, so the primary action is never
-              something a user has to scroll to discover. */}
           <div className="inv-list-toolbar">
-          <div className="inv-toolbar-scroll">
-            {!isSplit && (
-              <div className="inv-search-wrap inv-search-wrap--primary">
-                <Icon name="search" size={15} color="var(--ink3)" className="inv-search-icon" />
-                <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices or customers…" aria-label="Search invoices or customers" />
+          <SearchToolbar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search invoices or customers…"
+            {...(!isSplit ? {
+              quickFilter: {
+                label: 'Status',
+                allLabel: 'All statuses',
+                value: filterStatus === 'all' ? null : filterStatus,
+                onChange: (v: string | null) => setFilterStatus((v ?? 'all') as FilterStatus),
+                options: (['Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as Status[]).map(s => ({
+                  value: s,
+                  label: `${STATUS_STYLE[s].label} (${summary?.status_counts?.[s] ?? 0})`,
+                })),
+              },
+            } : {})}
+            activeFilterCount={activeFilterCount}
+            filterContent={(close) => (
+              <div className="flex flex-col gap-2.5 p-3">
+                <div className="inv-filters-field">
+                  <label>Mode</label>
+                  <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All modes</SelectItem>
+                      <SelectItem value="SEA">SEA</SelectItem>
+                      <SelectItem value="AIR">AIR</SelectItem>
+                      <SelectItem value="ROAD">ROAD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="inv-filters-row">
+                  <div className="inv-filters-field">
+                    <label>From</label>
+                    <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
+                  </div>
+                  <div className="inv-filters-field">
+                    <label>To</label>
+                    <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
+                  </div>
+                </div>
+                <div className="inv-filters-foot">
+                  <Button variant="secondary" size="sm" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</Button>
+                  <Button size="sm" onClick={() => close()}>Done</Button>
+                </div>
               </div>
             )}
-            {!isSplit && (
-              <Tabs value={filterStatus} onValueChange={v => setFilterStatus(v as FilterStatus)} variant="segmented">
-                <TabsList>
-                  {(['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as FilterStatus[]).map(s => {
-                    const cnt = s === 'all' ? (summary?.total_invoices ?? 0) : (summary?.status_counts?.[s] ?? 0);
-                    return (
-                      <TabsTrigger key={s} value={s}>
-                        {s === 'all' ? 'All' : STATUS_STYLE[s as Status].label}
-                        {cnt > 0 && <span className="inv-status-chip-count">{cnt}</span>}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </Tabs>
-            )}
-            <div className="inv-topbar-spacer" />
-            <div className="inv-toolbar-actions">
-              {/* Bulk export – only appears once at least one row is
-                  checked, rather than a permanently-visible "Export"
-                  button that acted on the whole filtered list regardless
-                  of what (if anything) the user had actually picked. */}
-              {viewMode === 'list' && selectedIds.size > 0 && (
-                <div className="inv-bulk-actions">
-                  <span className="inv-bulk-count">{selectedIds.size} selected</span>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={exportSelectedCsv} data-ui-native-button="">
-                    <Icon name="download" size={13} /> Export CSV
-                  </button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={downloadAllSelected} disabled={downloadingAll} data-ui-native-button="">
-                    <Icon name="file" size={13} /> {downloadingAll ? 'Downloading…' : 'Download all'}
-                  </button>
-                  <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection" data-ui-native-button="">
-                    <Icon name="x" size={13} />
-                  </button>
-                </div>
-              )}
-              {/* A real Radix Popover, not a hand-rolled absolute-positioned
-                  div – that version rendered inside .inv-toolbar-scroll,
-                  whose overflow-x:auto (needed for the horizontal-scroll
-                  toolbar) computes overflow-y to auto too, clipping any
-                  plain absolutely-positioned child that extended below the
-                  row. PopoverContent portals to document.body, so it always
-                  escapes that clip regardless of which row it's triggered
-                  from. It also gets outside-click/Escape dismissal for free,
-                  replacing the manual stopPropagation + shell-level onClick
-                  dance that used to do the same job a second way. */}
-              <Popover open={showFilters} onOpenChange={setShowFilters}>
-                <PopoverTrigger asChild>
-                  <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} data-ui-native-button="">
-                    <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" sideOffset={6} className="w-72 flex flex-col gap-2.5">
-                  <div className="inv-filters-field">
-                    <label>Mode</label>
-                    <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All modes</SelectItem>
-                        <SelectItem value="SEA">SEA</SelectItem>
-                        <SelectItem value="AIR">AIR</SelectItem>
-                        <SelectItem value="ROAD">ROAD</SelectItem>
-                      </SelectContent>
-                    </Select>
+            actions={
+              <>
+                {viewMode === 'row' && selectedIds.size > 0 && (
+                  <div className="inv-bulk-actions">
+                    <span className="inv-bulk-count">{selectedIds.size} selected</span>
+                    <Button variant="outline" size="xs" onClick={exportSelectedCsv}>
+                      <Icon name="download" size={13} /> CSV
+                    </Button>
+                    <Button variant="outline" size="xs" onClick={downloadAllSelected} disabled={downloadingAll}>
+                      <Icon name="file" size={13} /> {downloadingAll ? 'Downloading…' : 'Download all'}
+                    </Button>
+                    <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection" data-ui-native-button="">
+                      <Icon name="x" size={13} />
+                    </button>
                   </div>
-                  <div className="inv-filters-row">
-                    <div className="inv-filters-field">
-                      <label>From</label>
-                      <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
-                    </div>
-                    <div className="inv-filters-field">
-                      <label>To</label>
-                      <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
-                    </div>
+                )}
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/finance/invoices/recurring" style={{ textDecoration: 'none' }}>
+                    <Icon name="calendar" size={13} /> Recurring
+                  </Link>
+                </Button>
+                {!isSplit && (
+                  <div className="inv-view-toggle" role="group" aria-label="Invoice view">
+                    <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} data-ui-native-button="">
+                      <Icon name="layoutGrid" size={14} /> Grid
+                    </button>
+                    <button type="button" className={viewMode === 'row' ? 'is-active' : ''} onClick={() => setViewMode('row')} aria-pressed={viewMode === 'row'} data-ui-native-button="">
+                      <Icon name="list" size={14} /> Row
+                    </button>
                   </div>
-                  <div className="inv-filters-foot">
-                    <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} data-ui-native-button="">Clear</button>
-                    <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)} data-ui-native-button="">Done</button>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Link to="/finance/invoices/recurring" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-                <Icon name="calendar" size={13} /> Recurring
-              </Link>
-              {isSplit && <div className="inv-search-wrap">
-                <Icon name="search" size={13} color="var(--ink3)" className="inv-search-icon" />
-                <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…" />
-              </div>}
-              {!isSplit && (
-                <div className="inv-view-toggle" role="group" aria-label="Invoice view">
-                  <button type="button" className={viewMode === 'board' ? 'is-active' : ''} onClick={() => setViewMode('board')} aria-pressed={viewMode === 'board'} data-ui-native-button="">
-                    <Icon name="columns" size={14} /> Board
-                  </button>
-                  <button type="button" className={viewMode === 'list' ? 'is-active' : ''} onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} data-ui-native-button="">
-                    <Icon name="list" size={14} /> List
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
-            className="inv-toolbar-cta"
-            style={{ padding: 'var(--ds-btn-py-sm) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-            <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" /> Create Invoice
-          </button>
+                )}
+              </>
+            }
+            style={{ flex: 1 }}
+          />
+          <Button onClick={() => { setSelectedId(null); setMode('create'); }} className="inv-toolbar-cta shrink-0">
+            <Icon name="plus" size={13} /> Create Invoice
+          </Button>
           </div>
 
-          {/* List and board share the same filters and invoice detail panel. */}
-          {viewMode === 'list' || isSplit ? <div className="inv-table-wrap">
+          {viewMode === 'row' || isSplit ? (
+          <div className="inv-table-wrap">
             <table className="rtbl inv-table">
               <thead>
                 <tr>
                   <th className="th--checkbox">
-                    {/* .th--checkbox centers via text-align, which only
-                        centers inline-level children – Checkbox's root is
-                        display:grid (block-level), so it needs mx-auto to
-                        land centered instead of flush left in the column. */}
                     <Checkbox className="mx-auto" checked={allFilteredSelected} onCheckedChange={toggleSelectAllFiltered} title="Select all" />
                   </th>
                   <th className="th--sortable" onClick={() => setSortAsc(v => !v)}>
@@ -537,11 +497,6 @@ export const Billing: React.FC = () => {
                         </td>
                       )}
                       <td className="inv-cell-client">
-                        {/* Customers.tsx only reads ?id=, not ?search= – a
-                            name-search param there was silently ignored, so
-                            this deep-links straight to the record instead
-                            (falls back to the plain list on legacy invoices
-                            with no linked customer). */}
                         <Link to={inv.customerId ? `/crm/customers?id=${encodeURIComponent(inv.customerId)}` : '/crm/customers'} onClick={e => e.stopPropagation()}
                           title={`View ${inv.client} profile`} className="inv-cell-client-link">
                           {inv.client}
@@ -562,9 +517,9 @@ export const Billing: React.FC = () => {
                   <tr><td colSpan={10} className="inv-table-msg">
                     <div className="inv-empty-title">No invoices yet</div>
                     <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
-                    <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }} data-ui-native-button="">
-                      <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> Create New Invoice
-                    </button>
+                    <Button onClick={() => { setSelectedId(null); setMode('create'); }}>
+                      <Icon name="plus" size={14} /> Create New Invoice
+                    </Button>
                   </td></tr>
                 )}
                 {!apiLoading && !loadError && filtered.length === 0 && (!!search || filterStatus !== 'all' || activeFilterCount > 0) && (
@@ -572,53 +527,74 @@ export const Billing: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div> : (
-            <div className="inv-board" aria-label="Invoices board">
-              {boardStatuses.map(status => {
-                const statusInvoices = filtered.filter(invoice => invoice.status === status);
-                const style = getStatusStyle(status);
-                const statusTotal = statusInvoices.reduce((sum, invoice) => sum + invoiceTotals(invoice).documentTotal, 0);
+          </div>
+          ) : (
+            <div className="inv-grid" aria-label="Invoices grid">
+              {(!apiLoading ? filtered : []).map(invoice => {
+                const totalValue = invoiceTotals(invoice).documentTotal;
+                const st = getStatusStyle(invoice.status);
                 return (
-                  <section className="inv-board-column" key={status} aria-labelledby={`invoice-column-${status}`}>
-                    <header className="inv-board-column-head">
-                      <div><span className="inv-board-dot" style={{ background: style.color }} /><strong id={`invoice-column-${status}`}>{style.label}</strong><span>{statusInvoices.length}</span></div>
-                      <span>{statusInvoices.length ? formatAmount(statusTotal, statusInvoices[0].documentCurrency || 'TZS') : '—'}</span>
-                    </header>
-                    <div className="inv-board-cards">
-                      {statusInvoices.map(invoice => {
-                        const totalValue = invoiceTotals(invoice).documentTotal;
-                        return (
-                          <button key={invoice.id} type="button" className="inv-board-card" onClick={() => { setDetailInvoice(invoice); setSelectedId(invoice.id); setMode('view'); }} data-ui-native-button="">
-                            <span className="inv-board-card-top"><strong>{invoice.id}</strong><span className="inv-mode-badge" data-mode={invoice.mode}>{invoice.mode}</span></span>
-                            <span className="inv-board-client">{invoice.client}</span>
-                            <span className="inv-board-card-meta"><span>{invoice.blNumber || 'No BL / AWB'}</span><strong>{formatAmount(totalValue, invoice.documentCurrency || 'TZS')}</strong></span>
-                            <span className="inv-board-card-meta"><span>Issued {invoice.billDate}</span><span className={invoice.status === 'Overdue' ? 'inv-board-overdue' : ''}>Due {invoice.dueDate ?? '—'}</span></span>
-                          </button>
-                        );
-                      })}
-                      {!apiLoading && statusInvoices.length === 0 && <div className="inv-board-empty">No {style.label.toLowerCase()} invoices</div>}
-                    </div>
-                  </section>
+                  <button key={invoice.id} type="button" className="inv-board-card" onClick={() => { setDetailInvoice(invoice); setSelectedId(invoice.id); setMode('view'); }} data-ui-native-button="">
+                    <span className="inv-board-card-top">
+                      <strong>{invoice.id}</strong>
+                      <span className="inv-status-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span>
+                    </span>
+                    <span className="inv-board-client">{invoice.client}</span>
+                    <span className="inv-board-card-meta">
+                      <span>{invoice.blNumber || 'No BL / AWB'}</span>
+                      <strong>{formatAmount(totalValue, invoice.documentCurrency || 'TZS')}</strong>
+                    </span>
+                    <span className="inv-board-card-meta">
+                      <span>Issued {invoice.billDate}</span>
+                      <span className={invoice.status === 'Overdue' ? 'inv-board-overdue' : ''}>Due {invoice.dueDate ?? '—'}</span>
+                    </span>
+                    <span className="inv-board-card-bottom">
+                      <span className="inv-mode-badge" data-mode={invoice.mode}>{invoice.mode}</span>
+                    </span>
+                  </button>
                 );
               })}
               {apiLoading && <div className="inv-board-loading">Loading invoices…</div>}
+              {!apiLoading && !loadError && filtered.length === 0 && !search && filterStatus === 'all' && !activeFilterCount && (
+                <div className="inv-grid-empty">
+                  <div className="inv-empty-title">No invoices yet</div>
+                  <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
+                  <Button onClick={() => { setSelectedId(null); setMode('create'); }}>
+                    <Icon name="plus" size={14} /> Create New Invoice
+                  </Button>
+                </div>
+              )}
+              {!apiLoading && !loadError && filtered.length === 0 && (!!search || filterStatus !== 'all' || activeFilterCount > 0) && (
+                <div className="inv-grid-empty">No invoices match your filters</div>
+              )}
             </div>
           )}
 
-          {/* Footer summary */}
-          {loadError && <div role="alert" className="p-3 text-sm" style={{ color: 'var(--red)' }}>{loadError} <Button variant="outline" onClick={() => setRefresh(value => value + 1)}>Retry</Button></div>}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3" aria-label="Invoice pagination">
-            <span className="text-sm">Page {page} of {Math.max(1, Math.ceil(total / 25))} · {total} matches</span>
+          {/* Pagination */}
+          {loadError && <div role="alert" className="p-3 text-sm" style={{ color: 'var(--red)' }}>{loadError} <Button variant="outline" size="sm" onClick={() => setRefresh(v => v + 1)}>Retry</Button></div>}
+          <div className="inv-pagination">
+            <div className="inv-pagination-left">
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {Math.max(1, Math.ceil(total / pageSize))} · {total} invoices
+              </span>
+              <div className="inv-page-size">
+                <span className="text-xs text-muted-foreground">Show</span>
+                <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="inv-page-size-trigger"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="flex gap-2">
-              <Button variant="outline" disabled={apiLoading || page === 1} onClick={() => setPage(value => value - 1)}>Previous</Button>
-              <Button variant="outline" disabled={apiLoading || page * 25 >= total} onClick={() => setPage(value => value + 1)}>Next</Button>
+              <Button variant="outline" size="sm" disabled={apiLoading || page === 1} onClick={() => setPage(v => v - 1)}>Previous</Button>
+              <Button variant="outline" size="sm" disabled={apiLoading || page * pageSize >= total} onClick={() => setPage(v => v + 1)}>Next</Button>
             </div>
           </div>
-          {!apiLoading && !isSplit && filtered.length > 0 && (
-            <div className="inv-list-footer">
-              <span style={{ color: 'var(--ink3)' }}>{filtered.length} of {total} invoices · Select visible rows to export</span>
-            </div>
-          )}
         </div>
 
         {/* Right panel */}

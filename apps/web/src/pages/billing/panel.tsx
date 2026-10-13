@@ -530,7 +530,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       </div>
 
       {/* Action bar */}
-      <div className="flex items-center gap-1.5 flex-wrap px-4 py-2 border-b border-border shrink-0">
+      <div className="flex items-center gap-2 flex-wrap px-4 py-2.5 border-b border-border shrink-0">
         <Badge variant={st.variant as any}>{st.label}</Badge>
 
         {/* TRA fiscalization */}
@@ -545,7 +545,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed – retry')
             : 'Submit this invoice to TRA EFDMS for fiscalization'
           }>
-            <Button type="button" size="xs" onClick={submitToTRA}
+            <Button type="button" size="sm" onClick={submitToTRA}
               disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
               variant={inv.status === 'Draft' || !inv._dbId ? 'secondary' : 'outline'}
               className={inv.status === 'Draft' || !inv._dbId ? '' : inv.traStatus === 'failed' ? 'border-[var(--red-l)] bg-[var(--red-l)] text-[var(--red)] hover:bg-[var(--red-l)]' : 'border-[var(--gold-l)] bg-[var(--gold-l)] text-[var(--gold)] hover:bg-[var(--gold-l)]'}>
@@ -559,7 +559,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         {dbId && (
           stampedFileUrl ? (
             <Tip label="Download the company-stamped copy">
-              <Button type="button" size="xs" variant="outline"
+              <Button type="button" size="sm" variant="outline"
                 className="border-[var(--green-l)] bg-[var(--green-l)] text-[var(--green)] hover:bg-[var(--green-l)]"
                 onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}>
                 <Icon name="checkCircle" size={12} /> Stamped
@@ -568,7 +568,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" size="xs" variant="outline"
+                <Button type="button" size="sm" variant="outline"
                   className={stampAllowed === true ? 'border-[var(--blue-l)] bg-[var(--blue-l)] text-[var(--blue)] hover:bg-[var(--blue-l)]' : ''}>
                   <Icon name="stamp" size={12} /> Sign & Stamp <Icon name="chevronDown" size={10} />
                 </Button>
@@ -618,7 +618,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm" className="bg-[var(--green)] text-white hover:bg-[var(--green)]/90">
+            <Button type="button" size="sm" className="bg-[var(--green)] text-[var(--white)] hover:bg-[var(--green)]/90">
               <Icon name="dollarSign" size={13} /> Payment <Icon name="chevronDown" size={10} />
             </Button>
           </DropdownMenuTrigger>
@@ -671,7 +671,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           <div className="text-[11.5px] text-muted-foreground mb-2">Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)' }}>{formatAmount(paymentDue, paymentCurrency)}</strong></div>
           <div className="flex gap-2">
             <Button type="button" disabled={paymentSaving} onClick={submitPayment}
-              className="bg-[var(--green)] text-white hover:bg-[var(--green)]/90">Save Payment</Button>
+              className="bg-[var(--green)] text-[var(--white)] hover:bg-[var(--green)]/90">Save Payment</Button>
             <Button type="button" variant="outline" disabled={paymentSaving} onClick={() => setShowPayment(false)}>Cancel</Button>
           </div>
         </div>
