@@ -12,6 +12,7 @@ import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
+import { KanbanBoard, type KanbanColumn, type KanbanCardData } from '../components/ui/kanban-board.js';
 
 interface Task {
   id: string; itemId: string | null; warehouseId: string | null; title: string;
@@ -22,11 +23,11 @@ interface Task {
 interface Staff { id: string; name: string; }
 interface Item { id: string; sku: string; name: string; }
 
-const COLUMNS: { status: Task['status']; label: string }[] = [
-  { status: 'open', label: 'Open' },
-  { status: 'in_progress', label: 'In Progress' },
-  { status: 'blocked', label: 'Blocked' },
-  { status: 'complete', label: 'Complete' },
+const COLUMNS: KanbanColumn<Task['status']>[] = [
+  { id: 'open', label: 'Open', color: 'var(--ink2)' },
+  { id: 'in_progress', label: 'In Progress', color: 'var(--blue)' },
+  { id: 'blocked', label: 'Blocked', color: 'var(--red)' },
+  { id: 'complete', label: 'Complete', color: 'var(--green)' },
 ];
 
 const PRIORITY_VARIANT: Record<Task['priority'], 'gray' | 'info' | 'warning' | 'error'> = {
@@ -152,47 +153,39 @@ export function InventoryTasks() {
       {loading ? (
         <SectionLoading />
       ) : (
-        <div className="inv-kanban">
-          {COLUMNS.map(col => {
-            const colTasks = tasks.filter(t => t.status === col.status);
+        <KanbanBoard<KanbanCardData & { task: Task }, Task['status']>
+          columns={COLUMNS}
+          items={tasks.map(t => ({ id: t.id, columnId: t.status, task: t }))}
+          emptyMessage="Nothing here"
+          onDrop={(itemId, _from, toCol) => {
+            const t = tasks.find(x => x.id === itemId);
+            if (t) handleMove(t, toCol as Task['status']);
+          }}
+          renderCard={(item) => {
+            const t = item.task;
             return (
-              <div key={col.status} className="inv-card">
-                <div className="inv-card-hdr">
-                  <h2 className="inv-card-title" style={{ fontSize: 13 }}>{col.label}</h2>
-                  <Badge variant="gray">{colTasks.length}</Badge>
+              <div>
+                <div className="kb-card-topline">
+                  <span className="kb-card-title" style={{ marginBottom: 0, flex: 1 }}>{t.title}</span>
+                  <Badge variant={PRIORITY_VARIANT[t.priority]}>{t.priority}</Badge>
                 </div>
-                <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 80 }}>
-                  {colTasks.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', padding: '8px 4px' }}>Nothing here.</div>
-                  ) : colTasks.map(t => (
-                    <div key={t.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, background: 'var(--bg)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{t.title}</div>
-                        <Badge variant={PRIORITY_VARIANT[t.priority]}>{t.priority}</Badge>
-                      </div>
-                      {t.itemName && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>{t.itemName}</div>}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 11.5, color: 'var(--ink3)' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                          {t.assigneeName && <PersonAvatar userId={t.assignedTo ?? undefined} name={t.assigneeName} size={16} />}
-                          {t.assigneeName ?? 'Unassigned'}
-                        </span>
-                        {t.dueDate && <span>{new Date(t.dueDate).toLocaleDateString()}</span>}
-                      </div>
-                      <div style={{ marginTop: 10 }}>
-                        <Select value={t.status} onValueChange={v => handleMove(t, v as Task['status'])}>
-                          <SelectTrigger style={{ height: 28, fontSize: 11.5 }}><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {COLUMNS.map(c => <SelectItem key={c.status} value={c.status}>{c.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ))}
+                {t.itemName && <div className="kb-card-subtitle">{t.itemName}</div>}
+                <div className="kb-card-meta">
+                  <span className="kb-meta-item">
+                    {t.assigneeName && <PersonAvatar userId={t.assignedTo ?? undefined} name={t.assigneeName} size={16} />}
+                    {t.assigneeName ?? 'Unassigned'}
+                  </span>
+                  {t.dueDate && (
+                    <span className="kb-meta-item" style={{ marginLeft: 'auto' }}>
+                      <Icon name="calendar" size={11} color="var(--ink3)" />
+                      {new Date(t.dueDate).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
               </div>
             );
-          })}
-        </div>
+          }}
+        />
       )}
     </div>
   );

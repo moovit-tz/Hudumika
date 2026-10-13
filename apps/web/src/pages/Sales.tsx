@@ -18,6 +18,7 @@ import { getCompany } from '../data/companyStore.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
 import './Sales.css';
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -827,86 +828,57 @@ export const Sales: React.FC = () => {
       </div>
 
       {/* Pipeline kanban */}
-      <section className="sales-board" aria-label="Quotation pipeline">
-        {STAGES.map(stage => {
-          const cards = byStage(stage.key);
+      <KanbanBoard
+        columns={STAGES.map(s => ({ id: s.key, label: s.label, color: s.color }))}
+        items={quotes.map(q => ({ id: q.id, columnId: q.status, quote: q }))}
+        emptyMessage="No quotations"
+        renderCard={(item) => {
+          const q = (item as any).quote;
           return (
-            <div key={stage.key} className="sales-stage" style={{ '--sales-stage-color': stage.color } as React.CSSProperties}>
-              {/* Column header */}
-              <div className="sales-stage-header">
-                <span className="sales-stage-dot" />
-                <span className="sales-stage-name">{stage.label}</span>
-                <Badge variant="gray" className="sales-stage-count">{cards.length}</Badge>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setDetailId(q.id)}
+              onKeyDown={(event: React.KeyboardEvent) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setDetailId(q.id);
+                }
+              }}
+            >
+              <div className="kb-card-topline">
+                <span style={{ color: 'var(--teal)', fontSize: 10, fontWeight: 600 }}>{q.quote_number}</span>
               </div>
-
-              {/* Cards */}
-              <div className="sales-stage-list">
-                {loading && <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 12, padding: 16 }}>…</div>}
-                {!loading && cards.length === 0 && (
-                  <div className="sales-empty-stage">
-                    <Icon name="fileText" size={18} />
-                    <span>No quotations</span>
-                  </div>
-                )}
-                {cards.map(q => (
-                  <div
-                    key={q.id}
-                    className="sales-quote-card"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setDetailId(q.id)}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setDetailId(q.id);
-                      }
-                    }}
-                  >
-                    <div className="sales-quote-number">{q.quote_number}</div>
-                    <div className="sales-quote-title">{q.title}</div>
-                    <div className="sales-quote-customer">{q.customer_name || 'No customer assigned'}</div>
-                    <div className="sales-quote-footer">
-                      <div className="sales-quote-value">
-                        {fmt(q.total_amount, q.currency)}
-                      </div>
-                      {/* Quick action buttons on card */}
-                      <div className="sales-card-actions" onClick={e => e.stopPropagation()}>
-                        <Tip label="Edit quotation">
-                        <button
-                          type="button"
-                          className="sales-card-action"
-                          aria-label={`Edit quotation ${q.quote_number}`}
-                          onClick={() => openEdit(q)}
-                         data-ui-native-button="">
-                          <Icon name="edit" size={13} />
-                        </button>
-                        </Tip>
-                        {canDelete && (
-                          <Tip label="Delete quotation">
-                          <button
-                            type="button"
-                            className="sales-card-action is-danger"
-                            aria-label={`Delete quotation ${q.quote_number}`}
-                            onClick={() => openDelete(q)}
-                           data-ui-native-button="">
-                            <Icon name="trash2" size={13} />
-                          </button>
-                          </Tip>
-                        )}
-                      </div>
-                    </div>
-                    {q.valid_until && (
-                      <div className="sales-quote-validity">
-                        Valid until {fmtDate(q.valid_until)}
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <div className="kb-card-title">{q.title}</div>
+              <div className="kb-card-subtitle">{q.customer_name || 'No customer assigned'}</div>
+              <div className="kb-card-meta">
+                <span className="kb-meta-item mono" style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                  {fmt(q.total_amount, q.currency)}
+                </span>
+                <span style={{ marginLeft: 'auto', display: 'flex', gap: 2 }} onClick={e => e.stopPropagation()}>
+                  <Tip label="Edit quotation">
+                    <button type="button" className="sales-card-action" aria-label={`Edit quotation ${q.quote_number}`} onClick={() => openEdit(q)} data-ui-native-button="">
+                      <Icon name="edit" size={13} />
+                    </button>
+                  </Tip>
+                  {canDelete && (
+                    <Tip label="Delete quotation">
+                      <button type="button" className="sales-card-action is-danger" aria-label={`Delete quotation ${q.quote_number}`} onClick={() => openDelete(q)} data-ui-native-button="">
+                        <Icon name="trash2" size={13} />
+                      </button>
+                    </Tip>
+                  )}
+                </span>
               </div>
+              {q.valid_until && (
+                <div style={{ marginTop: 7, paddingTop: 7, borderTop: '1px solid var(--border)', color: 'var(--ink3)', fontSize: 10 }}>
+                  Valid until {fmtDate(q.valid_until)}
+                </div>
+              )}
             </div>
           );
-        })}
-      </section>
+        }}
+      />
 
       {/* Detail panel */}
       {detailId && (

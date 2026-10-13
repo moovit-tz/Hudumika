@@ -57,6 +57,7 @@ export function OndiSignInPanel() {
   const { login, requestOtpLogin, verifyOtpLogin, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, loginWithApple } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || '/';
 
   // null = the idle "choose how to sign in" view (the two pills); set once
   // a method is actually picked.
@@ -131,7 +132,7 @@ export function OndiSignInPanel() {
     setError(null); setLoading(true);
     try {
       await verifyOtpLogin(phone.trim(), otpCode.trim());
-      navigate('/');
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.message || 'Invalid or expired code.');
     } finally { setLoading(false); }
@@ -155,7 +156,7 @@ export function OndiSignInPanel() {
       const res = await login(email.trim(), totpPassword);
       if ('requires_2fa_setup' in res) { navigate('/2fa-setup-required', { state: { setupToken: res.setup_token } }); return; }
       if ('requires_2fa' in res) { setTotpStep('code'); return; }
-      navigate('/');
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.message || 'Invalid email or password.');
     } finally { setLoading(false); }
@@ -168,7 +169,7 @@ export function OndiSignInPanel() {
     try {
       const res = await login(email.trim(), totpPassword, totpCode.trim());
       if ('requires_2fa' in res) { setError('Invalid code. Try again.'); return; }
-      navigate('/');
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.message || 'Invalid or expired code.');
     } finally { setLoading(false); }
@@ -219,7 +220,7 @@ export function OndiSignInPanel() {
       const options = await requestPasskeyLoginOptions(passkeyEmail.trim());
       const response = await startAuthentication({ optionsJSON: options });
       await verifyPasskeyLogin(passkeyEmail.trim(), response);
-      navigate('/');
+      navigate(returnTo);
     } catch (err: any) {
       setError(err.message || 'Could not sign in with that passkey.');
     } finally { setLoading(false); }
@@ -237,7 +238,7 @@ export function OndiSignInPanel() {
       setInfo(`A request to join ${res.join_request.tenant_name} was sent for review. You'll get an email once an admin approves it.`);
       return;
     }
-    navigate('/');
+    navigate(returnTo);
   };
 
   const handleFederatedError = (err: any, provider: 'Google' | 'Microsoft' | 'Apple') => {

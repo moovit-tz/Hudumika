@@ -8,9 +8,13 @@ import { Combobox } from '../../components/ui/combobox.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import type { OnsiteWebsite, OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { Tip } from '../../components/ui/tooltip.js';
+import { Banner } from '../../components/ui/alert.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import './Onsite.css';
 
 const WEBSITE_TYPES: { value: string; label: string }[] = [
@@ -28,12 +32,12 @@ const WEBSITE_TYPES: { value: string; label: string }[] = [
 // value into a single "Misconfigured" red banner (as this page used to)
 // told a tenant their DNS was broken while a site was simply still
 // deploying, or one they'd deliberately suspended.
-const STATUS_META: Record<string, { badge: string; label: string }> = {
-  active:     { badge: 'active',   label: 'Active' },
-  deploying:  { badge: 'deploying', label: 'Deploying' },
-  failed:     { badge: 'failed',   label: 'Failed' },
-  suspended:  { badge: 'failed',   label: 'Suspended' },
-  inactive:   { badge: 'inactive', label: 'Inactive' },
+const STATUS_META: Record<string, { variant: 'success' | 'info' | 'error' | 'gray'; label: string }> = {
+  active:     { variant: 'success', label: 'Active' },
+  deploying:  { variant: 'info',    label: 'Deploying' },
+  failed:     { variant: 'error',   label: 'Failed' },
+  suspended:  { variant: 'error',   label: 'Suspended' },
+  inactive:   { variant: 'gray',    label: 'Inactive' },
 };
 
 export function OnsiteWebsites() {
@@ -44,8 +48,10 @@ export function OnsiteWebsites() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'owned' | 'shared'>('owned');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const fetchWebsites = (isManual = false) => {
+    setLoadError('');
     if (isManual) setRefreshing(true);
     else setLoading(true);
 
@@ -55,7 +61,7 @@ export function OnsiteWebsites() {
     // correctly-functioning empty state, not something to paper over.
     apiFetch('/v1/onsite/websites')
       .then((res: any) => setWebsites(Array.isArray(res) ? res : []))
-      .catch(() => setWebsites([]))
+      .catch(error => setLoadError(error.message || 'Unable to load websites'))
       .finally(() => {
         setLoading(false);
         setRefreshing(false);
@@ -76,7 +82,7 @@ export function OnsiteWebsites() {
   // Group by hosting plan
   const planGroups: Record<string, OnsiteWebsite[]> = useMemo(() => {
     return filteredWebsites.reduce((acc, site) => {
-      const planName = site.hosting_provider || 'Premium';
+      const planName = site.hosting_provider || 'Unassigned provider';
       if (!acc[planName]) acc[planName] = [];
       acc[planName].push(site);
       return acc;
@@ -102,25 +108,26 @@ export function OnsiteWebsites() {
     <div className="onsite-page">
       <PageHeader
         crumbs={['Onsite', 'Websites']}
-        titlePlain="Hosted"
+        titlePlain="Managed"
         titleEm="websites"
-        subtitle="Manage hosted websites, WordPress installations, and PHP web applications."
+        subtitle="Track website configuration and connected hosting providers. Adding a record does not provision hosting."
         actions={<div className="onsite-header-actions">
-                    <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+                    <Button onClick={() => setShowAddModal(true)}>
                       <Icon name="plus" size={16} />
                       <span>Add Website</span>
-                    </button>
-                    <button className="onsite-btn-outline" onClick={() => navigate('/workspace/billing')} data-ui-native-button="">
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate('/workspace/billing')}>
                       <Icon name="layoutDashboard" size={15} />
                       <span>Get Plan</span>
-                    </button>
+                    </Button>
                   </div>}
       />
 
+      {loadError && <Banner variant="error" title="Website inventory unavailable" action={<Button variant="outline" onClick={() => fetchWebsites()}>Retry</Button>}>{loadError}</Banner>}
       {/* Metrics Grid */}
       <div className="onsite-domains-stats">
         <div className="onsite-domain-stat-card">
-          <div className="onsite-domain-stat-icon purple">
+          <div className="onsite-domain-stat-icon accent">
             <Icon name="layoutDashboard" size={22} />
           </div>
           <div className="onsite-domain-stat-info">
@@ -140,7 +147,7 @@ export function OnsiteWebsites() {
               <span className="onsite-status-dot active" title="Active" />
             </div>
             <span className="onsite-domain-stat-lbl">Active &amp; Online</span>
-            <span className="onsite-domain-stat-sub">SSL &amp; HTTP healthy</span>
+            <span className="onsite-domain-stat-sub">Recorded active status</span>
           </div>
         </div>
 
@@ -154,7 +161,7 @@ export function OnsiteWebsites() {
               {metrics.attention > 0 && <span className="onsite-status-dot failed" title="Action required" />}
             </div>
             <span className="onsite-domain-stat-lbl">Needs Attention</span>
-            <span className="onsite-domain-stat-sub">DNS or configuration issue</span>
+            <span className="onsite-domain-stat-sub">Failed or suspended records</span>
           </div>
         </div>
 
@@ -170,39 +177,24 @@ export function OnsiteWebsites() {
         </div>
       </div>
 
-      {/* Row 1: Tabs + Refresh Button in a Single Horizontal Row */}
-      <div className="onsite-tabs-row">
-        <div className="onsite-tabs" role="tablist" aria-label="Website ownership">
-          <button
-            role="tab" aria-selected={activeTab === 'owned'} className={activeTab === 'owned' ? 'onsite-tab active' : 'onsite-tab'}
-            onClick={() => setActiveTab('owned')}
-           data-ui-native-button="">
-            Owned Websites ({filteredWebsites.length})
-          </button>
-          <button
-            role="tab" aria-selected={activeTab === 'shared'} className={activeTab === 'shared' ? 'onsite-tab active' : 'onsite-tab'}
-            onClick={() => setActiveTab('shared')}
-           data-ui-native-button="">
-            Shared with Workspace
-          </button>
-        </div>
-
-        <button
-          className="onsite-btn-outline onsite-refresh-btn"
-          onClick={() => fetchWebsites(true)}
-          disabled={refreshing}
-         data-ui-native-button="">
-          <Icon name="refresh" size={14} className={refreshing ? 'onsite-spin' : ''} />
-          <span>{refreshing ? 'Refreshing...' : 'Refresh Status'}</span>
-        </button>
-      </div>
-
-      {/* Row 2: Search & Filter Toolbar in a Single Horizontal Row */}
+      {/* Tabs + Search + Refresh in a single row */}
       <SearchToolbar
         search={searchQuery}
         onSearch={setSearchQuery}
         placeholder="Search by website, domain, CMS, or hosting plan"
         className="onsite-domains-toolbar"
+        quickFilters={[{
+          value: activeTab === 'shared' ? 'shared' : null,
+          onChange: (v) => setActiveTab(v === 'shared' ? 'shared' : 'owned'),
+          allLabel: `Owned Websites (${filteredWebsites.length})`,
+          options: [{ value: 'shared', label: 'Shared with Workspace' }],
+        }]}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => fetchWebsites(true)} disabled={refreshing}>
+            <Icon name="refresh" size={14} className={refreshing ? 'onsite-spin' : ''} />
+            <span>{refreshing ? 'Refreshing...' : 'Refresh Status'}</span>
+          </Button>
+        }
       />
 
       {/* Grouped Plan Cards */}
@@ -220,19 +212,19 @@ export function OnsiteWebsites() {
             Websites shared or delegated across agency clients will appear here.
           </p>
         </div>
-      ) : Object.keys(planGroups).length === 0 ? (
+      ) : loadError && websites.length === 0 ? null : Object.keys(planGroups).length === 0 ? (
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', margin: '0 auto 1rem auto' }}>
             <Icon name="layoutDashboard" size={28} />
           </div>
           <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--ink)', fontWeight: 700 }}>No websites found</h3>
           <p style={{ color: 'var(--ink2)', fontSize: '0.875rem', margin: '0.4rem 0 1.25rem 0' }}>
-            {searchQuery ? 'No websites match your search query.' : 'Add your first website to start hosting files, WordPress, or web applications.'}
+            {searchQuery ? 'No websites match your search query.' : 'Add your first website configuration and link an existing hosting provider.'}
           </p>
-          <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="plus" size={14} />
             <span>Add Website</span>
-          </button>
+          </Button>
         </div>
       ) : (
         Object.entries(planGroups).map(([planName, sites]) => (
@@ -245,14 +237,14 @@ export function OnsiteWebsites() {
                 </div>
               </div>
               <div className="onsite-plan-header-actions">
-                <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/transfers')} data-ui-native-button="">
+                <Button variant="outline" size="sm" onClick={() => navigate('/onsite/domains/transfers')}>
                   <Icon name="download" size={14} />
                   <span>Migrate Website</span>
-                </button>
-                <button className="onsite-btn-purple" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+                </Button>
+                <Button size="sm" onClick={() => setShowAddModal(true)}>
                   <Icon name="plus" size={14} />
                   <span>Add Website</span>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -261,7 +253,7 @@ export function OnsiteWebsites() {
               {sites.map((site) => (
                 <div key={site.id} className="onsite-website-row">
                   <div className="onsite-site-info">
-                    <div className="onsite-site-icon" style={{ background: site.type === 'cms' ? 'var(--blue-l)' : 'var(--purple-l)', color: site.type === 'cms' ? 'var(--blue)' : 'var(--purple)' }}>
+                    <div className="onsite-site-icon" style={{ background: site.type === 'cms' ? 'var(--blue-l)' : 'var(--teal-l)', color: site.type === 'cms' ? 'var(--blue)' : 'var(--teal)' }}>
                       {site.type === 'cms' ? 'W' : '</>'}
                     </div>
                     <div>
@@ -269,14 +261,14 @@ export function OnsiteWebsites() {
                         <a href={site.url || '#'} target="_blank" rel="noopener noreferrer" className="onsite-site-domain">
                           {site.name} <Icon name="externalLink" size={14} style={{ color: 'var(--ink3)' }} />
                         </a>
-                        <span className={`onsite-badge ${(STATUS_META[site.status] ?? STATUS_META.inactive).badge}`} style={{ fontSize: '0.72rem' }}>
+                        <Badge variant={(STATUS_META[site.status] ?? STATUS_META.inactive).variant} style={{ fontSize: '0.72rem' }}>
                           {(STATUS_META[site.status] ?? STATUS_META.inactive).label}
-                        </span>
+                        </Badge>
                       </div>
 
                       {site.status === 'failed' && (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', background: 'var(--red-l)', color: 'var(--red)', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                          <Icon name="alertCircle" size={12} /> Domain is not working. Check DNS guide
+                          <Icon name="alertCircle" size={12} /> Review website status and provider configuration
                           <Icon name="refresh" size={12} style={{ cursor: 'pointer', marginLeft: '0.25rem' }} onClick={() => fetchWebsites(true)} />
                         </div>
                       )}
@@ -285,25 +277,27 @@ export function OnsiteWebsites() {
 
                   <div className="onsite-site-actions">
                     {site.type === 'cms' && (
-                      <button
-                        className="onsite-btn-outline"
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => window.open((site.url || 'https://' + site.name) + '/wp-admin', '_blank', 'noopener,noreferrer')}
-                       data-ui-native-button="">
+                      >
                         <span>WP Admin ↗</span>
-                      </button>
+                      </Button>
                     )}
-                    <button className="onsite-btn-purple" onClick={() => navigate('/onsite/websites/' + site.id)} data-ui-native-button="">
+                    <Button size="sm" onClick={() => navigate('/onsite/websites/' + site.id)}>
                       <span>Dashboard</span>
-                    </button>
+                    </Button>
                     <Tip label={site.domain_id ? 'Open DNS settings' : 'No domain linked to this website yet'}>
                       <span>
-                        <button
-                          className="onsite-btn-outline"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           disabled={!site.domain_id}
                           onClick={() => site.domain_id && navigate('/onsite/domains/' + site.domain_id + '/dns')}
-                         data-ui-native-button="">
+                        >
                           <span>DNS</span>
-                        </button>
+                        </Button>
                       </span>
                     </Tip>
                   </div>
@@ -369,68 +363,71 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="onsite-card-header">
-          <DialogTitle className="onsite-card-title">Add website</DialogTitle>
-          <button className="btn btn-sm btn-ghost" onClick={onClose} data-ui-native-button="">✕</button>
-        </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-form-group">
-            <label>Name *</label>
-            <input
-              type="text"
-              className="onsite-input"
-              placeholder="My Store Front"
-              value={name}
-              maxLength={200}
-              onChange={e => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="onsite-form-group">
-            <label>Type</label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger className="w-full text-sm rounded-lg border-border bg-white shadow-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {WEBSITE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="onsite-form-group">
-            <label>Domain</label>
-            <Combobox
-              options={domainOptions}
-              value={domainId}
-              onChange={(val) => {
-                setDomainId(val);
-                const picked = domains.find(d => d.id === val);
-                if (picked && !url.trim()) setUrl(`https://${picked.domain}`);
-              }}
-              placeholder={domains.length ? 'Select a domain (optional)' : 'No domains yet — add one under Domains first'}
-              emptyText="No domains found"
-              disabled={domains.length === 0}
-            />
-          </div>
-          <div className="onsite-form-group">
-            <label>URL</label>
-            <input
-              type="text"
-              className="onsite-input"
-              placeholder="https://example.com"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-            />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">
+      <DialogContent size="sm">
+        <DialogHeader>
+          <DialogTitle>Add website</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <DialogBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="onsite-form-group">
+                <label>Name *</label>
+                <input
+                  type="text"
+                  className="onsite-input"
+                  placeholder="My Store Front"
+                  value={name}
+                  maxLength={200}
+                  onChange={e => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="onsite-form-group">
+                <label>Type</label>
+                <Select value={type} onValueChange={setType}>
+                  <SelectTrigger className="w-full text-sm rounded-lg border-border shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WEBSITE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="onsite-form-group">
+                <label>Domain</label>
+                <Combobox
+                  options={domainOptions}
+                  value={domainId}
+                  onChange={(val) => {
+                    setDomainId(val);
+                    const picked = domains.find(d => d.id === val);
+                    if (picked && !url.trim()) setUrl(`https://${picked.domain}`);
+                  }}
+                  placeholder={domains.length ? 'Select a domain (optional)' : 'No domains yet — add one under Domains first'}
+                  emptyText="No domains found"
+                  disabled={domains.length === 0}
+                />
+              </div>
+              <div className="onsite-form-group">
+                <label>URL</label>
+                <input
+                  type="text"
+                  className="onsite-input"
+                  placeholder="https://example.com"
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                />
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
-              {submitting ? 'Adding…' : 'Add website'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={!canSubmit}>
+              {submitting ? <><ButtonSpinner /> Adding…</> : 'Add website'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

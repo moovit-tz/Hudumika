@@ -1320,6 +1320,29 @@ export interface DomainEventsTable {
   created_at: Generated<Date>;
 }
 
+export interface StudioDeliveryRecoveryTable {
+  id: Generated<string>;
+  tenant_id: string;
+  delivery_id: string;
+  actor_id: string;
+  reason: string;
+  previous_attempts: number;
+  created_at: Generated<Date>;
+}
+
+export interface StudioEventOutboxTable {
+  workflow_snapshots: Generated<unknown>;
+  id: Generated<string>;
+  tenant_id: string;
+  event_id: string;
+  status: Generated<string>;
+  attempts: Generated<number>;
+  available_at: Generated<Date>;
+  lease_id: string | null;
+  error_message: string | null;
+  created_at: Generated<Date>;
+}
+
 /** See migration 411_metric_registry.sql's header — the cross-app metric
  *  catalog. Not tenant-scoped: this holds definitions, never a computed
  *  value, so there is nothing here for RLS to isolate. */
@@ -5567,6 +5590,8 @@ export interface Database {
   seal_yard_slots: SealYardSlotsTable;
   seal_ledger_anchors: SealLedgerAnchorsTable;
   domain_events: DomainEventsTable;
+  studio_event_outbox: StudioEventOutboxTable;
+  studio_delivery_recoveries: StudioDeliveryRecoveryTable;
   sign_jurisdiction_rules: SignJurisdictionRulesTable;
   semantic_entities: SemanticEntitiesTable;
   metric_definitions: MetricDefinitionsTable;
@@ -5825,6 +5850,9 @@ export interface Database {
   email_templates: EmailTemplatesTable;
   email_outbox: EmailOutboxTable;
   user_email_accounts: UserEmailAccountsTable;
+  email_remote_messages: EmailRemoteMessagesTable;
+  email_live_checks: EmailLiveChecksTable;
+  tenant_mail_provider_connections: TenantMailProviderConnectionsTable;
   email_signatures: EmailSignaturesTable;
   email_send_identities: EmailSendIdentitiesTable;
   email_filters: EmailFiltersTable;
@@ -5923,6 +5951,8 @@ export interface Database {
   onsite_backups: OnsiteBackupsTable;
   agency_managed_tenants: AgencyManagedTenantsTable;
   onsite_agency_profiles: OnsiteAgencyProfilesTable;
+  onsite_email_domains: OnsiteEmailDomainsTable;
+  onsite_email_mailboxes: OnsiteEmailMailboxesTable;
   referral_commissions: ReferralCommissionsTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
@@ -8246,6 +8276,8 @@ export interface EmailQuickTemplatesTable {
 }
 
 export interface UserEmailAccountsTable {
+  sync_claim_token: string | null;
+  sync_claim_until: Date | null;
   id: Generated<string>;
   tenant_id: string;
   user_id: string;
@@ -8292,6 +8324,23 @@ export interface UserEmailAccountsTable {
   forward_keep_copy: Generated<boolean>;
   inbox_sort: Generated<'default' | 'unread_first' | 'starred_first'>;
   auto_advance: Generated<'list' | 'newer' | 'older'>;
+}
+
+export interface EmailRemoteMessagesTable {
+  id: Generated<string>; tenant_id: string; account_id: string; user_id: string;
+  mailbox_path: string; uid_validity: string; uid: number; message_id: string | null;
+  seen_token: string; remote_deleted: Generated<boolean>; desired_patch: any | null; operation_error: string | null;
+}
+
+export interface EmailLiveChecksTable {
+  id: Generated<string>; tenant_id: string; user_id: string; account_id: string;
+  outbox_id: string | null; token: Generated<string>;
+  status: Generated<'queued' | 'sent' | 'received' | 'failed'>;
+  received_message_id: string | null; created_at: Generated<Date>; received_at: Date | null;
+}
+export interface TenantMailProviderConnectionsTable {
+  id: Generated<string>; tenant_id: string; kind: 'cpanel' | 'google' | 'microsoft';
+  config_ciphertext: string; updated_at: Generated<Date>;
 }
 
 export interface EmailSignaturesTable {
@@ -8398,7 +8447,7 @@ export interface EmailOutboxTable {
   body_html:       string;
   template_key:    string | null;
   source_app:      string | null;
-  status:          Generated<'pending' | 'sending' | 'sent' | 'failed'>;
+  status:          Generated<'pending' | 'sending' | 'sent' | 'failed' | 'simulated' | 'cancelled'>;
   attempts:        Generated<number>;
   max_attempts:    Generated<number>;
   last_error:      string | null;
@@ -8409,6 +8458,16 @@ export interface EmailOutboxTable {
    *  generated PDF to attach; NULL for every other email in this queue. */
   attachment_storage_key: string | null;
   attachment_filename:    string | null;
+  /** Migration 598 — full envelope preservation for retry fidelity. */
+  bcc_addresses:           any | null;
+  user_id:                 string | null;
+  from_identity_id:        string | null;
+  in_reply_to_message_id:  string | null;
+  references_ids:          any | null;
+  message_id:              string | null;
+  communication_delivery_id: string | null;
+  attachments: Generated<any>;
+  claim_token: string | null;
 }
 
 export interface ShipmentReportSharesTable {
@@ -8967,7 +9026,7 @@ export interface CloudRetentionPoliciesTable {
 
 export interface InvoiceSequencesTable {
   tenant_id: string;
-  doc_type: 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract';
+  doc_type: 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract' | 'change_request' | 'payment_request' | 'project_po' | 'grn';
   prefix: Generated<string>;
   pad_length: Generated<number>;
   next_number: Generated<number>;
@@ -10659,6 +10718,13 @@ export interface AgentCreditLedgerTable {
 }
 
 export interface WorkflowStudioRunsTable {
+  reconciliation: Generated<unknown>;
+  cancellation: Generated<unknown>;
+  cancellation_acknowledged_at: Generated<Date | null>;
+  worker_token: Generated<string | null>;
+  worker_expires_at: Generated<Date | null>;
+  active_step: Generated<unknown>;
+  workflow_snapshot: Generated<unknown>;
   id:             Generated<string>;
   tenant_id:      string;
   workflow_id:    string;
@@ -10756,6 +10822,7 @@ export interface OnsiteSslCertificatesTable {
 }
 
 export interface OnsiteWebsitesTable {
+  provider_connection_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   project_id: string | null;
@@ -10774,6 +10841,7 @@ export interface OnsiteWebsitesTable {
 }
 
 export interface OnsiteApplicationsTable {
+  provider_connection_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   project_id: string | null;
@@ -10826,6 +10894,7 @@ export interface OnsiteSecretsTable {
 }
 
 export interface OnsiteDeploymentsTable {
+  provider_connection_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   application_id: string;
@@ -11011,6 +11080,50 @@ export interface OnsiteAgencyProfilesTable {
   status: Generated<string>; // 'pending' | 'approved' | 'rejected'
   profile_views: Generated<number>;
   inquiries_count: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteEmailDomainsTable {
+  provider_config_ciphertext: string | null;
+  required_dns_records: Generated<any>;
+  id: Generated<string>;
+  tenant_id: string;
+  domain_id: string;
+  provider: Generated<string>;
+  mx_verified: Generated<boolean>;
+  spf_verified: Generated<boolean>;
+  dkim_verified: Generated<boolean>;
+  dmarc_verified: Generated<boolean>;
+  last_verified_at: Date | null;
+  catch_all_action: Generated<string>;
+  catch_all_address: string | null;
+  status: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteEmailMailboxesTable {
+  provision_status: Generated<'unconfigured' | 'provisioning' | 'ready' | 'error' | 'review'>;
+  provider_mailbox_id: string | null;
+  provision_error: string | null;
+  mailbox_secret_ciphertext: string | null;
+  id: Generated<string>;
+  tenant_id: string;
+  email_domain_id: string;
+  local_part: string;
+  full_address: string;
+  display_name: string | null;
+  type: Generated<string>;
+  linked_user_id: string | null;
+  target_mailbox_id: string | null;
+  forward_to: Generated<unknown>;
+  quota_mb: number | null;
+  usage_mb: Generated<number>;
+  message_count: Generated<number>;
+  status: Generated<string>;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

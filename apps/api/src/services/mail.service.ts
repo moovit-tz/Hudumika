@@ -1,3 +1,6 @@
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+import { randomUUID } from 'node:crypto';
 import { withTenant } from '../db/client.js';
 import { MailTemplateService } from './mail-template.service.js';
 import { EmailIntegration } from '../integrations/email.js';
@@ -8,16 +11,16 @@ interface EnqueueInput {
   subject: string;
   bodyHtml: string;
   cc?: string[];
+  bcc?: string[];
   templateKey?: string;
   sourceApp: string;
+  communicationDeliveryId?: string;
   /** A storage_key from MinioIntegration (e.g. uploadShipmentReport) to
    *  attach — mail-outbox.job.ts reads it at send time, so the file only
    *  needs to exist by then, not at enqueue time. */
   attachmentStorageKey?: string;
   attachmentFilename?: string;
-  /** Multiple attachments — sendNow only (Email compose's own multi-file
-   *  picker). Merged with attachmentStorageKey above if both are given,
-   *  rather than the single field becoming dead once this exists. */
+  /** Preserved on the durable delivery envelope, including retries. */
   attachments?: { storageKey: string; filename: string }[];
   /** Real RFC 5322 threading — see EmailIntegration.sendEmail's own doc. */
   inReplyToMessageId?: string | null;
@@ -77,7 +80,7 @@ interface SendResult {
  *                        it's "also try once immediately."
  */
 export const MailService = {
-  async enqueue(tenantId: string, input: EnqueueInput): Promise<string> {
+  async enqueue(tenantId: string, input: EnqueueInput, claimToken?: string): Promise<string> {
     if (input.communication) {
       const { CommEventsService } = await import('./comm-events.service.js');
       const result = await CommEventsService.dispatch({
@@ -88,20 +91,33 @@ export const MailService = {
       });
       return result.deliveryIds[0] ?? '';
     }
-    return withTenant(tenantId, async (trx) => {
+    return withTenant(tenantId, trx => this.enqueueInTransaction(trx, tenantId, input, claimToken));
+  },
+
+  /** Used when a scheduled message and its durable delivery must commit together. */
+  async enqueueInTransaction(trx: Transaction<Database>, tenantId: string, input: EnqueueInput, claimToken?: string): Promise<string> {
       const row = await trx.insertInto('email_outbox').values({
         tenant_id: tenantId,
+        status: claimToken ? 'sending' : 'pending',
+        claim_token: claimToken ?? null,
+        next_attempt_at: new Date(Date.now() + (claimToken ? 300_000 : 0)),
         to_address: input.to,
         cc_addresses: input.cc && input.cc.length ? JSON.stringify(input.cc) : null,
+        bcc_addresses: input.bcc && input.bcc.length ? JSON.stringify(input.bcc) : null,
         subject: input.subject,
         body_html: input.bodyHtml,
         template_key: input.templateKey ?? null,
         source_app: input.sourceApp,
+        attachments: JSON.stringify(input.attachments ?? []),
+        communication_delivery_id: input.communicationDeliveryId ?? null,
         attachment_storage_key: input.attachmentStorageKey ?? null,
         attachment_filename: input.attachmentFilename ?? null,
+        user_id: input.userId ?? null,
+        from_identity_id: input.fromIdentityId ?? null,
+        in_reply_to_message_id: input.inReplyToMessageId ?? null,
+        references_ids: input.referencesMessageIds?.length ? JSON.stringify(input.referencesMessageIds) : null,
       }).returning('id').executeTakeFirstOrThrow();
       return row.id;
-    });
   },
 
   /** Renders templateKey via MailTemplateService, then enqueues the result. */
@@ -112,36 +128,43 @@ export const MailService = {
 
   /** Sends already-built subject/bodyHtml synchronously — see class doc for when to reach for this over enqueue(). */
   async sendNow(tenantId: string, input: EnqueueInput): Promise<SendResult> {
-    const keys = [
-      ...(input.attachmentStorageKey ? [{ storageKey: input.attachmentStorageKey, filename: input.attachmentFilename || 'attachment' }] : []),
-      ...(input.attachments ?? []),
-    ];
-    const loaded = await Promise.all(keys.map(async k => {
-      const content = await MinioIntegration.readFile(k.storageKey);
-      return content ? { filename: k.filename, content } : null;
-    }));
-    const attachments = loaded.filter((a): a is { filename: string; content: Buffer } => a !== null);
-    const result = await EmailIntegration.sendEmail({
-      to: input.to, subject: input.subject, bodyHtml: input.bodyHtml, cc: input.cc, tenantId,
-      attachments: attachments.length ? attachments : undefined,
-      inReplyToMessageId: input.inReplyToMessageId, referencesMessageIds: input.referencesMessageIds,
-      userId: input.userId, fromIdentityId: input.fromIdentityId,
-    });
-    const outboxId = await withTenant(tenantId, async (trx) => {
-      const row = await trx.insertInto('email_outbox').values({
-        tenant_id: tenantId, to_address: input.to,
-        cc_addresses: input.cc && input.cc.length ? JSON.stringify(input.cc) : null,
-        subject: input.subject, body_html: input.bodyHtml,
-        template_key: input.templateKey ?? null, source_app: input.sourceApp,
-        attachment_storage_key: input.attachmentStorageKey ?? null,
-        attachment_filename: input.attachmentFilename ?? null,
-        status: result.success ? 'sent' : 'failed',
-        attempts: 1,
-        sent_at: result.success ? new Date() : null,
-        last_error: result.success ? null : (result.error ?? 'Unknown send error'),
-      }).returning('id').executeTakeFirstOrThrow();
-      return row.id;
-    });
+    const claimToken = randomUUID();
+    const outboxId = await this.enqueue(tenantId, { ...input, communication: undefined }, claimToken);
+    let result: { success: boolean; simulated?: boolean; error?: string; messageId?: string };
+    const heartbeat = setInterval(() => {
+      void withTenant(tenantId, trx => trx.updateTable('email_outbox')
+        .set({ next_attempt_at: new Date(Date.now() + 300_000) })
+        .where('tenant_id', '=', tenantId).where('id', '=', outboxId).where('claim_token', '=', claimToken).execute())
+        .catch(error => console.error('Immediate mail lease renewal failed:', error));
+    }, 60_000);
+    try {
+      const keys = [
+        ...(input.attachmentStorageKey ? [{ storageKey: input.attachmentStorageKey, filename: input.attachmentFilename || 'attachment' }] : []),
+        ...(input.attachments ?? []),
+      ];
+      const attachments = await Promise.all(keys.map(async attachment => {
+        const content = await MinioIntegration.readFile(attachment.storageKey);
+        if (!content) throw new Error(`Attachment unavailable: ${attachment.filename}. Restore the file before retrying.`);
+        return { filename: attachment.filename, content };
+      }));
+      result = await EmailIntegration.sendEmail({
+        to: input.to, subject: input.subject, bodyHtml: input.bodyHtml,
+        cc: input.cc, bcc: input.bcc, tenantId,
+        attachments: attachments.length ? attachments : undefined,
+        inReplyToMessageId: input.inReplyToMessageId, referencesMessageIds: input.referencesMessageIds,
+        userId: input.userId, fromIdentityId: input.fromIdentityId,
+      });
+    } catch (error) {
+      result = { success: false, error: error instanceof Error ? error.message : 'Email delivery failed' };
+    } finally { clearInterval(heartbeat); }
+    await withTenant(tenantId, trx => trx.updateTable('email_outbox').set({
+      status: result.simulated ? 'simulated' : result.success ? 'sent' : 'failed',
+      claim_token: null, attempts: 1, message_id: result.messageId ?? null,
+      sent_at: result.success ? new Date() : null,
+      last_error: result.success ? null : result.error ?? 'Email delivery failed',
+      next_attempt_at: new Date(Date.now() + 120_000),
+    }).where('tenant_id', '=', tenantId).where('id', '=', outboxId)
+      .where('claim_token', '=', claimToken).execute());
     return { success: result.success, simulated: !!result.simulated, error: result.error, outboxId, messageId: result.messageId };
   },
 

@@ -216,6 +216,7 @@ export class EmailIntegration {
     bodyHtml: string;
     tenantId?: string;
     cc?: string[];
+    bcc?: string[];
     attachments?: { filename: string; content: Buffer }[];
     /** Real RFC 5322 threading — set from the parent message's own stored
      *  message_id (email.routes.ts) so a reply sent through Hudumika
@@ -246,6 +247,7 @@ export class EmailIntegration {
             from: `"${userIdentity.fromName}" <${userIdentity.fromAddress}>`,
             to: input.to,
             cc: input.cc?.length ? input.cc.join(',') : undefined,
+            bcc: input.bcc?.length ? input.bcc.join(',') : undefined,
             subject: input.subject,
             html: input.bodyHtml,
             attachments: input.attachments,
@@ -342,11 +344,12 @@ export class EmailIntegration {
           // If the system default is not set or is still the placeholder, we simulate delivery in development
           const isPlaceholder = env.SMTP_USER === 'your-email@domain.com' || env.SMTP_PASS === 'your-app-password';
 
-          if (isPlaceholder && env.APP_ENV !== 'production') {
+          if (isPlaceholder) {
+            if (env.APP_ENV === 'production') {
+              return { success: false, error: 'No email transport configured — configure workspace SMTP or platform sender before sending' };
+            }
             console.log(`📧 [Simulated Email] To: ${input.to} | Subject: ${input.subject}`);
-            // Flagged for the same reason as the WhatsApp simulation: nothing
-            // downstream should record this as delivered.
-            return { success: true, simulated: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
+            return { success: false, simulated: true, error: 'No email transport configured (simulated)' };
           }
 
           // Use the system's pre-configured global SMTP mailer
@@ -371,6 +374,7 @@ export class EmailIntegration {
         from: `"${fromName}" <${fromAddress}>`,
         to: input.to,
         cc: input.cc?.length ? input.cc.join(',') : undefined,
+        bcc: input.bcc?.length ? input.bcc.join(',') : undefined,
         subject: input.subject,
         html: input.bodyHtml,
         attachments: input.attachments,

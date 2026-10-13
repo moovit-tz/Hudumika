@@ -27,6 +27,7 @@ import type { ClearanceStage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { PageHeader } from '../components/PageHeader.js';
+import '../components/ui/kanban-board.css';
 import {
   DECLARATION_STATUSES, LANES, LANE, STATUS_VARIANT, declMoney,
 } from '../lib/declarationMeta.js';
@@ -273,7 +274,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
             onDragOver={(e) => handleDragOver(e, col.key)}
             onDragLeave={() => setOverStage(cur => (cur === col.key ? null : cur))}
             onDrop={(e) => handleDrop(e, col.key)}
-            className={`cos-column-bg${overStage === col.key ? ' cos-column-bg--over' : ''}`}
+            className={`kb-column${overStage === col.key ? ' kb-column--over' : ''}`}
             style={{
             flexShrink: 0, width: 302,
             display: 'flex', flexDirection: 'column',
@@ -286,11 +287,9 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
               borderBottom: '1px solid var(--cos-column-border)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="cos-col-ring" style={{ color }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', flex: 1, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
-                  {col.label}
-                </span>
-                <span className="cos-col-count">{ships.length}</span>
+                <span className="kb-col-ring" style={{ color }} />
+                <span className="kb-col-label">{col.label}</span>
+                <span className="kb-col-count">{ships.length}</span>
               </div>
             </div>
 
@@ -312,7 +311,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                     draggable
                     onDragStart={(e) => handleDragStart(e, ship.id)}
                     onDragEnd={handleDragEnd}
-                    className={`cos-kanban-card${draggingId === ship.id ? ' cos-kanban-card--dragging' : ''}`}
+                    className={`kb-card${draggingId === ship.id ? ' kb-card--dragging' : ''}`}
                     style={{
                       display: 'block',
                       overflow: 'hidden',
@@ -323,7 +322,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                     }}
                   >
                     {/* Top line: flag (urgent only) + ref number + DG badge + type badge */}
-                    <div className="cos-card-topline">
+                    <div className="kb-card-topline">
                       {urgent && <Icon name="flag" size={12} color="var(--red)" strokeWidth={2} />}
                       <span style={{ fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '0.01em' }}>
                         {ship.ref_number}
@@ -342,10 +341,10 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                     </div>
 
                     {/* Title */}
-                    <div className="cos-card-title">{ship.goods_desc}</div>
+                    <div className="kb-card-title">{ship.goods_desc}</div>
 
                     {/* Subtitle: customer name */}
-                    <div className="cos-card-subtitle">{ship._customer}</div>
+                    <div className="kb-card-subtitle">{ship._customer}</div>
 
                     {/* Risk chips — shared Badge component (soft-tint variants),
                         not a hand-rolled inline-styled span. */}
@@ -363,19 +362,19 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                     )}
 
                     {/* Meta row: date + attachments + comments + avatar */}
-                    <div className="cos-card-meta">
-                      <span className="cos-meta-item">
+                    <div className="kb-card-meta">
+                      <span className="kb-meta-item">
                         <Icon name="calendar" size={12} color="var(--ink3)" strokeWidth={1.75} />
                         {createdDate}
                       </span>
                       {docCount > 0 && (
-                        <span className="cos-meta-item">
+                        <span className="kb-meta-item">
                           <Icon name="paperclip" size={12} color="var(--ink3)" strokeWidth={1.75} />
                           {docCount}
                         </span>
                       )}
                       {msgCount > 0 && (
-                        <span className="cos-meta-item">
+                        <span className="kb-meta-item">
                           <Icon name="messageSquare" size={12} color="var(--ink3)" strokeWidth={1.75} />
                           {msgCount}
                         </span>

@@ -44,7 +44,8 @@ import { ProjectRisksDashboard } from './projects/ProjectRisksDashboard.js';
 import { ProjectScheduleGantt } from './projects/ProjectScheduleGantt.js';
 import { ProjectKanbanSwimlanes } from './projects/ProjectKanbanSwimlanes.js';
 import { ProjectBudgetTracking } from './projects/ProjectBudgetTracking.js';
-import type { ProjectIndustry, ProjectType } from '@hudumika/types';
+import type { ProjectIndustry, ProjectType, ProjectDocumentBrief } from '@hudumika/types';
+import { ProjectDocumentReview } from './projects/ProjectCreatePage.js';
 
 interface ProjectSummary {
   id: string; ref: string | null; name: string; description: string | null; color: string; status: string;
@@ -70,6 +71,7 @@ interface ProjectSummary {
 }
 
 interface ProjectDetail extends ProjectSummary {
+  custom_fields?: { document_brief?: ProjectDocumentBrief };
   days_total: number | null; days_left: number | null;
   logged_hours_by_day: { day: string; minutes: number }[]; total_logged_minutes: number;
   expenses: { total: number; billable: number; billed: number; unbilled: number };
@@ -256,7 +258,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     if (autoSelectProjectId) return autoSelectProjectId;
     if (['schedule', 'kanban', 'wbs', 'financials_evm', 'governance', 'industry'].includes(initialMode)) {
-      return 'proj-software-dev';
+      return null;
     }
     return null;
   });
@@ -349,29 +351,23 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
   useEffect(() => {
     if (autoSelectProjectId) { setSelectedId(autoSelectProjectId); return; }
-    if (initialMode === 'schedule') {
-      setSelectedId('proj-software-dev');
-      setTab('schedule');
-    } else if (initialMode === 'kanban') {
-      setSelectedId('proj-software-dev');
-      setTab('kanban');
-    } else if (initialMode === 'wbs') {
-      setSelectedId('proj-software-dev');
-      setTab('wbs_schedule');
-    } else if (initialMode === 'financials_evm') {
-      setSelectedId('proj-software-dev');
-      setTab('financials_evm');
-    } else if (initialMode === 'governance') {
-      setSelectedId('proj-software-dev');
-      setTab('governance');
-    } else if (initialMode === 'industry') {
-      setSelectedId('proj-software-dev');
-      setTab('industry_pack');
+    const modeTabMap: Record<string, string> = {
+      schedule: 'schedule', kanban: 'kanban', wbs: 'wbs_schedule',
+      financials_evm: 'financials_evm', governance: 'governance', industry: 'industry_pack',
+    };
+    if (modeTabMap[initialMode]) {
+      setTab(modeTabMap[initialMode] as any);
     } else if (['command_center', 'portfolios', 'projects_list', 'resources', 'risks_dashboard', 'budget_tracking'].includes(initialMode as any)) {
       setSelectedId(null);
       setAppViewMode(initialMode as any);
     }
   }, [initialMode, autoSelectProjectId]);
+
+  useEffect(() => {
+    if (!selectedId && projects && projects.length > 0 && ['schedule', 'kanban', 'wbs', 'financials_evm', 'governance', 'industry'].includes(initialMode)) {
+      setSelectedId(projects[0].id);
+    }
+  }, [projects, selectedId, initialMode]);
 
   const loadProjects = useCallback(() => {
     apiFetch('/v1/tasks/projects').then(res => {
@@ -1325,6 +1321,8 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   )}
                 </SectionCard>
 
+                {detail.custom_fields?.document_brief && <ProjectDocumentReview brief={detail.custom_fields.document_brief} />}
+
                 {/* Logged Hours Chart */}
                 <SectionCard title="Man-Hours Logged This Week">
                   <div style={{ height: 180 }}>
@@ -1562,17 +1560,17 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 boardStyle={isMobile ? { gridTemplateColumns: '1fr' } : undefined}
                 renderCard={t => (
                   <div onClick={() => setDetailTaskId(t.id)} style={{ cursor: 'pointer' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.title}</div>
-                    {t.due && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Due: {t.due}</div>}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                    <div className="kb-card-title">{t.title}</div>
+                    {t.due && <div className="kb-card-subtitle">Due: {t.due}</div>}
+                    <div className="kb-card-meta">
                       <Badge variant={TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.color === 'var(--red)' ? 'error' : (t.priority || 'medium') === 'high' ? 'warning' : 'gray'}>
                         {TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.label || 'Medium'}
                       </Badge>
                       {t.assigneeName && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span className="kb-meta-item" style={{ marginLeft: 'auto' }}>
                           <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={18} />
-                          <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{t.assigneeName}</span>
-                        </div>
+                          {t.assigneeName}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -1580,64 +1578,6 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
               />
             )}
           </>
-        )}
-
-        {/* TAB 9: GANTT CHART */}
-        {tab === 'gantt' && (
-          <SectionCard title="Interactive Project Schedule & Milestone Gantt" collapsible={false}>
-            <div style={{ overflowX: 'auto', padding: '12px 0' }}>
-              <div style={{ minWidth: ganttTotalDays * ganttDayWidth, position: 'relative' }}>
-                {/* Header months */}
-                <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', height: 28, position: 'relative' }}>
-                  {ganttMonthHeaders.map((m, idx) => (
-                    <div key={idx} style={{ position: 'absolute', left: m.left, width: m.width, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', paddingLeft: 4 }}>
-                      {m.label}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Rows */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-                  {ganttRows.map((r, idx) => {
-                    if (r.type === 'milestone') {
-                      return (
-                        <div key={`ms-${idx}`} style={{ height: 24, fontSize: 11.5, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
-                          {r.ms ? `Milestone: ${r.ms.name}` : 'Unassigned Tasks'}
-                        </div>
-                      );
-                    }
-                    const geo = ganttBarGeometry(r.task);
-                    return (
-                      <div key={r.task.id} style={{ height: GANTT_ROW_H, position: 'relative', borderBottom: '1px dashed var(--border)' }}>
-                        {geo && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              left: geo.left,
-                              width: geo.width,
-                              height: 22,
-                              top: 6,
-                              borderRadius: 'var(--r-sm)',
-                              background: STATUS_BAR_COLOR[r.task.completed ? 'completed' : r.task.status],
-                              color: 'hsl(var(--primary-foreground))',
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: '2px 6px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {r.task.title}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </SectionCard>
         )}
 
         {/* TAB 10: TIMESHEETS */}

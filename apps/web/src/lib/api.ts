@@ -59,7 +59,10 @@ function handleUnauthorized() {
   fetch(`${BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
   const path = window.location.pathname;
   if (!path.startsWith('/login') && !path.startsWith('/org')) {
-    window.location.href = '/login?expired=1';
+    const returnTo = path + window.location.search + window.location.hash;
+    const params = new URLSearchParams({ expired: '1' });
+    if (returnTo && returnTo !== '/') params.set('returnTo', returnTo);
+    window.location.href = `/login?${params}`;
   }
 }
 

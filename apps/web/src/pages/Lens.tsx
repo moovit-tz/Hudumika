@@ -11,6 +11,7 @@ import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
+import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
 
 type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
 type Status = 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX';
@@ -101,8 +102,6 @@ export function Lens() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const [dragging, setDragging] = useState<Card | null>(null);
-  const [over, setOver] = useState<string | null>(null);
   const [closing, setClosing] = useState<{ card: Card; status: string } | null>(null);
   const [resolution, setResolution] = useState('');
 
@@ -286,77 +285,48 @@ export function Lens() {
       {loading ? (
         <SectionLoading />
       ) : viewMode === 'board' ? (
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8, flex: 1, height: 0 }}>
-          {columns.map(col => (
-            <div key={col.id}
-              onDragOver={e => { e.preventDefault(); setOver(col.status); }}
-              onDragLeave={() => setOver(o => (o === col.status ? null : o))}
-              onDrop={e => { e.preventDefault(); setOver(null); if (dragging) move(dragging, col.status); setDragging(null); }}
-              style={{
-                display: 'flex', flexDirection: 'column',
-                flex: '0 0 280px', height: '100%',
-                background: over === col.status ? 'var(--teal-l)' : 'var(--bg)',
-                border: `1px solid ${over === col.status ? 'var(--teal)' : 'var(--border)'}`,
-                borderRadius: 'var(--r)', transition: 'background .12s, border-color .12s',
-              }}>
-              <div style={{ padding: '12px 14px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
-                  {col.name}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, background: col.over_wip ? 'var(--red)' : 'var(--border)', color: col.over_wip ? 'hsl(var(--red-foreground))' : 'var(--ink2)', padding: '2px 6px', borderRadius: 10 }}>
-                  {col.count}{col.wip_limit != null ? ` / ${col.wip_limit}` : ''}
-                </span>
-              </div>
-
-              {col.over_wip && (
-                <div style={{ margin: '0 10px', padding: '6px 12px', fontSize: 11, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--r-sm)', flexShrink: 0 }}>
-                  Over {col.wip_limit} limit — finish something first.
+        (() => {
+          const allCards = columns.flatMap(c => c.items.map(card => ({ ...card, id: card.id, columnId: c.status })));
+          return (
+            <KanbanBoard
+              columns={columns.map(c => ({ id: c.status, label: c.name, color: c.over_wip ? 'var(--red)' : 'var(--ink2)' }))}
+              items={allCards}
+              emptyMessage="No items"
+              onDrop={(itemId, _from, toCol) => {
+                const card = allCards.find(c => c.id === itemId);
+                if (card) move(card, toCol);
+              }}
+              renderCard={(item) => (
+                <div onClick={() => open(item.ref)}>
+                  <div className="kb-card-topline">
+                    <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
+                    <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
+                    {item.confidence !== 'CONFIRMED' && (
+                      <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
+                    )}
+                  </div>
+                  <div className="kb-card-title">{item.title}</div>
+                  {item.waiting_on && (
+                    <div className="kb-card-subtitle">⏳ {item.waiting_on}</div>
+                  )}
+                  <div className="kb-card-meta">
+                    {item.area_name && (
+                      <span className="kb-meta-item">{item.area_name}</span>
+                    )}
+                    {item.links.map((l: any) => (
+                      <a key={`${l.provider}-${l.external_id}`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        title={`${l.provider} ${l.external_id}${l.external_status ? ` — ${l.external_status}` : ''}`}
+                        className="kb-meta-item" style={{ textDecoration: 'none' }}>
+                        <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
-                {col.items.map(card => (
-                  <div key={card.id}
-                    draggable
-                    onDragStart={() => setDragging(card)}
-                    onDragEnd={() => { setDragging(null); setOver(null); }}
-                    onClick={() => open(card.ref)}
-                    style={{
-                      background: 'var(--white)',
-                      borderRadius: 'var(--r)', padding: '10px 12px', cursor: 'grab',
-                      opacity: dragging?.id === card.id ? 0.5 : 1,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04)',
-                    }}>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-                      <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>{card.ref}</span>
-                      <Badge variant={KIND_VARIANT[card.kind]}>{card.kind}</Badge>
-                      {card.confidence !== 'CONFIRMED' && (
-                        <Badge variant={CONFIDENCE_VARIANT[card.confidence]}>{card.confidence}</Badge>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.4 }}>{card.title}</div>
-                    {card.waiting_on && (
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>⏳ {card.waiting_on}</div>
-                    )}
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                      {card.area_name && (
-                        <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{card.area_name}</span>
-                      )}
-                      {card.links.map(l => (
-                        <a key={`${l.provider}-${l.external_id}`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
-                          onClick={e => e.stopPropagation()}
-                          title={`${l.provider} ${l.external_id}${l.external_status ? ` — ${l.external_status}` : ''}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--ink3)', textDecoration: 'none' }}>
-                          <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+            />
+          );
+        })()
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div style={{ overflowY: 'auto', flex: 1, paddingRight: 8 }}>

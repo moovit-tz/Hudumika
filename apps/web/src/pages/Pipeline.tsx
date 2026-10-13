@@ -23,6 +23,7 @@ import { STAGE_COLORS, type PipelineStage } from './CrmPipelineStages.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { KanbanBoard, type KanbanColumn, type KanbanCardData } from '../components/ui/kanban-board.js';
 
 /* ── Types — mirror deals.routes.ts's mapDeal() shape ── */
 interface Deal {
@@ -86,37 +87,6 @@ function MetricTile({ icon, label, value, color, bg }: { icon: IconName; label: 
 }
 
 /* ── Deal card ── */
-function DealCard({ deal, closed, onOpen, onDragStart, dragging }: {
-  deal: Deal; closed: boolean; onOpen: () => void; onDragStart: (e: React.DragEvent) => void; dragging: boolean;
-}) {
-  const aging = !closed && deal.days_in_stage >= 14;
-  return (
-    <div
-      draggable
-      onDragStart={onDragStart}
-      onClick={onOpen}
-      style={{
-        background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
-        padding: '11px 12px', cursor: 'grab', opacity: dragging ? 0.4 : 1, display: 'flex', flexDirection: 'column', gap: 6,
-      }}
-    >
-      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{deal.name}</div>
-      {(deal.customer_name || deal.lead_company) && (
-        <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{deal.customer_name || deal.lead_company}</div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-        <span className="mono" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{fmtMoney(deal.value, deal.currency)}</span>
-        {deal.owner_id ? <PersonAvatar userId={deal.owner_id} name={deal.owner_name || ''} size={22} /> : <span style={{ width: 22 }} />}
-      </div>
-      {aging && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: 'var(--gold)', fontWeight: 700 }}>
-          <Icon name="clock" size={11} /> {deal.days_in_stage}d in stage
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Create / edit modal ── */
 function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(deal?.name ?? '');
@@ -602,7 +572,6 @@ export function Pipeline() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalDeal, setModalDeal] = useState<Deal | null | undefined>(undefined); // undefined = closed
-  const [draggingId, setDraggingId] = useState<string | null>(null);
   const boardView = (searchParams.get('view') ?? 'kanban') as 'kanban' | 'list';
   function setBoardView(v: 'kanban' | 'list') {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('view', v); return n; }, { replace: true });
@@ -822,40 +791,38 @@ export function Pipeline() {
           onMoveStage={(dealId, stage) => moveStage(dealId, stage)}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stages.length}, minmax(260px, 1fr))`, gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
-          {stages.map(col => {
-            const list = byStage[col.key] || [];
-            const total = list.reduce((s, d) => s + d.value, 0);
+        <KanbanBoard<KanbanCardData & { deal: Deal; closed: boolean }>
+          columns={stages.map(col => {
             const tint = STAGE_COLORS[col.color] ?? STAGE_COLORS.blue;
-            const closed = col.is_won || col.is_lost;
+            return { id: col.key, label: col.label, color: tint.fg };
+          })}
+          items={visibleDeals.map(d => ({ id: d.id, columnId: d.stage, deal: d, closed: stages.find(s => s.key === d.stage)?.is_won || stages.find(s => s.key === d.stage)?.is_lost || false }))}
+          emptyMessage="No deals here"
+          onDrop={(itemId, _from, toCol) => moveStage(itemId, toCol)}
+          renderCard={(item) => {
+            const d = item.deal;
+            const aging = !item.closed && d.days_in_stage >= 14;
             return (
-              <div
-                key={col.key}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); if (draggingId) moveStage(draggingId, col.key); setDraggingId(null); }}
-                style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', minHeight: 420, overflow: 'hidden' }}
-              >
-                <div style={{ padding: '10px 12px', borderBottom: `2px solid ${tint.fg}`, background: tint.bg }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: tint.fg }}>{col.label} <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>({list.length})</span></div>
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{fmtMoney(total, 'TZS')}</div>
+              <div onClick={() => setModalDeal(d)}>
+                <div className="kb-card-title">{d.name}</div>
+                {(d.customer_name || d.lead_company) && (
+                  <div className="kb-card-subtitle">{d.customer_name || d.lead_company}</div>
+                )}
+                <div className="kb-card-meta">
+                  <span className="kb-meta-item mono" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{fmtMoney(d.value, d.currency)}</span>
+                  <span style={{ marginLeft: 'auto' }}>
+                    {d.owner_id ? <PersonAvatar userId={d.owner_id} name={d.owner_name || ''} size={22} /> : <span style={{ width: 22 }} />}
+                  </span>
                 </div>
-                <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
-                  {list.length === 0 && <div style={{ fontSize: 11.5, color: 'var(--ink3)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>No deals here</div>}
-                  {list.map(d => (
-                    <DealCard
-                      key={d.id}
-                      deal={d}
-                      closed={closed}
-                      dragging={draggingId === d.id}
-                      onOpen={() => setModalDeal(d)}
-                      onDragStart={e => { e.dataTransfer.setData('text/deal-id', d.id); setDraggingId(d.id); }}
-                    />
-                  ))}
-                </div>
+                {aging && (
+                  <div className="kb-meta-item" style={{ marginTop: 6, color: 'var(--gold)', fontWeight: 700 }}>
+                    <Icon name="clock" size={11} /> {d.days_in_stage}d in stage
+                  </div>
+                )}
               </div>
             );
-          })}
-        </div>
+          }}
+        />
       )}
 
       {modalDeal !== undefined && (

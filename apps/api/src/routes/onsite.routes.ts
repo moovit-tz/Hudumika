@@ -11,9 +11,17 @@ import { refreshDomainCertificate } from '../services/onsite-ssl.service.js';
 import {
   validateRecord, deletionImpact, toZoneFile, parseZoneFile, planImport, DNS_TEMPLATES,
 } from '../services/onsite-dns.service.js';
-import { emitDomainEvent } from '../services/domain-events.service.js';
+import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { checkAvailabilityForTlds } from '../services/onsite-rdap.service.js';
 import { sql } from 'kysely';
+import { validateOnsiteLinks } from '../services/onsite-links.service.js';
+import { listHostingerWebsites, readHostingerDns, dnsFingerprint, publishHostingerDns } from '../services/onsite-hostinger.service.js';
+import { compareDnsRecords, proposeDnsSync } from '../services/onsite-dns-comparison.service.js';
+import { verifyMailDns, mailDnsRecordsSchema } from '../services/onsite-email.service.js';
+import { registerOnsiteMailOperations } from './onsite-mail-operations.routes.js';
+import { resolveRegistrar, NO_REGISTRAR_MESSAGE } from '../services/onsite-registrar.service.js';
+import { resolveHostingProviderForWebsite } from '../services/onsite-hosting.service.js';
+import { provisionMailbox, deprovisionMailbox } from '../services/onsite-email-provisioning.service.js';
 
 const ONSITE_RUNTIMES = ['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'] as const;
 
@@ -24,7 +32,7 @@ const projectCreateSchema = z.object({
 });
 const domainCreateSchema = z.object({
   domain: z.string().trim().min(1).max(255),
-  project_id: z.string().optional(),
+  project_id: z.string().uuid().optional(),
   registrar: z.string().max(100).optional(),
   auto_renew: z.boolean().optional(),
 });
@@ -54,8 +62,8 @@ const dnsPropagationCheckSchema = z.object({
 const applicationCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   runtime: z.enum(ONSITE_RUNTIMES).optional(),
-  project_id: z.string().optional(),
-  domain_id: z.string().optional(),
+  project_id: z.string().uuid().optional(),
+  domain_id: z.string().uuid().optional(),
   repo_url: z.string().max(500).optional(),
   default_branch: z.string().max(200).optional(),
   build_command: z.string().max(1000).optional(),
@@ -66,7 +74,7 @@ const applicationCreateSchema = z.object({
 const environmentCreateSchema = z.object({
   name: z.string().trim().min(1).max(100),
   branch: z.string().trim().max(200).optional(),
-  domain_id: z.string().optional(),
+  domain_id: z.string().uuid().optional(),
 });
 const cloneSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
@@ -77,7 +85,7 @@ const secretCreateSchema = z.object({
   is_secret: z.boolean().optional(),
 });
 const deploySchema = z.object({
-  environment_id: z.string().optional(),
+  environment_id: z.string().uuid().optional(),
   branch: z.string().max(200).optional(),
   commit_message: z.string().max(2000).optional(),
 });
@@ -123,8 +131,8 @@ const websiteCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   type: z.string().max(50).optional(),
   url: z.string().max(2000).optional(),
-  project_id: z.string().optional(),
-  domain_id: z.string().optional(),
+  project_id: z.string().uuid().optional(),
+  domain_id: z.string().uuid().optional(),
   hosting_provider: z.string().max(100).optional(),
 });
 const domainTransferSchema = z.object({
@@ -160,8 +168,20 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('onsite'));
   fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'));
+  registerOnsiteMailOperations(fastify);
 
   // ─── Overview / Dashboard ────────────────────────────────────
+  fastify.get('/mailbox-status', async (request, reply) => {
+    return withTenant(request.user.tenant_id, async trx => {
+      const row = await trx.selectFrom('tenant_settings').select('settings')
+        .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+      const settings = typeof row?.settings === 'string' ? JSON.parse(row.settings) : row?.settings;
+      return reply.send({
+        gmail: settings?.email?.gmailStatus === 'authorized' ? 'authorized' : '',
+        outlook: settings?.email?.outlookStatus === 'authorized' ? 'authorized' : '',
+      });
+    });
+  });
   fastify.get('/overview', async (request: FastifyRequest, reply: FastifyReply) => {
     const tenantId = request.user.tenant_id;
 
@@ -321,6 +341,8 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     return withTenant(request.user.tenant_id, async (trx) => {
       // Check duplicate
+      const linkError = await validateOnsiteLinks(trx, request.user.tenant_id, body);
+      if (linkError) return reply.status(400).send({ error: linkError });
       const existing = await trx.selectFrom('onsite_domains')
         .select('id')
         .where('tenant_id', '=', request.user.tenant_id)
@@ -809,6 +831,8 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const body = applicationCreateSchema.parse(request.body);
 
     const createdApp = await withTenant(request.user.tenant_id, async (trx) => {
+      const linkError = await validateOnsiteLinks(trx, request.user.tenant_id, body);
+      if (linkError) return reply.status(400).send({ error: linkError });
       const createdApp = await trx.insertInto('onsite_applications')
         .values({
           tenant_id: request.user.tenant_id,
@@ -834,7 +858,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
           tenant_id: request.user.tenant_id,
           application_id: createdApp.id,
           name: 'production',
-          branch: 'main',
+          branch: body.default_branch?.trim() || 'main',
           status: 'inactive',
         })
         .execute();
@@ -847,6 +871,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       return createdApp;
     });
 
+    if (reply.sent) return reply;
     return reply.status(201).send(createdApp);
   });
 
@@ -872,6 +897,27 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     if (!result) return reply.status(404).send({ error: 'Application not found' });
     return reply.send(result);
+  });
+
+  fastify.patch('/applications/:id/deployment-connection', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = z.object({ provider_connection_id: z.string().uuid().nullable() }).parse(request.body);
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async trx => {
+      const app = await trx.selectFrom('onsite_applications').select('id').where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!app) return reply.status(404).send({ error: 'Application not found' });
+      if (body.provider_connection_id) {
+        const connection = await trx.selectFrom('onsite_provider_connections').select(['provider', 'status'])
+          .where('id', '=', body.provider_connection_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!connection || connection.status !== 'active' || !['circleci', 'github', 'cloudflare', 'digitalocean'].includes(connection.provider)) {
+          return reply.status(400).send({ error: 'Select an active supported deployment connection in this workspace' });
+        }
+        if (!await resolveCIProvider(tenantId, undefined, body.provider_connection_id)) return reply.status(400).send({ error: 'Connection is missing usable credentials or a provider project reference' });
+      }
+      const updated = await trx.updateTable('onsite_applications').set({ provider_connection_id: body.provider_connection_id, updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', tenantId).returningAll().executeTakeFirstOrThrow();
+      return reply.send(updated);
+    });
   });
 
   fastify.delete('/applications/:id', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -904,6 +950,8 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         .where('application_id', '=', id).where('tenant_id', '=', request.user.tenant_id)
         .where('name', '=', body.name).executeTakeFirst();
       if (existing) return reply.status(409).send({ error: `An environment named "${body.name}" already exists for this application` });
+      const linkError = await validateOnsiteLinks(trx, request.user.tenant_id, body);
+      if (linkError) return reply.status(400).send({ error: linkError });
 
       // Nothing has run in it yet — same convention a fresh health check or
       // domain starts with, not a status implying activity that never happened.
@@ -1075,6 +1123,11 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     if (!app) return reply.status(404).send({ error: 'Application not found' });
 
     let envId = body.environment_id;
+    if (envId) {
+      const environment = await trx.selectFrom('onsite_environments').select('id')
+        .where('id', '=', envId).where('tenant_id', '=', request.user.tenant_id).where('application_id', '=', appId).executeTakeFirst();
+      if (!environment) return reply.status(400).send({ error: 'Environment not found for this application' });
+    }
     if (!envId) {
       const defaultEnv = await trx.selectFrom('onsite_environments')
         .select('id')
@@ -1100,7 +1153,8 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
      * inside withTenant returns *normally*, so a write made first would have
      * been committed anyway.
      */
-    const ci = await resolveCIProvider(request.user.tenant_id);
+    if (!app.provider_connection_id) return reply.status(409).send({ error: 'Select a deployment connection in application settings first' });
+    const ci = await resolveCIProvider(request.user.tenant_id, undefined, app.provider_connection_id);
     if (!ci) return reply.status(409).send({ error: NO_CI_PROVIDER_MESSAGE });
 
     const branch = body.branch ?? app.default_branch ?? 'main';
@@ -1116,6 +1170,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         commit_message: body.commit_message ?? null,
         status: 'queued',
         ci_provider: ci.key,
+        provider_connection_id: ci.connectionId,
         queued_at: new Date(),
       })
       .returningAll()
@@ -1408,6 +1463,172 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   // ─── Provider Connections ────────────────────────────────────
+  fastify.post('/provider-connections/:id/hostinger-dns/publish', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const body = z.object({ confirmed: z.literal(true), domain: z.string().min(1).max(253), page: z.number().int().min(1).max(10000), fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+      record: z.object({ name: z.string().min(1).max(253), type: z.string().min(1).max(10), ttl: z.number().int().positive(), value: z.string().min(1).max(4000), priority: z.number().nullable().optional() }),
+    }).parse(request.body);
+    const tenantId = request.user.tenant_id;
+    const saved = await withTenant(tenantId, async trx => {
+      const connection = await trx.selectFrom('onsite_provider_connections').select(['provider', 'status', 'access_token_cipher'])
+        .where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst();
+      const domain = await trx.selectFrom('onsite_domains').select('id').where('tenant_id', '=', tenantId).where('domain', '=', body.domain).executeTakeFirst();
+      if (!connection || !domain) return null;
+      const records = await trx.selectFrom('onsite_dns_records as r').innerJoin('onsite_dns_zones as z', 'z.id', 'r.zone_id')
+        .select(['r.id', 'r.name', 'r.type', 'r.ttl', 'r.value', 'r.priority'])
+        .where('r.tenant_id', '=', tenantId).where('z.tenant_id', '=', tenantId).where('z.domain_id', '=', domain.id).execute();
+      return { connection, record: records.find(row => row.name === body.record.name && row.type === body.record.type && row.value === body.record.value && row.ttl === body.record.ttl && row.priority === (body.record.priority ?? null)) };
+    });
+    if (!saved) return reply.status(404).send({ error: 'Saved domain or provider connection not found' });
+    if (!saved.record) return reply.status(409).send({ error: 'Saved record changed. Reload the preview.' });
+    if (saved.connection.provider !== 'hostinger' || saved.connection.status !== 'active' || !saved.connection.access_token_cipher) return reply.status(409).send({ error: 'An active Hostinger connection is required' });
+    try {
+      const token = decryptSecret(saved.connection.access_token_cipher);
+      if (!(await listHostingerWebsites(token, body.page)).domains.includes(body.domain)) return reply.status(400).send({ error: 'Domain is not on the selected website inventory page' });
+      return await withTenant(tenantId, async trx => {
+        await sql`select pg_advisory_xact_lock(hashtextextended(${`hostinger-dns-publish:${tenantId}:${body.domain}`}, 0))`.execute(trx);
+        const current = await trx.selectFrom('onsite_dns_records').select(['id', 'name', 'type', 'ttl', 'value', 'priority'])
+          .where('tenant_id', '=', tenantId).where('id', '=', saved.record!.id).executeTakeFirst();
+        if (!current || JSON.stringify([current.name, current.type, current.ttl, current.value, current.priority]) !== JSON.stringify([body.record.name, body.record.type, body.record.ttl, body.record.value, body.record.priority ?? null])) {
+          return reply.status(409).send({ error: 'Saved record changed. Reload the preview.' });
+        }
+        const result = await publishHostingerDns(token, body.domain, current, body.fingerprint);
+        await trx.updateTable('onsite_dns_records').set({ sync_status: 'synced', synced_at: new Date(), updated_at: new Date() })
+          .where('tenant_id', '=', tenantId).where('id', '=', current.id).execute();
+        if (result.published) await emitDomainEvent(trx, tenantId, { type: 'onsite.dns_record.published', sourceApp: 'onsite', entityType: 'onsite_dns_record', entityId: current.id,
+          payload: { domain: body.domain, name: current.name, dns_type: current.type, provider: 'hostinger' }, actorId: actorId(request) });
+        return result;
+      });
+    } catch (error) {
+      return reply.status(409).send({ error: error instanceof Error ? error.message : 'Unable to publish DNS' });
+    }
+  });
+
+  fastify.post('/provider-connections/:id/hostinger-dns/import', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const { domain, page, record } = z.object({ domain: z.string().min(1).max(253), page: z.number().int().min(1).max(10000),
+      record: z.object({ name: z.string().min(1).max(253), type: z.string().min(1).max(10), ttl: z.number().int().positive(), value: z.string().min(1).max(4000), priority: z.number().int().min(0).max(65535).nullable().optional() }),
+    }).parse(request.body);
+    const tenantId = request.user.tenant_id;
+    const invalid = validateRecord(record);
+    if (invalid) return reply.status(400).send({ error: invalid });
+    if (record.type.toUpperCase() === 'NS' || (['MX', 'SRV'].includes(record.type.toUpperCase()) && record.priority == null)) return reply.status(400).send({ error: 'This record requires manual priority or delegation review' });
+    const connection = await withTenant(tenantId, trx => trx.selectFrom('onsite_provider_connections')
+      .select(['provider', 'status', 'access_token_cipher']).where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!connection) return reply.status(404).send({ error: 'Provider connection not found' });
+    if (connection.provider !== 'hostinger' || connection.status !== 'active' || !connection.access_token_cipher) return reply.status(409).send({ error: 'An active Hostinger connection is required' });
+    try {
+      const token = decryptSecret(connection.access_token_cipher);
+      const inventory = await listHostingerWebsites(token, page);
+      if (!inventory.domains.includes(domain)) return reply.status(400).send({ error: 'Domain is not on the selected inventory page' });
+      const remote = await readHostingerDns(token, domain);
+      if (!remote.some(row => !row.disabled && row.name === record.name && row.type === record.type && row.ttl === record.ttl && row.value === record.value && row.priority === (record.priority ?? null))) {
+        return reply.status(409).send({ error: 'Provider record changed. Reload DNS before importing.' });
+      }
+      return await withTenant(tenantId, async trx => {
+        await sql`select pg_advisory_xact_lock(hashtextextended(${`hostinger-dns-import:${tenantId}:${domain}`}, 0))`.execute(trx);
+        const owned = await trx.selectFrom('onsite_domains').select('id').where('tenant_id', '=', tenantId).where('domain', '=', domain).executeTakeFirst();
+        if (!owned) return reply.status(404).send({ error: 'Add the domain to your Onsite portfolio first' });
+        const zones = await trx.selectFrom('onsite_dns_zones').select('id').where('tenant_id', '=', tenantId).where('domain_id', '=', owned.id).execute();
+        if (zones.length !== 1) return reply.status(409).send({ error: 'Exactly one saved DNS zone is required for import' });
+        const saved = await trx.selectFrom('onsite_dns_records').select(['name', 'type', 'ttl', 'value', 'priority'])
+          .where('tenant_id', '=', tenantId).where('zone_id', '=', zones[0].id).execute();
+        if (compareDnsRecords(domain, saved, [record]).matched === 1) return { imported: false };
+        const proposal = proposeDnsSync(domain, saved, [record]).find(item => item.direction === 'import');
+        if (!proposal || proposal.review.length) return reply.status(409).send({ error: proposal?.review.join(' ') || 'Record requires review' });
+        const created = await trx.insertInto('onsite_dns_records').values({ tenant_id: tenantId, zone_id: zones[0].id, name: record.name,
+          type: record.type.toUpperCase(), ttl: record.ttl, value: record.value, priority: record.priority ?? null, created_by: actorId(request),
+        }).returning('id').executeTakeFirstOrThrow();
+        await emitDomainEvent(trx, tenantId, { type: 'onsite.dns_record.created', sourceApp: 'onsite', entityType: 'onsite_dns_record', entityId: created.id,
+          payload: { domain_id: owned.id, name: record.name, dns_type: record.type, provider: 'hostinger', operation: 'local_import' }, actorId: actorId(request) });
+        return reply.status(201).send({ imported: true });
+      });
+    } catch {
+      return reply.status(502).send({ error: 'Unable to import provider DNS. Reload records and try again.' });
+    }
+  });
+
+  fastify.get('/provider-connections/:id/hostinger-dns', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const { domain, page } = z.object({ domain: z.string().min(1).max(253), page: z.coerce.number().int().min(1).max(10000).default(1) }).parse(request.query);
+    const connection = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_provider_connections')
+      .select(['provider', 'status', 'access_token_cipher']).where('id', '=', id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst());
+    if (!connection) return reply.status(404).send({ error: 'Provider connection not found' });
+    if (connection.provider !== 'hostinger' || connection.status !== 'active' || !connection.access_token_cipher) return reply.status(409).send({ error: 'An active Hostinger connection is required' });
+    try {
+      const token = decryptSecret(connection.access_token_cipher);
+      const inventory = await listHostingerWebsites(token, page);
+      if (!inventory.domains.includes(domain)) return reply.status(400).send({ error: 'Domain is not on the selected website inventory page' });
+      const records = await readHostingerDns(token, domain);
+      const saved = await withTenant(request.user.tenant_id, async trx => {
+        const ownedDomain = await trx.selectFrom('onsite_domains').select('id')
+          .where('tenant_id', '=', request.user.tenant_id).where('domain', '=', domain).executeTakeFirst();
+        if (!ownedDomain) return null;
+        return await trx.selectFrom('onsite_dns_records as r').innerJoin('onsite_dns_zones as z', 'z.id', 'r.zone_id')
+          .select(['r.name', 'r.type', 'r.ttl', 'r.value', 'r.priority'])
+          .where('r.tenant_id', '=', request.user.tenant_id).where('z.tenant_id', '=', request.user.tenant_id)
+          .where('z.domain_id', '=', ownedDomain.id).execute();
+      });
+      return { domain, records, fingerprint: dnsFingerprint(records), comparison: saved === null ? null : compareDnsRecords(domain, saved, records), proposals: saved === null ? [] : proposeDnsSync(domain, saved, records) };
+    } catch {
+      return reply.status(502).send({ error: 'Unable to read Hostinger DNS. The domain may use another DNS provider, or the connection may lack access.' });
+    }
+  });
+
+  fastify.post('/provider-connections/:id/hostinger-websites/import', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const { domain, page } = z.object({ domain: z.string().trim().min(1).max(253), page: z.number().int().min(1).max(10000).default(1) }).parse(request.body);
+    const tenantId = request.user.tenant_id;
+    const connection = await withTenant(tenantId, trx => trx.selectFrom('onsite_provider_connections')
+      .select(['provider', 'status', 'access_token_cipher']).where('id', '=', id)
+      .where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!connection) return reply.status(404).send({ error: 'Provider connection not found' });
+    if (connection.provider !== 'hostinger' || connection.status !== 'active' || !connection.access_token_cipher) {
+      return reply.status(409).send({ error: 'An active Hostinger connection is required' });
+    }
+    let inventory;
+    try {
+      inventory = await listHostingerWebsites(decryptSecret(connection.access_token_cipher), page);
+    } catch {
+      return reply.status(502).send({ error: 'Unable to verify Hostinger website inventory' });
+    }
+    if (!inventory.domains.includes(domain)) return reply.status(400).send({ error: 'Website is not present on the selected Hostinger inventory page. Refresh inventory and try again.' });
+    const result = await withTenant(tenantId, async trx => {
+      await sql`select pg_advisory_xact_lock(hashtextextended(${`hostinger-import:${tenantId}:${domain}`}, 0))`.execute(trx);
+      const existing = await trx.selectFrom('onsite_websites').select(['id', 'name', 'status', 'provider_connection_id'])
+        .where('tenant_id', '=', tenantId).where('hosting_provider', '=', 'hostinger').where('name', '=', domain).executeTakeFirst();
+      if (existing) {
+        if (!existing.provider_connection_id) {
+          await trx.updateTable('onsite_websites').set({ provider_connection_id: id, updated_at: new Date() })
+            .where('tenant_id', '=', tenantId).where('id', '=', existing.id).execute();
+        }
+        return { website: existing, imported: false };
+      }
+      const website = await trx.insertInto('onsite_websites').values({ tenant_id: tenantId, name: domain,
+        type: 'custom', status: 'inactive', hosting_provider: 'hostinger', provider_connection_id: id, created_by: actorId(request),
+      }).returning(['id', 'name', 'status']).executeTakeFirstOrThrow();
+      return { website, imported: true };
+    });
+    return reply.status(result.imported ? 201 : 200).send(result);
+  });
+
+  fastify.get('/provider-connections/:id/hostinger-websites', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+    const { page } = z.object({ page: z.coerce.number().int().min(1).max(10000).default(1) }).parse(request.query);
+    const connection = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_provider_connections')
+      .select(['provider', 'status', 'access_token_cipher']).where('id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst());
+    if (!connection) return reply.status(404).send({ error: 'Provider connection not found' });
+    if (connection.provider !== 'hostinger' || connection.status !== 'active' || !connection.access_token_cipher) {
+      return reply.status(409).send({ error: 'An active Hostinger connection is required' });
+    }
+    try {
+      return await listHostingerWebsites(decryptSecret(connection.access_token_cipher), page);
+    } catch {
+      return reply.status(502).send({ error: 'Unable to read Hostinger website inventory. Check provider access and try again.' });
+    }
+  });
+
   fastify.get('/provider-connections', async (request: FastifyRequest, reply: FastifyReply) => {
     const connections = await withTenant(request.user.tenant_id, trx => trx.selectFrom('onsite_provider_connections')
       .select([
@@ -1506,16 +1727,18 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     const body = websiteCreateSchema.parse(request.body);
 
     const created = await withTenant(request.user.tenant_id, async (trx) => {
+      const linkError = await validateOnsiteLinks(trx, request.user.tenant_id, body);
+      if (linkError) return reply.status(400).send({ error: linkError });
       const row = await trx.insertInto('onsite_websites')
         .values({
           tenant_id: request.user.tenant_id,
           name: body.name,
           type: body.type ?? 'php',
-          url: body.url ?? `https://${body.name}`,
+          url: body.url ?? null,
           project_id: body.project_id ?? null,
           domain_id: body.domain_id ?? null,
-          hosting_provider: body.hosting_provider ?? 'Business',
-          status: 'active',
+          hosting_provider: body.hosting_provider ?? null,
+          status: 'inactive',
           created_by: actorId(request),
         })
         .returningAll()
@@ -1529,6 +1752,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       return row;
     });
 
+    if (reply.sent) return reply;
     return reply.status(201).send(created);
   });
 
@@ -1552,9 +1776,9 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         tenant_id: request.user.tenant_id,
         name,
         type: source.type,
-        url: `https://${name}`,
+        url: null,
         hosting_provider: source.hosting_provider,
-        status: 'active',
+        status: 'inactive',
         created_by: actorId(request),
       }).returningAll().executeTakeFirstOrThrow();
 
@@ -1609,58 +1833,946 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     return reply.send({ query: q, suggestions });
   });
 
-  /**
-   * "Buy" without a connected registrar: records a real pending request and
-   * notifies this tenant's own admins, same honest shape POST
-   * /domains/transfer already uses for the same reason — connecting a
-   * registrar to actually complete a purchase isn't available yet, and this
-   * says so rather than pretending to process an order.
-   */
   fastify.post('/domains/request', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = domainCreateSchema.pick({ domain: true }).parse(request.body);
     const cleanDomain = body.domain.trim().toLowerCase();
+    const tenantId = request.user.tenant_id;
 
-    const created = await withTenant(request.user.tenant_id, async (trx) => {
+    const registrar = await resolveRegistrar(tenantId);
+
+    const created = await withTenant(tenantId, async (trx) => {
       const row = await trx.insertInto('onsite_domains')
         .values({
-          tenant_id: request.user.tenant_id,
+          tenant_id: tenantId,
           domain: cleanDomain,
-          status: 'pending',
-          notes: 'Registration requested via Domain Search. Connecting a registrar to complete the purchase is not available yet.',
+          status: registrar ? 'active' : 'pending',
+          registrar: registrar?.label ?? null,
+          notes: registrar ? null : 'Registration requested. Connect a domain registrar under Settings → Provider connections to complete the purchase.',
           created_by: actorId(request),
         })
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      emitDomainEvent(trx, request.user.tenant_id, {
+      const zone = await trx.insertInto('onsite_dns_zones')
+        .values({ tenant_id: tenantId, domain_id: row.id, provider: 'internal', status: 'active' })
+        .returningAll().executeTakeFirstOrThrow();
+
+      await trx.insertInto('onsite_dns_records')
+        .values([
+          { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns1.hudumika.tz', ttl: 3600, created_by: actorId(request) },
+          { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns2.hudumika.tz', ttl: 3600, created_by: actorId(request) },
+        ]).execute();
+
+      emitDomainEvent(trx, tenantId, {
         type: 'onsite.domain.requested', sourceApp: 'onsite', entityType: 'onsite_domain', entityId: row.id,
-        payload: { domain: row.domain }, actorId: actorId(request),
+        payload: { domain: row.domain, registrar_connected: !!registrar }, actorId: actorId(request),
       }).catch(console.error);
 
       return row;
     });
 
+    if (registrar) {
+      try {
+        const result = await registrar.register(cleanDomain);
+        await withTenant(tenantId, trx =>
+          trx.updateTable('onsite_domains')
+            .set({
+              status: 'active',
+              registered_at: new Date(),
+              expires_at: result.expiresAt,
+              nameservers: result.nameservers.length ? JSON.stringify(result.nameservers) : undefined,
+              notes: `Registered via ${registrar.label}. Registrar ID: ${result.registrarId}`,
+              updated_at: new Date(),
+            })
+            .where('id', '=', created.id).where('tenant_id', '=', tenantId).execute());
+      } catch (err: any) {
+        await withTenant(tenantId, trx =>
+          trx.updateTable('onsite_domains')
+            .set({ status: 'pending', notes: `Registration failed: ${err?.message ?? err}`, updated_at: new Date() })
+            .where('id', '=', created.id).where('tenant_id', '=', tenantId).execute());
+      }
+    }
+
     return reply.status(201).send(created);
   });
 
-  // ─── Domain Transfers (Hostinger style) ────────────────────────
   fastify.post('/domains/transfer', async (request: FastifyRequest, reply: FastifyReply) => {
     const body = domainTransferSchema.parse(request.body);
-
     const cleanDomain = body.domain.trim().toLowerCase();
+    const tenantId = request.user.tenant_id;
+    const eppCipher = body.eppCode ? encryptSecret(body.eppCode) : null;
 
-    const created = await withTenant(request.user.tenant_id, trx => trx.insertInto('onsite_domains')
-      .values({
-        tenant_id: request.user.tenant_id,
-        domain: cleanDomain,
-        status: 'pending',
-        notes: `Transfer initiated. EPP Code: ${body.eppCode ? 'Provided' : 'Pending'}`,
-        created_by: actorId(request),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow());
+    const registrar = await resolveRegistrar(tenantId);
+
+    const created = await withTenant(tenantId, async trx => {
+      const row = await trx.insertInto('onsite_domains')
+        .values({
+          tenant_id: tenantId,
+          domain: cleanDomain,
+          status: 'pending',
+          registrar: registrar?.label ?? null,
+          notes: JSON.stringify({ transfer: true, epp_cipher: eppCipher, epp_provided: !!body.eppCode }),
+          created_by: actorId(request),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      const zone = await trx.insertInto('onsite_dns_zones')
+        .values({ tenant_id: tenantId, domain_id: row.id, provider: 'internal', status: 'active' })
+        .returningAll().executeTakeFirstOrThrow();
+      await trx.insertInto('onsite_dns_records')
+        .values([
+          { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns1.hudumika.tz', ttl: 3600, created_by: actorId(request) },
+          { tenant_id: tenantId, zone_id: zone.id, name: '@', type: 'NS', value: 'ns2.hudumika.tz', ttl: 3600, created_by: actorId(request) },
+        ]).execute();
+
+      emitDomainEvent(trx, tenantId, {
+        type: 'onsite.domain.transfer_requested', sourceApp: 'onsite',
+        entityType: 'onsite_domain', entityId: row.id,
+        payload: { domain: row.domain, epp_provided: !!body.eppCode, registrar_connected: !!registrar },
+        actorId: actorId(request),
+      }).catch(console.error);
+
+      return row;
+    });
+
+    if (registrar && body.eppCode) {
+      try {
+        const result = await registrar.transfer(cleanDomain, body.eppCode);
+        await withTenant(tenantId, trx =>
+          trx.updateTable('onsite_domains')
+            .set({
+              status: result.status === 'completed' ? 'active' : 'pending',
+              registrar: registrar.label,
+              notes: JSON.stringify({ transfer: true, transfer_id: result.transferId, transfer_status: result.status }),
+              updated_at: new Date(),
+            })
+            .where('id', '=', created.id).where('tenant_id', '=', tenantId).execute());
+      } catch (err: any) {
+        await withTenant(tenantId, trx =>
+          trx.updateTable('onsite_domains')
+            .set({ notes: JSON.stringify({ transfer: true, epp_cipher: eppCipher, error: (err?.message ?? err).slice(0, 500) }), updated_at: new Date() })
+            .where('id', '=', created.id).where('tenant_id', '=', tenantId).execute());
+      }
+    }
 
     return reply.status(201).send(created);
   });
-}
 
+  // ═══════════════════════════════════════════════════════════════
+  //  SUBDOMAINS — derived from DNS records, no separate table
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/domains/:domainId/subdomains', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { domainId } = request.params as { domainId: string };
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', domainId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const zone = await withTenant(tenantId, trx => trx.selectFrom('onsite_dns_zones')
+      .select('id').where('domain_id', '=', domainId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!zone) return reply.send([]);
+
+    const records = await withTenant(tenantId, trx => trx.selectFrom('onsite_dns_records')
+      .selectAll().where('zone_id', '=', zone.id).where('tenant_id', '=', tenantId)
+      .where('name', '!=', '@').where('name', '!=', domain.domain)
+      .where('type', 'in', ['A', 'AAAA', 'CNAME', 'ALIAS'])
+      .orderBy('name', 'asc').execute());
+
+    const websites = await withTenant(tenantId, trx => trx.selectFrom('onsite_websites')
+      .select(['id', 'name', 'url', 'domain_id']).where('tenant_id', '=', tenantId)
+      .where('domain_id', '=', domainId).execute());
+
+    const nameGroups = new Map<string, typeof records>();
+    for (const r of records) {
+      const group = nameGroups.get(r.name) ?? [];
+      group.push(r);
+      nameGroups.set(r.name, group);
+    }
+
+    const subdomains = [...nameGroups.entries()].map(([name, recs]) => {
+      const fullDomain = `${name}.${domain.domain}`;
+      const ws = websites.find(w => w.url?.includes(fullDomain));
+      return {
+        name, full_domain: fullDomain, records: recs,
+        has_website: !!ws, website_id: ws?.id ?? null, website_name: ws?.name ?? null,
+      };
+    });
+
+    return reply.send(subdomains);
+  });
+
+  const subdomainCreateSchema = z.object({
+    name: z.string().trim().min(1).max(63).regex(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i,
+      'Subdomain must be a valid hostname label (letters, digits, hyphens).'),
+    type: z.enum(['A', 'CNAME']).default('A'),
+    value: z.string().trim().min(1).max(500),
+    ttl: z.number().int().min(60).max(604800).optional(),
+  });
+
+  fastify.post('/domains/:domainId/subdomains', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { domainId } = request.params as { domainId: string };
+    const body = subdomainCreateSchema.parse(request.body);
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', domainId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const validationError = validateRecord({ name: body.name, type: body.type, value: body.value, ttl: body.ttl });
+    if (validationError) return reply.status(400).send({ error: validationError });
+
+    const zone = await withTenant(tenantId, async trx => {
+      let z = await trx.selectFrom('onsite_dns_zones').select('id')
+        .where('domain_id', '=', domainId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!z) {
+        z = await trx.insertInto('onsite_dns_zones')
+          .values({ tenant_id: tenantId, domain_id: domainId, provider: 'internal' })
+          .returning('id').executeTakeFirstOrThrow();
+      }
+      return z;
+    });
+
+    const existing = await withTenant(tenantId, trx => trx.selectFrom('onsite_dns_records')
+      .select('id').where('zone_id', '=', zone.id).where('tenant_id', '=', tenantId)
+      .where('name', '=', body.name.toLowerCase()).where('type', '=', body.type)
+      .executeTakeFirst());
+    if (existing) return reply.status(409).send({ error: `A ${body.type} record for ${body.name}.${domain.domain} already exists.` });
+
+    const record = await withTenant(tenantId, async trx => {
+      const row = await trx.insertInto('onsite_dns_records')
+        .values({
+          tenant_id: tenantId, zone_id: zone.id, name: body.name.toLowerCase(),
+          type: body.type, value: body.value, ttl: body.ttl ?? 3600,
+          created_by: actorId(request),
+        })
+        .returningAll().executeTakeFirstOrThrow();
+
+      emitDomainEvent(trx, tenantId, {
+        type: 'onsite.subdomain.created', sourceApp: 'onsite', entityType: 'onsite_dns_record', entityId: row.id,
+        payload: { subdomain: `${body.name}.${domain.domain}`, type: body.type, value: body.value },
+        actorId: actorId(request),
+      }).catch(console.error);
+
+      return row;
+    });
+
+    return reply.status(201).send({
+      name: body.name, full_domain: `${body.name}.${domain.domain}`,
+      records: [record], has_website: false, website_id: null, website_name: null,
+    });
+  });
+
+  fastify.delete('/domains/:domainId/subdomains/:name', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { domainId, name: subName } = request.params as { domainId: string; name: string };
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', domainId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const zone = await withTenant(tenantId, trx => trx.selectFrom('onsite_dns_zones')
+      .select('id').where('domain_id', '=', domainId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!zone) return reply.status(404).send({ error: 'No DNS zone for this domain' });
+
+    const deleted = await withTenant(tenantId, async trx => {
+      const rows = await trx.deleteFrom('onsite_dns_records')
+        .where('zone_id', '=', zone.id).where('tenant_id', '=', tenantId)
+        .where('name', '=', subName.toLowerCase())
+        .where('type', 'in', ['A', 'AAAA', 'CNAME', 'ALIAS'])
+        .returningAll().execute();
+
+      if (rows.length > 0) {
+        emitDomainEvent(trx, tenantId, {
+          type: 'onsite.subdomain.deleted', sourceApp: 'onsite', entityType: 'onsite_dns_record',
+          entityId: rows[0].id, payload: { subdomain: `${subName}.${domain.domain}`, records: rows.length },
+          actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return rows;
+    });
+
+    if (deleted.length === 0) return reply.status(404).send({ error: 'Subdomain not found' });
+    return reply.send({ success: true, deleted: deleted.length });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  //  EMAIL HOSTING — domain email setup, mailbox management
+  // ═══════════════════════════════════════════════════════════════
+
+  const emailDomainCreateSchema = z.object({
+    domain_id: z.string().uuid(),
+    provider: z.enum(['platform', 'google', 'microsoft', 'external']).default('platform'),
+  });
+
+  const mailboxCreateSchema = z.object({
+    local_part: z.string().trim().min(1).max(64).regex(/^[a-z0-9._+-]+$/i,
+      'Local part must contain only letters, digits, dots, hyphens, underscores or plus signs.'),
+    display_name: z.string().max(255).optional(),
+    type: z.enum(['mailbox', 'alias', 'forward', 'group']).default('mailbox'),
+    linked_user_id: z.string().uuid().optional(),
+    target_mailbox_id: z.string().uuid().optional(),
+    forward_to: z.array(z.string().email()).optional(),
+    quota_mb: z.number().int().positive().optional(),
+  });
+
+  // List email-enabled domains
+  fastify.get('/email-domains', async (request: FastifyRequest, reply: FastifyReply) => {
+    const tenantId = request.user.tenant_id;
+
+    const rows = await withTenant(tenantId, async trx => {
+      const emailDomains = await trx.selectFrom('onsite_email_domains as ed')
+        .innerJoin('onsite_domains as d', 'd.id', 'ed.domain_id')
+        .select([
+          'ed.id', 'ed.tenant_id', 'ed.domain_id', 'ed.provider',
+          'ed.mx_verified', 'ed.spf_verified', 'ed.dkim_verified', 'ed.dmarc_verified',
+          'ed.last_verified_at', 'ed.catch_all_action', 'ed.catch_all_address',
+          'ed.status', 'ed.created_by', 'ed.created_at', 'ed.updated_at',
+          'd.domain', 'd.status as domain_status',
+        ])
+        .where('ed.tenant_id', '=', tenantId)
+        .orderBy('ed.created_at', 'desc')
+        .execute();
+
+      const counts = await trx.selectFrom('onsite_email_mailboxes')
+        .select(['email_domain_id', sql<number>`count(*)::int`.as('cnt')])
+        .where('tenant_id', '=', tenantId)
+        .groupBy('email_domain_id')
+        .execute();
+      const countMap = new Map(counts.map(c => [c.email_domain_id, c.cnt]));
+
+      return emailDomains.map(ed => ({ ...ed, mailbox_count: countMap.get(ed.id) ?? 0 }));
+    });
+
+    return reply.send(rows);
+  });
+
+  // Enable email on a domain
+  fastify.post('/email-domains', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = emailDomainCreateSchema.parse(request.body);
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', body.domain_id).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const existing = await withTenant(tenantId, trx => trx.selectFrom('onsite_email_domains')
+      .select('id').where('domain_id', '=', body.domain_id).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (existing) return reply.status(409).send({ error: 'Email is already enabled on this domain.' });
+
+    const created = await withTenant(tenantId, async trx => {
+      const row = await trx.insertInto('onsite_email_domains')
+        .values({
+          tenant_id: tenantId, domain_id: body.domain_id, provider: body.provider,
+          created_by: actorId(request),
+        })
+        .returningAll().executeTakeFirstOrThrow();
+
+      emitDomainEvent(trx, tenantId, {
+        type: 'onsite.email_domain.created', sourceApp: 'onsite',
+        entityType: 'onsite_email_domain', entityId: row.id,
+        payload: { domain: domain.domain, provider: body.provider },
+        actorId: actorId(request),
+      }).catch(console.error);
+
+      return { ...row, domain: domain.domain, domain_status: 'active', mailbox_count: 0 };
+    });
+
+    return reply.status(201).send(created);
+  });
+
+  // Verify DNS records for an email domain
+  fastify.post('/email-domains/:id/verify', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+
+    const emailDomain = await withTenant(tenantId, trx =>
+      trx.selectFrom('onsite_email_domains as ed')
+        .innerJoin('onsite_domains as d', 'd.id', 'ed.domain_id')
+        .select(['ed.id', 'ed.provider', 'ed.required_dns_records', 'd.domain'])
+        .where('ed.id', '=', id).where('ed.tenant_id', '=', tenantId)
+        .executeTakeFirst());
+    if (!emailDomain) return reply.status(404).send({ error: 'Email domain not found' });
+
+    const verification = await verifyMailDns(emailDomain.domain, mailDnsRecordsSchema.parse(emailDomain.required_dns_records));
+    const allVerified = verification.mx.found && verification.spf.found && verification.dkim.found && verification.dmarc.found;
+
+    await withTenant(tenantId, trx => trx.updateTable('onsite_email_domains')
+      .set({
+        mx_verified: verification.mx.found,
+        spf_verified: verification.spf.found,
+        dkim_verified: verification.dkim.found,
+        dmarc_verified: verification.dmarc.found,
+        last_verified_at: new Date(),
+        status: allVerified ? 'active' : 'pending',
+        updated_at: new Date(),
+      })
+      .where('id', '=', id).where('tenant_id', '=', tenantId).execute());
+
+    return reply.send(verification);
+  });
+
+  // Get required DNS records for email setup
+  fastify.get('/email-domains/:id/required-records', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+
+    const emailDomain = await withTenant(tenantId, trx =>
+      trx.selectFrom('onsite_email_domains as ed')
+        .innerJoin('onsite_domains as d', 'd.id', 'ed.domain_id')
+        .select(['ed.id', 'ed.provider', 'ed.required_dns_records', 'd.domain'])
+        .where('ed.id', '=', id).where('ed.tenant_id', '=', tenantId)
+        .executeTakeFirst());
+    if (!emailDomain) return reply.status(404).send({ error: 'Email domain not found' });
+
+    return reply.send(emailDomain.required_dns_records);
+  });
+
+  // Delete email domain config
+  fastify.delete('/email-domains/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+
+    const deleted = await withTenant(tenantId, async trx => {
+      const row = await trx.deleteFrom('onsite_email_domains')
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirst();
+      if (row) {
+        emitDomainEvent(trx, tenantId, {
+          type: 'onsite.email_domain.deleted', sourceApp: 'onsite',
+          entityType: 'onsite_email_domain', entityId: row.id,
+          payload: { domain_id: row.domain_id }, actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return row;
+    });
+
+    if (!deleted) return reply.status(404).send({ error: 'Email domain not found' });
+    return reply.send({ success: true });
+  });
+
+  // ─── Mailboxes ───────────────────────────────────────────────
+
+  fastify.get('/email-domains/:id/mailboxes', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+
+    const mailboxes = await withTenant(tenantId, trx =>
+      trx.selectFrom('onsite_email_mailboxes as m')
+        .leftJoin('users as u', 'u.id', 'm.linked_user_id')
+        .select([
+          'm.id', 'm.tenant_id', 'm.email_domain_id', 'm.local_part', 'm.full_address',
+          'm.display_name', 'm.type', 'm.linked_user_id', 'm.target_mailbox_id',
+          'm.forward_to', 'm.quota_mb', 'm.usage_mb', 'm.message_count',
+          'm.status', 'm.created_by', 'm.created_at', 'm.updated_at',
+          'm.provision_status', 'm.provision_error', 'm.provider_mailbox_id',
+          'u.name as linked_user_name', 'u.email as linked_user_email',
+        ])
+        .where('m.email_domain_id', '=', id).where('m.tenant_id', '=', tenantId)
+        .orderBy('m.local_part', 'asc').execute());
+
+    return reply.send(mailboxes);
+  });
+
+  fastify.post('/email-domains/:id/mailboxes', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = mailboxCreateSchema.parse(request.body);
+    const tenantId = request.user.tenant_id;
+
+    const emailDomain = await withTenant(tenantId, trx =>
+      trx.selectFrom('onsite_email_domains as ed')
+        .innerJoin('onsite_domains as d', 'd.id', 'ed.domain_id')
+        .select(['ed.id', 'd.domain'])
+        .where('ed.id', '=', id).where('ed.tenant_id', '=', tenantId)
+        .executeTakeFirst());
+    if (!emailDomain) return reply.status(404).send({ error: 'Email domain not found' });
+
+    const fullAddress = `${body.local_part.toLowerCase()}@${emailDomain.domain}`;
+
+    if (body.type === 'alias' && !body.target_mailbox_id) {
+      return reply.status(400).send({ error: 'An alias needs a target mailbox.' });
+    }
+    if (body.type === 'forward' && (!body.forward_to || body.forward_to.length === 0)) {
+      return reply.status(400).send({ error: 'A forward needs at least one destination address.' });
+    }
+    if (body.type === 'group' && (!body.forward_to || body.forward_to.length === 0)) {
+      return reply.status(400).send({ error: 'A group needs at least one member address.' });
+    }
+
+    if (body.linked_user_id) {
+      const user = await withTenant(tenantId, trx =>
+        trx.selectFrom('users').select('id').where('id', '=', body.linked_user_id!)
+          .where('tenant_id', '=', tenantId).executeTakeFirst());
+      if (!user) return reply.status(400).send({ error: 'The selected user does not belong to this workspace.' });
+    }
+
+    if (body.target_mailbox_id) {
+      const target = await withTenant(tenantId, trx =>
+        trx.selectFrom('onsite_email_mailboxes').select('id')
+          .where('id', '=', body.target_mailbox_id!).where('tenant_id', '=', tenantId)
+          .where('email_domain_id', '=', id).executeTakeFirst());
+      if (!target) return reply.status(400).send({ error: 'The target mailbox does not exist on this domain.' });
+    }
+
+    const emailDomainRow = await withTenant(tenantId, trx =>
+      trx.selectFrom('onsite_email_domains').select('provider')
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+
+    const mailbox = await withTenant(tenantId, async trx => {
+      const row = await trx.insertInto('onsite_email_mailboxes')
+        .values({
+          tenant_id: tenantId, email_domain_id: id,
+          local_part: body.local_part.toLowerCase(),
+          full_address: fullAddress,
+          display_name: body.display_name ?? null,
+          type: body.type,
+          linked_user_id: body.linked_user_id ?? null,
+          target_mailbox_id: body.target_mailbox_id ?? null,
+          forward_to: JSON.stringify(body.forward_to ?? []),
+          quota_mb: body.quota_mb ?? null,
+          created_by: actorId(request),
+        })
+        .returningAll().executeTakeFirstOrThrow();
+
+      const provision = await provisionMailbox(trx, {
+        tenantId, mailboxId: row.id, fullAddress,
+        displayName: body.display_name ?? null,
+        type: body.type,
+        provider: emailDomainRow?.provider ?? 'platform',
+        linkedUserId: body.linked_user_id ?? null,
+      });
+
+      emitDomainEvent(trx, tenantId, {
+        type: 'onsite.mailbox.created', sourceApp: 'onsite',
+        entityType: 'onsite_email_mailbox', entityId: row.id,
+        payload: { address: fullAddress, type: body.type },
+        actorId: actorId(request),
+      }).catch(console.error);
+
+      return { ...row, provision_pending: provision.pendingReason ?? null };
+    });
+
+    return reply.status(201).send(mailbox);
+  });
+
+  fastify.delete('/email-domains/:emailDomainId/mailboxes/:mailboxId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { emailDomainId, mailboxId } = request.params as { emailDomainId: string; mailboxId: string };
+    const tenantId = request.user.tenant_id;
+
+    const deleted = await withTenant(tenantId, async trx => {
+      const row = await trx.deleteFrom('onsite_email_mailboxes')
+        .where('id', '=', mailboxId).where('email_domain_id', '=', emailDomainId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirst();
+      if (row) {
+        if (row.linked_user_id && row.type === 'mailbox') {
+          await deprovisionMailbox(trx, tenantId, row.linked_user_id, row.full_address);
+        }
+        emitDomainEvent(trx, tenantId, {
+          type: 'onsite.mailbox.deleted', sourceApp: 'onsite',
+          entityType: 'onsite_email_mailbox', entityId: row.id,
+          payload: { address: row.full_address }, actorId: actorId(request),
+        }).catch(console.error);
+      }
+      return row;
+    });
+
+    if (!deleted) return reply.status(404).send({ error: 'Mailbox not found' });
+    return reply.send({ success: true });
+  });
+
+  // ─── Tenant email users (for mailbox → user linking) ──────────
+  fastify.get('/email-users', async (request: FastifyRequest, reply: FastifyReply) => {
+    const tenantId = request.user.tenant_id;
+    const users = await withTenant(tenantId, trx =>
+      trx.selectFrom('users').select(['id', 'name', 'email'])
+        .where('tenant_id', '=', tenantId)
+        .orderBy('name', 'asc').execute());
+    return reply.send(users);
+  });
+
+  // ─── Provider-connected website info (SSH/WordPress/DB) ───────
+  fastify.get('/websites/:id/provider-info', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+
+    const website = await withTenant(tenantId, trx => trx.selectFrom('onsite_websites')
+      .selectAll().where('id', '=', id).where('tenant_id', '=', tenantId)
+      .executeTakeFirst());
+    if (!website) return reply.status(404).send({ error: 'Website not found' });
+
+    if (!website.provider_connection_id) {
+      return reply.send({
+        connected: false,
+        provider: null,
+        ssh: null, wordpress: null, databases: null,
+        message: 'No hosting provider is connected to this website. Link one in Settings → Provider connections.',
+      });
+    }
+
+    const connection = await withTenant(tenantId, trx => trx.selectFrom('onsite_provider_connections')
+      .select(['provider', 'status', 'external_id', 'external_name', 'access_token_cipher'])
+      .where('id', '=', website.provider_connection_id!)
+      .where('tenant_id', '=', tenantId).executeTakeFirst());
+
+    if (!connection || connection.status !== 'active') {
+      return reply.send({
+        connected: false, provider: connection?.provider ?? null,
+        ssh: null, wordpress: null, databases: null,
+        message: 'The linked provider connection is not active.',
+      });
+    }
+
+    const info: Record<string, unknown> = {
+      connected: true, provider: connection.provider,
+      ssh: null, wordpress: null, databases: null,
+    };
+
+    if (connection.provider === 'hostinger' && connection.access_token_cipher) {
+      try {
+        const token = decryptSecret(connection.access_token_cipher);
+        const res = await fetch(`https://developers.hostinger.com/api/hosting/v1/websites`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) {
+          const sites = await res.json();
+          const rows = Array.isArray(sites) ? sites : sites?.data ?? [];
+          const match = rows.find((s: any) => s.domain === website.url?.replace(/^https?:\/\//, '').replace(/\/$/, ''));
+          if (match) {
+            info.ssh = match.ssh ? { host: match.ssh.host, port: match.ssh.port, username: match.ssh.username } : null;
+            info.wordpress = match.cms_detected ?? null;
+            info.databases = match.databases ?? null;
+          }
+        }
+      } catch { /* provider unreachable — info stays null */ }
+    }
+
+    return reply.send(info);
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  //  HOSTING OPERATIONS — WordPress, Databases, SSH, Analytics
+  // ═══════════════════════════════════════════════════════════════
+
+  // ─── WordPress ─────────────────────────────────────────────────
+  fastify.get('/websites/:id/wordpress', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.send({ connected: false, wordpress: null });
+    try {
+      const wp = await resolved.provider.getWordPress(resolved.hostingId);
+      return reply.send({ connected: true, wordpress: wp });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `WordPress check failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/websites/:id/wordpress/install', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = z.object({
+      title: z.string().trim().min(1).max(200),
+      admin_user: z.string().trim().min(3).max(50),
+      admin_email: z.string().email(),
+      admin_password: z.string().min(8).max(100),
+    }).parse(request.body);
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected to this website.' });
+    try {
+      const wp = await resolved.provider.installWordPress(resolved.hostingId, body.title, body.admin_user, body.admin_email, body.admin_password);
+      emitDomainEventStandalone(request.user.tenant_id, {
+        type: 'onsite.wordpress.installed', sourceApp: 'onsite', entityType: 'onsite_website', entityId: id,
+        payload: { admin_user: body.admin_user }, actorId: actorId(request),
+      }).catch(console.error);
+      return reply.send({ wordpress: wp });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `WordPress installation failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/websites/:id/wordpress/update', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      const wp = await resolved.provider.updateWordPress(resolved.hostingId);
+      return reply.send({ wordpress: wp });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `WordPress update failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.get('/websites/:id/wordpress/plugins', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.send([]);
+    try {
+      return reply.send(await resolved.provider.getWordPressPlugins(resolved.hostingId));
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Failed to load plugins: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/websites/:id/wordpress/plugins', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { slug } = z.object({ slug: z.string().trim().min(1).max(200) }).parse(request.body);
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      const plugin = await resolved.provider.installWordPressPlugin(resolved.hostingId, slug);
+      return reply.status(201).send(plugin);
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Plugin install failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.delete('/websites/:id/wordpress/plugins/:slug', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id, slug } = request.params as { id: string; slug: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      await resolved.provider.removeWordPressPlugin(resolved.hostingId, slug);
+      return reply.send({ success: true });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Plugin removal failed: ${err?.message ?? err}` });
+    }
+  });
+
+  // ─── Databases ─────────────────────────────────────────────────
+  fastify.get('/websites/:id/databases', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.send({ connected: false, databases: [] });
+    try {
+      const databases = await resolved.provider.listDatabases(resolved.hostingId);
+      return reply.send({ connected: true, databases });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Failed to list databases: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/websites/:id/databases', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = z.object({
+      name: z.string().trim().min(1).max(64),
+      password: z.string().min(8).max(100),
+    }).parse(request.body);
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      const db = await resolved.provider.createDatabase(resolved.hostingId, body.name, body.password);
+      return reply.status(201).send(db);
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Database creation failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.delete('/websites/:id/databases/:name', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id, name } = request.params as { id: string; name: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      await resolved.provider.deleteDatabase(resolved.hostingId, name);
+      return reply.send({ success: true });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Database deletion failed: ${err?.message ?? err}` });
+    }
+  });
+
+  // ─── SSH Keys ──────────────────────────────────────────────────
+  fastify.get('/websites/:id/ssh', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.send({ connected: false, ssh: null, keys: [] });
+    try {
+      const [ssh, keys] = await Promise.all([
+        resolved.provider.getSSH(resolved.hostingId),
+        resolved.provider.listSSHKeys(resolved.hostingId),
+      ]);
+      return reply.send({ connected: true, ssh, keys });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `SSH info failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/websites/:id/ssh/keys', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const body = z.object({
+      name: z.string().trim().min(1).max(100),
+      public_key: z.string().trim().min(20).max(10000),
+    }).parse(request.body);
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      const key = await resolved.provider.addSSHKey(resolved.hostingId, body.name, body.public_key);
+      return reply.status(201).send(key);
+    } catch (err: any) {
+      return reply.status(502).send({ error: `SSH key add failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.delete('/websites/:id/ssh/keys/:keyId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id, keyId } = request.params as { id: string; keyId: string };
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      await resolved.provider.removeSSHKey(resolved.hostingId, keyId);
+      return reply.send({ success: true });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `SSH key removal failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/websites/:id/ssh/reset-password', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { password } = z.object({ password: z.string().min(8).max(100) }).parse(request.body);
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.status(409).send({ error: 'No hosting provider connected.' });
+    try {
+      await resolved.provider.resetSSHPassword(resolved.hostingId, password);
+      return reply.send({ success: true });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `SSH password reset failed: ${err?.message ?? err}` });
+    }
+  });
+
+  // ─── Analytics / Traffic ───────────────────────────────────────
+  fastify.get('/websites/:id/analytics', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { period } = z.object({ period: z.string().max(20).default('30d') }).parse(request.query);
+    const resolved = await resolveHostingProviderForWebsite(request.user.tenant_id, id);
+    if (!resolved) return reply.send({ connected: false, stats: null });
+    try {
+      const stats = await resolved.provider.getTrafficStats(resolved.hostingId, period);
+      return reply.send({ connected: true, stats });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Analytics failed: ${err?.message ?? err}` });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  //  DOMAIN REGISTRAR OPERATIONS — renew, info, nameservers
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.post('/domains/:id/renew', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { years } = z.object({ years: z.number().int().min(1).max(10).default(1) }).parse(request.body);
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain', 'registrar']).where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const registrar = await resolveRegistrar(tenantId);
+    if (!registrar) return reply.status(409).send({ error: NO_REGISTRAR_MESSAGE });
+
+    try {
+      const result = await registrar.renew(domain.domain, years);
+      await withTenant(tenantId, trx =>
+        trx.updateTable('onsite_domains')
+          .set({ expires_at: result.expiresAt, updated_at: new Date() })
+          .where('id', '=', id).where('tenant_id', '=', tenantId).execute());
+      emitDomainEventStandalone(tenantId, {
+        type: 'onsite.domain.renewed', sourceApp: 'onsite', entityType: 'onsite_domain', entityId: id,
+        payload: { domain: domain.domain, years, new_expiry: result.expiresAt.toISOString() },
+        actorId: actorId(request),
+      }).catch(console.error);
+      return reply.send({ success: true, expires_at: result.expiresAt, transaction_id: result.transactionId });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Domain renewal failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.get('/domains/:id/registrar-info', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const registrar = await resolveRegistrar(tenantId);
+    if (!registrar) return reply.send({ connected: false, info: null });
+
+    try {
+      const info = await registrar.getInfo(domain.domain);
+      await withTenant(tenantId, trx =>
+        trx.updateTable('onsite_domains')
+          .set({
+            expires_at: info.expiresAt,
+            auto_renew: info.autoRenew,
+            nameservers: info.nameservers.length ? JSON.stringify(info.nameservers) : undefined,
+            updated_at: new Date(),
+          })
+          .where('id', '=', id).where('tenant_id', '=', tenantId).execute());
+      return reply.send({ connected: true, info });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Registrar info failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/domains/:id/nameservers', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const { nameservers } = z.object({ nameservers: z.array(z.string().min(1).max(253)).min(1).max(8) }).parse(request.body);
+    const tenantId = request.user.tenant_id;
+
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const registrar = await resolveRegistrar(tenantId);
+    if (!registrar) return reply.status(409).send({ error: NO_REGISTRAR_MESSAGE });
+
+    try {
+      await registrar.setNameservers(domain.domain, nameservers);
+      await withTenant(tenantId, trx =>
+        trx.updateTable('onsite_domains')
+          .set({ nameservers: JSON.stringify(nameservers), updated_at: new Date() })
+          .where('id', '=', id).where('tenant_id', '=', tenantId).execute());
+      return reply.send({ success: true, nameservers });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Nameserver update failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.post('/domains/:id/unlock', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+    const domain = await withTenant(tenantId, trx => trx.selectFrom('onsite_domains')
+      .select(['id', 'domain']).where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+    const registrar = await resolveRegistrar(tenantId);
+    if (!registrar) return reply.status(409).send({ error: NO_REGISTRAR_MESSAGE });
+    try {
+      await registrar.unlock(domain.domain);
+      return reply.send({ success: true });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Domain unlock failed: ${err?.message ?? err}` });
+    }
+  });
+
+  fastify.get('/domains/registrar-check', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { domains } = z.object({ domains: z.string().min(1) }).parse(request.query);
+    const domainList = domains.split(',').map(d => d.trim().toLowerCase()).filter(Boolean).slice(0, 20);
+    if (!domainList.length) return reply.status(400).send({ error: 'No domains provided' });
+
+    const registrar = await resolveRegistrar(request.user.tenant_id);
+    if (!registrar) return reply.send({ connected: false, results: domainList.map(d => ({ domain: d, available: false, premium: false, price: null })) });
+
+    try {
+      const results = await registrar.checkAvailability(domainList);
+      return reply.send({ connected: true, registrar: registrar.label, results });
+    } catch (err: any) {
+      return reply.status(502).send({ error: `Registrar check failed: ${err?.message ?? err}` });
+    }
+  });
+}

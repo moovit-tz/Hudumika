@@ -31,6 +31,7 @@ export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate  = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const returnTo  = searchParams.get('returnTo') || '/';
   const rootRef   = useRef<HTMLDivElement>(null);
   const { t, language, setLanguage, LANGUAGES } = useLocale();
 
@@ -165,7 +166,7 @@ export const Login: React.FC = () => {
       try {
         const res = await login(email, password, totpCode.trim());
         if ('requires_2fa' in res) { setError('Invalid code. Try again.'); return; }
-        navigate('/');
+        navigate(returnTo);
       } catch (err: any) {
         setError(err.message || 'Invalid or expired code.');
       } finally { setLoading(false); }
@@ -178,7 +179,7 @@ export const Login: React.FC = () => {
       const res = await login(email, password);
       if ('requires_2fa_setup' in res) { navigate('/2fa-setup-required', { state: { setupToken: res.setup_token } }); return; }
       if ('requires_2fa' in res) { setNeeds2fa(true); return; }
-      navigate('/');
+      navigate(returnTo);
     }
     catch (err: any) { setError(err.message || 'Invalid email or password. Please try again.'); }
     finally { setLoading(false); }
@@ -188,7 +189,7 @@ export const Login: React.FC = () => {
     if (loading || demoLoadingEmail) return;
     setError(null);
     setDemoLoadingEmail(demoEmail);
-    try { await login(demoEmail, 'password123'); navigate('/'); }
+    try { await login(demoEmail, 'password123'); navigate(returnTo); }
     catch (err: any) { setError(err.message || 'Failed to login with demo account.'); }
     finally { setDemoLoadingEmail(null); }
   };

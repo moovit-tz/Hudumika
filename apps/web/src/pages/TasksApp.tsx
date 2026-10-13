@@ -3,6 +3,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { KanbanBoard, type KanbanColumn, type KanbanCardData } from '../components/ui/kanban-board.js';
 import {
   useTodos, useLists, addTodo, updateTodo, deleteTodo, restoreTodo, purgeTodo, reorderTodo,
   addSubtask, updateSubtask, deleteSubtask, startTaskTimer, stopTaskTimer, cloneTask,
@@ -414,116 +415,78 @@ export const TasksApp: React.FC = () => {
 
 /* ── KANBAN BOARD COMPONENT ────────────────────────────────────────── */
 
+const KANBAN_COLUMNS: KanbanColumn<TaskStatus>[] = [
+  { id: 'none',        label: 'Not Started',       color: 'var(--ink2)' },
+  { id: 'in_progress', label: 'In Progress',       color: 'var(--blue)' },
+  { id: 'in_review',   label: 'Testing / Review',  color: 'var(--gold)' },
+  { id: 'waiting',     label: 'Awaiting Feedback', color: 'var(--purple)' },
+  { id: 'completed',   label: 'Completed',         color: 'var(--green)' },
+];
+
+interface TaskKanbanCard extends KanbanCardData { todo: Todo; }
+
 function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
   todos: Todo[]; listMap: Record<string, { id: string; name: string; color: string }>;
   onTaskClick: (id: string) => void;
 }) {
-  const columns: { status: TaskStatus; title: string; color: string; bg: string }[] = [
-    { status: 'none',        title: 'Not Started',       color: 'var(--ink2)', bg: 'var(--bg-subtle)' },
-    { status: 'in_progress', title: 'In Progress',       color: 'var(--blue)', bg: 'var(--blue-l)' },
-    { status: 'in_review',   title: 'Testing / Review',  color: 'var(--gold)', bg: 'var(--gold-l)' },
-    { status: 'waiting',     title: 'Awaiting Feedback', color: 'var(--purple)', bg: 'var(--purple-l)' },
-    { status: 'completed',   title: 'Completed',         color: 'var(--green)', bg: 'var(--green-l)' },
-  ];
-
-  function handleKanbanDrop(e: React.DragEvent, newStatus: TaskStatus) {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData('text/kanban-task-id');
-    if (taskId) {
-      updateTodo(taskId, newStatus === 'completed' ? { status: newStatus, completed: true } : { status: newStatus, completed: false });
-    }
-  }
+  const items: TaskKanbanCard[] = useMemo(() =>
+    todos.map(t => ({
+      id: t.id,
+      columnId: (t.completed || t.status === 'completed') ? 'completed' : t.status,
+      todo: t,
+    })),
+    [todos],
+  );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, overflowX: 'auto', minHeight: 500, paddingBottom: 16 }}>
-      {columns.map(col => {
-        const colTodos = todos.filter(t => col.status === 'completed' ? (t.completed || t.status === 'completed') : (t.status === col.status && !t.completed));
+    <KanbanBoard<TaskKanbanCard, TaskStatus>
+      columns={KANBAN_COLUMNS}
+      items={items}
+      emptyMessage="Drop tasks here"
+      onDrop={(itemId, _from, toCol) => {
+        updateTodo(itemId, toCol === 'completed' ? { status: toCol, completed: true } : { status: toCol as TaskStatus, completed: false });
+      }}
+      renderCard={(item) => {
+        const t = item.todo;
+        const list = listMap[t.listId];
         return (
-          <div
-            key={col.status}
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => handleKanbanDrop(e, col.status)}
-            style={{
-              background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-              display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-            }}
-          >
-            {/* Column Header */}
-            <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', background: col.bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: col.color }}>{col.title}</span>
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--white)', color: col.color, border: '1px solid var(--border)' }}>
-                {colTodos.length}
-              </span>
-            </div>
-
-            {/* Column Cards Container */}
-            <div style={{ flex: 1, padding: 12, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
-              {colTodos.map(t => (
-                <div
-                  key={t.id}
-                  draggable
-                  onDragStart={e => e.dataTransfer.setData('text/kanban-task-id', t.id)}
-                  onClick={() => onTaskClick(t.id)}
-                  style={{
-                    background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-                    padding: 12, cursor: 'grab', boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = col.color}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    {t.priority && (
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--r-sm)',
-                        background: PRIORITY_META[t.priority]?.bg, color: PRIORITY_META[t.priority]?.color, textTransform: 'uppercase'
-                      }}>
-                        {t.priority}
-                      </span>
-                    )}
-                    {listMap[t.listId] && (
-                      <span style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: listMap[t.listId].color }} />
-                        {listMap[t.listId].name}
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.35 }}>
-                    {t.title}
-                  </div>
-
-                  {t.subtasks.length > 0 && (
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginBottom: 3 }}>
-                        <span>Subtasks</span>
-                        <span>{t.subtasks.filter(s => s.completed).length}/{t.subtasks.length}</span>
-                      </div>
-                      <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${Math.round((t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100)}%`, background: col.color }} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 11, color: isOverdue(t.due) ? 'var(--red)' : 'var(--ink3)', fontWeight: isOverdue(t.due) ? 700 : 400 }}>
-                      {t.due ? `Due ${t.due}` : 'No due date'}
-                    </div>
-
-                    <TaskTimerWidget todo={t} />
-                  </div>
-                </div>
-              ))}
-              {colTodos.length === 0 && (
-                <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: 'var(--ink3)', border: '1px dashed var(--border)', borderRadius: 'var(--r)'}}>
-                  Drop tasks here
-                </div>
+          <div onClick={() => onTaskClick(t.id)}>
+            <div className="kb-card-topline">
+              {t.priority && (
+                <Badge variant={t.priority === 'urgent' ? 'error' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'info' : 'gray'}>
+                  {t.priority}
+                </Badge>
               )}
+              {list && (
+                <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--ink3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: list.color }} />
+                  {list.name}
+                </span>
+              )}
+            </div>
+            <div className="kb-card-title">{t.title}</div>
+            {t.subtasks.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginBottom: 3 }}>
+                  <span>Subtasks</span>
+                  <span>{t.subtasks.filter(s => s.completed).length}/{t.subtasks.length}</span>
+                </div>
+                <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round((t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100)}%`, background: 'var(--teal)' }} />
+                </div>
+              </div>
+            )}
+            <div className="kb-card-meta" style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+              <span className="kb-meta-item" style={{ color: isOverdue(t.due) ? 'var(--red)' : undefined, fontWeight: isOverdue(t.due) ? 700 : undefined }}>
+                <Icon name="calendar" size={12} color={isOverdue(t.due) ? 'var(--red)' : 'var(--ink3)'} strokeWidth={1.75} />
+                {t.due || 'No due date'}
+              </span>
+              <span style={{ marginLeft: 'auto' }}><TaskTimerWidget todo={t} /></span>
             </div>
           </div>
         );
-      })}
-    </div>
+      }}
+    />
   );
 }
 
