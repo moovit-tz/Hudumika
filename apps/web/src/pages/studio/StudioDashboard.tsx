@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './studio.css';
 import { apiFetch } from '../../lib/api.js';
@@ -11,6 +11,7 @@ import { SingleSelectFilter, SearchToolbar } from '../../components/ui/filter-dr
 import './WorkflowList.css';
 import { PageHeader } from '../../components/PageHeader.js';
 import { PageLoading } from '../../components/ui/spinner.js';
+import { StudioPagination } from './StudioPagination.js';
 
 interface Stats {
   workflows: { total: number; active: number; draft: number; paused: number; unrunnable: number };
@@ -88,11 +89,6 @@ export function StudioDashboard() {
   const filteredApps = (stats?.byApp ?? []).filter(a => appFilter === 'all' || a.app === appFilter);
   const appPages = Math.max(1, Math.ceil(filteredApps.length / 5));
   const currentAppPage = Math.min(appPage, appPages);
-  const pager = (page: number, pages: number, change: (n: number) => void) => <div className="studio-pagination studio-panel-pagination">
-    <Button variant="outline" disabled={page === 1} onClick={() => change(page - 1)}>Previous</Button>
-    <span aria-live="polite">Page {page} of {pages}</span>
-    <Button variant="outline" disabled={page === pages} onClick={() => change(page + 1)}>Next</Button>
-  </div>;
 
   if (loading) {
     return <PageLoading label="Loading Workflow Studio dashboard…" />;
@@ -117,7 +113,7 @@ export function StudioDashboard() {
       {/* ── Studio Premium Hero Command Banner ────────────────────────── */}
       <PageHeader crumbs={['Studio', 'Overview']} titlePlain="Studio" titleEm="overview" subtitle="Monitor workflows and recent activity across your workspace." actions={<Button size="lg" onClick={() => navigate('/studio/new')}>New workflow</Button>} />
       <div className="workflow-toolbar">
-        <SingleSelectFilter label="App" value={appFilter === 'all' ? null : appFilter} onChange={v => setAppFilter(v ?? 'all')} options={filteredApps.slice((currentAppPage - 1) * 5, currentAppPage * 5).map(a => ({value:a.app,label:a.name}))} />
+        <SingleSelectFilter label="App" value={appFilter === 'all' ? null : appFilter} onChange={v => setAppFilter(v ?? 'all')} options={(stats?.byApp ?? []).map(a => ({ value: a.app, label: a.name }))} />
         <SingleSelectFilter label="Run status" value={runFilter === 'all' ? null : runFilter} onChange={v => setRunFilter(v ?? 'all')} options={Object.keys(VARIANT).map(v => ({value:v,label:v.charAt(0) + v.slice(1).toLowerCase()}))} />
         <SingleSelectFilter label="Duration" value={duration === 'all' ? null : duration} onChange={v => setDuration(v ?? 'all')} options={[{value:'fast',label:'Under 1 second'},{value:'slow',label:'1 second or more'}]} />
         <div className="workflow-search"><SearchToolbar search={search} onSearch={setSearch} placeholder="Search recent runs…" /></div>
@@ -127,7 +123,7 @@ export function StudioDashboard() {
 
         {/* Workflows Total Card */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
+          background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -147,7 +143,7 @@ export function StudioDashboard() {
 
         {/* Active Automations Card */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
+          background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -164,7 +160,7 @@ export function StudioDashboard() {
 
         {/* Total Runs Card */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
+          background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -181,7 +177,7 @@ export function StudioDashboard() {
 
         {/* Building Blocks / Unrunnable Status */}
         <div className="studio-card-interactive" style={{
-          background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
+          background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)',
           padding: 'var(--card-padding)', boxShadow: 'var(--elev-sm)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -223,7 +219,7 @@ export function StudioDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 'var(--space-lg)', alignItems: 'start' }} className="studio-dash-grid">
 
         {/* ── LEFT COLUMN: Recent Execution Runs ─────────────────────── */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <Icon name="clock" size={17} color="var(--teal)" />
@@ -234,13 +230,14 @@ export function StudioDashboard() {
             <div style={{ display: 'flex', alignItems: 'center' }}>
 
 
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => navigate('/studio/runs')}
-                style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}
-               data-ui-native-button="">
+              >
                 View all <Icon name="arrowRight" size={13} />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -293,14 +290,14 @@ export function StudioDashboard() {
               ))
             )}
           </div>
-          {filteredRuns.length > 0 && pager(currentRunPage, runPages, setRunPage)}
+          {filteredRuns.length > 0 && <StudioPagination page={currentRunPage} total={filteredRuns.length} size={5} onChange={setRunPage} />}
         </div>
 
         {/* ── RIGHT COLUMN: Outcomes, App Distribution & Clearance ───── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* 1. Run Outcomes Distribution */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="barChart2" size={16} color="var(--purple)" />
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Outcomes • Last 30 Days</span>
@@ -329,7 +326,7 @@ export function StudioDashboard() {
           </div>
 
           {/* 2. Automations By App */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Icon name="grid" size={16} color="var(--blue)" />
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Automations By Workspace App</span>
@@ -354,10 +351,10 @@ export function StudioDashboard() {
             </div>
           </div>
 
-          {filteredApps.length > 0 && pager(currentAppPage, appPages, setAppPage)}
+          {filteredApps.length > 0 && <StudioPagination page={currentAppPage} total={filteredApps.length} size={5} onChange={setAppPage} />}
 
           {/* 3. Clearance Stage Workflows */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--white)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--card-bg, var(--white))', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="layers" size={16} color="var(--teal)" />

@@ -37,3 +37,5 @@ export * from './finance-accounting-outbox.js';
 export * from './document-templates.js';
 
 export * from './invoice-payment-link.js';
+export * from './project-document.js';
+export * from './email-operations.js';

@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge, type BadgeProps } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 const CATEGORIES = ['Domain issue', 'Hosting / VPS issue', 'DNS / SSL issue', 'Deployment failure', 'Billing', 'Other'];
@@ -17,11 +20,11 @@ interface PlatformTicket {
   app: string | null;
 }
 
-const STATUS_META: Record<string, { badge: string; label: string }> = {
-  OPEN: { badge: 'pending', label: 'Open' },
-  IN_PROGRESS: { badge: 'deploying', label: 'In progress' },
-  RESOLVED: { badge: 'active', label: 'Resolved' },
-  CLOSED: { badge: 'unknown', label: 'Closed' },
+const STATUS_META: Record<string, { variant: NonNullable<BadgeProps['variant']>; label: string }> = {
+  OPEN: { variant: 'warning', label: 'Open' },
+  IN_PROGRESS: { variant: 'info', label: 'In progress' },
+  RESOLVED: { variant: 'success', label: 'Resolved' },
+  CLOSED: { variant: 'gray', label: 'Closed' },
 };
 
 export function OnsiteSupport() {
@@ -81,9 +84,9 @@ export function OnsiteSupport() {
         titleEm="support"
         subtitle="Contact Hudumika support about your hosting, domains, or infrastructure — routed to a priority queue for Onsite."
         actions={
-          <button className="btn btn-primary" onClick={() => setShowForm(true)} data-ui-native-button="">
+          <Button onClick={() => setShowForm(true)}>
             <Icon name="plus" size={16} /> New request
-          </button>
+          </Button>
         }
       />
 
@@ -96,9 +99,9 @@ export function OnsiteSupport() {
           <p style={{ margin: '0.4rem 0 1rem', fontSize: '0.875rem', color: 'var(--ink2)' }}>
             Something not working? File a request and Hudumika support will pick it up.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)} data-ui-native-button="">
+          <Button onClick={() => setShowForm(true)}>
             <Icon name="plus" size={14} /> New request
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="onsite-card">
@@ -121,7 +124,7 @@ export function OnsiteSupport() {
                     <td style={{ fontWeight: 600 }}>{t.subject}</td>
                     <td>{t.category}</td>
                     <td style={{ textTransform: 'capitalize' }}>{t.priority.toLowerCase()}</td>
-                    <td><span className={`onsite-badge ${(STATUS_META[t.status] ?? STATUS_META.OPEN).badge}`}>{(STATUS_META[t.status] ?? STATUS_META.OPEN).label}</span></td>
+                    <td><Badge variant={(STATUS_META[t.status] ?? STATUS_META.OPEN).variant}>{(STATUS_META[t.status] ?? STATUS_META.OPEN).label}</Badge></td>
                     <td>{new Date(t.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
@@ -132,63 +135,66 @@ export function OnsiteSupport() {
       )}
 
       <Dialog open={showForm} onOpenChange={(o) => { if (!o) setShowForm(false); }}>
-        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-card-header">
-            <DialogTitle className="onsite-card-title">New support request</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowForm(false)} data-ui-native-button="">✕</button>
-          </div>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="onsite-form-group">
-                <label>Subject *</label>
-                <input
-                  type="text"
-                  className="onsite-input"
-                  placeholder="e.g. My domain isn't resolving"
-                  value={subject}
-                  maxLength={300}
-                  onChange={e => setSubject(e.target.value)}
-                  required
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>New support request</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <DialogBody>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="onsite-form-group">
-                  <label>Category</label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <label>Subject *</label>
+                  <input
+                    type="text"
+                    className="onsite-input"
+                    placeholder="e.g. My domain isn't resolving"
+                    value={subject}
+                    maxLength={300}
+                    onChange={e => setSubject(e.target.value)}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+                  <div className="onsite-form-group">
+                    <label>Category</label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="onsite-form-group">
+                    <label>Priority</label>
+                    <Select value={priority} onValueChange={v => setPriority(v as typeof PRIORITIES[number])}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="onsite-form-group">
-                  <label>Priority</label>
-                  <Select value={priority} onValueChange={v => setPriority(v as typeof PRIORITIES[number])}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <label>Describe the issue *</label>
+                  <textarea
+                    className="onsite-textarea"
+                    rows={5}
+                    placeholder="What's happening, and what have you already tried?"
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
-              <div className="onsite-form-group">
-                <label>Describe the issue *</label>
-                <textarea
-                  className="onsite-textarea"
-                  rows={5}
-                  placeholder="What's happening, and what have you already tried?"
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  required
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} data-ui-native-button="">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
-                  {submitting ? 'Sending…' : 'Send request'}
-                </button>
-              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!canSubmit}>
+                {submitting ? <><ButtonSpinner /> Sending…</> : 'Send request'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

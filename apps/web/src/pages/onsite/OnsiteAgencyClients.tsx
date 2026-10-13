@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import { slugify } from '../onboarding/types.js';
 import type { AgencyManagedClient, SubdomainCheckResponse } from '@hudumika/types';
 import './Onsite.css';
@@ -54,9 +57,9 @@ export function OnsiteAgencyClients() {
         titleEm="clients"
         subtitle="Every client you host under your own package — each on its own independent account, free to detach or move on at any time."
         actions={
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="userPlus" size={16} /> New client
-          </button>
+          </Button>
         }
       />
 
@@ -75,9 +78,9 @@ export function OnsiteAgencyClients() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Set up hosting for your first client. They get their own account and login — billed under your package until they detach.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="userPlus" size={16} /> New client
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="onsite-card">
@@ -98,25 +101,26 @@ export function OnsiteAgencyClients() {
                     <td style={{ fontWeight: 600 }}>{c.tenant_name}</td>
                     <td className="onsite-mono">{c.tenant_subdomain ? `${c.tenant_subdomain}.hudumika.tz` : '—'}</td>
                     <td>
-                      <span className={`onsite-badge ${c.status === 'active' ? 'active' : 'inactive'}`}>
+                      <Badge variant={c.status === 'active' ? 'success' : 'gray'}>
                         {c.status === 'active' ? 'Active' : 'Detached'}
-                      </span>
+                      </Badge>
                     </td>
                     <td>{new Date(c.attached_at).toISOString().split('T')[0]}</td>
                     <td style={{ textAlign: 'right' }}>
                       {c.status === 'active' && (
-                        <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                          <Link to={`/onsite/agency/clients/${c.tenant_id}`} className="onsite-btn-outline">
-                            Manage
+                        <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <Link to={`/onsite/agency/clients/${c.tenant_id}`}>
+                            <Button variant="outline" size="sm">Manage</Button>
                           </Link>
-                          <button
-                            className="btn btn-sm btn-ghost"
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             style={{ color: 'var(--red)' }}
                             disabled={releasing === c.tenant_id}
                             onClick={() => handleRelease(c)}
-                           data-ui-native-button="">
-                            {releasing === c.tenant_id ? 'Releasing…' : 'Release'}
-                          </button>
+                          >
+                            {releasing === c.tenant_id ? <><ButtonSpinner /> Releasing…</> : 'Release'}
+                          </Button>
                         </div>
                       )}
                     </td>
@@ -201,62 +205,65 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="onsite-card-header">
-          <DialogTitle className="onsite-card-title">New client</DialogTitle>
-          <button className="btn btn-sm btn-ghost" onClick={onClose} data-ui-native-button="">✕</button>
-        </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-form-group">
-            <label>Company name *</label>
-            <input
-              type="text"
-              className="onsite-input"
-              placeholder="Client Co Ltd"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="onsite-form-group">
-            <label>Subdomain *</label>
-            <div className="ob-domain-row">
-              <input
-                type="text"
-                className="onsite-input"
-                value={subdomain}
-                onChange={(e) => { setSubdomainTouched(true); setSubdomain(slugify(e.target.value)); }}
-                autoComplete="off"
-                required
-              />
-              <span className="ob-domain-suffix">.hudumika.tz</span>
+      <DialogContent size="sm">
+        <DialogHeader>
+          <DialogTitle>New client</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <DialogBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="onsite-form-group">
+                <label>Company name *</label>
+                <input
+                  type="text"
+                  className="onsite-input"
+                  placeholder="Client Co Ltd"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="onsite-form-group">
+                <label>Subdomain *</label>
+                <div className="ob-domain-row">
+                  <input
+                    type="text"
+                    className="onsite-input"
+                    value={subdomain}
+                    onChange={(e) => { setSubdomainTouched(true); setSubdomain(slugify(e.target.value)); }}
+                    autoComplete="off"
+                    required
+                  />
+                  <span className="ob-domain-suffix">.hudumika.tz</span>
+                </div>
+                {subStatus === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
+                {subStatus === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> Available</span>}
+                {subStatus === 'taken' && <span className="login-field-err">{subReason || 'This subdomain is already taken'}</span>}
+              </div>
+              <div className="onsite-form-group">
+                <label>Client admin email *</label>
+                <input
+                  type="email"
+                  className="onsite-input"
+                  placeholder="jane@clientco.com"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  required
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
+                  We'll email them an activation link. They'll manage their own login from there.
+                </span>
+              </div>
             </div>
-            {subStatus === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
-            {subStatus === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> Available</span>}
-            {subStatus === 'taken' && <span className="login-field-err">{subReason || 'This subdomain is already taken'}</span>}
-          </div>
-          <div className="onsite-form-group">
-            <label>Client admin email *</label>
-            <input
-              type="email"
-              className="onsite-input"
-              placeholder="jane@clientco.com"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              required
-            />
-            <span style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
-              We'll email them an activation link. They'll manage their own login from there.
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
-              {submitting ? 'Creating…' : 'Create client'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={!canSubmit}>
+              {submitting ? <><ButtonSpinner /> Creating…</> : 'Create client'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

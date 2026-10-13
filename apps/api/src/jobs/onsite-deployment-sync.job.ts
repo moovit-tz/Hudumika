@@ -21,7 +21,7 @@ const IN_FLIGHT = ['queued', 'building', 'deploying'];
 
 export async function runOnsiteDeploymentSyncJob(): Promise<void> {
   const open = await dbPlatform.selectFrom('onsite_deployments')
-    .select(['id', 'tenant_id', 'application_id', 'ci_pipeline_id', 'status', 'queued_at', 'created_at'])
+    .select(['id', 'tenant_id', 'application_id', 'provider_connection_id', 'ci_provider', 'ci_pipeline_id', 'status', 'queued_at', 'created_at'])
     .where('status', 'in', IN_FLIGHT)
     .where('ci_pipeline_id', 'is not', null)
     .orderBy('created_at', 'asc')
@@ -30,17 +30,16 @@ export async function runOnsiteDeploymentSyncJob(): Promise<void> {
 
   if (open.length === 0) return;
 
-  // One provider per tenant, resolved once — each resolve decrypts a
-  // credential, and a tenant with 30 open deployments should not do that 30
-  // times.
+  // Runs retain their provider even when the workspace connects another service.
   const providers = new Map<string, Awaited<ReturnType<typeof resolveCIProvider>>>();
 
   for (const d of open) {
     try {
-      if (!providers.has(d.tenant_id)) {
-        providers.set(d.tenant_id, await resolveCIProvider(d.tenant_id));
+      const providerKey = `${d.tenant_id}:${d.ci_provider ?? ''}:${d.provider_connection_id ?? ''}`;
+      if (!providers.has(providerKey)) {
+        providers.set(providerKey, d.ci_provider && d.provider_connection_id ? await resolveCIProvider(d.tenant_id, d.ci_provider, d.provider_connection_id) : null);
       }
-      const ci = providers.get(d.tenant_id);
+      const ci = providers.get(providerKey);
 
       // A disconnected provider is not a failed deployment — the run may well
       // be finishing right now. Only age decides that.
@@ -59,7 +58,7 @@ export async function runOnsiteDeploymentSyncJob(): Promise<void> {
       const terminal = ['succeeded', 'failed', 'cancelled'].includes(state.status);
 
       await withTenant(d.tenant_id, async (trx) => {
-        await trx.updateTable('onsite_deployments')
+        const updated = await trx.updateTable('onsite_deployments')
           .set({
             status: state.status,
             ...(state.url ? { ci_build_url: state.url } : {}),
@@ -68,7 +67,10 @@ export async function runOnsiteDeploymentSyncJob(): Promise<void> {
           })
           .where('id', '=', d.id)
           .where('tenant_id', '=', d.tenant_id)
-          .execute();
+          .where('status', '=', d.status)
+          .returning('id')
+          .executeTakeFirst();
+        if (!updated) return;
 
         /**
          * An application is only "active" on a deployment the provider actually
@@ -115,6 +117,7 @@ async function abandonIfStale(d: { id: string; tenant_id: string; queued_at: Dat
       })
       .where('id', '=', d.id)
       .where('tenant_id', '=', d.tenant_id)
+      .where('status', 'in', IN_FLIGHT)
       .execute(),
   );
 }

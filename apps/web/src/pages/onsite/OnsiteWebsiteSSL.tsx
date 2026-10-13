@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import './Onsite.css';
 
 /**
@@ -45,13 +47,11 @@ export function OnsiteWebsiteSSL() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-      <div className="onsite-bc">
-        <Link to="/onsite/websites" className="onsite-bc-link">Websites</Link>
-        <span>›</span>
-        <span>SSL certificates</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, margin: 0, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Icon name="shield" size={18} /> SSL certificates
+        </h3>
       </div>
-
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>SSL certificates</h1>
 
       {loading ? (
         <div className="onsite-card"><p style={{ color: 'var(--ink3)' }}>Reading certificates…</p></div>
@@ -63,7 +63,9 @@ export function OnsiteWebsiteSSL() {
             Add a domain under Domains and check it — Onsite completes a TLS handshake and
             reports the issuer, validity and expiry the host actually presents.
           </p>
-          <Link to="/onsite/ssl" className="btn btn-secondary btn-sm">Go to SSL</Link>
+          <Link to="/onsite/ssl">
+            <Button variant="outline">Go to SSL</Button>
+          </Link>
         </div>
       ) : (
         <div className="onsite-card" style={{ padding: 0 }}>
@@ -88,7 +90,11 @@ export function OnsiteWebsiteSSL() {
                     <tr key={c.id}>
                       <td style={{ fontWeight: 600 }}>{c.domain ?? '—'}</td>
                       <td>{c.issuer ?? <span style={{ color: 'var(--ink3)' }}>Unknown</span>}</td>
-                      <td><span className={`onsite-badge ${c.status}`}>{c.status}</span></td>
+                      <td>
+                        <Badge variant={c.status === 'valid' || c.status === 'active' ? 'success' : c.status === 'expiring' ? 'warning' : 'error'}>
+                          {c.status}
+                        </Badge>
+                      </td>
                       <td>
                         {c.expires_at ? (
                           <>

@@ -34,9 +34,10 @@ const DEFAULT_APP_COLOR = '#1257c6';
 const APP_META_BRAND_LIST = APP_REGISTRY.map(a => ({ ...a, defaultColor: DEFAULT_APP_COLOR }));
 
 function readFile(file: File): Promise<string> {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(r.result as string);
+    r.onerror = () => rej(new Error('Could not read the selected file.'));
     r.readAsDataURL(file);
   });
 }
@@ -134,7 +135,11 @@ export function BrandingIdentitySection() {
     const slot = logoSlots[which];
     try {
       await pushBranding({ [slot.field]: data });
-      if (data) localStorage.setItem(slot.key, data); else localStorage.removeItem(slot.key);
+      try {
+        if (data) localStorage.setItem(slot.key, data); else localStorage.removeItem(slot.key);
+      } catch {
+        // localStorage quota exceeded — the API has the data, just can't cache locally
+      }
       slot.set(data);
       window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
       flashSaved('logos');
@@ -143,7 +148,9 @@ export function BrandingIdentitySection() {
   const handleLogoUpload = async (which: keyof typeof logoSlots, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     if (file.size > 2 * 1024 * 1024) { flashError('logos', new Error('Choose a logo smaller than 2 MB.')); return; }
-    await saveLogo(which, await readFile(file));
+    try {
+      await saveLogo(which, await readFile(file));
+    } catch (err) { flashError('logos', err); }
   };
   const clearLogo = (which: keyof typeof logoSlots) => saveLogo(which, '');
 
@@ -190,74 +197,98 @@ export function BrandingIdentitySection() {
         </CardFooter>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Logos & Favicon</CardTitle>
-          <CardDescription>Brand marks used in headers, sidebars, and the browser tab.</CardDescription>
-          {saveErrors.logos && <p className="text-sm text-red-600 mt-2">{saveErrors.logos}</p>}
-          {savedSection === 'logos' && <p className="text-sm text-green-600 mt-2">Saved.</p>}
-        </CardHeader>
-        <CardContent className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+      {saveErrors.logos && <p className="text-sm text-red-600">{saveErrors.logos}</p>}
+      {savedSection === 'logos' && <p className="text-sm text-green-600">Saved.</p>}
 
-          <div className="flex flex-col gap-2">
-            <Label>Favicon (Browser Tab)</Label>
-            <div className="border rounded-md flex items-center justify-center overflow-hidden relative" style={{ background: 'var(--bg)', minHeight: 128 }}>
-              {favicon ? (
-                <img src={favicon} alt="Favicon" className="w-8 h-8 object-contain" />
-              ) : <span className="text-muted-foreground text-sm">No Favicon</span>}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Primary Logo</CardTitle>
+            <CardDescription>Main horizontal brand mark for headers, sidebars, and documents.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Light background</span>
+                <div className="rounded-lg border bg-white flex items-center justify-center p-6" style={{ minHeight: 120 }}>
+                  {logoLight
+                    ? <img src={logoLight} alt="Light Logo" className="max-w-full object-contain" style={{ maxHeight: 64 }} />
+                    : <span className="text-sm text-muted-foreground">No logo</span>}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 relative overflow-hidden">
+                    <Icon name="upload" size={14} /> Upload
+                    <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('light', e)} />
+                  </Button>
+                  {logoLight && <Button variant="ghost" size="sm" onClick={() => clearLogo('light')}><Icon name="trash2" size={14} /></Button>}
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Dark background</span>
+                <div className="rounded-lg border flex items-center justify-center p-6" style={{ background: 'var(--ink)', minHeight: 120 }}>
+                  {logoDark
+                    ? <img src={logoDark} alt="Dark Logo" className="max-w-full object-contain" style={{ maxHeight: 64 }} />
+                    : <span className="text-sm" style={{ color: 'var(--ink3)' }}>No logo</span>}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 relative overflow-hidden">
+                    <Icon name="upload" size={14} /> Upload
+                    <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('dark', e)} />
+                  </Button>
+                  {logoDark && <Button variant="ghost" size="sm" onClick={() => clearLogo('dark')}><Icon name="trash2" size={14} /></Button>}
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="w-full relative overflow-hidden">
-                Upload
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Favicon</CardTitle>
+            <CardDescription>Browser tab icon — 32x32 or 64x64 for best results.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-3">
+            <div className="rounded-lg border flex items-center justify-center w-full" style={{ background: 'var(--bg)', minHeight: 120 }}>
+              {favicon
+                ? <img src={favicon} alt="Favicon" className="w-10 h-10 object-contain" />
+                : <span className="text-sm text-muted-foreground">No favicon</span>}
+            </div>
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" size="sm" className="flex-1 relative overflow-hidden">
+                <Icon name="upload" size={14} /> Upload
                 <input type="file" accept="image/x-icon,image/png,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('favicon', e)} />
               </Button>
-              {favicon && <Button variant="ghost" onClick={() => clearLogo('favicon')}><Icon name="x" size={16} /></Button>}
+              {favicon && <Button variant="ghost" size="sm" onClick={() => clearLogo('favicon')}><Icon name="trash2" size={14} /></Button>}
             </div>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          <div className="flex flex-col gap-2">
-            <Label>Primary Logo (Light Mode)</Label>
-            <div className="border rounded-md flex items-center justify-center bg-white overflow-hidden p-4" style={{ minHeight: 128 }}>
-              {logoLight ? (
-                <img src={logoLight} alt="Light Logo" className="max-h-full max-w-full object-contain" />
-              ) : <span className="text-muted-foreground text-sm">No Light Logo</span>}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="w-full relative overflow-hidden">
-                Upload
-                <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('light', e)} />
-              </Button>
-              {logoLight && <Button variant="ghost" onClick={() => clearLogo('light')}><Icon name="x" size={16} /></Button>}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Inverse Logo (Dark Mode)</Label>
-            <div className="border rounded-md flex items-center justify-center overflow-hidden p-4" style={{ background: 'var(--ink)', minHeight: 128 }}>
-              {logoDark ? (
-                <img src={logoDark} alt="Dark Logo" className="max-h-full max-w-full object-contain" />
-              ) : <span style={{ color: 'var(--ink3)' }} className="text-sm">No Dark Logo</span>}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="w-full relative overflow-hidden">
-                Upload
-                <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('dark', e)} />
-              </Button>
-              {logoDark && <Button variant="ghost" onClick={() => clearLogo('dark')}><Icon name="x" size={16} /></Button>}
-            </div>
-          </div>
-
-          {([{ key: 'verticalLight', label: 'Vertical logo · light background', value: logoVerticalLight }, { key: 'verticalDark', label: 'Vertical logo · dark background', value: logoVerticalDark }] as const).map(slot => (
-            <div key={slot.key} className="flex flex-col gap-2">
-              <Label>{slot.label}</Label>
-              <div className="flex items-center justify-center rounded-lg border p-4" style={{ background: slot.key === 'verticalDark' ? 'var(--ink)' : 'var(--surface)', minHeight: 160 }}>
-                {slot.value ? <img src={slot.value} alt={slot.label} style={{ maxHeight: 128 }} className="max-w-full object-contain" /> : <span className="text-sm text-muted-foreground">No vertical logo</span>}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Vertical Logo</CardTitle>
+          <CardDescription>Stacked brand mark for narrow spaces, mobile splash screens, and print.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            {([{ key: 'verticalLight', label: 'Light background', value: logoVerticalLight }, { key: 'verticalDark', label: 'Dark background', value: logoVerticalDark }] as const).map(slot => (
+              <div key={slot.key} className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
+                <div className="rounded-lg border flex items-center justify-center p-6" style={{ background: slot.key === 'verticalDark' ? 'var(--ink)' : 'var(--surface)', minHeight: 160 }}>
+                  {slot.value
+                    ? <img src={slot.value} alt={slot.label} className="max-w-full object-contain" style={{ maxHeight: 100 }} />
+                    : <span className="text-sm text-muted-foreground">No logo</span>}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 relative overflow-hidden">
+                    <Icon name="upload" size={14} /> Upload
+                    <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload(slot.key, e)} />
+                  </Button>
+                  {slot.value && <Button variant="ghost" size="sm" onClick={() => clearLogo(slot.key)}><Icon name="trash2" size={14} /></Button>}
+                </div>
               </div>
-              <Button variant="outline" asChild><label>Upload<input type="file" accept="image/png,image/jpeg,image/svg+xml" className="sr-only" onChange={e => handleLogoUpload(slot.key, e)} /></label></Button>
-              {slot.value && <Button variant="ghost" onClick={() => clearLogo(slot.key)}>Remove</Button>}
-            </div>
-          ))}
-
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

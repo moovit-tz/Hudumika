@@ -55,173 +55,158 @@ export function OnsiteWebsiteDetailShell() {
   const currentSite = websites.find(w => w.id === siteId);
 
   return (
-    <div>
+    <div className="onsite-page">
       <PageHeader
         crumbs={['Onsite', 'Websites', currentSite?.name ?? sectionLabel]}
         titlePlain="Manage"
         titleEm="website"
         subtitle={`${sectionLabel}${currentSite ? ` for ${currentSite.name}` : ''}`}
       />
-      <div style={{ display: 'flex', gap: '2rem', minHeight: 'calc(100vh - 120px)' }}>
-      {/* Left Contextual Sidebar for Website Management (Images 1-5) */}
-      <div style={{
-        width: '260px',
-        flexShrink: 0,
-        background: 'var(--white)',
-        border: '1px solid var(--border)',
-        borderRadius: '1rem',
-        padding: '1.25rem 1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        height: 'fit-content'
-      }}>
-        {/* Website Selector */}
-        <div className="onsite-form-group">
-          <label style={{ fontSize: '0.75rem', color: 'var(--ink2)', fontWeight: 600 }}>Website name</label>
-          <Combobox
-            options={websites.map(w => ({ value: w.id, label: w.name }))}
-            value={siteId ?? ''}
-            onChange={(v) => navigate(`/onsite/websites/${v}`)}
-            placeholder="Select website"
-          />
-        </div>
 
-        {/* Search menu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.35rem 0.65rem' }}>
-          <Icon name="search" size={14} style={{ color: 'var(--ink3)' }} />
-          <input
-            type="text"
-            placeholder="Search"
-            value={searchMenu}
-            onChange={(e) => setSearchMenu(e.target.value)}
-            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.8125rem', width: '100%', color: 'var(--ink)' }}
-          />
-        </div>
-
-        {/* Navigation Items (Images 1-5) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
-          <Link
-            to={baseUrl}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', textDecoration: 'none',
-              fontWeight: 500, color: currentPath === baseUrl ? 'var(--purple)' : 'var(--ink)', background: currentPath === baseUrl ? 'var(--purple-l)' : 'transparent'
-            }}
-          >
-            <Icon name="layoutDashboard" size={16} /> Dashboard
-          </Link>
-
-          <Link
-            to={`${baseUrl}/analytics`}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', textDecoration: 'none',
-              fontWeight: 500, color: isActive(`${baseUrl}/analytics`) ? 'var(--purple)' : 'var(--ink)', background: isActive(`${baseUrl}/analytics`) ? 'var(--purple-l)' : 'transparent'
-            }}
-          >
-            <Icon name="barChart2" size={16} /> Analytics
-          </Link>
-
-          {/* Security Group */}
-          <div>
-            <button
-              onClick={() => toggleSection('security')}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-             data-ui-native-button="">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Icon name="shield" size={16} /> Security
-              </span>
-              <span>{openSections.security ? '▾' : '▸'}</span>
-            </button>
-            {openSections.security && (
-              <div style={{ paddingLeft: '2.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                <Link to={`${baseUrl}/ssl`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/ssl`) ? 'var(--purple)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/ssl`) ? 600 : 400, padding: '0.3rem 0' }}>
-                  SSL certificate
-                </Link>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>Malware Scanner</span>
-              </div>
-            )}
+      <div className="onsite-detail-layout">
+        {/* Left Contextual Sidebar for Website Management */}
+        <aside className="onsite-detail-sidebar">
+          {/* Website Selector */}
+          <div className="onsite-form-group">
+            <label style={{ fontSize: '0.75rem', color: 'var(--ink2)', fontWeight: 600 }}>Website name</label>
+            <Combobox
+              options={websites.map(w => ({ value: w.id, label: w.name }))}
+              value={siteId ?? ''}
+              onChange={(v) => navigate(`/onsite/websites/${v}`)}
+              placeholder="Select website"
+            />
           </div>
 
-          {/* Website Group */}
-          <div>
-            <button
-              onClick={() => toggleSection('website')}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-             data-ui-native-button="">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Icon name="globe" size={16} /> Website
-              </span>
-              <span>{openSections.website ? '▾' : '▸'}</span>
-            </button>
-            {openSections.website && (
-              <div style={{ paddingLeft: '2.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                <Link to={`${baseUrl}/wordpress`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/wordpress`) ? 'var(--purple)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/wordpress`) ? 600 : 400, padding: '0.3rem 0' }}>
-                  WordPress Install
-                </Link>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>Auto Installer</span>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>Migrate Website</span>
-              </div>
-            )}
+          {/* Search menu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0.4rem 0.65rem' }}>
+            <Icon name="search" size={14} style={{ color: 'var(--ink3)' }} />
+            <input
+              type="text"
+              placeholder="Search tools…"
+              value={searchMenu}
+              onChange={(e) => setSearchMenu(e.target.value)}
+              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.8125rem', width: '100%', color: 'var(--ink)' }}
+            />
           </div>
 
-          {/* Databases Group */}
-          <div>
-            <button
-              onClick={() => toggleSection('databases')}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-             data-ui-native-button="">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Icon name="layers" size={16} /> Databases
-              </span>
-              <span>{openSections.databases ? '▾' : '▸'}</span>
-            </button>
-            {openSections.databases && (
-              <div style={{ paddingLeft: '2.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                <Link to={`${baseUrl}/databases`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/databases`) ? 'var(--purple)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/databases`) ? 600 : 400, padding: '0.3rem 0' }}>
-                  Management
-                </Link>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>phpMyAdmin</span>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>Remote MySQL</span>
-              </div>
-            )}
-          </div>
+          {/* Navigation Items */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+            <Link
+              to={baseUrl}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.55rem 0.75rem', borderRadius: 'var(--r-sm)', textDecoration: 'none',
+                fontWeight: 500, color: (currentPath === baseUrl || currentPath === `${baseUrl}/analytics`) ? 'var(--teal)' : 'var(--ink)',
+                background: (currentPath === baseUrl || currentPath === `${baseUrl}/analytics`) ? 'var(--teal-l)' : 'transparent'
+              }}
+            >
+              <Icon name="barChart2" size={16} /> Analytics
+            </Link>
 
-          {/* Advanced Group */}
-          <div>
-            <button
-              onClick={() => toggleSection('advanced')}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
-             data-ui-native-button="">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <Icon name="settings" size={16} /> Advanced
-              </span>
-              <span>{openSections.advanced ? '▾' : '▸'}</span>
-            </button>
-            {openSections.advanced && (
-              <div style={{ paddingLeft: '2.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
-                <Link to={`${baseUrl}/ssh`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/ssh`) ? 'var(--purple)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/ssh`) ? 600 : 400, padding: '0.3rem 0' }}>
-                  SSH Access
-                </Link>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>PHP Configuration</span>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>DNS Zone Editor</span>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.3rem 0' }}>Cron Jobs</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+            {/* Security Group */}
+            <div>
+              <button
+                onClick={() => toggleSection('security')}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
+                data-ui-native-button=""
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Icon name="shield" size={16} /> Security
+                </span>
+                <span>{openSections.security ? '▾' : '▸'}</span>
+              </button>
+              {openSections.security && (
+                <div style={{ paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                  <Link to={`${baseUrl}/ssl`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/ssl`) ? 'var(--teal)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/ssl`) ? 600 : 400, padding: '0.35rem 0' }}>
+                    SSL certificate
+                  </Link>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>Malware Scanner</span>
+                </div>
+              )}
+            </div>
 
-      {/* Main Content Area for Sub-routes */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Routes>
-          <Route index element={<OnsiteWebsiteAnalytics />} />
-          <Route path="analytics" element={<OnsiteWebsiteAnalytics />} />
-          <Route path="ssl" element={<OnsiteWebsiteSSL />} />
-          <Route path="wordpress" element={<OnsiteWebsiteWordPress />} />
-          <Route path="databases" element={<OnsiteWebsiteDatabases />} />
-          <Route path="ssh" element={<OnsiteWebsiteSSH />} />
-        </Routes>
-      </div>
+            {/* Website Group */}
+            <div>
+              <button
+                onClick={() => toggleSection('website')}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
+                data-ui-native-button=""
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Icon name="globe" size={16} /> Website
+                </span>
+                <span>{openSections.website ? '▾' : '▸'}</span>
+              </button>
+              {openSections.website && (
+                <div style={{ paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                  <Link to={`${baseUrl}/wordpress`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/wordpress`) ? 'var(--teal)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/wordpress`) ? 600 : 400, padding: '0.35rem 0' }}>
+                    WordPress Install
+                  </Link>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>Auto Installer</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>Migrate Website</span>
+                </div>
+              )}
+            </div>
+
+            {/* Databases Group */}
+            <div>
+              <button
+                onClick={() => toggleSection('databases')}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
+                data-ui-native-button=""
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Icon name="layers" size={16} /> Databases
+                </span>
+                <span>{openSections.databases ? '▾' : '▸'}</span>
+              </button>
+              {openSections.databases && (
+                <div style={{ paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                  <Link to={`${baseUrl}/databases`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/databases`) ? 'var(--teal)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/databases`) ? 600 : 400, padding: '0.35rem 0' }}>
+                    Management
+                  </Link>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>phpMyAdmin</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>Remote MySQL</span>
+                </div>
+              )}
+            </div>
+
+            {/* Advanced Group */}
+            <div>
+              <button
+                onClick={() => toggleSection('advanced')}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)', fontWeight: 600, fontSize: '0.875rem' }}
+                data-ui-native-button=""
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <Icon name="settings" size={16} /> Advanced
+                </span>
+                <span>{openSections.advanced ? '▾' : '▸'}</span>
+              </button>
+              {openSections.advanced && (
+                <div style={{ paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem' }}>
+                  <Link to={`${baseUrl}/ssh`} style={{ textDecoration: 'none', fontSize: '0.8125rem', color: isActive(`${baseUrl}/ssh`) ? 'var(--teal)' : 'var(--ink2)', fontWeight: isActive(`${baseUrl}/ssh`) ? 600 : 400, padding: '0.35rem 0' }}>
+                    SSH Access
+                  </Link>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>PHP Configuration</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>DNS Zone Editor</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink3)', padding: '0.35rem 0' }}>Cron Jobs</span>
+                </div>
+              )}
+            </div>
+          </nav>
+        </aside>
+
+        {/* Main Content Area for Sub-routes */}
+        <main className="onsite-detail-content">
+          <Routes>
+            <Route index element={<OnsiteWebsiteAnalytics />} />
+            <Route path="analytics" element={<OnsiteWebsiteAnalytics />} />
+            <Route path="ssl" element={<OnsiteWebsiteSSL />} />
+            <Route path="wordpress" element={<OnsiteWebsiteWordPress />} />
+            <Route path="databases" element={<OnsiteWebsiteDatabases />} />
+            <Route path="ssh" element={<OnsiteWebsiteSSH />} />
+          </Routes>
+        </main>
       </div>
     </div>
   );

@@ -1,25 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge, type BadgeProps } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteServer } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
-// onsite_servers.status's real check constraint (209_onsite_core.sql) is
-// unknown/running/stopped/error/provisioning/deleted — not every value has
-// its own badge colour in Onsite.css, so map onto the closest one that does
-// rather than rendering an uncoloured badge for 'stopped'/'provisioning'.
-const STATUS_META: Record<string, { badge: string; label: string }> = {
-  unknown:      { badge: 'unknown',  label: 'Not checked yet' },
-  running:      { badge: 'running',  label: 'Running' },
-  stopped:      { badge: 'error',    label: 'Not responding' },
-  error:        { badge: 'error',    label: 'Error' },
-  provisioning: { badge: 'pending',  label: 'Provisioning' },
-  deleted:      { badge: 'unknown',  label: 'Deleted' },
+const STATUS_META: Record<string, { variant: NonNullable<BadgeProps['variant']>; label: string }> = {
+  unknown:      { variant: 'gray',    label: 'Not checked yet' },
+  running:      { variant: 'success', label: 'Running' },
+  stopped:      { variant: 'error',   label: 'Not responding' },
+  error:        { variant: 'error',   label: 'Error' },
+  provisioning: { variant: 'warning', label: 'Provisioning' },
+  deleted:      { variant: 'gray',    label: 'Deleted' },
 };
 
 export function OnsiteServers() {
@@ -96,9 +95,11 @@ export function OnsiteServers() {
         titlePlain="Compute"
         titleEm="servers"
         subtitle="Track reachability for your Virtual Private Servers (VPS), bare metal, and cloud instances."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
-                    <Icon name="plus" size={16} /> Add Server
-                  </button></>}
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <Icon name="plus" size={16} /> Add Server
+          </Button>
+        }
       />
 
       {loading ? (
@@ -116,9 +117,9 @@ export function OnsiteServers() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Add your cloud VPS or bare metal server to track whether it's reachable. Live CPU/RAM/disk usage needs an agent installed on the box, which isn't available yet.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="plus" size={16} /> Add Compute Instance
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="onsite-card">
@@ -151,27 +152,36 @@ export function OnsiteServers() {
                       </span>
                     </td>
                     <td>
-                      <span className={`onsite-badge ${(STATUS_META[s.status] ?? STATUS_META.unknown).badge}`}>
+                      <Badge variant={(STATUS_META[s.status] ?? STATUS_META.unknown).variant}>
                         {(STATUS_META[s.status] ?? STATUS_META.unknown).label}
-                      </span>
+                      </Badge>
                       <div style={{ fontSize: '0.7rem', color: 'var(--ink3)', marginTop: '0.2rem' }}>
                         {s.last_checked_at ? `Checked ${new Date(s.last_checked_at).toLocaleString()}` : 'Never checked'}
                       </div>
                     </td>
                     <td>
-                      {s.ip_address && (
-                        <button
-                          className="btn btn-sm btn-ghost"
-                          disabled={checking === s.id}
-                          onClick={() => handleCheckNow(s.id)}
-                          title="Check reachability now"
-                         data-ui-native-button="">
-                          <Icon name="refresh" size={14} className={checking === s.id ? 'onsite-spin' : ''} />
-                        </button>
-                      )}
-                      <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(s.id, s.name)} data-ui-native-button="">
-                        <Icon name="trash2" size={14} />
-                      </button>
+                      <div style={{ display: 'inline-flex', gap: '0.25rem' }}>
+                        {s.ip_address && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={checking === s.id}
+                            onClick={() => handleCheckNow(s.id)}
+                            title="Check reachability now"
+                          >
+                            <Icon name="refresh" size={14} className={checking === s.id ? 'onsite-spin' : ''} />
+                          </Button>
+                        )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          style={{ color: 'var(--red)' }}
+                          onClick={() => handleDelete(s.id, s.name)}
+                          title="Delete server"
+                        >
+                          <Icon name="trash2" size={14} />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -183,65 +193,68 @@ export function OnsiteServers() {
 
       {/* Add Server Modal */}
       <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
-        <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-card-header">
-            <DialogTitle className="onsite-card-title">Connect Server</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
-          </div>
-          <form onSubmit={handleAddServer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="onsite-form-group">
-                <label>Server Hostname / Label *</label>
-                <input
-                  type="text"
-                  className="onsite-input"
-                  placeholder="prod-web-node-01"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="onsite-form-group">
-                <label>IP Address</label>
-                <input
-                  type="text"
-                  className="onsite-input"
-                  placeholder="203.0.113.10"
-                  value={ipAddress}
-                  onChange={(e) => setIpAddress(e.target.value)}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Connect Server</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddServer} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <DialogBody>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="onsite-form-group">
-                  <label>Provider</label>
-                  <Select value={provider} onValueChange={setProvider}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hetzner">Hetzner</SelectItem>
-                      <SelectItem value="digitalocean">DigitalOcean</SelectItem>
-                      <SelectItem value="aws">AWS EC2</SelectItem>
-                      <SelectItem value="gcp">Google Cloud</SelectItem>
-                      <SelectItem value="manual">Other / Bare Metal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="onsite-form-group">
-                  <label>Region</label>
+                  <label>Server Hostname / Label *</label>
                   <input
                     type="text"
                     className="onsite-input"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
+                    placeholder="prod-web-node-01"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
                   />
                 </div>
+                <div className="onsite-form-group">
+                  <label>IP Address</label>
+                  <input
+                    type="text"
+                    className="onsite-input"
+                    placeholder="203.0.113.10"
+                    value={ipAddress}
+                    onChange={(e) => setIpAddress(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
+                  <div className="onsite-form-group">
+                    <label>Provider</label>
+                    <Select value={provider} onValueChange={setProvider}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hetzner">Hetzner</SelectItem>
+                        <SelectItem value="digitalocean">DigitalOcean</SelectItem>
+                        <SelectItem value="aws">AWS EC2</SelectItem>
+                        <SelectItem value="gcp">Google Cloud</SelectItem>
+                        <SelectItem value="manual">Other / Bare Metal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="onsite-form-group">
+                    <label>Region</label>
+                    <input
+                      type="text"
+                      className="onsite-input"
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
-                  {submitting ? 'Connecting…' : 'Add Server'}
-                </button>
-              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? <><ButtonSpinner /> Connecting…</> : 'Add Server'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

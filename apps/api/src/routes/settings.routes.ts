@@ -11,6 +11,7 @@ import { buildSmtpTransporter } from '../integrations/email.js';
 import { MailService } from '../services/mail.service.js';
 import { encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { tenantHasEntitlement } from '../middleware/entitlement.js';
+import { registerWorkspaceMailProviders } from './workspace-mail-provider.routes.js';
 
 const DOC_TYPES: DocType[] = ['invoice', 'quotation', 'purchase_order'];
 
@@ -138,6 +139,7 @@ export function mergeSettings(
 }
 
 export async function settingsRoutes(fastify: FastifyInstance) {
+  registerWorkspaceMailProviders(fastify);
   fastify.addHook('preHandler', fastify.authenticate);
 
   // GET /v1/settings

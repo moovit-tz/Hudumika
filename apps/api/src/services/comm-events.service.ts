@@ -180,15 +180,25 @@ export const CommEventsService = {
         try {
           let outboxId: string | null = null;
           if (channel === 'EMAIL') {
-            outboxId = await MailService.enqueue(request.tenantId, {
-              to: recipient.email,
-              subject: rendered.subject,
-              bodyHtml: rendered.bodyHtml,
-              templateKey: rendered.templateKey,
-              sourceApp: def.application,
-              attachmentStorageKey: request.attachments?.[0]?.storageKey,
-              attachmentFilename: request.attachments?.[0]?.filename,
+            await withTenant(request.tenantId, async trx => {
+              outboxId = await MailService.enqueueInTransaction(trx, request.tenantId, {
+                to: recipient.email,
+                subject: rendered.subject,
+                bodyHtml: rendered.bodyHtml,
+                templateKey: rendered.templateKey,
+                sourceApp: def.application,
+                attachments: request.attachments,
+                communicationDeliveryId: reserved.id,
+              });
+              // Publish the envelope and its log together before a worker can claim it.
+              await trx.updateTable('comm_delivery_log').set({ outbox_id: outboxId, updated_at: new Date() })
+                .where('tenant_id', '=', request.tenantId).where('id', '=', reserved.id).execute();
+              await trx.insertInto('comm_delivery_attempts').values({
+                tenant_id: request.tenantId, delivery_id: reserved.id, attempt_number: 1,
+                status: 'queued', provider: 'outbox', provider_id: outboxId, error_message: null,
+              }).execute();
             });
+            continue;
           } else if (recipient.user_id) {
             await NotificationService.createNotification({
               tenantId: request.tenantId,
@@ -204,11 +214,11 @@ export const CommEventsService = {
             throw new Error('In-app delivery requires a Hudumika user recipient');
           }
           await withTenant(request.tenantId, async trx => {
-            await trx.updateTable('comm_delivery_log').set({ outbox_id: outboxId, updated_at: new Date() })
+            await trx.updateTable('comm_delivery_log').set({ outbox_id: outboxId, status: 'sent', sent_at: new Date(), updated_at: new Date() })
               .where('tenant_id', '=', request.tenantId).where('id', '=', reserved.id).execute();
             await trx.insertInto('comm_delivery_attempts').values({
-              tenant_id: request.tenantId, delivery_id: reserved.id, attempt_number: 1, status: 'queued',
-              provider: channel === 'EMAIL' ? 'outbox' : 'in_app', provider_id: outboxId, error_message: null,
+              tenant_id: request.tenantId, delivery_id: reserved.id, attempt_number: 1, status: 'sent',
+              provider: 'in_app', provider_id: outboxId, error_message: null,
             }).execute();
           });
         } catch (error) {
@@ -266,12 +276,13 @@ export const CommEventsService = {
   async retryDelivery(tenantId: string, deliveryId: string) {
     return withTenant(tenantId, async trx => {
       const delivery = await trx.selectFrom('comm_delivery_log').selectAll()
-        .where('tenant_id', '=', tenantId).where('id', '=', deliveryId).executeTakeFirst();
+        .where('tenant_id', '=', tenantId).where('id', '=', deliveryId).forUpdate().executeTakeFirst();
       if (!delivery) throw new Error('Delivery record not found');
       if (delivery.status !== 'failed') throw new Error('Only failed deliveries can be retried');
       if (!delivery.outbox_id) throw new Error('This delivery has no retryable outbox message');
       const outbox = await trx.updateTable('email_outbox').set({ status: 'pending', next_attempt_at: new Date(), last_error: null })
-        .where('tenant_id', '=', tenantId).where('id', '=', delivery.outbox_id).returning('id').executeTakeFirst();
+        .where('tenant_id', '=', tenantId).where('id', '=', delivery.outbox_id)
+        .where('status', 'in', ['failed', 'simulated']).returning('id').executeTakeFirst();
       if (!outbox) throw new Error('Outbox message not found');
       const attemptNumber = delivery.retry_count + 2;
       await trx.updateTable('comm_delivery_log').set({ status: 'queued', retry_count: delivery.retry_count + 1, error_message: null, updated_at: new Date() })

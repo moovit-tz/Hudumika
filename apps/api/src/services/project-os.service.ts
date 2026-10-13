@@ -58,15 +58,8 @@ export class ProjectOsService {
    * Determine project health status based on CPI, SPI, schedule variance, and open blockers.
    */
   static computeHealthStatus(cpi: number, spi: number, criticalIssues: number, highRisks: number): ProjectHealthStatus {
-    if (criticalIssues > 0 || cpi < 0.70 || spi < 0.70) {
-      return 'critical';
-    }
-    if (cpi < 0.85 || spi < 0.85 || highRisks >= 3) {
-      return 'red';
-    }
-    if (cpi < 0.95 || spi < 0.95 || highRisks > 0) {
-      return 'amber';
-    }
+    if (criticalIssues > 0 || cpi < 0.85 || spi < 0.85 || highRisks >= 3) return 'red';
+    if (cpi < 0.95 || spi < 0.95 || highRisks > 0) return 'amber';
     return 'green';
   }
 
@@ -477,18 +470,20 @@ export class ProjectOsService {
       trx.selectFrom('project_phases').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
       trx.selectFrom('project_work_packages').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
       trx.selectFrom('project_deliverables').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_risks').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['open', 'monitoring']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_issues').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('severity', 'in', ['high', 'critical']).where('status', '!=', 'resolved').select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_approvals').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['pending', 'in_progress']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_purchase_orders').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['issued', 'partially_received']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_risks').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['IDENTIFIED', 'ANALYZING', 'MITIGATING', 'MONITORING']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_issues').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('severity', 'in', ['HIGH', 'CRITICAL']).where('status', 'not in', ['RESOLVED', 'CLOSED']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_approvals').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['PENDING']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_purchase_orders').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['ISSUED', 'PARTIALLY_DELIVERED']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
       trx.selectFrom('project_resource_allocations').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('project_purchase_orders').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['received', 'invoiced', 'closed']).select(({ fn }) => fn.sum<number>('total_amount').as('sum')).executeTakeFirst(),
+      trx.selectFrom('project_purchase_orders').where('tenant_id', '=', tenantId).where('project_id', '=', projectId).where('status', 'in', ['DELIVERED', 'INVOICED', 'CLOSED']).select(({ fn }) => fn.sum<number>('total_amount').as('sum')).executeTakeFirst(),
     ]);
 
     const bac = Number(project.current_budget || project.baseline_budget || project.contract_value || 0);
     const progress = Number(project.progress_pct || 0);
     const plannedCost = Number(project.planned_value || (bac * (progress / 100)));
-    const actualCost = Number(project.actual_cost || actualCostResult?.sum || 0);
+    const storedActual = Number(project.actual_cost || 0);
+    const calculatedActual = Number(actualCostResult?.sum || 0);
+    const actualCost = storedActual > 0 ? storedActual : calculatedActual;
 
     const evm = this.computeEvm(bac, progress, plannedCost, actualCost);
     const calculatedHealth = this.computeHealthStatus(
@@ -545,7 +540,18 @@ export class ProjectOsService {
 
   // ─── Global Command Center Metrics ────────────────────────────────
 
-  static async getCommandCenterMetrics(trx: Transaction<Database>, tenantId: string): Promise<ProjectCommandCenterMetrics> {
+  static async getCommandCenterMetrics(trx: Transaction<Database>, tenantId: string, userId?: string, userRole?: string): Promise<ProjectCommandCenterMetrics> {
+    const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN'];
+    const isAdmin = !userId || !userRole || ADMIN_ROLES.includes(userRole);
+    const memberSubquery = !isAdmin ? trx.selectFrom('projects').select('projects.id').where('projects.tenant_id', '=', tenantId)
+      .where((eb: any) => eb.or([eb('projects.owner_id', '=', userId), eb('projects.id', 'in', eb.selectFrom('project_members').select('project_id').where('user_id', '=', userId).where('tenant_id', '=', tenantId))])) : undefined;
+
+    function projectsQuery() {
+      let q = trx.selectFrom('projects').where('tenant_id', '=', tenantId);
+      if (memberSubquery) q = q.where('id', 'in', memberSubquery);
+      return q;
+    }
+
     const [
       portfolios,
       programs,
@@ -558,15 +564,16 @@ export class ProjectOsService {
     ] = await Promise.all([
       trx.selectFrom('project_portfolios').where('tenant_id', '=', tenantId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
       trx.selectFrom('project_programs').where('tenant_id', '=', tenantId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('projects').where('tenant_id', '=', tenantId).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('projects').where('tenant_id', '=', tenantId).where('status', 'in', ['in_progress', 'active']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
-      trx.selectFrom('projects').where('tenant_id', '=', tenantId).select([
+      projectsQuery().select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      projectsQuery().where('status', 'in', ['in_progress', 'active', 'ACTIVE', 'IN_PROGRESS']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      projectsQuery().select([
         ({ fn }) => fn.sum<number>('contract_value').as('total_contract'),
         ({ fn }) => fn.sum<number>('current_budget').as('total_budget'),
         ({ fn }) => fn.sum<number>('actual_cost').as('total_cost'),
         ({ fn }) => fn.sum<number>('earned_value').as('total_ev'),
+        ({ fn }) => fn.sum<number>('planned_value').as('total_pv'),
       ]).executeTakeFirst(),
-      trx.selectFrom('project_approvals').where('tenant_id', '=', tenantId).where('status', 'in', ['PENDING', 'APPROVED']).select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
+      trx.selectFrom('project_approvals').where('tenant_id', '=', tenantId).where('status', '=', 'PENDING').select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
       trx.selectFrom('project_rfqs').where('tenant_id', '=', tenantId).where('status', '=', 'OPEN').select(({ fn }) => fn.countAll<number>().as('c')).executeTakeFirst(),
       trx.selectFrom('project_resources').where('tenant_id', '=', tenantId).where('resource_type', 'in', ['HEAVY_MACHINERY', 'EQUIPMENT']).select([
         ({ fn }) => fn.countAll<number>().as('total'),
@@ -575,13 +582,11 @@ export class ProjectOsService {
     ]);
 
     // Breakdown by industry & health
-    const allProjects = await trx
-      .selectFrom('projects')
-      .where('tenant_id', '=', tenantId)
+    const allProjects = await projectsQuery()
       .select(['industry', 'health_status', 'actual_cost', 'earned_value', 'current_budget'])
       .execute();
 
-    const healthDistribution = { green: 0, amber: 0, red: 0, critical: 0 };
+    const healthDistribution = { green: 0, amber: 0, red: 0 };
     const industryDistribution: Record<string, number> = {};
 
     let totalEv = 0;
@@ -602,8 +607,9 @@ export class ProjectOsService {
       totalAc += Number(p.actual_cost || 0);
     }
 
+    const totalPv = Number(totals?.total_pv || 0);
     const portfolioCpi = totalAc > 0 ? Number((totalEv / totalAc).toFixed(2)) : 1.0;
-    const portfolioSpi = totalEv > 0 ? 1.02 : 1.0;
+    const portfolioSpi = totalPv > 0 ? Number((totalEv / totalPv).toFixed(2)) : null;
 
     const totalMachinery = Number(heavyMachinery?.total || 0);
     const allocatedMachinery = Number(heavyMachinery?.allocated || 0);
@@ -626,5 +632,40 @@ export class ProjectOsService {
       pending_approvals: Number(pendingApprovals?.c || 0),
       heavy_machinery_utilization_pct: machineryUtil,
     };
+  }
+
+  static async recalculateProjectFinancials(trx: Transaction<Database>, tenantId: string, projectId: string): Promise<void> {
+    const [poActual, milestones] = await Promise.all([
+      trx.selectFrom('project_purchase_orders')
+        .where('tenant_id', '=', tenantId).where('project_id', '=', projectId)
+        .where('status', 'in', ['DELIVERED', 'INVOICED', 'CLOSED'])
+        .select(({ fn }) => fn.sum<number>('total_amount').as('sum'))
+        .executeTakeFirst(),
+      trx.selectFrom('milestones')
+        .where('tenant_id', '=', tenantId).where('project_id', '=', projectId)
+        .select(['status']).execute(),
+    ]);
+
+    const actualCost = Number(poActual?.sum || 0);
+    const totalMs = milestones.length;
+    const completedMs = milestones.filter(m => m.status === 'completed').length;
+    const progressPct = totalMs > 0 ? Math.round((completedMs / totalMs) * 100) : undefined;
+
+    const updates: Record<string, any> = { updated_at: new Date() };
+    if (actualCost > 0) updates.actual_cost = actualCost;
+    if (progressPct !== undefined) updates.progress_pct = progressPct;
+
+    const project = await trx.selectFrom('projects')
+      .select(['current_budget', 'baseline_budget', 'contract_value'])
+      .where('id', '=', projectId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (project) {
+      const bac = Number(project.current_budget || project.baseline_budget || project.contract_value || 0);
+      const prog = progressPct ?? 0;
+      updates.earned_value = Math.round(bac * (prog / 100));
+    }
+
+    await trx.updateTable('projects').set(updates)
+      .where('id', '=', projectId).where('tenant_id', '=', tenantId).execute();
   }
 }

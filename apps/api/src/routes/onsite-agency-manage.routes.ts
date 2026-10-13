@@ -27,7 +27,7 @@ const dnsRecordCreateSchema = z.object({
 const applicationCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   runtime: z.enum(ONSITE_RUNTIMES).optional(),
-  domain_id: z.string().optional(),
+  domain_id: z.string().uuid().optional(),
   repo_url: z.string().max(500).optional(),
   default_branch: z.string().max(200).optional(),
   build_command: z.string().max(1000).optional(),
@@ -36,7 +36,7 @@ const applicationCreateSchema = z.object({
   port: z.number().int().positive().optional(),
 });
 const deploySchema = z.object({
-  environment_id: z.string().optional(),
+  environment_id: z.string().uuid().optional(),
   branch: z.string().max(200).optional(),
   commit_message: z.string().max(2000).optional(),
 });
@@ -261,6 +261,11 @@ export async function onsiteAgencyManageRoutes(fastify: FastifyInstance) {
     const body = applicationCreateSchema.parse(request.body);
 
     const createdApp = await withTenant(tenantId, async (trx) => {
+      if (body.domain_id) {
+        const domain = await trx.selectFrom('onsite_domains').select('id')
+          .where('id', '=', body.domain_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!domain) return reply.status(400).send({ error: 'Domain does not belong to this workspace' });
+      }
       const createdApp = await trx.insertInto('onsite_applications').values({
         tenant_id: tenantId,
         domain_id: body.domain_id ?? null,
@@ -280,13 +285,14 @@ export async function onsiteAgencyManageRoutes(fastify: FastifyInstance) {
         tenant_id: tenantId,
         application_id: createdApp.id,
         name: 'production',
-        branch: 'main',
+        branch: body.default_branch?.trim() || 'main',
         status: 'inactive',
       }).execute();
 
       return createdApp;
     });
 
+    if (reply.sent) return reply;
     return reply.status(201).send(createdApp);
   });
 
@@ -308,6 +314,12 @@ export async function onsiteAgencyManageRoutes(fastify: FastifyInstance) {
       if (!app) return reply.status(404).send({ error: 'Application not found' });
 
       let envId = body.environment_id;
+      if (envId) {
+        const environment = await trx.selectFrom('onsite_environments').select('id')
+          .where('id', '=', envId).where('tenant_id', '=', tenantId)
+          .where('application_id', '=', appId).executeTakeFirst();
+        if (!environment) return reply.status(400).send({ error: 'Environment does not belong to this application' });
+      }
       if (!envId) {
         const defaultEnv = await trx.selectFrom('onsite_environments').select('id')
           .where('application_id', '=', appId).where('tenant_id', '=', tenantId).executeTakeFirst();
@@ -318,7 +330,8 @@ export async function onsiteAgencyManageRoutes(fastify: FastifyInstance) {
       // Same real-provider-or-refuse rule as onsite.routes.ts's own deploy
       // handler — the client's own CI provider, not the agency's, since
       // this trx already runs inside the client's own tenant.
-      const ci = await resolveCIProvider(tenantId);
+      if (!app.provider_connection_id) return reply.status(409).send({ error: 'Select a deployment connection in application settings first' });
+      const ci = await resolveCIProvider(tenantId, undefined, app.provider_connection_id);
       if (!ci) return reply.status(409).send({ error: NO_CI_PROVIDER_MESSAGE });
 
       const branch = body.branch ?? app.default_branch ?? 'main';
@@ -335,6 +348,7 @@ export async function onsiteAgencyManageRoutes(fastify: FastifyInstance) {
         commit_message: body.commit_message ?? null,
         status: 'queued',
         ci_provider: ci.key,
+        provider_connection_id: ci.connectionId,
         queued_at: new Date(),
       }).returningAll().executeTakeFirstOrThrow();
 

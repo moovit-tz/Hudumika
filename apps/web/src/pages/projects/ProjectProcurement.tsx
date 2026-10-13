@@ -69,14 +69,14 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>(['']);
 
   // PR Form
-  const [prNumber, setPrNumber] = useState(`PR-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [prNumber, setPrNumber] = useState('');
   const [prTitle, setPrTitle] = useState('');
   const [prCost, setPrCost] = useState('');
   const [prRequiredDate, setPrRequiredDate] = useState('');
   const [prJustification, setPrJustification] = useState('');
 
   // PO Form
-  const [poNumber, setPoNumber] = useState(`PO-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [poNumber, setPoNumber] = useState('');
   const [poSupplier, setPoSupplier] = useState('');
   const [poAmount, setPoAmount] = useState('');
   const [poDeliveryDate, setPoDeliveryDate] = useState('');
@@ -87,7 +87,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
   }, [showAddPoModal]);
 
   // GRN Form
-  const [grnNumber, setGrnNumber] = useState(`GRN-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [grnNumber, setGrnNumber] = useState('');
   const [grnPoId, setGrnPoId] = useState('');
   const [grnCarrierNote, setGrnCarrierNote] = useState('');
   const [grnNotes, setGrnNotes] = useState('');
@@ -142,7 +142,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
       await apiFetch(`/v1/project-os/projects/${projectId}/purchase-requests`, {
         method: 'POST',
         body: JSON.stringify({
-          pr_number: prNumber.trim(),
+          ...(prNumber.trim() ? { pr_number: prNumber.trim() } : {}),
           title: prTitle.trim(),
           estimated_cost: parseFloat(prCost) || 0,
           required_date: prRequiredDate || null,
@@ -174,7 +174,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
       await apiFetch(`/v1/project-os/projects/${projectId}/purchase-orders`, {
         method: 'POST',
         body: JSON.stringify({
-          po_number: poNumber.trim(),
+          ...(poNumber.trim() ? { po_number: poNumber.trim() } : {}),
           supplier_id: poSupplier,
           total_amount: parseFloat(poAmount) || 0,
           expected_delivery_date: poDeliveryDate || null,
@@ -207,7 +207,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
         method: 'POST',
         body: JSON.stringify({
           po_id: grnPoId,
-          grn_number: grnNumber.trim(),
+          ...(grnNumber.trim() ? { grn_number: grnNumber.trim() } : {}),
           carrier_delivery_note_ref: grnCarrierNote.trim() || null,
           inspector_notes: grnNotes.trim() || null,
           status: grnStatus,
@@ -284,17 +284,17 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
 
         <div className="flex items-center gap-2">
           {activeTab === 'requests' && (
-            <Button size="sm" onClick={() => setShowAddPrModal(true)} className="bg-primary text-primary-foreground">
+            <Button size="sm" onClick={() => { setPrNumber(''); setPrTitle(''); setPrCost(''); setPrRequiredDate(''); setPrJustification(''); setShowAddPrModal(true); }} className="bg-primary text-primary-foreground">
               <Icon name="plus" size={14} className="mr-1" /> New Requisition (PR)
             </Button>
           )}
           {activeTab === 'pos' && (
-            <Button size="sm" onClick={() => setShowAddPoModal(true)}>
+            <Button size="sm" onClick={() => { setPoNumber(''); setPoSupplier(''); setPoAmount(''); setPoDeliveryDate(''); setPoTerms('Net 30 Days Upon Inspection'); setShowAddPoModal(true); }}>
               <Icon name="plus" size={14} className="mr-1" /> New Purchase Order
             </Button>
           )}
           {activeTab === 'grns' && (
-            <Button size="sm" onClick={() => setShowAddGrnModal(true)}>
+            <Button size="sm" onClick={() => { setGrnNumber(''); setGrnPoId(''); setGrnCarrierNote(''); setGrnNotes(''); setGrnDescription(''); setGrnQuantity(''); setGrnUnit('units'); setGrnStatus('pending_inspection'); setShowAddGrnModal(true); }}>
               <Icon name="plus" size={14} className="mr-1" /> Log Delivery (GRN)
             </Button>
           )}

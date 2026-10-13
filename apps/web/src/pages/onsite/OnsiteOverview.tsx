@@ -7,6 +7,8 @@ import { Icon } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import './Onsite.css';
 import { Tip } from '../../components/ui/tooltip.js';
+import { Banner } from '../../components/ui/alert.js';
+import { Button } from '../../components/ui/button.js';
 
 export function OnsiteOverview() {
   const { user } = useAuth();
@@ -14,14 +16,17 @@ export function OnsiteOverview() {
   const [data, setData] = useState<OnsiteDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [promptText, setPromptText] = useState('');
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
+  const loadOverview = () => {
     setLoading(true);
+    setLoadError('');
     apiFetch('/v1/onsite/overview')
       .then(setData)
-      .catch(() => setData(null))
+      .catch(error => setLoadError(error.message || 'Unable to load infrastructure status'))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(loadOverview, []);
 
   const handlePromptSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +56,7 @@ export function OnsiteOverview() {
         subtitle="Domains, websites, servers, applications and everything else running your infrastructure."
       />
 
+      {loadError && <Banner variant="error" title="Infrastructure status unavailable" action={<Button variant="outline" onClick={loadOverview}>Retry</Button>}>{loadError}</Banner>}
       {/* Hostinger AI Greeting & Prompt Hero */}
       <div className="onsite-hero-greeting">
         <h2>Hi, {userName}! How can I help you today?</h2>
@@ -58,12 +64,12 @@ export function OnsiteOverview() {
           <input
             type="text"
             className="onsite-prompt-input"
-            placeholder="Type what you're looking for or ask a question"
+            placeholder="Find domains, websites, email, or servers"
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
           />
-          <Tip label="Ask AI or search">
-            <button type="submit" className="onsite-prompt-submit" aria-label="Ask AI or search" data-ui-native-button="">
+          <Tip label="Find a service">
+            <button type="submit" className="onsite-prompt-submit" aria-label="Find a service" data-ui-native-button="">
               <Icon name="arrowRight" size={16} />
             </button>
           </Tip>
@@ -75,22 +81,22 @@ export function OnsiteOverview() {
             <Icon name="globe" size={14} /> Get domain
           </button>
           <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
-            <Icon name="layoutDashboard" size={14} /> Create website
+            <Icon name="layoutDashboard" size={14} /> Website records
           </button>
           <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')} data-ui-native-button="">
-            <Icon name="mail" size={14} /> Get email
+            <Icon name="mail" size={14} /> Email configuration
           </button>
           <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/applications')} data-ui-native-button="">
-            <Icon name="terminal" size={14} /> Try vibe coding
+            <Icon name="terminal" size={14} /> Applications
           </button>
           <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
-            <Icon name="refresh" size={14} /> Migrate site
+            <Icon name="refresh" size={14} /> Website inventory
           </button>
           <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/servers')} data-ui-native-button="">
-            <Icon name="monitor" size={14} /> Get VPS
+            <Icon name="monitor" size={14} /> Track servers
           </button>
           <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')} data-ui-native-button="">
-            <Icon name="send" size={14} /> Try email marketing
+            <Icon name="send" size={14} /> Mail DNS
           </button>
         </div>
       </div>
@@ -100,34 +106,34 @@ export function OnsiteOverview() {
         {/* Banner 1: AI Website Builder */}
         <div className="onsite-feature-banner onsite-banner-ai">
           <div>
-            <h3>Get your website live – in minutes</h3>
-            <p>Just describe your idea and let AI build your site. From portfolios and online stores to business sites and more – get yours online today.</p>
+            <h3>Organize your websites</h3>
+            <p>Track website configuration and domain links. Adding a record does not provision hosting or install a CMS.</p>
           </div>
-          <button className="onsite-btn-black" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
-            Try AI Builder
-          </button>
+          <Button onClick={() => navigate('/onsite/websites')}>
+            Manage websites
+          </Button>
         </div>
 
         {/* Banner 2: Ecommerce */}
         <div className="onsite-feature-banner onsite-banner-store">
           <div>
-            <h3>Build your online store with AI</h3>
-            <p>Sell on your site, social media, and more. Manage products, orders, and sales – all from one place.</p>
+            <h3>Connect a deployment provider</h3>
+            <p>Connect an existing provider account to trigger builds and follow real deployment status.</p>
           </div>
-          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/websites')} data-ui-native-button="">
-            Get started
-          </button>
+          <Button variant="outline" onClick={() => navigate('/onsite/settings')}>
+            Provider connections
+          </Button>
         </div>
 
         {/* Banner 3: Email */}
         <div className="onsite-feature-banner onsite-banner-email">
           <div>
-            <h3>Claim your free email</h3>
-            <p>Show you're a credible business with a professional email address, like <code>you@yourdomain.com</code>.</p>
+            <h3>Review email configuration</h3>
+            <p>Inspect mail DNS and connect an existing mailbox. Mailbox provisioning is not available here.</p>
           </div>
-          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/emails')} data-ui-native-button="">
-            Claim email
-          </button>
+          <Button variant="outline" onClick={() => navigate('/onsite/emails')}>
+            Review mail records
+          </Button>
         </div>
       </div>
 
@@ -136,8 +142,8 @@ export function OnsiteOverview() {
         <div style={{ marginTop: '1rem' }}>
           <div className="onsite-header" style={{ marginBottom: '1rem' }}>
             <div className="onsite-header-title">
-              <h1>Infrastructure Status</h1>
-              <p>Live health and resource summary across your connected services.</p>
+              <h2>Infrastructure status</h2>
+              <p>Recorded resources and certificate expiry checks across your connected services.</p>
             </div>
           </div>
 
@@ -148,7 +154,7 @@ export function OnsiteOverview() {
               </div>
               <div className="onsite-stat-body">
                 <span className="onsite-stat-value">{data.applications}</span>
-                <span className="onsite-stat-label">Websites & Apps</span>
+                <span className="onsite-stat-label">Applications</span>
               </div>
             </div>
 
@@ -167,8 +173,8 @@ export function OnsiteOverview() {
                 <Icon name="shield" size={22} />
               </div>
               <div className="onsite-stat-body">
-                <span className="onsite-stat-value">{data.domains}</span>
-                <span className="onsite-stat-label">Active SSL Certificates</span>
+                <span className="onsite-stat-value">{data.ssl_expiring_soon}</span>
+                <span className="onsite-stat-label">SSL Expiring Within 30 Days</span>
               </div>
             </div>
 
@@ -188,7 +194,7 @@ export function OnsiteOverview() {
               </div>
               <div className="onsite-stat-body">
                 <span className="onsite-stat-value">{data.health_checks}</span>
-                <span className="onsite-stat-label">Active Uptime Probes</span>
+                <span className="onsite-stat-label">Configured Uptime Probes</span>
               </div>
             </div>
           </div>

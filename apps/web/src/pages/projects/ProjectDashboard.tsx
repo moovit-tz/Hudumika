@@ -51,7 +51,7 @@ interface CommandMetrics {
   active_projects?: number;
   total_projects?: number;
   portfolio_cpi?: number;
-  portfolio_spi?: number;
+  portfolio_spi?: number | null;
   total_contract_value?: number;
   total_budget?: number;
   total_spent?: number;
@@ -77,7 +77,8 @@ const STATUS_META: Record<string, { label: string; variant: 'gray' | 'brand' | '
 
 const INDUSTRIES = [
   'general', 'construction', 'engineering', 'real_estate', 'manufacturing',
-  'transport', 'public_sector', 'telecom', 'it_software', 'energy', 'mining'
+  'transport', 'public_sector', 'telecom', 'it_software', 'energy', 'mining',
+  'agriculture', 'ngo', 'aerospace', 'pharma', 'professional_services',
 ];
 
 export const ProjectDashboard: React.FC = () => {
@@ -316,7 +317,7 @@ export const ProjectDashboard: React.FC = () => {
                 <Icon name="refresh" size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
                 <span className="hidden sm:inline">Sync</span>
               </Button>
-              <Button onClick={() => setCreateOpen(true)}>
+              <Button onClick={() => navigate('/projects/new')}>
                 <Icon name="plus" size={14} /> New Project
               </Button>
             </div>
@@ -438,7 +439,7 @@ export const ProjectDashboard: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            {metrics?.portfolio_cpi !== undefined && (
+            {metrics?.portfolio_cpi != null && Number.isFinite(metrics.portfolio_cpi) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, background: 'var(--bg)', padding: '4px 10px', borderRadius: 'var(--r-sm)' }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Cost CPI:</span>
                 <span style={{ fontWeight: 800, color: metrics.portfolio_cpi >= 1 ? 'var(--green)' : 'var(--red)' }}>
@@ -446,7 +447,7 @@ export const ProjectDashboard: React.FC = () => {
                 </span>
               </div>
             )}
-            {metrics?.portfolio_spi !== undefined && (
+            {metrics?.portfolio_spi != null && Number.isFinite(metrics.portfolio_spi) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, background: 'var(--bg)', padding: '4px 10px', borderRadius: 'var(--r-sm)' }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Schedule SPI:</span>
                 <span style={{ fontWeight: 800, color: metrics.portfolio_spi >= 1 ? 'var(--green)' : 'var(--gold)' }}>
@@ -565,7 +566,7 @@ export const ProjectDashboard: React.FC = () => {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Filter projects…"
-                  style={{ paddingLeft: 30, height: 34, fontSize: 12.5 }}
+                  style={{ paddingLeft: 30, height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, fontSize: 13 }}
                 />
                 {search && (
                   <button
@@ -579,7 +580,7 @@ export const ProjectDashboard: React.FC = () => {
 
               {/* Health Filter */}
               <Select value={healthFilter} onValueChange={setHealthFilter}>
-                <SelectTrigger style={{ height: 34, width: 120, fontSize: 12 }}>
+                <SelectTrigger style={{ height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, width: 120, fontSize: 13 }}>
                   <SelectValue placeholder="Health" />
                 </SelectTrigger>
                 <SelectContent>
@@ -592,7 +593,7 @@ export const ProjectDashboard: React.FC = () => {
 
               {/* Sort By */}
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger style={{ height: 34, width: 130, fontSize: 12 }}>
+                <SelectTrigger style={{ height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, width: 130, fontSize: 13 }}>
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
@@ -605,12 +606,14 @@ export const ProjectDashboard: React.FC = () => {
               </Select>
 
               {/* View Switcher */}
-              <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-                <button
+              <div className="project-view-switcher">
+                <Button size="icon" variant="ghost"
                   type="button"
                   onClick={() => setViewMode('grid')}
                   style={{
-                    padding: '6px 10px',
+                    height: 'var(--project-control-height)',
+                    minHeight: 'var(--project-control-height)',
+                    padding: '0 10px',
                     background: viewMode === 'grid' ? 'var(--teal-l)' : 'var(--white)',
                     color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
                     border: 'none',
@@ -621,12 +624,14 @@ export const ProjectDashboard: React.FC = () => {
                   title="Card Grid View"
                 >
                   <Icon name="grid" size={14} />
-                </button>
-                <button
+                </Button>
+                <Button size="icon" variant="ghost"
                   type="button"
                   onClick={() => setViewMode('table')}
                   style={{
-                    padding: '6px 10px',
+                    height: 'var(--project-control-height)',
+                    minHeight: 'var(--project-control-height)',
+                    padding: '0 10px',
                     background: viewMode === 'table' ? 'var(--teal-l)' : 'var(--white)',
                     color: viewMode === 'table' ? 'var(--teal)' : 'var(--ink3)',
                     border: 'none',
@@ -638,7 +643,7 @@ export const ProjectDashboard: React.FC = () => {
                   title="Data Table View"
                 >
                   <Icon name="list" size={14} />
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -676,11 +681,8 @@ export const ProjectDashboard: React.FC = () => {
                 Organize projects, plan deliverables, track milestones, monitor budgets, and coordinate field teams with full enterprise multi-tenancy.
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                <Button onClick={() => setCreateOpen(true)}>
+                <Button onClick={() => navigate('/projects/new')}>
                   <Icon name="plus" size={14} /> Create Your First Project
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/projects/new')}>
-                  Full Setup Wizard
                 </Button>
               </div>
             </div>
@@ -709,8 +711,6 @@ export const ProjectDashboard: React.FC = () => {
                       }
                     }}
                   >
-                    <div className="project-card-accent-bar" style={{ background: p.color || 'var(--teal)' }} />
-
                     <div>
                       {/* Top Row: Ref & Badges */}
                       <div className="project-card-header">
@@ -904,7 +904,7 @@ export const ProjectDashboard: React.FC = () => {
           {filteredProjects.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
               <span className="text-sm text-muted-foreground">Showing {Math.min(projectPreviewLimit, filteredProjects.length)} of {filteredProjects.length} projects</span>
-              <Button variant="outline" onClick={() => navigate('/projects/directory')}>View all projects <Icon name="arrowRight" size={14} /></Button>
+              <Button variant="outline" size="sm" className="project-view-all" onClick={() => navigate('/projects/directory')}>View all projects <Icon name="arrowRight" size={14} /></Button>
             </div>
           )}
         </div>
@@ -955,15 +955,15 @@ export const ProjectDashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--green-l)', borderRadius: 'var(--r)', border: '1px solid var(--green)' }}>
-                <FeaturedIcon variant="success" size="sm">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', border: '1px solid var(--teal)' }}>
+                <FeaturedIcon variant="brand" size="sm">
                   <Icon name="checkCircle" size={16} />
                 </FeaturedIcon>
                 <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)' }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)' }}>
                     Portfolio On Schedule
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--green)', opacity: 0.9 }}>
+                  <div style={{ fontSize: 11, color: 'var(--teal)', opacity: 0.9 }}>
                     All active delivery projects are currently within expected cost and milestone tolerance.
                   </div>
                 </div>

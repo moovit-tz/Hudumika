@@ -53,39 +53,26 @@ export const ProjectDocumentsPage: React.FC = () => {
   const [docPage, setDocPage] = useState(1);
   const [docPageSize, setDocPageSize] = useState(25);
 
+  useEffect(() => { setDocPage(1); }, [search, projectFilter, docPageSize]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError('');
     try {
-      const projRes = await apiFetch('/v1/tasks/projects');
-      const projects = Array.isArray(projRes.data) ? projRes.data : (Array.isArray(projRes) ? projRes : []);
-      const all: ProjectDoc[] = [];
-      await Promise.all(
-        projects.map(async (p: any) => {
-          try {
-            const res = await apiFetch(`/v1/files?entity_type=project&entity_id=${p.id}`);
-            const list = Array.isArray(res) ? res : (res?.data || []);
-            list.forEach((d: any) => {
-              all.push({
-                id: d.id,
-                project_id: p.id,
-                project_name: p.name,
-                project_color: p.color || 'var(--teal)',
-                name: d.name || d.title || `Document #${String(d.id).slice(0, 8)}`,
-                file_type: d.name?.split('.').pop()?.toLowerCase(),
-                size: d.size,
-                uploaded_by_name: d.created_by_name,
-                created_at: d.created_at,
-                category: d.category || d.deliverable_type,
-              });
-            });
-          } catch {
-            // Soft failure for individual project queries
-          }
-        })
-      );
-      all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setDocs(all);
+      const res = await apiFetch('/v1/project-os/all/documents');
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setDocs(list.map((d: any) => ({
+        id: d.id,
+        project_id: d.project_id,
+        project_name: d.project_name,
+        project_color: d.project_color || 'var(--teal)',
+        name: d.name || `Document #${String(d.id).slice(0, 8)}`,
+        file_type: d.name?.split('.').pop()?.toLowerCase(),
+        size: d.size,
+        uploaded_by_name: d.owner_name,
+        created_at: d.created_at,
+        category: d.mime_type,
+      })));
     } catch (err: any) {
       setLoadError(err.message || 'Unable to load project documents');
     }
@@ -103,7 +90,6 @@ export const ProjectDocumentsPage: React.FC = () => {
   }, [docs]);
 
   const filtered = useMemo(() => {
-    setDocPage(1);
     return docs.filter(d => {
       if (projectFilter !== 'all' && d.project_id !== projectFilter) return false;
       if (search.trim()) {

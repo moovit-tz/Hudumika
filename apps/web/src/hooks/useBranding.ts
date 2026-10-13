@@ -228,12 +228,12 @@ export function useBranding(platformOnly = false): BrandingState {
       if (!data) return;
       if (data.platformName) localStorage.setItem('hudumika_platform_name', data.platformName);
       if (data.platformTagline) localStorage.setItem('hudumika_platform_tagline', data.platformTagline);
-      if (data.logoLight) localStorage.setItem('hudumika_brand_logo_light', data.logoLight);
+      try { if (data.logoLight) localStorage.setItem('hudumika_brand_logo_light', data.logoLight); } catch {}
       for (const [field, key] of [['logoVerticalLight', 'hudumika_brand_logo_vertical_light'], ['logoVerticalDark', 'hudumika_brand_logo_vertical_dark']]) {
-        if (data[field]) localStorage.setItem(key, data[field]); else localStorage.removeItem(key);
+        try { if (data[field]) localStorage.setItem(key, data[field]); else localStorage.removeItem(key); } catch {}
       }
-      if (data.logoDark) localStorage.setItem('hudumika_brand_logo_dark', data.logoDark);
-      if (data.favicon) localStorage.setItem('hudumika_brand_favicon', data.favicon);
+      try { if (data.logoDark) localStorage.setItem('hudumika_brand_logo_dark', data.logoDark); } catch {}
+      try { if (data.favicon) localStorage.setItem('hudumika_brand_favicon', data.favicon); } catch {}
       if (data.loginHeadline) localStorage.setItem('hudumika_login_headline', data.loginHeadline);
       if (data.loginSubtext) localStorage.setItem('hudumika_login_subtext', data.loginSubtext);
       if (data.loginBgStyle) localStorage.setItem('hudumika_login_bg', data.loginBgStyle);

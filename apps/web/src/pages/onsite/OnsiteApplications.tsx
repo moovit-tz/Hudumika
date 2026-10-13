@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteApplication } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 export function OnsiteApplications() {
@@ -65,15 +68,6 @@ export function OnsiteApplications() {
   const handleDeploy = async (appId: string) => {
     try {
       const d = await apiFetch(`/v1/onsite/applications/${appId}/deploy`, { method: 'POST', body: JSON.stringify({}) });
-      /**
-       * What the CI provider accepted, not what we hope it does.
-       *
-       * The old message was "Deployment triggered!" and the old endpoint made
-       * that true by writing 'succeeded' to the row 1.5 seconds later without
-       * building anything. The deployment is now handed to a real provider and
-       * is still running when this returns, so the message says so and points
-       * at the provider's own build page.
-       */
       showAlert(
         `Build ${d?.ci_pipeline_id ? `${d.ci_pipeline_id} ` : ''}is running on ${d?.ci_provider ?? 'the CI provider'}. `
         + 'This page updates when it reports back.',
@@ -113,9 +107,11 @@ export function OnsiteApplications() {
         titlePlain="Hosted"
         titleEm="applications"
         subtitle="Deploy Node.js, Python, PHP, static sites, and containerized microservices."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
-                    <Icon name="plus" size={16} /> Deploy New App
-                  </button></>}
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <Icon name="plus" size={16} /> Deploy New App
+          </Button>
+        }
       />
 
       {loading ? (
@@ -133,9 +129,9 @@ export function OnsiteApplications() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Connect a Git repository or upload code to build and deploy your application.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="plus" size={16} /> Create Application
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="onsite-card">
@@ -167,33 +163,35 @@ export function OnsiteApplications() {
                       )}
                     </td>
                     <td>
-                      <span className="onsite-badge" style={{ background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600 }}>
+                      <Badge variant="brand">
                         {app.runtime}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="onsite-mono">{app.current_version || <span style={{ color: 'var(--ink3)' }}>Never deployed</span>}</td>
                     <td>
-                      <span className={`onsite-badge ${app.status}`}>
+                      <Badge variant={app.status === 'active' ? 'success' : app.status === 'deploying' ? 'info' : app.status === 'failed' ? 'error' : 'gray'}>
                         {app.status}
-                      </span>
+                      </Badge>
                     </td>
                     <td style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
                       {app.last_deployed_at ? new Date(app.last_deployed_at).toLocaleString() : 'Never'}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-sm btn-secondary" onClick={() => handleDeploy(app.id)} data-ui-native-button="">
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <Button variant="outline" size="sm" onClick={() => handleDeploy(app.id)}>
                           <Icon name="play" size={14} /> Deploy
-                        </button>
-                        <Link to={`/onsite/applications/${app.id}`} className="btn btn-sm btn-ghost">
-                          <Icon name="settings" size={14} /> Details
+                        </Button>
+                        <Link to={`/onsite/applications/${app.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Icon name="settings" size={14} /> Details
+                          </Button>
                         </Link>
-                        <button className="btn btn-sm btn-ghost" onClick={() => handleClone(app.id, app.name)} title="Clone" data-ui-native-button="">
+                        <Button variant="ghost" size="sm" onClick={() => handleClone(app.id, app.name)} title="Clone">
                           <Icon name="copy" size={14} />
-                        </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(app.id, app.name)} data-ui-native-button="">
+                        </Button>
+                        <Button variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => handleDelete(app.id, app.name)} title="Delete">
                           <Icon name="trash2" size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -206,12 +204,12 @@ export function OnsiteApplications() {
 
       {/* Add App Modal */}
       <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
-        <DialogContent hideClose className="max-w-130 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-card-header">
-            <DialogTitle className="onsite-card-title">Deploy Application</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
-          </div>
-          <form onSubmit={handleCreateApp} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Deploy Application</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateApp}>
+            <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Application Name *</label>
                 <input
@@ -224,7 +222,7 @@ export function OnsiteApplications() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Runtime *</label>
                   <Select value={runtime} onValueChange={setRuntime}>
@@ -250,7 +248,7 @@ export function OnsiteApplications() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Build Command</label>
                   <input
@@ -270,15 +268,17 @@ export function OnsiteApplications() {
                   />
                 </div>
               </div>
+            </DialogBody>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
-                  {submitting ? 'Creating…' : 'Create & Deploy'}
-                </button>
-              </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting && <ButtonSpinner />}
+                {submitting ? 'Creating…' : 'Create & Deploy'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

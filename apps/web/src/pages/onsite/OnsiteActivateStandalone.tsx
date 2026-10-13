@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
@@ -51,9 +53,9 @@ export function OnsiteActivateStandalone() {
           <li>Uptime monitoring</li>
         </ul>
 
-        <button className="btn btn-primary" style={{ width: '100%' }} disabled={activating} onClick={handleActivate} data-ui-native-button="">
-          {activating ? 'Activating…' : 'Activate'}
-        </button>
+        <Button style={{ width: '100%' }} disabled={activating} onClick={handleActivate}>
+          {activating ? <><ButtonSpinner /> Activating…</> : 'Activate'}
+        </Button>
       </div>
     </div>
   );

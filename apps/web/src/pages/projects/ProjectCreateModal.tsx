@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
@@ -10,6 +10,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Alert, AlertDescription } from '../../components/ui/alert.js';
 import { apiFetch } from '../../lib/api.js';
 import { rowsOf } from './projectData.js';
+import type { ProjectDocumentBrief } from '@hudumika/types';
 
 interface Props {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface Props {
   onSuccess: (id: string) => void;
   initialProject?: Record<string, any>;
   standalone?: boolean;
+  documentBrief?: ProjectDocumentBrief;
 }
 
 const industries = [
@@ -44,6 +46,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
   onSuccess,
   initialProject,
   standalone = false,
+  documentBrief,
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -65,6 +68,25 @@ export const ProjectCreateModal: React.FC<Props> = ({
   const [customers, setCustomers] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const appliedDraft = useRef('');
+
+  useEffect(() => {
+    if (!documentBrief || initialProject) { appliedDraft.current = ''; return; }
+    const draftKey = JSON.stringify([documentBrief.name, documentBrief.source_ids]);
+    if (appliedDraft.current === draftKey) return;
+    appliedDraft.current = draftKey;
+    setName(documentBrief.name);
+    setDescription(documentBrief.description);
+    setIndustry(documentBrief.industry);
+    setClassification(documentBrief.project_type);
+    setCurrency(documentBrief.currency || 'TZS');
+    setBudget(documentBrief.baseline_budget == null ? '' : String(documentBrief.baseline_budget));
+    setValue(documentBrief.contract_value == null ? '' : String(documentBrief.contract_value));
+    setStart(documentBrief.start_date || '');
+    setEnd(documentBrief.target_date || '');
+    setLocation(documentBrief.location_address || '');
+    setTags(documentBrief.tags.join(', '));
+  }, [documentBrief, initialProject]);
 
   useEffect(() => {
     if (!initialProject) return;
@@ -114,6 +136,10 @@ export const ProjectCreateModal: React.FC<Props> = ({
           id,
           name: name.trim(),
           description,
+          ...(documentBrief ? { document_brief: {
+            ...documentBrief,
+            ...Object.fromEntries(['scope', 'deliverables', 'requirements', 'risks', 'missing_information'].map(key => [key, documentBrief[key as 'scope'].map(item => item.trim()).filter(Boolean)])),
+          } } : {}),
           industry,
           project_type: classification,
           currency,
@@ -148,7 +174,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
 
       {/* Identity & Classification */}
       <SectionCard title="1. Project Identity & Classification">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
           <div>
             <label htmlFor="project-name" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
               Project Name *
@@ -235,7 +261,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
 
       {/* Strategic Hierarchy */}
       <SectionCard title="2. Strategic Alignment & Client">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
               Portfolio (Optional)
@@ -279,7 +305,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
 
       {/* Schedule, Baselines & Location */}
       <SectionCard title="3. Financial Baselines & Schedule Dates">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
           <div>
             <label htmlFor="project-budget" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
               Baseline Budget ({currency})
@@ -361,7 +387,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
             Cancel
           </Button>
           <Button type="submit" disabled={saving || !name.trim()}>
-            {saving ? 'Saving…' : initialProject ? 'Save Changes' : 'Initialize Project'}
+            {saving ? 'Saving…' : initialProject ? 'Save changes' : 'Create project'}
           </Button>
         </div>
       </form>

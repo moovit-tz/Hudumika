@@ -4,7 +4,9 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Button } from '../../components/ui/button.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 export function OnsiteTransfers() {
@@ -24,11 +26,6 @@ export function OnsiteTransfers() {
         body: JSON.stringify({ domain, eppCode }),
       });
       setShowModal(false);
-      // What actually happened, not what a real registrar transfer would.
-      // The endpoint records the domain as pending with its EPP code; no
-      // registrar has been contacted, so this does not claim a transfer is
-      // "initiated" — that would need a registrar integration Onsite does not
-      // have yet.
       showAlert(
         `${domain} has been recorded as a pending transfer. Connecting a registrar to carry it out is not available yet.`,
         { title: 'Recorded', variant: 'info' },
@@ -50,7 +47,7 @@ export function OnsiteTransfers() {
         subtitle="Transfer a domain you have registered elsewhere or move a domain to another Onsite account."
       />
 
-      {/* Main Transfer Illustration Card (Image 5) */}
+      {/* Main Transfer Illustration Card */}
       <div className="onsite-transfer-card">
         <div className="onsite-transfer-icon">
           <Icon name="globe" size={36} />
@@ -62,52 +59,65 @@ export function OnsiteTransfers() {
           Transfer a domain you have registered elsewhere or move a domain to another Onsite account.
         </p>
 
-        <button className="onsite-btn-purple" style={{ marginTop: '0.5rem', padding: '0.65rem 1.75rem', fontSize: '0.875rem' }} onClick={() => setShowModal(true)} data-ui-native-button="">
+        <Button
+          style={{ marginTop: '0.5rem', minHeight: '40px', padding: '0 1.5rem', fontSize: '0.875rem' }}
+          onClick={() => setShowModal(true)}
+        >
           Transfer to Onsite
-        </button>
+        </Button>
 
-        <button className="btn btn-ghost" style={{ fontSize: '0.8125rem', color: 'hsl(var(--primary))', fontWeight: 600 }} onClick={() => setShowModal(true)} data-ui-native-button="">
+        <Button
+          variant="ghost"
+          style={{ fontSize: '0.8125rem', fontWeight: 600 }}
+          onClick={() => setShowModal(true)}
+        >
           Move to another account
-        </button>
+        </Button>
       </div>
 
       {/* Transfer Modal */}
       <Dialog open={showModal} onOpenChange={(o) => { if (!o) setShowModal(false); }}>
-        <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-card-header">
-            <DialogTitle className="onsite-card-title">Transfer Domain to Onsite</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowModal(false)} data-ui-native-button="">✕</button>
-          </div>
-          <form onSubmit={handleInitiateTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="onsite-form-group">
-                <label>Domain Name to Transfer *</label>
-                <input
-                  type="text"
-                  className="onsite-input"
-                  placeholder="example.com"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  required
-                />
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Transfer Domain to Onsite</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleInitiateTransfer} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <DialogBody>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="onsite-form-group">
+                  <label>Domain Name to Transfer *</label>
+                  <input
+                    type="text"
+                    className="onsite-input"
+                    placeholder="example.com"
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="onsite-form-group">
+                  <label>EPP / Auth Code (Authorization Key)</label>
+                  <input
+                    type="text"
+                    className="onsite-input"
+                    placeholder="Secret EPP transfer code from current registrar"
+                    value={eppCode}
+                    onChange={(e) => setEppCode(e.target.value)}
+                  />
+                  <p style={{ fontSize: '0.72rem', color: 'var(--ink3)', margin: '0.2rem 0 0' }}>
+                    Optional — you can provide this later if you don't have it yet.
+                  </p>
+                </div>
               </div>
-              <div className="onsite-form-group">
-                <label>EPP / Auth Code (Authorization Key)</label>
-                <input
-                  type="text"
-                  className="onsite-input"
-                  placeholder="Secret EPP transfer code from current registrar"
-                  value={eppCode}
-                  onChange={(e) => setEppCode(e.target.value)}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} data-ui-native-button="">
-                  Cancel
-                </button>
-                <button type="submit" className="onsite-btn-purple" disabled={submitting} data-ui-native-button="">
-                  {submitting ? 'Transferring…' : 'Initiate Transfer'}
-                </button>
-              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!domain.trim() || submitting}>
+                {submitting ? <><ButtonSpinner /> Initiating…</> : 'Initiate Transfer'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

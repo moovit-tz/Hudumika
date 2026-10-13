@@ -39,10 +39,11 @@ const composeDraftSchema = z.object({
   replyContext: z.string().trim().max(4000).optional(),
 });
 const automationGenerateSchema = z.object({ prompt: z.string().trim().min(1) });
-export async function callAI(apiKey: string, model: string, provider: string, messages: any[], maxTokens = 1024, temperature = 0.3) {
+export async function callAI(apiKey: string, model: string, provider: string, messages: any[], maxTokens = 1024, temperature = 0.3, signal?: AbortSignal) {
   const providerCfg = AI_PROVIDER_CONFIG[detectAiProvider(provider, model)];
   if (providerCfg.kind === 'anthropic') {
     const res = await fetch(providerCfg.baseUrl, {
+      signal,
       method: 'POST',
       headers: { ...providerCfg.authHeaders(apiKey), 'content-type': 'application/json' },
       body: JSON.stringify({ model, ...generationParams(detectAiProvider(provider, model), model, maxTokens, temperature), messages }),
@@ -52,6 +53,7 @@ export async function callAI(apiKey: string, model: string, provider: string, me
     return data.content?.[0]?.text || '';
   } else {
     const res = await fetch(providerCfg.baseUrl, {
+      signal,
       method: 'POST',
       headers: { ...providerCfg.authHeaders(apiKey), 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, ...generationParams(detectAiProvider(provider, model), model, maxTokens, temperature), messages }),

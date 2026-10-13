@@ -6,6 +6,10 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteApplication, OnsiteSecretPublic } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import './Onsite.css';
 
 export function OnsiteApplicationDetail() {
@@ -14,6 +18,10 @@ export function OnsiteApplicationDetail() {
   const [secrets, setSecrets] = useState<OnsiteSecretPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [connections, setConnections] = useState<Array<{ id: string; name: string; provider: string; external_id: string | null }>>([]);
+  const [connectionId, setConnectionId] = useState('none');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [savingConnection, setSavingConnection] = useState(false);
 
   // Secret Form
   const [newKey, setNewKey] = useState('');
@@ -29,9 +37,11 @@ export function OnsiteApplicationDetail() {
   const fetchAppData = () => {
     if (!id) return;
     setLoading(true);
+    setError(null);
     apiFetch(`/v1/onsite/applications/${id}`)
       .then((res: any) => {
         setApp(res);
+        setConnectionId(res.provider_connection_id ?? 'none');
         if (res.environments && res.environments.length > 0) {
           fetchSecrets(res.environments[0].id);
         }
@@ -46,9 +56,29 @@ export function OnsiteApplicationDetail() {
       .catch(() => setSecrets([]));
   };
 
+  const loadConnections = () => {
+    apiFetch('/v1/onsite/provider-connections').then(rows => {
+      setConnections(rows.filter((row: any) => row.status === 'active' && ['circleci', 'github', 'cloudflare', 'digitalocean'].includes(row.provider)));
+      setConnectionError(null);
+    }).catch(err => setConnectionError(err.message));
+  };
+
   useEffect(() => {
     fetchAppData();
+    loadConnections();
   }, [id]);
+
+  const saveConnection = async () => {
+    setSavingConnection(true);
+    try {
+      const updated = await apiFetch(`/v1/onsite/applications/${id}/deployment-connection`, {
+        method: 'PATCH', body: JSON.stringify({ provider_connection_id: connectionId === 'none' ? null : connectionId }),
+      });
+      setApp(previous => previous ? { ...previous, ...updated } : updated);
+      showAlert('Deployment connection saved.', { variant: 'success' });
+    } catch (err: any) { showAlert(err.message, { variant: 'error' }); }
+    finally { setSavingConnection(false); }
+  };
 
   const handleAddSecret = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,8 +145,8 @@ export function OnsiteApplicationDetail() {
       <div className="onsite-page">
         <div className="onsite-card">
           <p style={{ color: 'var(--red)' }}>{error || 'Application not found'}</p>
-          <Link to="/onsite/applications" className="btn btn-secondary" style={{ marginTop: '1rem', width: 'fit-content' }}>
-            ← Back to Applications
+          <Link to="/onsite/applications" style={{ marginTop: '1rem', display: 'inline-block' }}>
+            <Button variant="outline">← Back to Applications</Button>
           </Link>
         </div>
       </div>
@@ -130,15 +160,31 @@ export function OnsiteApplicationDetail() {
         titlePlain="Application"
         titleEm="detail"
         subtitle={<>Runtime: {app.runtime} | Port: {app.port || 3000}</>}
-        actions={<><button className="btn btn-primary" onClick={() => fetchAppData()} data-ui-native-button="">
-                    <Icon name="refresh" size={16} /> Refresh
-                  </button></>}
+        actions={
+          <Button onClick={() => fetchAppData()}>
+            <Icon name="refresh" size={16} /> Refresh
+          </Button>
+        }
       />
 
       <div className="onsite-grid-2">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="onsite-card">
             <h3 className="onsite-card-title">Configuration</h3>
+            <div className="mb-4 flex min-w-0 flex-col gap-3">
+              <label htmlFor="deployment-connection">Deployment connection</label>
+              <Select value={connectionId} onValueChange={setConnectionId} disabled={savingConnection || Boolean(connectionError)}>
+                <SelectTrigger id="deployment-connection" className="w-full min-w-0"><SelectValue placeholder="Choose a connection" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No connection — deployment disabled</SelectItem>
+                  {connections.map(connection => <SelectItem key={connection.id} value={connection.id}>{connection.name} · {connection.provider} · {connection.external_id ?? 'Project reference missing'}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">Uses the project configured on this connection. Connect a separate provider project in Onsite settings for each deployment target.</p>
+              {connectionError && <div role="alert" className="flex flex-wrap items-center gap-2"><p className="text-sm text-destructive">{connectionError}</p><Button variant="outline" onClick={loadConnections}>Retry connections</Button></div>}
+              {app.provider_connection_id && !connections.some(connection => connection.id === app.provider_connection_id) && <p role="status">The saved connection is unavailable. Select an active connection before deploying.</p>}
+              <Button onClick={saveConnection} disabled={savingConnection || Boolean(connectionError)} className="self-start">{savingConnection ? 'Saving…' : 'Save connection'}</Button>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Build Command</label>
@@ -166,14 +212,14 @@ export function OnsiteApplicationDetail() {
               Values are encrypted at rest with AES-256-GCM. Secret values are never sent in cleartext API responses.
             </p>
 
-            <form onSubmit={handleAddSecret} style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <form onSubmit={handleAddSecret} style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 className="onsite-input"
                 placeholder="VARIABLE_NAME"
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: '160px' }}
                 required
               />
               <input
@@ -182,12 +228,13 @@ export function OnsiteApplicationDetail() {
                 placeholder="Secret value"
                 value={newValue}
                 onChange={(e) => setNewValue(e.target.value)}
-                style={{ flex: 2 }}
+                style={{ flex: 2, minWidth: '200px' }}
                 required
               />
-              <button type="submit" className="btn btn-secondary" disabled={savingSecret} data-ui-native-button="">
+              <Button type="submit" variant="outline" disabled={savingSecret}>
+                {savingSecret && <ButtonSpinner />}
                 {savingSecret ? 'Saving…' : 'Add Variable'}
-              </button>
+              </Button>
             </form>
 
             <div className="onsite-table-wrapper" style={{ marginTop: '1rem' }}>
@@ -212,9 +259,9 @@ export function OnsiteApplicationDetail() {
                         <td className="onsite-mono" style={{ fontWeight: 600 }}>{s.key}</td>
                         <td className="onsite-mono" style={{ color: 'var(--ink3)' }}>{s.value_masked}</td>
                         <td>
-                          <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteSecret(s.id)} data-ui-native-button="">
+                          <Button variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteSecret(s.id)} title="Delete">
                             <Icon name="trash2" size={14} />
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))
@@ -229,18 +276,20 @@ export function OnsiteApplicationDetail() {
           <div className="onsite-card">
             <div className="onsite-card-header">
               <h3 className="onsite-card-title">Environments</h3>
-              <button className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(true)} data-ui-native-button="">
+              <Button variant="outline" size="sm" onClick={() => setShowAddEnv(true)}>
                 <Icon name="plus" size={14} /> Add environment
-              </button>
+              </Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {app.environments?.map((env) => (
-                <div key={env.id} style={{ padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-subtle, #f8fafc)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={env.id} style={{ padding: '0.75rem', borderRadius: 'var(--r, 8px)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{env.name}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>Branch: {env.branch || 'main'}</div>
                   </div>
-                  <span className={`onsite-badge ${env.status}`}>{env.status}</span>
+                    <Badge variant={env.status === 'active' ? 'success' : env.status === 'deploying' ? 'info' : env.status === 'failed' ? 'error' : 'gray'}>
+                      {env.status}
+                    </Badge>
                 </div>
               ))}
             </div>
@@ -256,8 +305,13 @@ export function OnsiteApplicationDetail() {
                   <input type="text" className="onsite-input" placeholder="develop" value={envBranch} onChange={(e) => setEnvBranch(e.target.value)} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowAddEnv(false)} data-ui-native-button="">Cancel</button>
-                  <button type="submit" className="btn btn-sm btn-primary" disabled={savingEnv} data-ui-native-button="">{savingEnv ? 'Adding…' : 'Add'}</button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAddEnv(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm" disabled={savingEnv}>
+                    {savingEnv && <ButtonSpinner />}
+                    {savingEnv ? 'Adding…' : 'Add'}
+                  </Button>
                 </div>
               </form>
             )}

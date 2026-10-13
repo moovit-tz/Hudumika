@@ -1,8 +1,9 @@
-import { registerSubscriber } from '../services/domain-events.service.js';
+import type { DomainEvent } from '../services/domain-events.service.js';
 import { withTenant } from '../db/client.js';
 import { TRIGGERS } from '../studio/triggers.js';
 import { executeAndRecord } from '../studio/executor.js';
 import { triggerMatches, hasAnyTrigger, type TargetingContext } from '../services/workflow-resolver.service.js';
+import { tenantHasEntitlement } from '../middleware/entitlement.js';
 
 /** Freight mode as clearance's targeting names it, from shipment_cases.type. */
 const FREIGHT_MODE: Record<string, string> = {
@@ -48,26 +49,26 @@ async function shipmentTargetingContext(tenantId: string, entityId: string | nul
 /**
  * Connects the domain event bus to Studio.
  *
- * Rather than adding a wildcard to domain-events.service.ts, this registers one
- * handler per DOMAIN_EVENT entry in the trigger registry — so the bus keeps its
- * simple exact-match dispatch, and Studio can only ever react to events that
- * passed the registry's consistency check.
+ * The outbox worker calls this only after the originating event commits.
+ * Studio no longer subscribes to pre-commit in-process dispatch.
  *
  * Only ACTIVE workflows run. DRAFT and PAUSED are inert by design: migration
  * 157 moved 21 seeded workflows to DRAFT precisely so nothing claims to be
  * automating something it is not.
  */
-for (const trigger of TRIGGERS) {
-  if (trigger.kind !== 'DOMAIN_EVENT') continue;
-
-  registerSubscriber(trigger.id, async (tenantId, event) => {
-    const all = await withTenant(tenantId, trx => trx
-      .selectFrom('workflow_studio_apps')
-      .select(['id', 'name', 'trigger_event', 'nodes', 'edges', 'targeting'])
-      .where('tenant_id', '=', tenantId)
-      .where('status', '=', 'ACTIVE')
-      .where('trigger_event', '=', trigger.id)
-      .execute());
+export async function deliverStudioEvent(tenantId: string, event: DomainEvent, snapshots: unknown): Promise<void> {
+    if (!await tenantHasEntitlement(tenantId, 'studio')) return;
+    const trigger = TRIGGERS.find(candidate => candidate.id === event.type && candidate.kind === 'DOMAIN_EVENT');
+    if (!trigger) return;
+    let deliveryFailed = false;
+    if (!Array.isArray(snapshots) || snapshots.some(w => !w || w.tenant_id !== tenantId || w.trigger_event !== event.type || typeof w.id !== 'string')) {
+      throw new Error('Invalid queued workflow snapshots');
+    }
+    // Pause stops queued work; edits cannot change an already queued graph.
+    const active = await withTenant(tenantId, trx => trx.selectFrom('workflow_studio_apps').select('id')
+      .where('tenant_id', '=', tenantId).where('status', '=', 'ACTIVE').execute());
+    const activeIds = new Set(active.map(w => w.id));
+    const all = snapshots.filter(w => activeIds.has(w.id));
 
     // Targeting (migration 168) narrows an automation beyond "which event" to
     // "which shipments" — the capability borrowed from clearance workflows.
@@ -110,7 +111,8 @@ for (const trigger of TRIGGERS) {
         // One workflow's failure must not stop the others, and must never
         // fail the request that emitted the event.
         console.error(`[Studio] workflow "${workflow.name}" threw:`, err?.message ?? err);
+        deliveryFailed = true;
       }
     }
-  });
+    if (deliveryFailed) throw new Error('Studio event delivery did not finish');
 }

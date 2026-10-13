@@ -11,7 +11,7 @@ import { Textarea } from '../../components/ui/textarea.js';
 import type { WorkflowStudioTriggerDef } from '@hudumika/types';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Card } from '../../components/ui/card.js';
-import { SectionLoading } from '../../components/ui/spinner.js';
+import { SectionLoading, ButtonSpinner } from '../../components/ui/spinner.js';
 import './WorkflowNew.css';
 
 const KIND_LABEL: Record<string, string> = {
@@ -141,7 +141,7 @@ export function WorkflowNew() {
       <Card className="workflow-new-footer">
         <div><strong>{chosen ? chosen.label : 'Select a trigger to continue'}</strong><p>A draft is created first. Activate it after reviewing its actions.</p></div>
         <Button size="lg" type="button" disabled={!canCreate || busy} onClick={create}>
-          {busy ? 'Creating…' : 'Create draft'}<Icon name="arrowRight" size={16}/>
+          {busy ? <><ButtonSpinner /> Creating…</> : <>Create draft<Icon name="arrowRight" size={16}/></>}
         </Button>
       </Card>
     </div>

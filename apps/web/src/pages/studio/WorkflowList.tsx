@@ -14,6 +14,7 @@ import type { WorkflowStudioApp, WorkflowStudioTriggerDef, WorkflowStudioActionD
 import { PageHeader } from '../../components/PageHeader.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { Card } from '../../components/ui/card.js';
+import { StudioPagination } from './StudioPagination.js';
 import './WorkflowList.css';
 
 /**
@@ -273,6 +274,11 @@ export function WorkflowList() {
           );
         })}
       </div>
+      {!loading && visible.length > pageSize && (
+        <div style={{ marginTop: 14 }}>
+          <StudioPagination page={currentPage} total={visible.length} size={pageSize} onChange={setPage} />
+        </div>
+      )}
     </div>
   );
 }

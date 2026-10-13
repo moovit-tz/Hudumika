@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
-import { SectionLoading, PageLoading } from '../../components/ui/spinner.js';
+import { SectionLoading, PageLoading, ButtonSpinner } from '../../components/ui/spinner.js';
 import type {
   AgencyManagedClient, OnsiteDomain, OnsiteDnsRecord,
   OnsiteApplication, OnsiteDeployment, OnsiteHealthCheck,
@@ -48,7 +50,7 @@ export function OnsiteAgencyClientManage() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             This tenant isn't currently attached to your agency.
           </p>
-          <Link to="/onsite/agency/clients" className="btn btn-secondary">Back to clients</Link>
+          <Link to="/onsite/agency/clients"><Button variant="outline">Back to clients</Button></Link>
         </div>
       </div>
     );
@@ -59,11 +61,11 @@ export function OnsiteAgencyClientManage() {
   return (
     <div className="onsite-page">
       <PageHeader
-        crumbs={['Onsite', 'Agency clients', client.tenant_name]}
+        crumbs={['Onsite', { label: 'Agency clients', to: '/onsite/agency/clients' }, client.tenant_name]}
         titlePlain="Client"
         titleEm="hosting"
         subtitle={`You're managing ${client.tenant_name}'s Onsite account under your agency package.`}
-        actions={<Link to="/onsite/agency/clients" className="onsite-btn-outline">Back to clients</Link>}
+        actions={<Link to="/onsite/agency/clients"><Button variant="outline">Back to clients</Button></Link>}
       />
       <DomainsSection base={base} />
       <DeploymentsSection base={base} />
@@ -115,8 +117,10 @@ function BillingSection({ base }: { base: string }) {
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Billing</h3>
         {customer && (
-          <Link to={`/billing?customer_id=${customer.id}&new=1`} className="btn btn-sm btn-primary">
-            <Icon name="plus" size={14} /> Create invoice
+          <Link to={`/billing?customer_id=${customer.id}&new=1`}>
+            <Button size="sm">
+              <Icon name="plus" size={14} /> Create invoice
+            </Button>
           </Link>
         )}
       </div>
@@ -128,9 +132,10 @@ function BillingSection({ base }: { base: string }) {
             <p style={{ color: 'var(--ink3)', marginBottom: '1rem' }}>
               Bill this client for work beyond your bundle — design, retainers, extra services.
             </p>
-            <button className="btn btn-primary" disabled={linking} onClick={handleLink} data-ui-native-button="">
+            <Button disabled={linking} onClick={handleLink}>
+              {linking && <ButtonSpinner />}
               {linking ? 'Setting up…' : 'Add as billable customer'}
-            </button>
+            </Button>
           </div>
         ) : invoices.length === 0 ? (
           <p style={{ color: 'var(--ink3)', padding: '1rem' }}>No invoices yet — use "Create invoice" above.</p>
@@ -142,7 +147,11 @@ function BillingSection({ base }: { base: string }) {
                 {invoices.map((inv) => (
                   <tr key={inv.id}>
                     <td style={{ fontWeight: 600 }}>{inv.invoice_number}</td>
-                    <td><span className={`onsite-badge ${inv.status === 'Paid' ? 'active' : inv.status === 'Void' ? 'inactive' : 'pending'}`}>{inv.status}</span></td>
+                    <td>
+                      <Badge variant={inv.status === 'Paid' ? 'success' : inv.status === 'Void' ? 'gray' : 'warning'}>
+                        {inv.status}
+                      </Badge>
+                    </td>
                     <td>{inv.due_date ? new Date(inv.due_date).toISOString().slice(0, 10) : '—'}</td>
                     <td className="onsite-mono">{inv.received != null ? `${inv.received} ${inv.currency}` : '—'}</td>
                   </tr>
@@ -174,9 +183,9 @@ function DomainsSection({ base }: { base: string }) {
     <div style={{ marginTop: '1.5rem' }}>
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Domains &amp; DNS</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAddDomain(true)} data-ui-native-button="">
+        <Button size="sm" onClick={() => setShowAddDomain(true)}>
           <Icon name="plus" size={14} /> Add domain
-        </button>
+        </Button>
       </div>
       <div className="onsite-card">
         {loading ? (
@@ -192,11 +201,11 @@ function DomainsSection({ base }: { base: string }) {
                   <React.Fragment key={d.id}>
                     <tr>
                       <td style={{ fontWeight: 600 }}>{d.domain}</td>
-                      <td><span className={`onsite-badge ${d.status === 'active' ? 'active' : 'inactive'}`}>{d.status}</span></td>
+                      <td><Badge variant={d.status === 'active' ? 'success' : 'gray'}>{d.status}</Badge></td>
                       <td style={{ textAlign: 'right' }}>
-                        <button className="onsite-btn-outline" onClick={() => setExpandedId(expandedId === d.id ? null : d.id)} data-ui-native-button="">
+                        <Button variant="outline" size="sm" onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}>
                           {expandedId === d.id ? 'Hide DNS' : 'Manage DNS'}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                     {expandedId === d.id && (
@@ -240,11 +249,13 @@ function AddDomainModal({ base, onClose, onCreated }: { base: string; onClose: (
 
   return (
     <ModalShell title="Add domain" onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="onsite-form-group">
-          <label>Domain *</label>
-          <input type="text" className="onsite-input" placeholder="clientsite.com" value={domain} onChange={(e) => setDomain(e.target.value)} required />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-form-group">
+            <label>Domain *</label>
+            <input type="text" className="onsite-input" placeholder="clientsite.com" value={domain} onChange={(e) => setDomain(e.target.value)} required />
+          </div>
+        </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Add domain" busyLabel="Adding…" />
       </form>
     </ModalShell>
@@ -296,9 +307,9 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
         <strong style={{ fontSize: '0.875rem' }}>DNS records</strong>
-        <button className="btn btn-sm btn-secondary" onClick={() => setShowAddRecord(true)} data-ui-native-button="">
+        <Button variant="outline" size="sm" onClick={() => setShowAddRecord(true)}>
           <Icon name="plus" size={14} /> Add record
-        </button>
+        </Button>
       </div>
       {loading ? (
         <SectionLoading />
@@ -315,9 +326,9 @@ function DnsPanel({ base, domainId }: { base: string; domainId: string }) {
                 <td className="onsite-mono">{r.value}</td>
                 <td>{r.ttl}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(r.id)} data-ui-native-button="">
+                  <Button variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => handleDelete(r.id)} title="Delete record">
                     <Icon name="trash2" size={14} />
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -357,30 +368,32 @@ function AddRecordModal({ base, domainId, onClose, onCreated }: { base: string; 
 
   return (
     <ModalShell title="Add DNS record" onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          <div className="onsite-form-group">
-            <label>Name</label>
-            <input type="text" className="onsite-input" value={name} onChange={(e) => setName(e.target.value)} required />
+      <form onSubmit={handleSubmit}>
+        <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
+            <div className="onsite-form-group">
+              <label>Name</label>
+              <input type="text" className="onsite-input" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="onsite-form-group">
+              <label>Type</label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="onsite-form-group">
-            <label>Type</label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <label>Value *</label>
+            <input type="text" className="onsite-input" value={value} onChange={(e) => setValue(e.target.value)} required />
           </div>
-        </div>
-        <div className="onsite-form-group">
-          <label>Value *</label>
-          <input type="text" className="onsite-input" value={value} onChange={(e) => setValue(e.target.value)} required />
-        </div>
-        <div className="onsite-form-group">
-          <label>TTL (seconds)</label>
-          <input type="number" className="onsite-input" value={ttl} onChange={(e) => setTtl(e.target.value)} />
-        </div>
+          <div className="onsite-form-group">
+            <label>TTL (seconds)</label>
+            <input type="number" className="onsite-input" value={ttl} onChange={(e) => setTtl(e.target.value)} />
+          </div>
+        </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Add record" busyLabel="Adding…" />
       </form>
     </ModalShell>
@@ -424,9 +437,9 @@ function DeploymentsSection({ base }: { base: string }) {
     <div style={{ marginTop: '1.5rem' }}>
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Deployments</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAddApp(true)} data-ui-native-button="">
+        <Button size="sm" onClick={() => setShowAddApp(true)}>
           <Icon name="plus" size={14} /> Register app
-        </button>
+        </Button>
       </div>
       <div className="onsite-card">
         {loading ? (
@@ -442,11 +455,12 @@ function DeploymentsSection({ base }: { base: string }) {
                   <tr key={a.id}>
                     <td style={{ fontWeight: 600 }}>{a.name}</td>
                     <td className="onsite-mono">{a.runtime}</td>
-                    <td><span className={`onsite-badge ${a.status === 'active' ? 'active' : a.status === 'failed' ? 'failed' : 'inactive'}`}>{a.status}</span></td>
+                    <td><Badge variant={a.status === 'active' ? 'success' : a.status === 'failed' ? 'error' : 'gray'}>{a.status}</Badge></td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="onsite-btn-outline" disabled={deploying === a.id} onClick={() => handleDeploy(a.id)} data-ui-native-button="">
+                      <Button variant="outline" size="sm" disabled={deploying === a.id} onClick={() => handleDeploy(a.id)}>
+                        {deploying === a.id && <ButtonSpinner />}
                         {deploying === a.id ? 'Deploying…' : 'Redeploy'}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -465,7 +479,7 @@ function DeploymentsSection({ base }: { base: string }) {
                 {deployments.slice(0, 10).map((d) => (
                   <tr key={d.id}>
                     <td className="onsite-mono">{d.branch || '—'}</td>
-                    <td><span className={`onsite-badge ${d.status === 'succeeded' ? 'active' : d.status === 'failed' ? 'failed' : 'pending'}`}>{d.status}</span></td>
+                    <td><Badge variant={d.status === 'succeeded' ? 'success' : d.status === 'failed' ? 'error' : 'warning'}>{d.status}</Badge></td>
                     <td>{new Date(d.queued_at).toISOString().replace('T', ' ').slice(0, 19)}</td>
                   </tr>
                 ))}
@@ -507,24 +521,26 @@ function AddAppModal({ base, onClose, onCreated }: { base: string; onClose: () =
 
   return (
     <ModalShell title="Register application" onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="onsite-form-group">
-          <label>Name *</label>
-          <input type="text" className="onsite-input" placeholder="client-site" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div className="onsite-form-group">
-          <label>Runtime</label>
-          <Select value={runtime} onValueChange={setRuntime}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="onsite-form-group">
-          <label>Repository URL</label>
-          <input type="text" className="onsite-input" placeholder="https://github.com/client/repo" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-form-group">
+            <label>Name *</label>
+            <input type="text" className="onsite-input" placeholder="client-site" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="onsite-form-group">
+            <label>Runtime</label>
+            <Select value={runtime} onValueChange={setRuntime}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="onsite-form-group">
+            <label>Repository URL</label>
+            <input type="text" className="onsite-input" placeholder="https://github.com/client/repo" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
+          </div>
+        </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Register" busyLabel="Registering…" />
       </form>
     </ModalShell>
@@ -561,9 +577,9 @@ function MonitoringSection({ base }: { base: string }) {
     <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
       <div className="onsite-card-header" style={{ marginBottom: '1rem' }}>
         <h3 className="onsite-card-title">Monitoring</h3>
-        <button className="btn btn-sm btn-primary" onClick={() => setShowAddCheck(true)} data-ui-native-button="">
+        <Button size="sm" onClick={() => setShowAddCheck(true)}>
           <Icon name="plus" size={14} /> Add check
-        </button>
+        </Button>
       </div>
       <div className="onsite-card">
         {loading ? (
@@ -579,12 +595,13 @@ function MonitoringSection({ base }: { base: string }) {
                   <tr key={c.id}>
                     <td style={{ fontWeight: 600 }}>{c.name}</td>
                     <td className="onsite-mono">{c.url}</td>
-                    <td><span className={`onsite-badge ${c.status === 'healthy' ? 'active' : c.status === 'critical' ? 'failed' : 'unknown'}`}>{c.status}</span></td>
+                    <td><Badge variant={c.status === 'healthy' ? 'success' : c.status === 'critical' ? 'error' : 'gray'}>{c.status}</Badge></td>
                     <td>{c.uptime_30d != null ? `${c.uptime_30d}%` : '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="onsite-btn-outline" disabled={running === c.id} onClick={() => handleRun(c.id)} data-ui-native-button="">
+                      <Button variant="outline" size="sm" disabled={running === c.id} onClick={() => handleRun(c.id)}>
+                        {running === c.id && <ButtonSpinner />}
                         {running === c.id ? 'Running…' : 'Run now'}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -621,15 +638,17 @@ function AddCheckModal({ base, onClose, onCreated }: { base: string; onClose: ()
 
   return (
     <ModalShell title="Add health check" onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="onsite-form-group">
-          <label>Name *</label>
-          <input type="text" className="onsite-input" placeholder="Homepage" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div className="onsite-form-group">
-          <label>URL *</label>
-          <input type="text" className="onsite-input" placeholder="https://clientsite.com" value={url} onChange={(e) => setUrl(e.target.value)} required />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="onsite-form-group">
+            <label>Name *</label>
+            <input type="text" className="onsite-input" placeholder="Homepage" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="onsite-form-group">
+            <label>URL *</label>
+            <input type="text" className="onsite-input" placeholder="https://clientsite.com" value={url} onChange={(e) => setUrl(e.target.value)} required />
+          </div>
+        </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Add check" busyLabel="Adding…" />
       </form>
     </ModalShell>
@@ -641,11 +660,10 @@ function AddCheckModal({ base, onClose, onCreated }: { base: string; onClose: ()
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="onsite-card-header">
-          <DialogTitle className="onsite-card-title">{title}</DialogTitle>
-          <button className="btn btn-sm btn-ghost" onClick={onClose} data-ui-native-button="">✕</button>
-        </div>
+      <DialogContent size="sm">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>
@@ -654,9 +672,14 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
 
 function ModalActions({ onClose, submitting, submitLabel, busyLabel }: { onClose: () => void; submitting: boolean; submitLabel: string; busyLabel: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-      <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
-      <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">{submitting ? busyLabel : submitLabel}</button>
-    </div>
+    <DialogFooter>
+      <Button type="button" variant="outline" onClick={onClose}>
+        Cancel
+      </Button>
+      <Button type="submit" disabled={submitting}>
+        {submitting && <ButtonSpinner />}
+        {submitting ? busyLabel : submitLabel}
+      </Button>
+    </DialogFooter>
   );
 }

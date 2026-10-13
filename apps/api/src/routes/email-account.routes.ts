@@ -6,6 +6,7 @@ import { withTenant } from '../db/client.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { buildSmtpTransporter } from '../integrations/email.js';
 import { MailService } from '../services/mail.service.js';
+import { runImapEmailIngestJob } from '../jobs/imap-email-ingest.job.js';
 
 const testSchema = z.object({
   imapHost: z.string().trim().min(1),
@@ -75,6 +76,57 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
     }
+  });
+  fastify.get('/sync-status', async request => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async trx => {
+      const account = await trx.selectFrom('user_email_accounts').select(['imap_enabled', 'last_synced_at', 'last_sync_error'])
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).executeTakeFirst();
+      const changes = await trx.selectFrom('email_remote_messages').select('operation_error')
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('desired_patch', 'is not', null).execute();
+      return { connected: !!account?.imap_enabled, lastSyncedAt: account?.last_synced_at ?? null,
+        error: account?.last_sync_error ?? null, pendingChanges: changes.length, failedChanges: changes.filter(change => change.operation_error).length };
+    });
+  });
+  fastify.post('/sync', async (request, reply) => {
+    const account = await withTenant(request.user.tenant_id, trx => trx.selectFrom('user_email_accounts').select(['imap_enabled', 'imap_host', 'imap_user', 'imap_pass', 'gmail_refresh_token', 'outlook_refresh_token'])
+      .where('tenant_id', '=', request.user.tenant_id).where('user_id', '=', request.user.sub).executeTakeFirst());
+    if (!account?.imap_enabled || !account.imap_host || !account.imap_user || !(account.imap_pass || account.gmail_refresh_token || account.outlook_refresh_token)) return reply.status(400).send({ error: 'Connect an enabled IMAP mailbox first.' });
+    await runImapEmailIngestJob(request.user.tenant_id, request.user.sub);
+    return { success: true };
+  });
+  fastify.post('/live-check', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async trx => {
+      const account = await trx.selectFrom('user_email_accounts').select(['id', 'imap_enabled', 'imap_user', 'from_email', 'send_protocol'])
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).executeTakeFirst();
+      if (!account?.imap_enabled || account.send_protocol === 'platform' || !account.imap_user || !account.from_email) {
+        return reply.status(400).send({ error: 'Connect your own outgoing identity and IMAP mailbox before live verification.' });
+      }
+      const recent = await trx.selectFrom('email_live_checks').select('id').where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub).where('created_at', '>', new Date(Date.now() - 60_000)).executeTakeFirst();
+      if (recent) return reply.status(429).send({ error: 'Wait one minute before starting another delivery check.' });
+      const check = await trx.insertInto('email_live_checks').values({ tenant_id: user.tenant_id, user_id: user.sub, account_id: account.id })
+        .returningAll().executeTakeFirstOrThrow();
+      const outboxId = await MailService.enqueueInTransaction(trx, user.tenant_id, {
+        to: z.string().email().parse(account.imap_user), subject: `Hudumika delivery check ${check.token}`,
+        bodyHtml: '<p>This message verifies that your connected identity can send and your mailbox can receive. Keep it until the check completes.</p>',
+        sourceApp: 'email-live-verification', userId: user.sub,
+      });
+      await trx.updateTable('email_live_checks').set({ outbox_id: outboxId }).where('tenant_id', '=', user.tenant_id).where('id', '=', check.id).execute();
+      return { id: check.id, status: 'queued' };
+    });
+  });
+  fastify.get('/live-checks', async request => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async trx => {
+      const checks = await trx.selectFrom('email_live_checks as c').leftJoin('email_outbox as o', join => join.onRef('o.id', '=', 'c.outbox_id').on('o.tenant_id', '=', user.tenant_id))
+        .select(['c.id', 'c.status', 'c.created_at', 'c.received_at', 'o.status as outbox_status', 'o.last_error'])
+        .where('c.tenant_id', '=', user.tenant_id).where('c.user_id', '=', user.sub).orderBy('c.created_at', 'desc').limit(10).execute();
+      return checks.map(check => ({ id: check.id, status: check.status === 'received' ? 'received' :
+        ['failed', 'simulated', 'cancelled'].includes(check.outbox_status ?? '') ? 'failed' : check.outbox_status === 'sent' ? 'sent' : 'queued',
+        created_at: check.created_at, received_at: check.received_at, error: check.last_error }));
+    });
   });
 
   // GET /v1/email/account — never returns the real password, only whether
@@ -260,7 +312,8 @@ export async function emailAccountRoutes(fastify: FastifyInstance) {
     const client = new ImapFlow({
       host: b.imapHost,
       port: b.imapPort ?? 993,
-      secure: (b.imapEncryption ?? 'ssl') !== 'none',
+      secure: (b.imapEncryption ?? 'ssl') === 'ssl',
+      doSTARTTLS: b.imapEncryption === 'tls',
       auth: { user: b.imapUser, pass },
       logger: false,
     });

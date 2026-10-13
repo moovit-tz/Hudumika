@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
@@ -87,12 +89,12 @@ export function OnsiteAgencyDirectoryAdmin() {
                         <td>{p.region || '—'}</td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                            <button className="btn btn-sm btn-primary" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')} data-ui-native-button="">
+                            <Button size="sm" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')}>
                               Approve
-                            </button>
-                            <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')} data-ui-native-button="">
+                            </Button>
+                            <Button size="sm" variant="ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')}>
                               Reject
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -125,19 +127,19 @@ export function OnsiteAgencyDirectoryAdmin() {
                       <tr key={p.id}>
                         <td style={{ fontWeight: 600 }}>{p.tenant_name}</td>
                         <td>{p.headline}</td>
-                        <td><span className={`onsite-badge ${STATUS_BADGE[p.status]}`}>{p.status}</span></td>
+                        <td><Badge variant={p.status === 'approved' ? 'success' : p.status === 'pending' ? 'warning' : 'error'}>{p.status}</Badge></td>
                         <td>{p.profile_views}</td>
                         <td>{p.inquiries_count}</td>
                         <td style={{ textAlign: 'right' }}>
                           {p.status === 'rejected' && (
-                            <button className="btn btn-sm btn-primary" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')} data-ui-native-button="">
+                            <Button size="sm" disabled={acting === p.id} onClick={() => decide(p.id, 'approved')}>
                               Approve
-                            </button>
+                            </Button>
                           )}
                           {p.status === 'approved' && (
-                            <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')} data-ui-native-button="">
+                            <Button size="sm" variant="ghost" style={{ color: 'var(--red)' }} disabled={acting === p.id} onClick={() => decide(p.id, 'rejected')}>
                               Unpublish
-                            </button>
+                            </Button>
                           )}
                         </td>
                       </tr>

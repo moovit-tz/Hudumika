@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
-import { SectionLoading } from '../../components/ui/spinner.js';
+import { SectionLoading, ButtonSpinner } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Combobox } from '../../components/ui/combobox.js';
+import { Button } from '../../components/ui/button.js';
 
 /**
  * The two capabilities clearance workflows borrowed from Studio (migration 168):
@@ -132,9 +133,9 @@ function DryRunTab({ workflowId, unsaved }: { workflowId: string; unsaved: boole
             className="z-1100"
           />
         </div>
-        <button className="btn btn-primary" onClick={run} disabled={busy} data-ui-native-button="">
-          <Icon name="play" size={13} color="white" /> {busy ? 'Testing…' : 'Run test'}
-        </button>
+        <Button onClick={run} disabled={busy}>
+          {busy ? <><ButtonSpinner /> Testing…</> : <><Icon name="play" size={13} /> Run test</>}
+        </Button>
       </div>
 
       {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
@@ -389,9 +390,9 @@ export function ClearanceWorkflowInsights({
               </button>
             ))}
           </div>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close" data-ui-native-button="">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} aria-label="Close">
             <Icon name="x" size={14} />
-          </button>
+          </Button>
         </div>
         <div className="wfb-insights-body">
           {tab === 'test'

@@ -5,6 +5,7 @@
 // ── Common ───────────────────────────────────────────────────
 
 export type OnsiteProviderName =
+  | 'hostinger'
   | 'github'
   | 'circleci'
   | 'cloudflare'
@@ -72,6 +73,7 @@ export interface OnsiteDomain {
 // ── Websites ─────────────────────────────────────────────────
 
 export interface OnsiteWebsite {
+  provider_connection_id: string | null;
   id: string;
   tenant_id: string;
   project_id: string | null;
@@ -91,6 +93,20 @@ export interface OnsiteWebsite {
 
 
 // ── DNS ──────────────────────────────────────────────────────
+export interface OnsiteDnsComparisonRecord {
+  name: string;
+  type: string;
+  ttl: number;
+  value: string;
+  priority?: number | null;
+  disabled?: boolean;
+}
+
+export interface OnsiteDnsSyncProposal {
+  direction: 'import' | 'publish';
+  record: OnsiteDnsComparisonRecord;
+  review: string[];
+}
 
 export type DnsRecordType =
   | 'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT'
@@ -161,6 +177,7 @@ export type OnsiteRuntime =
   | 'ruby' | 'go' | 'rust' | 'container' | 'custom';
 
 export interface OnsiteApplication {
+  provider_connection_id: string | null;
   id: string;
   tenant_id: string;
   project_id: string | null;
@@ -229,6 +246,7 @@ export type OnsiteDeploymentStatus =
   | 'succeeded' | 'failed' | 'cancelled' | 'rolling_back';
 
 export interface OnsiteDeployment {
+  provider_connection_id: string | null;
   id: string;
   tenant_id: string;
   application_id: string;
@@ -407,4 +425,71 @@ export interface OnsiteBackup {
   error_message: string | null;
   created_by: string | null;
   created_at: string;
+}
+
+// ── Email Hosting ───────────────────────────────────────────
+
+export type OnsiteEmailProvider = 'platform' | 'google' | 'microsoft' | 'external';
+export type OnsiteEmailDomainStatus = 'pending' | 'active' | 'suspended' | 'error';
+
+export interface OnsiteEmailDomain {
+  id: string;
+  tenant_id: string;
+  domain_id: string;
+  provider: OnsiteEmailProvider;
+  mx_verified: boolean;
+  spf_verified: boolean;
+  dkim_verified: boolean;
+  dmarc_verified: boolean;
+  last_verified_at: string | null;
+  catch_all_action: 'reject' | 'forward' | 'drop';
+  catch_all_address: string | null;
+  status: OnsiteEmailDomainStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  domain?: string;
+  domain_status?: OnsiteDomainStatus;
+  mailbox_count?: number;
+}
+
+export type OnsiteMailboxType = 'mailbox' | 'alias' | 'forward' | 'group';
+
+export interface OnsiteEmailMailbox {
+  provision_status: 'unconfigured' | 'provisioning' | 'ready' | 'error' | 'review';
+  provision_error: string | null;
+  provider_mailbox_id: string | null;
+  id: string;
+  tenant_id: string;
+  email_domain_id: string;
+  local_part: string;
+  full_address: string;
+  display_name: string | null;
+  type: OnsiteMailboxType;
+  linked_user_id: string | null;
+  target_mailbox_id: string | null;
+  forward_to: string[];
+  quota_mb: number | null;
+  usage_mb: number;
+  message_count: number;
+  status: 'active' | 'suspended' | 'disabled';
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  linked_user_name?: string | null;
+  linked_user_email?: string | null;
+  domain?: string;
+}
+
+// ── Subdomains ──────────────────────────────────────────────
+// A subdomain is derived from DNS records — not a separate table.
+export interface OnsiteSubdomain {
+  name: string;
+  full_domain: string;
+  records: OnsiteDnsRecord[];
+  has_website: boolean;
+  website_id: string | null;
+  website_name: string | null;
 }

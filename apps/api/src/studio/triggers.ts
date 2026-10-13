@@ -17,7 +17,7 @@ import { z } from 'zod';
 export type AppId =
   | 'clearos' | 'finops' | 'nexushr' | 'bliss' | 'complyos' | 'crm'
   | 'tracking' | 'cargotracker' | 'seal' | 'inventory' | 'studio' | 'ondi'
-  | 'cloud' | 'email' | 'onsite' | 'tasks' | 'workspace';
+  | 'cloud' | 'email' | 'onsite' | 'tasks' | 'workspace' | 'projects';
 
 export type TriggerKind = 'DOMAIN_EVENT' | 'SCHEDULE' | 'MANUAL';
 
@@ -43,6 +43,31 @@ export interface TriggerDef {
  * an unexpected extra field must never drop an event on the floor.
  */
 export const TRIGGERS: TriggerDef[] = [
+  {
+    id: 'project.issue.resolved', kind: 'DOMAIN_EVENT', app: 'projects',
+    label: 'Project issue resolved', description: 'A project issue has been marked as resolved.',
+    entityType: 'project_issue', payloadSchema: z.object({ projectId: z.string().uuid() }).passthrough(),
+    samplePayload: { projectId: '3213be7c-2327-4c7b-8154-04417d7eefa1' },
+  },
+  {
+    id: 'project.change_request.submitted', kind: 'DOMAIN_EVENT', app: 'projects',
+    label: 'Project change submitted', description: 'A project change request has been submitted for review.',
+    entityType: 'project_change_request', payloadSchema: z.object({ projectId: z.string().uuid() }).passthrough(),
+    samplePayload: { projectId: '3213be7c-2327-4c7b-8154-04417d7eefa1' },
+  },
+  {
+    id: 'onsite.wordpress.installed', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'WordPress installed', description: 'A hosting provider completed a WordPress installation.',
+    entityType: 'onsite_website', payloadSchema: z.object({ admin_user: z.string() }).passthrough(),
+    samplePayload: { admin_user: 'site-admin' },
+  },
+  {
+    id: 'onsite.domain.renewed', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Domain renewed', description: 'A registrar completed domain renewal.',
+    entityType: 'onsite_domain', payloadSchema: z.object({ domain: z.string(), years: z.number(), new_expiry: z.string() }).passthrough(),
+    samplePayload: { domain: 'example.tz', years: 1, new_expiry: '2027-10-12T00:00:00.000Z' },
+  },
+
   {
     id: 'cloud.file.quarantined', kind: 'DOMAIN_EVENT', app: 'cloud',
     label: 'File quarantined', description: 'Malware scanning quarantined a stored file.', entityType: 'document',
@@ -728,15 +753,22 @@ export const TRIGGERS: TriggerDef[] = [
     id: 'onsite.domain.requested', kind: 'DOMAIN_EVENT', app: 'onsite',
     label: 'Domain purchase requested', description: 'A staff member requested a domain found via Domain Search (no connected registrar yet, so this records a pending request).',
     entityType: 'onsite_domain',
-    payloadSchema: z.object({ domain: z.string() }).passthrough(),
+    payloadSchema: z.object({ domain: z.string(), registrar_connected: z.boolean().optional() }).passthrough(),
     samplePayload: { domain: 'client-shop.co.tz' },
   },
   {
     id: 'onsite.dns_record.created', kind: 'DOMAIN_EVENT', app: 'onsite',
     label: 'DNS record added', description: 'A DNS record was added under a domain.',
     entityType: 'onsite_dns_record',
-    payloadSchema: z.object({ domain_id: z.string(), name: z.string(), dns_type: z.string() }).passthrough(),
+    payloadSchema: z.object({ domain_id: z.string(), name: z.string(), dns_type: z.string(), provider: z.string().optional(), operation: z.string().optional() }).passthrough(),
     samplePayload: { domain_id: '00000000-0000-0000-0000-000000000000', name: 'www', dns_type: 'A' },
+  },
+  {
+    id: 'onsite.dns_record.published', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'DNS record published', description: 'A DNS record was published and re-read from its provider.',
+    entityType: 'onsite_dns_record',
+    payloadSchema: z.object({ domain: z.string(), name: z.string(), dns_type: z.string(), provider: z.string() }).passthrough(),
+    samplePayload: { domain: 'example.tz', name: 'www', dns_type: 'A', provider: 'hostinger' },
   },
   {
     id: 'onsite.dns_record.deleted', kind: 'DOMAIN_EVENT', app: 'onsite',
@@ -803,6 +835,56 @@ export const TRIGGERS: TriggerDef[] = [
     // domain_events (what Studio's runner sees) it's an ISO string.
     payloadSchema: z.object({ created_at: z.string() }).passthrough(),
     samplePayload: { created_at: '2026-08-01T03:00:00.000Z' },
+  },
+
+  {
+    id: 'onsite.domain.transfer_requested', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Domain transfer requested', description: 'A domain transfer was recorded with an EPP code.',
+    entityType: 'onsite_domain',
+    payloadSchema: z.object({ domain: z.string(), epp_provided: z.boolean(), registrar_connected: z.boolean().optional() }).passthrough(),
+    samplePayload: { domain: 'example.com', epp_provided: true },
+  },
+  {
+    id: 'onsite.subdomain.created', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Subdomain created', description: 'A new subdomain DNS record was added to a domain.',
+    entityType: 'onsite_dns_record',
+    payloadSchema: z.object({ subdomain: z.string(), type: z.string(), value: z.string() }).passthrough(),
+    samplePayload: { subdomain: 'blog.example.com', type: 'A', value: '203.0.113.10' },
+  },
+  {
+    id: 'onsite.subdomain.deleted', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Subdomain deleted', description: 'All DNS records for a subdomain were removed.',
+    entityType: 'onsite_dns_record',
+    payloadSchema: z.object({ subdomain: z.string(), records: z.number() }).passthrough(),
+    samplePayload: { subdomain: 'blog', records: 2 },
+  },
+  {
+    id: 'onsite.email_domain.created', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Email domain enabled', description: 'Email hosting was enabled on a domain.',
+    entityType: 'onsite_email_domain',
+    payloadSchema: z.object({ domain: z.string(), provider: z.string() }).passthrough(),
+    samplePayload: { domain: 'example.com', provider: 'platform' },
+  },
+  {
+    id: 'onsite.email_domain.deleted', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Email domain removed', description: 'Email hosting was disabled on a domain.',
+    entityType: 'onsite_email_domain',
+    payloadSchema: z.object({ domain_id: z.string() }).passthrough(),
+    samplePayload: { domain_id: '550e8400-e29b-41d4-a716-446655440000' },
+  },
+  {
+    id: 'onsite.mailbox.created', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Mailbox created', description: 'A new mailbox, alias, forward or group was created.',
+    entityType: 'onsite_email_mailbox',
+    payloadSchema: z.object({ address: z.string(), type: z.string() }).passthrough(),
+    samplePayload: { address: 'info@example.com', type: 'mailbox' },
+  },
+  {
+    id: 'onsite.mailbox.deleted', kind: 'DOMAIN_EVENT', app: 'onsite',
+    label: 'Mailbox deleted', description: 'A mailbox or alias was removed.',
+    entityType: 'onsite_email_mailbox',
+    payloadSchema: z.object({ address: z.string() }).passthrough(),
+    samplePayload: { address: 'info@example.tz' },
   },
 
   // ── NexusHR ──────────────────────────────────────────────────────────

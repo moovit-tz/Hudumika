@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteDeployment } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
+import { Link } from 'react-router-dom';
 import './Onsite.css';
 
 export function OnsiteDeployments() {
@@ -39,9 +42,14 @@ export function OnsiteDeployments() {
         <div className="onsite-card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
           <Icon name="gitBranch" size={48} style={{ color: 'var(--ink3)', margin: '0 auto 1rem auto' }} />
           <h3>No deployment history recorded yet</h3>
-          <p style={{ color: 'var(--ink3)' }}>
+          <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Trigger your first deployment from the Applications section.
           </p>
+          <Link to="/onsite/applications">
+            <Button variant="outline">
+              <Icon name="layers" size={16} /> View Applications
+            </Button>
+          </Link>
         </div>
       ) : (
         <div className="onsite-card">
@@ -70,14 +78,14 @@ export function OnsiteDeployments() {
                       {d.commit_message || 'Manual build trigger'}
                     </td>
                     <td>
-                      <span className="onsite-badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--ink)' }}>
+                      <Badge variant="gray">
                         {d.trigger}
-                      </span>
+                      </Badge>
                     </td>
                     <td>
-                      <span className={`onsite-badge ${d.status}`}>
+                      <Badge variant={d.status === 'succeeded' ? 'success' : d.status === 'failed' ? 'error' : 'warning'}>
                         {d.status}
-                      </span>
+                      </Badge>
                     </td>
                     <td style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>
                       {new Date(d.queued_at).toLocaleString()}

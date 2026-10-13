@@ -4,6 +4,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import type { OnsiteAgencyProfile, AgencyPricingTier } from '@hudumika/types';
 import './Onsite.css';
@@ -117,7 +120,9 @@ export function OnsiteAgencyDirectoryProfile() {
                 <h3 className="onsite-card-title">
                   <Icon name="briefcase" size={16} />Status
                 </h3>
-                <span className={`onsite-badge ${STATUS_BADGE[profile.status]}`}>{STATUS_LABEL[profile.status]}</span>
+                <Badge variant={profile.status === 'approved' ? 'success' : profile.status === 'pending' ? 'warning' : 'error'}>
+                  {STATUS_LABEL[profile.status]}
+                </Badge>
               </div>
               {profile.status === 'approved' && (
                 <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8125rem', color: 'var(--ink2)' }}>
@@ -208,9 +213,9 @@ export function OnsiteAgencyDirectoryProfile() {
               />
             </div>
             <div>
-              <button type="submit" className="btn btn-primary" disabled={!canSubmit} data-ui-native-button="">
-                {saving ? 'Saving…' : profile ? 'Save changes' : 'Submit for review'}
-              </button>
+              <Button type="submit" disabled={!canSubmit}>
+                {saving ? <><ButtonSpinner /> Saving…</> : profile ? 'Save changes' : 'Submit for review'}
+              </Button>
             </div>
           </form>
         </>

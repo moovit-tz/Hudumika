@@ -40,6 +40,7 @@ export interface CIPipelineState {
 }
 
 export interface CIProvider {
+  connectionId?: string;
   key: string;
   label: string;
   /** Ask the provider to run a pipeline. Throws with the provider's message on refusal. */
@@ -150,11 +151,14 @@ class CircleCIProvider implements CIProvider {
  *  in this order when a tenant has more than one connected. */
 const SUPPORTED_CI_PROVIDERS = ['circleci', 'github', 'cloudflare', 'digitalocean'] as const;
 
-export async function resolveCIProvider(tenantId: string): Promise<CIProvider | null> {
+export async function resolveCIProvider(tenantId: string, recordedProvider?: string, connectionId?: string): Promise<CIProvider | null> {
+  if (recordedProvider && !SUPPORTED_CI_PROVIDERS.some(provider => provider === recordedProvider)) return null;
   const rows = await withTenant(tenantId, trx => trx.selectFrom('onsite_provider_connections')
-    .select(['provider', 'access_token_cipher', 'config_cipher', 'external_id', 'status'])
+    .select(['id', 'provider', 'access_token_cipher', 'config_cipher', 'external_id', 'status'])
     .where('tenant_id', '=', tenantId)
     .where('provider', 'in', [...SUPPORTED_CI_PROVIDERS])
+    .$if(Boolean(recordedProvider), query => query.where('provider', '=', recordedProvider!))
+    .$if(Boolean(connectionId), query => query.where('id', '=', connectionId!))
     // 'active' is the word onsite_provider_connections actually uses — its
     // CHECK constraint allows active/revoked/error/pending, and the create
     // route writes 'active'. Filtering on a status the column cannot hold
@@ -189,19 +193,19 @@ export async function resolveCIProvider(tenantId: string): Promise<CIProvider | 
 
     switch (providerKey) {
       case 'circleci':
-        return new CircleCIProvider(token, externalId);
+        return Object.assign(new CircleCIProvider(token, externalId), { connectionId: row.id });
       case 'github': {
         const [owner, repo, workflowId] = externalId.split('/');
         if (!owner || !repo) continue;
-        return new GitHubActionsProvider(token, owner, repo, workflowId || 'deploy.yml');
+        return Object.assign(new GitHubActionsProvider(token, owner, repo, workflowId || 'deploy.yml'), { connectionId: row.id });
       }
       case 'cloudflare': {
         const [accountId, projectName] = externalId.split('/');
         if (!accountId || !projectName) continue;
-        return new CloudflarePagesProvider(token, accountId, projectName);
+        return Object.assign(new CloudflarePagesProvider(token, accountId, projectName), { connectionId: row.id });
       }
       case 'digitalocean':
-        return new DigitalOceanAppPlatformProvider(token, externalId);
+        return Object.assign(new DigitalOceanAppPlatformProvider(token, externalId), { connectionId: row.id });
     }
   }
 
@@ -225,6 +229,18 @@ export async function verifyProviderConnection(
 ): Promise<{ ok: boolean; detail: string; accountName?: string }> {
   try {
     switch (provider) {
+      case 'hostinger': {
+        const res = await fetch('https://developers.hostinger.com/api/hosting/v1/websites', {
+          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!res.ok) return { ok: false, detail: `Hostinger website access failed (HTTP ${res.status}). Check token permissions and hosting access.` };
+        const body = await res.json();
+        if (!Array.isArray(body) && !Array.isArray(body?.data)) {
+          return { ok: false, detail: 'Hostinger returned an unexpected website inventory response.' };
+        }
+        return { ok: true, detail: 'Hostinger website inventory access verified. DNS and deployment permissions have not been verified.' };
+      }
       case 'circleci': {
         // The same endpoint lens-integration.service.ts uses to test its own
         // CircleCI credential.

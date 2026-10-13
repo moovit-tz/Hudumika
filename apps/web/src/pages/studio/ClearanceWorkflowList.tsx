@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
@@ -14,6 +14,8 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Tip } from '../../components/ui/tooltip.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
 
@@ -232,22 +234,27 @@ export function ClearanceWorkflowList() {
           />
         </div>
         <div className="wf-header-actions">
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/clearos/ops')} data-ui-native-button="">
+          <Button variant="outline" size="sm" onClick={() => navigate('/clearos/ops')}>
             Back to Ops
-          </button>
-          <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')} data-ui-native-button="">
-            <Icon name="plus" size={14} color="white" />
-            New Workflow
-          </button>
+          </Button>
+          <Button onClick={() => navigate('/studio/clearance/new')}>
+            <Icon name="plus" size={14} /> New Workflow
+          </Button>
         </div>
       </div>
 
       <div className="workflow-toolbar">
         <SingleSelectFilter label="Freight" value={modeFilter} onChange={setModeFilter} options={FREIGHT_MODES.map(label => ({value:label.toLowerCase(),label}))} />
         <div className="workflow-search"><SearchToolbar search={query} onSearch={setQuery} placeholder="Search clearance workflows" /></div>
+        {(modeFilter || query) && (
+          <Button variant="ghost" size="sm" onClick={() => { setModeFilter(null); setQuery(''); }}>Clear</Button>
+        )}
       </div>
-      {!loading && <StudioPagination page={currentListPage} total={filteredWorkflows.length} onChange={setListPage} />}
-      {!loading && !filteredWorkflows.length && workflows.length > 0 && <p>No matching workflows. Clear your filters to see more.</p>}
+      {!loading && !filteredWorkflows.length && workflows.length > 0 && (
+        <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+          No matching workflows. <Button variant="link" size="sm" onClick={() => { setModeFilter(null); setQuery(''); }}>Clear filters</Button> to see more.
+        </div>
+      )}
       {error && (
         <Banner variant="error" className="mb-4">{error}</Banner>
       )}
@@ -264,17 +271,17 @@ export function ClearanceWorkflowList() {
               <div key={tpl.id} style={{ flex: '0 0 240px', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                   <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{tpl.name}</span>
-                  <span className="wf-badge wf-badge-gray" style={{ whiteSpace: 'nowrap' }}>v{tpl.version}</span>
+                  <Badge variant="gray">v{tpl.version}</Badge>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45, minHeight: 34 }}>{tpl.description}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  <span className="wf-badge wf-badge-teal">{tpl.stepCount} steps</span>
-                  {(tpl.freightModes || []).map((m: string) => <span key={m} className="wf-badge wf-badge-blue">{m}</span>)}
-                  {(tpl.consignmentTypes || []).map((c: string) => <span key={c} className="wf-badge wf-badge-orange">{c}</span>)}
+                  <Badge variant="brand">{tpl.stepCount} steps</Badge>
+                  {(tpl.freightModes || []).map((m: string) => <Badge key={m} variant="info">{m}</Badge>)}
+                  {(tpl.consignmentTypes || []).map((c: string) => <Badge key={c} variant="warning">{c}</Badge>)}
                 </div>
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: 2 }} disabled={adopting === tpl.id} onClick={() => handleAdopt(tpl)} data-ui-native-button="">
+                <Button variant="outline" size="sm" style={{ marginTop: 2 }} disabled={adopting === tpl.id} onClick={() => handleAdopt(tpl)}>
                   {adopting === tpl.id ? 'Adding…' : <><Icon name="plus" size={12} /> Use template</>}
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -299,8 +306,8 @@ export function ClearanceWorkflowList() {
                   <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>proposed v{p.proposedVersion} · from v{p.baseVersion}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="wf-badge wf-badge-teal">{Math.round(p.confidence * 100)}% consensus</span>
-                  <span className="wf-badge wf-badge-blue">{p.supportingTenants} workspaces</span>
+                  <Badge variant="brand">{Math.round(p.confidence * 100)}% consensus</Badge>
+                  <Badge variant="info">{p.supportingTenants} workspaces</Badge>
                 </div>
               </div>
               <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--ink2)' }}>
@@ -314,10 +321,10 @@ export function ClearanceWorkflowList() {
               </ul>
               {isSuperAdmin && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                  <button className="btn btn-primary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'approve')} data-ui-native-button="">
-                    {deciding === p.id ? 'Working…' : <><Icon name="check" size={12} color="white" /> Approve &amp; publish v{p.proposedVersion}</>}
-                  </button>
-                  <button className="btn btn-secondary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'reject')} data-ui-native-button="">Reject</button>
+                  <Button size="sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'approve')}>
+                    {deciding === p.id ? 'Working…' : <><Icon name="check" size={12} /> Approve &amp; publish v{p.proposedVersion}</>}
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'reject')}>Reject</Button>
                 </div>
               )}
             </div>
@@ -353,9 +360,9 @@ export function ClearanceWorkflowList() {
                 <div className="wf-empty-icon"><Icon name="tasks" size={32} color="var(--ink3)" /></div>
                 <div className="wf-empty-title">No Workflows Yet</div>
                 <div className="wf-empty-sub">Create your first workflow to configure how shipments move through your operations.</div>
-                <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')} data-ui-native-button="">
-                  <Icon name="plus" size={13} color="white" /> New Workflow
-                </button>
+                <Button onClick={() => navigate('/studio/clearance/new')}>
+                  <Icon name="plus" size={13} /> New Workflow
+                </Button>
               </div>
             ) : (
               filteredWorkflows.slice((currentListPage - 1) * 6, currentListPage * 6).map(wf => (
@@ -381,26 +388,33 @@ export function ClearanceWorkflowList() {
                   </div>
                   <div className="wf-card-desc">{wf.description}</div>
                   <div className="wf-card-meta">
-                    <span className={`wf-badge ${wf.isActive ? 'wf-badge-green' : 'wf-badge-gray'}`}>
+                    <Badge variant={wf.isActive ? 'success' : 'gray'}>
                       {wf.isActive ? '● Active' : '○ Inactive'}
-                    </span>
-                    <span className="wf-badge wf-badge-teal">{wf.steps.length} steps</span>
-                    {wf.isSystem && <Tip label="Platform default — delete once you've built your own"><span className="wf-badge wf-badge-gray">Default</span></Tip>}
+                    </Badge>
+                    <Badge variant="brand">{wf.steps.length} steps</Badge>
+                    {wf.isSystem && <Tip label="Platform default — delete once you've built your own"><Badge variant="gray">Default</Badge></Tip>}
                     {wf.triggers.freightModes.map(m => (
-                      <span key={m} className="wf-badge wf-badge-blue">{m}</span>
+                      <Badge key={m} variant="info">{m}</Badge>
                     ))}
                     {wf.triggers.consignmentTypes.map(c => (
-                      <span key={c} className="wf-badge wf-badge-orange">{c}</span>
+                      <Badge key={c} variant="warning">{c}</Badge>
                     ))}
-                    <button
-                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: wf.isActive ? 'var(--red)' : 'var(--green)', fontWeight: 700, fontFamily: 'inherit', padding: 'var(--ds-btn-py-xs) 4px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      style={{ marginLeft: 'auto', color: wf.isActive ? 'var(--red)' : 'var(--green)' }}
                       onClick={() => handleToggleActive(wf)}
-                     data-ui-native-button="">
+                    >
                       {wf.isActive ? 'Deactivate' : 'Activate'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))
+            )}
+            {!loading && filteredWorkflows.length > 6 && (
+              <div style={{ marginTop: 12 }}>
+                <StudioPagination page={currentListPage} total={filteredWorkflows.length} size={6} onChange={setListPage} />
+              </div>
             )}
           </div>
         </div>
@@ -468,7 +482,7 @@ export function ClearanceWorkflowList() {
 
           {/* Default workflow selector */}
           {workflows.length > 0 && (
-            <div style={{ marginTop: 20, padding: '14px 18px', background: 'var(--white)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)' }}>
+            <div style={{ marginTop: 20, padding: '14px 18px', background: 'var(--card-bg, var(--white))', borderRadius: 'var(--r)', border: '1.5px solid var(--border)' }}>
               <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="star" size={14} color="var(--gold)" duotone /> Default Fallback Workflow
               </div>

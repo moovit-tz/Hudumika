@@ -7,6 +7,8 @@ import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { NotificationService } from '../services/notification.service.js';
 import { MailService } from '../services/mail.service.js';
 import { createTicketRow } from './support.routes.js';
+import { ProjectOsService } from '../services/project-os.service.js';
+import { projectDocumentBriefSchema } from '../services/project-document.service.js';
 
 // Projects & Milestones (migration 308) — the core of the standalone
 // Projects app, gated behind the 'projects' (HuduPlus+) entitlement
@@ -17,6 +19,7 @@ import { createTicketRow } from './support.routes.js';
 // same role tasks.routes.ts's resolveTaskAccess plays for personal tasks.
 
 const uuidSchema = z.string().uuid();
+const escHtml = (v: string) => v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const PROJECT_STATUSES = ['not_started', 'in_progress', 'on_hold', 'cancelled', 'finished'] as const;
 const BILLING_TYPES = ['fixed', 'hourly'] as const;
 const MEMBER_ROLES = ['owner', 'member', 'viewer'] as const;
@@ -40,6 +43,7 @@ const projectCreateSchema = z.object({
   portfolio_id: uuidSchema.nullable().optional(), program_id: uuidSchema.nullable().optional(),
   contract_value: z.number().min(0).optional(), baseline_budget: z.number().min(0).optional(),
   location_address: z.string().max(1000).optional(), tags: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
+  document_brief: projectDocumentBriefSchema.optional(),
 });
 const saveAsTemplateSchema = z.object({
   id: uuidSchema,
@@ -107,6 +111,7 @@ export async function resolveProjectAccess(
   const project = await trx.selectFrom('projects').select(['id', 'owner_id'])
     .where('id', '=', projectId).where('tenant_id', '=', tenantId).executeTakeFirst();
   if (!project) return null;
+  if (project.owner_id === userId) return { project, access: 'owner' };
   const membership = await trx.selectFrom('project_members').select('role')
     .where('project_id', '=', projectId).where('user_id', '=', userId).where('tenant_id', '=', tenantId)
     .executeTakeFirst();
@@ -124,12 +129,24 @@ export function canEditProject(access: ProjectAccessLevel): boolean {
 export async function taskProjectsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('projects'));
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+  });
+  fastify.addHook('preValidation', async (request, reply) => {
+    const p = request.params as Record<string, string> | undefined;
+    if (!p) return;
+    for (const [key, val] of Object.entries(p)) {
+      if (['id', 'userId', 'milestoneId', 'discussionId', 'projectId'].includes(key)) {
+        try { uuidSchema.parse(val); } catch { return reply.status(400).send({ error: `Invalid ${key}: must be a UUID` }); }
+      }
+    }
+  });
 
   // ── Projects ───────────────────────────────────────────────────────────
 
   fastify.get('/', async (request) => {
     const user = request.user;
-    const { customer_id: customerIdFilter } = request.query as { customer_id?: string };
+    const { customer_id: customerIdFilter } = z.object({ customer_id: uuidSchema.optional() }).parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
       const isAdmin = ADMIN_ROLES.includes(user.role);
       let q = trx.selectFrom('projects')
@@ -268,7 +285,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         industry: body.industry ?? 'general', project_type: body.project_type ?? 'internal',
         portfolio_id: body.portfolio_id ?? null, program_id: body.program_id ?? null,
         contract_value: body.contract_value ?? 0, baseline_budget: body.baseline_budget ?? 0, current_budget: body.baseline_budget ?? 0,
-        location_address: body.location_address ?? null, custom_fields: { tags: body.tags ?? [] },
+        location_address: body.location_address ?? null, custom_fields: { tags: body.tags ?? [], ...(body.document_brief ? { document_brief: body.document_brief } : {}) },
         customer_id: body.customerId || null, billing_type: body.billingType || 'fixed',
         total_rate: body.totalRate != null ? String(body.totalRate) : null, currency: body.currency || 'TZS',
       }).returningAll().executeTakeFirstOrThrow();
@@ -539,6 +556,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const rows = await trx.selectFrom('project_members')
         .innerJoin('users', 'users.id', 'project_members.user_id')
         .where('project_members.project_id', '=', request.params.id)
+        .where('project_members.tenant_id', '=', user.tenant_id)
         .select(['project_members.id', 'project_members.user_id', 'project_members.role', 'project_members.added_at',
           'users.name', 'users.email', 'users.avatar_url'])
         .orderBy('project_members.added_at', 'asc').execute();
@@ -578,9 +596,11 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
       if (!canManageProject(resolved.access)) return reply.status(403).send({ error: 'Only a project owner or admin can change roles' });
+      const proj = await trx.selectFrom('projects').select('owner_id').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (proj && proj.owner_id === request.params.userId) return reply.status(400).send({ error: 'Cannot demote the project owner — transfer ownership first' });
       const row = await trx.updateTable('project_members').set({ role: body.role })
         .where('project_id', '=', request.params.id).where('user_id', '=', request.params.userId)
-        .returningAll().executeTakeFirst();
+        .where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Member not found' });
       return { data: row };
     });
@@ -591,14 +611,16 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
-      // A member may remove themselves (leave the project); removing anyone
-      // else needs owner/admin.
       if (request.params.userId !== user.sub && !canManageProject(resolved.access)) {
         return reply.status(403).send({ error: 'Only a project owner or admin can remove other members' });
       }
+      const proj = await trx.selectFrom('projects').select('owner_id').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (proj && proj.owner_id === request.params.userId) {
+        return reply.status(400).send({ error: 'Cannot remove the project owner — transfer ownership first' });
+      }
       const removed = await trx.deleteFrom('project_members')
         .where('project_id', '=', request.params.id).where('user_id', '=', request.params.userId)
-        .returning('user_id').executeTakeFirst();
+        .where('tenant_id', '=', user.tenant_id).returning('user_id').executeTakeFirst();
       if (removed) {
         const target = await trx.selectFrom('users').select('name').where('id', '=', request.params.userId).executeTakeFirst();
         await trx.insertInto('project_activity_log').values({
@@ -619,8 +641,12 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
   // wrong scope; a flat log is what every reference tool actually shows on
   // a project's Timesheets tab.
 
+  const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+  const timesheetQs = z.object({ from: dateSchema.optional(), to: dateSchema.optional() });
+
   fastify.get<{ Params: { id: string }; Querystring: { from?: string; to?: string } }>('/:id/timesheets', async (request, reply) => {
     const user = request.user;
+    const qs = timesheetQs.parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
@@ -629,9 +655,10 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         .innerJoin('tasks', 'tasks.id', 'task_time_entries.task_id')
         .innerJoin('users', 'users.id', 'task_time_entries.user_id')
         .where('tasks.project_id', '=', request.params.id)
+        .where('tasks.tenant_id', '=', user.tenant_id)
         .where('task_time_entries.ended_at', 'is not', null);
-      if (request.query.from) query = query.where('task_time_entries.started_at', '>=', new Date(request.query.from));
-      if (request.query.to) query = query.where('task_time_entries.started_at', '<=', new Date(request.query.to + 'T23:59:59'));
+      if (qs.from) query = query.where('task_time_entries.started_at', '>=', new Date(qs.from));
+      if (qs.to) query = query.where('task_time_entries.started_at', '<=', new Date(qs.to + 'T23:59:59'));
 
       const rows = await query
         .select([
@@ -673,7 +700,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
       if (!canManageProject(resolved.access)) return reply.status(403).send({ error: 'Only a project owner or admin can invoice this project' });
-      const project = await trx.selectFrom('projects').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).executeTakeFirstOrThrow();
+      const project = await trx.selectFrom('projects').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).forUpdate().executeTakeFirstOrThrow();
       if (!project.customer_id) return reply.status(400).send({ error: 'This project has no customer to bill — set a customer on the project first.' });
 
       const invoiceNumber = await getNextDocNumber(trx, user.tenant_id, 'invoice');
@@ -684,6 +711,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
           .where('tasks.project_id', '=', request.params.id).where('tasks.is_billable', '=', true)
           .where('tasks.hourly_rate', 'is not', null)
           .where('task_time_entries.ended_at', 'is not', null).where('task_time_entries.invoice_id', 'is', null)
+          .forUpdate()
           .select(['task_time_entries.id as entry_id', 'task_time_entries.task_id', 'task_time_entries.duration_minutes', 'tasks.title', 'tasks.hourly_rate'])
           .execute();
         if (billable.length === 0) {
@@ -796,6 +824,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         trx.selectFrom('project_activity_log')
           .innerJoin('users', 'users.id', 'project_activity_log.actor_id')
           .where('project_activity_log.project_id', '=', request.params.id)
+          .where('project_activity_log.tenant_id', '=', user.tenant_id)
           .select(['project_activity_log.id', 'project_activity_log.action', 'project_activity_log.detail',
             'project_activity_log.created_at', 'project_activity_log.actor_id', 'users.name as actor_name'])
           .execute(),
@@ -879,6 +908,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         .select(['project_discussions.id', 'project_discussions.content', 'project_discussions.mentions',
           'project_discussions.created_at', 'project_discussions.author_id', 'users.name as author_name'])
         .where('project_discussions.project_id', '=', request.params.id)
+        .where('project_discussions.tenant_id', '=', user.tenant_id)
         .orderBy('project_discussions.created_at', 'asc').execute();
       return { data: rows };
     });
@@ -899,7 +929,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       }).returningAll().executeTakeFirstOrThrow();
 
       const projectName = (await trx.selectFrom('projects').select('name').where('id', '=', request.params.id).executeTakeFirst())?.name ?? 'this project';
-      const roster = await trx.selectFrom('project_members').select('user_id').where('project_id', '=', request.params.id).execute();
+      const roster = await trx.selectFrom('project_members').select('user_id').where('project_id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       const notifyIds = new Set<string>((body.mentions ?? []).map(m => m.user_id));
       for (const r of roster) notifyIds.add(r.user_id);
       notifyIds.delete(user.sub);
@@ -915,7 +945,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         }).catch(err => console.error('[Projects] Failed to notify on discussion post:', err.message));
         await MailService.sendNow(user.tenant_id, {
           to: recipient.email, subject: title,
-          bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} posted in <strong>${projectName}</strong>:</p><p>${body.content.trim()}</p>`,
+          bodyHtml: `<p>Hi ${escHtml(recipient.name)},</p><p>${escHtml(actorName)} posted in <strong>${escHtml(projectName)}</strong>:</p><p>${escHtml(body.content.trim())}</p>`,
           sourceApp: 'tasks',
         }).catch(err => console.error('[Projects] Failed to email on discussion post:', err.message));
       }
@@ -1060,6 +1090,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         .where('id', '=', request.params.milestoneId).where('project_id', '=', request.params.id)
         .returningAll().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Milestone not found' });
+      if (body.status !== undefined) await ProjectOsService.recalculateProjectFinancials(trx, user.tenant_id, request.params.id);
       return { data: row };
     });
   });

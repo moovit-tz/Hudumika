@@ -2,19 +2,25 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import sanitizeHtml from 'sanitize-html';
 import crypto from 'node:crypto';
-import { dbPlatform, withTenant } from '../db/client.js';
-import { decryptSecret } from '../services/onsite-secrets.service.js';
+import { dbPlatform, withTenant, type Database } from '../db/client.js';
+import type { Transaction } from 'kysely';
+import { sql } from 'kysely';
+import { synchronizeMailbox, queueRemotePatch, type localMailboxFolder } from '../services/email-sync.service.js';
 import { normalizeSubjectForThread } from '../routes/email.routes.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { MailService } from '../services/mail.service.js';
+import { resolveImapAuth } from '../services/email-imap-auth.service.js';
 
 interface EnabledAccount {
+  claimToken?: string;
+  id: string;
+  initial: boolean;
   tenantId: string;
   userId: string;
   host: string;
   port: number;
   user: string;
-  pass: string;
+  pass: string | null;
   encryption: 'ssl' | 'tls' | 'none';
   markAsRead: boolean;
   spamBlocklist: string[];
@@ -32,19 +38,24 @@ interface EnabledAccount {
   };
 }
 
-async function loadEnabledAccounts(): Promise<EnabledAccount[]> {
+async function loadEnabledAccounts(tenantId?: string, userId?: string): Promise<EnabledAccount[]> {
   const rows = await dbPlatform.selectFrom('user_email_accounts')
     .select([
+      'id', 'last_synced_at',
+      'send_protocol', 'gmail_refresh_token', 'outlook_refresh_token',
       'tenant_id', 'user_id', 'imap_host', 'imap_port', 'imap_user', 'imap_pass', 'imap_encryption', 'imap_mark_as_read', 'spam_blocklist',
       'vacation_enabled', 'vacation_start', 'vacation_end', 'vacation_subject', 'vacation_message',
       'vacation_contacts_only', 'vacation_domain_only', 'vacation_replied_to',
       'forward_to_email', 'forward_keep_copy',
     ])
+    .$if(!!tenantId, query => query.where('tenant_id', '=', tenantId!))
+    .$if(!!userId, query => query.where('user_id', '=', userId!))
     .where('imap_enabled', '=', true).execute();
   const out: EnabledAccount[] = [];
   for (const r of rows) {
-    if (!r.imap_host || !r.imap_user || !r.imap_pass) continue;
+    if (!r.imap_host || !r.imap_user || !(r.imap_pass || r.gmail_refresh_token || r.outlook_refresh_token)) continue;
     out.push({
+      id: r.id, initial: !r.last_synced_at,
       tenantId: r.tenant_id, userId: r.user_id,
       host: r.imap_host, port: r.imap_port, user: r.imap_user, pass: r.imap_pass,
       encryption: r.imap_encryption, markAsRead: r.imap_mark_as_read,
@@ -87,12 +98,14 @@ async function maybeSendVacationReply(account: EnabledAccount, fromEmail: string
   }
 
   try {
-    await MailService.sendNow(account.tenantId, {
+    const result = await MailService.sendNow(account.tenantId, {
       to: fromEmail,
       subject: v.subject.trim() || `Re: ${subject}`,
       bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; white-space: pre-wrap;">${v.message}</div>`,
       sourceApp: 'email-vacation-responder',
+      userId: account.userId,
     });
+    if (!result.success || result.simulated) throw new Error(result.error ?? 'Vacation reply was not delivered');
     await dbPlatform.updateTable('user_email_accounts')
       .set({ vacation_replied_to: JSON.stringify([...v.repliedTo, fromEmail]) })
       .where('tenant_id', '=', account.tenantId).where('user_id', '=', account.userId).execute();
@@ -117,20 +130,33 @@ async function maybeSendVacationReply(account: EnabledAccount, fromEmail: string
  * trained classifier, and nothing downstream should be misread as claiming
  * one.
  */
-export async function runImapEmailIngestJob(): Promise<void> {
-  const accounts = await loadEnabledAccounts();
+export async function runImapEmailIngestJob(tenantId?: string, userId?: string): Promise<void> {
+  const accounts = await loadEnabledAccounts(tenantId, userId);
   if (accounts.length === 0) return;
 
   let fetched = 0, spamRouted = 0, failed = 0;
 
   for (const account of accounts) {
+    const claim = crypto.randomUUID();
+    const claimed = await dbPlatform.updateTable('user_email_accounts')
+      .set({ sync_claim_token: claim, sync_claim_until: new Date(Date.now() + 300_000) })
+      .where('tenant_id', '=', account.tenantId).where('id', '=', account.id)
+      .where(sql<boolean>`sync_claim_until IS NULL OR sync_claim_until < now()`)
+      .returning('id').executeTakeFirst();
+    if (!claimed) continue;
+    account.claimToken = claim;
+    const heartbeat = setInterval(() => {
+      void dbPlatform.updateTable('user_email_accounts').set({ sync_claim_until: new Date(Date.now() + 300_000) })
+        .where('tenant_id', '=', account.tenantId).where('id', '=', account.id).where('sync_claim_token', '=', claim).execute()
+        .catch(error => console.error('Mailbox sync claim renewal failed', error));
+    }, 60_000);
     try {
       const result = await ingestForAccount(account);
       fetched += result.fetched;
       spamRouted += result.spamRouted;
       await dbPlatform.updateTable('user_email_accounts')
-        .set({ last_synced_at: new Date(), last_sync_error: null })
-        .where('tenant_id', '=', account.tenantId).where('user_id', '=', account.userId).execute();
+        .set({ last_synced_at: result.incomplete ? null : new Date(), last_sync_error: result.incomplete ? 'Mailbox backfill is continuing; remote deletions are deferred until the inventory completes.' : null })
+        .where('tenant_id', '=', account.tenantId).where('id', '=', account.id).where('sync_claim_token', '=', claim).execute();
     } catch (err: any) {
       failed++;
       console.error(`❌ IMAP email ingest failed for user ${account.userId}:`, err.message);
@@ -138,6 +164,10 @@ export async function runImapEmailIngestJob(): Promise<void> {
         .set({ last_sync_error: err.message?.slice(0, 500) ?? 'Unknown IMAP error' })
         .where('tenant_id', '=', account.tenantId).where('user_id', '=', account.userId).execute()
         .catch(() => {});
+    } finally {
+      clearInterval(heartbeat);
+      await dbPlatform.updateTable('user_email_accounts').set({ sync_claim_token: null, sync_claim_until: null })
+        .where('tenant_id', '=', account.tenantId).where('id', '=', account.id).where('sync_claim_token', '=', claim).execute();
     }
   }
 
@@ -162,12 +192,13 @@ function looksLikeSpam(fromEmail: string, subject: string, blocklist: string[]):
   return exclaim >= 3 || (isShouty && exclaim >= 1);
 }
 
-async function ingestForAccount(account: EnabledAccount): Promise<{ fetched: number; spamRouted: number }> {
+async function ingestForAccount(account: EnabledAccount): Promise<{ fetched: number; spamRouted: number; incomplete: boolean }> {
   const client = new ImapFlow({
     host: account.host,
     port: account.port,
-    secure: account.encryption !== 'none',
-    auth: { user: account.user, pass: decryptSecret(account.pass) },
+    secure: account.encryption === 'ssl',
+    doSTARTTLS: account.encryption === 'tls',
+    auth: await resolveImapAuth(account.tenantId, account.userId),
     logger: false,
   });
 
@@ -175,34 +206,21 @@ async function ingestForAccount(account: EnabledAccount): Promise<{ fetched: num
 
   await client.connect();
   try {
-    const lock = await client.getMailboxLock('INBOX');
-    try {
-      for await (const msg of client.fetch({ seen: false }, { source: true, uid: true })) {
-        try {
-          const wentToSpam = await processMessage(account, msg.source as Buffer);
-          fetched++;
-          if (wentToSpam) spamRouted++;
-        } catch (err: any) {
-          console.error(`❌ IMAP email ingest — failed to process one message for user ${account.userId}:`, err.message);
-        }
-        if (account.markAsRead) {
-          await client.messageFlagsAdd(msg.uid, ['\\Seen'], { uid: true }).catch(() => {});
-        }
-      }
-    } finally {
-      lock.release();
-    }
+    const result = await synchronizeMailbox(client, account, (source, options) => processMessage(account, source, options));
     await client.logout();
+    return { fetched: result.imported, spamRouted, incomplete: result.incomplete };
   } catch (err) {
     client.close();
     throw err;
   }
 
-  return { fetched, spamRouted };
 }
 
 /** Exported so it's directly testable against a synthetic RFC822 buffer, without a live IMAP mailbox. */
-export async function processMessage(account: EnabledAccount, source: Buffer): Promise<boolean> {
+export async function processMessage(account: EnabledAccount, source: Buffer, options?: {
+  folder: ReturnType<typeof localMailboxFolder>; read: boolean; starred: boolean; automate: boolean;
+  onStored: (trx: Transaction<Database>, id: string) => Promise<void>;
+}): Promise<boolean> {
   const parsed = await simpleParser(source);
   const fromAddr = parsed.from?.value?.[0];
   const fromEmail = fromAddr?.address?.toLowerCase().trim() || 'unknown@unknown';
@@ -211,15 +229,16 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
   const content = parsed.text || (typeof parsed.html === 'string' ? sanitizeHtml(parsed.html, { allowedTags: [], allowedAttributes: {} }).trim() : '') || '';
   const toAddrs = (parsed.to && 'value' in parsed.to ? parsed.to.value : []).map(a => ({ name: a.name || a.address || '', email: a.address || '' }));
 
-  const isSpam = looksLikeSpam(fromEmail, subject, account.spamBlocklist);
+  const inbound = !options || options.folder === 'inbox';
+  const isSpam = inbound && looksLikeSpam(fromEmail, subject, account.spamBlocklist);
   const hasAttachmentFlag = (parsed.attachments ?? []).length > 0;
   const toStr = (parsed.to && 'value' in parsed.to ? parsed.to.value : []).map(a => a.address || '').join(',');
-  const filterOutcome = await applyInboundFilters(account.tenantId, account.userId, {
+  const filterOutcome = inbound ? await applyInboundFilters(account.tenantId, account.userId, {
     fromEmail, fromName, subject, content, to: toStr, hasAttachment: hasAttachmentFlag,
-  });
+  }) : { delete: false, archive: false, markRead: false, star: false, label: null };
   if (filterOutcome.delete) return isSpam; // matched a "delete it" filter — never stored at all
 
-  if (!isSpam) await maybeSendVacationReply(account, fromEmail, subject);
+  if (!isSpam && (!options || options.automate)) await maybeSendVacationReply(account, fromEmail, subject);
 
   // Real inbound attachments — mailparser hands back the actual bytes;
   // stored via the same MinioIntegration path outbound compose attachments
@@ -232,7 +251,7 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
       const up = await MinioIntegration.uploadEmailAttachment(account.tenantId, account.userId, att.filename || 'attachment', att.content);
       attachments.push({ storageKey: up.storageKey, filename: att.filename || 'attachment', size: up.size });
     } catch (err: any) {
-      console.error(`❌ IMAP email ingest — failed to store an attachment for user ${account.userId}:`, err.message);
+      throw new Error(`Unable to store ${att.filename || 'attachment'}: ${err.message}`);
     }
   }
 
@@ -240,19 +259,22 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
   // responder, checked here (not gated on isSpam) so a forwarding rule set
   // up for "everything" genuinely means everything; a spam-routed message
   // still gets a folder value of 'spam' below regardless of forwardKeepCopy.
-  if (account.forwardToEmail && !isSpam) {
+  if (account.forwardToEmail && !isSpam && (!options || options.automate)) {
+    let forwarded = false;
     try {
-      await MailService.sendNow(account.tenantId, {
+      const result = await MailService.sendNow(account.tenantId, {
         to: account.forwardToEmail,
         subject: `Fwd: ${subject}`,
         bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6;">Forwarded message from ${fromName} &lt;${fromEmail}&gt;:</div><div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; white-space: pre-wrap; margin-top: 12px;">${content}</div>`,
         sourceApp: 'email-forwarding',
+        userId: account.userId,
         attachments: attachments.map(a => ({ storageKey: a.storageKey, filename: a.filename })),
       });
+      forwarded = result.success && !result.simulated;
     } catch (err: any) {
       console.error(`❌ Auto-forward failed for user ${account.userId}:`, err.message);
     }
-    if (!account.forwardKeepCopy) return isSpam; // forwarded, no local copy kept
+    if (forwarded && !account.forwardKeepCopy) return isSpam;
   }
 
   // Real RFC 5322 threading — mailparser exposes messageId/references/
@@ -272,6 +294,7 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
     let threadId: string | null = null;
     if (referenceIds.length) {
       const match = await trx.selectFrom('email_messages').select(['thread_id'])
+        .where('tenant_id', '=', account.tenantId)
         .where('user_id', '=', account.userId)
         .where('message_id', 'in', referenceIds)
         .executeTakeFirst();
@@ -282,6 +305,7 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
       const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
       const candidates = await trx.selectFrom('email_messages')
         .select(['thread_id', 'subject'])
+        .where('tenant_id', '=', account.tenantId)
         .where('user_id', '=', account.userId)
         .where('created_at', '>=', cutoff)
         .where('from_email', '=', fromEmail)
@@ -296,16 +320,16 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
       id,
       tenant_id: account.tenantId,
       user_id: account.userId,
-      folder: isSpam ? 'spam' : (filterOutcome.archive ? 'archive' : 'inbox'),
+      folder: isSpam ? 'spam' : (filterOutcome.archive ? 'archive' : options?.folder ?? 'inbox'),
       from_name: fromName,
       from_email: fromEmail,
       to_addresses: JSON.stringify(toAddrs),
-      cc_addresses: JSON.stringify([]),
+      cc_addresses: JSON.stringify((parsed.cc && 'value' in parsed.cc ? parsed.cc.value : []).map(a => ({ name: a.name || a.address || '', email: a.address || '' }))),
       subject,
       body: content,
       snippet: content.slice(0, 120),
-      read: filterOutcome.markRead,
-      starred: filterOutcome.star,
+      read: filterOutcome.markRead || options?.read || false,
+      starred: filterOutcome.star || options?.starred || false,
       labels: JSON.stringify(filterOutcome.label ? [filterOutcome.label] : []),
       has_attachment: attachments.length > 0,
       attachments: JSON.stringify(attachments),
@@ -315,6 +339,15 @@ export async function processMessage(account: EnabledAccount, source: Buffer): P
       thread_id: threadId ?? id,
       created_at: parsed.date ?? new Date(),
     }).execute();
+    if (options) {
+      await options.onStored(trx, id);
+      const folder = isSpam ? 'spam' : filterOutcome.archive ? 'archive' : options.folder;
+      await queueRemotePatch(trx, account.tenantId, account.userId, [id], {
+        ...(folder !== options.folder ? { folder } : {}),
+        ...(filterOutcome.markRead || account.markAsRead ? { read: true } : {}),
+        ...(filterOutcome.star ? { starred: true } : {}),
+      });
+    }
     return isSpam;
   });
 }

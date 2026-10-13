@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
@@ -84,15 +85,50 @@ export function OnsiteActivity() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {activities.map((a) => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-subtle, #f8fafc)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Icon name="clock" size={16} style={{ color: 'var(--ink3)' }} />
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{describe(a)}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>By: {a.actor_name || 'System'}</div>
+                <div
+                  key={a.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    padding: '0.875rem 1rem',
+                    borderRadius: 'var(--r-sm)',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', minWidth: 0, flex: '1 1 240px' }}>
+                    <div style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '50%',
+                      background: 'var(--card-bg, var(--white))',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Icon name="clock" size={16} style={{ color: 'var(--ink2)' }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--ink)' }}>{describe(a)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', fontSize: '0.75rem', color: 'var(--ink2)' }}>
+                        <span>By:</span>
+                        {a.actor_name ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 500, color: 'var(--ink)' }}>
+                            <PersonAvatar name={a.actor_name} size={18} />
+                            {a.actor_name}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--ink3)' }}>System</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
                     {new Date(a.created_at).toLocaleString()}
                   </div>
                 </div>

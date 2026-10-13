@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
-import { snapshotTenant, restoreSnapshot, type OnsiteConfigSnapshot } from '../services/onsite-backup.service.js';
+import { snapshotTenant, restoreSnapshot, validateSnapshot, summarizeRestore } from '../services/onsite-backup.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
 const DEFAULT_RETENTION_DAYS = 30;
@@ -58,6 +58,22 @@ export async function onsiteBackupsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/:id/restore-preview', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const tenantId = request.user.tenant_id;
+    const backup = await withTenant(tenantId, trx => trx.selectFrom('onsite_backups').selectAll()
+      .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!backup) return reply.status(404).send({ error: 'Backup not found' });
+    if (backup.status !== 'completed') return reply.status(400).send({ error: 'Only completed backups can be restored' });
+    try {
+      const snapshot = validateSnapshot(tenantId, typeof backup.snapshot === 'string' ? JSON.parse(backup.snapshot) : backup.snapshot);
+      const current = await snapshotTenant(tenantId);
+      return { sections: summarizeRestore(current.snapshot, snapshot) };
+    } catch {
+      return reply.status(400).send({ error: 'Unable to preview this configuration snapshot' });
+    }
+  });
+
   fastify.post('/:id/restore', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const tenantId = request.user.tenant_id;
@@ -66,7 +82,12 @@ export async function onsiteBackupsRoutes(fastify: FastifyInstance) {
     if (!backup) return reply.status(404).send({ error: 'Backup not found' });
     if (backup.status !== 'completed') return reply.status(400).send({ error: 'This backup did not complete successfully and cannot be restored' });
 
-    const snapshot = (typeof backup.snapshot === 'string' ? JSON.parse(backup.snapshot) : backup.snapshot) as OnsiteConfigSnapshot;
+    let snapshot;
+    try {
+      snapshot = validateSnapshot(tenantId, typeof backup.snapshot === 'string' ? JSON.parse(backup.snapshot) : backup.snapshot);
+    } catch {
+      return reply.status(400).send({ error: 'Invalid configuration snapshot' });
+    }
     await restoreSnapshot(tenantId, snapshot);
 
     await withTenant(tenantId, trx => emitDomainEvent(trx, tenantId, {

@@ -6,6 +6,7 @@ import { TRIGGERS, type AppId } from '../studio/triggers.js';
 import { ACTIONS } from '../studio/actions.js';
 import { TEMPLATES, TEMPLATES_BY_ID } from '../studio/templates.js';
 import { executeAndRecord } from '../studio/executor.js';
+import { validateExecutableGraph } from '../studio/validation.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -98,6 +99,7 @@ const APP_META: Record<AppId, { name: string; color: string }> = {
   email:        { name: 'Email',        color: '#0078d4' },
   onsite:       { name: 'Onsite',       color: '#0f172a' },
   tasks:        { name: 'Tasks',        color: '#0f766e' },
+  projects:     { name: 'Projects',     color: '#0f766e' },
   workspace:    { name: 'Admin',        color: '#64748b' },
 };
 
@@ -122,6 +124,9 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
   server.addHook('preHandler', async (request: any, reply) => {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
+    }
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && !['TENANT_ADMIN', 'SUPER_ADMIN'].includes(request.user.role)) {
+      return reply.status(403).send({ error: 'Workspace administrators manage and execute Studio workflows' });
     }
   });
 
@@ -229,6 +234,126 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
     return reply.send({ data: rows });
   });
 
+  server.get<{ Params: { id: string } }>('/runs/:id', async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.code(400).send({ error: 'Invalid run id' });
+    const row = await withTenant(request.user.tenant_id, trx => trx.selectFrom('workflow_studio_runs')
+      .select(['id', 'workflow_id', 'status', 'trigger_source', 'domain_event_id', 'created_at', 'error_message', 'step_results', 'reconciliation', 'cancellation', 'cancellation_acknowledged_at', 'active_step', 'worker_expires_at'])
+      .where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst());
+    if (!row) return reply.code(404).send({ error: 'Run not found' });
+    const steps = typeof row.step_results === 'string' ? JSON.parse(row.step_results) : row.step_results;
+    // Review needs execution evidence, not arbitrary action outputs or credentials.
+    return reply.send({ data: { ...row, step_results: Array.isArray(steps) ? steps.map((s: any) => ({
+      node_id: s.node_id, node_type: s.node_type, title: s.title, status: s.status, duration_ms: s.duration_ms, error: s.error, iteration: s.iteration,
+    })) : [], reconciliation: typeof row.reconciliation === 'string' ? JSON.parse(row.reconciliation) : row.reconciliation } });
+  });
+
+  server.post<{ Params: { id: string } }>('/runs/:id/cancel', async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.code(400).send({ error: 'Invalid run id' });
+    const body = z.object({ confirmed: z.literal(true), reason: z.string().trim().min(10).max(1000) }).strict().safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: 'Confirm cancellation and provide a reason (10–1000 characters)' });
+    const tenantId = request.user.tenant_id;
+    const result = await withTenant(tenantId, async trx => {
+      const run = await trx.selectFrom('workflow_studio_runs').select(['id', 'status', 'cancellation'])
+        .where('tenant_id', '=', tenantId).where('id', '=', request.params.id).forUpdate().executeTakeFirst();
+      if (!run) return { code: 404, error: 'Run not found' };
+      if (run.status !== 'RUNNING') return { code: 409, error: 'This run has already finished' };
+      if (run.cancellation != null) return { code: 409, error: 'Cancellation has already been requested' };
+      await trx.updateTable('workflow_studio_runs').set({ cancellation: JSON.stringify({
+        actor_id: request.user.sub, actor_name: request.user.name, reason: body.data.reason, requested_at: new Date().toISOString(),
+      }) }).where('tenant_id', '=', tenantId).where('id', '=', run.id).execute();
+      return { code: 202, error: null };
+    });
+    return result.error ? reply.code(result.code).send({ error: result.error }) : reply.code(202).send({ data: { requested: true } });
+  });
+
+  server.post<{ Params: { id: string } }>('/runs/:id/reconcile', async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.code(400).send({ error: 'Invalid run id' });
+    const body = z.object({ confirmed: z.literal(true), outcome: z.enum(['effects_verified', 'closed_without_replay']),
+      evidence: z.string().trim().min(20).max(3000) }).strict().safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: 'Confirm the review and provide evidence (20–3000 characters)' });
+    const tenantId = request.user.tenant_id;
+    const result = await withTenant(tenantId, async trx => {
+      const run = await trx.selectFrom('workflow_studio_runs').select(['id', 'status', 'created_at', 'reconciliation'])
+        .where('tenant_id', '=', tenantId).where('id', '=', request.params.id).forUpdate().executeTakeFirst();
+      if (!run) return { code: 404, error: 'Run not found' };
+      if (run.reconciliation != null) return { code: 409, error: 'This run already has an immutable review record' };
+      if (!['RUNNING', 'FAILED', 'PARTIAL'].includes(run.status)) return { code: 409, error: 'Only unfinished or failed runs need reconciliation' };
+      if (run.status === 'RUNNING' && Date.now() - new Date(run.created_at).getTime() < 30 * 60_000) {
+        return { code: 409, error: 'This run may still be executing; review is available after 30 minutes' };
+      }
+      await trx.updateTable('workflow_studio_runs').set({ reconciliation: JSON.stringify({
+        actor_id: request.user.sub, actor_name: request.user.name, outcome: body.data.outcome, evidence: body.data.evidence,
+        status_at_review: run.status, reviewed_at: new Date().toISOString(),
+      }) }).where('tenant_id', '=', tenantId).where('id', '=', run.id).execute();
+      return { code: 200, error: null };
+    });
+    return result.error ? reply.code(result.code).send({ error: result.error }) : reply.send({ data: { reviewed: true } });
+  });
+
+  server.get('/deliveries', async (request, reply) => {
+    const query = z.object({ status: z.enum(['pending', 'processing', 'delivered', 'dead']).optional(),
+      limit: z.coerce.number().int().min(1).max(100).default(30) }).safeParse(request.query);
+    if (!query.success) return reply.code(400).send({ error: 'Invalid delivery filters' });
+    const tenantId = request.user.tenant_id;
+    const rows = await withTenant(tenantId, trx => trx.selectFrom('studio_event_outbox as o')
+      .innerJoin('domain_events as e', join => join.onRef('e.id', '=', 'o.event_id').on('e.tenant_id', '=', tenantId))
+      .select(['o.id', 'o.event_id', 'o.status', 'o.attempts', 'o.available_at', 'o.error_message', 'o.created_at', 'e.event_type'])
+      .where('o.tenant_id', '=', tenantId)
+      .$if(Boolean(query.data.status), q => q.where('o.status', '=', query.data.status!))
+      .orderBy('o.created_at', 'desc').limit(query.data.limit).execute());
+    return reply.send({ data: rows });
+  });
+
+  server.get<{ Params: { id: string } }>('/deliveries/:id', async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.code(400).send({ error: 'Invalid delivery id' });
+    const tenantId = request.user.tenant_id;
+    const data = await withTenant(tenantId, async trx => {
+      const delivery = await trx.selectFrom('studio_event_outbox').select(['id', 'event_id', 'status', 'attempts', 'available_at', 'error_message', 'created_at'])
+        .where('tenant_id', '=', tenantId).where('id', '=', request.params.id).executeTakeFirst();
+      if (!delivery) return null;
+      const runs = await trx.selectFrom('workflow_studio_runs').select(['id', 'workflow_id', 'status', 'error_message', 'created_at', 'reconciliation'])
+        .where('tenant_id', '=', tenantId).where('domain_event_id', '=', delivery.event_id).execute();
+      const recoveries = await trx.selectFrom('studio_delivery_recoveries as h')
+        .innerJoin('users as u', join => join.onRef('u.id', '=', 'h.actor_id').on('u.tenant_id', '=', tenantId))
+        .selectAll('h').select('u.name as actor_name')
+        .where('h.tenant_id', '=', tenantId).where('h.delivery_id', '=', delivery.id).orderBy('h.created_at', 'desc').execute();
+      return { ...delivery, runs, recoveries };
+    });
+    return data ? reply.send({ data }) : reply.code(404).send({ error: 'Delivery not found' });
+  });
+
+  server.post<{ Params: { id: string } }>('/deliveries/:id/retry', async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.code(400).send({ error: 'Invalid delivery id' });
+    const body = z.object({ confirmed: z.literal(true), reason: z.string().trim().min(10).max(1000) }).strict().safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: 'Confirm retry and provide a review reason (10–1000 characters)' });
+    const tenantId = request.user.tenant_id;
+    const result = await withTenant(tenantId, async trx => {
+      const row = await trx.selectFrom('studio_event_outbox').selectAll().where('tenant_id', '=', tenantId)
+        .where('id', '=', request.params.id).forUpdate().executeTakeFirst();
+      if (!row) return { code: 404, error: 'Delivery not found' };
+      if (row.status !== 'dead') return { code: 409, error: 'Only dead deliveries can be retried' };
+      const event = await trx.selectFrom('domain_events').select('event_type').where('tenant_id', '=', tenantId)
+        .where('id', '=', row.event_id).executeTakeFirst();
+      const snapshots = typeof row.workflow_snapshots === 'string' ? JSON.parse(row.workflow_snapshots) : row.workflow_snapshots;
+      if (!Array.isArray(snapshots) || snapshots.some(w => !w || w.tenant_id !== tenantId || w.trigger_event !== event?.event_type || typeof w.id !== 'string' ||
+        validateExecutableGraph(w.trigger_event, w.nodes, w.edges).length > 0)) {
+        return { code: 409, error: 'Delivery has no valid frozen graph; recreate the automation after review' };
+      }
+      const uncertain = await trx.selectFrom('workflow_studio_runs').select('id').where('tenant_id', '=', tenantId)
+        .where('domain_event_id', '=', row.event_id).where(eb => eb.or([
+          eb('status', '=', 'RUNNING'),
+          eb.and([eb('status', 'not in', ['SUCCESS', 'SIMULATED']), eb('reconciliation', 'is', null)]),
+        ])).executeTakeFirst();
+      if (uncertain) return { code: 409, error: 'A run is unfinished or failed; reconcile its effects before recovery. Retry cannot replay this run.' };
+      await trx.insertInto('studio_delivery_recoveries').values({ tenant_id: tenantId, delivery_id: row.id,
+        actor_id: request.user.sub, reason: body.data.reason, previous_attempts: row.attempts }).execute();
+      await trx.updateTable('studio_event_outbox').set({ status: 'pending', attempts: 0, available_at: new Date(), lease_id: null, error_message: null })
+        .where('tenant_id', '=', tenantId).where('id', '=', row.id).execute();
+      return { code: 202, error: null };
+    });
+    return result.error ? reply.code(result.code).send({ error: result.error }) : reply.code(202).send({ data: { status: 'pending' } });
+  });
+
   // ── GET /v1/workflow-studio/templates ────────────────────────────────────────
   server.get('/templates', async (_request: FastifyRequest, reply: FastifyReply) => {
     return reply.send({
@@ -313,13 +438,11 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
     }
 
     const defaultNodes = body.nodes || [
-      { id: 'node-1', type: 'trigger', title: 'Trigger Event', subtitle: `Event: ${body.trigger_event}`, eventOrAction: body.trigger_event, position: { x: 100, y: 80 }, config: {} },
-      { id: 'node-2', type: 'action', title: 'Action Step', subtitle: 'Action: send_email', eventOrAction: 'send_email', position: { x: 100, y: 220 }, config: {} }
+      { id: 'node-1', type: 'trigger', title: 'Trigger Event', subtitle: `Event: ${body.trigger_event}`, eventOrAction: body.trigger_event, position: { x: 100, y: 80 }, config: {} }
     ];
 
-    const defaultEdges = body.edges || [
-      { id: 'edge-1', source: 'node-1', target: 'node-2' }
-    ];
+    const defaultEdges = body.edges || [];
+    if (body.status === 'ACTIVE') return reply.status(400).send({ error: 'Create the workflow as a draft, then validate and activate it' });
 
     const rawApp = await withTenant(tenantId, async (trx) => {
       return await trx
@@ -330,7 +453,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
           description: body.description || null,
           icon: body.icon || 'zap',
           color: body.color || '#4361ee',
-          status: body.status || 'ACTIVE',
+          status: body.status || 'DRAFT',
           trigger_event: body.trigger_event,
           trigger_config: JSON.stringify(body.trigger_config || {}),
           nodes: JSON.stringify(defaultNodes),
@@ -373,6 +496,14 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
     const tenantId = request.user.tenant_id;
     const { id } = request.params;
     const body = workflowAppPatchSchema.parse(request.body);
+    const existing = await withTenant(tenantId, trx => trx.selectFrom('workflow_studio_apps').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst());
+    if (!existing) return reply.status(404).send({ error: 'Workflow app not found' });
+    const candidate = { ...hydrate(existing), ...body };
+    if (candidate.status === 'ACTIVE') {
+      const errors = validateExecutableGraph(candidate.trigger_event, candidate.nodes, candidate.edges);
+      if (errors.length) return reply.status(400).send({ error: 'Workflow cannot be activated', message: errors.join('; ') });
+    }
 
     const updateData: any = {
       updated_at: new Date(),
@@ -401,12 +532,13 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
         .set(updateData)
         .where('id', '=', id)
         .where('tenant_id', '=', tenantId)
+        .where('updated_at', '=', existing.updated_at)
         .returningAll()
         .executeTakeFirst();
     });
 
     if (!rawUpdated) {
-      return reply.status(404).send({ error: 'NOT_FOUND', message: 'Workflow app not found' });
+      return reply.status(409).send({ error: 'CONFLICT', message: 'Workflow changed while saving. Reload and retry.' });
     }
 
     return reply.send({ data: hydrate(rawUpdated) });
@@ -490,9 +622,10 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
         .where('tenant_id', '=', tenantId)
         .executeTakeFirstOrThrow());
 
+      const { worker_token: _workerToken, ...publicRun } = rawRun;
       return reply.send({
         data: {
-          ...rawRun,
+          ...publicRun,
           payload: typeof rawRun.payload === 'string' ? JSON.parse(rawRun.payload) : rawRun.payload,
           step_results: typeof rawRun.step_results === 'string' ? JSON.parse(rawRun.step_results) : rawRun.step_results,
         },
@@ -520,7 +653,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
         .execute();
     });
 
-    const runs = rawRuns.map(r => ({
+    const runs = rawRuns.map(({ worker_token: _workerToken, ...r }) => ({
       ...r,
       payload: typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload,
       step_results: typeof r.step_results === 'string' ? JSON.parse(r.step_results) : r.step_results,

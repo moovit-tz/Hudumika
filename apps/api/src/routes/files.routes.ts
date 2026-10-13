@@ -796,7 +796,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
 
       if (parentId) await bumpParentCount(trx, parentId, user.tenant_id, 1, source.size);
 
-      emitDomainEvent(trx, user.tenant_id, {
+      await emitDomainEvent(trx, user.tenant_id, {
         type: 'file.uploaded', sourceApp: 'cloud', entityType: 'document', entityId: updated.id,
         payload: { name: updated.name, size: source.size, type: updated.type },
         actorId: isCustomer ? null : user.sub,

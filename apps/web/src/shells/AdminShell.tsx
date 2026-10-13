@@ -10,6 +10,7 @@ import { RequireRoles } from '../components/RequireRoles.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 
 import { Settings, NAV as SETTINGS_NAV } from '../pages/Settings.js';
+import { WorkspaceMailProviders } from '../pages/WorkspaceMailProviders.js';
 import { Team } from '../pages/Team.js';
 import { Utilities }         from '../pages/Utilities.js';
 import { Reports }           from '../pages/Reports.js';
@@ -55,6 +56,7 @@ export function AdminShell() {
       title: 'MANAGEMENT',
       items: [
         ...settingsSidebarItems,
+        ...(user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role) ? [{ label: 'Mail providers', icon: 'mail' as const, path: '/workspace/mail-providers' }] : []),
         ...(hasTeamPermission ? [
           { label: 'Team',         icon: 'users' as const,     path: '/workspace/team'      },
         ] : []),
@@ -90,6 +92,7 @@ export function AdminShell() {
             <Route index element={<Navigate to="/workspace/settings?s=company" replace />} />
             <Route element={<PageLayout />}>
               <Route path="settings"  element={<RequireRoles roles={MGMT_ROLES} permissions={['api_keys.manage', 'settings.manage']}><Settings /></RequireRoles>} />
+              <Route path="mail-providers" element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']}><WorkspaceMailProviders /></RequireRoles>} />
               <Route path="team"      element={<RequireRoles roles={MGMT_ROLES} permissions={['team.manage']}><Team /></RequireRoles>} />
               <Route path="utilities" element={<RequireRoles roles={MGMT_ROLES}><Utilities /></RequireRoles>} />
               <Route path="reports"   element={<RequireRoles roles={[...MGMT_ROLES, 'FINANCE']} permissions={['reports.manage']}><Reports /></RequireRoles>} />

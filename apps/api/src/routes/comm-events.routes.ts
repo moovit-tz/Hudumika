@@ -6,11 +6,16 @@ import { COMM_EVENT_REGISTRY } from '../config/comm-event-registry.js';
 import { CommEventsService } from '../services/comm-events.service.js';
 import crypto from 'node:crypto';
 import { sanitizeEmailHtml } from './email-meta.routes.js';
+import { reconcileEmailHistory } from '../services/email-reconciliation.service.js';
 
 export async function commEventsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', async (req: any, reply) => {
     if (req.user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for this account type.' });
+  });
+  fastify.post('/deliveries/reconcile', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async request => {
+    const { apply } = z.object({ apply: z.boolean().default(false) }).parse(request.body ?? {});
+    return reconcileEmailHistory(request.user.tenant_id, apply);
   });
 
   // GET /v1/comm/events — list all registered events with tenant config overlay

@@ -1,4 +1,5 @@
 import React from 'react';
+import { OnsiteMailSetup } from '../pages/onsite/OnsiteMailSetup.js';
 import { Routes, Route } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -101,6 +102,7 @@ export function OnsiteShell() {
                 <Route path="domains/:id" element={<OnsiteDomainDetail />} />
                 <Route path="domains/:domainId/dns" element={<OnsiteDNS />} />
                 <Route path="emails" element={<OnsiteEmails />} />
+                <Route path="emails/:id/setup" element={<OnsiteMailSetup />} />
                 <Route path="services" element={<OnsiteServices />} />
                 <Route path="support" element={<OnsiteSupport />} />
                 <Route path="agency/clients" element={<OnsiteAgencyClients />} />

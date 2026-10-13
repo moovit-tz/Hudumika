@@ -1,60 +1,49 @@
-/**
- * Onsite RDAP availability lookup.
- *
- * /domains/search-lookup used to answer `available: true` for every query,
- * regardless of whether the domain was actually taken — no registrar or
- * WHOIS/RDAP call was ever made. This is the real check: RDAP (RFC 7482+) is
- * the IANA-standardized, free, no-API-key successor to WHOIS, and rdap.org
- * is IANA's own public bootstrap redirector — it resolves a domain to
- * whichever registry actually holds it (Verisign for .com, tzNIC for .tz,
- * etc.) and forwards the request. A 200 means the registry has a record for
- * the name (registered); a 404 means it doesn't (available). Verified live
- * against rdap.org for example.com (200), hudumika.tz (200, via tzNIC's own
- * RDAP server) and a made-up name (404) before wiring this in.
- *
- * A convenience gateway, not the only source of truth — worth hardening to
- * query the IANA bootstrap registry + each registry's RDAP server directly
- * if this sees real purchase volume later, but real and live beats the
- * hardcoded `available: true` this replaces.
- */
-
-export interface RdapLookupResult {
-  domain: string;
-  available: boolean;
-  /** Set when the lookup itself failed (network/timeout) — distinct from a
-   *  successful lookup that found the domain unregistered. */
-  error: string | null;
+/** Registry endpoints come from IANA; a shared redirect gateway can block all TLDs. */
+export interface RdapLookupResult { domain: string; available: boolean; error: string | null }
+type Bootstrap = { services: [string[], string[]][] };
+const TIMEOUT_MS = 10_000;
+let cached: { data: Bootstrap; expires: number } | null = null;
+let loading: Promise<Bootstrap> | null = null;
+async function registryDirectory(): Promise<Bootstrap> {
+  if (cached && cached.expires > Date.now()) return cached.data;
+  if (loading) return loading;
+  loading = (async () => {
+    const response = await fetch('https://data.iana.org/rdap/dns.json', { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!response.ok) throw new Error('Registry directory unavailable');
+    const data = await response.json() as Bootstrap;
+    if (!Array.isArray(data.services) || !data.services.every(s => Array.isArray(s) && Array.isArray(s[0]) && Array.isArray(s[1]) && s[0].every(v => typeof v === 'string') && s[1].every(v => typeof v === 'string'))) throw new Error('Invalid registry directory');
+    cached = { data, expires: Date.now() + 6 * 60 * 60_000 };
+    return data;
+  })();
+  try { return await loading; } finally { loading = null; }
 }
-
-const RDAP_TIMEOUT_MS = 6000;
-
 export async function checkDomainAvailability(domain: string): Promise<RdapLookupResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), RDAP_TIMEOUT_MS);
+  domain = domain.trim().toLowerCase();
+  if (domain.length > 253 || !domain.includes('.') || !domain.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return { domain, available: false, error: 'Enter a valid domain name without a URL or path.' };
   try {
-    const res = await fetch(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
-      headers: { Accept: 'application/rdap+json' },
-      signal: controller.signal,
-    });
-    if (res.status === 404) return { domain, available: true, error: null };
-    if (res.ok) return { domain, available: false, error: null };
-    // Neither a clean "registered" nor "not found" — the lookup didn't
-    // actually answer the question, so this must not be reported as
-    // available (the opposite mistake to the one being fixed here).
-    return { domain, available: false, error: `RDAP lookup returned HTTP ${res.status}` };
-  } catch (err: any) {
-    const aborted = err?.name === 'AbortError';
-    return {
-      domain, available: false,
-      error: aborted ? `RDAP lookup timed out after ${RDAP_TIMEOUT_MS}ms` : `RDAP lookup failed: ${err?.message ?? err}`,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+    const directory = await registryDirectory();
+    const tld = domain.split('.').at(-1)!;
+    const endpoints = directory.services.find(([tlds]) => tlds.includes(tld))?.[1] ?? [];
+    if (!endpoints.length) return { domain, available: false, error: `.${tld} has no RDAP service listed by IANA. Check availability with a connected registrar.` };
+    let error = 'The registry could not be reached. Please retry.';
+    for (const base of endpoints.slice(0, 2)) {
+      try {
+        const url = new URL(`domain/${encodeURIComponent(domain)}`, base.endsWith('/') ? base : `${base}/`);
+        if (!['https:', 'http:'].includes(url.protocol)) continue;
+        const response = await fetch(url, { headers: { Accept: 'application/rdap+json' }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+        if (response.status === 404) return { domain, available: true, error: null };
+        if (response.ok) {
+          const record = await response.json();
+          if (record.objectClassName === 'domain') return { domain, available: false, error: null };
+          error = 'The registry returned an unexpected response. Please retry.';
+        } else error = response.status === 429 ? 'The registry is rate limiting lookups. Please retry later.' : `The registry rejected the lookup (HTTP ${response.status}). Please retry or check with your registrar.`;
+      } catch (cause) {
+        error = cause instanceof Error && ['TimeoutError', 'AbortError'].includes(cause.name) ? 'The registry lookup timed out. Please retry.' : 'The registry could not be reached. Please retry.';
+      }
+    }
+    return { domain, available: false, error };
+  } catch { return { domain, available: false, error: 'The registry directory could not be loaded. Please retry.' }; }
 }
-
-/** Looks up every TLD candidate for a base name in parallel — one query per
- *  TLD, since RDAP has no batch/multi-name endpoint. */
 export async function checkAvailabilityForTlds(baseName: string, tlds: string[]): Promise<RdapLookupResult[]> {
   return Promise.all(tlds.map(tld => checkDomainAvailability(`${baseName}${tld}`)));
 }

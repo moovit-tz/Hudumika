@@ -39,6 +39,8 @@ export function ProjectTeamPage() {
   const [teamPage, setTeamPage] = useState(1);
   const [teamPageSize, setTeamPageSize] = useState(25);
 
+  useEffect(() => { setTeamPage(1); }, [search, projectFilter, teamPageSize]);
+
   async function load() {
     setLoading(true);
     setError('');
@@ -95,7 +97,6 @@ export function ProjectTeamPage() {
   }, [rows]);
 
   const filteredMembers = useMemo(() => {
-    setTeamPage(1);
     return userAggregates.filter(member => {
       if (projectFilter !== 'all' && !member.projects.some(p => p.id === projectFilter)) {
         return false;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
 
 /**
  * A capability Onsite does not have yet, said plainly.
@@ -39,8 +40,8 @@ export function NotProvisioned({
       <h3 className="onsite-unprovisioned-title">{title}</h3>
       <p className="onsite-unprovisioned-what">{what}</p>
       <p className="onsite-unprovisioned-needs">{needs}</p>
-      <Link to="/onsite/settings" className="btn btn-secondary btn-sm">
-        Provider connections
+      <Link to="/onsite/settings">
+        <Button variant="outline">Provider connections</Button>
       </Link>
     </div>
   );

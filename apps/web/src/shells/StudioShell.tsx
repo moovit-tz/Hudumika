@@ -22,6 +22,8 @@ import { ClearanceWorkflowList }    from '../pages/studio/ClearanceWorkflowList.
 import { ClearanceWorkflowBuilder } from '../pages/studio/ClearanceWorkflowBuilder.js';
 import { TemplateGallery } from '../pages/studio/TemplateGallery.js';
 import { CatalogPage }     from '../pages/studio/CatalogPage.js';
+import { RunReviewPage } from '../pages/studio/RunReviewPage.js';
+import { DeliveriesPage } from '../pages/studio/DeliveriesPage.js';
 import { RunsPage }        from '../pages/studio/RunsPage.js';
 
 /**
@@ -42,7 +44,7 @@ const NAV: SidebarSection[] = [
   },
   {
     title: 'MONITOR',
-    items: [{ label: 'Runs', icon: 'clock', path: '/studio/runs' }],
+    items: [{ label: 'Runs', icon: 'clock', path: '/studio/runs' }, { label: 'Deliveries', icon: 'layers', path: '/studio/deliveries' }],
   },
   {
     title: 'REFERENCE',
@@ -73,6 +75,9 @@ export function StudioShell() {
                 <Route path="new"       element={<WorkflowNew />} />
                 <Route path="templates" element={<TemplateGallery />} />
                 <Route path="runs"      element={<RunsPage />} />
+                <Route path="runs/:id" element={<RunReviewPage />} />
+                <Route path="deliveries" element={<DeliveriesPage />} />
+                <Route path="deliveries/:id" element={<DeliveriesPage />} />
                 <Route path="catalog"   element={<CatalogPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/studio" replace />} />

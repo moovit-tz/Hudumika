@@ -156,10 +156,8 @@ describe('Project OS core (migration 448) — tenant isolation', () => {
 });
 
 // ── Schema contract: what the DB actually enforces (migration 448) ─────────
-// These pin the real CHECK sets. packages/types/src/project-os.ts currently
-// declares `ProjectHealthStatus` including 'critical' and lowercase
-// portfolio statuses — both are rejected by the DB. Fix the types toward
-// these values (see the hardening review), not the other way.
+// These pin the real CHECK sets. ProjectHealthStatus now matches the DB:
+// GREEN, AMBER, RED only (no 'critical').
 describe('Project OS core (migration 448) — schema contract', () => {
   let A: TestTenant;
   let proj: string;

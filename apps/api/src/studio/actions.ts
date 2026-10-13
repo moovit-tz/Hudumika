@@ -4,6 +4,8 @@ import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { withTenant } from '../db/client.js';
 import { NotificationService } from '../services/notification.service.js';
+import { CommEventsService } from '../services/comm-events.service.js';
+import { COMM_EVENT_MAP } from '../config/comm-event-registry.js';
 import { SealService } from '../services/seal.service.js';
 import { fireNotificationTrigger } from '../routes/support.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
@@ -69,6 +71,28 @@ export interface ActionDef {
 const SLA_HOURS: Record<string, number> = { URGENT: 4, HIGH: 8, NORMAL: 24, LOW: 48 };
 
 export const ACTIONS: ActionDef[] = [
+  {
+    id: 'email.send_communication', app: 'email',
+    label: 'Send a workspace email',
+    description: 'Queue a registered communication using workspace templates, configured channels and delivery tracking.',
+    requiredEntitlement: 'email',
+    inputSchema: z.object({
+      eventKey: z.string().refine(value => COMM_EVENT_MAP.has(value), 'Choose a registered communication'),
+      to: z.string().email(), context: z.record(z.string(), z.unknown()).default({}),
+      idempotencyKey: z.string().min(1).max(200),
+    }),
+    async execute(ctx, input) {
+      const request = { tenantId: ctx.tenantId, eventKey: input.eventKey,
+        context: { ...ctx.payload, ...input.context }, idempotencyKey: input.idempotencyKey,
+        manualRecipients: [{ email: input.to, type: 'TO' as const }] };
+      if (ctx.simulate) {
+        const preview = await CommEventsService.render(request);
+        return { ok: true, detail: `Would queue email: ${preview.subject}`, output: { subject: preview.subject } };
+      }
+      const result = await CommEventsService.dispatch(request);
+      return { ok: true, detail: result.duplicate ? 'Communication was already queued.' : 'Email queued for delivery.', output: { deliveryIds: result.deliveryIds } };
+    },
+  },
   {
     id: 'notification.send_in_app',
     app: 'studio',

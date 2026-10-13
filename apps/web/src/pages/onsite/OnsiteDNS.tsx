@@ -10,6 +10,7 @@ import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group.js';
 import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import { Input } from '../../components/ui/input.js';
 import { Card } from '../../components/ui/card.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -306,9 +307,9 @@ export function OnsiteDNS() {
                 {visibleRecords.map((r) => (
                   <tr key={r.id}>
                     <td data-label="Type">
-                      <span className="onsite-badge" style={{ background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 700 }}>
+                      <Badge variant="brand">
                         {r.type}
-                      </span>
+                      </Badge>
                     </td>
                     <td data-label="Name" className="onsite-mono" style={{ fontWeight: 600 }}>{r.name}</td>
                     <td data-label="Value" className="onsite-mono onsite-dns-value">
@@ -453,9 +454,9 @@ export function OnsiteDNS() {
                           <td className="onsite-mono">{r.actual || 'No record'}</td>
                           <td>
                             {r.propagated ? (
-                              <span className="onsite-badge succeeded">✓ Propagated</span>
+                              <Badge variant="success">✓ Propagated</Badge>
                             ) : (
-                              <span className="onsite-badge pending">Pending</span>
+                              <Badge variant="warning">Pending</Badge>
                             )}
                           </td>
                         </tr>

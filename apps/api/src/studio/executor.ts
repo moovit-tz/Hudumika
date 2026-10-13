@@ -1,4 +1,5 @@
 import { sql } from 'kysely';
+import { randomUUID } from 'node:crypto';
 import { withTenant } from '../db/client.js';
 import { ACTIONS_BY_ID, type ActionContext } from './actions.js';
 import { TRIGGERS_BY_ID } from './triggers.js';
@@ -6,6 +7,7 @@ import { applyOperator, readField } from './conditions.js';
 import { resolveContext } from './context.js';
 import { tenantHasEntitlement } from '../middleware/entitlement.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
+import { validateExecutableGraph } from './validation.js';
 
 /**
  * Executes a Studio workflow's node graph — for real.
@@ -54,7 +56,15 @@ export interface ExecuteOptions {
   /** Null for manual/dry runs; set for event-driven runs, where it is the idempotency key. */
   domainEventId: string | null;
   simulate: boolean;
+  /** Cooperative cancellation: an in-flight action is allowed to settle. */
+  signal?: AbortSignal;
+  /** Worker-owned durable stop check, never supplied by workflow configuration. */
+  beforeStep?: () => Promise<void>;
+  beforeAction?: (step: { node_id: string; title: string; iteration?: number }) => Promise<void>;
+  checkpoint?: (steps: StepResult[]) => Promise<void>;
 }
+
+export const STUDIO_EXECUTION_LIMITS = { durationMs: 5 * 60_000, steps: 1_000, loopItems: 100 } as const;
 
 export interface ExecuteResult {
   status: RunStatus;
@@ -139,6 +149,10 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
   const startedAt = Date.now();
   const nodes = parseJson<StudioNode[]>(opts.workflow.nodes, []);
   const edges = parseJson<StudioEdge[]>(opts.workflow.edges, []);
+  if (!opts.simulate) {
+    const errors = validateExecutableGraph(opts.workflow.trigger_event, nodes, edges);
+    if (errors.length) return { status: 'FAILED', stepResults: [], errorMessage: errors.join('; '), durationMs: Date.now() - startedAt };
+  }
   const ordered = orderNodes(nodes, edges);
 
   // Loaded once per run, before any node executes: every node sees the same
@@ -154,6 +168,12 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
   let errorMessage: string | null = null;
   let anyActionRan = false;
   let failed = false;
+  let executedSteps = 0;
+  const checkBoundary = (startingStep = true) => {
+    if (opts.signal?.aborted) throw new Error('Execution cancelled before starting the next step; completed actions were not undone.');
+    if (Date.now() - startedAt >= STUDIO_EXECUTION_LIMITS.durationMs) throw new Error('Execution time limit reached before starting the next step.');
+    if (startingStep && executedSteps >= STUDIO_EXECUTION_LIMITS.steps) throw new Error('Execution step limit reached.');
+  };
 
   /**
    * Runs one node. `iteration` is set inside a forEach body so a failure on
@@ -166,6 +186,9 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
     const tag = iteration ? { iteration } : {};
 
     try {
+      await opts.beforeStep?.();
+      checkBoundary();
+      executedSteps++;
       if (node.type === 'trigger') {
         const trigger = TRIGGERS_BY_ID.get(node.eventOrAction ?? opts.workflow.trigger_event);
         if (!trigger) throw new Error(`Unknown trigger "${node.eventOrAction ?? opts.workflow.trigger_event}" — it is not in the trigger registry.`);
@@ -221,6 +244,10 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
         payload: opts.payload,
         simulate: opts.simulate,
       };
+      // Entitlement checks can await I/O; check again immediately before effects.
+      await opts.beforeStep?.();
+      checkBoundary(false);
+      await opts.beforeAction?.({ node_id: node.id, title, ...tag });
       const result = await action.execute(ctx, parsed.data);
       if (!opts.simulate && result.ok) anyActionRan = true;
 
@@ -241,6 +268,9 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
         duration_ms: Date.now() - nodeStart, error: errorMessage ?? undefined, ...tag,
       });
       return true;
+    } finally {
+      // A failed checkpoint must escape rather than allowing another effect.
+      await opts.checkpoint?.(stepResults);
     }
   };
 
@@ -266,16 +296,30 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
       const items = Array.isArray(raw) ? raw : [];
       const body = ordered.slice(i + 1);
 
+      try {
+        await opts.beforeStep?.();
+        checkBoundary();
+        executedSteps++;
+        if (items.length > STUDIO_EXECUTION_LIMITS.loopItems) throw new Error(`Loop exceeds the ${STUDIO_EXECUTION_LIMITS.loopItems}-item execution limit.`);
+      } catch (error) {
+        failed = true;
+        errorMessage = error instanceof Error ? error.message : 'Execution limit reached';
+        stepResults.push({ node_id: node.id, node_type: 'forEach', title: node.title || path, status: 'FAILED', duration_ms: 0, error: errorMessage });
+        markSkipped(body);
+        break;
+      }
+
       stepResults.push({
         node_id: node.id, node_type: 'forEach', title: node.title || path,
         status: opts.simulate ? 'SIMULATED' : 'SUCCESS', duration_ms: 0,
         output: { over: path, as: alias, count: items.length, ...(Array.isArray(raw) ? {} : { note: `"${path}" is not a collection — nothing to iterate.` }) },
       });
+      await opts.checkpoint?.(stepResults);
 
       if (items.length === 0) { markSkipped(body); break; }
 
       for (let k = 0; k < items.length; k++) {
-        if (failed) { markSkipped(body, k + 1); continue; }
+        if (failed) break;
         const itemScope: RefScope = { ...scope, context: { ...scope.context, [alias]: items[k] } };
         for (let b = 0; b < body.length; b++) {
           if (failed) { markSkipped(body.slice(b), k + 1); break; }
@@ -309,20 +353,64 @@ export async function executeWorkflow(opts: ExecuteOptions): Promise<ExecuteResu
  * is what makes redelivery safe, so a duplicate is a normal outcome, not an error.
  */
 export async function executeAndRecord(opts: ExecuteOptions & { triggerSource: string }): Promise<{ runId: string; status: RunStatus } | null> {
-  if (opts.domainEventId) {
-    const existing = await withTenant(opts.tenantId, trx => trx
-      .selectFrom('workflow_studio_runs')
-      .select('id')
-      .where('tenant_id', '=', opts.tenantId)
-      .where('workflow_id', '=', opts.workflow.id)
-      .where('domain_event_id', '=', opts.domainEventId)
-      .executeTakeFirst());
-    if (existing) return null;
+  const workerToken = randomUUID();
+  // Commit the reservation before any side effect. A crashed RUNNING claim is
+  // deliberately not retried automatically: its external outcome is unknown.
+  const claimed = await withTenant(opts.tenantId, trx => trx.insertInto('workflow_studio_runs').values({
+    tenant_id: opts.tenantId, workflow_id: opts.workflow.id, trigger_source: opts.triggerSource,
+    status: 'RUNNING', payload: JSON.stringify(opts.payload), step_results: '[]',
+    workflow_snapshot: JSON.stringify(opts.workflow),
+    domain_event_id: opts.domainEventId, error_message: null,
+    worker_token: workerToken, worker_expires_at: sql<Date>`now() + interval '60 seconds'`,
+  }).onConflict(oc => oc.doNothing()).returning('id').executeTakeFirst());
+  if (!claimed) return null;
+
+  const controller = new AbortController();
+  let cancellationObserved = false;
+  let checkpointFailed = false;
+  const guardedUpdate = async (values: { step_results?: string; active_step?: string | null }) => {
+    try {
+      const run = await withTenant(opts.tenantId, trx => trx.updateTable('workflow_studio_runs')
+        .set({ ...values, worker_expires_at: sql<Date>`now() + interval '60 seconds'` })
+        .where('tenant_id', '=', opts.tenantId).where('id', '=', claimed.id).where('status', '=', 'RUNNING')
+        .where('worker_token', '=', workerToken).where('worker_expires_at', '>', sql<Date>`now()`)
+        .returning(['id', 'cancellation']).executeTakeFirst());
+      if (!run) throw new Error('Worker claim expired or changed; execution stopped without replay.');
+      return run;
+    } catch (error) { checkpointFailed = true; throw error; }
+  };
+  const beforeStep = async () => {
+    await opts.beforeStep?.();
+    const run = await guardedUpdate({});
+    if (run.cancellation != null) { cancellationObserved = true; controller.abort(); }
+    if (opts.signal?.aborted) controller.abort();
+  };
+  let result: ExecuteResult;
+  try { result = await executeWorkflow({ ...opts, signal: controller.signal, beforeStep,
+    beforeAction: async step => {
+      await opts.beforeAction?.(step);
+      const run = await guardedUpdate({ active_step: JSON.stringify({ ...step, started_at: new Date().toISOString() }) });
+      if (run.cancellation != null) { cancellationObserved = true; controller.abort(); throw new Error('Execution cancelled before starting the next action.'); }
+    },
+    checkpoint: async steps => {
+      await guardedUpdate({ step_results: JSON.stringify(steps), active_step: null });
+      try { await opts.checkpoint?.(steps); } catch (error) { checkpointFailed = true; throw error; }
+    },
+  }); }
+  catch (error) {
+    // Uncertain persistence or lost ownership keeps the claim RUNNING for review.
+    if (checkpointFailed) throw error;
+    result = { status: 'FAILED', stepResults: [], errorMessage: error instanceof Error ? error.message : 'Execution failed', durationMs: 0 };
   }
 
-  const result = await executeWorkflow(opts);
-
   return withTenant(opts.tenantId, async (trx) => {
+    const finished = await trx.updateTable('workflow_studio_runs').set({
+      status: result.status, step_results: JSON.stringify(result.stepResults), error_message: result.errorMessage,
+      duration_ms: result.durationMs, active_step: null, worker_expires_at: null,
+      ...(cancellationObserved ? { cancellation_acknowledged_at: new Date() } : {}),
+    }).where('tenant_id', '=', opts.tenantId).where('id', '=', claimed.id).where('status', '=', 'RUNNING')
+      .where('worker_token', '=', workerToken).where('worker_expires_at', '>', sql<Date>`now()`).returning('id').executeTakeFirst();
+    if (!finished) throw new Error('Worker claim expired or changed before finalization; inspect recorded effects.');
     if (!opts.simulate) {
       // Incremented in SQL, not read-modify-write: two events landing at once
       // would otherwise both write the same count and lose a run.
@@ -333,18 +421,6 @@ export async function executeAndRecord(opts: ExecuteOptions & { triggerSource: s
         .execute();
     }
 
-    const row = await trx.insertInto('workflow_studio_runs').values({
-      tenant_id: opts.tenantId,
-      workflow_id: opts.workflow.id,
-      trigger_source: opts.triggerSource,
-      status: result.status,
-      payload: JSON.stringify(opts.payload),
-      step_results: JSON.stringify(result.stepResults),
-      error_message: result.errorMessage,
-      duration_ms: result.durationMs,
-      domain_event_id: opts.domainEventId,
-    } as any).returning('id').executeTakeFirstOrThrow();
-
-    return { runId: row.id, status: result.status };
+    return { runId: claimed.id, status: result.status };
   });
 }

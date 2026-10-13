@@ -18,7 +18,7 @@ const PROVIDERS: Record<'outlook' | 'gmail', ProviderConfig> = {
     key: 'outlook',
     authorizeUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-    scope: 'offline_access https://outlook.office.com/SMTP.Send',
+    scope: 'offline_access https://outlook.office.com/SMTP.Send https://outlook.office.com/IMAP.AccessAsUser.All',
     extraAuthorizeParams: { response_mode: 'query' },
   },
   gmail: {

@@ -7,6 +7,9 @@ import { Banner } from '../../components/ui/alert.js';
 import { Switch } from '../../components/ui/switch.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
+import { ListPagination, paginate, useListPagination } from '../../components/ui/list-pagination.js';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import {
@@ -22,6 +25,8 @@ export function OnsiteDomains() {
   const navigate = useNavigate();
   const [domains, setDomains] = useState<OnsiteDomain[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const pagination = useListPagination(25);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'owned' | 'external' | 'shared'>('owned');
@@ -37,8 +42,8 @@ export function OnsiteDomains() {
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newDomainName, setNewDomainName] = useState('');
-  const [newDomainRegistrar, setNewDomainRegistrar] = useState('Hudumika DNS');
-  const [newDomainAutoRenew, setNewDomainAutoRenew] = useState(true);
+  const [newDomainRegistrar, setNewDomainRegistrar] = useState('Zesha');
+  const [newDomainAutoRenew, setNewDomainAutoRenew] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -54,6 +59,7 @@ export function OnsiteDomains() {
   };
 
   const fetchDomains = (isManualRefresh = false) => {
+    setLoadError('');
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
 
@@ -63,7 +69,7 @@ export function OnsiteDomains() {
           setDomains(res);
         }
       })
-      .catch(() => setDomains([]))
+      .catch(error => setLoadError(error.message || 'Unable to load domain portfolio'))
       .finally(() => {
         setLoading(false);
         setRefreshing(false);
@@ -88,7 +94,7 @@ export function OnsiteDomains() {
     const activeDns = displayDomains.filter(d => d.dns_status === 'active').length;
     const needsAttention = displayDomains.filter(d => d.dns_status === 'failed' || d.status === 'expired' || d.status === 'pending').length;
     const autoRenewCount = displayDomains.filter(d => d.auto_renew).length;
-    const protectionRate = displayDomains.length > 0 ? Math.round((autoRenewCount / displayDomains.length) * 100) : 100;
+    const protectionRate = displayDomains.length > 0 ? Math.round((autoRenewCount / displayDomains.length) * 100) : 0;
 
     return { total, activeDns, needsAttention, protectionRate };
   }, [displayDomains]);
@@ -117,11 +123,16 @@ export function OnsiteDomains() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   }, [displayDomains, searchQuery, statusFilter, sortOrder]);
+  const domainPage = paginate(filteredDomains, pagination.page, pagination.pageSize);
+  useEffect(() => {
+    pagination.reset();
+    setSelectedIds(new Set());
+  }, [searchQuery, statusFilter, sortOrder, pagination.reset]);
 
   // Select all handler
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(filteredDomains.map(d => d.id)));
+      setSelectedIds(new Set(domainPage.visible.map(d => d.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -210,6 +221,7 @@ export function OnsiteDomains() {
 
   return (
     <div className="onsite-page">
+      {loadError && <Banner variant="error" title="Domain portfolio unavailable" action={<Button variant="outline" onClick={() => fetchDomains(true)}>Retry</Button>}>{loadError}</Banner>}
       {/* Toast Notification */}
       {toastMsg && (
         <div className="onsite-toast">
@@ -225,18 +237,18 @@ export function OnsiteDomains() {
         subtitle="Centralized DNS management, TLD registration, and renewal control plane."
         actions={
           <div className="onsite-header-actions">
-            <button className="onsite-btn-purple" onClick={() => setIsAddModalOpen(true)} data-ui-native-button="">
+            <Button onClick={() => setIsAddModalOpen(true)}>
               <Icon name="plus" size={16} />
               <span>Add Domain</span>
-            </button>
-            <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/search')} data-ui-native-button="">
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/onsite/domains/search')}>
               <Icon name="search" size={15} />
               <span>Find TLDs</span>
-            </button>
-            <button className="onsite-btn-outline" onClick={() => navigate('/onsite/domains/transfers')} data-ui-native-button="">
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/onsite/domains/transfers')}>
               <Icon name="download" size={15} />
               <span>Transfer Domain</span>
-            </button>
+            </Button>
           </div>
         }
       />
@@ -244,7 +256,7 @@ export function OnsiteDomains() {
       {/* Metrics Grid */}
       <div className="onsite-domains-stats">
         <div className="onsite-domain-stat-card">
-          <div className="onsite-domain-stat-icon purple">
+          <div className="onsite-domain-stat-icon accent">
             <Icon name="globe" size={22} />
           </div>
           <div className="onsite-domain-stat-info">
@@ -309,7 +321,7 @@ export function OnsiteDomains() {
               <div>
                 <div className="onsite-promo-tag">Protect your internet identity</div>
                 <div className="onsite-promo-domain">
-                  <span>dccsaccos.online</span>
+                  <span>Find a domain for your website</span>
                   <span className="onsite-promo-link" onClick={() => navigate('/onsite/domains/search')}>
                     &bull; See all TLD options &rarr;
                   </span>
@@ -319,14 +331,11 @@ export function OnsiteDomains() {
 
             <div className="onsite-promo-right">
               <div style={{ textAlign: 'right' }}>
-                <span className="onsite-promo-save">Save 97%</span>
-                <span className="onsite-promo-orig-price">$35.99</span>
-                <span className="onsite-promo-price">$0.99</span>
-                <span className="onsite-promo-unit">/1st yr</span>
+                <span className="onsite-promo-unit">Registrar pricing is not available here yet.</span>
               </div>
-              <button className="onsite-btn-purple" onClick={() => navigate('/onsite/domains/search')} data-ui-native-button="">
-                Get deal
-              </button>
+              <Button onClick={() => navigate('/onsite/domains/search')}>
+                Check availability
+              </Button>
             </div>
           </div>
         </div>
@@ -355,14 +364,16 @@ export function OnsiteDomains() {
           </button>
         </div>
 
-        <button
-          className="onsite-btn-outline onsite-refresh-btn"
+        <Button
+          variant="outline"
+          size="sm"
+          className="onsite-refresh-btn"
           onClick={() => fetchDomains(true)}
           disabled={refreshing}
-         data-ui-native-button="">
+        >
           <Icon name="refresh" size={14} className={refreshing ? 'onsite-spin' : ''} />
           <span>{refreshing ? 'Refreshing...' : 'Refresh Status'}</span>
-        </button>
+        </Button>
       </div>
 
       {/* Control Toolbar */}
@@ -386,10 +397,10 @@ export function OnsiteDomains() {
         {/* RADIX DESIGN SYSTEM SELECT DROPDOWNS */}
         <div className="onsite-domains-filter-group">
           <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
-            <SelectTrigger className="flex-1 w-1/2 min-w-0 sm:w-[170px] sm:flex-initial h-[36px] text-xs font-semibold rounded-lg border-border bg-white shadow-sm">
+            <SelectTrigger className="flex-1 w-1/2 min-w-0 sm:w-[170px] sm:flex-initial h-[36px] text-xs font-semibold rounded-lg border-border shadow-sm">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border bg-white shadow-xl">
+            <SelectContent className="rounded-xl border-border shadow-xl">
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="active">Active &amp; Healthy</SelectItem>
               <SelectItem value="expired">Expired / Action Needed</SelectItem>
@@ -399,10 +410,10 @@ export function OnsiteDomains() {
           </Select>
 
           <Select value={sortOrder} onValueChange={(val) => setSortOrder(val as any)}>
-            <SelectTrigger className="flex-1 w-1/2 min-w-0 sm:w-[185px] sm:flex-initial h-[36px] text-xs font-semibold rounded-lg border-border bg-white shadow-sm">
+            <SelectTrigger className="flex-1 w-1/2 min-w-0 sm:w-[185px] sm:flex-initial h-[36px] text-xs font-semibold rounded-lg border-border shadow-sm">
               <SelectValue placeholder="Sort Order" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-border bg-white shadow-xl">
+            <SelectContent className="rounded-xl border-border shadow-xl">
               <SelectItem value="newest">Sort: Newest First</SelectItem>
               <SelectItem value="name">Sort: Domain Name A-Z</SelectItem>
               <SelectItem value="expiration">Sort: Expiration Date</SelectItem>
@@ -416,21 +427,21 @@ export function OnsiteDomains() {
         <div className="onsite-bulk-bar">
           <span>{selectedIds.size} domain(s) selected</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button
-              className="onsite-btn-outline"
-              style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleCopySelectedNames}
-             data-ui-native-button="">
+            >
               <Icon name="copy" size={12} />
               <span>Copy Names</span>
-            </button>
-            <button
-              className="onsite-btn-outline"
-              style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setSelectedIds(new Set())}
-             data-ui-native-button="">
+            >
               <span>Clear Selection</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -445,7 +456,7 @@ export function OnsiteDomains() {
               <div className="onsite-skeleton-line" style={{ width: '100%' }} />
               <div className="onsite-skeleton-line" style={{ width: '80%' }} />
             </div>
-          ) : filteredDomains.length === 0 ? (
+          ) : loadError && domains.length === 0 ? null : filteredDomains.length === 0 ? (
             <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
                 <Icon name="globe" size={28} />
@@ -458,14 +469,14 @@ export function OnsiteDomains() {
               </p>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                 {searchQuery || statusFilter !== 'all' ? (
-                  <button className="onsite-btn-outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }} data-ui-native-button="">
-                    <span>Reset Filters</span>
-                  </button>
+                  <Button variant="outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
+                    Reset Filters
+                  </Button>
                 ) : (
-                  <button className="onsite-btn-purple" onClick={() => setIsAddModalOpen(true)} data-ui-native-button="">
+                  <Button onClick={() => setIsAddModalOpen(true)}>
                     <Icon name="plus" size={14} />
                     <span>Add Your First Domain</span>
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -478,7 +489,7 @@ export function OnsiteDomains() {
                     <tr>
                       <th style={{ width: '40px', paddingLeft: '1.25rem' }}>
                         <Checkbox
-                          checked={selectedIds.size === filteredDomains.length && filteredDomains.length > 0}
+                          checked={domainPage.visible.length > 0 && domainPage.visible.every(domain => selectedIds.has(domain.id))}
                           onCheckedChange={c => handleSelectAll(c === true)}
                         />
                       </th>
@@ -491,7 +502,7 @@ export function OnsiteDomains() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDomains.map((d) => {
+                    {domainPage.visible.map((d) => {
                       const daysLeft = getExpiryDays(d.expires_at);
                       const isExpired = d.status === 'expired' || (daysLeft !== null && daysLeft <= 0);
 
@@ -524,9 +535,9 @@ export function OnsiteDomains() {
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                               <span className={d.dns_status === 'active' ? 'onsite-status-dot active' : isExpired ? 'onsite-status-dot failed' : d.status === 'pending' ? 'onsite-status-dot pending' : 'onsite-status-dot failed'} />
-                              <span className={d.dns_status === 'active' ? 'onsite-badge active' : isExpired ? 'onsite-badge failed' : d.status === 'pending' ? 'onsite-badge pending' : 'onsite-badge misconfigured'}>
+                              <Badge variant={d.dns_status === 'active' ? 'success' : isExpired ? 'error' : d.status === 'pending' ? 'warning' : 'gray'}>
                                 {isExpired ? 'Expired' : d.dns_status === 'active' ? 'Active & Healthy' : d.status === 'pending' ? 'Pending' : d.dns_status}
-                              </span>
+                              </Badge>
                             </div>
                           </td>
                           <td>
@@ -549,23 +560,26 @@ export function OnsiteDomains() {
                           </td>
                           <td>
                             <span style={{ background: 'var(--bg)', color: 'var(--ink)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}>
-                              {d.registrar || 'Hudumika DNS'}
+                              {d.registrar || 'Not recorded'}
                             </span>
                           </td>
                           <td style={{ textAlign: 'right', paddingRight: '1.25rem' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <Link to={'/onsite/domains/' + d.id + '/dns'} className="onsite-btn-outline" style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}>
-                                <span>Manage DNS</span>
+                              <Link to={'/onsite/domains/' + d.id + '/dns'} style={{ textDecoration: 'none' }}>
+                                <Button variant="outline" size="sm">
+                                  Manage DNS
+                                </Button>
                               </Link>
 
-                              <button
-                                className="onsite-btn-outline"
-                                style={{ fontSize: '0.75rem', padding: '0.35rem 0.6rem', color: 'var(--red)' }}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                style={{ color: 'var(--red)' }}
                                 title="Remove domain"
                                 onClick={() => setDomainToDelete(d)}
-                               data-ui-native-button="">
+                              >
                                 <Icon name="trash" size={14} />
-                              </button>
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -577,7 +591,7 @@ export function OnsiteDomains() {
 
               {/* MOBILE CARD VIEW (< 768px) */}
               <div className="onsite-domain-mobile-cards">
-                {filteredDomains.map((d) => {
+                {domainPage.visible.map((d) => {
                   const daysLeft = getExpiryDays(d.expires_at);
                   const isExpired = d.status === 'expired' || (daysLeft !== null && daysLeft <= 0);
 
@@ -596,14 +610,14 @@ export function OnsiteDomains() {
                               {d.domain}
                             </Link>
                             <div style={{ fontSize: '0.75rem', color: 'var(--ink3)', marginTop: '0.1rem' }}>
-                              {d.registrar || 'Hudumika DNS'}
+                              {d.registrar || 'Not recorded'}
                             </div>
                           </div>
                         </div>
 
-                        <span className={d.dns_status === 'active' ? 'onsite-badge active' : isExpired ? 'onsite-badge failed' : 'onsite-badge pending'}>
+                        <Badge variant={d.dns_status === 'active' ? 'success' : isExpired ? 'error' : 'warning'}>
                           {isExpired ? 'Expired' : d.dns_status}
-                        </span>
+                        </Badge>
                       </div>
 
                       <div className="onsite-domain-mobile-card-details">
@@ -622,24 +636,31 @@ export function OnsiteDomains() {
                       </div>
 
                       <div className="onsite-domain-mobile-card-actions">
-                        <Link to={'/onsite/domains/' + d.id + '/dns'} className="onsite-btn-outline" style={{ fontSize: '0.8125rem' }}>
-                          <span>Manage DNS</span>
+                        <Link to={'/onsite/domains/' + d.id + '/dns'} style={{ textDecoration: 'none', flex: 1 }}>
+                          <Button variant="outline" size="sm" style={{ width: '100%' }}>
+                            Manage DNS
+                          </Button>
                         </Link>
-                        <Link to={'/onsite/domains/' + d.id} className="onsite-btn-purple" style={{ fontSize: '0.8125rem' }}>
-                          <span>View Details</span>
+                        <Link to={'/onsite/domains/' + d.id} style={{ textDecoration: 'none', flex: 1 }}>
+                          <Button size="sm" style={{ width: '100%' }}>
+                            View Details
+                          </Button>
                         </Link>
-                        <button
-                          className="onsite-btn-outline onsite-btn-icon-sm"
-                          style={{ color: 'var(--red)' }}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          style={{ color: 'var(--red)', padding: '0 0.5rem' }}
+                          title="Remove domain"
                           onClick={() => setDomainToDelete(d)}
-                         data-ui-native-button="">
+                        >
                           <Icon name="trash" size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
+              <ListPagination total={filteredDomains.length} page={domainPage.currentPage} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="domains" />
             </>
           )}
         </div>
@@ -654,7 +675,7 @@ export function OnsiteDomains() {
           <Icon name="externalLink" size={32} style={{ color: 'var(--ink3)', marginBottom: '0.75rem' }} />
           <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--ink)', fontWeight: 700 }}>No external domains connected</h3>
           <p style={{ margin: '0.4rem 0 0', fontSize: '0.875rem', color: 'var(--ink2)' }}>
-            Connecting a domain you registered with another provider isn't available yet — for now, transfer it in or point its nameservers at Hudumika DNS.
+            Add an existing domain to the portfolio to record its registrar and configuration. Provider synchronization is not connected yet; adding a domain does not transfer it or change its nameservers.
           </p>
         </div>
       )}
@@ -675,7 +696,7 @@ export function OnsiteDomains() {
           <DialogContent size="md">
             <DialogHeader>
               <DialogTitle className="onsite-modal-title">
-                <Icon name="globe" size={20} style={{ color: 'var(--purple)' }} />
+                <Icon name="globe" size={20} style={{ color: 'var(--teal)' }} />
                 <span>Add Custom Domain</span>
               </DialogTitle>
             </DialogHeader>
@@ -703,11 +724,11 @@ export function OnsiteDomains() {
                 <div className="onsite-form-group">
                   <label>Registrar</label>
                   <Select value={newDomainRegistrar} onValueChange={(val) => setNewDomainRegistrar(val)}>
-                    <SelectTrigger className="w-full h-10 rounded-lg border-border bg-white text-sm font-medium shadow-sm">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Registrar" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border bg-white shadow-xl">
-                      <SelectItem value="Hudumika DNS">Hudumika Managed DNS</SelectItem>
+                    <SelectContent>
+                      <SelectItem value="Zesha">Zesha</SelectItem>
                       <SelectItem value="Hostinger">Hostinger</SelectItem>
                       <SelectItem value="Cloudflare">Cloudflare</SelectItem>
                       <SelectItem value="GoDaddy">GoDaddy</SelectItem>
@@ -724,7 +745,7 @@ export function OnsiteDomains() {
                     <div>
                       <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>Enable Auto-Renewal Protection</span>
                       <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--ink3)' }}>
-                        Automatically renews domain before expiry date
+                        Records your renewal preference. Registrar renewal automation is not connected yet.
                       </span>
                     </div>
                   </label>
@@ -733,7 +754,10 @@ export function OnsiteDomains() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting || !newDomainName.trim()}>{isSubmitting ? 'Registering...' : 'Add Domain'}</Button>
+                <Button type="submit" disabled={isSubmitting || !newDomainName.trim()}>
+                  {isSubmitting && <ButtonSpinner />}
+                  {isSubmitting ? 'Registering...' : 'Add Domain'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -761,7 +785,10 @@ export function OnsiteDomains() {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setDomainToDelete(null)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDeleteDomain} disabled={isDeleting}>{isDeleting ? 'Removing...' : 'Confirm Remove'}</Button>
+              <Button variant="destructive" onClick={handleDeleteDomain} disabled={isDeleting}>
+                {isDeleting && <ButtonSpinner />}
+                {isDeleting ? 'Removing...' : 'Confirm Remove'}
+              </Button>
             </DialogFooter>
           </>}
         </DialogContent>

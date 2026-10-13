@@ -85,7 +85,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
   const [issueRootCause, setIssueRootCause] = useState('');
 
   // CR Form
-  const [crNumber, setCrNumber] = useState(`CR-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [crNumber, setCrNumber] = useState('');
   const [crTitle, setCrTitle] = useState('');
   const [crReason, setCrReason] = useState('');
   const [crOriginalScope, setCrOriginalScope] = useState('');
@@ -210,7 +210,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
       await apiFetch(`/v1/project-os/projects/${projectId}/change-requests${editingCr ? `/${editingCr}` : ''}`, {
         method: editingCr ? 'PATCH' : 'POST',
         body: JSON.stringify({
-          cr_number: crNumber.trim(),
+          ...(crNumber.trim() ? { cr_number: crNumber.trim() } : {}),
           title: crTitle.trim(),
           reason: crReason.trim(),
           original_scope: crOriginalScope.trim(),
@@ -324,7 +324,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
             </Button>
           )}
           {activeTab === 'changes' && (
-            <Button size="sm" onClick={() => { setEditingCr(null); setCrNumber(`CR-${crypto.randomUUID().slice(0, 8)}`); setCrTitle(''); setCrReason(''); setCrOriginalScope(''); setCrRequestedChange(''); setCrCostImpact('0'); setCrScheduleImpact('0'); setCrClientReq(false); setShowAddCrModal(true); }} className="bg-primary text-primary-foreground">
+            <Button size="sm" onClick={() => { setEditingCr(null); setCrNumber(''); setCrTitle(''); setCrReason(''); setCrOriginalScope(''); setCrRequestedChange(''); setCrCostImpact('0'); setCrScheduleImpact('0'); setCrClientReq(false); setShowAddCrModal(true); }} className="bg-primary text-primary-foreground">
               <Icon name="plus" size={14} className="mr-1" /> New Change Request
             </Button>
           )}

@@ -4,6 +4,7 @@ import { withTenant } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { safeFetch } from '../lib/ssrf-guard.js';
+import { TRIGGERS_BY_ID } from '../studio/triggers.js';
 
 export interface DomainEvent {
   type: string;
@@ -67,6 +68,13 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
     payload: JSON.stringify(event.payload),
     actor_id: event.actorId ?? null,
   }).returning('id').executeTakeFirstOrThrow();
+  if (TRIGGERS_BY_ID.get(event.type)?.kind === 'DOMAIN_EVENT') {
+    const snapshots = await trx.selectFrom('workflow_studio_apps')
+      .select(['id', 'tenant_id', 'name', 'trigger_event', 'nodes', 'edges', 'targeting', 'updated_at'])
+      .where('tenant_id', '=', tenantId).where('status', '=', 'ACTIVE').where('trigger_event', '=', event.type).execute();
+    await trx.insertInto('studio_event_outbox').values({ tenant_id: tenantId, event_id: row.id, workflow_snapshots: JSON.stringify(snapshots) })
+      .onConflict(oc => oc.doNothing()).execute();
+  }
 
   // Handlers receive the persisted row id so they can deduplicate a redelivery.
   const delivered: DomainEvent = { ...event, id: row.id };

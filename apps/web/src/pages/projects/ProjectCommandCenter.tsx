@@ -72,14 +72,14 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
   }
 
   const formatCurrency = (val: number) => {
-    if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
-    if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
-    if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
-    return `$${Number(val || 0).toLocaleString()}`;
+    if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(2)}B`;
+    if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(2)}M`;
+    if (val >= 1_000) return `${(val / 1_000).toFixed(1)}K`;
+    return Number(val || 0).toLocaleString();
   };
 
-  const cpiHealth = data.portfolio_cpi >= 1.0 ? 'text-emerald-400' : data.portfolio_cpi >= 0.85 ? 'text-amber-400' : 'text-rose-400';
-  const spiHealth = data.portfolio_spi >= 1.0 ? 'text-emerald-400' : data.portfolio_spi >= 0.85 ? 'text-amber-400' : 'text-rose-400';
+  const cpiColor = data.portfolio_cpi >= 1.0 ? 'var(--green)' : data.portfolio_cpi >= 0.85 ? 'var(--gold)' : 'var(--red)';
+  const spiColor = (data.portfolio_spi ?? 0) >= 1.0 ? 'var(--green)' : (data.portfolio_spi ?? 0) >= 0.85 ? 'var(--gold)' : 'var(--red)';
 
   return (
     <div className="ops-dashboard" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -100,12 +100,12 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', background: 'var(--teal-l)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em' }}>
-                Hudumika Project OS • Global Executive Radar
+                Project Command Center
               </span>
-              <span style={{ fontSize: 12, opacity: 0.8 }}>Live Enterprise Aggregations</span>
+              <span style={{ fontSize: 12, opacity: 0.8 }}>Live portfolio aggregations</span>
             </div>
             <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}>
-              Multi-Tenant Governance & Portfolio Operations
+              Governance & Portfolio Operations
             </h2>
             <p style={{ margin: '6px 0 0', fontSize: 13, opacity: 0.85, maxWidth: 640 }}>
               Review project cost and schedule performance, approvals, fleet activity, and procurement across active programs.
@@ -115,13 +115,13 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 'var(--r-lg)', padding: '12px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>Portfolio CPI</div>
-              <div className={`text-2xl font-black ${cpiHealth}`} style={{ marginTop: 2 }}>{data.portfolio_cpi.toFixed(2)}</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: cpiColor, marginTop: 2 }}>{data.portfolio_cpi.toFixed(2)}</div>
               <div style={{ fontSize: 10, opacity: 0.7 }}>Cost Efficiency</div>
             </div>
 
             <div style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 'var(--r-lg)', padding: '12px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, textTransform: 'uppercase' }}>Portfolio SPI</div>
-              <div className={`text-2xl font-black ${spiHealth}`} style={{ marginTop: 2 }}>{data.portfolio_spi.toFixed(2)}</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: spiColor, marginTop: 2 }}>{data.portfolio_spi != null ? data.portfolio_spi.toFixed(2) : '—'}</div>
               <div style={{ fontSize: 10, opacity: 0.7 }}>Schedule Velocity</div>
             </div>
           </div>
@@ -189,7 +189,7 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
             Portfolio Health Classification
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             <div style={{ background: 'var(--green-l)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--green)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase' }}>ON TRACK (GREEN)</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--green)', marginTop: 4 }}>{data.health_distribution.green}</div>
@@ -206,12 +206,6 @@ export const ProjectCommandCenter: React.FC<ProjectCommandCenterProps> = ({
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase' }}>CRITICAL (RED)</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--red)', marginTop: 4 }}>{data.health_distribution.red}</div>
               <div style={{ fontSize: 11.5, color: 'var(--red)' }}>EAC variance &gt; 15%</div>
-            </div>
-
-            <div style={{ background: 'var(--teal-l)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--teal)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>STAGE GATES PASSED</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>{data.health_distribution.critical}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--teal)' }}>Executive approved</div>
             </div>
           </div>
         </div>

@@ -288,6 +288,7 @@ export const ProjectMilestonesPage: React.FC = () => {
           <ListPagination total={filtered.length} page={msPage} pageSize={msPageSize} onPageChange={setMsPage} onPageSizeChange={setMsPageSize} noun="milestones" />
           </>
         ) : (
+          <>
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--card-shadow)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -300,7 +301,7 @@ export const ProjectMilestonesPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(m => {
+                {paginate(filtered, msPage, msPageSize).visible.map(m => {
                   const sb = STATUS_BADGE[m.status] || STATUS_BADGE.not_started;
                   const isOverdue = m.target_date && m.status !== 'completed' && new Date(m.target_date) < new Date();
                   return (
@@ -344,6 +345,8 @@ export const ProjectMilestonesPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+          <ListPagination total={filtered.length} page={msPage} pageSize={msPageSize} onPageChange={setMsPage} onPageSizeChange={setMsPageSize} noun="milestones" />
+          </>
         )}
       </div>
     </div>

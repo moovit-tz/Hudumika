@@ -18,7 +18,7 @@ export type ProjectIndustry =
   | 'professional_services'
   | 'general';
 
-export type ProjectHealthStatus = 'green' | 'amber' | 'red' | 'critical';
+export type ProjectHealthStatus = 'green' | 'amber' | 'red';
 
 export type ProjectType =
   | 'capital_expenditure'
@@ -598,12 +598,11 @@ export interface ProjectCommandCenterMetrics {
   total_spent: number;
   total_earned_value: number;
   portfolio_cpi: number;
-  portfolio_spi: number;
+  portfolio_spi: number | null;
   health_distribution: {
     green: number;
     amber: number;
     red: number;
-    critical: number;
   };
   industry_distribution: Record<string, number>;
   active_rfis_and_claims: number;

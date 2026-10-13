@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { queueRemotePatch } from '../services/email-sync.service.js';
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 import crypto from 'node:crypto';
@@ -628,8 +629,12 @@ export async function emailRoutes(fastify: FastifyInstance) {
     const b = messagePatchSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('email_messages').select(['folder']).where('id', '=', id).where('user_id', '=', user.sub).executeTakeFirst();
+      const existing = await trx.selectFrom('email_messages').select(['folder', 'outbox_id']).where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('user_id', '=', user.sub).forUpdate().executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Message not found' });
+      if (existing.folder === 'scheduled' && existing.outbox_id &&
+          [b.to, b.cc, b.bcc, b.subject, b.body, b.attachments, b.scheduledAt, b.folder].some(value => value !== undefined)) {
+        return reply.status(409).send({ error: 'Delivery has started. Cancel the message before changing it.' });
+      }
 
       const patch: Record<string, any> = {};
       if (b.read !== undefined) patch.read = b.read;
@@ -657,9 +662,10 @@ export async function emailRoutes(fastify: FastifyInstance) {
       if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No updatable fields provided' });
 
       const row = await trx.updateTable('email_messages').set(patch)
-        .where('id', '=', id).where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('user_id', '=', user.sub)
         .returningAll().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Message not found' });
+      await queueRemotePatch(trx, user.tenant_id, user.sub, [id], { read: b.read, starred: b.starred, folder: b.folder });
       return { success: true };
     });
   });
@@ -673,8 +679,9 @@ export async function emailRoutes(fastify: FastifyInstance) {
     const b = bulkSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       if (b.action === 'delete') {
+        await queueRemotePatch(trx, user.tenant_id, user.sub, b.ids, { delete: true });
         const res = await trx.deleteFrom('email_messages')
-          .where('id', 'in', b.ids).where('user_id', '=', user.sub)
+          .where('tenant_id', '=', user.tenant_id).where('id', 'in', b.ids).where('user_id', '=', user.sub)
           .executeTakeFirst();
         return { success: true, count: Number(res.numDeletedRows ?? 0) };
       }
@@ -703,8 +710,9 @@ export async function emailRoutes(fastify: FastifyInstance) {
         b.action === 'unread' ? { read: false } :
         { folder: b.action }; // 'archive' | 'trash' | 'spam' | 'inbox'
       const res = await trx.updateTable('email_messages').set(patch)
-        .where('id', 'in', b.ids).where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id).where('id', 'in', b.ids).where('user_id', '=', user.sub)
         .executeTakeFirst();
+      await queueRemotePatch(trx, user.tenant_id, user.sub, b.ids, patch);
       return { success: true, count: Number(res.numUpdatedRows ?? 0) };
     });
   });
@@ -717,8 +725,18 @@ export async function emailRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('email_messages').select(['folder', 'outbox_id'])
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('user_id', '=', user.sub).forUpdate().executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Message not found' });
+      if (existing.folder === 'scheduled' && existing.outbox_id) {
+        const cancelled = await trx.updateTable('email_outbox').set({ status: 'cancelled', claim_token: null })
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', existing.outbox_id)
+          .where('status', 'in', ['pending', 'failed', 'simulated']).returning('id').executeTakeFirst();
+        if (!cancelled) return reply.status(409).send({ error: 'This message is already being delivered and cannot be cancelled.' });
+      }
+      await queueRemotePatch(trx, user.tenant_id, user.sub, [id], { delete: true });
       const row = await trx.deleteFrom('email_messages')
-        .where('id', '=', id).where('user_id', '=', user.sub)
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('user_id', '=', user.sub)
         .returningAll().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Message not found' });
       reply.status(204);

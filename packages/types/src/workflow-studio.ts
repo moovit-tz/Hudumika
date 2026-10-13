@@ -81,7 +81,20 @@ export interface WorkflowStudioRunStep {
   iteration?: number;
 }
 
+export interface WorkflowStudioExecutionSnapshot {
+  id: string;
+  tenant_id: string;
+  name: string;
+  trigger_event: string;
+  nodes: WorkflowStudioNode[];
+  edges: WorkflowStudioEdge[];
+  targeting?: WorkflowStudioTargeting;
+  updated_at: string;
+}
+
 export interface WorkflowStudioRun {
+  reconciliation?: WorkflowStudioReconciliation | null;
+  workflow_snapshot?: Partial<WorkflowStudioExecutionSnapshot> | null;
   id: string;
   tenant_id: string;
   workflow_id: string;
@@ -136,4 +149,52 @@ export interface WorkflowStudioIntegration {
   status: string;
   events_count: number;
   actions_count: number;
+}
+
+export interface WorkflowStudioDeliveryRecovery {
+  actor_name?: string;
+  id: string;
+  tenant_id: string;
+  delivery_id: string;
+  actor_id: string;
+  reason: string;
+  previous_attempts: number;
+  created_at: string;
+}
+
+export interface WorkflowStudioDelivery {
+  id: string;
+  event_id: string;
+  event_type?: string;
+  status: 'pending' | 'processing' | 'delivered' | 'dead';
+  attempts: number;
+  available_at: string;
+  error_message: string | null;
+  created_at: string;
+  runs?: Pick<WorkflowStudioRun, 'id' | 'workflow_id' | 'status' | 'error_message' | 'created_at' | 'reconciliation'>[];
+  recoveries?: WorkflowStudioDeliveryRecovery[];
+}
+
+export interface WorkflowStudioReconciliation {
+  actor_id: string;
+  actor_name: string;
+  outcome: 'effects_verified' | 'closed_without_replay';
+  evidence: string;
+  status_at_review: WorkflowStudioRunStatus;
+  reviewed_at: string;
+}
+export interface WorkflowStudioRunReview {
+  active_step: { node_id: string; title: string; iteration?: number; started_at: string } | null;
+  worker_expires_at: string | null;
+  cancellation: { actor_id: string; actor_name: string; reason: string; requested_at: string } | null;
+  cancellation_acknowledged_at: string | null;
+  id: string;
+  workflow_id: string;
+  status: WorkflowStudioRunStatus;
+  trigger_source: string;
+  domain_event_id: string | null;
+  created_at: string;
+  error_message: string | null;
+  step_results: Omit<WorkflowStudioRunStep, 'output'>[];
+  reconciliation: WorkflowStudioReconciliation | null;
 }

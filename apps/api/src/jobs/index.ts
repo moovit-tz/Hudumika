@@ -10,6 +10,7 @@ import { runTRAZReportJob } from './tra-zreport.job.js';
 import { runSupportRulesJob } from './support-rules.job.js';
 import { runGpswoxSyncJob } from './gpswox-sync.job.js';
 import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
+import { runStudioOutboxJob } from './studio-outbox.job.js';
 import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from './seal-ledger-anchor.job.js';
 import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSweepJob } from './declaration-ledger-anchor.job.js';
 import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
@@ -395,6 +396,9 @@ function startBullMQ(): void {
     ));
 
     track(new Worker('finance-accounting-outbox', async () => { await runAccountingOutboxJob(); }, { connection: redisConnection as any }));
+    const studioOutboxQueue = track(new Queue('studio-event-outbox', { connection: redisConnection as any }));
+    track(new Worker('studio-event-outbox', async () => { await runStudioOutboxJob(); }, { connection: redisConnection as any }));
+    studioOutboxQueue.add('sweep', {}, { repeat: { every: 30 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
 
     // Worker for the mail outbox sweep — its own queue since it polls far
     // more frequently (1 min, mail needs to go out promptly) than the
@@ -958,6 +962,7 @@ function startIntervalFallback(): void {
   }, 24 * 60 * 60 * 1000);
 
   setInterval(() => { runAccountingOutboxJob().catch(console.error); }, 60 * 1000);
+  setInterval(() => { runStudioOutboxJob().catch(console.error); }, 30 * 1000);
 
   // Mail outbox sweep — every minute. Safe to also run immediately on
   // startup (above): each row is processed exactly once and marked sent/

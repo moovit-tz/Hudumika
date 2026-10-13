@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
 import './Onsite.css';
 
 /**
@@ -55,7 +57,7 @@ export function OnsiteServices() {
       />
 
       <h2 className="onsite-section-label">Available now</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {AVAILABLE.map(s => (
           <div key={s.title} className="onsite-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}>
             <div>
@@ -65,19 +67,21 @@ export function OnsiteServices() {
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--ink2)', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
             </div>
-            <Link to={s.to!} className="btn btn-secondary btn-sm" style={{ width: 'fit-content' }}>{s.cta}</Link>
+            <Link to={s.to!}>
+              <Button variant="outline" size="sm">{s.cta}</Button>
+            </Link>
           </div>
         ))}
       </div>
 
       <h2 className="onsite-section-label">Not yet available</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1rem' }}>
         {PLANNED.map(s => (
           <div key={s.title} className="onsite-card" style={{ opacity: 0.7 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
               <Icon name={s.icon} size={18} color="var(--ink3)" />
               <h3 className="onsite-card-title" style={{ margin: 0 }}>{s.title}</h3>
-              <span className="onsite-badge" style={{ marginLeft: 'auto' }}>Planned</span>
+              <Badge variant="gray" style={{ marginLeft: 'auto' }}>Planned</Badge>
             </div>
             <p style={{ fontSize: '0.875rem', color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
           </div>

@@ -16,7 +16,7 @@ import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Combobox } from '../../components/ui/combobox.js';
-import { PageLoading } from '../../components/ui/spinner.js';
+import { PageLoading, ButtonSpinner } from '../../components/ui/spinner.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { STUDIO_NODE_TYPES, NODE_META, type StudioNodeData } from './StudioNodes.js';
 import type {
@@ -279,9 +279,14 @@ export function WorkflowEditor() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
       <div className="studio-topbar">
-        <button type="button" onClick={() => navigate(returnTo ?? '/studio')} className="studio-icon-btn" style={{ border: '1px solid var(--border)' }} data-ui-native-button="">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(returnTo ?? '/studio')}
+        >
           <Icon name="arrowLeft" size={14} /> {returnTo ? 'Back' : 'Workflows'}
-        </button>
+        </Button>
         <input
           aria-label="Workflow name"
           value={workflow.name}
@@ -293,18 +298,18 @@ export function WorkflowEditor() {
 
         <div className="studio-topbar-actions">
           <Button type="button" variant="outline" size="sm" disabled={busy === 'dry'} onClick={() => run(true)}>
-            <Icon name="play" size={13} /> {busy === 'dry' ? 'Simulating…' : 'Dry run'}
+            {busy === 'dry' ? <ButtonSpinner /> : <Icon name="play" size={13} />} {busy === 'dry' ? 'Simulating…' : 'Dry run'}
           </Button>
           <Button type="button" variant="outline" size="sm" disabled={busy === 'live'} onClick={() => run(false)}
             style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
-            {busy === 'live' ? 'Running…' : 'Run for real'}
+            {busy === 'live' ? <ButtonSpinner /> : <Icon name="zap" size={13} />} {busy === 'live' ? 'Running…' : 'Run for real'}
           </Button>
           <Tip label={workflow.supersedes_subscriber ? `Activating stands down the ${workflow.supersedes_subscriber} code subscriber` : 'Toggle workflow status'}><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>Active</span>
             <Switch checked={workflow.status === 'ACTIVE'} disabled={busy === 'status'} onCheckedChange={v => setStatus(v ? 'ACTIVE' : 'DRAFT')} />
           </div></Tip>
           <Button type="button" size="sm" disabled={!dirty || busy === 'save'} onClick={save}>
-            {busy === 'save' ? 'Saving…' : 'Save'}
+            {busy === 'save' ? <ButtonSpinner /> : <Icon name="save" size={13} />} {busy === 'save' ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </div>
@@ -448,9 +453,9 @@ export function WorkflowEditor() {
           <div className="studio-panel-head">
             <span className="studio-panel-title">{selectedNode ? 'Step' : 'Workflow'}</span>
             {selectedNode && (
-              <button type="button" className="studio-icon-btn" style={{ color: 'var(--red)' }} onClick={() => removeNode(selectedNode.id)} data-ui-native-button="">
+              <Button type="button" variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => removeNode(selectedNode.id)}>
                 <Icon name="trash" size={13} color="var(--red)" /> Remove
-              </button>
+              </Button>
             )}
           </div>
           <div className="studio-scroll">

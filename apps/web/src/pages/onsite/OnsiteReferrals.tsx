@@ -3,6 +3,8 @@ import { PageHeader } from '../../components/PageHeader.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge, type BadgeProps } from '../../components/ui/badge.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import './Onsite.css';
 
@@ -13,12 +15,12 @@ interface Commission {
   payout_method: string | null; referred_tenant_name: string | null;
 }
 
-const STATUS_META: Record<string, { badge: string; label: string }> = {
-  pending: { badge: 'pending', label: 'Pending review' },
-  flagged: { badge: 'failed', label: 'Flagged for review' },
-  approved: { badge: 'deploying', label: 'Approved — awaiting payout' },
-  paid: { badge: 'active', label: 'Paid' },
-  rejected: { badge: 'unknown', label: 'Rejected' },
+const STATUS_META: Record<string, { variant: NonNullable<BadgeProps['variant']>; label: string }> = {
+  pending: { variant: 'warning', label: 'Pending review' },
+  flagged: { variant: 'error', label: 'Flagged for review' },
+  approved: { variant: 'info', label: 'Approved — awaiting payout' },
+  paid: { variant: 'success', label: 'Paid' },
+  rejected: { variant: 'gray', label: 'Rejected' },
 };
 
 export function OnsiteReferrals() {
@@ -61,9 +63,9 @@ export function OnsiteReferrals() {
             {link?.url ? (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <input className="onsite-input onsite-mono" readOnly value={link.url} style={{ flex: 1 }} />
-                <button className="btn btn-secondary btn-sm" onClick={handleCopy} data-ui-native-button="">
+                <Button variant="outline" size="sm" onClick={handleCopy}>
                   <Icon name="copy" size={14} /> Copy
-                </button>
+                </Button>
               </div>
             ) : (
               <div>
@@ -97,9 +99,9 @@ export function OnsiteReferrals() {
                         <td style={{ fontWeight: 600 }}>{c.referred_tenant_name ?? '—'}</td>
                         <td className="onsite-mono">{c.amount} {c.currency}</td>
                         <td>
-                          <span className={`onsite-badge ${(STATUS_META[c.status] ?? STATUS_META.pending).badge}`} title={c.flagged_reason ?? undefined}>
+                          <Badge variant={(STATUS_META[c.status] ?? STATUS_META.pending).variant} title={c.flagged_reason ?? undefined}>
                             {(STATUS_META[c.status] ?? STATUS_META.pending).label}
-                          </span>
+                          </Badge>
                         </td>
                         <td>{new Date(c.created_at).toLocaleDateString()}</td>
                       </tr>

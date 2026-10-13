@@ -1,7 +1,8 @@
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
-export type DocType = 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract';
+export type DocType = 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract'
+  | 'change_request' | 'payment_request' | 'project_po' | 'grn';
 
 const DEFAULTS: Record<DocType, { prefix: string; pad: number }> = {
   invoice: { prefix: 'INV-', pad: 4 },
@@ -9,6 +10,10 @@ const DEFAULTS: Record<DocType, { prefix: string; pad: number }> = {
   purchase_order: { prefix: 'PO-', pad: 4 },
   project: { prefix: 'PRJ-', pad: 4 },
   contract: { prefix: 'CTR-', pad: 4 },
+  change_request: { prefix: 'CR-', pad: 4 },
+  payment_request: { prefix: 'PR-', pad: 4 },
+  project_po: { prefix: 'PPO-', pad: 4 },
+  grn: { prefix: 'GRN-', pad: 4 },
 };
 
 /**

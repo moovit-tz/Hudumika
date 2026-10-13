@@ -31,6 +31,7 @@ import { PaginationBar } from '../components/PaginationBar.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { EmailMessageViewer } from '../components/EmailMessageViewer.js';
 import { EmailContextDrawer } from '../components/EmailContextDrawer.js';
+import { EmailSyncControls } from '../components/EmailSyncControls.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -3082,6 +3083,7 @@ export const EmailApp: React.FC = () => {
                             </span>
                             {settings.lastSyncError && <span className="em-settings-error">Last error: {settings.lastSyncError}</span>}
                           </div>
+                          <EmailSyncControls />
                           {settings.imapEnabled && (
                             <div className="em-settings-subform">
                               <div className="em-settings-grid-2">

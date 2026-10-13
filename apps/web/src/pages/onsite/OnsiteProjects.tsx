@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { PageHeader } from '../../components/PageHeader.js';
+import { Button } from '../../components/ui/button.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteProject } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import { ColorSwatchPicker } from '../../components/ui/color-swatch-picker.js';
 import './Onsite.css';
 
@@ -68,9 +70,11 @@ export function OnsiteProjects() {
         titlePlain="Infrastructure"
         titleEm="projects"
         subtitle="Organize infrastructure resources into client or team project containers."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
-                    <Icon name="plus" size={16} /> New Project
-                  </button></>}
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <Icon name="plus" size={16} /> New Project
+          </Button>
+        }
       />
 
       {loading ? (
@@ -88,9 +92,9 @@ export function OnsiteProjects() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Create a project to group your domains, servers, and applications together.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="plus" size={16} /> Create First Project
-          </button>
+          </Button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
@@ -98,9 +102,9 @@ export function OnsiteProjects() {
             <div key={p.id} className="onsite-card" style={{ borderLeft: `4px solid ${p.color || '#4361ee'}` }}>
               <div className="onsite-card-header">
                 <h3 className="onsite-card-title">{p.name}</h3>
-                <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteProject(p.id, p.name)} data-ui-native-button="">
+                <Button size="icon" variant="ghost" style={{ color: 'var(--red)' }} onClick={() => handleDeleteProject(p.id, p.name)} title="Delete project">
                   <Icon name="trash2" size={14} />
-                </button>
+                </Button>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--ink3)', margin: 0 }}>
                 {p.description || 'No description provided.'}
@@ -115,45 +119,48 @@ export function OnsiteProjects() {
 
       {/* Add Project Modal */}
       <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
-        <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-card-header">
-            <DialogTitle className="onsite-card-title">Create Project</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
-          </div>
-          <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="onsite-form-group">
-                <label>Project Name *</label>
-                <input
-                  type="text"
-                  className="onsite-input"
-                  placeholder="e.g. Acme Corp Portal"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Create Project</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <DialogBody>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="onsite-form-group">
+                  <label>Project Name *</label>
+                  <input
+                    type="text"
+                    className="onsite-input"
+                    placeholder="e.g. Acme Corp Portal"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="onsite-form-group">
+                  <label>Description</label>
+                  <textarea
+                    className="onsite-textarea"
+                    placeholder="Client infrastructure for Acme Corp"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div className="onsite-form-group">
+                  <label>Group Accent Color</label>
+                  <ColorSwatchPicker value={color} onChange={setColor} />
+                </div>
               </div>
-              <div className="onsite-form-group">
-                <label>Description</label>
-                <textarea
-                  className="onsite-textarea"
-                  placeholder="Client infrastructure for Acme Corp"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                />
-              </div>
-              <div className="onsite-form-group">
-                <label>Group Accent Color</label>
-                <ColorSwatchPicker value={color} onChange={setColor} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
-                  {submitting ? 'Creating…' : 'Create Project'}
-                </button>
-              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? <><ButtonSpinner /> Creating…</> : 'Create Project'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

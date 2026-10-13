@@ -101,6 +101,7 @@ const AI_TOOL_WRAPPERS: AgentToolWrapper[] = AI_TOOL_DEFINITIONS.map(def => ({
  *  (studio/actions.ts) always maps to critical/always; everything else is
  *  judged by what the action actually does (see file header). */
 const STUDIO_ACTION_POLICY: Record<string, { risk: AgentToolRisk; approvalPolicy: AgentApprovalPolicy }> = {
+  'email.send_communication':  { risk: 'medium',   approvalPolicy: 'policy' },
   'notification.send_in_app':  { risk: 'low',      approvalPolicy: 'never' },
   'support.create_ticket':     { risk: 'low',      approvalPolicy: 'never' },
   'support.assign_ticket':     { risk: 'medium',   approvalPolicy: 'policy' },

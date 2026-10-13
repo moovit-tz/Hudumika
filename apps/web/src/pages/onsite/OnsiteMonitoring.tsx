@@ -6,7 +6,10 @@ import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteHealthCheck } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
-import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog.js';
+import { Button } from '../../components/ui/button.js';
+import { Badge } from '../../components/ui/badge.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import './Onsite.css';
 
 export function OnsiteMonitoring() {
@@ -98,9 +101,11 @@ export function OnsiteMonitoring() {
         titlePlain="Uptime"
         titleEm="monitors"
         subtitle="Automated HTTP/S synthetic probes monitoring availability and latency."
-        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
-                    <Icon name="plus" size={16} /> Add Monitor
-                  </button></>}
+        actions={
+          <Button onClick={() => setShowAddModal(true)}>
+            <Icon name="plus" size={16} /> Add Monitor
+          </Button>
+        }
       />
 
       {loading ? (
@@ -118,9 +123,9 @@ export function OnsiteMonitoring() {
           <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>
             Add your site or API endpoint URL to track 30-day uptime SLAs.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)} data-ui-native-button="">
+          <Button onClick={() => setShowAddModal(true)}>
             <Icon name="plus" size={16} /> Create Uptime Monitor
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="onsite-card">
@@ -144,14 +149,12 @@ export function OnsiteMonitoring() {
                       {c.url}
                     </td>
                     <td>
-                      <span className="onsite-badge" style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--ink)' }}>
+                      <Badge variant="gray">
                         {c.method}
-                      </span>
+                      </Badge>
                     </td>
                     <td style={{ fontWeight: 600, color: c.uptime_30d == null ? 'var(--ink3)' : Number(c.uptime_30d) >= 99 ? 'var(--green)' : 'var(--red)' }}>
                       {c.uptime_30d != null ? `${c.uptime_30d}%` : 'Not measured yet'}
-                      {/* The measurement's own timestamp, so a stale figure is
-                          visibly stale rather than quietly current. */}
                       <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--ink3)' }}>
                         {(c as any).last_checked_at
                           ? `checked ${new Date((c as any).last_checked_at).toLocaleString()}`
@@ -159,21 +162,21 @@ export function OnsiteMonitoring() {
                       </div>
                     </td>
                     <td>
-                      <span className={`onsite-badge ${c.status}`}>
+                      <Badge variant={c.status === 'healthy' ? 'success' : c.status === 'warning' ? 'warning' : c.status === 'critical' ? 'error' : 'gray'}>
                         {c.status}
-                      </span>
+                      </Badge>
                       {(c as any).last_error && (
                         <div style={{ fontSize: '0.75rem', color: 'var(--red)', maxWidth: 260 }}>{(c as any).last_error}</div>
                       )}
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-sm btn-secondary" disabled={running === c.id} onClick={() => handleRun(c.id)} data-ui-native-button="">
-                          <Icon name="refresh" size={14} /> {running === c.id ? 'Checking…' : 'Run now'}
-                        </button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} onClick={() => handleDelete(c.id, c.name)} data-ui-native-button="">
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <Button variant="outline" size="sm" disabled={running === c.id} onClick={() => handleRun(c.id)}>
+                          {running === c.id ? <ButtonSpinner /> : <Icon name="refresh" size={14} />} {running === c.id ? 'Checking…' : 'Run now'}
+                        </Button>
+                        <Button variant="ghost" size="sm" style={{ color: 'var(--red)' }} onClick={() => handleDelete(c.id, c.name)} title="Delete">
                           <Icon name="trash2" size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -186,12 +189,12 @@ export function OnsiteMonitoring() {
 
       {/* Add Check Modal */}
       <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) setShowAddModal(false); }}>
-        <DialogContent hideClose className="max-w-120 gap-0" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="onsite-card-header">
-            <DialogTitle className="onsite-card-title">Add Uptime Monitor</DialogTitle>
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowAddModal(false)} data-ui-native-button="">✕</button>
-          </div>
-          <form onSubmit={handleAddCheck} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Add Uptime Monitor</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddCheck}>
+            <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Monitor Name *</label>
                 <input
@@ -214,7 +217,7 @@ export function OnsiteMonitoring() {
                   required
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>HTTP Method</label>
                   <Select value={method} onValueChange={setMethod}>
@@ -236,14 +239,16 @@ export function OnsiteMonitoring() {
                   />
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)} data-ui-native-button="">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting} data-ui-native-button="">
-                  {submitting ? 'Saving…' : 'Add Monitor'}
-                </button>
-              </div>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting && <ButtonSpinner />}
+                {submitting ? 'Saving…' : 'Add Monitor'}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

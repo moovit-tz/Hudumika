@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { Workflow, WorkflowStep, FieldCondition, AutoComm } from './ClearanceWorkflowList.js';
@@ -13,6 +13,11 @@ import { ClearanceWorkflowInsights } from './ClearanceWorkflowInsights.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { Switch } from '../../components/ui/switch.js';
 import { Tip } from '../../components/ui/tooltip.js';
+import { Button } from '../../components/ui/button.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
+import { Input } from '../../components/ui/input.js';
+import { Textarea } from '../../components/ui/textarea.js';
+import { Badge } from '../../components/ui/badge.js';
 
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2,6)}`; }
 
@@ -174,28 +179,6 @@ function buildSavePayload(wf: Workflow): CreateWorkflowInput {
   };
 }
 
-/* ══ Tiny SVG icon ══════════════════════════════════════════ */
-function I({n,s=14,c='currentColor'}:{n:string;s?:number;c?:string}) {
-  const P: Record<string, React.ReactElement> = {
-    arrowLeft: <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
-    save:      <><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></>,
-    plus:      <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
-    trash:     <><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></>,
-    x:         <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
-    chevDown:  <polyline points="6 9 12 15 18 9"/>,
-    chevUp:    <polyline points="18 15 12 9 6 15"/>,
-    check:     <polyline points="20 6 9 17 4 12"/>,
-    zoomIn:    <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></>,
-    zoomOut:   <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></>,
-    fit:       <><path d="M8 3H5a2 2 0 00-2 2v3"/><path d="M21 8V5a2 2 0 00-2-2h-3"/><path d="M3 16v3a2 2 0 002 2h3"/><path d="M16 21h3a2 2 0 002-2v-3"/></>,
-    settings:  <><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></>,
-    zap:       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
-    lock:      <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></>,
-    dot3:      <><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></>,
-    layers:    <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
-  };
-  return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{P[n] ?? <circle cx="12" cy="12" r="5"/>}</svg>;
-}
 
 function Toggle({on,set}:{on:boolean; set:(v:boolean)=>void}) {
   return <Switch checked={on} onCheckedChange={v => set(v === true)} />;
@@ -222,20 +205,20 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
   if (!step) return (
     <div className="wfb-right-panel">
       <div className="wfb-panel-head">
-        <I n="settings" s={15} c="var(--ink3)"/>
+        <Icon name="settings" size={15} color="var(--ink3)"/>
         <span className="wfb-panel-title">Workflow Settings</span>
-        <button className="wf-icon-btn" onClick={onClose} data-ui-native-button=""><I n="x" s={13}/></button>
+        <button className="wf-icon-btn" onClick={onClose} data-ui-native-button=""><Icon name="x" size={13}/></button>
       </div>
       <div className="wfb-panel-body">
         <div className="wfb-panel-section">
           <div className="wfb-panel-section-title">Identity</div>
           <div className="wfb-field" style={{marginBottom:10}}>
             <label className="wfb-label">Workflow Name</label>
-            <input className="wfb-input" value={wf.name} onChange={e=>onUpdateWf({name:e.target.value})} style={{fontSize:13}}/>
+            <Input value={wf.name} onChange={e=>onUpdateWf({name:e.target.value})}/>
           </div>
           <div className="wfb-field">
             <label className="wfb-label">Description</label>
-            <textarea className="wfb-textarea" rows={2} value={wf.description} onChange={e=>onUpdateWf({description:e.target.value})} style={{fontSize:12,minHeight:60}}/>
+            <Textarea rows={2} value={wf.description} onChange={e=>onUpdateWf({description:e.target.value})} style={{minHeight:60}}/>
           </div>
         </div>
         <div className="wfb-panel-section">
@@ -306,8 +289,8 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
       <div className="wfb-panel-head">
         <div className="wfb-panel-step-dot" style={{background:step.color}}>{step.order}</div>
         <span className="wfb-panel-title">{step.name}</span>
-        <Tip label="Delete step"><button type="button" className="wf-icon-btn danger" aria-label="Delete step" onClick={()=>onDeleteStep(step.id)} data-ui-native-button=""><I n="trash" s={13}/></button></Tip>
-        <Tip label="Close panel"><button type="button" className="wf-icon-btn" aria-label="Close panel" onClick={onClose} data-ui-native-button=""><I n="x" s={13}/></button></Tip>
+        <Tip label="Delete step"><button type="button" className="wf-icon-btn danger" aria-label="Delete step" onClick={()=>onDeleteStep(step.id)} data-ui-native-button=""><Icon name="trash" size={13}/></button></Tip>
+        <Tip label="Close panel"><button type="button" className="wf-icon-btn" aria-label="Close panel" onClick={onClose} data-ui-native-button=""><Icon name="x" size={13}/></button></Tip>
       </div>
       <div className="wfb-panel-body">
 
@@ -315,20 +298,20 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
         <div className="wfb-acc">
           <div className="wfb-acc-head" onClick={()=>tog('basics')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('basics');}}}>
             <span className="wfb-acc-title">Step Details</span>
-            <I n={isOpen('basics')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
+            <Icon name={isOpen('basics')?'chevronUp':'chevronDown'} size={13} color="var(--ink3)"/>
           </div>
           {isOpen('basics')&&<div className="wfb-acc-body">
             <div className="wfb-field">
               <label className="wfb-label">Name</label>
-              <input className="wfb-input" style={{fontSize:13}} value={step.name} onChange={e=>onUpdateStep(step.id,{name:e.target.value})} placeholder="Step name"/>
+              <Input value={step.name} onChange={e=>onUpdateStep(step.id,{name:e.target.value})} placeholder="Step name"/>
             </div>
             <div className="wfb-field">
               <label className="wfb-label">Description</label>
-              <textarea className="wfb-textarea" rows={2} style={{fontSize:12,minHeight:56}} value={step.description} onChange={e=>onUpdateStep(step.id,{description:e.target.value})} placeholder="What happens here?"/>
+              <Textarea rows={2} style={{minHeight:56}} value={step.description} onChange={e=>onUpdateStep(step.id,{description:e.target.value})} placeholder="What happens here?"/>
             </div>
             <div className="wfb-field">
               <label className="wfb-label">SLA (hours optional)</label>
-              <input className="wfb-input" style={{fontSize:13}} type="number" min="0" value={step.slaHours??''} onChange={e=>onUpdateStep(step.id,{slaHours:e.target.value?Number(e.target.value):undefined})} placeholder="No SLA"/>
+              <Input type="number" min="0" value={step.slaHours??''} onChange={e=>onUpdateStep(step.id,{slaHours:e.target.value?Number(e.target.value):undefined})} placeholder="No SLA"/>
             </div>
             <div className="wfb-field">
               <label className="wfb-label">Color</label>
@@ -345,14 +328,14 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
         <div className="wfb-acc">
           <div className="wfb-acc-head" onClick={()=>tog('transitions')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('transitions');}}}>
             <span className="wfb-acc-title">Transitions {step.nextStepIds.length>0&&<span className="wfb-acc-badge">{step.nextStepIds.length}</span>}</span>
-            <I n={isOpen('transitions')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
+            <Icon name={isOpen('transitions')?'chevronUp':'chevronDown'} size={13} color="var(--ink3)"/>
           </div>
           {isOpen('transitions')&&<div className="wfb-acc-body">
             <div style={{fontSize:11,color:'var(--ink3)',marginBottom:6}}>Steps that can follow this one (select all valid transitions)</div>
             {others.length===0?(<div style={{fontSize:12,color:'var(--ink3)'}}>Add more steps to configure transitions.</div>):
               others.map(s=>{const sel=step.nextStepIds.includes(s.id); return (
                 <div key={s.id} className={`wfb-trans-item ${sel?'sel':''}`} onClick={()=>onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]})} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onUpdateStep(step.id,{nextStepIds:sel?step.nextStepIds.filter(n=>n!==s.id):[...step.nextStepIds,s.id]});}}}>
-                  <div className="wfb-trans-check">{sel&&<I n="check" s={9} c="white"/>}</div>
+                  <div className="wfb-trans-check">{sel&&<Icon name="check" size={9} color="white"/>}</div>
                   <span style={{width:8,height:8,borderRadius:'50%',background:s.color,display:'inline-block',flexShrink:0}}/>
                   <span style={{fontSize:12,fontWeight:600,color:'var(--ink)'}}>{s.name}</span>
                 </div>
@@ -364,8 +347,8 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
         {/* ENTRY CONDITIONS */}
         <div className="wfb-acc">
           <div className="wfb-acc-head" onClick={()=>tog('conditions')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('conditions');}}}>
-            <span className="wfb-acc-title"><I n="lock" s={12} c="var(--ink3)"/>Entry Conditions {step.entryConditions.length>0&&<span className="wfb-acc-badge">{step.entryConditions.length}</span>}</span>
-            <I n={isOpen('conditions')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
+            <span className="wfb-acc-title"><Icon name="lock" size={12} color="var(--ink3)"/>Entry Conditions {step.entryConditions.length>0&&<span className="wfb-acc-badge">{step.entryConditions.length}</span>}</span>
+            <Icon name={isOpen('conditions')?'chevronUp':'chevronDown'} size={13} color="var(--ink3)"/>
           </div>
           {isOpen('conditions')&&<div className="wfb-acc-body">
             <div style={{fontSize:11,color:'var(--ink3)',marginBottom:6}}>Fields required on the shipment card before entering this step</div>
@@ -380,7 +363,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                       {SHIPMENT_FIELDS.map(f=><SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <button className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><I n="trash" s={11}/></button>
+                  <button className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <Select value={cond.operator} onValueChange={v=>updCond(cond.id,{operator:v as FieldCondition['operator']})}>
                   <SelectTrigger className="h-11 text-sm" style={{fontSize:13.5}}>
@@ -391,19 +374,19 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                   </SelectContent>
                 </Select>
                 {['equals','greater_than','less_than','contains'].includes(cond.operator)&&(
-                  <input className="wfb-input" style={{fontSize:11.5,padding:'5px 8px'}} value={cond.value??''} onChange={e=>updCond(cond.id,{value:e.target.value})} placeholder="Value"/>
+                  <Input className="text-xs" value={cond.value??''} onChange={e=>updCond(cond.id,{value:e.target.value})} placeholder="Value"/>
                 )}
               </div>
             ))}
-            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addCond} data-ui-native-button=""><I n="plus" s={12}/> Add Condition</button>
+            <Button variant="outline" size="sm" style={{width:'100%',justifyContent:'center'}} onClick={addCond}><Icon name="plus" size={12}/> Add Condition</Button>
           </div>}
         </div>
 
         {/* AUTO-COMMS */}
         <div className="wfb-acc">
           <div className="wfb-acc-head" onClick={()=>tog('comms')} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog('comms');}}}>
-            <span className="wfb-acc-title"><I n="zap" s={12} c="var(--ink3)"/>Auto-Comms {step.autoComms.length>0&&<span className="wfb-acc-badge">{step.autoComms.length}</span>}</span>
-            <I n={isOpen('comms')?'chevUp':'chevDown'} s={13} c="var(--ink3)"/>
+            <span className="wfb-acc-title"><Icon name="zap" size={12} color="var(--ink3)"/>Auto-Comms {step.autoComms.length>0&&<span className="wfb-acc-badge">{step.autoComms.length}</span>}</span>
+            <Icon name={isOpen('comms')?'chevronUp':'chevronDown'} size={13} color="var(--ink3)"/>
           </div>
           {isOpen('comms')&&<div className="wfb-acc-body">
             <div style={{fontSize:11,color:'var(--ink3)',marginBottom:6}}>Triggered when a shipment enters this step</div>
@@ -413,7 +396,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 <div className="wfb-comm-card-head">
                   <span className="wfb-comm-ch-badge" style={{background:ch?.color,display:'inline-flex',alignItems:'center',gap:4}}>{ch&&<Icon name={ch.icon} size={11} />} {ch?.label}</span>
                   <span style={{flex:1,fontSize:11,color:'var(--ink3)'}}>→ {RECIPIENTS.find(r=>r.value===comm.recipient)?.label}</span>
-                  <button className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><I n="trash" s={11}/></button>
+                  <button className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <div className="wfb-comm-card-body">
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
@@ -434,19 +417,19 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                       </SelectContent>
                     </Select>
                   </div>
-                  {comm.recipient==='custom_email'&&<input className="wfb-input" style={{fontSize:11,padding:'5px 8px'}} type="email" value={comm.customEmail??''} onChange={e=>updComm(comm.id,{customEmail:e.target.value})} placeholder="email@example.com"/>}
-                  {comm.channel==='email'&&<input className="wfb-input" style={{fontSize:11,padding:'5px 8px'}} value={comm.subject} onChange={e=>updComm(comm.id,{subject:e.target.value})} placeholder="Email subject…"/>}
-                  <textarea className="wfb-textarea" style={{fontSize:11,minHeight:64,padding:'6px 8px'}} rows={3} value={comm.template} onChange={e=>updComm(comm.id,{template:e.target.value})} placeholder="Message template…"/>
+                  {comm.recipient==='custom_email'&&<Input className="text-xs" type="email" value={comm.customEmail??''} onChange={e=>updComm(comm.id,{customEmail:e.target.value})} placeholder="email@example.com"/>}
+                  {comm.channel==='email'&&<Input className="text-xs" value={comm.subject} onChange={e=>updComm(comm.id,{subject:e.target.value})} placeholder="Email subject…"/>}
+                  <Textarea className="text-xs" style={{minHeight:64}} rows={3} value={comm.template} onChange={e=>updComm(comm.id,{template:e.target.value})} placeholder="Message template…"/>
                   <div className="wfb-var-chips">{TEMPLATE_VARS.map(v=><button key={v} className="wfb-var-chip" type="button" onClick={()=>updComm(comm.id,{template:comm.template+v})} data-ui-native-button="">{v}</button>)}</div>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:11,color:'var(--ink3)'}}>Delay:</span>
-                    <input className="wfb-input" style={{fontSize:11,padding:'4px 8px',width:56}} type="number" min="0" value={comm.delayMinutes} onChange={e=>updComm(comm.id,{delayMinutes:Number(e.target.value)})}/>
+                    <Input className="text-xs" style={{width:56}} type="number" min="0" value={comm.delayMinutes} onChange={e=>updComm(comm.id,{delayMinutes:Number(e.target.value)})}/>
                     <span style={{fontSize:11,color:'var(--ink3)'}}>min</span>
                   </div>
                 </div>
               </div>;
             })}
-            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addComm} data-ui-native-button=""><I n="plus" s={12}/> Add Communication</button>
+            <Button variant="outline" size="sm" style={{width:'100%',justifyContent:'center'}} onClick={addComm}><Icon name="plus" size={12}/> Add Communication</Button>
           </div>}
         </div>
       </div>
@@ -617,7 +600,7 @@ export function ClearanceWorkflowBuilder() {
     return (
       <div className="wfb-page" style={{alignItems:'center', justifyContent:'center', display:'flex', flexDirection:'column', gap:12}}>
         <div style={{color:'var(--red)'}}>{loadError}</div>
-        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')} data-ui-native-button=""><I n="arrowLeft" s={13}/> Back to clearance workflows</button>
+        <Button variant="outline" size="sm" onClick={()=>navigate('/studio/clearance')}><Icon name="arrowLeft" size={13}/> Back to clearance workflows</Button>
       </div>
     );
   }
@@ -628,9 +611,9 @@ export function ClearanceWorkflowBuilder() {
 
       {/* ── Top bar ── */}
       <div className="wfb-topbar">
-        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')} data-ui-native-button="">
-          <I n="arrowLeft" s={13}/> Workflows
-        </button>
+        <Button variant="outline" size="sm" onClick={()=>navigate('/studio/clearance')}>
+          <Icon name="arrowLeft" size={13}/> Workflows
+        </Button>
         <span className="wfb-topbar-sep">/</span>
         <input
           className="wfb-topbar-name"
@@ -648,20 +631,20 @@ export function ClearanceWorkflowBuilder() {
             since both read the saved version by id. */}
         {wf.id && (
           <>
-            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}} data-ui-native-button="">
+            <Button variant="outline" size="sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}}>
               <Icon name="play" size={13}/> Dry run
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}} data-ui-native-button="">
+            </Button>
+            <Button variant="outline" size="sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}}>
               <Icon name="clock" size={13}/> History
-            </button>
+            </Button>
           </>
         )}
-        <button className="btn btn-secondary btn-sm" onClick={()=>setPanel(p=>!p)} data-ui-native-button="">
-          <I n="layers" s={13}/> {panel?'Hide':'Panel'}
-        </button>
-        <button className="btn btn-primary" onClick={handleSave} disabled={saving} data-ui-native-button="">
-          <I n="save" s={13} c="white"/> {saving?'Saving\u2026':saved?'Saved \u2713':'Save'}
-        </button>
+        <Button variant="outline" size="sm" onClick={()=>setPanel(p=>!p)}>
+          <Icon name="layers" size={13}/> {panel?'Hide':'Panel'}
+        </Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? <><ButtonSpinner /> Saving…</> : saved ? <><Icon name="check" size={13} /> Saved</> : <><Icon name="save" size={13} /> Save</>}
+        </Button>
       </div>
 
       {insights && wf.id && (
@@ -729,7 +712,7 @@ export function ClearanceWorkflowBuilder() {
                 return <button key={`app-${s.id}`} className="wfb-append-btn"
                   style={{left:fp.x+NW+28, top:fp.y+NH/2-14}}
                   onClick={e=>{e.stopPropagation(); appendAfter(s.id);}} data-ui-native-button="">
-                  <I n="plus" s={11}/> Add step
+                  <Icon name="plus" size={11}/> Add step
                 </button>;
               })}
 
@@ -757,14 +740,13 @@ export function ClearanceWorkflowBuilder() {
                           first because it is the one badge that changes what
                           you are allowed to do to the node. */}
                       {(usage.byStep[step.id] ?? 0) > 0 && (
-                        <Tip label={`${usage.byStep[step.id]} shipment${usage.byStep[step.id] === 1 ? ' is' : 's are'} on this step now — editing or deleting it will move them`}><span className="wf-badge wf-badge-green"
-                          style={{fontSize:9.5,padding:'1px 7px'}}>
+                        <Tip label={`${usage.byStep[step.id]} shipment${usage.byStep[step.id] === 1 ? ' is' : 's are'} on this step now — editing or deleting it will move them`}><Badge variant="success">
                           <Icon name="package" size={9} /> {usage.byStep[step.id]} live
-                        </span></Tip>
+                        </Badge></Tip>
                       )}
-                      {step.entryConditions.length>0&&<span className="wf-badge wf-badge-orange" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="lock" size={9} /> {step.entryConditions.length}</span>}
-                      {step.autoComms.length>0&&<span className="wf-badge wf-badge-blue" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="zap" size={9} /> {step.autoComms.length}</span>}
-                      {step.slaHours!=null&&<span className="wf-badge wf-badge-gray" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="timer" size={9} /> {step.slaHours}h</span>}
+                      {step.entryConditions.length>0&&<Badge variant="warning"><Icon name="lock" size={9} /> {step.entryConditions.length}</Badge>}
+                      {step.autoComms.length>0&&<Badge variant="info"><Icon name="zap" size={9} /> {step.autoComms.length}</Badge>}
+                      {step.slaHours!=null&&<Badge variant="gray"><Icon name="timer" size={9} /> {step.slaHours}h</Badge>}
                     </div>
                   </div>
                 );
@@ -774,7 +756,7 @@ export function ClearanceWorkflowBuilder() {
               {wf.steps.length===0&&(
                 <div className="wfb-add-first">
                   <div style={{fontSize:13,color:'var(--ink3)'}}>No steps yet</div>
-                  <button className="btn btn-primary" onClick={()=>addStep()} data-ui-native-button=""><I n="plus" s={13} c="white"/> Add First Step</button>
+                  <Button onClick={()=>addStep()}><Icon name="plus" size={13}/> Add First Step</Button>
                 </div>
               )}
             </div>
@@ -782,14 +764,14 @@ export function ClearanceWorkflowBuilder() {
 
           {/* Zoom bar */}
           <div className="wfb-zoom-bar">
-            <Tip label="Zoom out"><button type="button" className="wfb-zoom-btn" onClick={zoomOut} aria-label="Zoom out" data-ui-native-button=""><I n="zoomOut" s={13}/></button></Tip>
+            <Tip label="Zoom out"><button type="button" className="wfb-zoom-btn" onClick={zoomOut} aria-label="Zoom out" data-ui-native-button=""><Icon name="zoomOut" size={13}/></button></Tip>
             <span className="wfb-zoom-label">{Math.round(zoom*100)}%</span>
-            <Tip label="Zoom in"><button type="button" className="wfb-zoom-btn" onClick={zoomIn} aria-label="Zoom in" data-ui-native-button=""><I n="zoomIn" s={13}/></button></Tip>
+            <Tip label="Zoom in"><button type="button" className="wfb-zoom-btn" onClick={zoomIn} aria-label="Zoom in" data-ui-native-button=""><Icon name="zoomIn" size={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
-            <Tip label="Reset to 100%"><button type="button" className="wfb-zoom-btn" onClick={()=>setZoom(1)} aria-label="Reset zoom to 100%" data-ui-native-button=""><I n="fit" s={13}/></button></Tip>
+            <Tip label="Reset to 100%"><button type="button" className="wfb-zoom-btn" onClick={()=>setZoom(1)} aria-label="Reset zoom to 100%" data-ui-native-button=""><Icon name="maximize" size={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
             <Tip label="Workflow settings"><button type="button" className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} data-ui-native-button="">
-              <I n="settings" s={12} c="var(--teal)"/>Settings
+              <Icon name="settings" size={12} color="var(--teal)"/>Settings
             </button></Tip>
           </div>
         </div>
