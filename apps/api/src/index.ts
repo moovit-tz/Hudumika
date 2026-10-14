@@ -409,9 +409,14 @@ export async function registerApp() {
       // duplicate, a record still in use) — driverErrorResponse maps those to
       // the accurate 4xx with a fixed message; anything else stays a 500.
       if (isDriverError(error)) {
-        request.log.error({ code: error.code, method: request.method, route: request.routeOptions.url }, 'Database operation failed');
-        const { status, error: message } = driverErrorResponse(error.code);
-        return reply.status(status).send({ error: message });
+        const e = error as { code: string; column?: string; constraint?: string; detail?: string; table?: string; message?: string };
+        request.log.error({ code: e.code, column: e.column, constraint: e.constraint, table: e.table, detail: e.detail, method: request.method, route: request.routeOptions.url }, 'Database operation failed');
+        const { status, error: message } = driverErrorResponse(e);
+        const body: Record<string, unknown> = { error: message };
+        if (env.APP_ENV !== 'production') {
+          body.debug = { code: e.code, column: e.column, constraint: e.constraint, table: e.table, detail: e.detail };
+        }
+        return reply.status(status).send(body);
       }
 
       const statusCode = error instanceof Error && 'statusCode' in error ? error.statusCode : undefined;

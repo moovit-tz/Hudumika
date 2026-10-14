@@ -1,7 +1,9 @@
 import { renderQuotationPdf } from '../services/finance-document-pdf.service.js';
 import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
+import { requireRole } from '../middleware/rbac.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { quotationService } from '../services/quotation.service.js';
 import { isTaxCodeUserError } from '../services/tax-code.service.js';
 import { withTenant } from '../db/client.js';
@@ -66,6 +68,68 @@ export async function quotationRoutes(app: FastifyInstance) {
     const { status, customer_id, search, page, page_size } = parsed.data;
     const customerId = user.role === 'CUSTOMER' ? (await resolveCustomerId(user)) ?? '00000000-0000-0000-0000-000000000000' : customer_id;
     return quotationService.list(user.tenant_id, { status, customer_id: customerId, search, page, page_size });
+  });
+
+  // GET /v1/quotations/stats — role-aware aggregate metrics for the
+  // Quotations list page's MetricsRow, replacing client-side computation
+  // that saw the full unscoped dataset regardless of the caller's role.
+  // SALES agents see only their own pipeline; everyone else (SENIOR and
+  // above, plus FINANCE) sees the tenant-wide picture.
+  const STATS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR'] as const;
+  app.get('/stats', { preHandler: requireRole(...STATS_ROLES) }, async (req) => {
+    const user = (req as any).user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const scopeToOwner = user.role === 'SALES';
+      const result = await sql<{
+        status: string; cnt: string; total_amount: string;
+      }>`
+        SELECT q.status,
+               count(*)::text AS cnt,
+               coalesce(sum(q.total_amount), 0)::text AS total_amount
+        FROM quotations q
+        WHERE q.tenant_id = ${user.tenant_id}
+          ${scopeToOwner ? sql`AND q.prepared_by = ${user.sub}` : sql``}
+        GROUP BY q.status
+      `.execute(trx);
+
+      const status_counts: Record<string, number> = {};
+      let total = 0;
+      let pipeline_value = 0;
+      let pending_value = 0;
+      let avg_quote = 0;
+      let total_value = 0;
+
+      for (const row of result.rows) {
+        const count = Number(row.cnt);
+        const amount = Number(row.total_amount) || 0;
+        status_counts[row.status] = count;
+        total += count;
+        total_value += amount;
+        if (!['REJECTED', 'EXPIRED'].includes(row.status)) {
+          pipeline_value += amount;
+        }
+        if (row.status === 'PENDING') {
+          pending_value += amount;
+        }
+      }
+
+      avg_quote = total > 0 ? Math.round(total_value / total) : 0;
+      const converted = status_counts['CONVERTED'] || 0;
+      const win_rate = total > 0 ? Math.round((converted / total) * 100) : 0;
+
+      return {
+        total,
+        status_counts,
+        pipeline_value,
+        pending_value,
+        avg_quote,
+        win_rate,
+        converted,
+        approved: status_counts['APPROVED'] || 0,
+        rejected: status_counts['REJECTED'] || 0,
+        expired: status_counts['EXPIRED'] || 0,
+      };
+    });
   });
 
   app.get('/:id/pdf', async (request, reply) => {

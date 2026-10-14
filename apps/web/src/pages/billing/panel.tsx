@@ -2,7 +2,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
-import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Badge } from '../../components/ui/badge.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../../components/ui/dropdown-menu.js';
 import { getCompany, subscribeCompany } from '../../data/companyStore.js';
@@ -269,7 +268,7 @@ function RequestStampDialog({ invoiceLabel, onClose }: { invoiceLabel: string; o
               value={approver} onChange={setApprover}
               search={async q => {
                 const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
-                return rows.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+                return rows.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email, avatarUserId: u.id, avatarKind: 'people' as const }));
               }}
             />
             <div>
@@ -488,137 +487,89 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     }
   }
 
-  const TABS: { id: DetailTab; label: string }[] = [
-    { id: 'invoice', label: 'Invoice' }, { id: 'tasks', label: 'Tasks' },
-    { id: 'activity', label: 'Activity Log' }, { id: 'reminders', label: 'Reminders' }, { id: 'notes', label: 'Notes' },
-  ];
-
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', overflow: 'hidden', minWidth: 0 }}>
       {paymentLink&&<Dialog open onOpenChange={open=>{if(!open)setPaymentLink(null);}}><DialogContent size="sm"><DialogHeader><DialogTitle>Invoice payment link</DialogTitle></DialogHeader><DialogBody className="space-y-4"><p className="text-sm text-muted-foreground">The customer must sign in to view this invoice and download its PDF. Online payments await Selcom or Azam Pay integration.</p><Input aria-label="Invoice payment link" readOnly value={paymentLink}/></DialogBody><DialogFooter><Button variant="outline" onClick={()=>setPaymentLink(null)}>Close</Button><Button onClick={copyPaymentLink}>{linkCopied?'Copied':'Copy link'}</Button></DialogFooter></DialogContent></Dialog>}
       {tab !== 'invoice'  && <div className="hidden"><InvoiceDocument inv={inv}/></div>}
 
-      {/* Tab bar */}
-      <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0 16px', flexShrink: 0 }}>
-        <Tabs value={tab} onValueChange={v => setTab(v as DetailTab)} style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          <TabsList>
-            {TABS.map(t => <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>)}
-          </TabsList>
-        </Tabs>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-          {/* Was three icons (mail / eye / maximize) – "Export PDF" opened the
-              exact same print window as "View / Print" (there's no separate
-              PDF export, just the browser's own print-to-PDF), and the mail
-              icon fired a bare `mailto:?subject=` with no body while the
-              proper message lived only in sendEmail() below. Down to the two
-              that do something distinct, both routed through the real
-              implementations. */}
-          {!isMobile && (
-            <>
-              <Tip label="Send email"><Button type="button" size="icon" variant="ghost" aria-label="Send email" onClick={sendEmail}>
-                <Icon name="mail" size={15} color="var(--ink3)" />
-              </Button></Tip>
-              <Tip label="View / Print"><Button type="button" size="icon" variant="ghost" aria-label="View or print" onClick={() => openPrintWindow(inv)}>
-                <Icon name="eye" size={15} color="var(--ink3)" />
-              </Button></Tip>
-            </>
-          )}
-          <Tip label="Close"><Button type="button" size="icon" variant="ghost" aria-label="Close" onClick={onClose}>
-            <Icon name="x" size={15} color="var(--ink3)" />
-          </Button></Tip>
-        </div>
-      </div>
-
       {/* Action bar */}
-      <div className="flex items-center gap-2 flex-wrap px-4 py-2.5 border-b border-border shrink-0">
-        <Badge variant={st.variant as any}>{st.label}</Badge>
-
-        {/* TRA fiscalization */}
-        {traFiscalized ? (
-          <Tip label={`Verification #: ${inv.traRctvnum}`}>
-            <Badge variant="success"><Icon name="checkCircle" size={12} /> TRA Fiscalized</Badge>
-          </Tip>
-        ) : onSubmitTRA ? (
-          <Tip label={
-            inv.status === 'Draft' ? 'Save & Send this invoice first – drafts cannot be fiscalized'
-            : !inv._dbId ? 'This invoice only exists locally and was never saved to the server'
-            : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed – retry')
-            : 'Submit this invoice to TRA EFDMS for fiscalization'
-          }>
-            <Button type="button" size="sm" onClick={submitToTRA}
-              disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
-              variant={inv.status === 'Draft' || !inv._dbId ? 'secondary' : 'outline'}
-              className={inv.status === 'Draft' || !inv._dbId ? '' : inv.traStatus === 'failed' ? 'border-[var(--red-l)] bg-[var(--red-l)] text-[var(--red)] hover:bg-[var(--red-l)]' : 'border-[var(--gold-l)] bg-[var(--gold-l)] text-[var(--gold)] hover:bg-[var(--gold-l)]'}>
-              <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} />
-              {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA' : 'Submit to TRA'}
-            </Button>
-          </Tip>
-        ) : null}
-
-        {/* Sign & Stamp */}
-        {dbId && (
-          stampedFileUrl ? (
-            <Tip label="Download the company-stamped copy">
-              <Button type="button" size="sm" variant="outline"
-                className="border-[var(--green-l)] bg-[var(--green-l)] text-[var(--green)] hover:bg-[var(--green-l)]"
-                onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}>
-                <Icon name="checkCircle" size={12} /> Stamped
-              </Button>
-            </Tip>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" size="sm" variant="outline"
-                  className={stampAllowed === true ? 'border-[var(--blue-l)] bg-[var(--blue-l)] text-[var(--blue)] hover:bg-[var(--blue-l)]' : ''}>
-                  <Icon name="stamp" size={12} /> Sign & Stamp <Icon name="chevronDown" size={10} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {stampAllowed === true ? (
-                  <DropdownMenuItem onClick={handleSignAndStamp} disabled={stamping}>
-                    <Icon name="stamp" size={14} /> {stamping ? 'Stamping…' : 'Apply Company Stamp'}
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={() => setShowRequestStamp(true)}>
-                    <Icon name="stamp" size={14} /> Request Company Stamp
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setShowEsign(true)} disabled={inv.status === 'Draft'}>
-                  <Icon name="edit" size={14} /> Send for Signature
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/sign/editor?attach_invoice=${dbId}`)}>
-                  <Icon name="externalLink" size={14} /> Open in Sign App
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )
+      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 shrink-0">
+        {tab !== 'invoice' && (
+          <Button type="button" size="sm" variant="ghost" onClick={() => setTab('invoice')}>
+            <Icon name="arrowLeft" size={14} /> Invoice
+          </Button>
+        )}
+        {tab === 'invoice' && <Badge variant={st.variant as any}>{st.label}</Badge>}
+        {tab !== 'invoice' && (
+          <span className="text-sm font-semibold text-foreground">
+            {tab === 'activity' ? 'Activity Log' : tab === 'tasks' ? 'Tasks' : tab === 'reminders' ? 'Reminders' : 'Notes'}
+          </span>
         )}
 
         <div className="flex-1" />
 
         <Tip label="Edit"><Button type="button" size="icon" variant="outline" onClick={onEdit} aria-label="Edit"><Icon name="edit" size={13} /></Button></Tip>
         <Tip label="Duplicate"><Button type="button" size="icon" variant="outline" onClick={onCopy} aria-label="Duplicate"><Icon name="copy" size={13} /></Button></Tip>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="outline" size="sm">More <Icon name="chevronDown" size={10} /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setTab('activity')}><Icon name="activity" size={14} /> Activity Log</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTab('tasks')}><Icon name="checkCircle" size={14} /> Tasks</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTab('notes')}><Icon name="file" size={14} /> Notes</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} /> Reminders</DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} /> Send by Email</DropdownMenuItem>
             <DropdownMenuItem disabled={!dbId||pdfBusy} onClick={downloadPdf}>{pdfBusy?'Downloading…':'Download PDF'}</DropdownMenuItem>
-            <DropdownMenuItem disabled={!dbId||linkBusy||['Draft','Credited'].includes(inv.status)} onClick={createPaymentLink}>{linkBusy?'Creating link…':'Payment link'}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} /> View / Print</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} /> Add Reminder</DropdownMenuItem>
+            {/* Sign & Stamp */}
+            {dbId && stampedFileUrl && (
+              <DropdownMenuItem onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}>
+                <Icon name="checkCircle" size={14} /> Download Stamped Copy
+              </DropdownMenuItem>
+            )}
+            {dbId && !stampedFileUrl && stampAllowed === true && (
+              <DropdownMenuItem onClick={handleSignAndStamp} disabled={stamping}>
+                <Icon name="stamp" size={14} /> {stamping ? 'Stamping…' : 'Apply Company Stamp'}
+              </DropdownMenuItem>
+            )}
+            {dbId && !stampedFileUrl && stampAllowed !== true && (
+              <DropdownMenuItem onClick={() => setShowRequestStamp(true)}>
+                <Icon name="stamp" size={14} /> Request Company Stamp
+              </DropdownMenuItem>
+            )}
+            {dbId && !stampedFileUrl && (
+              <>
+                <DropdownMenuItem onClick={() => setShowEsign(true)} disabled={inv.status === 'Draft'}>
+                  <Icon name="edit" size={14} /> Send for Signature
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/sign/editor?attach_invoice=${dbId}`)}>
+                  <Icon name="externalLink" size={14} /> Open in Sign App
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuSeparator />
+            {/* TRA fiscalization */}
+            {traFiscalized ? (
+              <DropdownMenuItem disabled><Icon name="checkCircle" size={14} /> TRA Fiscalized · {inv.traRctvnum}</DropdownMenuItem>
+            ) : onSubmitTRA ? (
+              <DropdownMenuItem onClick={submitToTRA} disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}>
+                <Icon name="send" size={14} /> {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA' : 'Submit to TRA'}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleIssueCreditNote}><Icon name="minusCircle" size={14} /> Issue Credit Note</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Icon name="trash" size={14} /> Delete Invoice</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size="sm" className="bg-[var(--green)] text-[var(--white)] hover:bg-[var(--green)]/90">
+            <Button type="button" size="sm" className="px-4">
               <Icon name="dollarSign" size={13} /> Payment <Icon name="chevronDown" size={10} />
             </Button>
           </DropdownMenuTrigger>
@@ -637,8 +588,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
 
+        <Tip label="Close"><Button type="button" size="icon" variant="ghost" aria-label="Close" onClick={onClose}><Icon name="x" size={15} /></Button></Tip>
+      </div>
       {traError && (
         <Banner variant="error" className="rounded-none border-x-0 border-t-0" style={{ borderBottom: '1px solid var(--border)' }}>
           TRA submission failed: {traError}

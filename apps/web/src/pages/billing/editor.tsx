@@ -365,6 +365,9 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const [billDate, setBillDate]   = useState(draft?.billDate ?? initial?.billDate ?? today);
   const [dueDate, setDueDate]     = useState(draft?.dueDate ?? initial?.dueDate ?? '');
   const [agent, setAgent]         = useState(draft?.agent ?? initial?.saleAgent ?? '');
+  const [agentPick, setAgentPick] = useState<PickerItem | null>(
+    agent ? { id: '', label: agent } : null,
+  );
   const [blNo, setBlNo]           = useState(draft?.blNo ?? initial?.blNumber ?? '');
   const [origin, setOrigin]       = useState(draft?.origin ?? initial?.origin ?? '');
   const [dest, setDest]           = useState(draft?.dest ?? initial?.destination ?? '');
@@ -436,19 +439,38 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function searchStaff(q: string): Promise<PickerItem[]> {
+    const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
+    return (rows || []).map((u: any) => ({
+      id: u.id,
+      label: u.name,
+      sublabel: u.email,
+      avatarUserId: u.id,
+      avatarKind: 'people' as const,
+      avatarType: 'person' as const,
+      avatarUrl: u.avatar_url || undefined,
+    }));
+  }
+
+  function handleAgentChange(item: PickerItem | null) {
+    setAgentPick(item);
+    setAgent(item?.label ?? '');
+  }
+
   async function searchCustomers(q: string): Promise<PickerItem[]> {
-    const res = await apiFetch('/v1/customers').catch(() => ({ data: [] }));
-    const raw: any[] = Array.isArray(res) ? res : (res.data ?? []);
-    // Excludes draft companies (active===false) – e.g. BRELA imports still
-    // sitting in Company Directory that haven't been marked complete yet –
-    // from the invoice/bill customer picker.
-    const list = raw.filter((c) => c.active !== false);
-    const ql = q.trim().toLowerCase();
-    const filtered = ql
-      ? list.filter((c) => (c.name || '').toLowerCase().includes(ql) || (c.email || '').toLowerCase().includes(ql) || (c.phone || '').includes(ql))
-      : list;
-    filtered.forEach((c) => customerCacheRef.current.set(c.id, c));
-    return filtered.slice(0, 25).map((c) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined }));
+    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}&active=true` : '?active=true';
+    const res = await apiFetch(`/v1/customers${qs}`).catch(() => ({ data: [] }));
+    const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    list.forEach((c) => customerCacheRef.current.set(c.id, c));
+    return list.slice(0, 25).map((c) => ({
+      id: c.id,
+      label: c.name,
+      sublabel: c.email || c.phone || undefined,
+      avatarUserId: c.id,
+      avatarKind: 'customers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: c.logo_url || c.avatar_url || undefined,
+    }));
   }
 
   // A brand-new customer needs more than the bare `{ name }` this used to
@@ -576,6 +598,8 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
       let msg = error instanceof Error ? error.message : 'Could not save invoice.';
       const details: any[] | undefined = error?.body?.details;
       if (details?.length) msg += ' — ' + details.map((d: any) => `${d.field}: ${d.message}`).join(', ');
+      const debug = error?.body?.debug;
+      if (debug) msg += ` [${debug.code}: ${debug.column || debug.constraint || debug.table || ''} ${debug.detail || ''}]`.trim();
       setSaveError(msg);
     }
     finally { saveInFlight.current = false; setSaving(false); }
@@ -596,7 +620,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           </CardContent></Card>
           <Card><CardHeader><CardTitle>Invoice details</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">
             <FormField label="Invoice number" value={initial?.id || 'Assigned when saved'} disabled />
-            <FormField label="Sales agent" value={agent} onChange={setAgent} />
+            <div><label className="mb-2 block text-sm font-medium">Sales agent</label><EntityPicker value={agentPick} onChange={handleAgentChange} search={searchStaff} placeholder="Search staff…" /></div>
             <div><label className="mb-2 block text-sm font-medium">Invoice date</label><DatePicker date={parseDateOnly(billDate.split('-').reverse().join('-'))} onChange={date=>setBillDate(toDateOnlyString(date).split('-').reverse().join('-'))} /></div>
             <div><label className="mb-2 block text-sm font-medium">Due date</label><DatePicker date={parseDateOnly(dueDate.split('-').reverse().join('-'))} onChange={date=>setDueDate(toDateOnlyString(date).split('-').reverse().join('-'))} /></div>
             <div><label className="mb-2 block text-sm font-medium">Invoice currency</label><Select value={documentCurrency} onValueChange={setDocumentCurrency} disabled={Boolean(initial && initial.status!=='Draft')}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Array.from(new Set([documentCurrency,'TZS','USD','EUR','GBP','KES','ZAR','AED'])).map(code=><SelectItem key={code} value={code}>{code}</SelectItem>)}</SelectContent></Select></div>

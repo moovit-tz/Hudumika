@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
@@ -385,6 +385,8 @@ export function FinanceVendors() {
   const [selected, setSelected]       = useState<Vendor | null>(null);
   const [showForm, setShowForm]       = useState(false);
   const [editVendor, setEditVendor]   = useState<Vendor | null>(null);
+  const [vStats, setVStats] = useState<{ total: number; active: number; activeRate: number } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/suppliers/stats').then(setVStats).catch(() => {}); }, []);
 
   function loadVendors() {
     Promise.all([
@@ -412,7 +414,7 @@ export function FinanceVendors() {
     });
   }
 
-  useEffect(() => { loadVendors(); }, []);
+  useEffect(() => { loadVendors(); fetchStats(); }, [fetchStats]);
 
   // Deep-link straight to a vendor's detail panel — same ?id= pattern
   // Customers.tsx already supports, now used for the "Paid To Supplier"
@@ -524,9 +526,9 @@ export function FinanceVendors() {
       <MetricsRow cards={[
         {
           title: 'Total Vendors',
-          value: String(stats.total),
-          sub1Label: 'ACTIVE', sub1Value: String(stats.active),
-          sub2Label: 'INACTIVE', sub2Value: String(stats.total - stats.active), barHighlight: 'var(--teal)',
+          value: String(vStats?.total ?? stats.total), loading: !vStats,
+          sub1Label: 'ACTIVE', sub1Value: String(vStats?.active ?? stats.active),
+          sub2Label: 'INACTIVE', sub2Value: String((vStats?.total ?? stats.total) - (vStats?.active ?? stats.active)), barHighlight: 'var(--teal)',
         },
         {
           title: 'Outstanding Balance',
@@ -543,9 +545,9 @@ export function FinanceVendors() {
         },
         {
           title: 'Active Rate',
-          value: `${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}%`,
-          sub1Label: 'ACTIVE', sub1Value: String(stats.active),
-          sub2Label: 'TOTAL', sub2Value: String(stats.total), barHighlight: 'var(--blue)',
+          value: `${vStats?.activeRate ?? (stats.total ? Math.round((stats.active / stats.total) * 100) : 0)}%`, loading: !vStats,
+          sub1Label: 'ACTIVE', sub1Value: String(vStats?.active ?? stats.active),
+          sub2Label: 'TOTAL', sub2Value: String(vStats?.total ?? stats.total), barHighlight: 'var(--blue)',
         },
       ]} />
 

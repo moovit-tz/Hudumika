@@ -5,6 +5,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "./popover"
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "./command"
 import { cn } from "@/lib/utils"
+import "./search-results.css"
 
 export interface ComboboxOption {
   value: string
@@ -82,7 +83,7 @@ export function Combobox({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className={cn("w-(--radix-popover-trigger-width) p-0", className)}>
+      <PopoverContent align="start" collisionPadding={16} className={cn("search-results-panel", className)}>
         {/* cmdk's default filter is a subsequence match, so typing "durb" in a
             port list returned "Jeddah Islamic Port, Saudi Arabia" alongside
             "Durban" — the letters appear in order, scattered. Over long

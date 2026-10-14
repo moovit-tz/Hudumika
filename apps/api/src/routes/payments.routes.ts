@@ -154,11 +154,14 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   // GET /v1/payments/stats — aggregated money-in / money-out by currency.
   fastify.get('/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
     const user = request.user;
+    const scopeToOwner = user.role === 'SALES';
     return withTenant(user.tenant_id, async (trx) => {
-      const arAgg = await trx.selectFrom('invoice_payments')
+      let arQ = trx.selectFrom('invoice_payments')
         .innerJoin('sales_invoices', 'sales_invoices.id', 'invoice_payments.invoice_id')
         .where('invoice_payments.tenant_id', '=', user.tenant_id)
-        .where('sales_invoices.tenant_id', '=', user.tenant_id)
+        .where('sales_invoices.tenant_id', '=', user.tenant_id);
+      if (scopeToOwner) arQ = arQ.where('sales_invoices.created_by', '=', user.sub);
+      const arAgg = await arQ
         .select([
           'sales_invoices.currency',
           sql<number>`count(*)`.as('count'),
@@ -167,8 +170,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         .groupBy('sales_invoices.currency')
         .execute();
 
-      const apAgg = await trx.selectFrom('bill_payments')
-        .where('tenant_id', '=', user.tenant_id)
+      let apQ = trx.selectFrom('bill_payments')
+        .where('tenant_id', '=', user.tenant_id);
+      const apAgg = scopeToOwner ? [] : await apQ
         .select([
           'currency',
           sql<number>`count(*)`.as('count'),
@@ -182,9 +186,11 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       thisMonthStart.setHours(0, 0, 0, 0);
       const thisMonthIso = thisMonthStart.toISOString().slice(0, 10);
 
-      const monthlyAr = await trx.selectFrom('invoice_payments')
+      let monthQ = trx.selectFrom('invoice_payments')
         .where('tenant_id', '=', user.tenant_id)
-        .where('payment_date', '>=', thisMonthIso)
+        .where('payment_date', '>=', thisMonthIso);
+      if (scopeToOwner) monthQ = monthQ.innerJoin('sales_invoices as si2', 'si2.id', 'invoice_payments.invoice_id').where('si2.created_by', '=', user.sub);
+      const monthlyAr = await monthQ
         .select(sql<number>`count(*)`.as('count'))
         .executeTakeFirstOrThrow();
 

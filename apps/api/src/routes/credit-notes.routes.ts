@@ -1,6 +1,7 @@
 import { renderCreditNotePdf } from '../services/finance-document-pdf.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
@@ -96,6 +97,44 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       return {
         items: rows.map(r => ({ ...r, items: linesByNote.get(r.id) ?? [] })),
         total, page, page_size, total_pages: Math.ceil(total / page_size),
+      };
+    });
+  });
+
+  const STATS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR'] as const;
+  fastify.get('/stats', { preHandler: requireRole(...STATS_ROLES) }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await sql`
+        SELECT cn.status,
+               count(*)::text AS cnt,
+               coalesce(sum(
+                 (SELECT coalesce(sum(l.rate * l.qty * (1 + coalesce(l.tax_pct,0)/100)), 0)
+                  FROM credit_note_lines l WHERE l.credit_note_id = cn.id)
+               ), 0)::text AS total_amount,
+               count(*) filter (where cn.original_invoice_id is not null)::text AS linked
+        FROM credit_notes cn
+        WHERE cn.tenant_id = ${user.tenant_id}
+        GROUP BY cn.status
+      `.execute(trx);
+      const byStatus: Record<string, { count: number; amount: number }> = {};
+      let total = 0, totalCredited = 0, linkedCount = 0;
+      for (const r of rows.rows as any[]) {
+        const cnt = Number(r.cnt);
+        const amt = Number(r.total_amount);
+        byStatus[r.status] = { count: cnt, amount: amt };
+        total += cnt;
+        if (r.status === 'POSTED') totalCredited += amt;
+        linkedCount += Number(r.linked);
+      }
+      return {
+        total,
+        draftCount: byStatus['DRAFT']?.count ?? 0,
+        postedCount: byStatus['POSTED']?.count ?? 0,
+        voidCount: byStatus['VOID']?.count ?? 0,
+        totalCredited,
+        linkedCount,
+        voidRate: total ? Math.round(((byStatus['VOID']?.count ?? 0) / total) * 100) : 0,
       };
     });
   });

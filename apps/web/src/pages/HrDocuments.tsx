@@ -146,6 +146,11 @@ export function HrDocuments() {
   const [genHtmlPreview, setGenHtmlPreview] = useState('');
   const [generating, setGenerating] = useState(false);
 
+  const [serverStats, setServerStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setServerStats(await apiFetch('/v1/hr/documents/stats')); } catch {}
+  }, []);
+
   const loadData = useCallback(async () => {
     setError('');
     try {
@@ -176,7 +181,8 @@ export function HrDocuments() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    fetchStats();
+  }, [loadData, fetchStats]);
 
   const types = useMemo(() => [...new Set(docs.map(d => d.type))].sort(), [docs]);
 
@@ -197,38 +203,48 @@ export function HrDocuments() {
   const pendingCount = useMemo(() => docs.filter(d => d.approval_status === 'PENDING_APPROVAL').length, [docs]);
   const expiringCount = useMemo(() => docs.filter(d => typeof d.days_until_expiry === 'number' && d.days_until_expiry <= 30).length, [docs]);
 
+  const totalDocs = serverStats?.total ?? docs.length;
+  const attachedDocs = serverStats?.attached ?? docs.filter(d => d.user_id).length;
+  const pendingDocs = serverStats?.pending ?? pendingCount;
+  const expiringDocs = serverStats?.expiring ?? expiringCount;
+  const templatesDocs = serverStats?.templates ?? templates.length;
+
   const metrics: MetricCardProps[] = [
     {
       title: 'Total Filed Documents',
-      value: String(docs.length),
+      value: String(totalDocs),
       sub1Label: 'Attached to staff',
-      sub1Value: String(docs.filter(d => d.user_id).length),
+      sub1Value: String(attachedDocs),
       barColor: 'var(--teal)',
       icon: 'fileText',
+      loading: !serverStats,
     },
     {
       title: 'Pending HR Review',
-      value: String(pendingCount),
+      value: String(pendingDocs),
       sub1Label: 'Action Required',
-      sub1Value: pendingCount > 0 ? `${pendingCount} files` : 'All verified',
-      barColor: pendingCount > 0 ? 'var(--gold)' : 'var(--green)',
+      sub1Value: pendingDocs > 0 ? `${pendingDocs} files` : 'All verified',
+      barColor: pendingDocs > 0 ? 'var(--gold)' : 'var(--green)',
       icon: 'clock',
+      loading: !serverStats,
     },
     {
       title: 'Compliance Expiry Radar',
-      value: String(expiringCount),
+      value: String(expiringDocs),
       sub1Label: 'Expired Records',
       sub1Value: String(radar?.expired_count ?? 0),
-      barColor: expiringCount > 0 ? 'var(--red)' : 'var(--green)',
+      barColor: expiringDocs > 0 ? 'var(--red)' : 'var(--green)',
       icon: 'shield',
+      loading: !serverStats,
     },
     {
       title: 'Auto Letter Templates',
-      value: String(templates.length),
+      value: String(templatesDocs),
       sub1Label: 'WorkDo Templates',
       sub1Value: 'Offer/NOC/Warning',
       barColor: 'var(--teal)',
       icon: 'edit',
+      loading: !serverStats,
     },
   ];
 

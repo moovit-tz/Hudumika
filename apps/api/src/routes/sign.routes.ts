@@ -152,6 +152,29 @@ export async function signRoutes(fastify: FastifyInstance) {
     return reply.send(kpis);
   });
 
+  // ── Journal stats ────────────────────────────────────────────────────────────
+  fastify.get('/journal/stats', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    return withTenant(tid, async (trx) => {
+      const rows = await sql<{ event_type: string; cnt: string }>`
+        SELECT event_type, count(*)::text AS cnt
+        FROM sign_events
+        WHERE tenant_id = ${tid}
+          AND event_type IN ('certified', 'witnessed', 'declared', 'journal_correction')
+        GROUP BY event_type
+      `.execute(trx);
+      const byType = Object.fromEntries(rows.rows.map(r => [r.event_type, Number(r.cnt)]));
+      const total = Object.values(byType).reduce((s, n) => s + n, 0);
+      return reply.send({
+        total,
+        certified: byType['certified'] ?? 0,
+        witnessed: byType['witnessed'] ?? 0,
+        declared: byType['declared'] ?? 0,
+        corrections: byType['journal_correction'] ?? 0,
+      });
+    });
+  });
+
   // ── Electronic Journal (Milestone S1) ─────────────────────────────────────────
   fastify.get('/journal', async (req: FastifyRequest<{ Querystring: { search?: string; type?: string; limit?: string; offset?: string } }>, reply: FastifyReply) => {
     const tid = tenantId(req);
@@ -1152,6 +1175,42 @@ export async function signRoutes(fastify: FastifyInstance) {
       // is untouched; only the "which directory entry" pointer clears.
       await trx.deleteFrom('sign_certifiers').where('id', '=', req.params.id).where('tenant_id', '=', tid).execute();
       return reply.status(204).send();
+    });
+  });
+
+  // ── Template stats ─────────────────────────────────────────────────────────
+  fastify.get('/templates/stats', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    return withTenant(tid, async (trx) => {
+      const rows = await sql<{
+        total: string; with_file: string;
+        total_recipients: string; total_fields: string;
+        sig_fields: string; required_fields: string; ready: string;
+      }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE file_id IS NOT NULL)::text AS with_file,
+               coalesce(sum(jsonb_array_length(recipients::jsonb)), 0)::text AS total_recipients,
+               coalesce(sum(jsonb_array_length(fields::jsonb)), 0)::text AS total_fields,
+               coalesce(sum((SELECT count(*) FROM jsonb_array_elements(fields::jsonb) f WHERE f.value->>'type' = 'signature')), 0)::text AS sig_fields,
+               coalesce(sum((SELECT count(*) FROM jsonb_array_elements(fields::jsonb) f WHERE (f.value->>'required')::boolean)), 0)::text AS required_fields,
+               count(*) FILTER (WHERE file_id IS NOT NULL
+                 AND jsonb_array_length(recipients::jsonb) > 0
+                 AND jsonb_array_length(fields::jsonb) > 0)::text AS ready
+        FROM sign_templates
+        WHERE tenant_id = ${tid}
+      `.execute(trx);
+      const r = rows.rows[0];
+      const total = Number(r?.total ?? 0);
+      return reply.send({
+        total,
+        withFile: Number(r?.with_file ?? 0),
+        totalRecipients: Number(r?.total_recipients ?? 0),
+        totalFields: Number(r?.total_fields ?? 0),
+        sigFields: Number(r?.sig_fields ?? 0),
+        requiredFields: Number(r?.required_fields ?? 0),
+        ready: Number(r?.ready ?? 0),
+        readyPct: total ? Math.round((Number(r?.ready ?? 0) / total) * 100) : 0,
+      });
     });
   });
 

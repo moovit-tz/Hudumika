@@ -129,6 +129,9 @@ export const ProductReviewsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [moderating, setModerating] = useState<ProductReview | null>(null);
 
+  const [reviewStats, setReviewStats] = useState<any>(null);
+  function fetchStats() { apiFetch('/v1/products/reviews/stats').then(setReviewStats).catch(() => {}); }
+
   function load() {
     setLoading(true);
     apiFetch('/v1/products/reviews')
@@ -137,7 +140,7 @@ export const ProductReviewsPage: React.FC = () => {
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); fetchStats(); }, []);
 
   async function handleModerate(review: ProductReview, reply: string, status: ProductReview['status']) {
     const updated: ProductReview = await apiFetch(`/v1/products/reviews/${review.id}`, {
@@ -145,12 +148,14 @@ export const ProductReviewsPage: React.FC = () => {
       body: JSON.stringify({ status, reply: reply || null }),
     });
     setReviews(prev => prev.map(r => r.id === updated.id ? updated : r));
+    fetchStats();
   }
 
   async function handleDelete(review: ProductReview) {
     if (!(await showConfirm(`Delete this review from ${review.customer_name}?`, { confirmLabel: 'Delete', variant: 'danger' }))) return;
     await apiFetch(`/v1/products/reviews/${review.id}`, { method: 'DELETE' });
     setReviews(prev => prev.filter(r => r.id !== review.id));
+    fetchStats();
   }
 
   async function quickStatus(review: ProductReview, status: ProductReview['status']) {
@@ -158,6 +163,7 @@ export const ProductReviewsPage: React.FC = () => {
       method: 'PATCH', body: JSON.stringify({ status }),
     });
     setReviews(prev => prev.map(r => r.id === updated.id ? updated : r));
+    fetchStats();
   }
 
   const displayed = reviews.filter(r => {
@@ -199,10 +205,10 @@ export const ProductReviewsPage: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title: 'Total Reviews', value: String(reviews.length), sub1Label: 'PENDING', sub1Value: String(pending), sub2Label: 'APPROVED', sub2Value: String(approved), barHighlight: 'var(--blue)' },
-        { title: 'Avg Rating', value: reviews.length ? `${avgRating.toFixed(1)} ★` : '—', sub1Label: 'REVIEWS', sub1Value: String(reviews.length), sub2Label: 'APPROVED', sub2Value: String(approved), barHighlight: 'var(--gold)' },
-        { title: 'Pending Moderation', value: String(pending), sub1Label: 'APPROVED', sub1Value: String(approved), sub2Label: 'REJECTED', sub2Value: String(rejected), barHighlight: pending > 0 ? 'var(--gold)' : 'var(--green)' },
-        { title: 'Rejected', value: String(rejected), sub1Label: 'TOTAL', sub1Value: String(reviews.length), sub2Label: 'RATE', sub2Value: reviews.length ? `${Math.round(rejected / reviews.length * 100)}%` : '—', barHighlight: 'var(--red)' },
+        { title: 'Total Reviews', value: String(reviewStats?.total ?? reviews.length), sub1Label: 'PENDING', sub1Value: String(reviewStats?.pending ?? pending), sub2Label: 'APPROVED', sub2Value: String(reviewStats?.approved ?? approved), barHighlight: 'var(--blue)', loading: !reviewStats },
+        { title: 'Avg Rating', value: (reviewStats?.total ?? reviews.length) ? `${(reviewStats?.avgRating ?? avgRating).toFixed(1)} ★` : '—', sub1Label: 'REVIEWS', sub1Value: String(reviewStats?.total ?? reviews.length), sub2Label: 'APPROVED', sub2Value: String(reviewStats?.approved ?? approved), barHighlight: 'var(--gold)', loading: !reviewStats },
+        { title: 'Pending Moderation', value: String(reviewStats?.pending ?? pending), sub1Label: 'APPROVED', sub1Value: String(reviewStats?.approved ?? approved), sub2Label: 'REJECTED', sub2Value: String(reviewStats?.rejected ?? rejected), barHighlight: (reviewStats?.pending ?? pending) > 0 ? 'var(--gold)' : 'var(--green)', loading: !reviewStats },
+        { title: 'Rejected', value: String(reviewStats?.rejected ?? rejected), sub1Label: 'TOTAL', sub1Value: String(reviewStats?.total ?? reviews.length), sub2Label: 'RATE', sub2Value: (reviewStats?.total ?? reviews.length) ? `${Math.round((reviewStats?.rejected ?? rejected) / (reviewStats?.total ?? reviews.length) * 100)}%` : '—', barHighlight: 'var(--red)', loading: !reviewStats },
       ]} />
 
       {/* Toolbar */}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
@@ -317,7 +317,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
 
   const [supplierItem, setSupplierItem] = useState<PickerItem | null>(() => {
     const s = suppliers.find((s: any) => s.id === (initial?.supplier_id ?? ''));
-    return s ? { id: s.id, label: s.name, sublabel: s.email || undefined } : null;
+    return s ? { id: s.id, label: s.name, sublabel: s.email || undefined, avatarUserId: s.id, avatarKind: 'suppliers' as const, avatarType: 'company' as const } : null;
   });
 
   async function searchSuppliersLocal(q: string): Promise<PickerItem[]> {
@@ -325,7 +325,15 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
     const filtered = ql
       ? suppliers.filter((s: any) => (s.name || '').toLowerCase().includes(ql) || (s.email || '').toLowerCase().includes(ql))
       : suppliers;
-    return filtered.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+    return filtered.slice(0, 25).map((s: any) => ({
+      id: s.id,
+      label: s.name,
+      sublabel: s.email || undefined,
+      avatarUserId: s.id,
+      avatarKind: 'suppliers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: s.avatar_url || s.logo_url || undefined,
+    }));
   }
 
   async function createSupplierInline(name: string): Promise<PickerItem> {
@@ -574,7 +582,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
 
   const [supplierItem, setSupplierItem] = useState<PickerItem | null>(() => {
     const s = suppliers.find((s: any) => s.id === (initial?.supplier_id ?? ''));
-    return s ? { id: s.id, label: s.name, sublabel: s.email || undefined } : null;
+    return s ? { id: s.id, label: s.name, sublabel: s.email || undefined, avatarUserId: s.id, avatarKind: 'suppliers' as const, avatarType: 'company' as const } : null;
   });
 
   async function searchSuppliersLocal(q: string): Promise<PickerItem[]> {
@@ -582,7 +590,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
     const filtered = ql
       ? suppliers.filter((s: any) => (s.name || '').toLowerCase().includes(ql) || (s.email || '').toLowerCase().includes(ql))
       : suppliers;
-    return filtered.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+    return filtered.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined, avatarUserId: s.id, avatarKind: 'suppliers' as const, avatarType: 'company' as const }));
   }
 
   async function createSupplierInline(name: string): Promise<PickerItem> {

@@ -28,6 +28,28 @@ export async function signForensicsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireEntitlement('sign'));
   fastify.addHook('preHandler', requireRole(...DOCUMENT_ADMIN_ROLES));
 
+  // GET /forensics/cases/stats — aggregate counts by status.
+  fastify.get('/forensics/cases/stats', async (req: FastifyRequest) => {
+    const tid = tenantId(req);
+    return withTenant(tid, async (trx) => {
+      const rows = await trx.selectFrom('sign_forensic_cases')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'open').as('open_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'reviewing').as('reviewing_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'resolved').as('resolved_count'),
+        ])
+        .where('tenant_id', '=', tid)
+        .executeTakeFirst();
+      return {
+        total: Number(rows?.total ?? 0),
+        open: Number(rows?.open_count ?? 0),
+        reviewing: Number(rows?.reviewing_count ?? 0),
+        resolved: Number(rows?.resolved_count ?? 0),
+      };
+    });
+  });
+
   // GET /forensics/cases — every case for this tenant, newest first.
   fastify.get('/forensics/cases', async (req: FastifyRequest) => {
     const tid = tenantId(req);

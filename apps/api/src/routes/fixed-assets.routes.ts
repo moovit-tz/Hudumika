@@ -37,6 +37,44 @@ export async function fixedAssetRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/stats', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('fixed_assets')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'ACTIVE').as('active_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'DISPOSED').as('disposed_count'),
+          (eb) => eb.fn.sum<string>('cost').as('total_cost'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
+      const totalCost = Number(row?.total_cost ?? 0);
+      const ids = await trx.selectFrom('fixed_assets').select('id')
+        .where('tenant_id', '=', user.tenant_id).execute();
+      const assetIds = ids.map(r => r.id);
+
+      let totalAccum = 0;
+      if (assetIds.length) {
+        const deprRow = await trx.selectFrom('fixed_asset_depreciation_entries')
+          .select((eb) => eb.fn.sum<string>('amount').as('total_accum'))
+          .where('asset_id', 'in', assetIds)
+          .executeTakeFirst();
+        totalAccum = Number(deprRow?.total_accum ?? 0);
+      }
+
+      return {
+        total: Number(row?.total ?? 0),
+        activeCount: Number(row?.active_count ?? 0),
+        disposedCount: Number(row?.disposed_count ?? 0),
+        totalCost,
+        totalAccum,
+        totalNBV: totalCost - totalAccum,
+      };
+    });
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {

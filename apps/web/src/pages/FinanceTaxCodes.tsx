@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -472,6 +472,10 @@ function TaxCodeForm({ code, onClose, onSaved }: {
 /* ── Page ───────────────────────────────────────────────────────────────────── */
 export function FinanceTaxCodes() {
   const codes = useTaxCodes();
+  const [tcStats, setTcStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setTcStats(await apiFetch('/v1/tax-codes/stats')); } catch {}
+  }, []);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<TaxCode | null>(null);
@@ -506,7 +510,7 @@ export function FinanceTaxCodes() {
     } finally { setSwitching(false); }
   }
 
-  useEffect(() => { refreshTaxCodes(true); }, []);
+  useEffect(() => { refreshTaxCodes(true); fetchStats(); }, [fetchStats]);
   useEffect(() => {
     apiFetch('/v1/tax-codes/usage').then(setUsage).catch(() => setUsage(null));
     apiFetch('/v1/tax-codes/registration')
@@ -600,9 +604,10 @@ export function FinanceTaxCodes() {
 
       <MetricsRow cards={[
         {
-          title: 'TOTAL TAX CODES', value: String(codes.length),
-          sub1Label: 'ACTIVE', sub1Value: String(codes.filter(c => c.status === 'active').length),
-          sub2Label: 'DEFAULT', sub2Value: String(codes.filter(c => c.isDefault).length), barHighlight: 'var(--teal)',
+          title: 'TOTAL TAX CODES', value: String(tcStats?.total ?? codes.length),
+          sub1Label: 'ACTIVE', sub1Value: String(tcStats?.active ?? codes.filter(c => c.status === 'active').length),
+          sub2Label: 'DEFAULT', sub2Value: String(tcStats?.defaults ?? codes.filter(c => c.isDefault).length), barHighlight: 'var(--teal)',
+          loading: !tcStats,
         },
         {
           title: 'STANDARD RATE', value: `${codes.find(c => c.kind === 'STANDARD')?.rate ?? 18}%`,

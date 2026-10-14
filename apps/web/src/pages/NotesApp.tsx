@@ -1241,7 +1241,7 @@ const LINKABLE_CATEGORIES: Record<string, {
   customer: {
     search: async q => {
       const rows = await apiFetch(`/v1/crm/search?q=${encodeURIComponent(q)}`).catch(() => []);
-      return (rows || []).filter((r: any) => r.kind === 'customer').map((r: any) => ({ id: r.id, label: r.name, sublabel: r.email || r.phone }));
+      return (rows || []).filter((r: any) => r.kind === 'customer').map((r: any) => ({ id: r.id, label: r.name, sublabel: r.email || r.phone, avatarUserId: r.id, avatarKind: 'customers' as const, avatarType: 'company' as const }));
     },
     resolve: async id => {
       const c = await apiFetch(`/v1/customers/${id}`).catch(() => null);

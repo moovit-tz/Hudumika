@@ -35,8 +35,8 @@ export const FinanceExpenseNew: React.FC = () => {
   const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
   const [shipments, setShipments] = useState<ShipmentOpt[]>([]);
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
-  // Categories an admin added at Settings ▸ Finance ▸ Expenses Categories
-  // (tenant_settings key 'expenses-categories') — merged in alongside the
+  // Categories an admin added at Settings â–¸ Finance â–¸ Expenses Categories
+  // (tenant_settings key 'expenses-categories') â€” merged in alongside the
   // built-in CATS so that screen's categories are actually selectable here,
   // not just persisted and ignored.
   const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
@@ -74,7 +74,15 @@ export const FinanceExpenseNew: React.FC = () => {
   async function searchSuppliers(q: string): Promise<PickerItem[]> {
     const res: any = await apiFetch(`/v1/suppliers${q.trim() ? `?search=${encodeURIComponent(q.trim())}` : ''}`);
     const list = Array.isArray(res) ? res : [];
-    return list.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+    return list.slice(0, 25).map((s: any) => ({
+      id: s.id,
+      label: s.name,
+      sublabel: s.email || undefined,
+      avatarUserId: s.id,
+      avatarKind: 'suppliers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: s.avatar_url || s.logo_url || undefined,
+    }));
   }
 
   async function createSupplier(name: string): Promise<PickerItem> {
@@ -109,7 +117,7 @@ export const FinanceExpenseNew: React.FC = () => {
         crumbs={['Finance', 'Expenses', 'New']}
         titlePlain="New"
         titleEm="expense"
-        subtitle="Record a cost or revenue line — link it to a shipment or customer if it belongs to one."
+        subtitle="Record a cost or revenue line â€” link it to a shipment or customer if it belongs to one."
       />
 
       <SectionCard>
@@ -165,7 +173,7 @@ export const FinanceExpenseNew: React.FC = () => {
           label="Paid to Supplier (optional)" value={supplierItem} onChange={setSupplierItem}
           search={searchSuppliers} onCreate={createSupplier}
           createLabel={(q) => `Create new supplier "${q}"`}
-          placeholder="Search suppliers…"
+          placeholder="Search suppliersâ€¦"
           hint="Link this expense to a supplier so it shows on their Vendors page."
         />
 
@@ -177,7 +185,7 @@ export const FinanceExpenseNew: React.FC = () => {
               value={businessLineId}
               onChange={setBusinessLineId}
               placeholder="Unassigned"
-              searchPlaceholder="Search business lines…"
+              searchPlaceholder="Search business linesâ€¦"
             />
           </div>
         )}
@@ -230,7 +238,7 @@ export const FinanceExpenseNew: React.FC = () => {
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
           <Button asChild variant="outline"><Link to="/finance/expenses">Cancel</Link></Button>
-          <Button type="submit" disabled={saving}>{saving ? 'Saving�' : 'Save expense'}</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save expense'}</Button>
         </div>
       </form>
       </SectionCard>

@@ -182,6 +182,11 @@ export const ChartOfAccounts: React.FC = () => {
   const [fDescription, setFDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [coaStats, setCoaStats] = useState<any>(null);
+  const fetchStats = React.useCallback(async () => {
+    try { setCoaStats(await apiFetch('/v1/finance/chart-of-accounts/stats')); } catch {}
+  }, []);
+
   const loadAccounts = React.useCallback(() => {
     return apiFetch('/v1/finance/chart-of-accounts')
       .then((res: { accounts: ChartOfAccount[] }) => {
@@ -193,7 +198,7 @@ export const ChartOfAccounts: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { loadAccounts(); }, [loadAccounts]);
+  useEffect(() => { loadAccounts(); fetchStats(); }, [loadAccounts, fetchStats]);
 
   function openNewAccountForm() {
     if (!canManageAccounts) {
@@ -395,9 +400,10 @@ export const ChartOfAccounts: React.FC = () => {
 
       <MetricsRow cards={[
         {
-          title: 'TOTAL ACCOUNTS', value: String(flat.length),
-          sub1Label: 'ACTIVE', sub1Value: String(flat.filter(a => a.is_active).length),
-          sub2Label: 'TOP LEVEL', sub2Value: String(coaTree.length), barHighlight: 'var(--teal)',
+          title: 'TOTAL ACCOUNTS', value: String(coaStats?.total ?? flat.length),
+          sub1Label: 'ACTIVE', sub1Value: String(coaStats?.active ?? flat.filter(a => a.is_active).length),
+          sub2Label: 'TOP LEVEL', sub2Value: String(coaStats?.topLevel ?? coaTree.length), barHighlight: 'var(--teal)',
+          loading: !coaStats,
         },
         {
           title: 'ASSETS', value: String(stats['ASSET'] ?? 0),

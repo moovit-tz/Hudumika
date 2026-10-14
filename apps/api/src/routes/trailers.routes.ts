@@ -135,6 +135,24 @@ export async function trailersRoutes(fastify: FastifyInstance) {
 
   // ── Trailers ─────────────────────────────────────────────────
 
+  fastify.get('/trailers/stats', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('trailers')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'ACTIVE').as('active_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'MAINTENANCE').as('maintenance_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      const total = Number(row?.total ?? 0);
+      const active = Number(row?.active_count ?? 0);
+      const maintenance = Number(row?.maintenance_count ?? 0);
+      return { total, active, inUse: active, maintenance, unavailable: total - active };
+    });
+  });
+
   fastify.get('/trailers', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {

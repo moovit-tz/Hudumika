@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -54,6 +54,11 @@ export function JournalEntries() {
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(), emptyLine()]);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState('');
+  const [jeServerStats, setJeServerStats] = useState<{
+    total: number; postedCount: number; draftCount: number; voidedCount: number;
+    manualCount: number; totalPosted: number; postedThisMonth: number; postingRate: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/finance/journal-entries/stats').then(setJeServerStats).catch(() => {}); }, []);
 
   const load = async () => {
     setLoading(true);
@@ -70,7 +75,7 @@ export function JournalEntries() {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); fetchStats(); }, [fetchStats]);
   useEffect(() => {
     if (readOnly) {
       setShowForm(false);
@@ -127,7 +132,7 @@ export function JournalEntries() {
           })),
         }),
       });
-      resetForm(); setShowForm(false); await load();
+      resetForm(); setShowForm(false); await load(); fetchStats();
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not post this entry.');
     } finally {
@@ -139,7 +144,7 @@ export function JournalEntries() {
     if (!voidReason.trim()) return showAlert('A reason is required to void an entry.');
     try {
       await apiFetch(`/v1/finance/journal-entries/${id}/void`, { method: 'POST', body: JSON.stringify({ reason: voidReason.trim() }) });
-      setVoidingId(null); setVoidReason(''); await load();
+      setVoidingId(null); setVoidReason(''); await load(); fetchStats();
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not void this entry.');
     }
@@ -149,21 +154,10 @@ export function JournalEntries() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading journal entries…</div>;
 
-  const jeStats = (() => {
-    const now = new Date();
-    const postedCount = entries.filter(e => e.status === 'POSTED').length;
-    const draftCount = entries.filter(e => e.status === 'DRAFT').length;
-    const voidedCount = entries.filter(e => e.status === 'VOIDED').length;
-    const manualCount = entries.filter(e => e.source_module === 'MANUAL').length;
-    const postedEntries = entries.filter(e => e.status === 'POSTED');
-    const lineTotal = (e: JournalEntry) => e.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
-    const totalPosted = postedEntries.reduce((s, e) => s + lineTotal(e), 0);
-    const postedThisMonth = postedEntries.reduce((s, e) => {
-      const d = new Date(e.entry_date);
-      return s + (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() ? lineTotal(e) : 0);
-    }, 0);
-    return { total: entries.length, postedCount, draftCount, voidedCount, manualCount, totalPosted, postedThisMonth };
-  })();
+  const jeStats = jeServerStats ?? {
+    total: entries.length, postedCount: 0, draftCount: 0, voidedCount: 0,
+    manualCount: 0, totalPosted: 0, postedThisMonth: 0, postingRate: 0,
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -175,22 +169,22 @@ export function JournalEntries() {
       />
       <MetricsRow cards={[
         {
-          title: 'Total Entries', value: String(jeStats.total),
+          title: 'Total Entries', value: String(jeStats.total), loading: !jeServerStats,
           sub1Label: 'POSTED', sub1Value: String(jeStats.postedCount),
           sub2Label: 'DRAFT', sub2Value: String(jeStats.draftCount), barHighlight: 'var(--teal)',
         },
         {
-          title: 'Total Posted', value: fmt(jeStats.totalPosted),
+          title: 'Total Posted', value: fmt(jeStats.totalPosted), loading: !jeServerStats,
           sub1Label: 'THIS MONTH', sub1Value: fmt(jeStats.postedThisMonth),
           sub2Label: 'VOIDED', sub2Value: String(jeStats.voidedCount), barHighlight: 'var(--green)',
         },
         {
-          title: 'Manual Entries', value: String(jeStats.manualCount),
+          title: 'Manual Entries', value: String(jeStats.manualCount), loading: !jeServerStats,
           sub1Label: 'MANUAL', sub1Value: String(jeStats.manualCount),
           sub2Label: 'AUTOMATIC', sub2Value: String(jeStats.total - jeStats.manualCount), barHighlight: 'var(--purple)',
         },
         {
-          title: 'Posting Rate', value: `${jeStats.total ? Math.round((jeStats.postedCount / jeStats.total) * 100) : 0}%`,
+          title: 'Posting Rate', value: `${jeServerStats?.postingRate ?? 0}%`, loading: !jeServerStats,
           sub1Label: 'POSTED', sub1Value: String(jeStats.postedCount),
           sub2Label: 'TOTAL', sub2Value: String(jeStats.total), barHighlight: 'var(--blue)',
         },

@@ -34,6 +34,27 @@ export async function signMattersRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Matters stats ──────────────────────────────────────────────────────────
+  fastify.get('/matters/stats', async (req: FastifyRequest, reply: FastifyReply) => {
+    const tid = tenantId(req);
+    return withTenant(tid, async (trx) => {
+      const row = await sql<{ matters: string; documents: string; clients: string }>`
+        SELECT count(DISTINCT e.matter_reference)::text AS matters,
+               count(*)::text AS documents,
+               count(DISTINCT c.name) FILTER (WHERE c.name IS NOT NULL)::text AS clients
+        FROM sign_envelopes e
+        LEFT JOIN customers c ON c.id = e.client_id
+        WHERE e.tenant_id = ${tid} AND e.matter_reference IS NOT NULL
+      `.execute(trx);
+      const r = row.rows[0];
+      return reply.send({
+        matters: Number(r?.matters ?? 0),
+        documents: Number(r?.documents ?? 0),
+        clients: Number(r?.clients ?? 0),
+      });
+    });
+  });
+
   // ── List matters — grouped summary, newest activity first ───────────────
   fastify.get('/matters', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);

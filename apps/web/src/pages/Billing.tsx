@@ -51,7 +51,7 @@ export const Billing: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [search, setSearch]             = useState('');
   const [sortAsc, setSortAsc]           = useState(false);
-  const [viewMode, setViewMode]         = useState<'row' | 'grid'>('grid');
+  const [viewMode, setViewMode]         = useState<'row' | 'grid'>('row');
   const [pageSize, setPageSize]         = useState(25);
 
   // Arriving from a customer's profile (Customers.tsx "+ Create Invoice" /

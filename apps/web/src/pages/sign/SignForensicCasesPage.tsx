@@ -6,7 +6,7 @@
 // CONTENT_DIFFERENCE / INCONCLUSIVE); this page is where an investigator
 // reviews what was found, the evidence it was built from, and the full
 // chain of custody, then resolves or dismisses it.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
@@ -263,6 +263,8 @@ function CaseListView() {
   const [statusFilter, setStatusFilter] = useState<CaseStatus | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [serverStats, setServerStats] = useState<{ total: number; open: number; reviewing: number; resolved: number } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/sign/forensics/cases/stats').then(setServerStats).catch(() => {}); }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -270,7 +272,8 @@ function CaseListView() {
       .then((res: any) => setCases(Array.isArray(res) ? res : []))
       .catch(() => setCases([]))
       .finally(() => setLoading(false));
-  }, [statusFilter]);
+    fetchStats();
+  }, [statusFilter, fetchStats]);
 
   useEffect(() => { setPage(1); }, [statusFilter, perPage]);
 
@@ -296,10 +299,10 @@ function CaseListView() {
       />
 
       <MetricsRow cards={[
-        { title: 'Cases', value: String(cases.length), loading, icon: 'shield' },
-        { title: 'Open', value: String(openCount), loading, icon: 'clock' },
-        { title: 'In review', value: String(reviewingCount), loading, icon: 'eye' },
-        { title: 'Resolved', value: String(resolvedCount), loading, icon: 'checkCircle' },
+        { title: 'Cases', value: String(serverStats?.total ?? cases.length), loading: !serverStats, icon: 'shield' },
+        { title: 'Open', value: String(serverStats?.open ?? openCount), loading: !serverStats, icon: 'clock' },
+        { title: 'In review', value: String(serverStats?.reviewing ?? reviewingCount), loading: !serverStats, icon: 'eye' },
+        { title: 'Resolved', value: String(serverStats?.resolved ?? resolvedCount), loading: !serverStats, icon: 'checkCircle' },
       ]} />
       {/* Status Filter + per-page */}
       <Card className="sign-management-toolbar sign-management-filter-row">

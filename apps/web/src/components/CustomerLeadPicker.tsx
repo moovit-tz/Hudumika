@@ -48,7 +48,12 @@ export function CustomerLeadPicker({
       const sublabel = r.kind === 'lead'
         ? [r.contactName, 'Lead'].filter(Boolean).join(' · ')
         : [r.email, r.phone].filter(Boolean).join(' · ') || 'Customer';
-      return { id: key, label: r.name, sublabel };
+      return {
+        id: key, label: r.name, sublabel,
+        avatarUserId: r.id,
+        avatarKind: (r.kind === 'lead' ? 'leads' : 'customers') as any,
+        avatarType: 'company' as const,
+      };
     });
   };
 

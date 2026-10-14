@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
@@ -238,15 +238,20 @@ export function FixedAssets() {
   const [schedule, setSchedule] = useState<any[]>([]);
   const [disposing, setDisposing] = useState<Asset | null>(null);
   const [disposalProceeds, setDisposalProceeds] = useState(0);
+  const [faStats, setFaStats] = useState<{
+    total: number; activeCount: number; disposedCount: number;
+    totalCost: number; totalAccum: number; totalNBV: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/fixed-assets/stats').then(setFaStats).catch(() => {}); }, []);
 
   const load = () => apiFetch('/v1/fixed-assets').then((d: any) => { if (Array.isArray(d)) setAssets(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load fixed assets.')).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); fetchStats(); }, [fetchStats]);
 
   async function handleSave(data: any) {
     try {
       await apiFetch('/v1/fixed-assets', { method: 'POST', body: JSON.stringify(data) });
       setShowForm(false);
-      await load();
+      await load(); fetchStats();
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not save this asset.');
     }
@@ -267,7 +272,7 @@ export function FixedAssets() {
     try {
       await apiFetch(`/v1/fixed-assets/${disposing.id}/dispose`, { method: 'POST', body: JSON.stringify({ disposed_at: new Date().toISOString().slice(0, 10), proceeds: disposalProceeds }) });
       setDisposing(null);
-      await load();
+      await load(); fetchStats();
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not dispose this asset.');
     }
@@ -277,7 +282,7 @@ export function FixedAssets() {
     if (!(await showConfirm(`Delete "${a.name}"? Only possible if no depreciation has posted yet.`, { variant: 'danger', confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/fixed-assets/${a.id}`, { method: 'DELETE' });
-      await load();
+      await load(); fetchStats();
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not delete this asset.');
     }
@@ -296,13 +301,11 @@ export function FixedAssets() {
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assets…</div>;
 
-  const totalCost = assets.reduce((s, a) => s + Number(a.cost), 0);
-  const totalNBV = assets.filter(a => a.status === 'ACTIVE').reduce((s, a) => s + Number(a.net_book_value), 0);
-  const totalAccum = assets.reduce((s, a) => s + Number(a.accumulated_depreciation), 0);
-  const activeCount = assets.filter(a => a.status === 'ACTIVE').length;
-  const disposedCount = assets.filter(a => a.status === 'DISPOSED').length;
-  const activeCost = assets.filter(a => a.status === 'ACTIVE').reduce((s, a) => s + Number(a.cost), 0);
-  const disposedCost = assets.filter(a => a.status === 'DISPOSED').reduce((s, a) => s + Number(a.cost), 0);
+  const totalCost = faStats?.totalCost ?? assets.reduce((s, a) => s + Number(a.cost), 0);
+  const totalNBV = faStats?.totalNBV ?? 0;
+  const totalAccum = faStats?.totalAccum ?? 0;
+  const activeCount = faStats?.activeCount ?? assets.filter(a => a.status === 'ACTIVE').length;
+  const disposedCount = faStats?.disposedCount ?? assets.filter(a => a.status === 'DISPOSED').length;
 
   return (
     <div className="finance-fixed-assets-page" style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -315,25 +318,24 @@ export function FixedAssets() {
 
       <MetricsRow cards={[
         {
-          title: 'Total Assets', value: String(assets.length),
+          title: 'Total Assets', value: String(faStats?.total ?? assets.length), loading: !faStats,
           sub1Label: 'ACTIVE', sub1Value: String(activeCount),
           sub2Label: 'DISPOSED', sub2Value: String(disposedCount), barHighlight: 'var(--teal)',
         },
         {
-          title: 'Total Cost', value: fmt(totalCost),
-          sub1Label: 'ACTIVE', sub1Value: fmt(activeCost),
-          sub2Label: 'DISPOSED', sub2Value: fmt(disposedCost), barHighlight: 'var(--blue)',
+          title: 'Total Cost', value: fmt(totalCost), loading: !faStats,
+          barHighlight: 'var(--blue)',
         },
         {
-          title: 'Accumulated Depreciation', value: fmt(totalAccum),
+          title: 'Accumulated Depreciation', value: fmt(totalAccum), loading: !faStats,
           invertTrend: true,
           sub1Label: 'OF TOTAL COST', sub1Value: totalCost ? `${Math.round((totalAccum / totalCost) * 100)}%` : '0%',
-          sub2Label: 'ASSETS', sub2Value: String(assets.length), barHighlight: 'var(--gold)',
+          sub2Label: 'ASSETS', sub2Value: String(faStats?.total ?? assets.length), barHighlight: 'var(--gold)',
         },
         {
-          title: 'Net Book Value', value: fmt(totalNBV),
+          title: 'Net Book Value', value: fmt(totalNBV), loading: !faStats,
           sub1Label: 'ACTIVE', sub1Value: String(activeCount),
-          sub2Label: 'TOTAL', sub2Value: String(assets.length), barHighlight: 'var(--green)',
+          sub2Label: 'TOTAL', sub2Value: String(faStats?.total ?? assets.length), barHighlight: 'var(--green)',
         },
       ]} />
 

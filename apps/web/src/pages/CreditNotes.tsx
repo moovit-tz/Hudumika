@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -155,6 +155,11 @@ export function CreditNotes() {
   const [selected, setSelected] = useState<CreditNote | null>(null);
   const [loading, setLoading] = useState(true);
   const [voiding, setVoiding] = useState(false);
+  const [stats, setStats] = useState<{
+    total: number; draftCount: number; postedCount: number; voidCount: number;
+    totalCredited: number; linkedCount: number; voidRate: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/credit-notes/stats').then(setStats).catch(() => {}); }, []);
   const loadIdRef = useRef(0);
 
   const load = useCallback(async (p = page, ps = pageSize, s = search, sf = statusFilter) => {
@@ -181,7 +186,7 @@ export function CreditNotes() {
     }
   }, [page, pageSize, search, statusFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
 
   function handlePageChange(p: number) { setPage(p); }
   function handlePageSizeChange(ps: number) { setPageSize(ps); setPage(1); }
@@ -196,7 +201,7 @@ export function CreditNotes() {
     setVoiding(true);
     try {
       await apiFetch(`/v1/credit-notes/${id}/void`, { method: 'POST', body: JSON.stringify({ reason }) });
-      await load();
+      await load(); fetchStats();
       setSelected(prev => prev && prev.id === id ? { ...prev, status: 'VOID' } : prev);
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not void this credit note.');
@@ -217,7 +222,15 @@ export function CreditNotes() {
   async function searchCustomers(q: string): Promise<PickerItem[]> {
     const res = await apiFetch(`/v1/customers?search=${encodeURIComponent(q)}`).catch(() => []);
     const list = Array.isArray(res) ? res : (res.data ?? []);
-    return list.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined }));
+    return list.slice(0, 25).map((c: any) => ({
+      id: c.id,
+      label: c.name,
+      sublabel: c.email || undefined,
+      avatarUserId: c.id,
+      avatarKind: 'customers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: c.logo_url || c.avatar_url || undefined,
+    }));
   }
 
   const updateLine = (i: number, patch: Partial<DraftLine>) => setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l));
@@ -247,7 +260,7 @@ export function CreditNotes() {
       // never re-fires on navigate() below — the list previously stayed on
       // whatever it fetched before this credit note existed. Refetch here,
       // before navigating away, so the list is already current when it lands.
-      await load();
+      await load(); fetchStats();
       navigate('/finance/credit-notes');
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not issue this credit note.');
@@ -304,15 +317,7 @@ export function CreditNotes() {
     );
   }
 
-  const cnStats = (() => {
-    const draftCount = notes.filter(n => n.status === 'DRAFT').length;
-    const postedCount = notes.filter(n => n.status === 'POSTED').length;
-    const voidCount = notes.filter(n => n.status === 'VOID').length;
-    const linkedCount = notes.filter(n => !!n.original_invoice_id).length;
-    const postedNotes = notes.filter(n => n.status === 'POSTED');
-    const totalCredited = postedNotes.reduce((s, n) => s + creditNoteTotal(n), 0);
-    return { total, draftCount, postedCount, voidCount, linkedCount, totalCredited };
-  })();
+  const cnStats = stats ?? { total, draftCount: 0, postedCount: 0, voidCount: 0, linkedCount: 0, totalCredited: 0, voidRate: 0 };
 
   if (selected) {
     return (
@@ -338,23 +343,23 @@ export function CreditNotes() {
         {
           title: 'TOTAL CREDIT NOTES', value: String(cnStats.total),
           sub1Label: 'DRAFT', sub1Value: String(cnStats.draftCount),
-          sub2Label: 'POSTED', sub2Value: String(cnStats.postedCount), barHighlight: 'var(--teal)',
+          sub2Label: 'POSTED', sub2Value: String(cnStats.postedCount), barHighlight: 'var(--teal)', loading: !stats,
         },
         {
           title: 'TOTAL CREDITED', value: fmt(cnStats.totalCredited),
           invertTrend: true,
           sub1Label: 'POSTED', sub1Value: String(cnStats.postedCount),
-          sub2Label: 'VOIDED', sub2Value: String(cnStats.voidCount), barHighlight: 'var(--red)',
+          sub2Label: 'VOIDED', sub2Value: String(cnStats.voidCount), barHighlight: 'var(--red)', loading: !stats,
         },
         {
           title: 'LINKED TO INVOICES', value: String(cnStats.linkedCount),
           sub1Label: 'LINKED', sub1Value: String(cnStats.linkedCount),
-          sub2Label: 'STANDALONE', sub2Value: String(cnStats.total - cnStats.linkedCount), barHighlight: 'var(--blue)',
+          sub2Label: 'STANDALONE', sub2Value: String(cnStats.total - cnStats.linkedCount), barHighlight: 'var(--blue)', loading: !stats,
         },
         {
-          title: 'VOID RATE', value: `${cnStats.total ? Math.round((cnStats.voidCount / cnStats.total) * 100) : 0}%`,
+          title: 'VOID RATE', value: `${cnStats.voidRate}%`,
           sub1Label: 'VOID', sub1Value: String(cnStats.voidCount),
-          sub2Label: 'TOTAL', sub2Value: String(cnStats.total), barHighlight: 'var(--gold)',
+          sub2Label: 'TOTAL', sub2Value: String(cnStats.total), barHighlight: 'var(--gold)', loading: !stats,
         },
       ]} />
 

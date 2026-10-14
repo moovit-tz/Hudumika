@@ -226,12 +226,26 @@ export function SignEditor() {
       const name = c.contact_name?.trim() || c.name;
       const key = `customer:${c.id}`;
       recipientCacheRef.current.set(key, { source: 'customer', name, email: c.email ?? '', phone: c.phone || c.phone_wa || null });
-      return { id: key, label: name, sublabel: `Customer${c.contact_name?.trim() ? ` · ${c.name}` : ''}` };
+      return {
+        id: key,
+        label: name,
+        sublabel: `Customer${c.contact_name?.trim() ? ` · ${c.name}` : ''}`,
+        avatarUserId: c.id,
+        avatarKind: 'customers' as const,
+        avatarType: 'company' as const,
+      };
     });
     const staffItems: PickerItem[] = staff.slice(0, 15).map((u: { id: string; name: string; email: string; phone: string | null }) => {
       const key = `staff:${u.id}`;
       recipientCacheRef.current.set(key, { source: 'staff', name: u.name, email: u.email, phone: u.phone ?? null });
-      return { id: key, label: u.name, sublabel: `Staff · ${u.email}` };
+      return {
+        id: key,
+        label: u.name,
+        sublabel: `Staff · ${u.email}`,
+        avatarUserId: u.id,
+        avatarKind: 'people' as const,
+        avatarType: 'person' as const,
+      };
     });
     // CRM first, staff after — matches "query CRM first, then staff".
     return [...customerItems, ...staffItems];

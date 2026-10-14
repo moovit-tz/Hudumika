@@ -65,6 +65,38 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/overtime/stats', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('hr_overtime_requests')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'PENDING').as('pending_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'APPROVED').as('approved_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      const approvedHours = await trx.selectFrom('hr_overtime_requests')
+        .select((eb) => eb.fn.sum<string>('hours').as('h'))
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'APPROVED')
+        .executeTakeFirst();
+      const doubleTime = await trx.selectFrom('hr_overtime_requests')
+        .select((eb) => eb.fn.sum<string>('hours').as('h'))
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'APPROVED')
+        .where('kind', '!=', 'NORMAL')
+        .executeTakeFirst();
+      return {
+        total: Number(row?.total ?? 0),
+        pending: Number(row?.pending_count ?? 0),
+        approved: Number(row?.approved_count ?? 0),
+        approvedHours: Number(approvedHours?.h ?? 0),
+        doubleTimeHours: Number(doubleTime?.h ?? 0),
+      };
+    });
+  });
+
   fastify.get('/overtime', async (req, reply) => {
     const user = req.user;
     const q = req.query as any;

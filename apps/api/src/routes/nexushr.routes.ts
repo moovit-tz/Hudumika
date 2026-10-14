@@ -4,6 +4,7 @@ import { isDriverError } from '../utils/db-errors.js';
 import type { FastifyInstance } from 'fastify';
 import { NexusHRService } from '../services/nexushr.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
@@ -138,6 +139,35 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   // now goes through domain events and Workflow Studio.
 
   // ─── DOCUMENTS ─────────────────────────────────────────────────────────────
+
+  fastify.get('/documents/stats', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async (trx) => {
+      const row = await sql<{
+        total: string; attached: string; pending: string; expiring: string;
+      }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE user_id IS NOT NULL)::text AS attached,
+               count(*) FILTER (WHERE approval_status = 'PENDING_APPROVAL')::text AS pending,
+               count(*) FILTER (WHERE days_until_expiry IS NOT NULL AND days_until_expiry <= 30)::text AS expiring
+        FROM hr_documents
+        WHERE tenant_id = ${tenantId}
+      `.execute(trx);
+      const templateCount = await trx.selectFrom('hr_document_templates' as any)
+        .select((eb: any) => eb.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst()
+        .catch(() => null);
+      const r = row.rows[0];
+      return {
+        total: Number(r?.total ?? 0),
+        attached: Number(r?.attached ?? 0),
+        pending: Number(r?.pending ?? 0),
+        expiring: Number(r?.expiring ?? 0),
+        templates: Number((templateCount as any)?.cnt ?? 0),
+      };
+    });
+  });
 
   fastify.get('/documents', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
@@ -367,6 +397,22 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/assets/stats', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async (trx) => {
+      const row = await sql<{ total: string; assigned: string }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE assigned_to IS NOT NULL)::text AS assigned
+        FROM hr_assets
+        WHERE tenant_id = ${tenantId}
+      `.execute(trx);
+      const r = row.rows[0];
+      const total = Number(r?.total ?? 0);
+      const assigned = Number(r?.assigned ?? 0);
+      return { total, assigned, available: total - assigned };
+    });
+  });
+
   fastify.get('/assets', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
@@ -480,6 +526,28 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   // ─── WELLNESS ──────────────────────────────────────────────────────────────
+
+  fastify.get('/surveys/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any) => {
+    const tid = request.user.tenant_id;
+    return withTenant(tid, async (trx) => {
+      const row = await sql<{ total: string; open: string; closed: string }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE status = 'OPEN')::text AS open,
+               count(*) FILTER (WHERE status = 'CLOSED')::text AS closed
+        FROM hr_survey_instances WHERE tenant_id = ${tid}
+      `.execute(trx);
+      const resp = await sql<{ cnt: string }>`
+        SELECT count(*)::text AS cnt FROM hr_survey_responses WHERE tenant_id = ${tid}
+      `.execute(trx);
+      const r = row.rows[0];
+      return {
+        total: Number(r?.total ?? 0),
+        open: Number(r?.open ?? 0),
+        closed: Number(r?.closed ?? 0),
+        responses: Number(resp.rows[0]?.cnt ?? 0),
+      };
+    });
+  });
 
   fastify.get('/surveys', async (request: any, reply) => {
     try {

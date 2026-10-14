@@ -57,6 +57,11 @@ export function MultiEntityAccounting() {
   const [consolidated, setConsolidated] = useState<{ entities: ConsolidatedBucket[]; total: { revenue: number; expenses: number; net: number } } | null>(null);
   const [consolidatedLoading, setConsolidatedLoading] = useState(false);
 
+  const [serverStats, setServerStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setServerStats(await apiFetch('/v1/finance/entities/stats')); } catch {}
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
@@ -64,7 +69,7 @@ export function MultiEntityAccounting() {
       apiFetch('/v1/finance/intercompany-transactions').catch(() => []),
     ]).then(([e, t]) => { setEntities(e); setTxns(t); }).finally(() => setLoading(false));
   }, []);
-  useEffect(load, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
   useEffect(() => {
     if (readOnly) {
       setShowEntityForm(false);
@@ -95,7 +100,7 @@ export function MultiEntityAccounting() {
       });
       setEntityForm({ name: '', entityCode: '', countryCode: '', currency: 'TZS' });
       setShowEntityForm(false);
-      load();
+      load(); fetchStats();
     } catch (err: any) { setError(err.message || 'Failed to create entity'); }
     finally { setSaving(false); }
   }
@@ -119,7 +124,7 @@ export function MultiEntityAccounting() {
       });
       setTxnForm({ fromEntityId: '', toEntityId: '', description: '', amount: '', currency: 'TZS', fromAccountCode: '', toAccountCode: '' });
       setShowTxnForm(false);
-      load();
+      load(); fetchStats();
     } catch (err: any) { setError(err.message || 'Failed to post intercompany transaction'); }
     finally { setSaving(false); }
   }
@@ -130,11 +135,11 @@ export function MultiEntityAccounting() {
   // metrics card made (summed USD-priced lines as if they were TZS). Counts
   // and status/currency breakdowns stay real without needing a conversion.
   const meStats = {
-    total: entities.length,
-    activeCount: entities.filter(e => e.active).length,
-    txnTotal: txns.length,
+    total: serverStats?.entities ?? entities.length,
+    activeCount: serverStats?.active ?? entities.filter(e => e.active).length,
+    txnTotal: serverStats?.transactions ?? txns.length,
     txnPosted: txns.filter(t => t.status === 'posted').length,
-    currencyCount: new Set(entities.map(e => e.currency)).size,
+    currencyCount: serverStats?.currencies ?? new Set(entities.map(e => e.currency)).size,
     countryCount: new Set(entities.map(e => e.country_code).filter(Boolean)).size,
   };
 
@@ -152,6 +157,7 @@ export function MultiEntityAccounting() {
           title: 'Total Entities', value: String(meStats.total),
           sub1Label: 'ACTIVE', sub1Value: String(meStats.activeCount),
           sub2Label: 'INACTIVE', sub2Value: String(meStats.total - meStats.activeCount), barHighlight: 'var(--teal)',
+          loading: !serverStats,
         },
         {
           title: 'Intercompany Txns', value: String(meStats.txnTotal),

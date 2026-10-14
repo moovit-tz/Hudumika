@@ -931,6 +931,12 @@
 
 .wh-workspace-toolbar .wh-section-title { margin: 0; }
 
+/* Workspace view tabs use the same medium control height as the filter. */
+.wh-toolbar-actions {
+  --tab-hit-height: var(--ctl-h-sm);
+  --tab-size: 13px;
+}
+
 /* ── DARK MODE OVERRIDES ── */
 [data-theme="dark"] .wh-new-root {
   /* Force neutral dark surfaces — app accent color should never tint card

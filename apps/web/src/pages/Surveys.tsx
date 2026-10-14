@@ -47,6 +47,11 @@ export function Surveys() {
   const [answering, setAnswering] = useState<SurveyInstance | null>(null);
   const [results, setResults] = useState<any | null>(null);
 
+  const [surveyStats, setSurveyStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setSurveyStats(await apiFetch('/v1/hr/surveys/stats')); } catch {}
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(null);
@@ -55,7 +60,7 @@ export function Surveys() {
       .catch(() => { setSurveys([]); setLoadError('Could not load employee surveys.'); })
       .finally(() => setLoading(false));
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
   const openSurveys = surveys.filter(survey => survey.status === 'OPEN').length;
   const responses = surveys.reduce((total, survey) => total + survey.response_count, 0);
   const responded = surveys.filter(survey => survey.already_responded).length;
@@ -66,7 +71,7 @@ export function Surveys() {
     if (!ok) return;
     try {
       await apiFetch(`/v1/hr/surveys/${s.id}/close`, { method: 'PATCH' });
-      load();
+      load(); fetchStats();
     } catch (err: any) {
       showAlert(err.message || 'Could not close that survey.', { variant: 'error' });
     }
@@ -91,8 +96,8 @@ export function Surveys() {
       />
 
       <MetricsRow cards={[
-        { title: 'Open surveys', value: String(openSurveys), icon: 'clipboardList', loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
-        { title: 'Responses collected', value: String(responses), icon: 'users', loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'Open surveys', value: String(surveyStats?.open ?? openSurveys), icon: 'clipboardList', loading: !surveyStats && loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
+        { title: 'Responses collected', value: String(surveyStats?.responses ?? responses), icon: 'users', loading: !surveyStats && loading, error: loadError ?? undefined, onRetry: load },
         { title: 'Surveys completed by you', value: String(responded), icon: 'checkCircle', loading, error: loadError ?? undefined, onRetry: load },
       ]} />
 
@@ -147,7 +152,7 @@ export function Surveys() {
       )}
 
       {showNew && <NewSurveyModal onClose={() => setShowNew(false)} onCreated={load} />}
-      {answering && <AnswerModal survey={answering} onClose={() => setAnswering(null)} onSubmitted={() => { setAnswering(null); load(); }} />}
+      {answering && <AnswerModal survey={answering} onClose={() => setAnswering(null)} onSubmitted={() => { setAnswering(null); load(); fetchStats(); }} />}
       {results && <ResultsModal results={results} onClose={() => setResults(null)} />}
     </div>
   );

@@ -57,7 +57,7 @@ export const OndiGroups: React.FC = () => {
     try { setAvailableRoles(await apiFetch('/v1/ondi/org/roles/available')); } catch { setAvailableRoles([]); }
     try {
       const users = await apiFetch('/v1/ondi/users');
-      staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+      staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email, avatarUserId: u.id, avatarKind: 'people' as const }));
       const roleSet: string[] = [...new Set<string>(users.map((u: any) => u.role as string))].sort();
       setKnownRoles(roleSet);
     } catch { staffCache.current = []; }
@@ -71,6 +71,7 @@ export const OndiGroups: React.FC = () => {
   }, []);
 
   function resetForm() { setName(''); setDescription(''); setMembershipType('static'); setRuleAttribute('role'); setRuleValue(''); }
+
 
   async function createGroup() {
     if (!name.trim()) { showAlert('A group name is required.'); return; }

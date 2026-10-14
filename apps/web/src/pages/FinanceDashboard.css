@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Hudumika Design System — Finance Executive Dashboard Styles
-   Inherits 100% of global design system tokens, radii, borders & shadows
+   Clean, institutional financial layout with dynamic tenant/app accent.
    ═══════════════════════════════════════════════════════════════════════ */
 
 .fin-dashboard {
@@ -16,27 +16,42 @@
   padding-bottom: var(--space-xl, 36px);
 }
 
-/* ── Hero Treasury Command Banner ───────────────────────────────────── */
+.fin-header-actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fin-error-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-sm, 10px);
+}
+
+/* ── 1. Hero Treasury Command Banner ────────────────────────────────── */
 .fin-hero-banner {
   position: relative;
   overflow: hidden;
   border-radius: var(--card-radius, var(--r-lg, 14px));
-  border: var(--card-border-width, 1px) solid color-mix(in srgb, var(--teal) 24%, var(--border));
-  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 70%),
-              radial-gradient(ellipse 50% 60% at 5% 110%, color-mix(in srgb, var(--navy, #1e293b) 12%, transparent), transparent 60%),
-              var(--card-bg, var(--white));
-  box-shadow: var(--elev, var(--card-shadow, var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05))));
-  padding: var(--card-padding, clamp(18px, 2.5vw, 24px));
+  border: var(--card-border-width, 1px) solid var(--border);
+  background: var(--card-bg, var(--white));
+  box-shadow: var(--elev-sm, var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.04)));
+  padding: var(--card-padding, clamp(18px, 2.2vw, 24px));
   display: grid;
-  grid-template-columns: minmax(320px, 1.4fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(320px, 1.45fr) minmax(280px, 1fr);
   gap: var(--content-gap, var(--space-lg, 20px));
-  align-items: center;
+  align-items: stretch;
 }
 
 .fin-hero-main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md, 14px);
+  justify-content: space-between;
+  gap: var(--space-md, 16px);
   min-width: 0;
 }
 
@@ -52,15 +67,15 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs, 6px);
-  padding: var(--badge-py, 2px) var(--badge-px, 8px);
-  min-height: var(--badge-min-h, 20px);
+  padding: var(--badge-py, 3px) var(--badge-px, 8px);
+  min-height: var(--badge-min-h, 22px);
   border-radius: var(--badge-radius, 9999px);
-  background: color-mix(in srgb, var(--teal) 12%, var(--card-sunken, var(--bg)));
-  border: var(--border-width, 1px) solid color-mix(in srgb, var(--teal) 25%, transparent);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 70%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
   font-size: var(--badge-fs, var(--text-xs, 11px));
-  font-weight: 750;
-  color: var(--teal);
-  letter-spacing: 0.04em;
+  font-weight: 650;
+  color: var(--ink2);
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
@@ -87,24 +102,27 @@
 }
 
 .fin-hero-liquidity-value {
-  font-size: clamp(var(--text-2xl, 22px), 3.2vw, var(--text-3xl, 28px));
-  font-weight: 850;
+  font-size: clamp(var(--text-2xl, 22px), 3vw, var(--text-3xl, 28px));
+  font-weight: 800;
   color: var(--ink);
   line-height: 1.15;
   letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
   display: flex;
   align-items: baseline;
   gap: var(--space-sm, 8px);
   flex-wrap: wrap;
 }
 
-.fin-hero-liquidity-value small {
-  font-size: var(--text-sm, 12px);
-  font-weight: 700;
-  color: var(--teal);
-  background: color-mix(in srgb, var(--teal) 10%, var(--card-sunken, var(--bg)));
-  padding: 2px 8px;
+.fin-hero-currency-tag {
+  font-size: var(--text-xs, 11px);
+  font-weight: 650;
+  color: var(--ink3);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 80%, transparent));
+  border: var(--border-width, 1px) solid var(--border);
+  padding: 2px 7px;
   border-radius: var(--r-sm, 6px);
+  letter-spacing: 0.02em;
 }
 
 /* Multi-Currency Cash Distribution Bar */
@@ -112,16 +130,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm, 8px);
-  margin-top: 2px;
 }
 
 .fin-dist-meter {
   display: flex;
-  height: 8px;
+  height: 6px;
   width: 100%;
   border-radius: var(--badge-radius, 9999px);
   overflow: hidden;
-  background: var(--card-sunken, color-mix(in srgb, var(--bg) 90%, var(--border)));
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 85%, var(--border)));
 }
 
 .fin-dist-seg {
@@ -130,12 +147,12 @@
 }
 
 .fin-dist-seg--tzs { background: var(--teal); }
-.fin-dist-seg--usd { background: var(--blue, #3b82f6); }
-.fin-dist-seg--onhand { background: var(--gold, #eab308); }
+.fin-dist-seg--usd { background: var(--ink2); }
+.fin-dist-seg--onhand { background: var(--border2); }
 
 .fin-currency-chips {
   display: flex;
-  gap: var(--space-md, 12px);
+  gap: var(--space-md, 14px);
   flex-wrap: wrap;
 }
 
@@ -143,34 +160,49 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-sm, 12px);
+  font-size: var(--text-xs, 12px);
   color: var(--ink2);
 }
 
 .fin-currency-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: var(--badge-radius, 9999px);
   flex-shrink: 0;
 }
 
 .fin-currency-dot--tzs { background: var(--teal); }
-.fin-currency-dot--usd { background: var(--blue, #3b82f6); }
-.fin-currency-dot--onhand { background: var(--gold, #eab308); }
+.fin-currency-dot--usd { background: var(--ink2); }
+.fin-currency-dot--onhand { background: var(--border2); }
 
 .fin-currency-chip strong {
   color: var(--ink);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Hero Right Side: Working Capital Barometer */
+.fin-currency-pct {
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+}
+
+.fin-hero-actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 2px;
+}
+
+/* Hero Right: Working Capital & Liquidity Barometer */
 .fin-hero-barometer {
-  background: var(--card-sunken, color-mix(in srgb, var(--bg) 65%, transparent));
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 60%, transparent));
   border: var(--border-width, 1px) solid var(--border);
   border-radius: var(--r, 12px);
   padding: var(--card-padding, 16px);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: var(--space-md, 14px);
 }
 
@@ -178,11 +210,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-sm, 8px);
 }
 
 .fin-barometer-title {
-  font-size: var(--text-xs, 12px);
-  font-weight: 750;
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--ink2);
@@ -197,32 +230,56 @@
 .fin-barometer-tile {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .fin-barometer-tile span {
   font-size: var(--text-xs, 11px);
-  font-weight: 700;
+  font-weight: 650;
   color: var(--ink3);
   text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .fin-barometer-tile strong {
-  font-size: var(--text-lg, 16px);
+  font-size: var(--text-lg, 17px);
   font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
-.fin-hero-actions {
+.fin-barometer-breakdown {
   display: flex;
-  gap: var(--space-sm, 8px);
-  flex-wrap: wrap;
-  align-items: center;
-  margin-top: 2px;
+  flex-direction: column;
+  gap: 5px;
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+  border-top: var(--border-width, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
+  padding-top: 10px;
 }
 
-/* ── Top Executive KPI Metric Cards (4 Columns) ─────────────────────── */
+.fin-barometer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fin-barometer-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-text-risk {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.fin-text-muted {
+  color: var(--ink2);
+  font-weight: 600;
+}
+
+/* ── 2. Top Executive KPI Metric Cards (4 Columns) ───────────────────── */
 .fin-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -247,22 +304,22 @@
 }
 
 .fin-kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--elev-lg, var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.08)));
-  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+  transform: translateY(-1px);
+  box-shadow: var(--elev, var(--shadow-md));
+  border-color: color-mix(in srgb, var(--teal) 30%, var(--border));
 }
 
 .fin-kpi-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-md, 12px);
+  gap: var(--space-sm, 10px);
 }
 
 .fin-kpi-identity {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .fin-kpi-label {
@@ -275,18 +332,36 @@
 
 .fin-kpi-value {
   font-size: var(--text-xl, 18px);
-  font-weight: 850;
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.02em;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-kpi-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fin-kpi-subline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fin-kpi-sublabel {
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
 }
 
 .fin-kpi-meter-bar {
-  height: 5px;
+  height: 4px;
   background: var(--card-sunken, color-mix(in srgb, var(--bg) 80%, var(--border)));
   border-radius: var(--badge-radius, 9999px);
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .fin-kpi-meter-fill {
@@ -294,6 +369,11 @@
   border-radius: var(--badge-radius, 9999px);
   transition: width var(--dur-slow, 300ms) var(--ease, ease);
 }
+
+.fin-kpi-meter-fill--brand { background: var(--teal); }
+.fin-kpi-meter-fill--neutral { background: var(--ink2); }
+.fin-kpi-meter-fill--warning { background: var(--gold); }
+.fin-kpi-meter-fill--risk { background: var(--red); }
 
 .fin-kpi-bottom {
   display: flex;
@@ -305,26 +385,31 @@
   color: var(--ink2);
 }
 
+.fin-kpi-bottom strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
 .fin-kpi-link {
   font-size: var(--text-xs, 11px);
-  font-weight: 700;
+  font-weight: 650;
   color: var(--teal);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   text-decoration: none;
-  transition: color var(--dur-fast, 80ms) ease;
+  transition: opacity var(--dur-fast, 80ms) ease;
 }
 
 .fin-kpi-link:hover {
-  color: color-mix(in srgb, var(--teal) 80%, #000);
   text-decoration: underline;
+  opacity: 0.85;
 }
 
-/* ── Middle Section: 2-Column Analytical Studio ──────────────────────── */
+/* ── 3. Middle Section: 2-Column Analytical Studio ───────────────────── */
 .fin-studio-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1.25fr 1fr;
   gap: var(--content-gap, var(--space-lg, 20px));
 }
 
@@ -332,14 +417,14 @@
   background: var(--card-bg, var(--white));
   border: var(--card-border-width, 1px) solid var(--border);
   border-radius: var(--card-radius, var(--r-lg, 14px));
-  box-shadow: var(--elev, var(--card-shadow, var(--shadow-sm)));
+  box-shadow: var(--elev-sm, var(--card-shadow, var(--shadow-sm)));
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .fin-studio-header {
-  padding: calc(var(--card-padding, 18px) * 0.85) var(--card-padding, 18px);
+  padding: calc(var(--card-padding, 18px) * 0.8) var(--card-padding, 18px);
   border-bottom: var(--border-width, 1px) solid var(--border);
   display: flex;
   align-items: center;
@@ -357,7 +442,7 @@
 .fin-studio-header h3 {
   margin: 0;
   font-size: var(--text-base, 13px);
-  font-weight: 800;
+  font-weight: 750;
   color: var(--ink);
   letter-spacing: -0.01em;
 }
@@ -366,6 +451,22 @@
   margin: 2px 0 0;
   font-size: var(--text-xs, 11px);
   color: var(--ink3);
+}
+
+.fin-period-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--card-bg, var(--white));
+  padding: 2px;
+  border-radius: var(--r-sm, 8px);
+  border: var(--border-width, 1px) solid var(--border);
+}
+
+.fin-toggle-btn {
+  font-size: var(--text-xs, 11px) !important;
+  height: var(--ctl-h-xs, 28px) !important;
+  padding: 0 10px !important;
+  min-height: unset !important;
 }
 
 .fin-studio-body {
@@ -390,7 +491,7 @@
   padding: var(--space-sm, 10px) var(--space-md, 12px);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .fin-pnl-tile-label {
@@ -403,9 +504,10 @@
 
 .fin-pnl-tile-val {
   font-size: var(--text-md, 15px);
-  font-weight: 850;
+  font-weight: 800;
   color: var(--ink);
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 .fin-pnl-tile-sub {
@@ -418,7 +520,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs, 6px);
-  padding: var(--space-md, 14px);
+  padding: var(--space-md, 12px) var(--space-md, 14px);
   background: var(--card-sunken, color-mix(in srgb, var(--bg) 40%, transparent));
   border: var(--border-width, 1px) solid var(--border);
   border-radius: var(--r, 10px);
@@ -428,12 +530,12 @@
   display: flex;
   justify-content: space-between;
   font-size: var(--text-xs, 11px);
-  font-weight: 700;
+  font-weight: 650;
   color: var(--ink2);
 }
 
 .fin-flow-track {
-  height: 10px;
+  height: 6px;
   background: var(--card-sunken, color-mix(in srgb, var(--bg) 90%, var(--border)));
   border-radius: var(--badge-radius, 9999px);
   display: flex;
@@ -446,7 +548,7 @@
 }
 
 .fin-flow-expense {
-  background: var(--red, #ef4444);
+  background: var(--ink2);
   height: 100%;
 }
 
@@ -456,6 +558,8 @@
   justify-content: space-between;
   font-size: var(--text-xs, 10px);
   color: var(--ink3);
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .fin-flow-legend span {
@@ -465,13 +569,16 @@
 }
 
 .fin-dot-sm {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--badge-radius, 9999px);
 }
 
+.fin-dot-sm--brand { background: var(--teal); }
+.fin-dot-sm--neutral { background: var(--ink2); }
+
 .fin-studio-footer {
-  padding: calc(var(--card-padding, 18px) * 0.75) var(--card-padding, 18px);
+  padding: calc(var(--card-padding, 18px) * 0.7) var(--card-padding, 18px);
   border-top: var(--border-width, 1px) solid var(--border);
   background: var(--card-sunken, color-mix(in srgb, var(--bg) 20%, transparent));
   display: flex;
@@ -479,6 +586,16 @@
   justify-content: space-between;
   gap: var(--space-sm, 10px);
   flex-wrap: wrap;
+}
+
+.fin-footer-note {
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+}
+
+.fin-footer-actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
 }
 
 /* Treasury Breakdown Studio Elements */
@@ -498,6 +615,11 @@
   border: var(--border-width, 1px) solid var(--border);
 }
 
+.fin-wc-row--summary {
+  background: var(--card-bg, var(--white));
+  border-color: color-mix(in srgb, var(--teal) 30%, var(--border));
+}
+
 .fin-wc-left {
   display: flex;
   align-items: center;
@@ -507,13 +629,13 @@
 .fin-wc-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .fin-wc-copy strong {
   font-size: var(--text-sm, 12px);
   color: var(--ink);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .fin-wc-copy span {
@@ -525,9 +647,10 @@
   font-size: var(--text-md, 14px);
   font-weight: 800;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Bottom Section: 3-Column Operational Hub ───────────────────────── */
+/* ── 4. Bottom Section: 3-Column Operational Hub ─────────────────────── */
 .fin-ops-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -562,7 +685,7 @@
 .fin-ops-card-title h3 {
   margin: 0;
   font-size: var(--text-base, 13px);
-  font-weight: 800;
+  font-weight: 750;
   color: var(--ink);
   letter-spacing: -0.01em;
 }
@@ -577,7 +700,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-sm, 10px) var(--space-md, 12px);
+  padding: var(--space-sm, 8px) var(--space-md, 10px);
   border-radius: var(--r-sm, 8px);
   background: var(--card-sunken, color-mix(in srgb, var(--bg) 60%, transparent));
   border: var(--border-width, 1px) solid var(--border);
@@ -587,19 +710,22 @@
 .fin-ops-item-left {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .fin-ops-item-title {
   font-size: var(--text-sm, 12px);
-  font-weight: 750;
+  font-weight: 700;
   color: var(--ink);
 }
 
 .fin-ops-item-sub {
   font-size: var(--text-xs, 11px);
   color: var(--ink3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fin-ops-item-right {
@@ -610,20 +736,31 @@
 }
 
 .fin-ops-item-amount {
-  font-size: var(--text-sm, 12px);
-  font-weight: 800;
+  font-size: var(--text-xs, 12px);
+  font-weight: 750;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.fin-ops-item-btn {
+  height: var(--ctl-h-xs, 26px) !important;
+  font-size: var(--text-xs, 11px) !important;
+  padding: 0 8px !important;
+  min-height: unset !important;
 }
 
 .fin-ops-card-actions {
   display: flex;
   gap: var(--space-sm, 8px);
-  flex-wrap: wrap;
   padding-top: var(--space-sm, 8px);
   border-top: var(--border-width, 1px) solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
-/* ── Workspace & Commerce Quick Launchpad ───────────────────────────── */
+.fin-btn-flex {
+  flex: 1;
+}
+
+/* ── 5. Enterprise Workspaces & Commercial Launchpad ─────────────────── */
 .fin-launchpad-section {
   display: flex;
   flex-direction: column;
@@ -639,7 +776,7 @@
 .fin-launchpad-header h3 {
   margin: 0;
   font-size: var(--text-base, 13px);
-  font-weight: 800;
+  font-weight: 750;
   color: var(--ink);
 }
 
@@ -673,8 +810,8 @@
 
 .fin-launchpad-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
-  box-shadow: var(--elev-lg, var(--shadow-lg));
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+  box-shadow: var(--elev, var(--shadow-md));
 }
 
 .fin-launchpad-card-top {
@@ -683,9 +820,19 @@
   justify-content: space-between;
 }
 
+.fin-launchpad-arrow {
+  color: var(--ink3);
+  transition: transform var(--dur-fast, 120ms) ease, color var(--dur-fast, 120ms) ease;
+}
+
+.fin-launchpad-card:hover .fin-launchpad-arrow {
+  color: var(--teal);
+  transform: translateX(3px);
+}
+
 .fin-launchpad-card strong {
   font-size: var(--text-sm, 13px);
-  font-weight: 800;
+  font-weight: 750;
   color: var(--ink);
 }
 

@@ -36,12 +36,28 @@ export function FinanceExpenseReportDetail() {
   const [name, setName] = useState(''); const [amount, setAmount] = useState(''); const [category, setCategory] = useState('MISCELLANEOUS'); const [date, setDate] = useState(new Date().toISOString().slice(0, 10)); const [receipt, setReceipt] = useState(''); const [preview, setPreview] = useState(''); const [note, setNote] = useState(''); const [reference, setReference] = useState('');
   const [customer, setCustomer] = useState<PickerItem | null>(null); const [supplier, setSupplier] = useState<PickerItem | null>(null);
   const findCustomers = useCallback(async (search: string) => {
-    const result = await apiFetch<{ data: { id: string; name: string; active: boolean }[] }>(`/v1/customers?limit=20&search=${encodeURIComponent(search)}`);
-    return result.data.filter(item => item.active).map(item => ({ id: item.id, label: item.name }));
+    const result = await apiFetch<{ data: { id: string; name: string; email?: string; active: boolean; logo_url?: string }[] }>(`/v1/customers?limit=20&search=${encodeURIComponent(search)}`);
+    return (result.data || []).filter(item => item.active).map(item => ({
+      id: item.id,
+      label: item.name,
+      sublabel: item.email || undefined,
+      avatarUserId: item.id,
+      avatarKind: 'customers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: item.logo_url || undefined,
+    }));
   }, []);
   const findSuppliers = useCallback(async (search: string) => {
-    const result = await apiFetch<{ id: string; name: string }[]>(`/v1/suppliers?limit=20&status=active&search=${encodeURIComponent(search)}`);
-    return result.map(item => ({ id: item.id, label: item.name }));
+    const result = await apiFetch<{ id: string; name: string; email?: string; logo_url?: string }[]>(`/v1/suppliers?limit=20&status=active&search=${encodeURIComponent(search)}`);
+    return (result || []).map(item => ({
+      id: item.id,
+      label: item.name,
+      sublabel: item.email || undefined,
+      avatarUserId: item.id,
+      avatarKind: 'suppliers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: item.logo_url || undefined,
+    }));
   }, []);
   useEffect(() => { let live = true; apiFetch<FinanceExpenseReport>(`${base}/${id}`).then(result => { if (live) setReport(result); }).catch(err => { if (live) setError(err.message); }); return () => { live = false; }; }, [id, revision]);
   async function action(suffix: string, body?: object) {

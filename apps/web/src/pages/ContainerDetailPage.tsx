@@ -486,7 +486,7 @@ export const ContainerDetailView: React.FC<{
               }}
               search={async (q) => {
                 const data: any[] = await apiFetch(`/v1/customers?q=${encodeURIComponent(q)}&limit=10`).catch(() => []);
-                return (data || []).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email }));
+                return (data || []).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email, avatarUserId: c.id, avatarKind: 'customers' as const, avatarType: 'company' as const }));
               }}
               placeholder="Search customers…"
             />

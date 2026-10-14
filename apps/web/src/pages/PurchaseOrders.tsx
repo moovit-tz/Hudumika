@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { useCompany } from '../data/companyStore.js';
@@ -175,6 +175,12 @@ export const PurchaseOrders: React.FC = () => {
   // Core Purchase Orders State (backed by /v1/purchase-orders)
   const [pos, setPOs] = useState<PurchaseOrder[]>([]);
   const [loadingPOs, setLoadingPOs] = useState(true);
+  const [poServerStats, setPoServerStats] = useState<{
+    total: number; draftCount: number; receivedCount: number;
+    totalValue: number; receivedValue: number; pendingValue: number;
+    outstandingBalance: number; fulfillmentRate: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/purchase-orders/stats').then(setPoServerStats).catch(() => {}); }, []);
 
   // Real product catalog (GET /v1/products) and warehouses (GET /v1/inventory/warehouses).
   const [products, setProducts] = useState<Product[]>([]);
@@ -204,7 +210,7 @@ export const PurchaseOrders: React.FC = () => {
     }
   }, [products]);
 
-  useEffect(() => { loadPOs(); }, [loadPOs]);
+  useEffect(() => { loadPOs(); fetchStats(); }, [loadPOs, fetchStats]);
   useEffect(() => {
     function handler(e: Event) {
       if (!readOnly && (e as CustomEvent).detail?.section === 'purchase-orders') setViewMode('CREATE');
@@ -254,7 +260,7 @@ export const PurchaseOrders: React.FC = () => {
     const filtered = ql
       ? allSuppliers.filter((s) => s.name.toLowerCase().includes(ql) || s.email.toLowerCase().includes(ql))
       : allSuppliers;
-    return filtered.slice(0, 25).map((s) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+    return filtered.slice(0, 25).map((s) => ({ id: s.id, label: s.name, sublabel: s.email || undefined, avatarUserId: s.id, avatarKind: 'suppliers' as const, avatarType: 'company' as const }));
   }
 
   async function createVendorInline(name: string): Promise<PickerItem> {
@@ -364,27 +370,11 @@ export const PurchaseOrders: React.FC = () => {
     return result;
   }, [pos, appliedSearch, filterStatus, filterVendor, sortField, sortAsc, getPOTotals]);
 
-  // Over the full set, not processedPOs — a status/search filter narrowing
-  // the table shouldn't also make the summary above it lie about the totals.
-  const poStats = useMemo(() => {
-    const draftCount = pos.filter(po => po.status === 'Draft').length;
-    const receivedCount = pos.filter(po => po.status === 'Received').length;
-    let totalValue = 0, receivedValue = 0, outstandingBalance = 0, overdueBalance = 0;
-    for (const po of pos) {
-      const { total } = getPOTotals(po.items);
-      const balance = Math.max(0, total - po.balancePaid);
-      const isOverdue = po.status !== 'Received' && po.status !== 'Cancelled' && new Date(po.dueDate) < REF_DATE;
-      totalValue += total;
-      if (po.status === 'Received') receivedValue += total;
-      outstandingBalance += balance;
-      if (isOverdue) overdueBalance += balance;
-    }
-    return {
-      total: pos.length, draftCount, receivedCount,
-      totalValue, receivedValue, pendingValue: Math.max(0, totalValue - receivedValue),
-      outstandingBalance, overdueBalance, currentBalance: Math.max(0, outstandingBalance - overdueBalance),
-    };
-  }, [pos, getPOTotals]);
+  const poStats = poServerStats ?? {
+    total: pos.length, draftCount: 0, receivedCount: 0,
+    totalValue: 0, receivedValue: 0, pendingValue: 0,
+    outstandingBalance: 0, fulfillmentRate: 0,
+  };
 
   // Pagination calculations
   const paginatedPOs = useMemo(() => {
@@ -537,11 +527,11 @@ export const PurchaseOrders: React.FC = () => {
       if (viewMode === 'CREATE') {
         payload.po_number = nextPoNumber();
         const created: any = await apiFetch('/v1/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
-        await loadPOs();
+        await loadPOs(); fetchStats();
         showToast(`Purchase Order ${created.po_number} created successfully!`, 'success');
       } else {
         await apiFetch(`/v1/purchase-orders/${selectedPoId}`, { method: 'PATCH', body: JSON.stringify(payload) });
-        await loadPOs();
+        await loadPOs(); fetchStats();
         showToast(`Purchase Order updated successfully!`, 'success');
       }
       setViewMode('LIST');
@@ -587,7 +577,7 @@ export const PurchaseOrders: React.FC = () => {
 
     try {
       const created: any = await apiFetch('/v1/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
-      await loadPOs();
+      await loadPOs(); fetchStats();
       showToast(`Duplicated into ${created.po_number} as Draft`, 'success');
     } catch {
       showToast('Failed to duplicate purchase order', 'error');
@@ -607,7 +597,7 @@ export const PurchaseOrders: React.FC = () => {
     if ((await showConfirm(`Are you sure you want to delete ${po.po_number}?`, { confirmLabel: 'Delete' }))) {
       try {
         await apiFetch(`/v1/purchase-orders/${id}`, { method: 'DELETE' });
-        setPOs(prev => prev.filter(p => p.id !== id));
+        setPOs(prev => prev.filter(p => p.id !== id)); fetchStats();
         showToast(`Deleted ${po.po_number}`, 'success');
         if (viewMode === 'DETAILS') setViewMode('LIST');
       } catch {
@@ -717,23 +707,23 @@ export const PurchaseOrders: React.FC = () => {
             {
               title: 'TOTAL PURCHASE ORDERS', value: String(poStats.total),
               sub1Label: 'DRAFT', sub1Value: String(poStats.draftCount),
-              sub2Label: 'RECEIVED', sub2Value: String(poStats.receivedCount), barHighlight: 'var(--teal)',
+              sub2Label: 'RECEIVED', sub2Value: String(poStats.receivedCount), barHighlight: 'var(--teal)', loading: !poServerStats,
             },
             {
               title: 'TOTAL VALUE', value: fmt(poStats.totalValue, 'USD'),
               sub1Label: 'RECEIVED', sub1Value: fmt(poStats.receivedValue, 'USD'),
-              sub2Label: 'PENDING', sub2Value: fmt(poStats.pendingValue, 'USD'), barHighlight: 'var(--blue)',
+              sub2Label: 'PENDING', sub2Value: fmt(poStats.pendingValue, 'USD'), barHighlight: 'var(--blue)', loading: !poServerStats,
             },
             {
               title: 'OUTSTANDING BALANCE', value: fmt(poStats.outstandingBalance, 'USD'),
               invertTrend: true,
-              sub1Label: 'CURRENT', sub1Value: fmt(poStats.currentBalance, 'USD'),
-              sub2Label: 'OVERDUE', sub2Value: fmt(poStats.overdueBalance, 'USD'), barHighlight: 'var(--red)',
+              sub1Label: 'BALANCE', sub1Value: fmt(poStats.outstandingBalance, 'USD'),
+              sub2Label: 'TOTAL', sub2Value: String(poStats.total), barHighlight: 'var(--red)', loading: !poServerStats,
             },
             {
-              title: 'FULFILLMENT RATE', value: `${poStats.total ? Math.round((poStats.receivedCount / poStats.total) * 100) : 0}%`,
+              title: 'FULFILLMENT RATE', value: `${poStats.fulfillmentRate}%`,
               sub1Label: 'RECEIVED', sub1Value: String(poStats.receivedCount),
-              sub2Label: 'TOTAL', sub2Value: String(poStats.total), barHighlight: 'var(--green)',
+              sub2Label: 'TOTAL', sub2Value: String(poStats.total), barHighlight: 'var(--green)', loading: !poServerStats,
             },
           ]} />
         )}

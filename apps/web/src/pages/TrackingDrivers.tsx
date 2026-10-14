@@ -41,12 +41,17 @@ export const TrackingDrivers: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState<DriverDetailed | null>(null);
   const [metrics, setMetrics] = useState<DriverMetrics | null>(null);
 
+  const [driverStats, setDriverStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setDriverStats(await apiFetch('/v1/tracking/drivers/stats')); } catch {}
+  }, []);
+
   const reload = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/tracking/drivers').then(setDrivers).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { reload(); fetchStats(); }, [reload, fetchStats]);
 
   useEffect(() => {
     if (selectedDriver) {
@@ -81,47 +86,56 @@ export const TrackingDrivers: React.FC = () => {
     return { total, available, onRoute, offDuty, assignedVehicles };
   }, [drivers]);
 
-  // Metric Cards for top overview ribbon
+  const dTotal = driverStats?.total ?? stats.total;
+  const dAvailable = driverStats?.available ?? stats.available;
+  const dOnRoute = driverStats?.onTrip ?? stats.onRoute;
+  const dOffDuty = driverStats?.offDuty ?? stats.offDuty;
+  const dAssigned = driverStats?.withVehicle ?? stats.assignedVehicles;
+
   const overviewCards: MetricCardProps[] = [
     {
       title: 'TOTAL DRIVERS',
-      value: String(stats.total),
+      value: String(dTotal),
       sub1Label: 'LICENSED FLEET',
-      sub1Value: `${stats.total} Drivers Registered`,
+      sub1Value: `${dTotal} Drivers Registered`,
       sub2Label: 'ASSIGNED VEHICLES',
-      sub2Value: `${stats.assignedVehicles} Active Trucks`,
+      sub2Value: `${dAssigned} Active Trucks`,
       barHighlight: 'var(--teal)',
       icon: 'user',
+      loading: !driverStats,
     },
     {
       title: 'AVAILABLE NOW',
-      value: String(stats.available),
+      value: String(dAvailable),
       sub1Label: 'DISPATCH READY',
-      sub1Value: `${stats.available} Ready for Assignment`,
+      sub1Value: `${dAvailable} Ready for Assignment`,
       sub2Label: 'STANDBY RATE',
-      sub2Value: stats.total > 0 ? `${Math.round((stats.available / stats.total) * 100)}% Available` : '100%',
+      sub2Value: dTotal > 0 ? `${Math.round((dAvailable / dTotal) * 100)}% Available` : '100%',
       barHighlight: 'var(--green)',
       icon: 'checkCircle',
+      loading: !driverStats,
     },
     {
       title: 'ON ROUTE / DISPATCHED',
-      value: String(stats.onRoute),
+      value: String(dOnRoute),
       sub1Label: 'LIVE TRANSIT',
-      sub1Value: `${stats.onRoute} Active Trips`,
+      sub1Value: `${dOnRoute} Active Trips`,
       sub2Label: 'FLEET UTILIZATION',
-      sub2Value: stats.total > 0 ? `${Math.round((stats.onRoute / stats.total) * 100)}% On Route` : '0%',
+      sub2Value: dTotal > 0 ? `${Math.round((dOnRoute / dTotal) * 100)}% On Route` : '0%',
       barHighlight: 'var(--blue)',
       icon: 'truck',
+      loading: !driverStats,
     },
     {
       title: 'OFF DUTY / REST',
-      value: String(stats.offDuty),
+      value: String(dOffDuty),
       sub1Label: 'SHIFT STATUS',
-      sub1Value: `${stats.offDuty} Off Shift`,
+      sub1Value: `${dOffDuty} Off Shift`,
       sub2Label: 'COMPLIANCE',
       sub2Value: 'Rest Hours Logged',
       barHighlight: 'var(--gold)',
       icon: 'clock',
+      loading: !driverStats,
     },
   ];
 

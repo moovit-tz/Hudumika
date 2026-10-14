@@ -1,5 +1,5 @@
 // ─── SignTemplates.tsx — Template library page ────────────────────────────────
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { SignTemplate } from '@hudumika/types';
@@ -108,39 +108,36 @@ export function SignTemplates() {
   const [templates, setTemplates] = useState<SignTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [bulkSendTarget, setBulkSendTarget] = useState<SignTemplate | null>(null);
+  const [serverStats, setServerStats] = useState<{
+    total: number; withFile: number; totalRecipients: number; totalFields: number;
+    sigFields: number; requiredFields: number; ready: number; readyPct: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/sign/templates/stats').then(setServerStats).catch(() => {}); }, []);
 
   useEffect(() => {
     apiFetch('/v1/sign/templates').then(setTemplates).catch(console.error).finally(() => setLoading(false));
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
   async function deleteTemplate(id: string) {
     if (!(await showConfirm('This template will no longer be available to start a new envelope from.', { title: 'Delete this template?', confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/sign/templates/${id}`, { method: 'DELETE' });
     setTemplates(prev => prev.filter(t => t.id !== id));
+    fetchStats();
   }
 
-  // Every value here is a real count/average over the loaded templates — no
-  // fabricated splits (see FinanceVendors.tsx's fix for what that looked
-  // like and why it's wrong). "Ready" means a template someone could
-  // actually click "Use Template" on right now: it has a source file plus
-  // at least one recipient and one field, not just a name.
-  const stats = useMemo(() => {
-    const totalRecipients = templates.reduce((s, t) => s + (t.recipients?.length ?? 0), 0);
-    const totalFields = templates.reduce((s, t) => s + (t.fields?.length ?? 0), 0);
-    const signatureFields = templates.reduce((s, t) => s + (t.fields?.filter(f => f.field_type === 'signature').length ?? 0), 0);
-    const requiredFields = templates.reduce((s, t) => s + (t.fields?.filter(f => f.required).length ?? 0), 0);
-    const ready = templates.filter(t => !!t.file_id && (t.recipients?.length ?? 0) > 0 && (t.fields?.length ?? 0) > 0).length;
-    return {
-      total: templates.length,
-      withFile: templates.filter(t => !!t.file_id).length,
-      totalRecipients,
-      avgRecipients: templates.length ? (totalRecipients / templates.length).toFixed(1) : '0',
-      totalFields,
-      signatureFields,
-      requiredFields,
-      ready,
-    };
-  }, [templates]);
+  const stats = serverStats
+    ? {
+        total: serverStats.total, withFile: serverStats.withFile,
+        totalRecipients: serverStats.totalRecipients,
+        avgRecipients: serverStats.total ? (serverStats.totalRecipients / serverStats.total).toFixed(1) : '0',
+        totalFields: serverStats.totalFields, signatureFields: serverStats.sigFields,
+        requiredFields: serverStats.requiredFields, ready: serverStats.ready,
+      }
+    : {
+        total: templates.length, withFile: 0, totalRecipients: 0,
+        avgRecipients: '0', totalFields: 0, signatureFields: 0, requiredFields: 0, ready: 0,
+      };
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -167,22 +164,22 @@ export function SignTemplates() {
         {!loading && templates.length > 0 && (
           <MetricsRow cards={[
             {
-              title: 'Total Templates', value: String(stats.total),
+              title: 'Total Templates', value: String(stats.total), loading: !serverStats,
               sub1Label: 'WITH FILE', sub1Value: String(stats.withFile),
               sub2Label: 'NO FILE', sub2Value: String(stats.total - stats.withFile), barHighlight: 'var(--teal)',
             },
             {
-              title: 'Total Recipients', value: String(stats.totalRecipients),
+              title: 'Total Recipients', value: String(stats.totalRecipients), loading: !serverStats,
               sub1Label: 'TEMPLATES', sub1Value: String(stats.total),
               sub2Label: 'AVG/TEMPLATE', sub2Value: stats.avgRecipients, barHighlight: 'var(--blue)',
             },
             {
-              title: 'Total Fields', value: String(stats.totalFields),
+              title: 'Total Fields', value: String(stats.totalFields), loading: !serverStats,
               sub1Label: 'SIGNATURE', sub1Value: String(stats.signatureFields),
               sub2Label: 'REQUIRED', sub2Value: String(stats.requiredFields), barHighlight: 'var(--purple)',
             },
             {
-              title: 'Ready To Use', value: `${stats.total ? Math.round((stats.ready / stats.total) * 100) : 0}%`,
+              title: 'Ready To Use', value: `${stats.total ? Math.round((stats.ready / stats.total) * 100) : 0}%`, loading: !serverStats,
               sub1Label: 'READY', sub1Value: String(stats.ready),
               sub2Label: 'INCOMPLETE', sub2Value: String(stats.total - stats.ready), barHighlight: 'var(--green)',
             },

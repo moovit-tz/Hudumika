@@ -6992,7 +6992,7 @@ html[data-expanded="true"] .fin-shell {
 }
 
 [data-ui-button] { box-sizing: border-box; max-width: 100%; }
-[data-ui-native-button]:not([role="tab"]):not(.ds-tabs-trigger):not([data-ds-tabs-exempt] > button):not([class*="avatar"]):not([aria-label*="avatar" i]):not(.cnt-step-circle):not([class*="step-circle"]) {
+[data-ui-native-button]:not([role="tab"]):not(.ds-tabs-trigger):not([data-ds-tabs-exempt] > button):not([class*="avatar"]):not([aria-label*="avatar" i]):not(.cnt-step-circle):not([class*="step-circle"]):not([data-search-result]) {
   border-radius: var(--r-sm, 6px) !important;
   border-width: var(--border-width, 1px) !important;
   max-width: 100%;

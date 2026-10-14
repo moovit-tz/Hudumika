@@ -19,17 +19,22 @@ export const TrackingFuel: React.FC = () => {
   const [logs, setLogs] = useState<FuelLog[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [fuelStats, setFuelStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setFuelStats(await apiFetch('/v1/tracking/fuel/stats')); } catch {}
+  }, []);
+
   const reload = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/tracking/fuel').then(setLogs).catch(() => setLogs([])).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { reload(); fetchStats(); }, [reload, fetchStats]);
 
   async function remove(id: string) {
     if (!(await showConfirm('Delete this fuel entry?', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/tracking/fuel/${id}`, { method: 'DELETE' });
-    reload();
+    reload(); fetchStats();
   }
 
   const totalCost = logs.reduce((s, l) => s + (l.cost ?? 0), 0);
@@ -60,10 +65,10 @@ export const TrackingFuel: React.FC = () => {
       </div>
 
       <MetricsRow cards={[
-        { title: 'Fuel entries', value: String(logs.length), comparisonLabel: 'Recorded transactions', barHighlight: 'var(--teal)', loading },
-        { title: 'Fuel volume', value: `${totalLiters.toLocaleString(undefined, { maximumFractionDigits: 1 })} L`, comparisonLabel: 'Total logged volume', barHighlight: 'var(--blue)', loading },
-        { title: 'Fuel cost', value: totalCost.toLocaleString(), comparisonLabel: 'Total recorded spend', barHighlight: 'var(--gold)', loading },
-        { title: 'Average cost / litre', value: totalLiters > 0 ? (totalCost / totalLiters).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—', comparisonLabel: totalLiters > 0 ? 'Cost ÷ litres' : 'Needs volume and cost data', barHighlight: 'var(--green)', loading },
+        { title: 'Fuel entries', value: String(fuelStats?.total ?? logs.length), comparisonLabel: 'Recorded transactions', barHighlight: 'var(--teal)', loading: !fuelStats },
+        { title: 'Fuel volume', value: `${(fuelStats?.totalLiters ?? totalLiters).toLocaleString(undefined, { maximumFractionDigits: 1 })} L`, comparisonLabel: 'Total logged volume', barHighlight: 'var(--blue)', loading: !fuelStats },
+        { title: 'Fuel cost', value: (fuelStats?.totalCost ?? totalCost).toLocaleString(), comparisonLabel: 'Total recorded spend', barHighlight: 'var(--gold)', loading: !fuelStats },
+        { title: 'Average cost / litre', value: (fuelStats?.avgCostPerLiter ?? (totalLiters > 0 ? (totalCost / totalLiters) : 0)) > 0 ? (fuelStats?.avgCostPerLiter ?? (totalCost / totalLiters)).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—', comparisonLabel: (fuelStats?.totalLiters ?? totalLiters) > 0 ? 'Cost ÷ litres' : 'Needs volume and cost data', barHighlight: 'var(--green)', loading: !fuelStats },
       ]} />
 
       <SectionCard padded={false}>

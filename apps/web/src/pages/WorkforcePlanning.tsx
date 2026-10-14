@@ -94,6 +94,11 @@ export function WorkforcePlanning() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlanRow | null>(null);
 
+  const [wpStats, setWpStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setWpStats(await apiFetch(`/v1/hr/workforce-planning/stats?year=${year}`)); } catch {}
+  }, [year]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -101,7 +106,7 @@ export function WorkforcePlanning() {
     catch { setRows([]); setLoadError('Could not load the workforce plan.'); }
     finally { setLoading(false); }
   }, [year]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
 
   const totals = useMemo(() => rows.reduce((acc, r) => ({
     approved: acc.approved + r.approved_headcount,
@@ -140,10 +145,10 @@ export function WorkforcePlanning() {
       />
 
       <MetricsRow cards={[
-        { title: 'Approved headcount', value: totals.approved.toLocaleString(), icon: 'target', loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
-        { title: 'Current headcount', value: totals.current.toLocaleString(), icon: 'users', loading, error: loadError ?? undefined, onRetry: load },
-        { title: 'Open vacancies', value: totals.vacancies.toLocaleString(), icon: 'alertCircle', barHighlight: totals.vacancies > 0 ? 'var(--gold)' : 'var(--green)', loading, error: loadError ?? undefined, onRetry: load },
-        { title: 'Planned hiring', value: totals.planned.toLocaleString(), icon: 'trendingUp', loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'Approved headcount', value: (wpStats?.approved ?? totals.approved).toLocaleString(), icon: 'target', loading: !wpStats && loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
+        { title: 'Current headcount', value: (wpStats?.current ?? totals.current).toLocaleString(), icon: 'users', loading: !wpStats && loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'Open vacancies', value: (wpStats?.vacancies ?? totals.vacancies).toLocaleString(), icon: 'alertCircle', barHighlight: (wpStats?.vacancies ?? totals.vacancies) > 0 ? 'var(--gold)' : 'var(--green)', loading: !wpStats && loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'Planned hiring', value: (wpStats?.planned ?? totals.planned).toLocaleString(), icon: 'trendingUp', loading: !wpStats && loading, error: loadError ?? undefined, onRetry: load },
       ]} />
 
       <DataTable

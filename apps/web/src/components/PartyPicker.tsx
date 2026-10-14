@@ -22,7 +22,7 @@ type Props = {
 export function PartyPicker({ type, value, onChange, label, hint, disabled, allowCreate = false, createAs, defaultVisibility = 'TENANT' }: Props) {
   const search = useCallback(async (query: string): Promise<PickerItem[]> => {
     const res = await apiFetch(`/v1/parties?type=${type}&q=${encodeURIComponent(query)}&limit=25`);
-    return (res.data ?? []).map((p: any) => ({ id: p.id, label: p.display_name, sublabel: [p.is_customer ? 'Customer' : null, p.is_supplier ? 'Supplier' : null, p.visibility === 'TENANT' ? null : p.visibility.toLowerCase().replace('_', ' ')].filter(Boolean).join(' · ') || undefined }));
+    return (res.data ?? []).map((p: any) => ({ id: p.id, label: p.display_name, sublabel: [p.is_customer ? 'Customer' : null, p.is_supplier ? 'Supplier' : null, p.visibility === 'TENANT' ? null : p.visibility.toLowerCase().replace('_', ' ')].filter(Boolean).join(' · ') || undefined, avatarUserId: p.id, avatarKind: (p.is_customer ? 'customers' : p.is_supplier ? 'suppliers' : 'contacts') as any, avatarType: (type === 'PERSON' ? 'person' : 'company') as 'person' | 'company' }));
   }, [type]);
 
   const create = useCallback(async (name: string): Promise<PickerItem> => {

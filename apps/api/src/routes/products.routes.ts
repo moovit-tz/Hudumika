@@ -109,7 +109,7 @@ export async function productRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/stats',async(request)=>withTenant(request.user.tenant_id,async trx=>{
+  fastify.get('/stats',{preHandler:requireRole(...FIN_ROLES)},async(request)=>withTenant(request.user.tenant_id,async trx=>{
     const tenantId=request.user.tenant_id;
     const counts=await trx.selectFrom('products').where('tenant_id','=',tenantId).select([
       sql<number>`count(*)::int`.as('total'), sql<number>`count(*) filter(where status='active')::int`.as('active'),
@@ -394,6 +394,29 @@ export async function productRoutes(fastify: FastifyInstance) {
     body:          z.string().nullable().optional(),
     status:        z.enum(['pending', 'approved', 'rejected']).optional(),
     reply:         z.string().nullable().optional(),
+  });
+
+  fastify.get('/reviews/stats', { preHandler: requireRole(...FIN_ROLES) }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('product_reviews')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'pending' as any).as('pending'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'approved' as any).as('approved'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'rejected' as any).as('rejected'),
+          (eb) => eb.fn.avg<string>('rating').as('avg_rating'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      return {
+        total: Number(row?.total ?? 0),
+        pending: Number(row?.pending ?? 0),
+        approved: Number(row?.approved ?? 0),
+        rejected: Number(row?.rejected ?? 0),
+        avgRating: Number(row?.avg_rating ?? 0),
+      };
+    });
   });
 
   fastify.get('/reviews', async (request) => {

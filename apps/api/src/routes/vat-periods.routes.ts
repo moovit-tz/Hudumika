@@ -54,6 +54,25 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/stats', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('vat_periods')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'OPEN' as any).as('open_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'FILED' as any).as('filed_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      return {
+        total: Number(row?.total ?? 0),
+        open: Number(row?.open_count ?? 0),
+        filed: Number(row?.filed_count ?? 0),
+      };
+    });
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) =>

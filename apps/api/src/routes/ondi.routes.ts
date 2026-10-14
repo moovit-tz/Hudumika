@@ -1768,6 +1768,32 @@ export async function ondiRoutes(fastify: FastifyInstance) {
   });
 
   // ── Visitors (Ondi M9) ─────────────────────────────────────────────
+  fastify.get('/org/visitors/stats', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.VISITORS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('ondi_visitors')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('checked_out_at', 'is', null).as('on_site'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('checked_in_at', '>=', today as any)
+        .executeTakeFirst();
+      const allTime = await trx.selectFrom('ondi_visitors')
+        .select((eb) => eb.fn.count<string>('id').as('total'))
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      return {
+        todayTotal: Number(rows?.total ?? 0),
+        onSiteNow: Number(rows?.on_site ?? 0),
+        checkedOutToday: Number(rows?.total ?? 0) - Number(rows?.on_site ?? 0),
+        allTimeRecords: Number(allTime?.total ?? 0),
+      };
+    });
+  });
+
   fastify.get('/org/visitors', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.VISITORS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, trx => trx.selectFrom('ondi_visitors as v')

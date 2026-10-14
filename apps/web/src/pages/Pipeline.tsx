@@ -136,7 +136,15 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
     return list
       .filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()))
       .slice(0, 20)
-      .map(c => ({ id: c.id, label: c.name }));
+      .map(c => ({
+        id: c.id,
+        label: c.name,
+        sublabel: c.email || c.phone || undefined,
+        avatarUserId: c.id,
+        avatarKind: 'customers' as const,
+        avatarType: 'company' as const,
+        avatarUrl: c.logo_url || c.avatar_url || undefined,
+      }));
   }
 
   async function searchQuotations(q: string): Promise<PickerItem[]> {

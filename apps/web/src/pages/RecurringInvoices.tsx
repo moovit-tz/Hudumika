@@ -64,7 +64,15 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
   async function searchCustomers(q: string): Promise<PickerItem[]> {
     const res = await apiFetch(`/v1/customers?search=${encodeURIComponent(q)}`).catch(() => []);
     const list = Array.isArray(res) ? res : (res.data ?? []);
-    return list.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined }));
+    return list.slice(0, 25).map((c: any) => ({
+      id: c.id,
+      label: c.name,
+      sublabel: c.email || undefined,
+      avatarUserId: c.id,
+      avatarKind: 'customers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: c.logo_url || c.avatar_url || undefined,
+    }));
   }
   async function createCustomerInline(name: string): Promise<PickerItem> {
     const created = await apiFetch('/v1/customers', { method: 'POST', body: JSON.stringify({ name }) });
@@ -160,6 +168,11 @@ export function RecurringInvoices() {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState<string | null>(null);
   const loadIdRef = useRef(0);
+  const [riStats, setRiStats] = useState<{
+    total: number; activeCount: number; pausedCount: number;
+    totalMonthly: number; totalBilled: number; invoicesGenerated: number; activeRate: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/invoices/recurring/stats').then(setRiStats).catch(() => {}); }, []);
 
   const load = useCallback(async (p = page, ps = pageSize, s = search, sf = stateFilter) => {
     const id = ++loadIdRef.current;
@@ -185,7 +198,7 @@ export function RecurringInvoices() {
     }
   }, [page, pageSize, search, stateFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
 
   function handlePageChange(p: number) { setPage(p); }
   function handlePageSizeChange(ps: number) { setPageSize(ps); setPage(1); }
@@ -235,11 +248,11 @@ export function RecurringInvoices() {
     }
   }
 
-  const totalMonthly = recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').reduce((a, r) => a + r.amount * (1 + r.tax_rate / 100), 0);
-  const activeCount = recurring.filter(r => r.state === 'ACTIVE').length;
-  const pausedCount = recurring.filter(r => r.state === 'PAUSED').length;
-  const invoicesGenerated = recurring.reduce((s, r) => s + r.invoices_generated, 0);
-  const totalBilled = recurring.reduce((s, r) => s + r.total_billed, 0);
+  const activeCount = riStats?.activeCount ?? recurring.filter(r => r.state === 'ACTIVE').length;
+  const pausedCount = riStats?.pausedCount ?? recurring.filter(r => r.state === 'PAUSED').length;
+  const totalMonthly = riStats?.totalMonthly ?? 0;
+  const invoicesGenerated = riStats?.invoicesGenerated ?? 0;
+  const totalBilled = riStats?.totalBilled ?? 0;
   const totalPages = Math.ceil(total / pageSize);
 
   const columns: TableColumn<RecurringInvoice>[] = [
@@ -288,24 +301,23 @@ export function RecurringInvoices() {
 
       <MetricsRow cards={[
           {
-            title: 'Total Templates', value: String(recurring.length),
+            title: 'Total Templates', value: String(riStats?.total ?? recurring.length), loading: !riStats,
             sub1Label: 'ACTIVE', sub1Value: String(activeCount),
             sub2Label: 'PAUSED', sub2Value: String(pausedCount), barHighlight: 'var(--teal)',
           },
           {
-            title: 'Monthly Recurring', value: fmt(totalMonthly),
-            sub1Label: 'MONTHLY ACTIVE', sub1Value: String(recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').length),
-            sub2Label: 'ALL ACTIVE', sub2Value: String(activeCount), barHighlight: 'var(--blue)',
+            title: 'Monthly Recurring', value: fmt(totalMonthly), loading: !riStats,
+            sub1Label: 'ALL ACTIVE', sub1Value: String(activeCount), barHighlight: 'var(--blue)',
           },
           {
-            title: 'Invoices Generated', value: String(invoicesGenerated),
+            title: 'Invoices Generated', value: String(invoicesGenerated), loading: !riStats,
             sub1Label: 'TOTAL BILLED', sub1Value: fmt(totalBilled),
-            sub2Label: 'TEMPLATES', sub2Value: String(recurring.length), barHighlight: 'var(--green)',
+            sub2Label: 'TEMPLATES', sub2Value: String(riStats?.total ?? recurring.length), barHighlight: 'var(--green)',
           },
           {
-            title: 'Active Rate', value: `${recurring.length ? Math.round((activeCount / recurring.length) * 100) : 0}%`,
+            title: 'Active Rate', value: `${riStats?.activeRate ?? 0}%`, loading: !riStats,
             sub1Label: 'ACTIVE', sub1Value: String(activeCount),
-            sub2Label: 'TOTAL', sub2Value: String(recurring.length), barHighlight: 'var(--purple)',
+            sub2Label: 'TOTAL', sub2Value: String(riStats?.total ?? recurring.length), barHighlight: 'var(--purple)',
           },
         ]} />
 

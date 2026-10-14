@@ -67,6 +67,11 @@ export function FinanceVatPeriods() {
   const [from, setFrom] = useState(init.from);
   const [to, setTo] = useState(init.to);
 
+  const [vatStats, setVatStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setVatStats(await apiFetch('/v1/vat-periods/stats')); } catch {}
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/vat-periods')
@@ -74,7 +79,7 @@ export function FinanceVatPeriods() {
       .catch((error: unknown) => setNotice({ kind: 'err', text: error instanceof Error ? error.message : 'Unable to load VAT periods. Retry before making changes.' }))
       .finally(() => setLoading(false));
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
 
   async function create() {
     setBusy('create'); setNotice(null);
@@ -176,9 +181,9 @@ export function FinanceVatPeriods() {
 
       <MetricsRow cards={[
         {
-          title: 'Total Periods', value: String(periods.length), icon: 'calendar',
-          sub1Label: 'OPEN', sub1Value: String(periods.filter(p => p.status === 'open').length),
-          sub2Label: 'FILED', sub2Value: String(periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)', loading,
+          title: 'Total Periods', value: String(vatStats?.total ?? periods.length), icon: 'calendar',
+          sub1Label: 'OPEN', sub1Value: String(vatStats?.open ?? periods.filter(p => p.status === 'open').length),
+          sub2Label: 'FILED', sub2Value: String(vatStats?.filed ?? periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)', loading: !vatStats,
         },
         {
           title: 'Open Periods', value: String(periods.filter(p => p.status === 'open').length), icon: 'unlock',

@@ -44,6 +44,11 @@ export const HrVisitors: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const staffCache = useRef<PickerItem[] | null>(null);
 
+  const [vStats, setVStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setVStats(await apiFetch('/v1/ondi/org/visitors/stats')); } catch {}
+  }, []);
+
   const reload = useCallback(async () => {
     setLoadError(null);
     try { setVisitors(await apiFetch('/v1/ondi/org/visitors')); } catch (err: any) {
@@ -51,7 +56,7 @@ export const HrVisitors: React.FC = () => {
       setLoadError(err?.message || 'Could not load visitors.');
     }
   }, []);
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { reload(); fetchStats(); }, [reload, fetchStats]);
 
   // EntityPicker takes a search callback, not a built-in entity registry —
   // the staff list is small enough on this platform's typical tenant size
@@ -60,7 +65,7 @@ export const HrVisitors: React.FC = () => {
   const searchStaff = useCallback(async (query: string): Promise<PickerItem[]> => {
     if (!staffCache.current) {
       const users = await apiFetch('/v1/ondi/users').catch(() => []);
-      staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+      staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email, avatarUserId: u.id, avatarKind: 'people' as const }));
     }
     const q = query.trim().toLowerCase();
     const all = staffCache.current ?? [];
@@ -78,12 +83,12 @@ export const HrVisitors: React.FC = () => {
         body: JSON.stringify({ name: name.trim(), company: company.trim() || undefined, purpose: purpose.trim() || undefined, host_user_id: host?.id }),
       });
       resetForm(); setShowNew(false);
-      await reload();
+      await reload(); fetchStats();
     } catch (err: any) { showAlert(err.message); } finally { setSaving(false); }
   }
 
   async function checkOut(v: Visitor) {
-    try { await apiFetch(`/v1/ondi/org/visitors/${v.id}/check-out`, { method: 'POST' }); await reload(); }
+    try { await apiFetch(`/v1/ondi/org/visitors/${v.id}/check-out`, { method: 'POST' }); await reload(); fetchStats(); }
     catch (err: any) { showAlert(err.message); }
   }
 
@@ -113,9 +118,9 @@ export const HrVisitors: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title: 'On-site now', value: String(present.length), icon: 'user', barHighlight: 'var(--green)', loading: visitors === null, error: loadError ?? undefined, onRetry: reload, emphasis: 'primary' },
-        { title: 'Checked out today', value: String(checkedOutToday), icon: 'checkCircle', loading: visitors === null, error: loadError ?? undefined, onRetry: reload },
-        { title: 'Recent visit records', value: String(past.length), icon: 'clock', loading: visitors === null, error: loadError ?? undefined, onRetry: reload },
+        { title: 'On-site now', value: String(vStats?.onSiteNow ?? present.length), icon: 'user', barHighlight: 'var(--green)', loading: !vStats, error: loadError ?? undefined, onRetry: reload, emphasis: 'primary' },
+        { title: 'Checked out today', value: String(vStats?.checkedOutToday ?? checkedOutToday), icon: 'checkCircle', loading: !vStats, error: loadError ?? undefined, onRetry: reload },
+        { title: 'All-time records', value: String(vStats?.allTimeRecords ?? past.length), icon: 'clock', loading: !vStats, error: loadError ?? undefined, onRetry: reload },
       ]} />
 
       {showNew && (

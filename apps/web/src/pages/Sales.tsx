@@ -414,7 +414,7 @@ function QuoteModal({
 
   const [customerItem, setCustomerItem] = useState<PickerItem | null>(() => {
     const c = customers.find((c: any) => c.id === (editQuote?.customer_id ?? ''));
-    return c ? { id: c.id, label: c.name, sublabel: c.email || c.phone || undefined } : null;
+    return c ? { id: c.id, label: c.name, sublabel: c.email || c.phone || undefined, avatarUserId: c.id, avatarKind: 'customers' as const, avatarType: 'company' as const } : null;
   });
 
   async function searchCustomersLocal(q: string): Promise<PickerItem[]> {
@@ -426,7 +426,7 @@ function QuoteModal({
     const filtered = ql
       ? usable.filter((c: any) => (c.name || '').toLowerCase().includes(ql) || (c.email || '').toLowerCase().includes(ql))
       : usable;
-    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined }));
+    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined, avatarUserId: c.id, avatarKind: 'customers' as const, avatarType: 'company' as const }));
   }
 
   async function createCustomerInline(name: string): Promise<PickerItem> {
@@ -710,6 +710,12 @@ export const Sales: React.FC = () => {
   const [quotes, setQuotes]       = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [qStats, setQStats] = useState<{
+    total: number; pipeline_value: number; avg_quote: number;
+    win_rate: number; converted: number; approved: number;
+    rejected: number; pending_value: number; status_counts: Record<string, number>;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/quotations/stats').then(setQStats).catch(() => {}); }, []);
 
   // UI state
   const [showModal, setShowModal]       = useState(false);
@@ -729,7 +735,7 @@ export const Sales: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { loadQuotes(); }, [loadQuotes]);
+  useEffect(() => { loadQuotes(); fetchStats(); }, [loadQuotes, fetchStats]);
 
   useEffect(() => {
     apiFetch('/v1/customers')
@@ -756,7 +762,7 @@ export const Sales: React.FC = () => {
     try {
       await apiFetch(`/v1/quotations/${q.id}`, { method: 'DELETE' });
       showToast('Quotation deleted');
-      loadQuotes();
+      loadQuotes(); fetchStats();
     } catch {
       showToast('Failed to delete quotation', 'error');
     }
@@ -767,7 +773,7 @@ export const Sales: React.FC = () => {
     try {
       await apiFetch(`/v1/quotations/${q.id}/convert`, { method: 'POST' });
       showToast('Converted to shipment successfully');
-      loadQuotes();
+      loadQuotes(); fetchStats();
     } catch (e: any) {
       showToast(e.message || 'Conversion failed', 'error');
     }
@@ -777,13 +783,13 @@ export const Sales: React.FC = () => {
     setShowModal(false);
     setEditQuote(null);
     showToast(editQuote ? 'Quotation updated' : 'Quotation created');
-    loadQuotes();
+    loadQuotes(); fetchStats();
   }
 
   function onStatusDone(updated: any) {
     setStatusQuote(null);
     showToast('Status updated');
-    loadQuotes();
+    loadQuotes(); fetchStats();
   }
 
   return (
@@ -808,21 +814,24 @@ export const Sales: React.FC = () => {
         <MetricsRow cards={[
           {
             title: 'Total Quotes',
-            value: loading ? '—' : String(quotes.length),
-            sub1Label: 'APPROVED', sub1Value: loading ? '—' : String(byStage('APPROVED').length),
-            sub2Label: 'WIN RATE', sub2Value: loading ? '—' : `${winRate}%`, barHighlight: 'var(--blue)',
+            value: String(qStats?.total ?? quotes.length),
+            sub1Label: 'APPROVED', sub1Value: String(qStats?.approved ?? 0),
+            sub2Label: 'WIN RATE', sub2Value: `${qStats?.win_rate ?? 0}%`, barHighlight: 'var(--blue)',
+            loading: !qStats,
           },
           {
             title: 'Converted',
-            value: loading ? '—' : String(byStage('CONVERTED').length),
-            sub1Label: 'PENDING',  sub1Value: loading ? '—' : String(byStage('PENDING').length),
-            sub2Label: 'REJECTED', sub2Value: loading ? '—' : String(byStage('REJECTED').length), barHighlight: 'var(--green)',
+            value: String(qStats?.converted ?? 0),
+            sub1Label: 'PENDING',  sub1Value: String(qStats?.status_counts?.PENDING ?? 0),
+            sub2Label: 'REJECTED', sub2Value: String(qStats?.rejected ?? 0), barHighlight: 'var(--green)',
+            loading: !qStats,
           },
           {
             title: 'Pipeline Value',
-            value: loading ? '—' : fmt(total),
-            sub1Label: 'WON REVENUE', sub1Value: loading ? '—' : fmt(won),
-            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? '—' : fmt(Math.round(total / quotes.length)), barHighlight: 'var(--gold)',
+            value: fmt(qStats?.pipeline_value ?? 0),
+            sub1Label: 'WON REVENUE', sub1Value: fmt(qStats?.pipeline_value ? qStats.pipeline_value - (qStats.pending_value ?? 0) : 0),
+            sub2Label: 'AVG DEAL',    sub2Value: fmt(qStats?.avg_quote ?? 0), barHighlight: 'var(--gold)',
+            loading: !qStats,
           },
         ]} />
       </div>

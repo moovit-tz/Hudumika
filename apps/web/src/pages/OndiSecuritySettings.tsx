@@ -304,7 +304,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
   const searchStaff = useCallback(async (query: string): Promise<PickerItem[]> => {
     if (!staffCache.current) {
       const users = await apiFetch('/v1/ondi/users').catch(() => []);
-      staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+      staffCache.current = users.map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email, avatarUserId: u.id, avatarKind: 'people' as const }));
     }
     const q = query.trim().toLowerCase();
     const all = staffCache.current ?? [];

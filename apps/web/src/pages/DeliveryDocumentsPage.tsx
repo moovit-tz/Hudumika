@@ -216,6 +216,11 @@ export function DeliveryDocumentsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selected, setSelected] = useState<DeliveryDocument | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [ddStats, setDdStats] = useState<{
+    total: number; inProgress: number; completed: number;
+    shipmentLinked: number; shipmentLinkedPct: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/delivery-documents/stats').then(setDdStats).catch(() => {}); }, []);
 
   const jobs = getJobs();
   const shipmentLabel = (id: string | null) => {
@@ -231,7 +236,7 @@ export function DeliveryDocumentsPage() {
       .catch((err: any) => showAlert(err?.message || 'Could not load delivery documents.', { variant: 'error' }))
       .finally(() => setLoading(false));
   }, [shipmentFilter]);
-  useEffect(load, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
   useEffect(() => { if (shipmentFilter) setShowForm(true); }, [shipmentFilter]);
 
   const resetForm = () => {
@@ -352,24 +357,21 @@ export function DeliveryDocumentsPage() {
 
       <MetricsRow cards={[
         {
-          title: 'TOTAL DOCUMENTS', value: String(rows.length),
-          sub1Label: 'RELEASE ORDERS', sub1Value: String(rows.filter(r => r.doc_type === 'RELEASE_ORDER').length),
-          sub2Label: 'DELIVERY DOCS', sub2Value: String(rows.filter(r => r.doc_type !== 'RELEASE_ORDER').length), barHighlight: 'var(--teal)',
+          title: 'TOTAL DOCUMENTS', value: String(ddStats?.total ?? rows.length), loading: !ddStats,
+          barHighlight: 'var(--teal)',
         },
         {
-          title: 'IN PROGRESS', value: String(rows.filter(r => ['draft', 'issued', 'dispatched'].includes(r.status)).length),
-          sub1Label: 'DRAFT', sub1Value: String(rows.filter(r => r.status === 'draft').length),
-          sub2Label: 'DISPATCHED', sub2Value: String(rows.filter(r => r.status === 'dispatched').length), barHighlight: 'var(--gold)',
+          title: 'IN PROGRESS', value: String(ddStats?.inProgress ?? rows.filter(r => ['draft', 'issued', 'dispatched'].includes(r.status)).length), loading: !ddStats,
+          barHighlight: 'var(--gold)',
         },
         {
-          title: 'COMPLETED', value: String(rows.filter(r => ['delivered', 'used'].includes(r.status)).length),
-          sub1Label: 'DELIVERED', sub1Value: String(rows.filter(r => r.status === 'delivered').length),
-          sub2Label: 'USED', sub2Value: String(rows.filter(r => r.status === 'used').length), barHighlight: 'var(--green)',
+          title: 'COMPLETED', value: String(ddStats?.completed ?? rows.filter(r => ['delivered', 'used'].includes(r.status)).length), loading: !ddStats,
+          barHighlight: 'var(--green)',
         },
         {
-          title: 'SHIPMENT LINKED', value: `${rows.length ? Math.round((rows.filter(r => r.subject_type === 'shipment').length / rows.length) * 100) : 0}%`,
-          sub1Label: 'LINKED', sub1Value: String(rows.filter(r => r.subject_type === 'shipment').length),
-          sub2Label: 'ADHOC', sub2Value: String(rows.filter(r => r.subject_type === 'adhoc').length), barHighlight: 'var(--blue)',
+          title: 'SHIPMENT LINKED', value: `${ddStats?.shipmentLinkedPct ?? 0}%`, loading: !ddStats,
+          sub1Label: 'LINKED', sub1Value: String(ddStats?.shipmentLinked ?? 0),
+          sub2Label: 'TOTAL', sub2Value: String(ddStats?.total ?? rows.length), barHighlight: 'var(--blue)',
         },
       ]} />
 

@@ -98,6 +98,8 @@ export function SignJournalPage() {
   const [correctionNote, setCorrectionNote] = useState('');
   const [savingCorrection, setSavingCorrection] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [serverStats, setServerStats] = useState<{ total: number; certified: number; witnessed: number; declared: number; corrections: number } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/sign/journal/stats').then(setServerStats).catch(() => {}); }, []);
 
   const loadJournal = useCallback(async () => {
     setLoading(true);
@@ -114,19 +116,10 @@ export function SignJournalPage() {
     }
   }, [search, typeFilter]);
 
-  useEffect(() => { loadJournal(); }, [loadJournal]);
+  useEffect(() => { loadJournal(); fetchStats(); }, [loadJournal, fetchStats]);
   useEffect(() => { setPage(1); }, [search, typeFilter, perPage]);
 
-  const stats = useMemo(() => {
-    if (!entries) return { total: 0, certified: 0, witnessed: 0, declared: 0, corrections: 0 };
-    return {
-      total:       entries.length,
-      certified:   entries.filter(e => e.event_type === 'certified').length,
-      witnessed:   entries.filter(e => e.event_type === 'witnessed').length,
-      declared:    entries.filter(e => e.event_type === 'declared').length,
-      corrections: entries.filter(e => e.event_type === 'journal_correction').length,
-    };
-  }, [entries]);
+  const stats = serverStats ?? { total: entries?.length ?? 0, certified: 0, witnessed: 0, declared: 0, corrections: 0 };
 
   const pageItems = useMemo(() => (entries ?? []).slice((page - 1) * perPage, page * perPage), [entries, page, perPage]);
 
@@ -142,6 +135,7 @@ export function SignJournalPage() {
       setSelectedEvent(null);
       setCorrectionNote('');
       loadJournal();
+      fetchStats();
     } catch (err: any) {
       alert(err.message || 'Failed to submit correction');
     } finally {
@@ -165,10 +159,10 @@ export function SignJournalPage() {
       />
 
       <MetricsRow cards={[
-        { title: 'Entries', value: String(stats.total), loading, icon: 'fileText' },
-        { title: 'Certified', value: String(stats.certified), loading, icon: 'shield' },
-        { title: 'Witnessed', value: String(stats.witnessed), loading, icon: 'eye' },
-        { title: 'Declarations', value: String(stats.declared), loading, icon: 'fileText' },
+        { title: 'Entries', value: String(stats.total), loading: !serverStats, icon: 'fileText' },
+        { title: 'Certified', value: String(stats.certified), loading: !serverStats, icon: 'shield' },
+        { title: 'Witnessed', value: String(stats.witnessed), loading: !serverStats, icon: 'eye' },
+        { title: 'Declarations', value: String(stats.declared), loading: !serverStats, icon: 'fileText' },
       ]} />
       {/* Filter + Search toolbar */}
       <div style={{ marginBottom: 16 }}>

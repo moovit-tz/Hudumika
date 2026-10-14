@@ -710,6 +710,29 @@ export async function customerRoutes(fastify: FastifyInstance) {
     return { state: 'none' };
   });
 
+  fastify.get('/partners/stats', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('customers')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('email', 'is not', null).as('with_email'),
+          (eb) => eb.fn.count<string>('id').filterWhere('phone', 'is not', null).as('with_phone'),
+          (eb) => eb.fn.count<string>('id').filterWhere('contact_name', 'is not', null).as('with_contact'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('is_partner', '=', true)
+        .where('deleted_at', 'is', null)
+        .executeTakeFirst();
+      return {
+        total: Number(row?.total ?? 0),
+        withEmail: Number(row?.with_email ?? 0),
+        withPhone: Number(row?.with_phone ?? 0),
+        withContact: Number(row?.with_contact ?? 0),
+      };
+    });
+  });
+
   /**
    * GET /v1/customers/partners
    * Fetch all Logistics & Warehousing Chain Partners (ICDs, CFS, Bonded Warehouse operators)

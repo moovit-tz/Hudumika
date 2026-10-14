@@ -79,6 +79,25 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/stats', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tax_codes')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'active' as any).as('active_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('is_default', '=', true as any).as('default_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      return {
+        total: Number(row?.total ?? 0),
+        active: Number(row?.active_count ?? 0),
+        defaults: Number(row?.default_count ?? 0),
+      };
+    });
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     const { all, jurisdiction, scope } = request.query as { all?: string; jurisdiction?: string; scope?: string };

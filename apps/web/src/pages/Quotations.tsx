@@ -13,6 +13,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { FormPage } from '../components/FormPage.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../components/ui/popover.js';
+import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
@@ -27,19 +28,6 @@ import {
 } from '../components/DocumentDetail.js';
 
 // -- Types ---------------------------------------------------------------------
-
-interface SysCustomer {
-  id: string; name: string; email?: string; phone?: string;
-  phone_wa?: string; company?: string; city?: string; country?: string;
-  contact_person?: string; tin_number?: string; vat_number?: string;
-  freight_terms?: string;
-}
-
-interface SysLead {
-  id: string; contact_name: string; company: string;
-  contact_email?: string; contact_phone?: string;
-  stage: string; value: number; location?: string;
-}
 
 interface ServiceItem {
   id: string; name: string; category: string;
@@ -84,64 +72,15 @@ interface QuoteFormData {
 type StatusKey = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'EXPIRED';
 type StatusFilter = 'ALL' | StatusKey;
 type View = 'list' | 'detail' | 'create' | 'edit';
-type ContactTab = 'customers' | 'leads';
-
-// -- Freight Services Catalog --------------------------------------------------
-
-const FREIGHT_SERVICES: ServiceItem[] = [
-  // Sea Freight
-  { id:'sf-fcl20', name:'Sea Freight – 20ft FCL',     category:'FREIGHT',   unit_price:1200, tax_rate:0, unit:'container', description:'Full container load sea freight – 20ft standard container' },
-  { id:'sf-fcl40', name:'Sea Freight – 40ft FCL',     category:'FREIGHT',   unit_price:1800, tax_rate:0, unit:'container', description:'Full container load sea freight – 40ft standard container' },
-  { id:'sf-fcl40h',name:'Sea Freight – 40ft HC',      category:'FREIGHT',   unit_price:2000, tax_rate:0, unit:'container', description:'Full container load sea freight – 40ft high cube container' },
-  { id:'sf-lcl',   name:'Sea Freight – LCL',          category:'FREIGHT',   unit_price:85,   tax_rate:0, unit:'CBM',       description:'Less than container load sea freight (per CBM)' },
-  // Air Freight
-  { id:'af-kg',    name:'Air Freight',                 category:'FREIGHT',   unit_price:4.5,  tax_rate:0, unit:'kg',        description:'Air freight charge per kilogram (chargeable weight)' },
-  { id:'af-min',   name:'Air Freight – Minimum',      category:'FREIGHT',   unit_price:350,  tax_rate:0, unit:'shipment',  description:'Air freight minimum charge per shipment' },
-  // Road
-  { id:'rd-local', name:'Road Transport – Local',     category:'TRANSPORT', unit_price:450,  tax_rate:18, unit:'trip',      description:'Local inland transport and delivery' },
-  { id:'rd-upcnt', name:'Road Transport – Upcountry', category:'TRANSPORT', unit_price:850,  tax_rate:18, unit:'trip',      description:'Upcountry delivery to inland destination' },
-  // Clearance & Documentation
-  { id:'cl-basic', name:'Customs Clearance',          category:'CLEARANCE', unit_price:350,  tax_rate:18, unit:'shipment',  description:'Customs clearance and entry lodgement' },
-  { id:'cl-docs',  name:'Documentation Fee',          category:'CLEARANCE', unit_price:75,   tax_rate:18, unit:'set',       description:'Preparation of shipping documentation and certificates' },
-  { id:'cl-bil',   name:'Bill of Lading Fee',         category:'CLEARANCE', unit_price:60,   tax_rate:18, unit:'set',       description:'Bill of lading processing and handling' },
-  { id:'cl-psi',   name:'Pre-Shipment Inspection',    category:'CLEARANCE', unit_price:200,  tax_rate:18, unit:'shipment',  description:'Pre-shipment inspection (PVoC/CoC)' },
-  { id:'cl-phy',   name:'Phytosanitary Certificate',  category:'CLEARANCE', unit_price:80,   tax_rate:18, unit:'certificate',description:'Phytosanitary / health certificate processing' },
-  // Port Handling
-  { id:'ph-thn',   name:'Port Handling – THC',        category:'HANDLING',  unit_price:250,  tax_rate:0, unit:'container', description:'Terminal handling charges at port of loading/discharge' },
-  { id:'ph-scan',  name:'Scanning / X-Ray Fee',       category:'HANDLING',  unit_price:50,   tax_rate:0, unit:'container', description:'Port scanner / X-ray inspection fee' },
-  { id:'ph-wgh',   name:'Weighbridge Fee',            category:'HANDLING',  unit_price:30,   tax_rate:18, unit:'truck',     description:'Weighbridge measurement certificate' },
-  { id:'ph-fum',   name:'Fumigation',                 category:'HANDLING',  unit_price:150,  tax_rate:18, unit:'container', description:'Fumigation treatment and certificate' },
-  // Duty & Tax
-  { id:'dt-imp',   name:'Import Duty',                category:'DUTY',      unit_price:0,    tax_rate:0, unit:'%',         description:'Customs import duty (percentage of CIF value)' },
-  { id:'dt-vat',   name:'VAT on Import',              category:'DUTY',      unit_price:0,    tax_rate:0, unit:'%',         description:'Value added tax on imported goods' },
-  { id:'dt-exc',   name:'Excise Duty',                category:'DUTY',      unit_price:0,    tax_rate:0, unit:'%',         description:'Excise duty applicable on specific commodities' },
-  // Insurance
-  { id:'ins-cgo',  name:'Cargo Insurance',            category:'INSURANCE', unit_price:0,    tax_rate:18, unit:'%',        description:'Marine cargo insurance (% of insured value)' },
-  // Other
-  { id:'ot-stor',  name:'Storage / Demurrage',        category:'OTHER',     unit_price:25,   tax_rate:18, unit:'day',       description:'Container or cargo storage per day' },
-  { id:'ot-cng',   name:'Port Congestion Surcharge',  category:'OTHER',     unit_price:150,  tax_rate:0, unit:'container', description:'Port congestion surcharge (where applicable)' },
-  { id:'ot-imo',   name:'IMO / Dangerous Goods Fee',  category:'OTHER',     unit_price:120,  tax_rate:18, unit:'shipment',  description:'Handling surcharge for IMO/DG classified cargo' },
-];
-
-const SERVICE_GROUPS: { label: string; items: ServiceItem[] }[] = [
-  { label: 'Sea & Air Freight',        items: FREIGHT_SERVICES.filter(s => s.category === 'FREIGHT')   },
-  { label: 'Transport / Delivery',     items: FREIGHT_SERVICES.filter(s => s.category === 'TRANSPORT') },
-  { label: 'Clearance & Docs',         items: FREIGHT_SERVICES.filter(s => s.category === 'CLEARANCE') },
-  { label: 'Port Handling',            items: FREIGHT_SERVICES.filter(s => s.category === 'HANDLING')  },
-  { label: 'Duty & Taxes',             items: FREIGHT_SERVICES.filter(s => s.category === 'DUTY')      },
-  { label: 'Insurance',                items: FREIGHT_SERVICES.filter(s => s.category === 'INSURANCE') },
-  { label: 'Other Charges',            items: FREIGHT_SERVICES.filter(s => s.category === 'OTHER')     },
-];
-
 // -- Constants -----------------------------------------------------------------
 
 const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }> = {
-  DRAFT:     { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',        label: 'Draft'     },
-  PENDING:   { bg: 'var(--gold-l)', color: 'var(--gold)',    label: 'Pending'   },
-  APPROVED:  { bg: 'var(--green-l)', color: 'var(--green)',   label: 'Approved'  },
-  REJECTED:  { bg: 'var(--red-l)',   color: 'var(--red)',     label: 'Rejected'  },
-  CONVERTED: { bg: 'var(--blue-l)', color: 'var(--blue)',    label: 'Converted' },
-  EXPIRED:   { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',        label: 'Expired'   },
+  DRAFT:     { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Draft'     },
+  PENDING:   { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Pending'   },
+  APPROVED:  { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Approved'  },
+  REJECTED:  { bg: 'var(--red-l)',  color: 'var(--red)',   label: 'Rejected'  },
+  CONVERTED: { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Converted' },
+  EXPIRED:   { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Expired'   },
 };
 
 const CATEGORIES = ['FREIGHT','CLEARANCE','HANDLING','TRANSPORT','DUTY','INSURANCE','OTHER'];
@@ -209,8 +148,8 @@ function Av({ name, size=36, customerId }: { name:string; size?:number; customer
   return <PersonAvatar userId={customerId} kind="customers" name={name} size={size} />;
 }
 
-const STATUS_VARIANT: Record<StatusKey, 'gray' | 'warning' | 'success' | 'error' | 'info'> = {
-  DRAFT: 'gray', PENDING: 'warning', APPROVED: 'success', REJECTED: 'error', CONVERTED: 'info', EXPIRED: 'gray',
+const STATUS_VARIANT: Record<StatusKey, 'brand' | 'error'> = {
+  DRAFT: 'brand', PENDING: 'brand', APPROVED: 'brand', REJECTED: 'error', CONVERTED: 'brand', EXPIRED: 'brand',
 };
 function StatusBadge({ status }: { status:StatusKey }) {
   const c = STATUS_CFG[status]??STATUS_CFG.DRAFT;
@@ -284,113 +223,68 @@ function printQuote(q: Quote) {
   void apiViewBlob(`/v1/quotations/${q.id}/pdf`).catch(error => showAlert(error instanceof Error ? error.message : 'Could not open the quotation PDF.', {variant: 'error'}));
 }
 
-// -- Contact Selector (Customers + Leads) --------------------------------------
-
-interface ContactOption {
-  id: string; label: string; sub: string; type: 'customer' | 'lead';
-  email?: string; phone?: string; company?: string; tin?: string;
-}
-
-function ContactSelector({ customers, leads, value, onChange }: {
-  customers: SysCustomer[]; leads: SysLead[];
-  value: string; onChange: (c: ContactOption) => void;
-}) {
-  const [q, setQ] = useState('');
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<ContactTab>('customers');
-
-  const custOptions: ContactOption[] = customers.map(c=>({
-    id:c.id, label:c.name, sub:c.email??c.city??'', type:'customer',
-    email:c.email, phone:c.phone_wa??c.phone, company:c.company, tin:c.tin_number,
-  }));
-  const leadOptions: ContactOption[] = leads.map(l=>({
-    id:'lead-'+l.id, label:l.contact_name, sub:l.company, type:'lead',
-    email:l.contact_email, phone:l.contact_phone, company:l.company,
-  }));
-
-  const pool = tab==='customers' ? custOptions : leadOptions;
-  const filtered = pool.filter(c=>!q||c.label.toLowerCase().includes(q.toLowerCase())||c.sub.toLowerCase().includes(q.toLowerCase())).slice(0,10);
-  const allOptions = [...custOptions, ...leadOptions];
-  const selected = allOptions.find(c=>c.id===value);
-
-  const tabS = (active:boolean): React.CSSProperties => ({
-    flex:1, padding:'7px', border:'none', borderRadius: 'var(--r-sm)', cursor:'pointer', fontWeight:600, fontSize:12,
-    background:active?'var(--white)':'transparent', color:active?'var(--ink)':'var(--ink3)',
-    boxShadow:active?'0 1px 4px rgba(0,0,0,0.08)':'none',
-  });
-
-  return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQ(''); }}>
-      <PopoverAnchor asChild>
-        <div onClick={()=>setOpen(o=>!o)}
-          role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o=>!o); } }}
-          style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', cursor:'pointer', background:'var(--white)', minHeight:'var(--ctl-h)', boxSizing:'border-box' as const }}>
-          {selected
-            ? <><Av name={selected.label} size={22}/><div><span style={{ fontSize:13, fontWeight:600 }}>{selected.label}</span>{selected.company&&<span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>{selected.company}</span>}</div><span style={{ marginLeft:4, fontSize:10, background: selected.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:selected.type==='lead'?'var(--gold)':'var(--teal)', borderRadius: 'var(--r-sm)', padding:'2px 6px', fontWeight:700 }}>{selected.type==='lead'?'LEAD':'CLIENT'}</span></>
-            : <span style={{ fontSize:13, color:'var(--ink3)' }}>Select customer or lead...</span>
-          }
-          <Icon name="chevronDown" size={14} style={{ marginLeft:'auto', color:'var(--ink3)' } as React.CSSProperties}/>
-        </div>
-      </PopoverAnchor>
-      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0 flex flex-col max-h-[320px]"
-        onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
-        <div style={{ padding:'10px 10px 8px' }}>
-          <input type="text" title="Search contacts" placeholder="Search..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
-            style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
-          <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 'var(--r)', padding:3 }} data-ds-tabstrip="">
-            <button type="button" onClick={()=>setTab('customers')} style={tabS(tab==='customers')} data-ds-selected={tab === 'customers'} data-ui-native-button="" aria-pressed={tab === 'customers'}>Customers ({custOptions.length})</button>
-            <button type="button" onClick={()=>setTab('leads')} style={tabS(tab==='leads')} data-ds-selected={tab === 'leads'} data-ui-native-button="" aria-pressed={tab === 'leads'}>Leads ({leadOptions.length})</button>
-          </div>
-        </div>
-        <div style={{ overflowY:'auto', flex:1 }}>
-          {filtered.length===0
-            ? <div style={{ padding:'20px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No {tab} found</div>
-            : filtered.map(c=>(
-                <div key={c.id} onClick={()=>{onChange(c);setOpen(false);setQ('');}}
-                  role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(c); setOpen(false); setQ(''); } }}
-                  className="hover:bg-accent"
-                  style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', cursor:'pointer' }}>
-                  <Av name={c.label} size={30}/>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{c.label}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.sub}</div>
-                  </div>
-                  <span style={{ fontSize:10, background:c.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:c.type==='lead'?'var(--gold)':'var(--teal)', borderRadius: 'var(--r-sm)', padding:'2px 6px', fontWeight:700, flexShrink:0 }}>{c.type==='lead'?'LEAD':'CLIENT'}</span>
-                </div>
-              ))
-          }
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 // -- Service Catalog Picker ----------------------------------------------------
 
-function ServicePicker({ onSelect }: {
-  onSelect: (s: ServiceItem) => void;
+function ServicePicker({ onSelect, currency = 'USD' }: {
+  onSelect: (s: ServiceItem) => void; currency?: string;
 }) {
   const [q, setQ] = useState('');
+  const [items, setItems] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const searchRef = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const allItems = FREIGHT_SERVICES.filter(s=>!q||s.name.toLowerCase().includes(q.toLowerCase())||s.category.toLowerCase().includes(q.toLowerCase()));
-  const groups = q
-    ? [{ label:'Search Results', items:allItems }]
-    : SERVICE_GROUPS;
+  const doSearch = useCallback(async (query: string) => {
+    const version = ++searchRef.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ status: 'active' });
+      if (query.trim()) params.set('search', query.trim());
+      const res = await apiFetch(`/v1/products?${params}`).catch(() => []);
+      if (version !== searchRef.current) return;
+      const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+      setItems(list.slice(0, 30).map(p => ({
+        id: p.id, name: p.name,
+        category: (p.category || 'OTHER').toUpperCase(),
+        unit_price: Number(p.sale_price) || 0,
+        tax_rate: Number(p.tax_rate) || 0,
+        unit: p.unit || 'unit',
+        description: p.description || p.code || '',
+      })));
+    } finally { if (version === searchRef.current) setLoading(false); }
+  }, []);
+
+  useEffect(() => { doSearch(''); return () => { searchRef.current++; }; }, [doSearch]);
+
+  function handleInput(v: string) {
+    setQ(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => doSearch(v), 220);
+  }
+
+  const grouped = new Map<string, ServiceItem[]>();
+  for (const item of items) {
+    const cat = item.category || 'OTHER';
+    if (!grouped.has(cat)) grouped.set(cat, []);
+    grouped.get(cat)!.push(item);
+  }
 
   return (
     <div style={{ width:480, display:'flex', flexDirection:'column', maxHeight:400 }}>
       <div style={{ padding:'10px 12px', borderBottom:'1px solid var(--border)' }}>
-        <input type="text" title="Search services" placeholder="Search freight services..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
+        <input type="text" title="Search services" placeholder="Search products & services…" value={q} onChange={e=>handleInput(e.target.value)} autoFocus
           style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', boxSizing:'border-box' as const }}/>
       </div>
       <div style={{ overflowY:'auto', flex:1, padding:'8px 0' }}>
-        {groups.map(g=>{
-          const items = g.items.filter(s=>!q||s.name.toLowerCase().includes(q.toLowerCase()));
-          if(!items.length) return null;
-          return (
-            <div key={g.label}>
-              <div style={{ padding:'6px 14px 4px', fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{g.label}</div>
-              {items.map(s=>(
+        {loading ? (
+          <div style={{ padding:20, textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Searching…</div>
+        ) : items.length===0 ? (
+          <div style={{ padding:20, textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No products found</div>
+        ) : (
+          Array.from(grouped.entries()).map(([cat, catItems])=>(
+            <div key={cat}>
+              <div style={{ padding:'6px 14px 4px', fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em' }}>{CAT_LABEL[cat]||cat}</div>
+              {catItems.map(s=>(
                 <div key={s.id} onClick={()=>onSelect(s)}
                   role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(s); } }}
                   className="hover:bg-accent"
@@ -400,14 +294,14 @@ function ServicePicker({ onSelect }: {
                     <div style={{ fontSize:11, color:'var(--ink3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.description}</div>
                   </div>
                   <div style={{ textAlign:'right', flexShrink:0 }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'var(--ink)' }}>{s.unit_price>0?`$${s.unit_price}`:'—'}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'var(--ink)' }}>{s.unit_price>0?fmt(s.unit_price,currency):'—'}</div>
                     <div style={{ fontSize:10, color:'var(--ink3)' }}>per {s.unit??'unit'}</div>
                   </div>
                 </div>
               ))}
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );
@@ -469,7 +363,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
                           </PopoverTrigger>
                         </Tip>
                         <PopoverContent align="start" className="p-0">
-                          <ServicePicker onSelect={s=>insertService(s,l._key)}/>
+                          <ServicePicker onSelect={s=>insertService(s,l._key)} currency={currency}/>
                         </PopoverContent>
                       </Popover>
                     </div>
@@ -524,7 +418,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" className="p-0">
-              <ServicePicker onSelect={addService}/>
+              <ServicePicker onSelect={addService} currency={currency}/>
             </PopoverContent>
           </Popover>
         </div>
@@ -546,8 +440,8 @@ function LineItemsEditor({ lines, currency, onChange }: {
 
 // -- QuoteFormView -------------------------------------------------------------
 
-function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMobile = false }: {
-  mode:'create'|'edit'; initial?:Quote; customers:SysCustomer[]; leads:SysLead[];
+function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
+  mode:'create'|'edit'; initial?:Quote;
   onSave:(data:QuoteFormData,asDraft:boolean)=>Promise<void>; onCancel:()=>void; isMobile?:boolean;
 }) {
   const { fmt } = useCurrency();
@@ -555,6 +449,44 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
   const co = useCompany();
   const isDark = useIsDarkMode();
   const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
+
+  const customerCacheRef = useRef<Map<string, any>>(new Map());
+  async function searchContacts(q: string): Promise<PickerItem[]> {
+    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : '';
+    const res = await apiFetch(`/v1/customers${qs}`).catch(() => ({ data: [] }));
+    const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    list.forEach(c => customerCacheRef.current.set(c.id, c));
+    return list.slice(0, 25).map(c => ({
+      id: c.id,
+      label: c.name,
+      sublabel: c.email || c.phone || c.city || undefined,
+      avatarUserId: c.id,
+      avatarKind: 'customers' as const,
+      avatarType: 'company' as const,
+      avatarUrl: c.logo_url || c.avatar_url || undefined,
+    }));
+  }
+  function handleContactPick(item: PickerItem | null) {
+    if (!item) { setF(p => ({ ...p, customer_id: '', customer_name: '' })); return; }
+    const full = customerCacheRef.current.get(item.id);
+    setF(p => ({
+      ...p, customer_id: item.id, customer_name: full?.name || item.label,
+      customer_email: full?.email || '', customer_phone: full?.phone_wa || full?.phone || '',
+      customer_company: full?.company || '', customer_tin: full?.tin_number || full?.vat_number || '',
+    }));
+  }
+
+  const [catalogItems, setCatalogItems] = useState<ServiceItem[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/products?status=active').then((res: any) => {
+      const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+      setCatalogItems(list.slice(0, 10).map(p => ({
+        id: p.id, name: p.name, category: (p.category || 'OTHER').toUpperCase(),
+        unit_price: Number(p.sale_price) || 0, tax_rate: Number(p.tax_rate) || 0,
+        unit: p.unit || 'unit', description: p.description || '',
+      })));
+    }).catch(() => {});
+  }, []);
 
   const [f, setF] = useState<QuoteFormData>(()=>({
     title:            initial?.title            ?? '',
@@ -576,9 +508,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
 
   function set<K extends keyof QuoteFormData>(k:K, v:QuoteFormData[K]){ setF(p=>({...p,[k]:v})); }
 
-  function onContact(c: ContactOption){
-    setF(p=>({ ...p, customer_id:c.id, customer_name:c.label, customer_email:c.email??'', customer_phone:c.phone??'', customer_company:c.company??'', customer_tin:c.tin??'' }));
-  }
+  function onContact(c: PickerItem | null){ handleContactPick(c); }
 
   async function submit(asDraft:boolean){
     if(!f.title.trim()){ showAlert('Please enter a quotation title.'); return; }
@@ -617,8 +547,8 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
             <SHdr title="Contact / Customer"/>
             <div style={{ padding:20, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
               <div style={{ gridColumn:'1/-1' }}>
-                <label style={lbl}>Select Customer or Lead *</label>
-                <ContactSelector customers={customers} leads={leads} value={f.customer_id} onChange={onContact}/>
+                <label style={lbl}>Customer *</label>
+                <EntityPicker value={f.customer_id ? { id: f.customer_id, label: f.customer_name } : null} onChange={onContact} search={searchContacts} placeholder="Search CRM customers…" />
               </div>
               <div>
                 <label style={lbl}>Contact Name *</label>
@@ -768,24 +698,26 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           )}
 
           {/* Quick catalog */}
+          {catalogItems.length > 0 && (
           <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden' }}>
             <SHdr title="Quick Add Services"/>
             <div style={{ padding:'8px 0', maxHeight:220, overflowY:'auto' }}>
-              {FREIGHT_SERVICES.slice(0,10).map(s=>(
+              {catalogItems.map(s=>(
                 <div key={s.id}
                   onClick={()=>setF(p=>({...p,lines:[...p.lines,{_key:Math.random().toString(36).slice(2),description:s.name,category:s.category,quantity:1,unit_price:s.unit_price,tax_rate:s.tax_rate}]}))}
                   style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'7px 16px', cursor:'pointer', fontSize:12.5 }}
                   onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')}
                   onMouseLeave={e=>(e.currentTarget.style.background='')}>
                   <span style={{ color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{s.name}</span>
-                  <span style={{ color:'var(--teal)', fontWeight:700, marginLeft:8, flexShrink:0 }}>{s.unit_price>0?`$${s.unit_price}`:'+' }</span>
+                  <span style={{ color:'var(--teal)', fontWeight:700, marginLeft:8, flexShrink:0 }}>{s.unit_price>0?fmt(s.unit_price,f.currency):'+' }</span>
                 </div>
               ))}
               <div style={{ padding:'6px 16px', borderTop:'1px solid var(--border)', marginTop:4 }}>
-                <div style={{ fontSize:11, color:'var(--ink3)' }}>{FREIGHT_SERVICES.length} services in catalog – use "From Catalog" for full list</div>
+                <div style={{ fontSize:11, color:'var(--ink3)' }}>Use "From Catalog" for full search</div>
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     </FormPage>
@@ -948,9 +880,17 @@ export const Quotations: React.FC = () => {
   const [loading,   setLoading]   = useState(true);
   const [filter,    setFilter]    = useState<StatusFilter>('ALL');
   const [search,    setSearch]    = useState('');
-  const [customers, setCustomers] = useState<SysCustomer[]>([]);
-  const [leads,     setLeads]     = useState<SysLead[]>([]);
   const loadIdRef = useRef(0);
+  const [stats, setStats] = useState<{
+    total: number; status_counts: Record<string, number>;
+    pipeline_value: number; pending_value: number; avg_quote: number;
+    win_rate: number; converted: number; approved: number;
+    rejected: number; expired: number;
+  } | null>(null);
+
+  const fetchStats = useCallback(() => {
+    apiFetch('/v1/quotations/stats').then(setStats).catch(() => {});
+  }, []);
 
   const fetchQuotes = useCallback(async (f = filter, p = qPage, ps = qPageSize, s = search) => {
     const id = ++loadIdRef.current;
@@ -984,9 +924,8 @@ export const Quotations: React.FC = () => {
 
   useEffect(()=>{
     fetchQuotes();
-    apiFetch('/v1/customers').then(d=>setCustomers(Array.isArray(d)?d:(d.data??[]))).catch((e:any)=>showAlert(e?.message || 'Could not load customers.'));
-    apiFetch('/v1/leads').then(d=>setLeads(Array.isArray(d)?d:(d.data??[]))).catch((e:any)=>showAlert(e?.message || 'Could not load leads.'));
-  },[fetchQuotes]);
+    fetchStats();
+  },[fetchQuotes, fetchStats]);
   useEffect(() => {
     function handler(e: Event) {
       if ((e as CustomEvent).detail?.section === 'quotations') setView('create');
@@ -1002,13 +941,13 @@ export const Quotations: React.FC = () => {
 
   async function handleStatusChange(id:string,status:string,reason?:string){
     await apiFetch(`/v1/quotations/${id}/status`,{method:'PATCH',body:JSON.stringify({status,reason})});
-    await fetchQuotes(); if(selected?.id===id) await fetchDetail(id);
+    await fetchQuotes(); fetchStats(); if(selected?.id===id) await fetchDetail(id);
   }
   async function handleConvert(id:string){
     if(!(await showConfirm('Convert to Shipment Case? This cannot be undone.', { variant: 'warning', confirmLabel: 'Convert' }))) return;
     const r = await apiFetch(`/v1/quotations/${id}/convert`,{method:'POST'});
     showAlert(`Shipment ${r.shipment?.ref_number??''} created!`, { variant: 'success' });
-    await fetchQuotes(); if(selected?.id===id) await fetchDetail(id);
+    await fetchQuotes(); fetchStats(); if(selected?.id===id) await fetchDetail(id);
   }
   async function handleSend(id:string,email:string,msg:string){
     try{
@@ -1022,10 +961,10 @@ export const Quotations: React.FC = () => {
   async function handleDelete(id:string){
     if(!(await showConfirm('Delete this quotation? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/quotations/${id}`,{method:'DELETE'});
-    setView('list'); setSelected(null); await fetchQuotes();
+    setView('list'); setSelected(null); await fetchQuotes(); fetchStats();
   }
   async function handleDuplicate(id:string){
-    try{ const r=await apiFetch(`/v1/quotations/${id}/duplicate`,{method:'POST'}); await fetchQuotes(); if(r?.id) await fetchDetail(r.id); else showAlert('Quotation duplicated.', { variant: 'success' }); }
+    try{ const r=await apiFetch(`/v1/quotations/${id}/duplicate`,{method:'POST'}); await fetchQuotes(); fetchStats(); if(r?.id) await fetchDetail(r.id); else showAlert('Quotation duplicated.', { variant: 'success' }); }
     catch(e:any){ showAlert(e?.message || 'Could not duplicate this quotation.'); }
   }
   async function handleSave(id:string|null, data:QuoteFormData, asDraft:boolean){
@@ -1039,10 +978,10 @@ export const Quotations: React.FC = () => {
     };
     if(id){
       const res=await apiFetch(`/v1/quotations/${id}`,{method:'PATCH',body:JSON.stringify(body)});
-      await fetchQuotes(); setSelected(res); setView('detail');
+      await fetchQuotes(); fetchStats(); setSelected(res); setView('detail');
     } else {
       const res=await apiFetch('/v1/quotations',{method:'POST',body:JSON.stringify(body)});
-      await fetchQuotes(); if(res?.id) await fetchDetail(res.id); else setView('list');
+      await fetchQuotes(); fetchStats(); if(res?.id) await fetchDetail(res.id); else setView('list');
     }
   }
 
@@ -1063,8 +1002,8 @@ export const Quotations: React.FC = () => {
     URL.revokeObjectURL(url);
   }
 
-  if(view==='create') return <QuoteFormView mode="create" customers={customers} leads={leads} onSave={(d,draft)=>handleSave(null,d,draft)} onCancel={()=>setView('list')} isMobile={isMobile}/>;
-  if(view==='edit'&&selected) return <QuoteFormView mode="edit" initial={selected} customers={customers} leads={leads} onSave={(d,draft)=>handleSave(selected.id,d,draft)} onCancel={()=>setView('detail')} isMobile={isMobile}/>;
+  if(view==='create') return <QuoteFormView mode="create" onSave={(d,draft)=>handleSave(null,d,draft)} onCancel={()=>setView('list')} isMobile={isMobile}/>;
+  if(view==='edit'&&selected) return <QuoteFormView mode="edit" initial={selected} onSave={(d,draft)=>handleSave(selected.id,d,draft)} onCancel={()=>setView('detail')} isMobile={isMobile}/>;
   if(view==='detail'&&selected) return <QuoteDetailView quote={selected} onBack={()=>{setView('list');setSelected(null);}} onEdit={()=>setView('edit')} onStatusChange={(s,r)=>handleStatusChange(selected.id,s,r)} onConvert={()=>handleConvert(selected.id)} onSend={(e,m)=>handleSend(selected.id,e,m)} onDelete={()=>handleDelete(selected.id)} onDuplicate={()=>handleDuplicate(selected.id)} isMobile={isMobile}/>;
 
   return (
@@ -1077,10 +1016,10 @@ export const Quotations: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title:'TOTAL QUOTES', value:String(totalQuotes), sub1Label:'THIS PAGE', sub1Value:String(quotes.length), sub2Label:'PAGES', sub2Value:String(Math.ceil(totalQuotes / qPageSize)), barHighlight:'var(--teal)' },
-        { title:'CONVERTED', value:String(quotes.filter(q=>q.status==='CONVERTED').length), sub1Label:'WIN RATE', sub1Value:quotes.length?`${Math.round(quotes.filter(q=>q.status==='CONVERTED').length/quotes.length*100)}%`:'0%', sub2Label:'APPROVED', sub2Value:String(quotes.filter(q=>q.status==='APPROVED').length), barHighlight:'var(--green)' },
-        { title:'PIPELINE VALUE', value:`TZS ${(quotes.filter(q=>!['REJECTED','EXPIRED'].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0)).toLocaleString()}`, sub1Label:'AVG QUOTE', sub1Value:`TZS ${quotes.length?Math.round(quotes.reduce((s,q)=>s+(q.total_amount||0),0)/quotes.length).toLocaleString():'0'}`, sub2Label:'PENDING VALUE', sub2Value:`TZS ${quotes.filter(q=>q.status==='PENDING').reduce((s,q)=>s+(q.total_amount||0),0).toLocaleString()}`, barHighlight:'var(--gold)' },
-        { title:'REJECTED / EXPIRED', value:String(quotes.filter(q=>['REJECTED','EXPIRED'].includes(q.status)).length), sub1Label:'REJECTED', sub1Value:String(quotes.filter(q=>q.status==='REJECTED').length), sub2Label:'EXPIRED', sub2Value:String(quotes.filter(q=>q.status==='EXPIRED').length), barHighlight:'var(--red)' },
+        { title:'TOTAL QUOTES', value:String(stats?.total ?? totalQuotes), sub1Label:'THIS PAGE', sub1Value:String(quotes.length), sub2Label:'PAGES', sub2Value:String(Math.ceil(totalQuotes / qPageSize)), barHighlight:'var(--teal)', loading: !stats },
+        { title:'CONVERTED', value:String(stats?.converted ?? 0), sub1Label:'WIN RATE', sub1Value:`${stats?.win_rate ?? 0}%`, sub2Label:'APPROVED', sub2Value:String(stats?.approved ?? 0), barHighlight:'var(--green)', loading: !stats },
+        { title:'PIPELINE VALUE', value:`TZS ${(stats?.pipeline_value ?? 0).toLocaleString()}`, sub1Label:'AVG QUOTE', sub1Value:`TZS ${(stats?.avg_quote ?? 0).toLocaleString()}`, sub2Label:'PENDING VALUE', sub2Value:`TZS ${(stats?.pending_value ?? 0).toLocaleString()}`, barHighlight:'var(--gold)', loading: !stats },
+        { title:'REJECTED / EXPIRED', value:String((stats?.rejected ?? 0) + (stats?.expired ?? 0)), sub1Label:'REJECTED', sub1Value:String(stats?.rejected ?? 0), sub2Label:'EXPIRED', sub2Value:String(stats?.expired ?? 0), barHighlight:'var(--red)', loading: !stats },
       ]}/>
 
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12, flexWrap: 'wrap' }}>

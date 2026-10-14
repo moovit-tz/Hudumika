@@ -38,6 +38,29 @@ export async function supplierRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/stats', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('suppliers')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'active').as('active_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'inactive').as('inactive_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'blocked').as('blocked_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      const total = Number(row?.total ?? 0);
+      return {
+        total,
+        active: Number(row?.active_count ?? 0),
+        inactive: Number(row?.inactive_count ?? 0),
+        blocked: Number(row?.blocked_count ?? 0),
+        activeRate: total ? Math.round((Number(row?.active_count ?? 0) / total) * 100) : 0,
+      };
+    });
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     const { search, page, status, limit } = z.object({ search: z.string().max(160).optional(), page: z.coerce.number().int().min(1).max(100000).optional(), limit: z.coerce.number().int().min(1).max(100).optional(), status: z.enum(['active','inactive','blocked']).optional() }).parse(request.query);

@@ -40,7 +40,7 @@ const invoiceLineSchema = z.object({
   line_group: z.string().max(100).optional(),
   currency: z.string().max(10).optional(),
   sort_order: z.number().int().optional(),
-  tax_code_id: z.string().optional(),
+  tax_code_id: z.string().uuid().nullable().optional(),
 }).passthrough(); // resolveItemTaxCodes/buildInvoiceLines do their own per-line validation — this only guards the shape isn't a non-object.
 const invoiceCreateSchema = z.object({
   industry_work_id: z.string().uuid().nullable().optional(),
@@ -54,16 +54,16 @@ const invoiceCreateSchema = z.object({
   bl_number: z.string().max(100).nullable().optional(),
   origin: z.string().max(200).nullable().optional(),
   destination: z.string().max(200).nullable().optional(),
-  mode: z.string().max(30).optional(),
+  mode: z.string().max(10).nullable().optional(),
   bill_date: z.string().nullable().optional(),
   due_date: z.string().nullable().optional(),
-  sale_agent: z.string().max(200).nullable().optional(),
+  sale_agent: z.string().max(300).nullable().optional(),
   payment_terms: z.string().max(200).nullable().optional(),
   exchange_rate: z.number().positive().nullable().optional(),
   status: z.enum(INVOICE_STATUS).optional(),
-  ref_code: z.string().max(100).nullable().optional(),
+  ref_code: z.string().max(30).nullable().optional(),
   notes: z.string().max(5000).nullable().optional(),
-  currency: z.string().max(10).nullable().optional(),
+  currency: z.string().regex(/^[A-Z]{3}$/, 'Currency must be a 3-letter ISO code').nullable().optional(),
   version: z.number().int().positive().optional(),
 });
 const recurringInvoiceSchema = z.object({
@@ -263,6 +263,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
   fastify.get('/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
     const user = request.user;
+    const scopeToOwner = user.role === 'SALES';
     return withTenant(user.tenant_id, async (trx) => {
       const result = await sql<{ status: string; currency: string; count: string; received: string; billed: string; outstanding: string; overdue: string }>`
         WITH totals AS (
@@ -272,6 +273,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               ELSE round(round(l.qty*l.rate*(1+l.tax_pct/100), 2)*i.exchange_rate, 2) END),2)
               FROM sales_invoice_lines l WHERE l.invoice_id=i.id),0) billed
           FROM sales_invoices i WHERE i.tenant_id=${user.tenant_id}
+            ${scopeToOwner ? sql`AND i.created_by = ${user.sub}` : sql``}
         )
         SELECT status, currency, count(*) count, sum(received) received, sum(billed) billed,
           sum(greatest(0,billed-received)) outstanding,
@@ -300,6 +302,45 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   // ── Recurring Invoices ───────────────────────────────────────────────────
   // The AR counterpart to bills.routes.ts's recurring_bills — must be
   // registered before GET /:id so 'recurring' isn't read as an invoice id.
+
+  fastify.get('/recurring/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await sql<{
+        total: string; active_count: string; paused_count: string;
+        total_monthly: string; total_billed: string; invoices_generated: string;
+      }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE state = 'ACTIVE')::text AS active_count,
+               count(*) FILTER (WHERE state = 'PAUSED')::text AS paused_count,
+               coalesce(sum(
+                 CASE frequency
+                   WHEN 'WEEKLY' THEN amount * 4.33
+                   WHEN 'MONTHLY' THEN amount
+                   WHEN 'QUARTERLY' THEN amount / 3.0
+                   WHEN 'ANNUAL' THEN amount / 12.0
+                   ELSE amount
+                 END
+               ) FILTER (WHERE state = 'ACTIVE'), 0)::text AS total_monthly,
+               coalesce(sum(total_billed), 0)::text AS total_billed,
+               coalesce(sum(invoices_generated), 0)::text AS invoices_generated
+        FROM recurring_invoices
+        WHERE tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const r = row.rows[0];
+      const total = Number(r?.total ?? 0);
+      const activeCount = Number(r?.active_count ?? 0);
+      return {
+        total,
+        activeCount,
+        pausedCount: Number(r?.paused_count ?? 0),
+        totalMonthly: Number(r?.total_monthly ?? 0),
+        totalBilled: Number(r?.total_billed ?? 0),
+        invoicesGenerated: Number(r?.invoices_generated ?? 0),
+        activeRate: total ? Math.round((activeCount / total) * 100) : 0,
+      };
+    });
+  });
 
   fastify.get('/recurring', async (request, reply) => {
     const user = request.user;

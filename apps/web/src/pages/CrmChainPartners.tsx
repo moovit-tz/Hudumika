@@ -149,6 +149,11 @@ export function CrmChainPartners() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
+  const [partnerStats, setPartnerStats] = useState<any>(null);
+  const fetchStats = useCallback(() => {
+    apiFetch('/v1/customers/partners/stats').then(setPartnerStats).catch(() => {});
+  }, []);
+
   const loadPartners = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/customers/partners')
@@ -158,8 +163,8 @@ export function CrmChainPartners() {
   }, []);
 
   useEffect(() => {
-    loadPartners();
-  }, [loadPartners]);
+    loadPartners(); fetchStats();
+  }, [loadPartners, fetchStats]);
 
   /* Navigation helpers */
   const goToDirectory = useCallback(() => {
@@ -181,6 +186,7 @@ export function CrmChainPartners() {
       await apiFetch(`/v1/customers/${p.id}/partner`, { method: 'PATCH', body: JSON.stringify({ is_partner: false }) });
       setPartners(prev => prev.filter(x => x.id !== p.id));
       showAlert('Removed from partners directory', { variant: 'success' });
+      fetchStats();
       if (onDone) onDone();
     } catch (err: any) {
       showAlert(err.message || 'Failed to remove partner');
@@ -193,6 +199,7 @@ export function CrmChainPartners() {
       await apiFetch(`/v1/customers/${p.id}`, { method: 'DELETE' });
       setPartners(prev => prev.filter(x => x.id !== p.id));
       showAlert('Partner deleted', { variant: 'success' });
+      fetchStats();
       if (onDone) onDone();
     } catch (err: any) {
       showAlert(err.message || 'Failed to delete partner');
@@ -229,7 +236,7 @@ export function CrmChainPartners() {
       <NewPartnerPageView
         onBack={goToDirectory}
         onCreated={(created) => {
-          loadPartners();
+          loadPartners(); fetchStats();
           goToPartner(created.id);
         }}
       />
@@ -271,9 +278,9 @@ export function CrmChainPartners() {
 
       <div className="flex flex-col gap-5">
         <MetricsRow cards={[
-          { title: 'PARTNERS DIRECTORY', value: String(totalCount), loading: loading, icon: 'link', sub1Label: `${withContact} with contact person` },
-          { title: 'WITH EMAIL', value: String(withEmail), loading: loading, icon: 'mail', sub1Label: `${totalCount > 0 ? Math.round((withEmail / totalCount) * 100) : 0}% email coverage` },
-          { title: 'WITH PHONE', value: String(withPhone), loading: loading, icon: 'phone', sub1Label: `${totalCount > 0 ? Math.round((withPhone / totalCount) * 100) : 0}% phone coverage` },
+          { title: 'PARTNERS DIRECTORY', value: String(partnerStats?.total ?? totalCount), loading: !partnerStats && loading, icon: 'link', sub1Label: `${partnerStats?.withContact ?? withContact} with contact person` },
+          { title: 'WITH EMAIL', value: String(partnerStats?.withEmail ?? withEmail), loading: !partnerStats && loading, icon: 'mail', sub1Label: `${(partnerStats?.total ?? totalCount) > 0 ? Math.round(((partnerStats?.withEmail ?? withEmail) / (partnerStats?.total ?? totalCount)) * 100) : 0}% email coverage` },
+          { title: 'WITH PHONE', value: String(partnerStats?.withPhone ?? withPhone), loading: !partnerStats && loading, icon: 'phone', sub1Label: `${(partnerStats?.total ?? totalCount) > 0 ? Math.round(((partnerStats?.withPhone ?? withPhone) / (partnerStats?.total ?? totalCount)) * 100) : 0}% phone coverage` },
           { title: 'FULLY CONNECTED', value: String(fullyLinked), loading: loading, icon: 'checkCircle', sub1Label: 'Contact + email + phone' },
         ]} />
 

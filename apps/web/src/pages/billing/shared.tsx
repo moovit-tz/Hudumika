@@ -139,12 +139,12 @@ export function normalizeStatus(st?: string): Status {
 }
 
 export const STATUS_STYLE: Record<Status, { bg: string; color: string; label: string }> = {
-  Draft:    { bg: 'var(--border)', color: 'var(--ink)', label: 'Draft'          },
-  Partial:  { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Partially paid' },
-  Paid:     { bg: 'var(--ink)', color: 'var(--white)', label: 'Fully paid'     },
-  Credited: { bg: 'var(--purple-l)', color: 'var(--purple)', label: 'Credited' },
-  Unpaid:   { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'Not paid'       },
-  Overdue:  { bg: 'var(--red-l)', color: 'var(--red)', label: 'Overdue'        },
+  Draft:    { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Draft'          },
+  Partial:  { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Partially paid' },
+  Paid:     { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Fully paid'     },
+  Credited: { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Credited'       },
+  Unpaid:   { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Not paid'       },
+  Overdue:  { bg: 'var(--red-l)',  color: 'var(--red)',  label: 'Overdue'         },
 };
 
 export function getStatusStyle(st?: string): { bg: string; color: string; label: string } {
@@ -152,13 +152,13 @@ export function getStatusStyle(st?: string): { bg: string; color: string; label:
   return STATUS_STYLE[norm] || STATUS_STYLE.Draft;
 }
 
-const STATUS_VARIANT: Record<Status, 'gray' | 'info' | 'success' | 'warning' | 'error' | 'default'> = {
-  Draft: 'gray', Partial: 'info', Paid: 'default', Credited: 'info',
-  Unpaid: 'warning', Overdue: 'error',
+const STATUS_VARIANT: Record<Status, 'brand' | 'error'> = {
+  Draft: 'brand', Partial: 'brand', Paid: 'brand', Credited: 'brand',
+  Unpaid: 'brand', Overdue: 'error',
 };
 export function getStatusVariant(st?: string) {
   const norm = normalizeStatus(st);
-  return { variant: STATUS_VARIANT[norm] || ('gray' as const), label: (STATUS_STYLE[norm] || STATUS_STYLE.Draft).label };
+  return { variant: STATUS_VARIANT[norm] || ('brand' as const), label: (STATUS_STYLE[norm] || STATUS_STYLE.Draft).label };
 }
 
 export const UNIT_OPTIONS = ['PER BIL', 'PER BILL', 'PER CONT', 'PER CONTAINER', 'BASIC RATE', 'FLAT', 'PER DAY', 'PER TON', 'PER CBM'];

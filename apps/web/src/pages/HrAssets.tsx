@@ -57,6 +57,11 @@ export function HrAssets() {
   const [acting, setActing] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
+  const [assetStats, setAssetStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setAssetStats(await apiFetch('/v1/hr/assets/stats')); } catch {}
+  }, []);
+
   const load = useCallback(async () => {
     setError('');
     try {
@@ -67,11 +72,11 @@ export function HrAssets() {
       setError(err?.message ?? 'Could not load assets.');
     } finally { setLoading(false); }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); fetchStats(); }, [load, fetchStats]);
 
   async function act(what: string, fn: () => Promise<any>) {
     setBusy(what); setError('');
-    try { await fn(); await load(); setAdding(false); setActing(null); }
+    try { await fn(); await load(); fetchStats(); setAdding(false); setActing(null); }
     catch (err: any) { setError(err?.message ?? 'That did not work.'); }
     finally { setBusy(''); }
   }
@@ -112,9 +117,9 @@ export function HrAssets() {
       )}
 
       <MetricsRow cards={[
-        { title: 'Company assets', value: String(assets.length), icon: 'package', emphasis: 'primary' },
-        { title: 'Out with someone', value: String(out), icon: 'users', barHighlight: 'var(--gold)' },
-        { title: 'Available', value: String(assets.length - out), icon: 'checkCircle', barHighlight: 'var(--green)' },
+        { title: 'Company assets', value: String(assetStats?.total ?? assets.length), icon: 'package', emphasis: 'primary', loading: !assetStats },
+        { title: 'Out with someone', value: String(assetStats?.assigned ?? out), icon: 'users', barHighlight: 'var(--gold)', loading: !assetStats },
+        { title: 'Available', value: String(assetStats?.available ?? (assets.length - out)), icon: 'checkCircle', barHighlight: 'var(--green)', loading: !assetStats },
       ]} />
 
       {byType.length > 0 && (

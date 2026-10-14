@@ -25,6 +25,24 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/stats', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await sql<{ total: string; open: string; closed: string }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE status = 'open')::text AS open,
+               count(*) FILTER (WHERE status = 'closed')::text AS closed
+        FROM gl_periods WHERE tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const r = row.rows[0];
+      return {
+        total: Number(r?.total ?? 0),
+        open: Number(r?.open ?? 0),
+        closed: Number(r?.closed ?? 0),
+      };
+    });
+  });
+
   fastify.get('/', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {

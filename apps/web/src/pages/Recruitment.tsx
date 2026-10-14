@@ -1009,6 +1009,11 @@ function PipelineTab() {
   useEffect(() => { apiFetch('/v1/hr/staff').then(d => { if (Array.isArray(d)) setStaff(d); }).catch(() => {}); }, []);
   useEffect(() => { apiFetch('/v1/hr/recruitment/interviews/upcoming').then(d => { if (Array.isArray(d)) setUpcoming(d); }).catch(() => {}); }, []);
 
+  const [recruitStats, setRecruitStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setRecruitStats(await apiFetch('/v1/hr/recruitment/openings/stats')); } catch {}
+  }, []);
+
   const loadOpenings = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -1023,7 +1028,7 @@ function PipelineTab() {
     }
     finally { setLoading(false); }
   }, []);
-  useEffect(() => { loadOpenings(); }, [loadOpenings]);
+  useEffect(() => { loadOpenings(); fetchStats(); }, [loadOpenings, fetchStats]);
 
   const loadApplications = useCallback(async (id: string) => {
     setApplicationsLoading(true);
@@ -1135,12 +1140,12 @@ function PipelineTab() {
       )}
 
       <MetricsRow cards={[
-        { title: 'Job openings', value: totals.openings.toLocaleString(), icon: 'package', emphasis: 'primary', loading, error: loadError || undefined, onRetry: loadOpenings },
-        { title: 'Applications', value: totals.applications.toLocaleString(), icon: 'fileText', loading, error: loadError || undefined, onRetry: loadOpenings },
-        { title: 'Screening', value: totals.screening.toLocaleString(), icon: 'users', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
-        { title: 'In interview', value: totals.interview.toLocaleString(), icon: 'video', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
-        { title: 'Rejected', value: totals.rejected.toLocaleString(), icon: 'x', emphasis: 'subtle', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
-        { title: 'Hired', value: totals.hired.toLocaleString(), icon: 'checkCircle', loading: applicationsLoading, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'Job openings', value: (recruitStats?.openings ?? totals.openings).toLocaleString(), icon: 'package', emphasis: 'primary', loading: !recruitStats, error: loadError || undefined, onRetry: loadOpenings },
+        { title: 'Applications', value: (recruitStats?.applications ?? totals.applications).toLocaleString(), icon: 'fileText', loading: !recruitStats, error: loadError || undefined, onRetry: loadOpenings },
+        { title: 'Screening', value: (recruitStats?.screening ?? totals.screening).toLocaleString(), icon: 'users', loading: !recruitStats, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'In interview', value: (recruitStats?.interview ?? totals.interview).toLocaleString(), icon: 'video', loading: !recruitStats, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'Rejected', value: (recruitStats?.rejected ?? totals.rejected).toLocaleString(), icon: 'x', emphasis: 'subtle', loading: !recruitStats, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
+        { title: 'Hired', value: (recruitStats?.hired ?? totals.hired).toLocaleString(), icon: 'checkCircle', loading: !recruitStats, error: applicationsError || undefined, onRetry: selectedOpening ? () => loadApplications(selectedOpening.id) : undefined },
       ]} />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>

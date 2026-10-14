@@ -2139,6 +2139,38 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.get('/recruitment/openings/stats', { preHandler: requireRole(...MGMT) }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const openings = await trx.selectFrom('hr_job_openings')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'OPEN').as('open_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      const apps = await trx.selectFrom('hr_applications')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('stage', '=', 'SCREENING').as('screening'),
+          (eb) => eb.fn.count<string>('id').filterWhere('stage', '=', 'INTERVIEW').as('interview'),
+          (eb) => eb.fn.count<string>('id').filterWhere('stage', '=', 'REJECTED').as('rejected'),
+          (eb) => eb.fn.count<string>('id').filterWhere('stage', '=', 'HIRED').as('hired'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      return {
+        openings: Number(openings?.total ?? 0),
+        openPositions: Number(openings?.open_count ?? 0),
+        applications: Number(apps?.total ?? 0),
+        screening: Number(apps?.screening ?? 0),
+        interview: Number(apps?.interview ?? 0),
+        rejected: Number(apps?.rejected ?? 0),
+        hired: Number(apps?.hired ?? 0),
+      };
+    });
+  });
+
   fastify.get('/recruitment/openings', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -2809,6 +2841,34 @@ export async function hrRoutes(fastify: FastifyInstance) {
   // the real roster or the real requisition pipeline.
   // ════════════════════════════════════════════════════════════════════
 
+  fastify.get('/workforce-planning/stats', { preHandler: requireRole(...MGMT) }, async (req) => {
+    const user = req.user;
+    const year = Number((req.query as any)?.year) || new Date().getFullYear();
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await sql<{ approved: string; current: string; vacancies: string; planned: string }>`
+        WITH plans AS (
+          SELECT COALESCE(SUM(approved_headcount), 0) AS approved,
+                 COALESCE(SUM(planned_hiring), 0) AS planned
+          FROM hr_workforce_plans WHERE tenant_id = ${user.tenant_id} AND fiscal_year = ${year}
+        ), staff AS (
+          SELECT count(*) AS current FROM users
+          WHERE tenant_id = ${user.tenant_id} AND role NOT IN ('CUSTOMER','ORG') AND active
+        )
+        SELECT plans.approved::text, staff.current::text,
+               GREATEST(plans.approved - staff.current, 0)::text AS vacancies,
+               plans.planned::text
+        FROM plans, staff
+      `.execute(trx);
+      const r = row.rows[0];
+      return {
+        approved: Number(r?.approved ?? 0),
+        current: Number(r?.current ?? 0),
+        vacancies: Number(r?.vacancies ?? 0),
+        planned: Number(r?.planned ?? 0),
+      };
+    });
+  });
+
   fastify.get('/workforce-planning', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     const year = Number((req.query as any)?.year) || new Date().getFullYear();
@@ -3372,6 +3432,48 @@ export async function hrRoutes(fastify: FastifyInstance) {
   });
 
   // ── Staff Management ─────────────────────────────────────────
+
+  fastify.get('/staff/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req) => {
+    const user = req.user;
+    const today = new Date().toISOString().split('T')[0];
+    const thisMonth = today.slice(0, 7);
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await sql<{ total: string; active: string; inactive: string }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE active)::text AS active,
+               count(*) FILTER (WHERE NOT active)::text AS inactive
+        FROM users WHERE tenant_id = ${user.tenant_id} AND role NOT IN ('CUSTOMER','ORG')
+      `.execute(trx);
+      const onLeave = await sql<{ cnt: string }>`
+        SELECT count(DISTINCT user_id)::text AS cnt FROM hr_leaves
+        WHERE tenant_id = ${user.tenant_id} AND status = 'APPROVED'
+          AND from_date <= ${today} AND to_date >= ${today}
+      `.execute(trx);
+      const hiredThisMonth = await sql<{ cnt: string }>`
+        SELECT count(*)::text AS cnt FROM users
+        WHERE tenant_id = ${user.tenant_id} AND role NOT IN ('CUSTOMER','ORG')
+          AND created_at >= ${thisMonth + '-01'}
+      `.execute(trx);
+      const depts = await sql<{ cnt: string }>`
+        SELECT count(DISTINCT department_id)::text AS cnt FROM users
+        WHERE tenant_id = ${user.tenant_id} AND role NOT IN ('CUSTOMER','ORG') AND department_id IS NOT NULL
+      `.execute(trx);
+      const roles = await sql<{ cnt: string }>`
+        SELECT count(DISTINCT role)::text AS cnt FROM users
+        WHERE tenant_id = ${user.tenant_id} AND role NOT IN ('CUSTOMER','ORG')
+      `.execute(trx);
+      const r = row.rows[0];
+      return {
+        total: Number(r?.total ?? 0),
+        active: Number(r?.active ?? 0),
+        inactive: Number(r?.inactive ?? 0),
+        onLeave: Number(onLeave.rows[0]?.cnt ?? 0),
+        hiredThisMonth: Number(hiredThisMonth.rows[0]?.cnt ?? 0),
+        departments: Number(depts.rows[0]?.cnt ?? 0),
+        roles: Number(roles.rows[0]?.cnt ?? 0),
+      };
+    });
+  });
 
   fastify.get('/staff', async (req) => {
     const user = req.user;

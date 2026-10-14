@@ -3,7 +3,7 @@ import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { NoResultError } from 'kysely';
+import { NoResultError, sql } from 'kysely';
 import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { withTenant } from '../db/client.js';
@@ -61,6 +61,25 @@ export async function glRoutes(fastify: FastifyInstance) {
   // report endpoint here originally did — only authenticate + entitlement,
   // no role check at all).
   fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'));
+
+  fastify.get('/chart-of-accounts/stats', async (request: any) => {
+    const tid = request.user.tenant_id;
+    return withTenant(tid, async (trx) => {
+      const rows = await trx.selectFrom('chart_of_accounts')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('is_active', '=', true).as('active_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('parent_id', 'is', null).as('top_level'),
+        ])
+        .where('tenant_id', '=', tid)
+        .executeTakeFirst();
+      return {
+        total: Number(rows?.total ?? 0),
+        active: Number(rows?.active_count ?? 0),
+        topLevel: Number(rows?.top_level ?? 0),
+      };
+    });
+  });
 
   // Chart of Accounts
   fastify.get('/chart-of-accounts', async (request: any, reply) => {
@@ -257,6 +276,45 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/journal-entries/stats', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any) => {
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async (trx) => {
+      const row = await sql<{
+        total: string; posted_count: string; draft_count: string; voided_count: string;
+        manual_count: string; total_posted: string; posted_this_month: string;
+      }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE status = 'POSTED')::text AS posted_count,
+               count(*) FILTER (WHERE status = 'DRAFT')::text AS draft_count,
+               count(*) FILTER (WHERE status = 'VOIDED')::text AS voided_count,
+               count(*) FILTER (WHERE source_module = 'manual')::text AS manual_count,
+               coalesce((
+                 SELECT sum(jl.debit)::text
+                 FROM journal_lines jl
+                 INNER JOIN journal_entries je2 ON je2.id = jl.journal_entry_id
+                 WHERE je2.tenant_id = ${tenantId} AND je2.status = 'POSTED'
+               ), '0') AS total_posted,
+               count(*) FILTER (WHERE status = 'POSTED'
+                 AND date_trunc('month', posted_at) = date_trunc('month', current_date))::text AS posted_this_month
+        FROM journal_entries
+        WHERE tenant_id = ${tenantId}
+      `.execute(trx);
+      const r = row.rows[0];
+      const total = Number(r?.total ?? 0);
+      const postedCount = Number(r?.posted_count ?? 0);
+      return {
+        total,
+        postedCount,
+        draftCount: Number(r?.draft_count ?? 0),
+        voidedCount: Number(r?.voided_count ?? 0),
+        manualCount: Number(r?.manual_count ?? 0),
+        totalPosted: Number(r?.total_posted ?? 0),
+        postedThisMonth: Number(r?.posted_this_month ?? 0),
+        postingRate: total ? Math.round((postedCount / total) * 100) : 0,
+      };
+    });
+  });
+
   fastify.get('/journal-entries', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
@@ -362,6 +420,28 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // ── Multi-entity accounting (M8) ────────────────────────────────────────
+  fastify.get('/entities/stats', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.consolidation', { preserveReadAccess: true })] }, async (request: any) => {
+    const tid = request.user.tenant_id;
+    return withTenant(tid, async (trx) => {
+      const r = await sql<{ total: string; active: string; currencies: string }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE is_active)::text AS active,
+               count(DISTINCT currency) FILTER (WHERE currency IS NOT NULL)::text AS currencies
+        FROM finance_entities WHERE tenant_id = ${tid}
+      `.execute(trx);
+      const t = await sql<{ cnt: string }>`
+        SELECT count(*)::text AS cnt FROM intercompany_transactions WHERE tenant_id = ${tid}
+      `.execute(trx);
+      const row = r.rows[0];
+      return {
+        entities: Number(row?.total ?? 0),
+        active: Number(row?.active ?? 0),
+        transactions: Number(t.rows[0]?.cnt ?? 0),
+        currencies: Number(row?.currencies ?? 0),
+      };
+    });
+  });
+
   fastify.get('/entities', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.consolidation', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       return await GLService.listEntities(request.user.tenant_id);

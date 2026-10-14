@@ -42,7 +42,7 @@ const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: s
 // (CLAUDE.md's PersonAvatar convention) instead of the old free-text input.
 async function searchStaff(q: string): Promise<PickerItem[]> {
   const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
-  return (rows || []).map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+  return (rows || []).map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email, avatarUserId: u.id, avatarKind: 'people' as const }));
 }
 
 type EmailRow = { id?: string; label: 'work' | 'personal' | 'other'; email: string };

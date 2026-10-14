@@ -26,6 +26,29 @@ export async function fxRevaluationRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/stats', { preHandler: requireRole(...FINANCE_TIER) }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('fx_revaluations')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.sum<string>('gain_loss').as('net_gain_loss'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      const currencies = await trx.selectFrom('fx_revaluations')
+        .select('currency')
+        .distinct()
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+      return {
+        total: Number(rows?.total ?? 0),
+        netGainLoss: Number(rows?.net_gain_loss ?? 0),
+        currencies: currencies.length,
+      };
+    });
+  });
+
   fastify.get('/', { preHandler: requireRole(...FINANCE_TIER) }, async (request) => {
     const user = request.user;
     const { subject_id } = request.query as { subject_id?: string };

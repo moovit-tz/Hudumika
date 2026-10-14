@@ -59,6 +59,11 @@ export function OvertimePage() {
   const [fHours, setFHours] = useState('');
   const [fReason, setFReason] = useState('');
 
+  const [otStats, setOtStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setOtStats(await apiFetch('/v1/hr/overtime/stats')); } catch {}
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -67,7 +72,7 @@ export function OvertimePage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); fetchPeople({ limit: 200 }).then(setPeople); }, [load]);
+  useEffect(() => { load(); fetchStats(); fetchPeople({ limit: 200 }).then(setPeople); }, [load, fetchStats]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,7 +92,7 @@ export function OvertimePage() {
       if (created?.rate_explanation) {
         setNotice(`${created.hours} hour(s) claimed. ${created.rate_explanation} ${created.remaining_in_window} hour(s) remain in the four-week window.`);
       }
-      load();
+      load(); fetchStats();
     } catch (err: any) {
       setError(err?.message ?? 'The claim could not be submitted.');
     }
@@ -108,7 +113,7 @@ export function OvertimePage() {
       await apiFetch(`/v1/hr/overtime/${id}/status`, {
         method: 'PATCH', body: JSON.stringify({ status, decision_note: note || undefined }),
       });
-      load();
+      load(); fetchStats();
     } catch (err: any) {
       setError(err?.message ?? 'The decision could not be recorded.');
     } finally { setBusy(null); }
@@ -195,9 +200,9 @@ export function OvertimePage() {
       )}
 
       <MetricsRow cards={[
-        { title: 'Awaiting a decision', value: String(pending.length), icon: 'clock', barHighlight: 'var(--gold)', loading, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
-        { title: 'Approved hours', value: String(Math.round(approvedHours * 10) / 10), icon: 'checkCircle', barHighlight: 'var(--green)', loading, error: loadError ?? undefined, onRetry: load },
-        { title: 'At double time', value: String(Math.round(holidayHours * 10) / 10), icon: 'calendar', barHighlight: 'var(--blue)', loading, error: loadError ?? undefined, onRetry: load },
+        { title: 'Awaiting a decision', value: String(otStats?.pending ?? pending.length), icon: 'clock', barHighlight: 'var(--gold)', loading: !otStats, error: loadError ?? undefined, onRetry: load, emphasis: 'primary' },
+        { title: 'Approved hours', value: String(Math.round((otStats?.approvedHours ?? approvedHours) * 10) / 10), icon: 'checkCircle', barHighlight: 'var(--green)', loading: !otStats, error: loadError ?? undefined, onRetry: load },
+        { title: 'At double time', value: String(Math.round((otStats?.doubleTimeHours ?? holidayHours) * 10) / 10), icon: 'calendar', barHighlight: 'var(--blue)', loading: !otStats, error: loadError ?? undefined, onRetry: load },
       ]} />
 
       <Tabs value={filter} onValueChange={setFilter}>

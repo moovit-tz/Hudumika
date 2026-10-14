@@ -4,7 +4,7 @@
 // Admin-only (see sign-matters.routes.ts's own gate): a matter aggregates
 // envelopes across every user in the tenant, the same disclosure shape as
 // "All Documents".
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
@@ -97,6 +97,8 @@ function MattersList() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [serverStats, setServerStats] = useState<{ matters: number; documents: number; clients: number } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/sign/matters/stats').then(setServerStats).catch(() => {}); }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -104,7 +106,8 @@ function MattersList() {
       .then((res: any) => setMatters(Array.isArray(res?.data) ? res.data : []))
       .catch(() => setMatters([]))
       .finally(() => setLoading(false));
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
   useEffect(() => { setPage(1); }, [search, perPage]);
 
@@ -125,9 +128,9 @@ function MattersList() {
       />
 
       <MetricsRow cards={[
-        { title: 'Matters', value: String(matters.length), loading, icon: 'briefcase' },
-        { title: 'Documents', value: String(matters.reduce((total, matter) => total + matter.envelope_count, 0)), loading, icon: 'fileText' },
-        { title: 'Clients', value: String(new Set(matters.flatMap(matter => matter.client_names ?? [])).size), loading, icon: 'users' },
+        { title: 'Matters', value: String(serverStats?.matters ?? matters.length), loading: !serverStats, icon: 'briefcase' },
+        { title: 'Documents', value: String(serverStats?.documents ?? 0), loading: !serverStats, icon: 'fileText' },
+        { title: 'Clients', value: String(serverStats?.clients ?? 0), loading: !serverStats, icon: 'users' },
       ]} />
       <Card className="sign-management-toolbar">
       <SearchToolbar

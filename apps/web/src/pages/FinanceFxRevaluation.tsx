@@ -32,6 +32,11 @@ export function FinanceFxRevaluation() {
   const [periodDate, setPeriodDate] = useState<Date | undefined>(new Date());
   const [lastRun, setLastRun] = useState<RevaluationRun | null>(null);
 
+  const [fxStats, setFxStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setFxStats(await apiFetch('/v1/fx-revaluations/stats')); } catch {}
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const result = await apiFetch('/v1/fx-revaluations');
@@ -41,7 +46,7 @@ export function FinanceFxRevaluation() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); fetchStats(); }, [load, fetchStats]);
 
   const summary = useMemo(() => rows.reduce((result, row) => {
     const amount = Number(row.gain_loss) || 0;
@@ -58,7 +63,7 @@ export function FinanceFxRevaluation() {
     try {
       const result: RevaluationRun = await apiFetch('/v1/fx-revaluations/run', { method: 'POST', body: JSON.stringify({ period_date: date }) });
       setLastRun(result);
-      await load();
+      await load(); fetchStats();
     } catch (error) {
       showAlert(error instanceof Error ? error.message : 'Could not run FX revaluation.');
     } finally { setRunning(false); }
@@ -84,8 +89,8 @@ export function FinanceFxRevaluation() {
   return <div className="finance-fx-page">
     <PageHeader crumbs={['Finance', 'Accounts']} titlePlain="Currency" titleEm="revaluation" subtitle="Revalue open foreign-currency receivables and payables without changing their original documents." actions={!readOnly ? <div className="finance-fx-run"><DatePicker date={periodDate} onChange={setPeriodDate} disabled={running} /><Button onClick={() => void runRevaluation()} disabled={running || !periodDate}><Icon name="refresh" size={16} />{running ? 'Revaluing…' : 'Run revaluation'}</Button></div> : undefined} />
     <MetricsRow cards={[
-      { title: 'Revalued items', value: String(rows.length), comparisonLabel: 'Historical entries preserved', loading },
-      { title: 'Currencies', value: String(summary.currencies.size), comparisonLabel: [...summary.currencies].join(', ') || 'No foreign balances', loading },
+      { title: 'Revalued items', value: String(fxStats?.total ?? rows.length), comparisonLabel: 'Historical entries preserved', loading: !fxStats && loading },
+      { title: 'Currencies', value: String(fxStats?.currencies ?? summary.currencies.size), comparisonLabel: [...summary.currencies].join(', ') || 'No foreign balances', loading: !fxStats && loading },
       { title: 'Total gains', value: fmt(summary.gains), comparisonLabel: 'Recognised exchange gains', barHighlight: 'var(--green)', loading },
       { title: 'Total losses', value: fmt(summary.losses), comparisonLabel: 'Recognised exchange losses', barHighlight: 'var(--red)', loading },
     ]} />

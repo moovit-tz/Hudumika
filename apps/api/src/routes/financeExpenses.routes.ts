@@ -5,7 +5,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
-import type { Transaction } from 'kysely';
+import { sql, type Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 
@@ -187,6 +187,43 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
     }
+  });
+
+  fastify.get('/expenses/stats', { preHandler: requireRole(...WRITE_ROLES) }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const fin = await sql`
+        SELECT count(*)::text AS total,
+               coalesce(sum(amount) filter (where NOT is_revenue), 0)::text AS total_costs,
+               coalesce(sum(amount) filter (where is_revenue), 0)::text AS total_revenue,
+               count(*) filter (where NOT is_revenue)::text AS cost_count,
+               count(*) filter (where is_revenue)::text AS rev_count,
+               count(*) filter (where retirement_status = 'pending')::text AS pending_retirements,
+               coalesce(sum(amount) filter (where is_revenue
+                 AND date_trunc('month', expense_date) = date_trunc('month', current_date)), 0)::text AS rev_this_month,
+               coalesce(sum(amount) filter (where is_revenue
+                 AND expense_date >= date_trunc('week', current_date)), 0)::text AS rev_this_week
+        FROM finance_expenses
+        WHERE tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const r = (fin.rows[0] ?? {}) as any;
+      const totalCosts = Number(r.total_costs);
+      const totalRevenue = Number(r.total_revenue);
+      const costCount = Number(r.cost_count);
+      return {
+        total: Number(r.total),
+        totalCosts,
+        totalRevenue,
+        costCount,
+        revCount: Number(r.rev_count),
+        avgCost: costCount ? Math.round(totalCosts / costCount) : 0,
+        netMargin: totalRevenue - totalCosts,
+        marginPct: totalRevenue ? Math.round(((totalRevenue - totalCosts) / totalRevenue) * 100) : 0,
+        pendingRetirements: Number(r.pending_retirements),
+        revThisMonth: Number(r.rev_this_month),
+        revThisWeek: Number(r.rev_this_week),
+      };
+    });
   });
 
   fastify.get('/expenses', async (request, reply) => {

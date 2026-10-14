@@ -48,7 +48,15 @@ const SUGGESTED_TYPES = ['Contracts under Seal', 'Implied Contracts', 'Bilateral
 async function searchCustomers(q: string): Promise<PickerItem[]> {
   const res = await apiFetch(`/v1/customers?search=${encodeURIComponent(q)}`).catch(() => []);
   const list = Array.isArray(res) ? res : (res.data ?? []);
-  return list.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined }));
+  return list.slice(0, 25).map((c: any) => ({
+    id: c.id,
+    label: c.name,
+    sublabel: c.email || undefined,
+    avatarUserId: c.id,
+    avatarKind: 'customers' as const,
+    avatarType: 'company' as const,
+    avatarUrl: c.logo_url || c.avatar_url || undefined,
+  }));
 }
 
 let cachedDriveId: string | null = null;

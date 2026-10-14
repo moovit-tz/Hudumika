@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
@@ -33,8 +33,13 @@ export function GlPeriods() {
   const [reopening, setReopening] = useState<Period | null>(null);
   const [reopenReason, setReopenReason] = useState('');
 
+  const [glpStats, setGlpStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setGlpStats(await apiFetch('/v1/finance/gl-periods/stats')); } catch {}
+  }, []);
+
   const load = () => apiFetch('/v1/finance/gl-periods').then((d: any) => { if (Array.isArray(d)) setPeriods(d); }).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load accounting periods.')).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); fetchStats(); }, [fetchStats]);
   useEffect(() => {
     if (readOnly) {
       setShowNew(false);
@@ -100,12 +105,13 @@ export function GlPeriods() {
 
       <MetricsRow cards={[
         {
-          title: 'Total Periods', value: String(periods.length), icon: 'calendar',
-          sub1Label: 'OPEN', sub1Value: String(periods.filter(p => p.status === 'open').length),
-          sub2Label: 'CLOSED', sub2Value: String(periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)',
+          title: 'Total Periods', value: String(glpStats?.total ?? periods.length), icon: 'calendar',
+          sub1Label: 'OPEN', sub1Value: String(glpStats?.open ?? periods.filter(p => p.status === 'open').length),
+          sub2Label: 'CLOSED', sub2Value: String(glpStats?.closed ?? periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)',
+          loading: !glpStats,
         },
         {
-          title: 'Open Periods', value: String(periods.filter(p => p.status === 'open').length), icon: 'unlock',
+          title: 'Open Periods', value: String(glpStats?.open ?? periods.filter(p => p.status === 'open').length), icon: 'unlock',
           sub1Label: 'MONTHS', sub1Value: String(periods.filter(p => p.status === 'open' && p.period_type === 'MONTH').length),
           sub2Label: 'YEARS', sub2Value: String(periods.filter(p => p.status === 'open' && p.period_type === 'YEAR').length), barHighlight: 'var(--gold)',
         },

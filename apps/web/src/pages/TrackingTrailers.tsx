@@ -29,6 +29,11 @@ export const TrackingTrailers: React.FC = () => {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
+  const [trailerStats, setTrailerStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setTrailerStats(await apiFetch('/v1/tracking/trailers/stats')); } catch {}
+  }, []);
+
   const reload = useCallback(() => {
     setLoading(true);
     setLoadError(null);
@@ -38,7 +43,7 @@ export const TrackingTrailers: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { reload(); fetchStats(); }, [reload, fetchStats]);
 
   const stats = useMemo(() => ({
     all: trailers.length,
@@ -78,10 +83,10 @@ export const TrackingTrailers: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title: 'Trailers', value: String(stats.all), comparisonLabel: 'Registered fleet', barHighlight: 'var(--teal)', loading },
-        { title: 'Active', value: String(stats.active), comparisonLabel: 'Available or in operation', barHighlight: 'var(--green)', loading },
-        { title: 'In use', value: String(stats.inUse), comparisonLabel: 'Currently coupled to a trip', barHighlight: 'var(--blue)', loading },
-        { title: 'Unavailable', value: String(stats.maintenance), comparisonLabel: 'Maintenance or out of service', barHighlight: stats.maintenance > 0 ? 'var(--gold)' : 'var(--green)', loading },
+        { title: 'Trailers', value: String(trailerStats?.total ?? stats.all), comparisonLabel: 'Registered fleet', barHighlight: 'var(--teal)', loading: !trailerStats },
+        { title: 'Active', value: String(trailerStats?.active ?? stats.active), comparisonLabel: 'Available or in operation', barHighlight: 'var(--green)', loading: !trailerStats },
+        { title: 'In use', value: String(trailerStats?.inUse ?? stats.inUse), comparisonLabel: 'Currently coupled to a trip', barHighlight: 'var(--blue)', loading: !trailerStats },
+        { title: 'Unavailable', value: String(trailerStats?.unavailable ?? stats.maintenance), comparisonLabel: 'Maintenance or out of service', barHighlight: (trailerStats?.unavailable ?? stats.maintenance) > 0 ? 'var(--gold)' : 'var(--green)', loading: !trailerStats },
       ]} />
 
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

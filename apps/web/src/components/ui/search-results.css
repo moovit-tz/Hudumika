@@ -1,0 +1,169 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Hudumika Design System — Search Results & Entity Picker Styles
+   Guarantees popup width strictly matches the search input field.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 1. Strictly pin Radix Popper Wrapper to the exact search field trigger width */
+div[data-radix-popper-content-wrapper]:has(> .search-results-panel) {
+  width: var(--radix-popover-trigger-width, var(--radix-popper-anchor-width, 100%)) !important;
+  min-width: var(--radix-popover-trigger-width, var(--radix-popper-anchor-width, 100%)) !important;
+  max-width: var(--radix-popover-trigger-width, var(--radix-popper-anchor-width, 100%)) !important;
+  box-sizing: border-box !important;
+}
+
+/* 2. Main Search Results Dropdown Panel */
+.search-results-panel {
+  width: var(--radix-popover-trigger-width, var(--radix-popper-anchor-width, 100%)) !important;
+  min-width: var(--radix-popover-trigger-width, var(--radix-popper-anchor-width, 100%)) !important;
+  max-width: var(--radix-popover-trigger-width, var(--radix-popper-anchor-width, 100%)) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  border-radius: var(--r, 12px) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card-bg, #ffffff) !important;
+  box-shadow: 0 14px 36px -4px rgba(0, 0, 0, 0.12), 0 4px 14px -2px rgba(0, 0, 0, 0.05) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: min(26rem, var(--radix-popover-content-available-height, 26rem)) !important;
+  font-family: var(--font) !important;
+  outline: none !important;
+}
+
+/* 3. Dropdown Header with live result counter and shortcut cues */
+.search-results-help {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 500;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.search-results-help kbd {
+  font-family: inherit;
+  font-size: 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: var(--ink2);
+}
+
+/* 4. Scrollable Results List */
+.search-results-list {
+  overflow-y: auto;
+  max-height: min(22rem, var(--radix-popover-content-available-height, 22rem));
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 5. Result Row Items */
+.search-results-panel [data-search-result],
+.search-results-panel [cmdk-item] {
+  border: 0 !important;
+  border-bottom: 1px solid var(--border2, rgba(0, 0, 0, 0.04)) !important;
+  border-radius: var(--r-sm, 7px) !important;
+  padding: 8px 10px !important;
+  min-height: 42px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  width: 100% !important;
+  background: transparent !important;
+  color: var(--ink) !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  transition: background-color 0.12s ease !important;
+}
+
+.search-results-panel [data-search-result]:last-child,
+.search-results-panel [cmdk-item]:last-child {
+  border-bottom: 0 !important;
+}
+
+.search-results-panel [data-search-result]:hover,
+.search-results-panel [data-search-result][aria-selected="true"],
+.search-results-panel [cmdk-item]:hover,
+.search-results-panel [cmdk-item][aria-selected="true"],
+.search-results-panel [cmdk-item][data-selected="true"] {
+  background: var(--teal-l) !important;
+}
+
+.search-results-panel [cmdk-item] span {
+  white-space: normal;
+}
+
+/* 6. Inline "Create new" Action in dropdown */
+.search-results-create-btn {
+  margin: 4px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm, 7px);
+  background: var(--teal-l);
+  color: var(--teal);
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px dashed var(--teal-m);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.search-results-create-btn:hover {
+  opacity: 0.9;
+  filter: brightness(0.98);
+}
+
+.search-results-create-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* 7. Dark Mode Styling */
+[data-theme="dark"] .search-results-panel {
+  background: var(--card-bg, #18191c) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.5), 0 4px 16px -2px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .search-results-help {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom-color: var(--border);
+}
+
+[data-theme="dark"] .search-results-help kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .search-results-panel [data-search-result],
+[data-theme="dark"] .search-results-panel [cmdk-item] {
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .search-results-panel [data-search-result]:hover,
+[data-theme="dark"] .search-results-panel [data-search-result][aria-selected="true"],
+[data-theme="dark"] .search-results-panel [cmdk-item]:hover,
+[data-theme="dark"] .search-results-panel [cmdk-item][aria-selected="true"],
+[data-theme="dark"] .search-results-panel [cmdk-item][data-selected="true"] {
+  background: color-mix(in srgb, var(--teal) 22%, transparent) !important;
+}
+
+[data-theme="dark"] .search-results-create-btn {
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
+  border-color: var(--teal);
+}

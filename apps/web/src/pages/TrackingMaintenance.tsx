@@ -36,16 +36,21 @@ export const TrackingMaintenance: React.FC = () => {
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+  const [maintStats, setMaintStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setMaintStats(await apiFetch('/v1/tracking/maintenance/stats')); } catch {}
+  }, []);
+
   const reload = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/tracking/maintenance').then(setRecords).catch(() => setRecords([])).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    reload();
+    reload(); fetchStats();
     apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
     apiFetch('/v1/tracking/vendors').then(setVendors).catch(() => setVendors([]));
-  }, [reload]);
+  }, [reload, fetchStats]);
 
   const vehicleName = (id: string) => vehicles.find(v => v.id === id)?.name ?? '—';
   const vendorName = (id: string | null) => vendors.find(v => v.id === id)?.name ?? '—';
@@ -53,7 +58,7 @@ export const TrackingMaintenance: React.FC = () => {
   async function remove(id: string) {
     if (!(await showConfirm('Delete this maintenance record?', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/tracking/maintenance/${id}`, { method: 'DELETE' });
-    reload();
+    reload(); fetchStats();
   }
 
   function prevMonth() {
@@ -125,10 +130,10 @@ export const TrackingMaintenance: React.FC = () => {
 
       {/* Previous / expected summary */}
       <MetricsRow cards={[
-        { title: 'Done this month', value: String(doneThisMonthCount), comparisonLabel: `${MONTHS[month]} ${year}`, barHighlight: 'var(--green)', loading },
-        { title: 'Upcoming', value: String(upcomingCount), comparisonLabel: 'Expected service dates', barHighlight: 'var(--gold)', loading },
-        { title: 'Overdue', value: String(overdueCount), comparisonLabel: 'Past next-due date', barHighlight: overdueCount > 0 ? 'var(--red)' : 'var(--green)', loading },
-        { title: 'Maintenance cost', value: totalCost.toLocaleString(), comparisonLabel: `${records.length} service records`, barHighlight: 'var(--blue)', loading },
+        { title: 'Done this month', value: String(maintStats?.thisMonth ?? doneThisMonthCount), comparisonLabel: `${MONTHS[month]} ${year}`, barHighlight: 'var(--green)', loading: !maintStats },
+        { title: 'Upcoming', value: String(maintStats?.upcoming ?? upcomingCount), comparisonLabel: 'Expected service dates', barHighlight: 'var(--gold)', loading: !maintStats },
+        { title: 'Overdue', value: String(maintStats?.overdue ?? overdueCount), comparisonLabel: 'Past next-due date', barHighlight: (maintStats?.overdue ?? overdueCount) > 0 ? 'var(--red)' : 'var(--green)', loading: !maintStats },
+        { title: 'Maintenance cost', value: (maintStats?.totalCost ?? totalCost).toLocaleString(), comparisonLabel: `${maintStats?.total ?? records.length} service records`, barHighlight: 'var(--blue)', loading: !maintStats },
       ]} />
 
       <div className={selectedDate ? 'grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]' : 'grid grid-cols-1 items-start gap-4'}>

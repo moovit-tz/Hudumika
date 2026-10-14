@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { pick } from '../lib/pick.js';
@@ -154,6 +155,36 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
     }
+  });
+
+  fastify.get('/drivers/stats', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('drivers')
+        .select([
+          (eb) => eb.fn.count<string>('id').as('total'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'ACTIVE').as('active_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'INACTIVE').as('inactive_count'),
+          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'SUSPENDED').as('suspended_count'),
+        ])
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      const onRoute = await trx.selectFrom('trips')
+        .select((eb) => eb.fn.count<string>('driver_id').distinct().as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'IN_PROGRESS')
+        .where('driver_id', 'is not', null)
+        .executeTakeFirst();
+      const total = Number(row?.total ?? 0);
+      const active = Number(row?.active_count ?? 0);
+      const onRouteCount = Number(onRoute?.cnt ?? 0);
+      return {
+        total,
+        available: Math.max(0, active - onRouteCount),
+        onRoute: onRouteCount,
+        offDuty: total - active,
+      };
+    });
   });
 
   fastify.get('/drivers', async (req) => {
@@ -782,6 +813,34 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
 
   // ── Maintenance ──────────────────────────────────────────────
 
+  fastify.get('/maintenance/stats', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await sql<{
+        total: string; done_this_month: string; upcoming: string; overdue: string; total_cost: string;
+      }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE status = 'COMPLETED'
+                 AND date_trunc('month', service_date) = date_trunc('month', current_date))::text AS done_this_month,
+               count(*) FILTER (WHERE status = 'SCHEDULED'
+                 AND next_due_date > current_date)::text AS upcoming,
+               count(*) FILTER (WHERE status = 'SCHEDULED'
+                 AND next_due_date <= current_date)::text AS overdue,
+               coalesce(sum(cost), 0)::text AS total_cost
+        FROM maintenance_records
+        WHERE tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const r = row.rows[0];
+      return {
+        total: Number(r?.total ?? 0),
+        doneThisMonth: Number(r?.done_this_month ?? 0),
+        upcoming: Number(r?.upcoming ?? 0),
+        overdue: Number(r?.overdue ?? 0),
+        totalCost: Number(r?.total_cost ?? 0),
+      };
+    });
+  });
+
   fastify.get('/maintenance', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
@@ -903,6 +962,30 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
   });
 
   // ── Fuel Logs ────────────────────────────────────────────────
+
+  fastify.get('/fuel/stats', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await sql<{
+        total: string; total_liters: string; total_cost: string;
+      }>`
+        SELECT count(*)::text AS total,
+               coalesce(sum(liters), 0)::text AS total_liters,
+               coalesce(sum(cost), 0)::text AS total_cost
+        FROM fuel_logs
+        WHERE tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const r = row.rows[0];
+      const totalLiters = Number(r?.total_liters ?? 0);
+      const totalCost = Number(r?.total_cost ?? 0);
+      return {
+        total: Number(r?.total ?? 0),
+        totalLiters,
+        totalCost,
+        avgCostPerLiter: totalLiters > 0 ? Math.round((totalCost / totalLiters) * 100) / 100 : 0,
+      };
+    });
+  });
 
   fastify.get('/fuel', async (req) => {
     const user = req.user;

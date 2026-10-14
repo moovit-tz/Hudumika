@@ -19,7 +19,7 @@ async function searchCustomers(q: string): Promise<PickerItem[]> {
   const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
   const ql = q.trim().toLowerCase();
   const filtered = ql ? list.filter((c) => (c.name || '').toLowerCase().includes(ql) || (c.email || '').toLowerCase().includes(ql)) : list;
-  return filtered.slice(0, 25).map((c) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined }));
+  return filtered.slice(0, 25).map((c) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined, avatarUserId: c.id, avatarKind: 'customers' as const, avatarType: 'company' as const }));
 }
 
 const INVOICE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'];

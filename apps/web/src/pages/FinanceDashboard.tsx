@@ -117,7 +117,7 @@ export function FinanceDashboard() {
   return (
     <div className="fin-dashboard">
       <PageHeader
-        crumbs={['Finance', 'Executive Dashboard']}
+        crumbs={['Finance', 'Dashboard']}
         titlePlain="Finance"
         titleEm="intelligence"
         subtitle={
@@ -126,45 +126,45 @@ export function FinanceDashboard() {
             : 'Review recorded financial balances, cash liquidity, and pending approvals.'
         }
         actions={
-          <div style={{ display: 'flex', gap: 'var(--space-sm, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="fin-header-actions">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="default">
-                  <Icon name="plus" size={15} />
+                  <Icon name="plus" size={14} />
                   <span>New Transaction</span>
-                  <Icon name="chevronDown" size={13} />
+                  <Icon name="chevronDown" size={12} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem asChild>
                   <Link to="/finance/invoices">
-                    <Icon name="invoice" size={15} color="var(--teal)" />
+                    <Icon name="invoice" size={15} />
                     <span>Create Customer Invoice</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/finance/quotations">
-                    <Icon name="document" size={15} color="var(--blue, #3b82f6)" />
+                    <Icon name="fileText" size={15} />
                     <span>Create Commercial Quote</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/finance/bills">
-                    <Icon name="receipt" size={15} color="var(--purple, #a855f7)" />
+                    <Icon name="receipt" size={15} />
                     <span>Record Supplier Bill</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/finance/expenses">
-                    <Icon name="wallet" size={15} color="var(--gold, #eab308)" />
+                    <Icon name="creditCard" size={15} />
                     <span>Record Operating Expense</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/finance/accounts/bank-reconciliation">
-                    <Icon name="refresh" size={15} color="var(--green, #22c55e)" />
+                    <Icon name="refresh" size={15} />
                     <span>Reconcile Bank Statement</span>
                   </Link>
                 </DropdownMenuItem>
@@ -174,7 +174,7 @@ export function FinanceDashboard() {
             {isEnabled('finance.pos') && (
               <Button asChild variant="outline">
                 <Link to="/finance/pos">
-                  <Icon name="shoppingCart" size={15} />
+                  <Icon name="shoppingCart" size={14} />
                   <span>POS Counter</span>
                 </Link>
               </Button>
@@ -185,7 +185,7 @@ export function FinanceDashboard() {
               onClick={() => setRevision(v => v + 1)}
               title="Refresh financial data"
             >
-              <Icon name="refresh" size={15} />
+              <Icon name="refresh" size={14} />
               <span>Refresh</span>
             </Button>
           </div>
@@ -194,7 +194,7 @@ export function FinanceDashboard() {
 
       {error && (
         <Banner variant="error" onDismiss={() => setError('')}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 'var(--space-sm, 10px)' }}>
+          <div className="fin-error-banner-content">
             <span>{error} — Balances are temporarily unavailable. Retry before making financial decisions.</span>
             <Button size="sm" variant="outline" onClick={() => setRevision(v => v + 1)}>
               Retry Sync
@@ -205,12 +205,12 @@ export function FinanceDashboard() {
 
       {data && (
         <>
-          {/* ── 1. Hero Treasury Command Banner (Dreams Core Banking Style) ── */}
+          {/* ── 1. Hero Treasury Command Banner ── */}
           <div className="fin-hero-banner">
             <div className="fin-hero-main">
               <div className="fin-hero-header">
                 <div className="fin-hero-tag">
-                  <Icon name="sparkle" size={13} color="var(--teal)" />
+                  <Icon name="shield" size={13} />
                   <span>Treasury & Liquidity Desk</span>
                 </div>
                 <div className="fin-hero-sync">
@@ -223,11 +223,11 @@ export function FinanceDashboard() {
                 <span className="fin-hero-liquidity-label">Total Cash Liquidity</span>
                 <div className="fin-hero-liquidity-value">
                   <span>{money(totalCash)}</span>
-                  <small>● {currency} Holdings</small>
+                  <span className="fin-hero-currency-tag">{currency} Holdings</span>
                 </div>
               </div>
 
-              {/* Multi-Currency Distribution Bar */}
+              {/* Multi-Currency Cash Distribution Bar */}
               <div className="fin-currency-distribution">
                 <div className="fin-dist-meter" title="Cash Liquidity Distribution">
                   <div className="fin-dist-seg fin-dist-seg--tzs" style={{ width: `${tzsPct}%` }} title={`TZS: ${tzsPct}%`} />
@@ -240,16 +240,19 @@ export function FinanceDashboard() {
                     <span className="fin-currency-dot fin-currency-dot--tzs" />
                     <span>TZS Accounts:</span>
                     <strong>{money(cashTzs)}</strong>
+                    <span className="fin-currency-pct">({tzsPct}%)</span>
                   </div>
                   <div className="fin-currency-chip">
                     <span className="fin-currency-dot fin-currency-dot--usd" />
                     <span>USD Equivalents:</span>
                     <strong>{money(cashUsd)}</strong>
+                    <span className="fin-currency-pct">({usdPct}%)</span>
                   </div>
                   <div className="fin-currency-chip">
                     <span className="fin-currency-dot fin-currency-dot--onhand" />
                     <span>Petty Cash / Till:</span>
                     <strong>{money(cashOnHand)}</strong>
+                    <span className="fin-currency-pct">({onHandPct}%)</span>
                   </div>
                 </div>
               </div>
@@ -262,14 +265,14 @@ export function FinanceDashboard() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <Link to="/finance/accounts/cash-flow">
-                    <Icon name="chartArea" size={14} />
-                    <span>Cash Flow Statement</span>
+                  <Link to="/finance/reports/cash-flow">
+                    <Icon name="trendingUp" size={14} />
+                    <span>Cash Flow</span>
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link to="/finance/accounts/balance-sheet">
-                    <Icon name="building" size={14} />
+                    <Icon name="layers" size={14} />
                     <span>Balance Sheet</span>
                   </Link>
                 </Button>
@@ -279,9 +282,9 @@ export function FinanceDashboard() {
             {/* Hero Right: Working Capital & Liquidity Barometer */}
             <div className="fin-hero-barometer">
               <div className="fin-barometer-header">
-                <span className="fin-barometer-title">Working Capital Barometer</span>
-                <Badge variant={netWorkingCapital >= 0 ? 'success' : 'error'}>
-                  {netWorkingCapital >= 0 ? 'Positive Capital' : 'Capital Deficit'}
+                <span className="fin-barometer-title">Working Capital Coverage</span>
+                <Badge variant={netWorkingCapital >= 0 ? 'gray' : 'error'}>
+                  {netWorkingCapital >= 0 ? 'Sufficient Capital' : 'Capital Deficit'}
                 </Badge>
               </div>
 
@@ -291,19 +294,19 @@ export function FinanceDashboard() {
                   <strong>{money(netWorkingCapital)}</strong>
                 </div>
                 <div className="fin-barometer-tile">
-                  <span>Liquidity Coverage</span>
+                  <span>Liquidity Ratio</span>
                   <strong>{liquidityRatio}</strong>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="fin-barometer-breakdown">
+                <div className="fin-barometer-row">
                   <span>Receivables vs Payables Gap:</span>
-                  <strong style={{ color: 'var(--ink)' }}>{money(Math.abs(netWorkingCapital))}</strong>
+                  <strong>{money(Math.abs(netWorkingCapital))}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="fin-barometer-row">
                   <span>Overdue Capital Exposure:</span>
-                  <strong style={{ color: receivablesOverdue + payablesOverdue > 0 ? 'var(--red, #ef4444)' : 'var(--green, #22c55e)' }}>
+                  <strong className={receivablesOverdue + payablesOverdue > 0 ? 'fin-text-risk' : 'fin-text-muted'}>
                     {money(receivablesOverdue + payablesOverdue)}
                   </strong>
                 </div>
@@ -311,7 +314,7 @@ export function FinanceDashboard() {
             </div>
           </div>
 
-          {/* ── 2. Top Executive KPI Metric Cards (Dreams Core Style) ── */}
+          {/* ── 2. Top Executive KPI Metric Cards (4 Columns) ── */}
           <div className="fin-kpi-grid">
             {/* KPI 1: Monthly Revenue & Net Result */}
             <div className="fin-kpi-card">
@@ -320,24 +323,23 @@ export function FinanceDashboard() {
                   <span className="fin-kpi-label">Revenue This Month</span>
                   <div className="fin-kpi-value">{money(monthRevenue)}</div>
                 </div>
-                <FeaturedIcon variant="brand" size="md">
-                  <Icon name="trendingUp" size={20} color="var(--teal)" />
+                <FeaturedIcon variant="gray" size="sm">
+                  <Icon name="trendingUp" size={16} />
                 </FeaturedIcon>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>Net Margin</span>
-                  <Badge variant={monthNet >= 0 ? 'success' : 'error'}>
+              <div className="fin-kpi-middle">
+                <div className="fin-kpi-subline">
+                  <span className="fin-kpi-sublabel">Net Margin</span>
+                  <Badge variant={monthNet >= 0 ? 'brand' : 'error'}>
                     {monthNet >= 0 ? `+${monthMarginPct}% Net` : `${monthMarginPct}% Loss`}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`Net Result: ${money(monthNet)}`}>
                   <div
-                    className="fin-kpi-meter-fill"
+                    className="fin-kpi-meter-fill fin-kpi-meter-fill--brand"
                     style={{
-                      width: `${Math.min(100, Math.max(10, 100 - monthExpPct))}%`,
-                      background: monthNet >= 0 ? 'var(--teal)' : 'var(--red, #ef4444)'
+                      width: `${Math.min(100, Math.max(8, 100 - monthExpPct))}%`
                     }}
                   />
                 </div>
@@ -346,7 +348,8 @@ export function FinanceDashboard() {
               <div className="fin-kpi-bottom">
                 <span>Net: <strong>{money(monthNet)}</strong></span>
                 <Link to="/finance/accounts/profit-loss" className="fin-kpi-link">
-                  P&L Report <Icon name="arrowRight" size={12} />
+                  <span>P&L Report</span>
+                  <Icon name="arrowRight" size={12} />
                 </Link>
               </div>
             </div>
@@ -358,24 +361,23 @@ export function FinanceDashboard() {
                   <span className="fin-kpi-label">Year to Date Revenue</span>
                   <div className="fin-kpi-value">{money(ytdRevenue)}</div>
                 </div>
-                <FeaturedIcon variant="brand" size="md">
-                  <Icon name="barChart2" size={20} color="var(--teal)" />
+                <FeaturedIcon variant="gray" size="sm">
+                  <Icon name="barChart" size={16} />
                 </FeaturedIcon>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>YTD Operating Net</span>
-                  <Badge variant={ytdNet >= 0 ? 'success' : 'error'}>
+              <div className="fin-kpi-middle">
+                <div className="fin-kpi-subline">
+                  <span className="fin-kpi-sublabel">Operating Net</span>
+                  <Badge variant={ytdNet >= 0 ? 'brand' : 'error'}>
                     {ytdNet >= 0 ? `+${ytdMarginPct}% YTD` : `${ytdMarginPct}% YTD`}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`YTD Net: ${money(ytdNet)}`}>
                   <div
-                    className="fin-kpi-meter-fill"
+                    className="fin-kpi-meter-fill fin-kpi-meter-fill--neutral"
                     style={{
-                      width: `${Math.min(100, Math.max(10, 100 - ytdExpPct))}%`,
-                      background: 'var(--blue, #3b82f6)'
+                      width: `${Math.min(100, Math.max(8, 100 - ytdExpPct))}%`
                     }}
                   />
                 </div>
@@ -384,7 +386,8 @@ export function FinanceDashboard() {
               <div className="fin-kpi-bottom">
                 <span>Net: <strong>{money(ytdNet)}</strong></span>
                 <Link to="/finance/accounts/profit-loss" className="fin-kpi-link">
-                  Detailed P&L <Icon name="arrowRight" size={12} />
+                  <span>Detailed P&L</span>
+                  <Icon name="arrowRight" size={12} />
                 </Link>
               </div>
             </div>
@@ -393,27 +396,26 @@ export function FinanceDashboard() {
             <div className="fin-kpi-card">
               <div className="fin-kpi-top">
                 <div className="fin-kpi-identity">
-                  <span className="fin-kpi-label">Open Receivables</span>
+                  <span className="fin-kpi-label">Accounts Receivable</span>
                   <div className="fin-kpi-value">{money(receivablesTotal)}</div>
                 </div>
-                <FeaturedIcon variant="brand" size="md">
-                  <Icon name="invoice" size={20} color="var(--teal)" />
+                <FeaturedIcon variant="gray" size="sm">
+                  <Icon name="invoice" size={16} />
                 </FeaturedIcon>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>{receivablesCount} Debtors</span>
-                  <Badge variant={receivablesOverdue > 0 ? 'warning' : 'success'}>
+              <div className="fin-kpi-middle">
+                <div className="fin-kpi-subline">
+                  <span className="fin-kpi-sublabel">{receivablesCount} Debtors</span>
+                  <Badge variant={receivablesOverdue > 0 ? 'warning' : 'gray'}>
                     {receivablesOverdue > 0 ? `${money(receivablesOverdue)} Overdue` : 'Current & Clean'}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`Overdue: ${arOverduePct}%`}>
                   <div
-                    className="fin-kpi-meter-fill"
+                    className={`fin-kpi-meter-fill ${receivablesOverdue > 0 ? 'fin-kpi-meter-fill--warning' : 'fin-kpi-meter-fill--neutral'}`}
                     style={{
-                      width: `${Math.max(5, arOverduePct)}%`,
-                      background: receivablesOverdue > 0 ? 'var(--gold, #eab308)' : 'var(--green, #22c55e)'
+                      width: `${Math.max(6, arOverduePct)}%`
                     }}
                   />
                 </div>
@@ -422,7 +424,8 @@ export function FinanceDashboard() {
               <div className="fin-kpi-bottom">
                 <span>{arOverduePct}% overdue exposure</span>
                 <Link to="/finance/accounts/aged-receivables" className="fin-kpi-link">
-                  Aged AR <Icon name="arrowRight" size={12} />
+                  <span>Aged AR</span>
+                  <Icon name="arrowRight" size={12} />
                 </Link>
               </div>
             </div>
@@ -431,27 +434,26 @@ export function FinanceDashboard() {
             <div className="fin-kpi-card">
               <div className="fin-kpi-top">
                 <div className="fin-kpi-identity">
-                  <span className="fin-kpi-label">Open Payables</span>
+                  <span className="fin-kpi-label">Accounts Payable</span>
                   <div className="fin-kpi-value">{money(payablesTotal)}</div>
                 </div>
-                <FeaturedIcon variant="brand" size="md">
-                  <Icon name="receipt" size={20} color="var(--teal)" />
+                <FeaturedIcon variant="gray" size="sm">
+                  <Icon name="receipt" size={16} />
                 </FeaturedIcon>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>{payablesCount} Creditors</span>
-                  <Badge variant={payablesOverdue > 0 ? 'error' : 'success'}>
+              <div className="fin-kpi-middle">
+                <div className="fin-kpi-subline">
+                  <span className="fin-kpi-sublabel">{payablesCount} Creditors</span>
+                  <Badge variant={payablesOverdue > 0 ? 'error' : 'gray'}>
                     {payablesOverdue > 0 ? `${money(payablesOverdue)} Overdue` : 'No Overdue Bills'}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`Overdue: ${apOverduePct}%`}>
                   <div
-                    className="fin-kpi-meter-fill"
+                    className={`fin-kpi-meter-fill ${payablesOverdue > 0 ? 'fin-kpi-meter-fill--risk' : 'fin-kpi-meter-fill--brand'}`}
                     style={{
-                      width: `${Math.max(5, apOverduePct)}%`,
-                      background: payablesOverdue > 0 ? 'var(--red, #ef4444)' : 'var(--teal)'
+                      width: `${Math.max(6, apOverduePct)}%`
                     }}
                   />
                 </div>
@@ -460,7 +462,8 @@ export function FinanceDashboard() {
               <div className="fin-kpi-bottom">
                 <span>{apOverduePct}% overdue exposure</span>
                 <Link to="/finance/accounts/aged-payables" className="fin-kpi-link">
-                  Aged AP <Icon name="arrowRight" size={12} />
+                  <span>Aged AP</span>
+                  <Icon name="arrowRight" size={12} />
                 </Link>
               </div>
             </div>
@@ -472,21 +475,21 @@ export function FinanceDashboard() {
             <div className="fin-studio-card">
               <div className="fin-studio-header">
                 <div className="fin-studio-header-title">
-                  <FeaturedIcon variant="brand" size="sm">
-                    <Icon name="barChart" size={16} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="barChart" size={16} />
                   </FeaturedIcon>
                   <div>
-                    <h3>Income & Operating Margin Studio</h3>
+                    <h3>Income & Operating Margin</h3>
                     <p>Comparison of posted ledger revenues against disbursements.</p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 4, background: 'var(--card-sunken, var(--bg))', padding: 3, borderRadius: 'var(--tab-radius, var(--r-sm, 8px))', border: 'var(--border-width, 1px) solid var(--border)' }}>
+                <div className="fin-period-toggle">
                   <Button
                     size="sm"
                     variant={periodTab === 'month' ? 'default' : 'ghost'}
                     onClick={() => setPeriodTab('month')}
-                    style={{ fontSize: 'var(--text-xs, 11px)', height: 'var(--ctl-h-xs, 28px)', padding: '0 10px' }}
+                    className="fin-toggle-btn"
                   >
                     This Month
                   </Button>
@@ -494,7 +497,7 @@ export function FinanceDashboard() {
                     size="sm"
                     variant={periodTab === 'ytd' ? 'default' : 'ghost'}
                     onClick={() => setPeriodTab('ytd')}
-                    style={{ fontSize: 'var(--text-xs, 11px)', height: 'var(--ctl-h-xs, 28px)', padding: '0 10px' }}
+                    className="fin-toggle-btn"
                   >
                     Year to Date
                   </Button>
@@ -506,21 +509,21 @@ export function FinanceDashboard() {
                 <div className="fin-pnl-overview">
                   <div className="fin-pnl-tile">
                     <span className="fin-pnl-tile-label">Gross Revenue</span>
-                    <strong className="fin-pnl-tile-val" style={{ color: 'var(--teal)' }}>
+                    <strong className="fin-pnl-tile-val">
                       {money(activeRev)}
                     </strong>
                     <span className="fin-pnl-tile-sub">Posted Inflow</span>
                   </div>
                   <div className="fin-pnl-tile">
                     <span className="fin-pnl-tile-label">Operating Expenses</span>
-                    <strong className="fin-pnl-tile-val" style={{ color: 'var(--red, #ef4444)' }}>
+                    <strong className="fin-pnl-tile-val">
                       {money(activeExp)}
                     </strong>
                     <span className="fin-pnl-tile-sub">Ledger Disbursements</span>
                   </div>
                   <div className="fin-pnl-tile">
                     <span className="fin-pnl-tile-label">Net Operating Result</span>
-                    <strong className="fin-pnl-tile-val" style={{ color: activeNet >= 0 ? 'var(--ink)' : 'var(--red, #ef4444)' }}>
+                    <strong className="fin-pnl-tile-val">
                       {money(activeNet)}
                     </strong>
                     <span className="fin-pnl-tile-sub">{activeMargin}% Net Margin</span>
@@ -532,7 +535,7 @@ export function FinanceDashboard() {
                   <div className="fin-flow-bar-header">
                     <span>Revenue vs. Expense Ratio</span>
                     <span>
-                      {activeRev > 0 ? `${(100 - Number(activeMargin)).toFixed(0)}% Expense Burn` : '0% Burn'}
+                      {activeRev > 0 ? `${(100 - Number(activeMargin)).toFixed(0)}% Expense Ratio` : '0%'}
                     </span>
                   </div>
                   <div className="fin-flow-track" title="Revenue vs Expense distribution">
@@ -547,30 +550,32 @@ export function FinanceDashboard() {
                   </div>
                   <div className="fin-flow-legend">
                     <span>
-                      <span className="fin-dot-sm" style={{ background: 'var(--teal)' }} />
+                      <span className="fin-dot-sm fin-dot-sm--brand" />
                       Net Retained Earnings ({money(activeNet)})
                     </span>
                     <span>
-                      <span className="fin-dot-sm" style={{ background: 'var(--red, #ef4444)' }} />
-                      Operating Costs ({money(activeExp)})
+                      <span className="fin-dot-sm fin-dot-sm--neutral" />
+                      Operating Disbursements ({money(activeExp)})
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="fin-studio-footer">
-                <span style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>
+                <span className="fin-footer-note">
                   Ledger statements reconciled continuously
                 </span>
-                <div style={{ display: 'flex', gap: 'var(--space-sm, 8px)' }}>
+                <div className="fin-footer-actions">
                   <Button asChild variant="outline" size="sm">
                     <Link to="/finance/accounts/profit-loss">
-                      <Icon name="fileText" size={13} /> Profit & Loss
+                      <Icon name="fileText" size={13} />
+                      <span>Profit & Loss</span>
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link to="/finance/accounts/trial-balance">
-                      <Icon name="calculator" size={13} /> Trial Balance
+                      <Icon name="layers" size={13} />
+                      <span>Trial Balance</span>
                     </Link>
                   </Button>
                 </div>
@@ -581,16 +586,16 @@ export function FinanceDashboard() {
             <div className="fin-studio-card">
               <div className="fin-studio-header">
                 <div className="fin-studio-header-title">
-                  <FeaturedIcon variant="brand" size="sm">
-                    <Icon name="wallet" size={16} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="wallet" size={16} />
                   </FeaturedIcon>
                   <div>
-                    <h3>Working Capital & Liquidity Mix</h3>
-                    <p>Asset coverage, aging risk, and multi-currency distribution.</p>
+                    <h3>Working Capital & Liquidity</h3>
+                    <p>Asset coverage, aging risk, and liability obligations.</p>
                   </div>
                 </div>
-                <Badge variant={netWorkingCapital >= 0 ? 'success' : 'error'}>
-                  {netWorkingCapital >= 0 ? 'Safe Liquidity' : 'Action Required'}
+                <Badge variant={netWorkingCapital >= 0 ? 'gray' : 'error'}>
+                  {netWorkingCapital >= 0 ? 'Positive Capital' : 'Action Required'}
                 </Badge>
               </div>
 
@@ -598,38 +603,38 @@ export function FinanceDashboard() {
                 <div className="fin-working-capital-meter">
                   <div className="fin-wc-row">
                     <div className="fin-wc-left">
-                      <FeaturedIcon variant="brand" size="sm">
-                        <Icon name="invoice" size={15} color="var(--teal)" />
+                      <FeaturedIcon variant="gray" size="sm">
+                        <Icon name="invoice" size={15} />
                       </FeaturedIcon>
                       <div className="fin-wc-copy">
                         <strong>Receivables Outstanding</strong>
                         <span>{receivablesCount} open customer invoices</span>
                       </div>
                     </div>
-                    <div className="fin-wc-amount" style={{ color: 'var(--teal)' }}>
+                    <div className="fin-wc-amount">
                       {money(receivablesTotal)}
                     </div>
                   </div>
 
                   <div className="fin-wc-row">
                     <div className="fin-wc-left">
-                      <FeaturedIcon variant="brand" size="sm">
-                        <Icon name="receipt" size={15} color="var(--purple, #a855f7)" />
+                      <FeaturedIcon variant="gray" size="sm">
+                        <Icon name="receipt" size={15} />
                       </FeaturedIcon>
                       <div className="fin-wc-copy">
                         <strong>Payables Outstanding</strong>
                         <span>{payablesCount} open vendor bills</span>
                       </div>
                     </div>
-                    <div className="fin-wc-amount" style={{ color: 'var(--purple, #a855f7)' }}>
+                    <div className="fin-wc-amount">
                       {money(payablesTotal)}
                     </div>
                   </div>
 
-                  <div className="fin-wc-row" style={{ background: 'color-mix(in srgb, var(--teal) 8%, var(--card-sunken, var(--bg)))' }}>
+                  <div className="fin-wc-row fin-wc-row--summary">
                     <div className="fin-wc-left">
-                      <FeaturedIcon variant="brand" size="sm">
-                        <Icon name="scale" size={15} color="var(--teal)" />
+                      <FeaturedIcon variant="gray" size="sm">
+                        <Icon name="shield" size={15} />
                       </FeaturedIcon>
                       <div className="fin-wc-copy">
                         <strong>Net Working Capital Gap</strong>
@@ -644,18 +649,20 @@ export function FinanceDashboard() {
               </div>
 
               <div className="fin-studio-footer">
-                <span style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--ink3)' }}>
+                <span className="fin-footer-note">
                   Liquidity coverage ratio: <strong>{liquidityRatio}</strong>
                 </span>
-                <div style={{ display: 'flex', gap: 'var(--space-sm, 8px)' }}>
+                <div className="fin-footer-actions">
                   <Button asChild variant="outline" size="sm">
                     <Link to="/finance/accounts/aged-receivables">
-                      <Icon name="clock" size={13} /> Aged AR
+                      <Icon name="clock" size={13} />
+                      <span>Aged AR</span>
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link to="/finance/accounts/aged-payables">
-                      <Icon name="clock" size={13} /> Aged AP
+                      <Icon name="clock" size={13} />
+                      <span>Aged AP</span>
                     </Link>
                   </Button>
                 </div>
@@ -669,12 +676,12 @@ export function FinanceDashboard() {
             <div className="fin-ops-card">
               <div className="fin-ops-card-header">
                 <div className="fin-ops-card-title">
-                  <FeaturedIcon variant={totalApprovalsCount > 0 ? 'warning' : 'success'} size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="checkCircle" size={16} />
                   </FeaturedIcon>
                   <h3>Approval Queue</h3>
                 </div>
-                <Badge variant={totalApprovalsCount > 0 ? 'warning' : 'success'}>
+                <Badge variant={totalApprovalsCount > 0 ? 'warning' : 'gray'}>
                   {totalApprovalsCount > 0 ? `${totalApprovalsCount} Pending` : 'All Clear'}
                 </Badge>
               </div>
@@ -682,12 +689,12 @@ export function FinanceDashboard() {
               <div className="fin-ops-list">
                 <div className="fin-ops-item">
                   <div className="fin-ops-item-left">
-                    <strong className="fin-ops-item-title">Supplier Bills Awaiting Review</strong>
-                    <span className="fin-ops-item-sub">{billsPendingCount} invoices pending payment sign-off</span>
+                    <strong className="fin-ops-item-title">Supplier Bills</strong>
+                    <span className="fin-ops-item-sub">{billsPendingCount} invoices pending review</span>
                   </div>
                   <div className="fin-ops-item-right">
                     <span className="fin-ops-item-amount">{money(billsPendingAmount)}</span>
-                    <Button asChild size="sm" variant="outline" style={{ height: 'var(--ctl-h-xs, 26px)', fontSize: 'var(--text-xs, 11px)', padding: '0 8px' }}>
+                    <Button asChild size="sm" variant="outline" className="fin-ops-item-btn">
                       <Link to="/finance/bills">Review</Link>
                     </Button>
                   </div>
@@ -695,12 +702,12 @@ export function FinanceDashboard() {
 
                 <div className="fin-ops-item">
                   <div className="fin-ops-item-left">
-                    <strong className="fin-ops-item-title">Employee Expense Claims</strong>
+                    <strong className="fin-ops-item-title">Expense Claims</strong>
                     <span className="fin-ops-item-sub">{expensesPendingCount} claims awaiting approval</span>
                   </div>
                   <div className="fin-ops-item-right">
                     <span className="fin-ops-item-amount">{money(expensesPendingAmount)}</span>
-                    <Button asChild size="sm" variant="outline" style={{ height: 'var(--ctl-h-xs, 26px)', fontSize: 'var(--text-xs, 11px)', padding: '0 8px' }}>
+                    <Button asChild size="sm" variant="outline" className="fin-ops-item-btn">
                       <Link to="/finance/expenses">Review</Link>
                     </Button>
                   </div>
@@ -708,14 +715,16 @@ export function FinanceDashboard() {
               </div>
 
               <div className="fin-ops-card-actions">
-                <Button asChild variant="outline" size="sm" style={{ flex: 1 }}>
+                <Button asChild variant="outline" size="sm" className="fin-btn-flex">
                   <Link to="/finance/bills">
-                    <Icon name="receipt" size={13} /> Supplier Bills
+                    <Icon name="receipt" size={13} />
+                    <span>Supplier Bills</span>
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="sm" style={{ flex: 1 }}>
+                <Button asChild variant="outline" size="sm" className="fin-btn-flex">
                   <Link to="/finance/expenses">
-                    <Icon name="wallet" size={13} /> Expenses
+                    <Icon name="creditCard" size={13} />
+                    <span>Expenses</span>
                   </Link>
                 </Button>
               </div>
@@ -725,12 +734,12 @@ export function FinanceDashboard() {
             <div className="fin-ops-card">
               <div className="fin-ops-card-header">
                 <div className="fin-ops-card-title">
-                  <FeaturedIcon variant="brand" size="sm">
-                    <Icon name="calendar" size={16} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="calendar" size={16} />
                   </FeaturedIcon>
                   <h3>Period & Tax Controls</h3>
                 </div>
-                <Badge variant="brand">Active Period</Badge>
+                <Badge variant="gray">Fiscal Schedules</Badge>
               </div>
 
               <div className="fin-ops-list">
@@ -739,7 +748,7 @@ export function FinanceDashboard() {
                     <strong className="fin-ops-item-title">General Ledger Period</strong>
                     <span className="fin-ops-item-sub">
                       {data.glPeriod
-                        ? `Latest Closed: ${data.glPeriod.name} (Closed ${data.glPeriod.closedAt})`
+                        ? `Closed: ${data.glPeriod.name}`
                         : 'Open current accounting period.'}
                     </span>
                   </div>
@@ -750,11 +759,11 @@ export function FinanceDashboard() {
 
                 <div className="fin-ops-item">
                   <div className="fin-ops-item-left">
-                    <strong className="fin-ops-item-title">TRA VAT Return Preparation</strong>
-                    <span className="fin-ops-item-sub">Monthly input/output VAT ledger schedules</span>
+                    <strong className="fin-ops-item-title">TRA VAT Return</strong>
+                    <span className="fin-ops-item-sub">Monthly input/output VAT schedules</span>
                   </div>
                   <div className="fin-ops-item-right">
-                    <Button asChild size="sm" variant="outline" style={{ height: 'var(--ctl-h-xs, 26px)', fontSize: 'var(--text-xs, 11px)', padding: '0 8px' }}>
+                    <Button asChild size="sm" variant="outline" className="fin-ops-item-btn">
                       <Link to="/finance/vat-periods">Prepare</Link>
                     </Button>
                   </div>
@@ -762,15 +771,17 @@ export function FinanceDashboard() {
               </div>
 
               <div className="fin-ops-card-actions">
-                <Button asChild variant="outline" size="sm" style={{ flex: 1 }}>
+                <Button asChild variant="outline" size="sm" className="fin-btn-flex">
                   <Link to="/finance/vat-periods">
-                    <Icon name="fileText" size={13} /> VAT Schedules
+                    <Icon name="fileText" size={13} />
+                    <span>VAT Schedules</span>
                   </Link>
                 </Button>
                 {isEnabled('finance.accounting.advanced') && (
-                  <Button asChild variant="outline" size="sm" style={{ flex: 1 }}>
+                  <Button asChild variant="outline" size="sm" className="fin-btn-flex">
                     <Link to="/finance/accounts/gl-periods">
-                      <Icon name="lock" size={13} /> Period Close
+                      <Icon name="lock" size={13} />
+                      <span>Period Close</span>
                     </Link>
                   </Button>
                 )}
@@ -781,23 +792,23 @@ export function FinanceDashboard() {
             <div className="fin-ops-card">
               <div className="fin-ops-card-header">
                 <div className="fin-ops-card-title">
-                  <FeaturedIcon variant="brand" size="sm">
-                    <Icon name="building" size={16} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="building" size={16} />
                   </FeaturedIcon>
                   <h3>Bank & Statement Feeds</h3>
                 </div>
-                <Badge variant="success">Online</Badge>
+                <Badge variant="gray">Connected</Badge>
               </div>
 
               <div className="fin-ops-list">
                 <div className="fin-ops-item">
                   <div className="fin-ops-item-left">
-                    <strong className="fin-ops-item-title">Bank Reconciliation Studio</strong>
-                    <span className="fin-ops-item-sub">Match statement records against ledger journals</span>
+                    <strong className="fin-ops-item-title">Bank Reconciliation</strong>
+                    <span className="fin-ops-item-sub">Match statement entries to ledger</span>
                   </div>
                   <div className="fin-ops-item-right">
-                    <Button asChild size="sm" variant="default" style={{ height: 'var(--ctl-h-xs, 26px)', fontSize: 'var(--text-xs, 11px)', padding: '0 8px' }}>
-                      <Link to="/finance/accounts/bank-reconciliation">Open Matcher</Link>
+                    <Button asChild size="sm" variant="outline" className="fin-ops-item-btn">
+                      <Link to="/finance/accounts/bank-reconciliation">Open</Link>
                     </Button>
                   </div>
                 </div>
@@ -805,11 +816,11 @@ export function FinanceDashboard() {
                 <div className="fin-ops-item">
                   <div className="fin-ops-item-left">
                     <strong className="fin-ops-item-title">Cash Register / POS Till</strong>
-                    <span className="fin-ops-item-sub">Current on-hand takings: {money(cashOnHand)}</span>
+                    <span className="fin-ops-item-sub">On-hand takings: {money(cashOnHand)}</span>
                   </div>
                   <div className="fin-ops-item-right">
                     {isEnabled('finance.pos') ? (
-                      <Button asChild size="sm" variant="outline" style={{ height: 'var(--ctl-h-xs, 26px)', fontSize: 'var(--text-xs, 11px)', padding: '0 8px' }}>
+                      <Button asChild size="sm" variant="outline" className="fin-ops-item-btn">
                         <Link to="/finance/pos">Open Till</Link>
                       </Button>
                     ) : (
@@ -820,14 +831,16 @@ export function FinanceDashboard() {
               </div>
 
               <div className="fin-ops-card-actions">
-                <Button asChild variant="outline" size="sm" style={{ flex: 1 }}>
+                <Button asChild variant="outline" size="sm" className="fin-btn-flex">
                   <Link to="/finance/accounts/bank-reconciliation">
-                    <Icon name="refresh" size={13} /> Bank Feeds
+                    <Icon name="refresh" size={13} />
+                    <span>Bank Feeds</span>
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="sm" style={{ flex: 1 }}>
-                  <Link to="/finance/accounts/chart">
-                    <Icon name="layers" size={13} /> Chart of Accounts
+                <Button asChild variant="outline" size="sm" className="fin-btn-flex">
+                  <Link to="/finance/accounts/chart-of-accounts">
+                    <Icon name="list" size={13} />
+                    <span>Chart of Accounts</span>
                   </Link>
                 </Button>
               </div>
@@ -839,18 +852,18 @@ export function FinanceDashboard() {
             <div className="fin-launchpad-header">
               <div>
                 <h3>Enterprise Financial Workspaces</h3>
-                <p>Quick access to operational accounting desks, customer ledgers, and industry modules.</p>
+                <p>Direct access to operational accounting desks, customer ledgers, and industry modules.</p>
               </div>
-              <Badge variant="gray">Integrated SaaS Workspaces</Badge>
+              <Badge variant="gray">Modules</Badge>
             </div>
 
             <div className="fin-launchpad-grid">
               <Link to="/finance/invoices" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="invoice" size={20} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="invoice" size={16} />
                   </FeaturedIcon>
-                  <Icon name="arrowRight" size={15} color="var(--ink3)" />
+                  <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
                 </div>
                 <strong>Invoices & Receivables</strong>
                 <p>Draft proforma quotations, issue tax invoices, and track automated payment receipts.</p>
@@ -858,10 +871,10 @@ export function FinanceDashboard() {
 
               <Link to="/finance/bills" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="receipt" size={20} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="receipt" size={16} />
                   </FeaturedIcon>
-                  <Icon name="arrowRight" size={15} color="var(--ink3)" />
+                  <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
                 </div>
                 <strong>Purchasing & Bills</strong>
                 <p>Capture vendor bills, approve expense claims, and track scheduled disbursements.</p>
@@ -869,10 +882,10 @@ export function FinanceDashboard() {
 
               <Link to="/finance/accounts/bank-reconciliation" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="building" size={20} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="building" size={16} />
                   </FeaturedIcon>
-                  <Icon name="arrowRight" size={15} color="var(--ink3)" />
+                  <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
                 </div>
                 <strong>Banking & Statements</strong>
                 <p>Reconcile statement lines with auto-match suggestions and statement import uploads.</p>
@@ -880,10 +893,10 @@ export function FinanceDashboard() {
 
               <Link to="/finance/industries" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="layoutDashboard" size={20} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="layers" size={16} />
                   </FeaturedIcon>
-                  <Icon name="arrowRight" size={15} color="var(--ink3)" />
+                  <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
                 </div>
                 <strong>Industry Operating ERP</strong>
                 <p>Pre-configured retail POS, wholesale trade desks, manufacturing BOM, and warehousing.</p>
@@ -891,10 +904,10 @@ export function FinanceDashboard() {
 
               <Link to="/crm/customers" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="users" size={20} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="users" size={16} />
                   </FeaturedIcon>
-                  <Icon name="arrowRight" size={15} color="var(--ink3)" />
+                  <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
                 </div>
                 <strong>CRM & Stakeholders</strong>
                 <p>Customer accounts, supplier directories, credit limits, and interaction history.</p>
@@ -902,10 +915,10 @@ export function FinanceDashboard() {
 
               <Link to="/agentic" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="sparkle" size={20} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="sm">
+                    <Icon name="sparkle" size={16} />
                   </FeaturedIcon>
-                  <Icon name="arrowRight" size={15} color="var(--ink3)" />
+                  <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
                 </div>
                 <strong>AI Financial Planner</strong>
                 <p>Automate ledger classifications, forecast cash flow anomalies, and dispatch reminders.</p>

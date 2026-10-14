@@ -99,13 +99,13 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
         if (y + 46 > 780) { doc.addPage(); y = M; }
       }
 
-      // Line items table
+      // Line items table — widths sized for large TZS amounts (e.g. 6,000,000,000.00)
       const cols = [
-        { label: 'Description', w: W * 0.42 },
-        { label: 'Qty', w: W * 0.1, align: 'right' as const },
-        { label: 'Rate', w: W * 0.16, align: 'right' as const },
-        { label: 'Tax %', w: W * 0.1, align: 'right' as const },
-        { label: 'Amount', w: W * 0.22, align: 'right' as const },
+        { label: 'Description', w: W * 0.34 },
+        { label: 'Qty', w: W * 0.09, align: 'right' as const },
+        { label: 'Rate', w: W * 0.19, align: 'right' as const },
+        { label: 'Tax %', w: W * 0.08, align: 'right' as const },
+        { label: 'Amount', w: W * 0.30, align: 'right' as const },
       ];
       doc.rect(M, y, W, 22).fill('#f1f5f4');
       let cx = M;
@@ -115,19 +115,35 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
       });
       y += 22;
 
+      // Draws text, auto-shrinking font size to fit the column width.
+      function fitText(text: string, x: number, yPos: number, w: number, opts: { font: string; maxFs: number; align?: 'left' | 'right'; bold?: boolean }) {
+        let fs = opts.maxFs;
+        doc.font(opts.font).fontSize(fs);
+        while (fs > 6 && doc.widthOfString(text) > w) {
+          fs -= 0.5;
+          doc.fontSize(fs);
+        }
+        doc.text(text, x, yPos + (opts.maxFs - fs) * 0.3, { width: w, align: opts.align || 'left' });
+      }
+
       for (const l of lines) {
         const quantity = [String(l.qty), l.unit].filter(Boolean).join(' ');
-        const rowH = Math.max(24, doc.font('Document-Regular').fontSize(9).heightOfString(l.name, {width: cols[0].w - 16}) + 12,
-          doc.heightOfString(quantity, {width: cols[1].w - 8}) + 12);
-        if (y + rowH > 780) { doc.addPage(); y = M; }
         const lineAmount = Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100);
         const lineCurrency = l.currency || currency;
+        const rateText = `${lineCurrency} ${money(Number(l.rate))}`;
+        const amountText = `${lineCurrency} ${money(lineAmount)}`;
+        const cells = [l.name, quantity, rateText, `${Number(l.tax_pct)}%`, amountText];
+        const rowH = Math.max(24, ...cells.map((text, index) =>
+          doc.font(index === 4 ? 'Document-Bold' : 'Document-Regular').fontSize(9)
+            .heightOfString(text, { width: cols[index].w - 8 }) + 12));
+        if (y + rowH > 780) { doc.addPage(); y = M; }
         cx = M;
-        doc.font('Document-Regular').fontSize(9).fillColor(INK).text(l.name, cx + 8, y + 5, { width: cols[0].w - 8 }); cx += cols[0].w;
-        doc.text(quantity, cx, y + 5, { width: cols[1].w - 8, align: 'right' }); cx += cols[1].w;
-        doc.text(`${lineCurrency} ${money(Number(l.rate))}`, cx, y + 5, { width: cols[2].w - 8, align: 'right' }); cx += cols[2].w;
-        doc.text(`${Number(l.tax_pct)}%`, cx, y + 5, { width: cols[3].w - 8, align: 'right' }); cx += cols[3].w;
-        doc.font('Document-Bold').text(`${lineCurrency} ${money(lineAmount)}`, cx, y + 5, { width: cols[4].w - 8, align: 'right' });
+        doc.fillColor(INK);
+        fitText(l.name, cx + 8, y + 5, cols[0].w - 8, { font: 'Document-Regular', maxFs: 9 }); cx += cols[0].w;
+        fitText(quantity, cx, y + 5, cols[1].w - 8, { font: 'Document-Regular', maxFs: 9, align: 'right' }); cx += cols[1].w;
+        fitText(rateText, cx, y + 5, cols[2].w - 8, { font: 'Document-Regular', maxFs: 9, align: 'right' }); cx += cols[2].w;
+        fitText(`${Number(l.tax_pct)}%`, cx, y + 5, cols[3].w - 8, { font: 'Document-Regular', maxFs: 9, align: 'right' }); cx += cols[3].w;
+        fitText(`${lineCurrency} ${money(lineAmount)}`, cx, y + 5, cols[4].w - 8, { font: 'Document-Bold', maxFs: 9, align: 'right' }); cx += cols[4].w;
         doc.moveTo(M, y + rowH).lineTo(M + W, y + rowH).strokeColor(BORDER).lineWidth(0.5).stroke();
         y += rowH;
       }
@@ -135,13 +151,20 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
 
       // Totals
       if (y + 110 > 780) { doc.addPage(); y = M; }
-      const totalsX = M + W * 0.55, totalsW = W * 0.45;
+      const totalsX = M + W * 0.4, totalsW = W * 0.6;
       const totalRow = (label: string, value: string, bold = false) => {
-        doc.font(bold ? 'Document-Bold' : 'Document-Regular').fontSize(bold ? 11 : 9.5).fillColor(bold ? INK : MUTED)
-          .text(label, totalsX, y, { width: totalsW * 0.5 });
-        doc.font(bold ? 'Document-Bold' : 'Document-Regular').fontSize(bold ? 11 : 9.5).fillColor(bold ? brand.accent : INK)
-          .text(value, totalsX + totalsW * 0.5, y, { width: totalsW * 0.5, align: 'right' });
-        y += bold ? 20 : 16;
+        const font = bold ? 'Document-Bold' : 'Document-Regular';
+        const fs = bold ? 11 : 9.5;
+        doc.font(font).fontSize(fs);
+        const labelW = totalsW * 0.25, valueW = totalsW * 0.75 - 8;
+        const rowH = Math.max(bold ? 20 : 16,
+          doc.heightOfString(label, { width: labelW }) + 6,
+          doc.heightOfString(value, { width: valueW }) + 6);
+        if (y + rowH > 780) { doc.addPage(); y = M; }
+        doc.fillColor(bold ? INK : MUTED).text(label, totalsX, y, { width: labelW });
+        doc.fillColor(bold ? brand.accent : INK);
+        fitText(value, totalsX + labelW + 8, y, valueW, { font, maxFs: fs, align: 'right' });
+        y += rowH;
       };
       totalRow('Subtotal', `${currency} ${money(net)}`);
       totalRow('Tax', `${currency} ${money(tax)}`);

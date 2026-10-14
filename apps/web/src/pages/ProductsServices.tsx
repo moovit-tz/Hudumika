@@ -380,7 +380,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
     const res: any = await apiFetch(`/v1/customers${q.trim() ? `?search=${encodeURIComponent(q.trim())}` : ''}`).catch(() => []);
     const list = Array.isArray(res) ? res : (res?.data ?? []);
     const filtered = q.trim() ? list.filter((c: any) => (c.name || '').toLowerCase().includes(q.toLowerCase())) : list;
-    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined }));
+    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined, avatarUserId: c.id, avatarKind: 'customers' as const, avatarType: 'company' as const }));
   }
   function addCustomer(item: PickerItem | null) {
     if (!item) return;

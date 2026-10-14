@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { sql } from 'kysely';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import {
   createDeliveryDocument, listDeliveryDocuments, getDeliveryDocument, updateDeliveryDocument,
@@ -76,6 +77,31 @@ export async function deliveryDocumentsRoutes(fastify: FastifyInstance) {
     if (request.user.role === 'CUSTOMER') {
       return reply.status(403).send({ error: 'Not available for this account type.' });
     }
+  });
+
+  fastify.get('/stats', async (request: any) => {
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const row = await sql<{
+        total: string; in_progress: string; completed: string; shipment_linked: string;
+      }>`
+        SELECT count(*)::text AS total,
+               count(*) FILTER (WHERE status IN ('draft','issued','dispatched'))::text AS in_progress,
+               count(*) FILTER (WHERE status IN ('delivered','used'))::text AS completed,
+               count(*) FILTER (WHERE subject_type = 'shipment')::text AS shipment_linked
+        FROM delivery_documents
+        WHERE tenant_id = ${request.user.tenant_id}
+      `.execute(trx);
+      const r = row.rows[0];
+      const total = Number(r?.total ?? 0);
+      const linked = Number(r?.shipment_linked ?? 0);
+      return {
+        total,
+        inProgress: Number(r?.in_progress ?? 0),
+        completed: Number(r?.completed ?? 0),
+        shipmentLinked: linked,
+        shipmentLinkedPct: total ? Math.round((linked / total) * 100) : 0,
+      };
+    });
   });
 
   fastify.get('/', async (request: any, reply) => {

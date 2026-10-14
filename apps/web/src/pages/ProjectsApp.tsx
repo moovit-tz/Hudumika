@@ -174,7 +174,7 @@ const CUSTOMER_VISIBLE_TABS = new Set(['overview', 'schedule', 'kanban', 'risks'
 
 async function searchColleagues(q: string): Promise<PickerItem[]> {
   const rows = await apiFetch(`/v1/hr/staff?search=${encodeURIComponent(q)}`).catch(() => []);
-  return (rows || []).map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email }));
+  return (rows || []).map((u: any) => ({ id: u.id, label: u.name, sublabel: u.email, avatarUserId: u.id, avatarKind: 'people' as const }));
 }
 async function fetchColleaguesForMentions(): Promise<MentionUser[]> {
   const rows = await apiFetch('/v1/hr/staff').catch(() => []);

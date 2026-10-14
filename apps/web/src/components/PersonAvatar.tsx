@@ -153,25 +153,44 @@ export function PersonAvatar({
  * company is renamed — a stored initial does not follow a rename.
  */
 export function CompanyAvatar({
-  name, logoUrl, size = 32, shape = 'square', style,
+  id, kind = 'customers', name, logoUrl, size = 32, shape = 'square', style,
 }: {
+  id?: string | null;
+  kind?: SubjectKind;
   name: string;
   logoUrl?: string | null;
   size?: number;
   shape?: 'square' | 'circle';
   style?: React.CSSProperties;
 }) {
+  const [url, setUrl] = useState<string | null>(logoUrl ?? null);
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (logoUrl) { setUrl(logoUrl); return; }
+    if (!id) { setUrl(null); return; }
+    let alive = true;
+    const load = () => {
+      setFailed(false);
+      avatarObjectUrl(id, kind).then(u => { if (alive) setUrl(u); });
+    };
+    load();
+    const off = onAvatarChanged((changed, changedKind) => {
+      if (changed === id && changedKind === kind) load();
+    });
+    return () => { alive = false; off(); };
+  }, [id, kind, logoUrl]);
+
   const radius = shape === 'circle' ? '50%' : Math.max(4, Math.round(size * 0.22));
   const common: React.CSSProperties = {
     width: size, height: size, borderRadius: radius, flexShrink: 0,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style,
   };
 
-  if (logoUrl && !failed) {
+  if (url && !failed) {
     return (
-      <img src={logoUrl} alt={name} title={name} onError={() => setFailed(true)}
-        style={{ ...common, objectFit: 'contain', background: 'var(--white)' }} />
+      <img src={url} alt={name} title={name} onError={() => setFailed(true)}
+        style={{ ...common, objectFit: 'contain', background: 'var(--white)', border: '1px solid var(--border)' }} />
     );
   }
   return (

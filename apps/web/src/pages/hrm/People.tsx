@@ -35,6 +35,11 @@ export function EmployeesPage() {
   // which would flash fabricated names before (or instead of) the real roster.
   const [employees, setEmployees] = useState<Employee[]>([]);
 
+  const [staffStats, setStaffStats] = useState<any>(null);
+  const fetchStats = useCallback(async () => {
+    try { setStaffStats(await apiFetch('/v1/hr/staff/stats')); } catch {}
+  }, []);
+
   const loadEmployees = useCallback(async () => {
     try {
       const data = await apiFetch('/v1/hr/staff');
@@ -54,7 +59,7 @@ export function EmployeesPage() {
       })));
     } catch { /* leave the list empty — see note at top of file */ }
   }, []);
-  useEffect(() => { loadEmployees(); }, [loadEmployees]);
+  useEffect(() => { loadEmployees(); fetchStats(); }, [loadEmployees, fetchStats]);
 
   const depts = [...new Set(employees.map(e => e.dept).filter(d => d && d !== '—'))];
   // Real figures for the metrics row — no hardcoded "2 new / 4 roles / 1 pending".
@@ -92,9 +97,9 @@ export function EmployeesPage() {
       </PageHeader>
 
       <MetricsRow cards={[
-        { title: 'Total Staff',    value: String(employees.length),   sub1Label: 'ACTIVE',      sub1Value: String(employees.filter(e => e.status === 'ACTIVE').length), sub2Label: 'ON LEAVE',    sub2Value: String(onLeaveCount),   barHighlight: 'var(--blue)'  },
-        { title: 'New This Month', value: String(hiredThisMonth),     sub1Label: 'DEPARTMENTS', sub1Value: String(depts.length),                                       sub2Label: 'ROLES',       sub2Value: String(roleCount),      barHighlight: 'var(--green)' },
-        { title: 'Inactive',       value: String(inactiveCount),      sub1Label: 'ON LEAVE',    sub1Value: String(onLeaveCount),                                       sub2Label: 'DEPARTMENTS', sub2Value: String(depts.length),   barHighlight: 'var(--red)'   },
+        { title: 'Total Staff',    value: String(staffStats?.total ?? employees.length),   sub1Label: 'ACTIVE',      sub1Value: String(staffStats?.active ?? employees.filter(e => e.status === 'ACTIVE').length), sub2Label: 'ON LEAVE',    sub2Value: String(staffStats?.onLeave ?? onLeaveCount),   barHighlight: 'var(--blue)', loading: !staffStats  },
+        { title: 'New This Month', value: String(staffStats?.hiredThisMonth ?? hiredThisMonth),     sub1Label: 'DEPARTMENTS', sub1Value: String(staffStats?.departments ?? depts.length),                                       sub2Label: 'ROLES',       sub2Value: String(staffStats?.roles ?? roleCount),      barHighlight: 'var(--green)', loading: !staffStats },
+        { title: 'Inactive',       value: String(staffStats?.inactive ?? inactiveCount),      sub1Label: 'ON LEAVE',    sub1Value: String(staffStats?.onLeave ?? onLeaveCount),                                       sub2Label: 'DEPARTMENTS', sub2Value: String(staffStats?.departments ?? depts.length),   barHighlight: 'var(--red)', loading: !staffStats   },
       ]} />
 
       {/* -- Toolbar -- */}

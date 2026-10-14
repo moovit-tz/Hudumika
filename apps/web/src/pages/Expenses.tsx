@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -341,6 +341,12 @@ export const Expenses: React.FC = () => {
   const { fmt } = useCurrency();
   const [items, setItems] = useState<ExpenseListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expStats, setExpStats] = useState<{
+    total: number; totalCosts: number; totalRevenue: number; costCount: number;
+    revCount: number; avgCost: number; netMargin: number; marginPct: number;
+    pendingRetirements: number; revThisMonth: number; revThisWeek: number;
+  } | null>(null);
+  const fetchStats = useCallback(() => { apiFetch('/v1/finance/expenses/stats').then(setExpStats).catch(() => {}); }, []);
   const [shipments, setShipments] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -354,7 +360,7 @@ export const Expenses: React.FC = () => {
   }
 
   useEffect(() => {
-    refresh();
+    refresh(); fetchStats();
     apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load shipments.'));
     apiFetch('/v1/customers').then((res: any) => setCustomers(res.data ?? res ?? [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load customers.'));
     apiFetch('/v1/suppliers').then((res: any) => setSuppliers(Array.isArray(res) ? res : [])).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not load suppliers.'));
@@ -487,7 +493,7 @@ export const Expenses: React.FC = () => {
       }
       setShowBulkUpload(false);
       setBulkCsv('');
-      await refresh();
+      await refresh(); fetchStats();
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Bulk expense import failed.');
     } finally {
@@ -519,28 +525,28 @@ export const Expenses: React.FC = () => {
         <MetricsRow cards={[
           {
             title: 'TOTAL COSTS',
-            value: fmt(totalExp, 'TZS'),
+            value: fmt(expStats?.totalCosts ?? totalExp, 'TZS'),
             invertTrend: true,
-            sub1Label: 'LINE ITEMS', sub1Value: String(items.filter(e => !e.is_revenue).length),
-            sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'), barHighlight: 'var(--red)',
+            sub1Label: 'LINE ITEMS', sub1Value: String(expStats?.costCount ?? items.filter(e => !e.is_revenue).length),
+            sub2Label: 'AVG COST', sub2Value: fmt(expStats?.avgCost ?? 0, 'TZS'), barHighlight: 'var(--red)', loading: !expStats,
           },
           {
             title: 'TOTAL REVENUE',
-            value: fmt(totalRev, 'TZS'),
-            sub1Label: 'THIS MONTH', sub1Value: fmt(revThisMonth, 'TZS'),
-            sub2Label: 'THIS WEEK', sub2Value: fmt(revThisWeek, 'TZS'), barHighlight: 'var(--green)',
+            value: fmt(expStats?.totalRevenue ?? totalRev, 'TZS'),
+            sub1Label: 'THIS MONTH', sub1Value: fmt(expStats?.revThisMonth ?? revThisMonth, 'TZS'),
+            sub2Label: 'THIS WEEK', sub2Value: fmt(expStats?.revThisWeek ?? revThisWeek, 'TZS'), barHighlight: 'var(--green)', loading: !expStats,
           },
           {
             title: 'NET MARGIN',
-            value: fmt(totalRev - totalExp, 'TZS'),
-            sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
-            sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--blue)',
+            value: fmt(expStats?.netMargin ?? (totalRev - totalExp), 'TZS'),
+            sub1Label: 'MARGIN %', sub1Value: expStats ? `${expStats.marginPct}%` : (!totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`),
+            sub2Label: 'ALL ITEMS', sub2Value: String(expStats?.total ?? items.length), barHighlight: 'var(--blue)', loading: !expStats,
           },
           {
             title: 'PENDING RETIREMENTS',
-            value: String(items.filter(e => e.retirement_status === 'pending').length),
-            sub1Label: 'PETTY CLAIMS', sub1Value: String(items.filter(e => e.retirement_status === 'pending').length),
-            sub2Label: 'RETIRED', sub2Value: String(items.filter(e => e.retirement_status === 'approved').length), barHighlight: 'var(--gold)',
+            value: String(expStats?.pendingRetirements ?? items.filter(e => e.retirement_status === 'pending').length),
+            sub1Label: 'PENDING', sub1Value: String(expStats?.pendingRetirements ?? items.filter(e => e.retirement_status === 'pending').length),
+            sub2Label: 'TOTAL', sub2Value: String(expStats?.total ?? items.length), barHighlight: 'var(--gold)', loading: !expStats,
           },
         ]} />
       )}
@@ -700,7 +706,7 @@ export const Expenses: React.FC = () => {
         <ExpenseDetailPanel
           expense={selectedDetail}
           onClose={closeDetail}
-          onChanged={() => { refresh(); apiFetch(`/v1/finance/expenses/${selectedDetail.id}`).then(setSelectedDetail).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not refresh this expense.')); }}
+          onChanged={() => { refresh(); fetchStats(); apiFetch(`/v1/finance/expenses/${selectedDetail.id}`).then(setSelectedDetail).catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not refresh this expense.')); }}
           shipments={shipments}
           customers={customers}
           suppliers={suppliers}

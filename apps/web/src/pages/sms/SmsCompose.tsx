@@ -162,7 +162,10 @@ export function SmsCompose() {
       .map(hit => ({
         id: hit.phone,
         label: hit.name,
-        sublabel: `${hit.phone} · ${SOURCE_LABEL[hit.source]}`,
+        sublabel: `${hit.phone} · ${SOURCE_LABEL[hit.source] || hit.source}`,
+        avatarUserId: hit.id,
+        avatarKind: (hit.source === 'customer' ? 'customers' : hit.source === 'lead' ? 'leads' : hit.source === 'contact' ? 'contacts' : 'people') as any,
+        avatarType: (hit.source === 'customer' || hit.source === 'lead' ? 'company' : 'person') as 'company' | 'person',
       }));
   }
 
