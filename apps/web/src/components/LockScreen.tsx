@@ -118,7 +118,7 @@ export function LockScreen() {
           alignItems: 'center',
         }}
       >
-        {/* Workspace Locked Badge */}
+        {/* Locked Badge */}
         <div
           style={{
             display: 'inline-flex',
@@ -137,7 +137,7 @@ export function LockScreen() {
           }}
         >
           <Icon name="lock" size={12} color="var(--teal)" />
-          <span>{branding.platformName || 'Workspace'} Locked</span>
+          <span>Locked</span>
         </div>
 
         {/* User Profile Avatar with Lock Emblem */}
@@ -410,7 +410,7 @@ export function LockScreen() {
           }}
         >
           <Icon name="shield" size={12} color="var(--teal)" />
-          Encrypted Session · {branding.platformName || 'Hudumika'} Security
+          Encrypted Session · {branding.platformName || 'Hudumika'} Workspace Security
         </div>
       </div>
     </div>

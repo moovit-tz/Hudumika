@@ -134,7 +134,7 @@ const PROJECT_STATUS_META: Record<string, { label: string; variant: 'gray' | 'br
 };
 
 const HEALTH_STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  on_track: { label: 'ON TRACK', color: 'var(--green)', bg: 'var(--green-l)' },
+  on_track: { label: 'ON TRACK', color: 'var(--teal)', bg: 'var(--teal-l)' },
   at_risk: { label: 'AT RISK', color: 'var(--gold)', bg: 'var(--gold-l)' },
   critical: { label: 'CRITICAL', color: 'var(--red)', bg: 'var(--red-l)' },
   completed: { label: 'COMPLETED', color: 'var(--teal)', bg: 'var(--teal-l)' },

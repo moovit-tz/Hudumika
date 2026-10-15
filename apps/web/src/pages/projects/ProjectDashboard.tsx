@@ -61,7 +61,7 @@ interface CommandMetrics {
 }
 
 const HEALTH_META: Record<string, { label: string; variant: 'success' | 'warning' | 'error' | 'brand'; dot: string }> = {
-  on_track: { label: 'On Track', variant: 'success', dot: 'var(--green)' },
+  on_track: { label: 'On Track', variant: 'brand', dot: 'var(--green)' },
   at_risk: { label: 'At Risk', variant: 'warning', dot: 'var(--gold)' },
   critical: { label: 'Critical', variant: 'error', dot: 'var(--red)' },
   completed: { label: 'Completed', variant: 'brand', dot: 'var(--teal)' },
@@ -355,11 +355,11 @@ export const ProjectDashboard: React.FC = () => {
         >
           <div className="project-kpi-top">
             <span className="project-kpi-label">Active Delivery</span>
-            <FeaturedIcon variant="success" size="sm">
+            <FeaturedIcon variant="brand" size="sm">
               <Icon name="trendingUp" size={15} />
             </FeaturedIcon>
           </div>
-          <div className="project-kpi-value" style={{ color: 'var(--green)' }}>{active.length}</div>
+          <div className="project-kpi-value" style={{ color: 'var(--teal)' }}>{active.length}</div>
           <div className="project-kpi-sub">
             <span>{projects.length > 0 ? Math.round((active.length / projects.length) * 100) : 0}% of portfolio</span>
           </div>
@@ -386,7 +386,7 @@ export const ProjectDashboard: React.FC = () => {
             ) : atRisk.length > 0 ? (
               <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{atRisk.length} schedule variance</span>
             ) : (
-              <span style={{ color: 'var(--green)' }}>All projects healthy</span>
+              <span style={{ color: 'var(--teal)' }}>All projects healthy</span>
             )}
           </div>
         </div>
@@ -442,7 +442,7 @@ export const ProjectDashboard: React.FC = () => {
             {metrics?.portfolio_cpi != null && Number.isFinite(metrics.portfolio_cpi) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, background: 'var(--bg)', padding: '4px 10px', borderRadius: 'var(--r-sm)' }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Cost CPI:</span>
-                <span style={{ fontWeight: 800, color: metrics.portfolio_cpi >= 1 ? 'var(--green)' : 'var(--red)' }}>
+                <span style={{ fontWeight: 800, color: metrics.portfolio_cpi >= 1 ? 'var(--teal)' : 'var(--red)' }}>
                   {metrics.portfolio_cpi.toFixed(2)}
                 </span>
               </div>
@@ -450,7 +450,7 @@ export const ProjectDashboard: React.FC = () => {
             {metrics?.portfolio_spi != null && Number.isFinite(metrics.portfolio_spi) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, background: 'var(--bg)', padding: '4px 10px', borderRadius: 'var(--r-sm)' }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Schedule SPI:</span>
-                <span style={{ fontWeight: 800, color: metrics.portfolio_spi >= 1 ? 'var(--green)' : 'var(--gold)' }}>
+                <span style={{ fontWeight: 800, color: metrics.portfolio_spi >= 1 ? 'var(--teal)' : 'var(--gold)' }}>
                   {metrics.portfolio_spi.toFixed(2)}
                 </span>
               </div>
