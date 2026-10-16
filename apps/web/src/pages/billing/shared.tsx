@@ -139,12 +139,12 @@ export function normalizeStatus(st?: string): Status {
 }
 
 export const STATUS_STYLE: Record<Status, { bg: string; color: string; label: string }> = {
-  Draft:    { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Draft'          },
-  Partial:  { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Partially paid' },
-  Paid:     { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Fully paid'     },
-  Credited: { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Credited'       },
-  Unpaid:   { bg: 'var(--teal-l)', color: 'var(--teal)', label: 'Not paid'       },
-  Overdue:  { bg: 'var(--red-l)',  color: 'var(--red)',  label: 'Overdue'         },
+  Draft:    { bg: 'var(--bg)',      color: 'var(--ink3)',   label: 'Draft'          },
+  Partial:  { bg: 'var(--gold-l)',  color: 'var(--gold)',   label: 'Partially paid' },
+  Paid:     { bg: 'var(--green-l)', color: 'var(--green)',  label: 'Fully paid'     },
+  Credited: { bg: 'var(--blue-l)',  color: 'var(--blue)',   label: 'Credited'       },
+  Unpaid:   { bg: 'var(--teal-l)',  color: 'var(--teal)',   label: 'Not paid'       },
+  Overdue:  { bg: 'var(--red-l)',   color: 'var(--red)',    label: 'Overdue'        },
 };
 
 export function getStatusStyle(st?: string): { bg: string; color: string; label: string } {
@@ -152,8 +152,8 @@ export function getStatusStyle(st?: string): { bg: string; color: string; label:
   return STATUS_STYLE[norm] || STATUS_STYLE.Draft;
 }
 
-const STATUS_VARIANT: Record<Status, 'brand' | 'error'> = {
-  Draft: 'brand', Partial: 'brand', Paid: 'brand', Credited: 'brand',
+const STATUS_VARIANT: Record<Status, 'gray' | 'brand' | 'warning' | 'success' | 'error' | 'info'> = {
+  Draft: 'gray', Partial: 'warning', Paid: 'success', Credited: 'info',
   Unpaid: 'brand', Overdue: 'error',
 };
 export function getStatusVariant(st?: string) {

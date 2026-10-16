@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
@@ -1011,13 +1012,34 @@ export const Bills: React.FC = () => {
   const [showBillForm, setShowBillForm]   = useState(false);
   const [showRecurForm, setShowRecurForm] = useState(false);
   const [payTarget, setPayTarget]   = useState<Bill | null>(null);
+  const [searchParams] = useSearchParams();
+  const qSupplierId = searchParams.get('supplier_id');
+  const qNew = searchParams.get('new');
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL'|BillStatus>('ALL');
-  const [supFilter, setSupFilter]   = useState('ALL');
+  const [supFilter, setSupFilter]   = useState(qSupplierId || 'ALL');
   const [sortBy, setSortBy]         = useState<'bill_date'|'due_date'|'total'|'supplier'>('due_date');
   const [sortDir, setSortDir]       = useState<'asc'|'desc'>('asc');
   const [voidTarget, setVoidTarget] = useState<Bill | null>(null);
   const [voidReason, setVoidReason] = useState('');
+
+  useEffect(() => {
+    if (qSupplierId) {
+      setSupFilter(qSupplierId);
+      if (qNew === '1') {
+        setFormBill({
+          id: '', bill_number: '', supplier_id: qSupplierId, supplier_name: '',
+          bill_date: new Date().toISOString().slice(0, 10),
+          due_date: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+          subtotal: 0, tax: 0, total: 0, paid_amount: 0,
+          currency: 'TZS', status: 'DRAFT', items: [],
+          shipment_ref: '', po_number: '', po_id: '', notes: '',
+          business_line_id: null, business_line_name: null, business_line_code: null,
+        } as any);
+        setShowBillForm(true);
+      }
+    }
+  }, [qSupplierId, qNew]);
 
   const [page, setPage] = useState(1);
   const [matchCount, setMatchCount] = useState(0);

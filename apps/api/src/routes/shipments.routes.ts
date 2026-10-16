@@ -702,7 +702,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .executeTakeFirst());
 
       if (!assigneeExists) {
-        return reply.status(401).send({ error: 'Session expired — please log out and log back in.' });
+        return reply.status(400).send({ error: 'The assigned user was not found in this workspace.' });
       }
 
       const created = await ShipmentService.createCase(user.tenant_id, {

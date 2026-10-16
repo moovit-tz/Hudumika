@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
@@ -30,13 +30,15 @@ const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 
 
 export const FinanceExpenseNew: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preselectedSupplierId = searchParams.get('supplier_id');
   const financeConfiguration = useFinanceConfiguration();
   const financeCapabilities = useFinanceCapabilities();
   const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
   const [shipments, setShipments] = useState<ShipmentOpt[]>([]);
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
-  // Categories an admin added at Settings â–¸ Finance â–¸ Expenses Categories
-  // (tenant_settings key 'expenses-categories') â€” merged in alongside the
+  // Categories an admin added at Settings > Finance > Expenses Categories
+  // (tenant_settings key 'expenses-categories') — merged in alongside the
   // built-in CATS so that screen's categories are actually selectable here,
   // not just persisted and ignored.
   const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
@@ -61,7 +63,22 @@ export const FinanceExpenseNew: React.FC = () => {
     apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch(err => setError(err.message || 'Could not load shipments.'));
     apiFetch('/v1/customers').then((res: any) => setCustomers(res?.data ?? res ?? [])).catch(err => setError(err.message || 'Could not load CRM customers.'));
     apiFetch('/v1/settings').then((res: any) => setCustomCats(res?.settings?.['expenses-categories']?.categories ?? [])).catch(err => setError(err.message || 'Could not load expense categories.'));
-  }, []);
+    if (preselectedSupplierId) {
+      apiFetch(`/v1/suppliers/${preselectedSupplierId}`).then((s: any) => {
+        if (s?.id) {
+          setSupplierItem({
+            id: s.id,
+            label: s.name,
+            sublabel: s.email || undefined,
+            avatarUserId: s.id,
+            avatarKind: 'suppliers',
+            avatarType: 'company',
+            avatarUrl: s.avatar_url || s.logo_url || undefined,
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [preselectedSupplierId]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,7 +134,7 @@ export const FinanceExpenseNew: React.FC = () => {
         crumbs={['Finance', 'Expenses', 'New']}
         titlePlain="New"
         titleEm="expense"
-        subtitle="Record a cost or revenue line â€” link it to a shipment or customer if it belongs to one."
+        subtitle="Record a cost or revenue line — link it to a shipment or customer if it belongs to one."
       />
 
       <SectionCard>
@@ -173,7 +190,7 @@ export const FinanceExpenseNew: React.FC = () => {
           label="Paid to Supplier (optional)" value={supplierItem} onChange={setSupplierItem}
           search={searchSuppliers} onCreate={createSupplier}
           createLabel={(q) => `Create new supplier "${q}"`}
-          placeholder="Search suppliersâ€¦"
+          placeholder="Search suppliers…"
           hint="Link this expense to a supplier so it shows on their Vendors page."
         />
 
@@ -185,7 +202,7 @@ export const FinanceExpenseNew: React.FC = () => {
               value={businessLineId}
               onChange={setBusinessLineId}
               placeholder="Unassigned"
-              searchPlaceholder="Search business linesâ€¦"
+              searchPlaceholder="Search business lines…"
             />
           </div>
         )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/button.js';
-import { formatAmount } from '../lib/currency.js';
+import { formatAmount, formatCompact } from '../lib/currency.js';
 import type { InvoiceListPage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
@@ -340,13 +340,13 @@ export const Billing: React.FC = () => {
           sub2Label: 'SENT', sub2Value: String(invStats.total - invStats.draftCount), barHighlight: 'var(--teal)',
         },
         {
-          title: 'Outstanding · TZS', value: formatAmount(invStats.outstandingTotal, 'TZS'),
+          title: 'Outstanding · TZS', value: formatCompact(invStats.outstandingTotal, 'TZS'),
           invertTrend: true,
-          sub1Label: 'NOT OVERDUE', sub1Value: formatAmount(invStats.dueSoonTotal, 'TZS'),
-          sub2Label: 'OVERDUE', sub2Value: formatAmount(invStats.overdueTotal, 'TZS'), barHighlight: 'var(--red)',
+          sub1Label: 'NOT OVERDUE', sub1Value: formatCompact(invStats.dueSoonTotal, 'TZS'),
+          sub2Label: 'OVERDUE', sub2Value: formatCompact(invStats.overdueTotal, 'TZS'), barHighlight: 'var(--red)',
         },
         {
-          title: 'Received · TZS', value: formatAmount(invStats.totalReceived, 'TZS'),
+          title: 'Received · TZS', value: formatCompact(invStats.totalReceived, 'TZS'),
           sub1Label: 'PAID', sub1Value: String(invStats.paidCount),
           sub2Label: 'ALL INVOICES', sub2Value: String(invStats.total), barHighlight: 'var(--green)',
         },

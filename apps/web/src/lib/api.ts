@@ -16,26 +16,17 @@ export function csrfToken(): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+let _logoutFired = false;
+
 /** Clears the cached user and bounces to the login page. Called whenever the
  * API rejects our session (expired/invalid) so the user gets a clean re-login
  * prompt instead of every page independently surfacing the raw 401 body. */
 function handleUnauthorized() {
-  // A visitor who was never signed in on this browser (no cached user) isn't
-  // "logged out" — they were never logged in. useBranding.ts's tenant-
-  // branding probe, for one, is fetched unconditionally by a provider that
-  // mounts on every route (DesignSystemProvider/SeoAnalyticsProvider wrap
-  // the whole app in App.tsx, above any auth check) and its own comment
-  // says a 401 there is the ordinary case for an anonymous visitor — it's
-  // already caught at the call site with .catch(() => {}). Redirecting
-  // anyway broke every public page (why-complyos, /site/:tenantSlug, and
-  // the M7 agency directory): load one with no session and it bounced
-  // straight to /login before the page ever rendered. Same reasoning as the
-  // existing hudumika_user gate on the 401-retry below, and generalizes the
-  // /org carve-out (a separate session, same "never logged in here" case)
-  // to every public route without needing a path allowlist.
+  if (_logoutFired) return;
   const hadSession = !!localStorage.getItem('hudumika_user');
   localStorage.removeItem('hudumika_user');
   if (!hadSession) return;
+  _logoutFired = true;
   // A died session's tenant — its logo/name/accent, cached by useBranding.ts
   // under this prefix for synchronous reads — must not keep painting the
   // /login page this redirects to. This is the far more common way that

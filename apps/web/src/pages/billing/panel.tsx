@@ -499,7 +499,12 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <Icon name="arrowLeft" size={14} /> Invoice
           </Button>
         )}
-        {tab === 'invoice' && <Badge variant={st.variant as any}>{st.label}</Badge>}
+        {tab === 'invoice' && (
+          <Badge variant={st.variant as any} style={{ fontSize: 'var(--badge-fs, 11px)', padding: '3px 10px' }}>
+            <Icon name={inv.status === 'Overdue' ? 'alertTriangle' : inv.status === 'Paid' ? 'checkCircle' : inv.status === 'Partial' ? 'clock' : inv.status === 'Credited' ? 'minusCircle' : 'file'} size={12} />
+            {st.label}
+          </Badge>
+        )}
         {tab !== 'invoice' && (
           <span className="text-sm font-semibold text-foreground">
             {tab === 'activity' ? 'Activity Log' : tab === 'tasks' ? 'Tasks' : tab === 'reminders' ? 'Reminders' : 'Notes'}
@@ -522,50 +527,69 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} /> Reminders</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} /> Send by Email</DropdownMenuItem>
-            <DropdownMenuItem disabled={!dbId||pdfBusy} onClick={downloadPdf}>{pdfBusy?'Downloading…':'Download PDF'}</DropdownMenuItem>
+            <DropdownMenuItem disabled={!dbId||pdfBusy} onClick={downloadPdf}><Icon name="download" size={14} /> {pdfBusy?'Downloading…':'Download PDF'}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} /> View / Print</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {/* Sign & Stamp */}
-            {dbId && stampedFileUrl && (
-              <DropdownMenuItem onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}>
-                <Icon name="checkCircle" size={14} /> Download Stamped Copy
-              </DropdownMenuItem>
-            )}
-            {dbId && !stampedFileUrl && stampAllowed === true && (
-              <DropdownMenuItem onClick={handleSignAndStamp} disabled={stamping}>
-                <Icon name="stamp" size={14} /> {stamping ? 'Stamping…' : 'Apply Company Stamp'}
-              </DropdownMenuItem>
-            )}
-            {dbId && !stampedFileUrl && stampAllowed !== true && (
-              <DropdownMenuItem onClick={() => setShowRequestStamp(true)}>
-                <Icon name="stamp" size={14} /> Request Company Stamp
-              </DropdownMenuItem>
-            )}
-            {dbId && !stampedFileUrl && (
-              <>
-                <DropdownMenuItem onClick={() => setShowEsign(true)} disabled={inv.status === 'Draft'}>
-                  <Icon name="edit" size={14} /> Send for Signature
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/sign/editor?attach_invoice=${dbId}`)}>
-                  <Icon name="externalLink" size={14} /> Open in Sign App
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuSeparator />
-            {/* TRA fiscalization */}
-            {traFiscalized ? (
-              <DropdownMenuItem disabled><Icon name="checkCircle" size={14} /> TRA Fiscalized · {inv.traRctvnum}</DropdownMenuItem>
-            ) : onSubmitTRA ? (
-              <DropdownMenuItem onClick={submitToTRA} disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}>
-                <Icon name="send" size={14} /> {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA' : 'Submit to TRA'}
-              </DropdownMenuItem>
-            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleIssueCreditNote}><Icon name="minusCircle" size={14} /> Issue Credit Note</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Icon name="trash" size={14} /> Delete Invoice</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Stamp / Sign — standalone button */}
+        {dbId && inv.status !== 'Draft' && (
+          stampedFileUrl ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => apiDownload(`/v1/invoices/${dbId}/stamped-pdf`, `${inv.id} – stamped.pdf`)}>
+              <Icon name="checkCircle" size={13} /> Stamped
+            </Button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" size="sm" variant="outline" disabled={stamping}>
+                  <Icon name="stamp" size={13} /> {stamping ? 'Stamping…' : 'Stamp'} <Icon name="chevronDown" size={10} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {stampAllowed === true ? (
+                  <DropdownMenuItem onClick={handleSignAndStamp} disabled={stamping}>
+                    <Icon name="stamp" size={14} /> Apply Company Stamp
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => setShowRequestStamp(true)}>
+                    <Icon name="stamp" size={14} /> Request Company Stamp
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setShowEsign(true)}>
+                  <Icon name="edit" size={14} /> Send for Signature
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/sign/editor?attach_invoice=${dbId}`)}>
+                  <Icon name="externalLink" size={14} /> Open in Sign App
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        )}
+
+        {/* Submit to TRA — standalone button, visible after invoice is issued */}
+        {dbId && inv.status !== 'Draft' && onSubmitTRA && (
+          traFiscalized ? (
+            <Tip label={`TRA Fiscalized · ${inv.traRctvnum || ''}`}>
+              <Button type="button" size="sm" variant="outline" disabled>
+                <Icon name="checkCircle" size={13} /> TRA
+              </Button>
+            </Tip>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={submitToTRA}
+              disabled={traSubmitting || !inv._dbId}
+            >
+              <Icon name="send" size={13} /> {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA' : 'Submit to TRA'}
+            </Button>
+          )
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -174,6 +174,7 @@ import { FinanceExpenseNew }      from '../pages/FinanceExpenseNew.js';
 import { FinanceExpenseCategories } from '../pages/FinanceExpenseCategories.js';
 import { Bills }                  from '../pages/Bills.js';
 import { FinanceVendors }         from '../pages/FinanceVendors.js';
+import { VendorProfilePage }       from '../pages/VendorProfilePage.js';
 // One catalog, surfaced in both apps: /finance/products and /clearos/products
 // render the same component over the same /v1/products table.
 import { ProductsServices }        from '../pages/ProductsServices.js';
@@ -264,6 +265,8 @@ export function FinOpsShell() {
           <Route path="purchase-orders" element={gated('finance.procurement', <PurchaseOrders />)} />
           <Route path="bills"           element={<RequireRoles roles={FIN_ROLES}><Bills /></RequireRoles>} />
           <Route path="vendors"         element={<RequireRoles roles={FIN_ROLES}><FinanceVendors /></RequireRoles>} />
+          <Route path="vendors/:id"     element={<RequireRoles roles={FIN_ROLES}><VendorProfilePage /></RequireRoles>} />
+          <Route path="vendors/:id/:tab" element={<RequireRoles roles={FIN_ROLES}><VendorProfilePage /></RequireRoles>} />
           <Route path="expenses"        element={<RequireRoles roles={FIN_ROLES}><Expenses /></RequireRoles>} />
           <Route path="expense-reports" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReports /></RequireRoles>} />
           <Route path="expense-reports/new" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReportNew /></RequireRoles>} />

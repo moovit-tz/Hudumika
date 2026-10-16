@@ -131,6 +131,33 @@ export function formatAmount(amount: number, currency: string): string {
   }
 }
 
+const COMPACT_TIERS: [number, string][] = [
+  [1e15, 'Q'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'],
+];
+
+export function formatCompact(amount: number, currency: string): string {
+  const abs = Math.abs(amount);
+  const sym = getCurrencySymbol(currency);
+  for (const [limit, suffix] of COMPACT_TIERS) {
+    if (abs >= limit) {
+      const scaled = amount / limit;
+      return `${sym}${scaled.toFixed(Math.abs(scaled) >= 100 ? 0 : 1)}${suffix}`;
+    }
+  }
+  if (abs >= 1_000) return `${sym}${(amount / 1_000).toFixed(0)}k`;
+  return formatAmount(amount, currency);
+}
+
+function getCurrencySymbol(code: string): string {
+  try {
+    const formatted = formatAmount(1, code);
+    const m = formatted.match(/^[^0-9,.]+/);
+    return m ? m[0].trimEnd() : code;
+  } catch {
+    return code;
+  }
+}
+
 /**
  * Retained for callers that still import it. Reads the live table when there
  * is one, so an old import does not quietly opt out of live rates.

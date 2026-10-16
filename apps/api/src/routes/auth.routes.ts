@@ -1349,7 +1349,10 @@ export async function authRoutes(fastify: FastifyInstance) {
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('id', '=', actor.sub).where('active', '=', true).executeTakeFirst();
     if (!user || !verifyPassword(password, user.password_hash)) {
-      return reply.status(401).send({ error: 'Incorrect password' });
+      // 403, not 401: the session/JWT is perfectly valid — it's the
+      // verification password that didn't match. A 401 here trips
+      // handleUnauthorized() on the frontend and logs the user out.
+      return reply.status(403).send({ error: 'Incorrect password' });
     }
 
     // Same second-factor gate /login enforces — unlocking must ask for
@@ -1359,7 +1362,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (totpRow?.enabled) {
       if (!totp) return reply.status(200).send({ requires_2fa: true });
       if (!verifyTotp(totpRow.secret, totp)) {
-        return reply.status(401).send({ error: 'Invalid authentication code' });
+        return reply.status(403).send({ error: 'Invalid authentication code' });
       }
     }
 

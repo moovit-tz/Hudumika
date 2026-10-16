@@ -1,5 +1,6 @@
 import React from 'react';
 import type { KPIResponse } from '@hudumika/types';
+import { formatCompact } from '../lib/currency.js';
 
 interface KPIBarProps {
   kpis: KPIResponse | null;
@@ -10,12 +11,7 @@ interface KPIBarProps {
 export const KPIBar: React.FC<KPIBarProps> = ({ kpis, onSelectMetric, selectedMetric }) => {
   if (!kpis) return null;
 
-  const formatCurrency = (val: number) => {
-    if (val >= 1000000) {
-      return `${(val / 1000000).toFixed(1)}M TZS`;
-    }
-    return `${val.toLocaleString()} TZS`;
-  };
+  const formatCurrency = (val: number) => formatCompact(val, 'TZS');
 
   const items = [
     {
