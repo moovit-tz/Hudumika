@@ -11,6 +11,9 @@ import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { Card } from '../components/ui/card.js';
+import { Input } from '../components/ui/input.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { CallsMetrics } from './calls/CallsMetrics.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { showAlert } from '../lib/alert.js';
@@ -56,7 +59,6 @@ export function Calls() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const isTablet = useMediaQuery('(max-width: 1024px)');
 
   const [staff, setStaff] = useState<Staff[]>([]);
   const [online, setOnline] = useState<Set<string>>(new Set());
@@ -333,6 +335,10 @@ export function Calls() {
 
   // ── Actions ──
   const startCall = async (person: Staff, k: 'VIDEO' | 'VOICE') => {
+    if (!wsConnected || !online.has(person.id) || callState !== 'idle') {
+      setError('This colleague is unavailable for calls. Try again when they are online and calling is connected.');
+      return;
+    }
     setError(null);
     setKind(k);
     setPeer(person);
@@ -448,7 +454,7 @@ export function Calls() {
       const other = outgoing ? h.callee_name : h.caller_name;
       const missed = h.status === 'MISSED' || h.status === 'DECLINED';
 
-      const matchesSearch = other.toLowerCase().includes(searchHistory.toLowerCase());
+      const matchesSearch = (other || '').toLowerCase().includes(searchHistory.toLowerCase());
       const matchesDirection =
         !directionFilter ||
         directionFilter === 'ALL' ||
@@ -519,35 +525,17 @@ export function Calls() {
         crumbs={['Bliss', 'Comms', 'Call Center']}
         titlePlain="Call"
         titleEm="center"
-        subtitle="Make calls, hold video meetings, and review team call activity."
+        subtitle="Your team, one call away. Connect and keep every conversation in view."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '4px 10px',
-                borderRadius: 20,
-                fontSize: 11.5,
-                fontWeight: 700,
-                background: wsConnected ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
-                color: wsConnected ? 'var(--green, #059669)' : 'var(--red, #dc2626)',
-                border: wsConnected ? '1px solid #a7f3d0' : '1px solid #fecaca',
-                marginRight: 4,
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: wsConnected ? 'var(--green)' : 'var(--red)',
-                  animation: wsConnected ? 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' : 'none',
-                }}
-              />
-              <span>{wsConnected ? 'WebRTC Gateway Active' : 'Gateway Offline'}</span>
-            </div>
+            <Badge variant={wsConnected ? 'success' : 'gray'} role="status">
+              <Icon name="phone" size={12} />
+              {wsConnected ? 'Ready to call' : 'Calling unavailable'}
+            </Badge>
+            <Button size="sm" onClick={() => setActiveTab('directory')}>
+              <Icon name="phone" size={14} />
+              New call
+            </Button>
 
             <Button variant="outline" size="sm" onClick={() => navigate('/bliss/meetings')}>
               <Icon name="camera" size={14} />
@@ -564,38 +552,27 @@ export function Calls() {
       {error && <Banner variant="error">{error}</Banner>}
 
       {/* ── Tab Navigation Strip ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', minHeight: 48, padding: '0 6px', overflowX: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }} data-ds-tabstrip="">
-          {([
-            { key: 'overview',   label: 'Overview',            icon: 'activity' as const },
-            { key: 'directory',  label: `Directory (${filteredStaff.length})`, icon: 'users' as const },
-            { key: 'history',    label: `History (${filteredHistory.length})`, icon: 'phone' as const },
-            { key: 'dialpad',    label: 'Dialpad',             icon: 'smartphone' as const },
-            { key: 'reports',    label: 'Reports & Analytics', icon: 'barChart2' as const },
-          ] as const).map(t => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setActiveTab(t.key as any)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 7, padding: '12px 14px',
-                fontSize: 13, fontWeight: activeTab === t.key ? 700 : 600,
-                color: activeTab === t.key ? 'var(--teal)' : 'var(--ink2)',
-                background: 'transparent', border: 'none',
-                borderBottom: activeTab === t.key ? '2px solid var(--teal)' : '2px solid transparent',
-                cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font)',
-                transition: 'all 120ms ease',
-              }}
-             data-ds-selected={activeTab === t.key as any} data-ui-native-button="" aria-pressed={activeTab === t.key as any}>
-              <Icon name={t.icon} size={14} />
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </div>
+      <div className="cc-navigation">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+          <TabsList aria-label="Call center sections">
+            {([
+              { key: 'overview', label: 'Overview', icon: 'activity' },
+              { key: 'directory', label: 'Directory', icon: 'users', count: staff.length },
+              { key: 'history', label: 'History', icon: 'phone', count: history.length },
+              { key: 'dialpad', label: 'Dialpad', icon: 'smartphone' },
+              { key: 'reports', label: 'Reports', icon: 'barChart2' },
+            ] as const).map(item => (
+              <TabsTrigger key={item.key} value={item.key}>
+                <Icon name={item.icon} size={14} />
+                <span className="ds-tabs-trigger-label">{item.label}</span>
+                {'count' in item && <Badge variant="gray">{item.count}</Badge>}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         {activeTab === 'history' && (
-          <Button variant="outline" size="sm" onClick={exportHistoryCSV} style={{ flexShrink: 0, marginRight: 6 }}>
-            <Icon name="download" size={13} />
-            <span>Export CSV</span>
+          <Button variant="outline" size="sm" onClick={exportHistoryCSV} disabled={!filteredHistory.length}>
+            <Icon name="download" size={13} /> Export CSV
           </Button>
         )}
       </div>
@@ -604,7 +581,39 @@ export function Calls() {
          TAB 1: OVERVIEW — real data via CallsMetrics
          ════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="cc-overview">
+          <div className="cc-overview-top">
+            <Card className="cc-welcome" style={{ background: 'var(--teal-l)' }}>
+              <div className="cc-eyebrow"><Icon name="phone" size={14} /> TEAM COMMUNICATIONS</div>
+              <div className="cc-welcome-copy">
+                <h2>Good conversations.<br /><span>Closer connections.</span></h2>
+                <p>A quick question or a bigger idea — your next conversation starts here.</p>
+              </div>
+              <div className="cc-welcome-actions">
+                <Button onClick={() => setActiveTab('directory')}><Icon name="phone" size={15} />Start a call</Button>
+                <Button variant="outline" onClick={() => navigate('/bliss/meetings')}><Icon name="camera" size={15} />Meet with your team</Button>
+              </div>
+              <div className="cc-team-preview">
+                <div className="cc-avatar-stack">{staff.slice(0, 4).map(person => <PersonAvatar key={person.id} userId={person.id} name={person.name} size={28} />)}</div>
+                <span><strong>{staff.length} colleagues</strong> in your directory</span>
+                <Button variant="ghost" size="sm" onClick={() => setActiveTab('directory')} aria-label="Open colleague directory"><Icon name="arrowRight" size={16} /></Button>
+              </div>
+              <div className="cc-signal-art" aria-hidden="true">
+                <div className="cc-signal-orbit"><Icon name="phone" size={30} /></div>
+                <div className="cc-waveform">{[12, 24, 18, 38, 52, 30, 18, 42, 60, 36, 22, 44, 28, 14].map((height, index) => <i key={index} style={{ height }} />)}</div>
+              </div>
+            </Card>
+            <Card className="cc-recent-panel">
+              <div className="cc-panel-heading"><div><h2>Recent conversations</h2><p>Your latest direct calls</p></div><Button variant="ghost" size="sm" onClick={() => setActiveTab('history')} aria-label="View call history"><Icon name="arrowRight" size={16} /></Button></div>
+              {history.length === 0 ? (
+                <div className="cc-empty"><FeaturedIcon variant="gray" size="lg"><Icon name="phone" size={22} /></FeaturedIcon><h3>A fresh start</h3><p>Your calls will appear here.<br />Find a colleague to get talking.</p><Button variant="outline" size="sm" onClick={() => setActiveTab('directory')}>Browse directory</Button></div>
+              ) : <div className="cc-recent-list">{history.slice(0, 3).map(call => {
+                const outgoing = call.caller_id === user?.id;
+                const name = outgoing ? call.callee_name : call.caller_name;
+                return <div key={call.id} className="cc-recent-person"><PersonAvatar userId={outgoing ? call.callee_id : call.caller_id} name={name} size={34} /><div><strong>{name}</strong><span>{outgoing ? 'Outgoing' : 'Incoming'} · {fmtDate(call.started_at)}</span></div><Badge variant={['MISSED', 'DECLINED'].includes(call.status) ? 'error' : 'gray'}>{['MISSED', 'DECLINED'].includes(call.status) ? call.status.toLowerCase() : fmtDur(call.duration_seconds)}</Badge></div>;
+              })}</div>}
+            </Card>
+          </div>
           <CallsMetrics />
         </div>
       )}
@@ -613,9 +622,10 @@ export function Calls() {
          TAB 2: COLLEAGUE DIRECTORY
          ════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'directory' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1fr 340px', gap: 18, alignItems: 'start' }}>
+        <div className="cc-directory-layout">
           {/* Main Directory Column */}
-          <div className="cc-card">
+          <Card className="cc-directory-panel">
+            <div className="cc-panel-heading"><div><h2>Your people</h2><p>Find the right person. Start a voice or video call.</p></div><Badge variant="brand">{staff.length} colleagues</Badge></div>
             {/* Search Toolbar */}
             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
               <SearchToolbar
@@ -707,7 +717,7 @@ export function Calls() {
             </div>
 
             {/* List of Colleague Cards */}
-            <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="cc-directory-grid">
               {filteredStaff.length === 0 ? (
                 <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
                   <Icon name="users" size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
@@ -718,21 +728,7 @@ export function Calls() {
                 paginatedStaff.map((p) => {
                   const isOnline = online.has(p.id);
                   return (
-                    <div
-                      key={p.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: isMobile ? 'flex-start' : 'center',
-                        justifyContent: 'space-between',
-                        padding: isMobile ? '12px 14px' : '14px 18px',
-                        borderRadius: 'var(--r, 12px)',
-                        border: '1px solid var(--border)',
-                        background: 'var(--card-bg, var(--white))',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        gap: isMobile ? 12 : 14,
-                      }}
-                    >
+                    <Card key={p.id} className="cc-person-card">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                         <PersonAvatar userId={p.id} name={p.name} size={40} />
                         <div style={{ minWidth: 0 }}>
@@ -749,13 +745,13 @@ export function Calls() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
+                      <div className="cc-person-actions">
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={!isOnline || callState !== 'idle'}
+                          disabled={!wsConnected || !isOnline || callState !== 'idle'}
                           onClick={() => startCall(p, 'VOICE')}
-                          style={{ flex: isMobile ? 1 : 'none' }}
+                          style={{ flex: 1 }}
                         >
                           <Icon name="phone" size={13} style={{ color: 'var(--green)' }} />
                           <span>Voice</span>
@@ -763,15 +759,15 @@ export function Calls() {
                         <Button
                           variant="default"
                           size="sm"
-                          disabled={!isOnline || callState !== 'idle'}
+                          disabled={!wsConnected || !isOnline || callState !== 'idle'}
                           onClick={() => startCall(p, 'VIDEO')}
-                          style={{ flex: isMobile ? 1 : 'none' }}
+                          style={{ flex: 1 }}
                         >
                           <Icon name="camera" size={13} />
                           <span>Video</span>
                         </Button>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })
               )}
@@ -815,7 +811,7 @@ export function Calls() {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Right Column: Live Activity Feed */}
           <div className="cc-card">
@@ -826,9 +822,7 @@ export function Calls() {
 
             <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {history.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>
-                  No recent direct calls.
-                </div>
+                <div className="cc-empty"><FeaturedIcon variant="gray"><Icon name="phone" size={18} /></FeaturedIcon><h3>No conversations yet</h3><p>Once you make a call, you’ll find it here.</p></div>
               ) : (
                 history.slice(0, 6).map((h) => {
                   const outgoing = h.caller_id === user?.id;
@@ -865,7 +859,8 @@ export function Calls() {
          TAB 3: CALL HISTORY & TELEMETRY LOGS
          ════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'history' && (
-        <div className="cc-card">
+        <div className="cc-card cc-history-panel">
+          <div className="cc-panel-heading"><div><h2>Call history</h2><p>A record of your incoming and outgoing conversations.</p></div><FeaturedIcon variant="brand" size="sm"><Icon name="clock" size={16} /></FeaturedIcon></div>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
             <SearchToolbar
               search={searchHistory}
@@ -1044,9 +1039,17 @@ export function Calls() {
          TAB 4: QUICK DIALPAD
          ════════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'dialpad' && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
+        <div className="cc-dial-layout">
+          <div className="cc-dial-intro">
+            <FeaturedIcon variant="brand" size="xl"><Icon name="phone" size={26} /></FeaturedIcon>
+            <div className="cc-eyebrow">A DIRECT LINE TO YOUR TEAM</div>
+            <h2>Less typing.<br />More talking.</h2>
+            <p>Search your colleague’s name or email to start a voice or video call.</p>
+            <div className="cc-dial-note"><Icon name="users" size={18} /><div><strong>Calling a colleague?</strong><p>They’ll need to be online and connected to receive your call.</p></div></div>
+            <div className="cc-dial-note"><Icon name="smartphone" size={18} /><div><strong>Calling a phone number?</strong><p>Use your workspace’s telephony settings for external calls.</p><Button variant="link" size="sm" onClick={() => navigate('/bliss/telephony')}>Open Telephony <Icon name="arrowRight" size={13} /></Button></div></div>
+          </div>
           <div
-            className="cc-card"
+            className="cc-card cc-dial-card"
             style={{
               padding: isMobile ? 20 : 28,
               width: '100%',
@@ -1057,9 +1060,9 @@ export function Calls() {
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Direct Dialpad</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Make a connection</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-                Enter colleague name, extension or digits
+                Search colleagues by name or email. For phone numbers, open Telephony.
               </div>
             </div>
 
@@ -1076,10 +1079,10 @@ export function Calls() {
                 minHeight: 48,
               }}
             >
-              <input
+              <Input
                 value={dialpadNumber}
                 onChange={(e) => setDialpadNumber(e.target.value)}
-                placeholder="Type name or number..."
+                placeholder="Search name or email…" aria-label="Find a colleague to call"
                 style={{
                   background: 'none',
                   border: 'none',
@@ -1094,6 +1097,7 @@ export function Calls() {
               {dialpadNumber && (
                 <button
                   type="button"
+                  aria-label="Clear colleague search"
                   onClick={() => setDialpadNumber('')}
                   style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
                  data-ui-native-button="">
@@ -1120,6 +1124,7 @@ export function Calls() {
                   <button
                     key={s.id}
                     type="button"
+                    disabled={!wsConnected || !online.has(s.id) || callState !== 'idle'}
                     onClick={() => startCall(s, 'VOICE')}
                     style={{
                       display: 'flex',
@@ -1190,7 +1195,7 @@ export function Calls() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 6 }}>
               <Button
                 variant="outline"
-                disabled={!dialpadNumber.trim() || dialpadMatchedStaff.length === 0}
+                disabled={!wsConnected || callState !== 'idle' || !dialpadMatchedStaff[0] || !online.has(dialpadMatchedStaff[0].id)}
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VOICE')}
                 style={{ justifyContent: 'center' }}
               >
@@ -1200,7 +1205,7 @@ export function Calls() {
 
               <Button
                 variant="default"
-                disabled={!dialpadNumber.trim() || dialpadMatchedStaff.length === 0}
+                disabled={!wsConnected || callState !== 'idle' || !dialpadMatchedStaff[0] || !online.has(dialpadMatchedStaff[0].id)}
                 onClick={() => dialpadMatchedStaff[0] && startCall(dialpadMatchedStaff[0], 'VIDEO')}
                 style={{ justifyContent: 'center' }}
               >

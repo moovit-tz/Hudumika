@@ -876,11 +876,11 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   <Icon name="plus" size={14} /> New envelope
                 </a>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>
-                  {envelopes.length} Envelope Request{envelopes.length === 1 ? '' : 's'}
+                  {envelopes.length} Document Request{envelopes.length === 1 ? '' : 's'}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {envelopes.filter(env => matches(env.title)).map(env => (
-                    <a key={env.id} href={`/sign/envelope/${env.id}`} aria-label={`Open envelope: ${env.title}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
+                    <a key={env.id} href={`/sign/envelope/${env.id}`} aria-label={`Open document: ${env.title}`} style={{ padding: 10, borderRadius: 8, background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                         <Icon name="stamp" size={16} style={{ color: 'var(--teal)' }} />
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{env.title}</span>

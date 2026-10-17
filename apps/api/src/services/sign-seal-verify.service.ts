@@ -141,6 +141,7 @@ export interface ContentComparisonResult {
 // reported as such in the verdict language (§27/§61 — "difference
 // detected", never "forged" or "altered").
 const NOISE_THRESHOLD_CHARS = 4;
+const SENSITIVE_PATTERN = /\d|[$€£¥₦₹TSh]|not\b|no\b|never\b|none\b/i;
 
 /** Real diff (the `diff` package — the same algorithm class used across the
  *  JS ecosystem, not homemade), not a fabricated result. Whitespace-
@@ -155,7 +156,8 @@ export function compareExtractedText(canonicalText: string, uploadedText: string
   for (let i = 0; i < changes.length; i++) {
     const c = changes[i];
     if (!c.added && !c.removed) continue;
-    if (c.value.trim().length < NOISE_THRESHOLD_CHARS) continue;
+    // ES-11: never discard changes containing numbers, currency, dates, or negation
+    if (c.value.trim().length < NOISE_THRESHOLD_CHARS && !SENSITIVE_PATTERN.test(c.value)) continue;
     const before = changes[i - 1]?.value?.slice(-40) ?? '';
     const after = changes[i + 1]?.value?.slice(0, 40) ?? '';
     substantive.push({

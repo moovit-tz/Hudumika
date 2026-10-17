@@ -25,6 +25,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { Icon } from '../../components/Icon.js';
 import { BASE_URL, apiFetch } from '../../lib/api.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Card } from '../../components/ui/card.js';
 import { Input } from '../../components/ui/input.js';
 import { useBranding } from '../../hooks/useBranding.js';
@@ -34,6 +35,7 @@ import { Button } from '../../components/ui/button.js';
 import { Banner } from '../../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import '../sign/Sign.css';
+import './SignVerification.css';
 
 interface SealVerdict {
   sealPresent: boolean;
@@ -59,7 +61,7 @@ interface VerifyResult {
   seal: SealVerdict | null;
   signers: Array<{
     name: string; email: string; role_label: string | null;
-    status: string; signed_at: string | null;
+    status: string; signed_at: string | null; signature_reference?: string | null;
   }>;
   certification: {
     name: string; title: string; roll_number: string | null; firm: string | null;
@@ -168,7 +170,7 @@ function SealBadge({ seal }: { seal: SealVerdict | null }) {
   if (!seal.sealPresent) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--ink3)' }}>
-        <Icon name="info" size={12} /> No Digital Execution Seal on record for this envelope.
+        <Icon name="info" size={12} /> No Digital Execution Seal on record for this document.
       </div>
     );
   }
@@ -335,15 +337,20 @@ export function SignVerifyPage() {
       {/* Main Content Area */}
       <main className="sign-verify-main">
         <PageHeader crumbs={['eSign', 'Verification']} titlePlain="Verify" titleEm="document" subtitle="Look up a seal record or compare a document with its original." />
-        <Card className="sign-verify-card">          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+        <Card className="sign-verify-card">
+          <div className="sign-verify-methods">
             <Tabs className="sign-verify-modes" value={mode} onValueChange={(v) => { setMode(v as 'code' | 'upload'); setError(null); }} variant="segmented">
-              <TabsList>
-                <TabsTrigger value="code">Enter code</TabsTrigger>
-                <TabsTrigger value="upload">Upload document</TabsTrigger>
+              <TabsList aria-label="Verification method">
+                <TabsTrigger value="code"><Icon name="search" size={16}/>Enter code</TabsTrigger>
+                <TabsTrigger value="upload"><Icon name="upload" size={16}/>Upload document</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
+          <div className="sign-verify-introduction">
+            <h2>{mode==='code'?'Find a signing record':'Compare your document'}</h2>
+            <p>{mode==='code'?'Enter the verification code printed on the document’s execution seal.':'Upload the signed PDF or a clear scan or photo, including its verification seal.'}</p>
+          </div>
           {mode === 'code' && (() => {
             const isCurrentlyVerified = !!result && result.verification_code === code.trim().toUpperCase();
             return (
@@ -376,22 +383,17 @@ export function SignVerifyPage() {
           {mode === 'upload' && (
             <div style={{ marginBottom: 12 }}>
               <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-              <div
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value=''; }} />
+              <Button type="button" variant="outline" className="sign-verify-dropzone" data-dragging={dragOver} disabled={uploadStage!=='idle'}
                 onClick={() => fileInputRef.current?.click()}
-                role="button" tabIndex={0}
-                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInputRef.current?.click(); } }}
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                onDragEnter={e => { e.preventDefault(); setDragOver(true); }}
+                onDragOver={e => { e.preventDefault(); if(uploadStage==='idle')setDragOver(true); }}
+                onDragEnter={e => { e.preventDefault(); if(uploadStage==='idle')setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
-                onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
-                style={{ border: `2px dashed ${dragOver ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '28px 16px', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'var(--teal-l)' : 'var(--bg)', transition: 'background 0.15s, border-color 0.15s' }}>
-                <Icon name="upload" size={22} style={{ color: dragOver ? 'var(--teal)' : 'var(--ink3)', marginBottom: 8 }} />
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                  {dragOver ? 'Drop file here' : 'Click to upload or drag & drop'}
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>Photo, scan, or PDF · We'll read the QR or serial automatically.</div>
-              </div>
+                onDrop={e => { e.preventDefault(); setDragOver(false); if(uploadStage!=='idle')return; const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}>
+                <FeaturedIcon variant="brand" size="lg"><Icon name="upload" size={22}/></FeaturedIcon>
+                <span className="sign-verify-drop-title">{dragOver?'Drop your document here':'Choose a document'}<span> or drag and drop</span></span>
+                <span className="sign-verify-drop-description">PDF, photo or scan · QR code and serial detected automatically</span>
+              </Button>
 
               {uploadStage !== 'idle' && (
                 <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)' }}>
@@ -574,6 +576,7 @@ export function SignVerifyPage() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{s.name}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{s.email}{s.role_label ? ` · ${s.role_label}` : ''}</div>
+                        {s.signature_reference && <div style={{fontSize:12,color:'var(--ink2)',fontFamily:'monospace',overflowWrap:'anywhere',marginTop:4}}>Signature ref: {s.signature_reference}</div>}
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <span style={{ fontSize: 11.5, fontWeight: 600, color: s.status === 'signed' ? 'var(--green)' : 'var(--gold)', textTransform: 'capitalize' }}>{s.status}</span>
@@ -638,8 +641,8 @@ export function SignVerifyPage() {
             </div>
           )}
           <aside className="sign-verify-help">
-            <div><strong>Check a record</strong><p>A code confirms the stored seal and signing record. It does not prove that a separate copy is unchanged.</p></div>
-            <div><strong>Compare a copy</strong><p>Upload a PDF, scan, or photo to compare its content with the original document.</p></div>
+            <div className="sign-verify-help-item"><FeaturedIcon variant="gray" size="sm"><Icon name="shield" size={16}/></FeaturedIcon><div><strong>Check a record</strong><p>Confirm the recorded seal, signers and signing history. This does not check a separate copy for changes.</p></div></div>
+            <div className="sign-verify-help-item"><FeaturedIcon variant="gray" size="sm"><Icon name="fileText" size={16}/></FeaturedIcon><div><strong>Compare a copy</strong><p>Compare an uploaded PDF, scan or photo with the stored original and review any differences.</p></div></div>
           </aside>
         </Card>
 

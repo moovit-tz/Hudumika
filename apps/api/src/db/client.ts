@@ -5032,6 +5032,8 @@ export interface InventoryTasksTable {
 // ── eSign App Tables ─────────────────────────────────────────────────────────
 
 export interface SignEnvelopesTable {
+  generated_document_id: Generated<string | null>;
+  document_jurisdiction: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   created_by: string;
@@ -5136,6 +5138,7 @@ export interface SignRecipientsTable {
   otp_code_hash: string | null;
   otp_expires_at: Date | null;
   otp_verified_at: Date | null;
+  otp_attempts: Generated<number>;
   // Certified True Copy (migration 342) — real facts about a licensed
   // advocate/notary/commissioner recipient, not the tenant's own stamp.
   is_certifier: Generated<boolean>;
@@ -5212,6 +5215,8 @@ export interface SignEventsTable {
 }
 
 export interface SignTemplatesTable {
+  document_data: Generated<string | null>;
+  document_definition: Generated<unknown | null>;
   id: Generated<string>;
   tenant_id: string;
   created_by: string;
@@ -5221,6 +5226,21 @@ export interface SignTemplatesTable {
   recipients: unknown; // JSONB SignTemplateRecipientDef[]
   file_id: string | null;
   file_name: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SignGeneratedDocumentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  created_by: string;
+  template_id: string | null;
+  template_name: string;
+  definition: unknown;
+  title: string;
+  jurisdiction: string;
+  answers: unknown;
+  body: string;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -6150,6 +6170,7 @@ export interface Database {
   sign_fields: SignFieldsTable;
   sign_events: SignEventsTable;
   sign_templates: SignTemplatesTable;
+  sign_generated_documents: SignGeneratedDocumentsTable;
   sign_verifications: SignVerificationsTable;
   sign_signing_keys: SignSigningKeysTable;
   sign_forensic_jobs: SignForensicJobsTable;

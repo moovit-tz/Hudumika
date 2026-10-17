@@ -91,22 +91,32 @@ export function Combobox({
             only: whole label, then word start, then anywhere. */}
         <Command filter={comboboxFilter}>
           <CommandInput placeholder={searchPlaceholder || "Search…"} />
-          <CommandList>
-            <CommandEmpty>{emptyText || "No results."}</CommandEmpty>
+          <CommandList className="search-results-list">
+            <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">{emptyText || "No results found."}</CommandEmpty>
             <CommandGroup>
-              {options.map((o) => (
-                <CommandItem
-                  key={o.value}
-                  value={o.label}
-                  onSelect={() => { onChange(o.value); setOpen(false) }}
-                >
-                  <Check className={cn("h-4 w-4", value === o.value ? "opacity-100 text-primary" : "opacity-0")} />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate">{o.label}</span>
-                    {o.sublabel && <span className="truncate text-xs text-muted-foreground">{o.sublabel}</span>}
-                  </div>
-                </CommandItem>
-              ))}
+              {options.map((o) => {
+                const isSelected = value === o.value;
+                return (
+                  <CommandItem
+                    key={o.value}
+                    value={o.sublabel ? `${o.label} ${o.sublabel}` : o.label}
+                    data-is-selected={isSelected ? "true" : undefined}
+                    onSelect={() => { onChange(o.value); setOpen(false); }}
+                    className={cn(
+                      "flex items-center justify-between gap-2.5 px-3 py-2 cursor-pointer rounded-md text-[13px] font-medium transition-colors",
+                      isSelected && "is-selected font-semibold text-[var(--teal)]"
+                    )}
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
+                      <span className="truncate">{o.label}</span>
+                      {o.sublabel && <span className="truncate text-[11.5px] text-muted-foreground font-normal mt-0.5">{o.sublabel}</span>}
+                    </div>
+                    {isSelected && (
+                      <Check className="h-4 w-4 text-[var(--teal)] shrink-0 ml-auto" />
+                    )}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

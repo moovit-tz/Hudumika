@@ -52,20 +52,44 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--teal);
+  color: var(--ink);
   font-size: 12.5px;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
-  padding: 5px 12px;
-  border-radius: var(--r-sm);
-  background: var(--teal-l);
-  border: 1px solid transparent;
+  padding: 6px 14px;
+  border-radius: var(--r-sm, 6px);
+  background: var(--card-bg, var(--white));
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   transition: all var(--dur-fast, 120ms) ease;
 }
 
 .vendor-back-btn:hover {
-  background: color-mix(in srgb, var(--teal) 18%, transparent);
-  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
+  background: var(--bg);
+  border-color: var(--border2);
+  color: var(--teal);
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.vendor-quick-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 5px;
+  border-radius: var(--r-sm, 4px);
+  color: var(--ink2);
+  text-decoration: none;
+  transition: all var(--dur-fast, 80ms) ease;
+}
+
+.vendor-quick-action-link:hover {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.vendor-quick-action-link.is-whatsapp:hover {
+  background: var(--green-l);
+  color: var(--green);
 }
 
 /* ── Master Vendor Hero Card ── */

@@ -1,5 +1,5 @@
-﻿import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -54,197 +54,7 @@ const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   VOID:    { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
 };
 
-/* ── Detail Panel ───────────────────────────────────────────────────────────── */
-const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:     { bg: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
-  SENT:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
-  PARTIAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' },
-  RECEIVED:  { bg: 'var(--green-l)', color: 'var(--green)' },
-  CANCELLED: { bg: 'var(--red-l)', color: 'var(--red)' },
-};
 
-function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit, isMobile }: {
-  vendor: Vendor; bills: any[]; expenses: ExpenseListItem[]; purchaseOrders: any[];
-  onClose: () => void; onEdit: (v: Vendor) => void; isMobile?: boolean;
-}) {
-  const { fmt } = useCurrency();
-  const sc = VENDOR_STATUS_COLOR[vendor.status];
-  const vendorBills = bills.filter(b => b.supplier_id === vendor.id);
-  const vendorExpenses = expenses.filter(e => e.supplier_id === vendor.id);
-  const vendorPOs = purchaseOrders.filter(po => po.supplier_id === vendor.id);
-
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'var(--white)',
-      ...(isMobile ? { position: 'fixed', inset: 0, zIndex: 300 } : { width: '100%', minWidth: 0 }),
-    }}>
-      {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vendor.name}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{vendor.status.toUpperCase()}</span>
-            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{VENDOR_CATEGORY_LABEL[vendor.category]}</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <Tip label="Edit vendor"><button type="button" aria-label="Edit vendor" onClick={() => onEdit(vendor)}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
-            <Icon name="edit" size={14} color="var(--ink2)" />
-          </button></Tip>
-          <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
-            <Icon name="x" size={14} color="var(--ink2)" />
-          </button></Tip>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-        {/* Balance summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-          {[
-            { label: 'Outstanding', value: fmt(vendor.balance), color: vendor.balance > 0 ? 'var(--red)' : 'var(--green)' },
-            { label: 'Total Paid', value: fmt(vendor.totalPaid), color: 'var(--ink)' },
-          ].map(c => (
-            <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{c.label}</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: c.color, fontFamily: 'var(--font)' }}>{c.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Payment terms */}
-        <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderRadius: 'var(--r)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="clock" size={14} color="var(--teal)" />
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>Payment Terms: {PAYMENT_TERMS_LABEL[vendor.paymentTerms]}</span>
-        </div>
-
-        {/* Contact info */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Contact Details</div>
-          {[
-            { icon: 'user'    as const, label: 'Contact Person', value: vendor.contactPerson || '—' },
-            { icon: 'mail'    as const, label: 'Email',          value: vendor.email || '—' },
-            { icon: 'phone'   as const, label: 'Phone',          value: vendor.phone || '—' },
-            { icon: 'mapPin'  as const, label: 'Address',        value: [vendor.address, vendor.city, vendor.country].filter(Boolean).join(', ') || '—' },
-          ].map(r => (
-            <div key={r.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-              <Icon name={r.icon} size={14} color="var(--ink3)" style={{ marginTop: 1, flexShrink: 0 }} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', marginBottom: 2 }}>{r.label}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', wordBreak: 'break-word' }}>{r.value}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tax & Bank */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Tax & Banking</div>
-          {[
-            { label: 'Tax ID / TIN', value: vendor.taxId || '—' },
-            { label: 'Bank', value: vendor.bankName || '—' },
-            { label: 'Account No.', value: vendor.bankAccount || '—' },
-            { label: 'Currency', value: vendor.currency },
-          ].map(r => (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
-              <span style={{ color: 'var(--ink3)' }}>{r.label}</span>
-              <span style={{ fontWeight: 600, color: 'var(--ink)', fontFamily: r.label === 'Account No.' ? 'var(--font)' : undefined }}>{r.value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Bills */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
-            Bills ({vendorBills.length})
-          </div>
-          {vendorBills.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '10px 0' }}>No bills recorded for this supplier yet.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {vendorBills.map((b) => {
-                const bc = BILL_STATUS_COLOR[b.status] || BILL_STATUS_COLOR.DRAFT;
-                return (
-                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{b.bill_number}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.bill_date ? String(b.bill_date).slice(0, 10) : '—'}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{fmt(Number(b.total) || 0, b.currency)}</div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-sm)', ...bc }}>{b.status}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Purchase Orders */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
-            Purchase Orders ({vendorPOs.length})
-          </div>
-          {vendorPOs.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '10px 0' }}>No purchase orders placed with this supplier yet.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {vendorPOs.map((po) => {
-                const pc = PO_STATUS_COLOR[po.status] || PO_STATUS_COLOR.DRAFT;
-                return (
-                  <div key={po.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{po.po_number}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{po.order_date ? String(po.order_date).slice(0, 10) : '—'}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{fmt(Number(po.total) || 0, po.currency)}</div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--r-sm)', ...pc }}>{po.status}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Expenses */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
-            Expenses ({vendorExpenses.length})
-          </div>
-          {vendorExpenses.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '10px 0' }}>No expenses logged for this supplier yet.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {vendorExpenses.map((e) => (
-                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r)'}}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{e.date.split('T')[0]}</div>
-                  </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--font)', flexShrink: 0 }}>
-                    {e.is_revenue ? '+' : '-'}{fmt(e.amount, 'TZS')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {vendor.notes && (
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Notes</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, background: 'var(--bg)', padding: '10px 12px', borderRadius: 'var(--r)'}}>{vendor.notes}</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ── Add / Edit Modal ───────────────────────────────────────────────────────── */
 function VendorForm({ vendor, onSave, onClose }: {
@@ -363,6 +173,7 @@ function VendorForm({ vendor, onSave, onClose }: {
 
 /* ── Main Page ──────────────────────────────────────────────────────────────── */
 export function FinanceVendors() {
+  const navigate = useNavigate();
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
@@ -382,7 +193,6 @@ export function FinanceVendors() {
   const [filterStatus, setFilterStatus] = useState<VendorStatus | ''>('');
   const [showFilters, setShowFilters] = useState(false);
   const activeFilterCount = (filterCat ? 1 : 0) + (filterStatus ? 1 : 0);
-  const [selected, setSelected]       = useState<Vendor | null>(null);
   const [showForm, setShowForm]       = useState(false);
   const [editVendor, setEditVendor]   = useState<Vendor | null>(null);
   const [vStats, setVStats] = useState<{ total: number; active: number; activeRate: number } | null>(null);
@@ -416,14 +226,12 @@ export function FinanceVendors() {
 
   useEffect(() => { loadVendors(); fetchStats(); }, [fetchStats]);
 
-  // Deep-link straight to a vendor's detail panel — same ?id= pattern
-  // Customers.tsx already supports, now used for the "Paid To Supplier"
-  // link on FinOps Expenses (Expenses.tsx).
+  // Deep-link redirect to vendor's dedicated profile page
   useEffect(() => {
-    if (!deepLinkId || !vendors.length || selected) return;
-    const match = vendors.find(v => v.id === deepLinkId);
-    if (match) setSelected(match);
-  }, [deepLinkId, vendors]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (deepLinkId) {
+      navigate(`/finance/vendors/${deepLinkId}`, { replace: true });
+    }
+  }, [deepLinkId, navigate]);
 
   /* fin:new-doc listener */
   useEffect(() => {
@@ -493,7 +301,7 @@ export function FinanceVendors() {
   async function handleDelete(id: string) {
     if (!(await showConfirm('Delete this vendor? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     apiFetch(`/v1/suppliers/${id}`, { method: 'DELETE' })
-      .then(() => { setVendors(prev => prev.filter(v => v.id !== id)); if (selected?.id === id) setSelected(null); })
+      .then(() => { setVendors(prev => prev.filter(v => v.id !== id)); })
       .catch((err: unknown) => showAlert(err instanceof Error ? err.message : 'Could not delete this vendor.'));
   }
 
@@ -581,10 +389,8 @@ export function FinanceVendors() {
         )}
       </div>
 
-      {/* Split body */}
-      <div style={{ display: 'flex', margin: '0 0 20px' }}>
-        {/* Table */}
-        <div style={{ flex: 1, minWidth: 0, display: selected ? 'none' : 'block' }}>
+      {/* Vendors Table */}
+      <div style={{ margin: '0 0 20px' }}>
         <SectionCard padded={false}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
@@ -600,17 +406,16 @@ export function FinanceVendors() {
               )}
               {filtered.map(v => {
                 const sc = VENDOR_STATUS_COLOR[v.status];
-                const isActive = selected?.id === v.id;
                 return (
                   <tr key={v.id}
-                    onClick={() => setSelected(isActive ? null : v)}
-                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', background: isActive ? 'var(--teal-l)' : undefined, transition: 'background .1s' }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isActive ? 'var(--teal-l)' : ''; }}
+                    onClick={() => navigate(`/finance/vendors/${v.id}`)}
+                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .1s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
                   >
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{v.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{v.id}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--font)' }}>{v.id}</div>
                     </td>
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{VENDOR_CATEGORY_LABEL[v.category]}</td>
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{v.contactPerson || '—'}</td>
@@ -619,9 +424,15 @@ export function FinanceVendors() {
                     <td style={{ padding: '12px 14px' }}>
                       <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
                     </td>
-                    <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 10px', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                      <Tip label="View Profile"><button type="button" aria-label={`View ${v.name} profile`} onClick={e => { e.stopPropagation(); navigate(`/finance/vendors/${v.id}`); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--teal)', borderRadius: 'var(--r)', marginRight: 4 }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
+                        <Icon name="externalLink" size={14} />
+                      </button></Tip>
                       <Tip label="Edit"><button type="button" aria-label={`Edit ${v.name}`} onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)', marginRight: 4 }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                         <Icon name="edit" size={14} />
@@ -639,20 +450,6 @@ export function FinanceVendors() {
             </tbody>
           </table>
         </SectionCard>
-        </div>
-
-        {/* Detail panel */}
-        {selected && (
-          <VendorDetail
-            vendor={selected}
-            bills={bills}
-            expenses={expenses}
-            purchaseOrders={purchaseOrders}
-            onClose={() => setSelected(null)}
-            onEdit={v => { setEditVendor(v); setShowForm(true); }}
-            isMobile={isMobile}
-          />
-        )}
       </div>
 
       {/* Form modal */}

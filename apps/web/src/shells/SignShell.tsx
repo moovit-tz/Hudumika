@@ -13,7 +13,9 @@ import { RequireRoles } from '../components/RequireRoles.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { SignDocuments, SignInbox, SignEnvelopeDetail, SignAllDocuments } from '../pages/sign/SignInbox.js';
 import { SignEditor } from '../pages/sign/SignEditor.js';
-import { SignTemplates } from '../pages/sign/SignTemplates.js';
+import { SignDocumentLibrary } from '../pages/sign/SignDocumentLibrary.js';
+import { SignTemplatePreview } from '../pages/sign/SignTemplatePreview.js';
+import { SignCreationWorkspace, SignCreationRedirect } from '../pages/sign/SignCreationWorkspace.js';
 import { SignJournalPage } from '../pages/sign/SignJournalPage.js';
 import { SignMattersPage } from '../pages/sign/SignMattersPage.js';
 import { SignForensicCasesPage } from '../pages/sign/SignForensicCasesPage.js';
@@ -36,8 +38,8 @@ function buildNav(isDocAdmin: boolean): SidebarSection[] {
     {
       title: 'Create',
       items: [
-        { label: 'New Envelope', path: '/sign/editor',    icon: 'plusCircle' },
-        { label: 'Templates',    path: '/sign/templates', icon: 'layers' },
+        { label: 'New Document', path: '/sign/editor',    icon: 'plusCircle' },
+        { label: 'Document Library', path: '/sign/templates', icon: 'layers' },
       ],
     },
     {
@@ -74,7 +76,7 @@ export function SignShell() {
           <div className="app-shell-content">
             <Routes>
               {/* Editor is full-bleed — needs entire viewport, no PageLayout wrapper */}
-              <Route path="editor"       element={<SignEditor />} />
+              <Route path="editor"       element={<SignCreationWorkspace />} />
               <Route path="editor/:id"   element={<SignEditor />} />
 
               {/* Standard page-layout routes */}
@@ -90,7 +92,11 @@ export function SignShell() {
                 <Route path="expired"         element={<SignInbox view="expired" />} />
                 <Route path="journal"         element={<SignJournalPage />} />
                 <Route path="envelope/:id"    element={<SignEnvelopeDetail />} />
-                <Route path="templates"       element={<SignTemplates />} />
+                <Route path="templates/new" element={<SignCreationRedirect mode="author" />} />
+                <Route path="templates/build/:templateId" element={<SignCreationRedirect mode="guided" />} />
+                <Route path="templates/preview/:templateId" element={<SignTemplatePreview />} />
+                <Route path="templates/documents/:documentId" element={<SignCreationRedirect mode="draft" />} />
+                <Route path="templates"       element={<SignDocumentLibrary />} />
                 <Route path="admin/all"       element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignAllDocuments /></RequireRoles>} />
                 <Route path="matters"            element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignMattersPage /></RequireRoles>} />
                 <Route path="matters/:reference"  element={<RequireRoles roles={[...DOCUMENT_ADMIN_ROLES]}><SignMattersPage /></RequireRoles>} />

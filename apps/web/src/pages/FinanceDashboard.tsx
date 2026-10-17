@@ -514,13 +514,13 @@ export function FinanceDashboard() {
                     </strong>
                     <span className="fin-pnl-tile-sub">Posted Inflow</span>
                   </div>
-                  <div className="fin-pnl-tile">
+                  <Link to="/finance/expenses" className="fin-pnl-tile fin-pnl-tile--link">
                     <span className="fin-pnl-tile-label">Operating Expenses</span>
                     <strong className="fin-pnl-tile-val">
                       {money(activeExp)}
                     </strong>
                     <span className="fin-pnl-tile-sub">Ledger Disbursements</span>
-                  </div>
+                  </Link>
                   <div className="fin-pnl-tile">
                     <span className="fin-pnl-tile-label">Net Operating Result</span>
                     <strong className="fin-pnl-tile-val">
@@ -553,10 +553,10 @@ export function FinanceDashboard() {
                       <span className="fin-dot-sm fin-dot-sm--brand" />
                       Net Retained Earnings ({money(activeNet)})
                     </span>
-                    <span>
+                    <Link to="/finance/expenses" className="fin-flow-link">
                       <span className="fin-dot-sm fin-dot-sm--neutral" />
                       Operating Disbursements ({money(activeExp)})
-                    </span>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -566,6 +566,12 @@ export function FinanceDashboard() {
                   Ledger statements reconciled continuously
                 </span>
                 <div className="fin-footer-actions">
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/finance/expenses">
+                      <Icon name="creditCard" size={13} />
+                      <span>Expenses</span>
+                    </Link>
+                  </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link to="/finance/accounts/profit-loss">
                       <Icon name="fileText" size={13} />

@@ -313,16 +313,12 @@ export function VendorProfilePage() {
     const totalPaidOnBills = bills.reduce((s, b) => s + (Number(b.paid_amount) || 0), 0);
     const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
     const totalPOValue = purchaseOrders.reduce((s, po) => s + (Number(po.total) || 0), 0);
-    const outstanding = Math.max(0, totalBilled - totalBillPaidOnBills());
+    const outstanding = Math.max(0, totalBilled - totalPaidOnBills);
     const overdueBills = bills.filter(b => {
       const bal = Math.max(0, (Number(b.total) || 0) - (Number(b.paid_amount) || 0));
       return bal > 0 && ['POSTED', 'PARTIAL'].includes(b.status) && b.due_date && new Date(b.due_date) < new Date();
     });
     const overdueAmount = overdueBills.reduce((s, b) => s + Math.max(0, (Number(b.total) || 0) - (Number(b.paid_amount) || 0)), 0);
-
-    function totalBillPaidOnBills() {
-      return totalBillPaid;
-    }
 
     return {
       totalBilled,
@@ -491,7 +487,7 @@ export function VendorProfilePage() {
         date: exp.date ? exp.date.split('T')[0] : '',
         type: 'expense',
         title: exp.name || 'Expense Claim',
-        subtitle: `${exp.payment_mode || 'Cash'} · ${exp.category || 'General'}`,
+        subtitle: `${(exp as any).payment_mode || 'Cash'} · ${exp.category || 'General'}`,
         amount: Number(exp.amount) || 0,
         currency: 'TZS',
         status: 'LOGGED',
@@ -619,12 +615,30 @@ export function VendorProfilePage() {
                   <span className="vendor-meta-chip">
                     <Icon name="phone" size={13} style={{ color: 'var(--ink3)' }} />
                     <a href={`tel:${v.phone}`}>{v.phone}</a>
+                    {phoneFormatted && (
+                      <a
+                        href={`https://wa.me/${phoneFormatted.replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="vendor-quick-action-link is-whatsapp"
+                        title="Chat on WhatsApp"
+                      >
+                        <Icon name="messageSquare" size={11} style={{ color: 'var(--green)' }} />
+                      </a>
+                    )}
                   </span>
                 )}
                 {v.email && (
                   <span className="vendor-meta-chip">
                     <Icon name="mail" size={13} style={{ color: 'var(--ink3)' }} />
                     <a href={`mailto:${v.email}`}>{v.email}</a>
+                    <a
+                      href={`mailto:${v.email}?subject=Inquiry from ${getCompany().name}`}
+                      className="vendor-quick-action-link"
+                      title="Send email"
+                    >
+                      <Icon name="send" size={11} />
+                    </a>
                   </span>
                 )}
                 {(v.address || v.city || v.country) && (
@@ -644,76 +658,50 @@ export function VendorProfilePage() {
 
           {/* Quick Action Buttons */}
           <div className="vendor-hero-actions">
-            {v.email && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.href = `mailto:${v.email}?subject=Inquiry from ${getCompany().name}`}
-                title="Send email to supplier"
-              >
-                <Icon name="mail" size={14} />
-                <span>Email</span>
-              </Button>
-            )}
-
-            {phoneFormatted && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.href = `tel:${phoneFormatted}`}
-                  title="Call supplier phone"
-                >
-                  <Icon name="phone" size={14} />
-                  <span>Call</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`https://wa.me/${phoneFormatted.replace(/[^0-9]/g, '')}`, '_blank', 'noopener')}
-                  title="Chat on WhatsApp"
-                >
-                  <Icon name="messageSquare" size={14} style={{ color: 'var(--green)' }} />
-                  <span>WhatsApp</span>
-                </Button>
-              </>
-            )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)}
-              title="Record a new supplier bill"
+            <button
+              type="button"
+              onClick={() => handleTabChange('edit')}
+              className="btn btn-secondary btn-sm"
+              data-ui-native-button=""
+              title="Edit vendor profile details"
             >
-              <Icon name="plus" size={14} />
-              <span>Record Bill</span>
-            </Button>
+              <Icon name="edit" size={14} />
+              <span>Edit Profile</span>
+            </button>
 
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              type="button"
               onClick={() => navigate(`/finance/purchase-orders?supplier_id=${v.id}&new=1`)}
+              className="btn btn-secondary btn-sm"
+              data-ui-native-button=""
               title="Issue a purchase order"
             >
               <Icon name="shoppingCart" size={14} />
               <span>New PO</span>
-            </Button>
+            </button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleTabChange('edit')}
-              title="Edit vendor profile details"
+            <button
+              type="button"
+              onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)}
+              className="btn btn-primary btn-sm"
+              data-ui-native-button=""
+              title="Record a new supplier bill"
             >
-              <Icon name="edit" size={14} />
-              <span>Edit</span>
-            </Button>
+              <Icon name="plus" size={14} />
+              <span>Record Bill</span>
+            </button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" style={{ padding: '0 8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '0 10px' }}
+                  data-ui-native-button=""
+                  aria-label="More vendor actions"
+                >
                   <Icon name="moreHorizontal" size={16} />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
@@ -742,7 +730,7 @@ export function VendorProfilePage() {
                 <DropdownMenuSeparator />
                 {v.status === 'active' ? (
                   <DropdownMenuItem onClick={() => handleToggleStatus('inactive')} style={{ color: 'var(--ink2)' }}>
-                    <Icon name="slash" size={14} />
+                    <Icon name="pause" size={14} />
                     <span>Set Inactive</span>
                   </DropdownMenuItem>
                 ) : (
@@ -1341,7 +1329,7 @@ export function VendorProfilePage() {
                         <td style={{ fontWeight: 700 }}>{e.name}</td>
                         <td style={{ color: 'var(--ink2)' }}>{e.category}</td>
                         <td style={{ color: 'var(--ink2)' }}>{e.date.split('T')[0]}</td>
-                        <td style={{ color: 'var(--ink3)' }}>{e.payment_mode || 'Cash'}</td>
+                        <td style={{ color: 'var(--ink3)' }}>{(e as any).payment_mode || 'Cash'}</td>
                         <td style={{ fontWeight: 700, fontFamily: 'var(--font)', color: e.is_revenue ? 'var(--green)' : 'var(--red)' }}>
                           {e.is_revenue ? '+' : '-'}{fmt(e.amount, 'TZS')}
                         </td>
@@ -1602,14 +1590,24 @@ export function VendorProfilePage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-                <Button type="button" variant="outline" onClick={() => handleTabChange('overview')}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('overview')}
+                  className="btn btn-secondary"
+                  data-ui-native-button=""
+                >
                   Cancel
-                </Button>
-                <Button type="submit" disabled={savingEdit || !editForm.name?.trim()}>
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit || !editForm.name?.trim()}
+                  className="btn btn-primary"
+                  data-ui-native-button=""
+                >
                   <Icon name="check" size={14} />
-                  <span>{savingEdit ? 'Saving Changes…' : 'Save Vendor Profile'}</span>
-                </Button>
+                  <span>{savingEdit ? 'Saving Changes…' : 'Save Changes'}</span>
+                </button>
               </div>
             </form>
           </div>

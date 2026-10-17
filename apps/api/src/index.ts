@@ -233,6 +233,7 @@ import { onsiteAgencyClientRoutes } from './routes/onsite-agency-client.routes.j
 import { onsiteAgencyDirectoryPublicRoutes, onsiteAgencyDirectoryManageRoutes } from './routes/onsite-agency-directory.routes.js';
 import { onsiteBackupsRoutes } from './routes/onsite-backups.routes.js';
 import { isMeteredPath, incrementUsage, incrementAppUsage } from './lib/usage.js';
+import { signDocumentsRoutes } from './routes/sign-documents.routes.js';
 import { signRoutes, signPublicRoutes } from './routes/sign.routes.js';
 import { signStampsRoutes } from './routes/sign-stamps.routes.js';
 import { signVersionsRoutes } from './routes/sign-versions.routes.js';
@@ -764,6 +765,7 @@ export async function registerApp() {
     await server.register(onsiteAgencyDirectoryPublicRoutes, { prefix: '/v1/agency-directory' });
     await server.register(onsiteAgencyDirectoryManageRoutes, { prefix: '/v1/onsite/agency/directory' });
     await server.register(signRoutes, { prefix: '/v1/sign' });
+    await server.register(signDocumentsRoutes, { prefix: '/v1/sign' });
     await server.register(signPublicRoutes, { prefix: '/v1/sign' });
     await server.register(bookingPublicRoutes, { prefix: '/v1/booking-public' });
     await server.register(calendarSyncRoutes, { prefix: '/v1/tasks/calendar-sync' });

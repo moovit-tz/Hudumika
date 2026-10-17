@@ -1,0 +1,312 @@
+/* FinanceExpenseNew.css — Expense creation form */
+
+.expense-new-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding-bottom: 60px;
+}
+
+.expense-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+/* ── Error bar ── */
+.expense-error-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r, 10px);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, var(--border));
+  background: color-mix(in srgb, var(--red) 6%, var(--bg));
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+}
+.expense-error-bar > span { flex: 1; }
+.expense-error-dismiss {
+  background: none; border: none; cursor: pointer;
+  color: var(--red); opacity: 0.65; padding: 2px;
+}
+.expense-error-dismiss:hover { opacity: 1; }
+
+/* ── Hero Snapshot Banner ── */
+.expense-hero-card {
+  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 70%),
+              var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+}
+
+.expense-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.expense-hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+}
+
+.expense-hero-val {
+  font-size: clamp(22px, 3.5vw, 28px);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.expense-hero-currency {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--teal);
+  text-transform: uppercase;
+}
+
+.expense-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.expense-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+}
+
+.expense-hero-chip.teal {
+  background: var(--teal-l);
+  color: var(--teal);
+  border-color: transparent;
+}
+
+/* ── Amount Input with Currency Badge ── */
+.expense-amount-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.expense-amount-badge {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  background: var(--bg);
+  padding: 2px 7px;
+  border-radius: var(--r-sm, 4px);
+  border: 1px solid var(--border);
+  pointer-events: none;
+  user-select: none;
+}
+
+.expense-amount-input {
+  padding-left: 56px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+
+/* ── Section cards ── */
+.expense-section-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  padding: 20px 22px;
+  box-shadow: var(--elev-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.expense-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.expense-section-icon {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.expense-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+/* ── Form grid ── */
+.expense-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+.expense-form-grid--single {
+  grid-template-columns: 1fr;
+}
+
+.expense-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  width: 100%;
+}
+
+.expense-field-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+}
+.expense-field-label .req {
+  color: var(--red);
+  margin-left: 1px;
+}
+
+/* ── Receipt dropzone ── */
+.expense-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--r, 10px);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  text-align: center;
+}
+.expense-dropzone:hover,
+.expense-dropzone--active {
+  border-color: var(--teal);
+  background: var(--teal-l);
+}
+.expense-dropzone-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--white);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink2);
+  transition: all 0.15s ease;
+}
+.expense-dropzone:hover .expense-dropzone-icon,
+.expense-dropzone--active .expense-dropzone-icon {
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  border-color: var(--teal);
+}
+
+.expense-attachment-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r, 10px);
+  background: var(--bg);
+}
+.expense-attachment-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-sm, 6px);
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--white);
+}
+
+/* ── Actions bar ── */
+.expense-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 767px) {
+  .expense-new-page {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 16px;
+    padding-bottom: 90px;
+  }
+  .expense-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .expense-section-card {
+    padding: 14px;
+    gap: 14px;
+  }
+  .expense-actions-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-bg, #ffffff);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  }
+  .expense-actions-bar button,
+  .expense-actions-bar a {
+    flex: 1;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .expense-field input,
+  .expense-field button[data-slot="combobox-trigger"],
+  .expense-field button[data-slot="select-trigger"],
+  .expense-dropzone {
+    min-height: 44px !important;
+  }
+}

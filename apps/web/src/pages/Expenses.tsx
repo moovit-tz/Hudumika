@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -245,7 +245,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Paid To Supplier</div>
             {supplier ? (
-              <Link to={`/finance/vendors?id=${supplier.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
+              <Link to={`/finance/vendors/${supplier.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-l)', padding: '4px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
                 <Icon name="warehouse" size={12} /> {supplier.name}
               </Link>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}

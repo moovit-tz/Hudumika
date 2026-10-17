@@ -1,0 +1,98 @@
+.sign-library { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.sign-library h2 { font-size: 18px; font-weight: 700; margin: 0; line-height: 1.4; color: var(--ink); }
+.sign-library p { font-size: 13px; line-height: 1.7; color: var(--ink3); margin: 0; }
+.sign-library-intro { display: flex; align-items: center; gap: 18px; padding: 24px; }
+.sign-library-intro > div:nth-child(2) { flex: 1; }
+.sign-library-intro p { margin-top: 6px; }
+.sign-library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+.sign-library-item { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.sign-library-item-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sign-library-category { color: var(--teal); font-size: 11px; font-weight: 600; margin-top: 8px; }
+.sign-library-item > p { display: none; }
+.sign-library-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--ink3); border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px; }
+.sign-library-meta > span { display: flex; align-items: center; gap: 5px; }
+.sign-library-empty { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px 24px; text-align: center; grid-column: 1 / -1; }
+.sign-library .sign-library-footnote { font-size: 12px; color: var(--ink3); line-height: 1.7; }
+.sign-builder-progress { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sign-builder-grid { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(0, 1.5fr); gap: 24px; align-items: start; }
+.sign-builder-form { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+.sign-builder-form label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink2); min-width: 0; }
+.sign-document-preview { padding: 32px; position: sticky; top: 20px; }
+.sign-preview-heading { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink3); border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+.sign-document-preview > h2 { margin-bottom: 24px; font-size: 22px; }
+.sign-document-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; color: var(--ink2); line-height: 1.85; min-height: 540px; }
+textarea.sign-document-text { width: 100%; height: 70vh; padding: 18px; resize: vertical; }
+.sign-question-editor { border-top: 1px solid var(--border); padding-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.sign-builder-form .sign-question-required { flex-direction: row; align-items: center; }
+@media (max-width: 1000px) { .sign-builder-grid { grid-template-columns: 1fr; } .sign-document-preview { position: static; } }
+@media (max-width: 640px) { .sign-library { gap: 18px; } .sign-library-intro { flex-wrap: wrap; padding: 18px; } .sign-library-intro > div:nth-child(2) { flex-basis: 70%; } .sign-library-item, .sign-builder-form, .sign-document-preview { padding: 18px; } .sign-builder-progress { gap: 8px; } .sign-library .stb { flex-wrap: wrap; height: auto; } .sign-library .stb-search { flex: 1 1 100%; min-width: 0; } .sign-library .stb-actions { margin-left: auto; } }
+
+.sign-library-view-switch { display: flex; align-items: center; gap: 2px; }
+.sign-library-results { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 24px; color: var(--ink3); font-size: 12px; }
+.sign-library-apps { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; }
+.sign-library-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.sign-library-item > .sign-library-item-actions { flex-direction: column; margin-top: 4px; }
+.sign-library-row-heading, .sign-library-row { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(100px, .85fr) minmax(120px, 1fr) 90px; gap: 12px; align-items: center; padding: 10px 14px; }
+.sign-library-row-heading { padding-block: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink3); }
+.sign-library-rows > ul { display: flex; flex-direction: column; gap: 10px; list-style: none; padding: 0; margin: 0; }
+.sign-library-row-title { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.sign-library-row-title > div:last-child { min-width: 0; }
+.sign-library-row-title h2 { font-size: 14px; margin-top: 4px; overflow-wrap: anywhere; }
+.sign-library-row-title p { font-size: 12px; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.sign-library-row-details { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--ink3); }
+.sign-library-row .sign-library-item-actions { flex-direction: column; align-items: stretch; }
+.sign-library-filter-panel { display: flex; flex-direction: column; gap: 18px; padding: 20px; width: 100%; min-width: 0; max-height: 75vh; overflow: auto; color: var(--ink); }
+.sign-library-filter-panel label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-weight: 600; }
+.sign-library-filter-panel > p { font-size: 12px; color: var(--ink3); line-height: 1.6; margin: 0; }
+.sign-library-filter-panel > div:last-child { display: flex; justify-content: space-between; gap: 12px; }
+.sign-template-app-picker { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink2); font-weight: 600; }
+.sign-template-app-picker p { font-weight: 400; }
+.sign-library .stb { min-width: 0; }
+.sign-library .stb-actions { flex-wrap: wrap; }
+@media (max-width: 1100px) { .sign-library-row-heading { display: none; } .sign-library-row { grid-template-columns: minmax(0, 1fr) minmax(170px, .6fr); } .sign-library-row-title { grid-column: 1 / -1; } .sign-library-row .sign-library-item-actions { grid-column: 1 / -1; flex-direction: row; } }
+@media (max-width: 640px) { .sign-library-row { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 14px; } .sign-library-row-details { flex-direction: row; flex-wrap: wrap; align-items: center; } .sign-library-row .sign-library-item-actions > button { flex: 1; white-space: normal; } .sign-library .stb { align-items: stretch; } .sign-library .stb-actions { width: auto; flex: 1; justify-content: flex-start; margin-left: 0; } .sign-library-view-switch { margin-left: auto; } }
+
+.sign-library-results > button { flex-shrink: 0; white-space: nowrap; }
+
+.sign-library-thumbnail-button { display: flex; align-items: flex-start; justify-content: center; overflow: hidden; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm); height: 100px; padding-top: 8px; flex-shrink: 0; }
+.sign-template-thumbnail { display: block; width: 100px; height: auto; box-shadow: var(--elev-sm); }
+.sign-library-title-button { color: inherit; text-decoration: none; }
+.sign-library-title-button:hover { color: var(--teal); }
+.sign-library-title-button:focus-visible, .sign-library-thumbnail-button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.sign-library-item h2 { font-size: 14px; min-height: 39px; }
+.sign-library-item-top { margin-top: 0; }
+.sign-library-item .sign-library-category { margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sign-library-item .sign-library-meta { padding-top: 8px; margin-top: auto; font-size: 11px; }
+.sign-library-item .sign-library-apps { flex-wrap: nowrap; overflow: hidden; max-height: 24px; }
+.sign-library-item .sign-library-apps > * { flex-shrink: 0; }
+.sign-library-item .sign-library-item-actions { margin-top: 0; }
+.sign-library-row-title .sign-library-thumbnail-button { width: 40px; height: 54px; padding: 0; background: transparent; }
+.sign-library-row-title .sign-template-thumbnail { width: 40px; }
+.sign-library-row-title .sign-library-category { margin-top: 0; }
+.sign-library-row-details { gap: 3px; }
+.sign-library-row-details > small { display: none; }
+.sign-library-rows > ul { gap: 6px; }
+.sign-library-row .sign-library-apps { max-height: 52px; overflow: hidden; }
+.sign-template-preview-layout { display: grid; grid-template-columns: 260px minmax(0,1fr); gap: 24px; align-items: start; }
+.sign-template-preview-info { display: flex; flex-direction: column; align-items: stretch; gap: 16px; padding: 20px; }
+.sign-template-preview-info > .sign-template-thumbnail { width: 100px; align-self: center; }
+.sign-template-preview-info > .badge { align-self: flex-start; }
+.sign-template-preview-info label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink2); font-weight: 600; }
+.sign-template-reading-paper { padding: 36px; min-width: 0; }
+.sign-template-reading-paper > h2 { margin-bottom: 24px; }
+@media (max-width:1100px) {
+  .sign-library-row { grid-template-columns: minmax(0,1fr) 90px; gap: 10px; }
+  .sign-library-row-title { grid-column: auto; }
+  .sign-library-row > .sign-library-apps, .sign-library-row > .sign-library-row-details { display: none; }
+  .sign-library-row .sign-library-item-actions { grid-column: auto; flex-direction: column; }
+}
+@media (max-width:640px) {
+  .sign-library-item { padding: 12px; }
+  .sign-library-row { padding: 10px; grid-template-columns: minmax(0,1fr) 78px; }
+  .sign-library-row-title { gap: 8px; }
+  .sign-library-row-title h2 { font-size: 13px; }
+  .sign-library-row-title p { display: none; }
+  .sign-template-preview-layout { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .sign-template-preview-info > .sign-template-thumbnail { display: none; }
+  .sign-template-reading-paper { padding: 20px; }
+}

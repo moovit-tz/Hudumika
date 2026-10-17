@@ -1,0 +1,698 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   FinanceExpenseReports.css — Hudumika Expense Reports Design System
+   Modern, Responsive, Table & Card Views, Mobile Ergonomics
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.expense-reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Top Metrics Banner ── */
+.expense-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.expense-metric-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.expense-metric-card:hover {
+  border-color: color-mix(in srgb, var(--teal) 30%, var(--border));
+}
+
+.expense-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.expense-metric-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+}
+
+.expense-metric-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.expense-metric-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.expense-metric-sub {
+  font-size: 11.5px;
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+/* ── Toolbar (Tabs Left, Search & View Right) ── */
+.expense-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.expense-tabs-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg, 12px);
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.expense-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r, 8px);
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.expense-tab-btn:hover:not(.active) {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.expense-tab-btn.active {
+  background: var(--card-bg, #ffffff);
+  color: var(--teal);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.expense-tab-pill {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: var(--bg);
+  color: var(--ink2);
+}
+
+.expense-tab-btn.active .expense-tab-pill {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.expense-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.expense-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 240px;
+}
+
+.expense-search-input {
+  padding-left: 32px !important;
+  height: 36px !important;
+  font-size: 12.5px !important;
+  border-radius: var(--r, 8px) !important;
+}
+
+.expense-view-toggle {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  padding: 2px;
+  gap: 2px;
+}
+
+.expense-view-btn {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--ink3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.expense-view-btn.active {
+  background: var(--card-bg, #ffffff);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Modern Table View ── */
+.expense-table-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  width: 100%;
+}
+
+.expense-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.expense-table th {
+  background: var(--bg);
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.expense-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.expense-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.expense-table tbody tr:hover {
+  background: var(--hover-bg, rgba(15, 23, 42, 0.02));
+}
+
+.expense-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.expense-report-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expense-report-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--teal-l);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.expense-report-name-link {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  line-height: 1.3;
+  transition: color 0.15s ease;
+}
+
+.expense-report-name-link:hover {
+  color: var(--teal);
+}
+
+/* ── Modern Card Grid View ── */
+.expense-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.expense-report-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.expense-report-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+}
+
+.expense-report-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.expense-report-card-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.expense-report-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.expense-report-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink3);
+  flex-wrap: wrap;
+}
+
+.expense-report-card-note {
+  font-size: 12px;
+  color: var(--ink2);
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: var(--r-sm, 6px);
+  border-left: 3px solid var(--border);
+  line-height: 1.4;
+}
+
+.expense-report-card-note.rejection {
+  border-left-color: var(--red);
+  background: var(--red-l);
+  color: var(--red);
+}
+
+.expense-report-card-ftr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+}
+
+/* ── Interactive Workflow Stepper (Evenly Distributed) ── */
+.expense-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.expense-step-segment {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.expense-step-segment:last-child {
+  flex: 0 0 auto;
+}
+
+.expense-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.expense-step-item.is-done {
+  color: var(--teal);
+}
+
+.expense-step-item.is-current {
+  color: var(--ink);
+}
+
+.expense-step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  color: var(--ink3);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.expense-step-item.is-done .expense-step-circle {
+  background: var(--teal-l);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.expense-step-item.is-current .expense-step-circle {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px var(--teal-l);
+}
+
+.expense-step-item.is-rejected .expense-step-circle {
+  background: var(--red-l);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.expense-step-track {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin: 0 16px;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.expense-step-track.is-done {
+  background: var(--teal);
+}
+
+/* ── Detail Hero Banner ── */
+.expense-detail-hero {
+  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 70%),
+              var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  padding: 22px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.expense-detail-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.expense-detail-hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+}
+
+.expense-detail-hero-val {
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* ── Claims Card & Rows ── */
+.expense-claims-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.expense-claims-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.expense-claim-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  transition: background 0.1s ease;
+}
+
+.expense-claim-item:last-child {
+  border-bottom: none;
+}
+
+.expense-claim-item:hover {
+  background: var(--hover-bg, rgba(15, 23, 42, 0.02));
+}
+
+.expense-claim-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.expense-claim-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.expense-claim-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.expense-claim-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expense-claim-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink3);
+  flex-wrap: wrap;
+}
+
+.expense-claim-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.expense-claim-amount {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ── Lightbox Modal ── */
+.expense-receipt-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.expense-receipt-modal-inner {
+  background: var(--card-bg, #ffffff);
+  border-radius: var(--card-radius, 14px);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.expense-receipt-modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.expense-receipt-modal-body {
+  padding: 20px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.expense-receipt-modal-img {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+/* ── Mobile Responsive Overrides ── */
+@media (max-width: 767px) {
+  .expense-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .expense-metric-card {
+    padding: 12px 14px;
+  }
+
+  .expense-metric-val {
+    font-size: 20px;
+  }
+
+  .expense-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .expense-tabs-group {
+    width: 100%;
+  }
+
+  .expense-toolbar-right {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .expense-search-wrap {
+    flex: 1;
+    width: auto;
+  }
+
+  .expense-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .expense-detail-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .expense-claim-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .expense-claim-right {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .expense-stepper {
+    padding: 10px 12px;
+  }
+}

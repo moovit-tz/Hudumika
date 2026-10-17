@@ -200,7 +200,7 @@ function MatterDetail({ reference }: { reference: string }) {
 
   useEffect(() => {
     setLoading(true);
-    apiFetch(`/v1/sign/matters/${encodeURIComponent(reference)}/envelopes`)
+    apiFetch(`/v1/sign/matters/${encodeURIComponent(reference)}/documents`)
       .then((res: any) => setEnvelopes(Array.isArray(res?.data) ? res.data : []))
       .catch(() => setEnvelopes([]))
       .finally(() => setLoading(false));

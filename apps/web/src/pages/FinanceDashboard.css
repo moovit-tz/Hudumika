@@ -515,6 +515,16 @@
   color: var(--ink3);
 }
 
+.fin-pnl-tile--link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.fin-pnl-tile--link:hover {
+  border-color: var(--teal-m, color-mix(in srgb, var(--teal) 40%, transparent));
+  background: var(--teal-l, color-mix(in srgb, var(--teal) 6%, transparent));
+}
+
 /* Flow Ratio Bar */
 .fin-flow-bar-container {
   display: flex;
@@ -562,10 +572,20 @@
   gap: 6px;
 }
 
-.fin-flow-legend span {
+.fin-flow-legend span,
+.fin-flow-legend a {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+.fin-flow-link {
+  text-decoration: none;
+  color: var(--ink3);
+  transition: color 0.15s ease;
+}
+.fin-flow-link:hover {
+  color: var(--teal);
 }
 
 .fin-dot-sm {

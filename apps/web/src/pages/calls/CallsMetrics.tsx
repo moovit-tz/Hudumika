@@ -2,10 +2,15 @@
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import { apiFetch } from '../../lib/api.js';
-import { Icon } from '../../components/Icon.js';
+import { Button } from '../../components/ui/button.js';
+import { Banner } from '../../components/ui/alert.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
-import { MetricsRow } from '../../components/MetricCard.js';
+import { type MetricCardProps } from '../../components/MetricCard.js';
+import { Card } from '../../components/ui/card.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { Icon } from '../../components/Icon.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -33,7 +38,7 @@ interface Metrics {
 
 const fmtHrs = (s: number) => {
   const h = Math.floor(s / 3600);
-  const m = Math.round((s % 3600) / 60);
+  const m = Math.floor((s % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
@@ -41,6 +46,16 @@ function cssVar(name: string, fallback: string) {
   if (typeof window === 'undefined') return fallback;
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fallback;
+}
+
+function CallSummary({ cards }: { cards: MetricCardProps[] }) {
+  return <div className="cc-summary-grid">{cards.map(card => (
+    <Card key={card.title} className="cc-summary-card">
+      <div className="cc-summary-label"><span>{card.title}</span><FeaturedIcon variant="brand" size="sm"><Icon name={card.icon || 'phone'} size={16} /></FeaturedIcon></div>
+      <strong className="cc-summary-value">{card.value}</strong>
+      <span className="cc-summary-detail">{card.sub1Label ? `${card.sub1Label.toLowerCase()}: ${card.sub1Value}` : card.comparisonLabel || 'In the selected period'}</span>
+    </Card>
+  ))}</div>;
 }
 
 /** Real /v1/calls/metrics data only — no fabricated call logs, no CSAT/MOS
@@ -55,12 +70,14 @@ export function CallsMetrics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
     apiFetch(`/v1/calls/metrics?days=${days}`)
-      .then(setData)
-      .catch((e: any) => { setData(null); setError(e?.message || 'Could not load call metrics.'); })
-      .finally(() => setLoading(false));
+      .then(value => { if (!cancelled) setData(value); })
+      .catch((e: any) => { if (!cancelled) { setData(null); setError(e?.message || 'Could not load call metrics.'); } })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [days]);
 
   const purpleColor = cssVar('--purple', '#8b5cf6');
@@ -72,42 +89,23 @@ export function CallsMetrics() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Period Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>Period:</span>
-        {[7, 30, 90].map(d => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => setDays(d)}
-            style={{
-              fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 'var(--r)',
-              border: '1px solid var(--border)', cursor: 'pointer',
-              background: days === d ? 'hsl(var(--primary))' : 'var(--white)',
-              color: days === d ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-              boxShadow: days === d ? 'var(--elev)' : 'none',
-            }}
-           data-ui-native-button="">
-            {d} Days
-          </button>
-        ))}
-      </div>
-
-      {error && (
-        <div style={{ padding: '10px 16px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 600, borderRadius: 'var(--r)' }}>
-          {error}
+      <div className="cc-metrics-toolbar">
+        <div><h2>Activity at a glance</h2><p>Calls and meetings over the last {days} days.</p></div>
+        <div className="cc-periods" role="group" aria-label="Activity period">
+          {[7, 30, 90].map(d => (
+            <Button key={d} size="sm" variant={days === d ? 'default' : 'ghost'} aria-pressed={days === d} onClick={() => setDays(d)}>{d} days</Button>
+          ))}
         </div>
-      )}
+      </div>
+      {error && <Banner variant="error">{error}</Banner>}
+      {loading ? <SectionLoading label="Loading call activity…" /> : error ? null : !tenant ? (
 
-      {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading metrics…</div>
-      ) : !tenant ? (
         <>
           {/* Non-management roles only get their own numbers back from the
               API — shown honestly as "your activity", not padded out with
               tenant-wide figures the endpoint never actually returned. */}
           <SectionCard title="Your Call & Meeting Activity">
-            <MetricsRow cards={[
+            <CallSummary cards={[
               { title: 'Your calls', value: String(personal?.calls ?? 0), icon: 'phone', barHighlight: 'var(--green)', comparisonLabel: `${days}-day period`, emphasis: 'primary' },
               { title: 'Missed', value: String(personal?.callsMissed ?? 0), icon: 'alertCircle', barHighlight: 'var(--red)', sub1Label: 'SHARE OF CALLS', sub1Value: personal?.calls ? `${Math.round(((personal.callsMissed ?? 0) / personal.calls) * 100)}%` : '—' },
               { title: 'Call time', value: fmtHrs(personal?.callSeconds ?? 0), icon: 'clock', barHighlight: 'var(--blue)' },
@@ -122,24 +120,24 @@ export function CallsMetrics() {
       ) : (
         <>
           {/* Top Executive KPI Metrics — all real, from GET /v1/calls/metrics */}
-          <MetricsRow cards={[
-            { title: 'Support voice calls', value: String(tenant.calls), icon: 'phone', barHighlight: 'var(--green)', comparisonLabel: `${days}-day period`, sub1Label: 'ANSWERED', sub1Value: answeredPct != null ? `${answeredPct}%` : '—', bars: tenant.dailyTrend.map(d => d.calls), emphasis: 'primary' },
+          <CallSummary cards={[
+            { title: 'Direct calls', value: String(tenant.calls), icon: 'phone', barHighlight: 'var(--green)', comparisonLabel: `${days}-day period`, sub1Label: 'ANSWERED', sub1Value: answeredPct != null ? `${answeredPct}%` : '—', bars: tenant.dailyTrend.map(d => d.calls), emphasis: 'primary' },
             { title: 'Video meetings', value: String(tenant.meetings), icon: 'camera', barHighlight: 'var(--purple)', bars: tenant.dailyTrend.map(d => d.meetings) },
-            { title: 'Average call duration', value: tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : '—', icon: 'clock', barHighlight: 'var(--blue)' },
-            { title: 'Missed / declined', value: String(tenant.callsMissed), icon: 'alertCircle', barHighlight: 'var(--red)', sub1Label: 'SHARE OF CALLS', sub1Value: tenant.calls > 0 ? `${Math.round((tenant.callsMissed / tenant.calls) * 100)}%` : '—' },
+            { title: 'Avg. duration', value: tenant.calls > 0 ? fmtHrs(tenant.avgCallSeconds) : '—', icon: 'clock', barHighlight: 'var(--blue)' },
+            { title: 'Missed calls', value: String(tenant.callsMissed), icon: 'alertCircle', barHighlight: 'var(--red)', sub1Label: 'SHARE OF CALLS', sub1Value: tenant.calls > 0 ? `${Math.round((tenant.callsMissed / tenant.calls) * 100)}%` : '—' },
           ]} />
 
-          {/* Daily Volume Trend Chart */}
-          <SectionCard title={`Daily Volume Trends — Voice Calls vs Video Meetings (${days} Days)`}>
+          <div className="cc-analytics-grid">
+          <SectionCard title={`Conversation activity · ${days} days`} collapsible={false}>
             {tenant.dailyTrend.length === 0 ? (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No calls or meetings recorded in this period yet.</div>
+              <div className="cc-chart-empty"><FeaturedIcon variant="gray" size="lg"><Icon name="barChart2" size={24} /></FeaturedIcon><h3>Every conversation counts</h3><p>Your call and meeting trends will appear here as your team connects.</p></div>
             ) : (
               <div style={{ height: 220, marginTop: 10 }}>
                 <Bar
                   data={{
                     labels: tenant.dailyTrend.map(d => d.day.slice(5)),
                     datasets: [
-                      { label: 'Support Voice Calls', data: tenant.dailyTrend.map(d => d.calls), backgroundColor: greenColor, borderRadius: 4 },
+                      { label: 'Direct calls', data: tenant.dailyTrend.map(d => d.calls), backgroundColor: greenColor, borderRadius: 4 },
                       { label: 'Video Meetings & Rooms', data: tenant.dailyTrend.map(d => d.meetings), backgroundColor: purpleColor, borderRadius: 4 },
                     ],
                   }}
@@ -155,9 +153,9 @@ export function CallsMetrics() {
           </SectionCard>
 
           {/* Top Meeting Participants Leaderboard */}
-          <SectionCard title="Most Meeting & Video Time">
+          <SectionCard title="Team participation" collapsible={false}>
             {tenant.topParticipants.length === 0 ? (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No meeting participation recorded in this period yet.</div>
+              <div className="cc-empty cc-participation-empty"><FeaturedIcon variant="gray" size="lg"><Icon name="users" size={22} /></FeaturedIcon><h3>Room for everyone</h3><p>Meeting participants and time spent together will appear here.</p></div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {tenant.topParticipants.map(p => (
@@ -175,6 +173,7 @@ export function CallsMetrics() {
               </div>
             )}
           </SectionCard>
+          </div>
         </>
       )}
     </div>

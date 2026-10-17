@@ -338,6 +338,14 @@ html[data-expanded="true"] .app-sidebar {
   cursor: pointer;
 }
 
+/* Collapsed-mode divider — occupies the same vertical space as the section
+   header so icons stay at identical Y positions when toggling. */
+.app-sb-section-divider {
+  height: 1px;
+  background: var(--sb-bdr);
+  margin: 13px 16px;
+}
+
 .app-sb-section-toggle {
   font-size: 12px;
   font-weight: 700;

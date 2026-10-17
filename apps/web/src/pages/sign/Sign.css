@@ -739,12 +739,18 @@
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
 }
-.sign-new-envelope-card > .page-header {
+.sign-new-envelope-header {
   flex: 0 0 auto;
   margin: 0;
   padding: var(--space-lg);
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
+}
+.sign-new-envelope-header > .page-header {
+  margin: 0;
+}
+.sign-new-envelope-header .page-header-crumb:empty {
+  display: none;
 }
 .sign-new-envelope-title-row {
   display: flex;
@@ -761,21 +767,26 @@
   font-weight: 650;
 }
 .sign-new-envelope-title-row input {
-  width: min(620px, 100%);
+  flex: 1;
+  min-width: 0;
+  width: 100%;
   background: var(--card-bg);
 }
 .sign-new-envelope-body {
   flex: 1;
   min-height: 0;
   display: grid;
-  place-items: start center;
+  align-items: stretch;
   overflow: visible;
   padding: var(--space-xl) var(--space-lg);
   background: var(--card-sunken);
 }
 .sign-new-envelope-chooser {
-  width: min(600px, 100%);
-  padding: clamp(22px, 3vw, 32px);
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(20px, 2.5vw, 32px);
   background: var(--card-bg);
   border: var(--card-border);
   border-radius: var(--card-radius);
@@ -801,17 +812,21 @@
   line-height: 1.45;
 }
 .sign-new-envelope-actions {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 20px;
 }
 .sign-new-envelope-action {
-  min-height: 80px;
+  position: relative;
+  min-height: 220px;
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  padding: clamp(24px, 3vw, 40px);
   color: var(--ink);
   text-align: left;
   background: var(--card-bg);
@@ -820,13 +835,12 @@
   box-shadow: var(--card-shadow);
   cursor: pointer;
   white-space: normal;
-  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
 }
 .sign-new-envelope-action:hover {
   border-color: var(--teal-m);
   background: var(--teal-l);
   box-shadow: var(--card-shadow);
-  transform: translateY(-1px);
 }
 .sign-new-envelope-action:focus-visible {
   outline: 2px solid var(--teal);
@@ -835,19 +849,24 @@
 .sign-new-envelope-action-copy {
   min-width: 0;
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 3px;
 }
 .sign-new-envelope-action-copy strong {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
 }
 .sign-new-envelope-action-copy small {
   color: var(--ink3);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
 }
 .sign-new-envelope-action-arrow {
+  position: absolute;
+  right: 24px;
+  bottom: 28px;
   flex: 0 0 auto;
   color: var(--ink3);
 }
@@ -873,7 +892,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 14px 16px;
+  padding: 20px 24px;
   background: var(--bg);
   border: var(--card-border);
   border-radius: var(--card-radius);
@@ -900,7 +919,9 @@
   .sign-new-envelope-body { place-items: start center; padding: 16px 12px; }
   .sign-new-envelope-chooser { padding: 18px 14px; }
   .sign-new-envelope-chooser-heading { align-items: flex-start; }
-  .sign-new-envelope-actions { grid-template-columns: 1fr; }
+  .sign-new-envelope-actions { grid-template-columns: 1fr; gap: 14px; }
+  .sign-new-envelope-action { min-height: 170px; padding: 24px; gap: 18px; }
+  .sign-new-envelope-title-row input { flex: auto; }
   .sign-new-envelope-blank { align-items: stretch; flex-direction: column; }
   .sign-new-envelope-blank button { width: 100%; }
 }
@@ -961,21 +982,23 @@
   .sign-public-body { grid-template-columns: 1fr; }
   .sign-public-sidebar { border-left: none; border-top: 1px solid var(--border); height: 320px; }
 
-  .sign-editor-layout {
+  :not(.sign-workspace) > .sign-editor-layout {
     display: flex;
     flex-direction: column;
     height: auto;
     min-height: calc(100vh - 56px);
     overflow-y: auto;
   }
-  .sign-editor-left, .sign-editor-center, .sign-editor-right {
+  :not(.sign-workspace) > .sign-editor-layout > .sign-editor-left,
+  :not(.sign-workspace) > .sign-editor-layout > .sign-editor-center,
+  :not(.sign-workspace) > .sign-editor-layout > .sign-editor-right {
     height: auto;
     max-height: none;
     overflow-y: visible;
     border-right: none;
     border-left: none;
   }
-  .sign-editor-center { padding: 16px 12px 40px; }
+  :not(.sign-workspace) > .sign-editor-layout > .sign-editor-center { padding: 16px 12px 40px; }
 }
 @media (max-width: 640px) {
   .sign-inbox-toolbar .stb { flex-wrap: wrap; overflow: visible; }
@@ -985,40 +1008,61 @@
   .sign-inbox-empty { min-height: 280px; padding: 24px 16px; }
   .sign-inbox-nav-content > [data-ds-tabs-root] { flex-basis: 100%; }
 }
-.sign-envelope-detail { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.sign-envelope-detail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .sign-envelope-summary { overflow: hidden; }
-.sign-envelope-identity { display: flex; align-items: center; gap: 20px; padding: 24px; flex-wrap: wrap; }
+.sign-envelope-identity { display: flex; align-items: center; gap: 14px; padding: 16px 20px; flex-wrap: wrap; }
 .sign-envelope-identity-text { flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
-.sign-envelope-identity-text > strong { display: block; font-size: 16px; color: var(--ink); margin-bottom: 12px; }
-.sign-envelope-owner { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink3); }
-.sign-envelope-owner strong { color: var(--ink2); }
+.sign-envelope-identity-text > strong { display: block; font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
 .sign-envelope-progress { flex: 0 1 240px; min-width: 200px; }
-.sign-envelope-progress > div:first-child { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; color: var(--ink3); margin-bottom: 12px; }
+.sign-envelope-progress > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink3); margin-bottom: 8px; }
 .sign-envelope-progress strong { color: var(--ink2); }
-.sign-envelope-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--border); background: var(--bg); }
-.sign-envelope-facts > div { padding: 18px 24px; border-right: 1px solid var(--border); }
+.sign-envelope-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--border); background: var(--bg); }
+.sign-envelope-facts > div { padding: 12px 20px; border-right: 1px solid var(--border); }
 .sign-envelope-facts > div:last-child { border-right: 0; }
-.sign-envelope-facts dt { font-size: 12px; color: var(--ink3); margin-bottom: 6px; }
-.sign-envelope-facts dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
-.sign-envelope-workspace { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(350px, 1fr); gap: 24px; align-items: start; }
+.sign-envelope-facts dt { font-size: 11px; color: var(--ink3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.sign-envelope-facts dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.sign-envelope-workspace { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 3fr); gap: 16px; align-items: start; }
 .sign-envelope-preview { overflow: hidden; min-width: 0; }
-.sign-envelope-preview-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 20px; border-bottom: 1px solid var(--border); }
-.sign-envelope-canvas { display: flex; justify-content: center; align-items: center; padding: 20px; background: var(--bg); min-height: 320px; }
-.sign-envelope-sidebar, .sign-envelope-section-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.sign-envelope-preview-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.sign-envelope-canvas { display: flex; justify-content: center; align-items: center; padding: 16px; background: var(--bg); min-height: 280px; }
+.sign-envelope-sidebar, .sign-envelope-section-content { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .sign-envelope-section-content[data-state="inactive"] { display: none; }
 .sign-envelope-sections { min-width: 0; }
-.sign-envelope-recipient-actions { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
-.sign-envelope-recipient-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 100%; }
-.sign-envelope-sections > .ds-tabs-list { margin-bottom: 20px; }
+.sign-envelope-recipient-actions { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+.sign-envelope-recipient-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; max-width: 100%; }
+.sign-envelope-facts-creator dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sign-envelope-facts-creator dd strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sign-envelope-facts-creator dd time {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-top: 1px;
+}
+.sign-envelope-sections > .ds-tabs-list { margin-bottom: 12px; }
 @media (max-width: 1100px) {
   .sign-envelope-workspace { grid-template-columns: minmax(0, 1fr); }
 }
-@media (max-width: 560px) {
-  .sign-envelope-identity { padding: 20px; gap: 16px; }
+@media (max-width: 768px) {
+  .sign-envelope-identity { padding: 14px 16px; gap: 12px; }
   .sign-envelope-progress { flex-basis: 100%; }
-  .sign-envelope-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sign-envelope-facts > div { padding: 16px 20px; }
-  .sign-envelope-facts > div:nth-child(2) { border-right: 0; }
-  .sign-envelope-facts > div:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
-  .sign-envelope-canvas { padding: 12px; }
+  .sign-envelope-facts { grid-template-columns: 1fr; }
+  .sign-envelope-facts > div { padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .sign-envelope-facts > div:last-child { border-bottom: 0; }
+}
+@media (max-width: 480px) {
+  .sign-envelope-detail { gap: 10px; }
+  .sign-envelope-identity { padding: 12px; gap: 10px; flex-direction: column; align-items: flex-start; }
+  .sign-envelope-identity-text > strong { font-size: 16px; }
+  .sign-envelope-canvas { padding: 10px; min-height: 200px; }
+  .sign-envelope-preview-toolbar { padding: 8px 12px; }
+  .sign-envelope-workspace { gap: 12px; }
 }

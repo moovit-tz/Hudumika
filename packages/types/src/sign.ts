@@ -88,6 +88,8 @@ export interface SignEvent {
 }
 
 export interface SignEnvelope {
+  generated_document_id?: string | null;
+  document_jurisdiction?: string | null;
   id: string;
   tenant_id: string;
   created_by: string;
@@ -154,6 +156,12 @@ export interface SignEnvelope {
 }
 
 export interface SignTemplateRecipientDef {
+  execution_role?: SignRecipient["execution_role"];
+  is_certifier?: boolean;
+  certifier_id?: string | null;
+  certifier_title?: string | null;
+  certifier_roll_number?: string | null;
+  certifier_firm?: string | null;
   name: string;
   email: string;
   phone: string | null;
@@ -175,6 +183,8 @@ export interface SignTemplateFieldDef {
 }
 
 export interface SignTemplate {
+  document_data?: string | null;
+  document_definition?: SignDocumentDefinition | null;
   id: string;
   tenant_id: string;
   created_by: string;
@@ -186,4 +196,54 @@ export interface SignTemplate {
   file_name: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SignDocumentQuestion {
+  key: string;
+  label: string;
+  type: 'text' | 'textarea' | 'date' | 'email' | 'number' | 'select';
+  required: boolean;
+  labels?: Partial<Record<SignDocumentLanguage, string>>;
+  options?: { value: string; labels: Record<SignDocumentLanguage, string> }[];
+}
+export type SignDocumentLanguage = 'en' | 'sw' | 'zh';
+export type SignDocumentType = 'agreement' | 'letter' | 'policy' | 'record' | 'form';
+export interface SignDocumentDefinition {
+  language?: SignDocumentLanguage;
+  translations?: Partial<Record<SignDocumentLanguage, { body: string }>>;
+  jurisdiction_guidance?: { jurisdiction: string; notes: Record<SignDocumentLanguage, string>; sources: { title: string; url: string }[] }[];
+  jurisdiction_clauses?: Record<string, Record<SignDocumentLanguage, string>>;
+  apps?: import('./user.js').AppId[];
+  document_type?: SignDocumentType;
+  category: string;
+  jurisdictions: string[];
+  body: string;
+  questions: SignDocumentQuestion[];
+}
+export interface SignGeneratedDocument {
+  id: string;
+  tenant_id: string;
+  created_by: string;
+  template_id: string | null;
+  template_name: string;
+  definition: SignDocumentDefinition;
+  title: string;
+  jurisdiction: string;
+  answers: Record<string, string>;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** The same expansion is used by live previews and the server; inserted answers are never re-parsed. */
+export function expandSignDocument(definition: SignDocumentDefinition, answers: Record<string,string>, jurisdiction: string, language: SignDocumentLanguage = definition.language || 'en', preview = false): string {
+  const source = language === 'en' ? definition.body : definition.translations?.[language]?.body;
+  if (!source) throw new Error('This template has no version in the selected language');
+  return source.replace(/\{\{([a-z][a-z0-9_]*)\}\}/g, (_,key: string) => {
+    if (key === 'jurisdiction') return jurisdiction || '[Jurisdiction]';
+    if (key === 'jurisdiction_terms') return definition.jurisdiction_clauses?.[jurisdiction]?.[language] || (preview ? '[Select a supported jurisdiction]' : '');
+    const question = definition.questions.find(q=>q.key===key);
+    const answer = answers[key]?.trim();
+    return question?.options?.find(option=>option.value===answer)?.labels[language] || answer || (preview ? `[${question?.labels?.[language] || question?.label || key}]` : '');
+  });
 }

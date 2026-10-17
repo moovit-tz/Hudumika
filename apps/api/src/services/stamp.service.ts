@@ -34,9 +34,6 @@ export interface ApplyStampOptions {
    *  how to place a Sign field knows how to place a stamp. */
   position: { page?: number; x: number; y: number; width: number; height: number };
   ownerType: 'tenant' | 'user';
-  /** Required when ownerType is 'user' and applying someone other than the
-   *  caller's own stamp is ever needed; defaults to the caller. */
-  ownerUserId?: string;
 }
 
 /** Loads the right saved stamp (role-gated for 'tenant'), draws it onto the
@@ -53,7 +50,7 @@ export async function applyStamp(opts: ApplyStampOptions): Promise<Buffer> {
       if (!allowed) throw new StampAccessDeniedError();
     }
 
-    const ownerUserId = ownerType === 'user' ? (opts.ownerUserId ?? userId) : null;
+    const ownerUserId = ownerType === 'user' ? userId : null;
     const stampRow = await trx.selectFrom('sign_stamps').select(['image_data'])
       .where('tenant_id', '=', tenantId)
       .where('owner_type', '=', ownerType)

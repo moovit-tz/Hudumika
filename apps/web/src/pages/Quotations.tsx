@@ -531,10 +531,10 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
       actions={
         <>
           <button type="button" onClick={()=>submit(true)} disabled={saving} className="btn btn-secondary" data-ui-native-button="">
-            {saving?'Saving…':'Save as Draft'}
+            <Icon name="fileText" size={14}/> {saving ? 'Saving…' : 'Save as Draft'}
           </button>
           <button type="button" onClick={()=>submit(false)} disabled={saving} className="btn btn-primary" data-ui-native-button="">
-            <Icon name="send" size={13}/> Save &amp; Submit
+            <Icon name="send" size={14}/> Save &amp; Submit
           </button>
         </>
       }

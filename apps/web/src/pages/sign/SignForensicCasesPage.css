@@ -27,29 +27,6 @@
   }
 }
 
-/* ── Header & Action Toolbar ── */
-.sfc-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 640px) {
-  .sfc-header-actions {
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .sfc-header-actions > * {
-    flex: 1 1 calc(50% - 8px);
-  }
-  .sfc-header-actions > .sfc-full-mobile {
-    flex: 1 1 100%;
-  }
-}
 
 .sfc-code-pill {
   display: inline-flex;

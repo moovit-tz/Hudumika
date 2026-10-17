@@ -1,0 +1,1033 @@
+/* ─── SignWorkspace.css — Envelope Editor Workspace Styles ───────────────────────
+   Full compliance with Hudumika Design System (Radix / Tailwind v4 / --ctl-h).
+   Tactile field buttons, refined toolbar, cohesive headers & full responsiveness.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.sign-workspace {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--card-bg);
+  font-family: var(--font);
+}
+
+/* ── Top Header ─────────────────────────────────────────────────────────── */
+.sign-workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+  flex-shrink: 0;
+  min-height: 56px;
+  box-sizing: border-box;
+}
+
+.sign-workspace-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sign-workspace-identity-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sign-workspace-title-wrap {
+  position: relative;
+  display: inline-block;
+  min-width: 140px;
+  max-width: 100%;
+}
+
+.sign-workspace-title-measure {
+  position: absolute;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+  white-space: pre;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sign-workspace-identity input {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding: 0 !important;
+  min-height: 24px;
+  height: auto;
+  color: var(--ink);
+  width: 100%;
+}
+
+.sign-workspace-identity input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.sign-workspace-document-state {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.sign-workspace-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sign-workspace-step {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink3);
+  margin-right: 6px;
+}
+
+.sign-header-btn-back,
+.sign-header-btn-save {
+  min-height: var(--ctl-h, 36px);
+  padding: 0 14px;
+  border-radius: var(--r-sm);
+  font-weight: 500;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--ink2);
+  transition: all 0.15s ease;
+}
+
+.sign-header-btn-back:hover,
+.sign-header-btn-save:hover {
+  background: var(--bg);
+  border-color: var(--teal);
+  color: var(--ink);
+}
+
+.sign-header-btn-send {
+  min-height: var(--ctl-h, 36px);
+  padding: 0 18px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  gap: 6px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: var(--elev-sm);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sign-header-btn-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--elev);
+  background: hsl(var(--primary) / 0.92);
+}
+
+.sign-header-btn-send:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ── Secondary Document Toolbar ─────────────────────────────────────────── */
+.sign-workspace-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+  min-width: 0;
+  flex-shrink: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.sign-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sign-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sign-workspace-zoom {
+  width: 112px;
+  min-height: var(--ctl-h-sm, 32px);
+  height: 32px;
+  font-size: 12.5px;
+  border-radius: var(--r-sm);
+  padding-inline: 10px;
+  flex-shrink: 0;
+}
+
+.sign-workspace-toolbar-divider {
+  height: 20px;
+  border-left: 1px solid var(--border);
+  margin: 0 2px;
+}
+
+.sign-workspace-file-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
+}
+
+.sign-workspace-page-nav {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  padding: 2px;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.sign-page-nav-arrow {
+  width: 28px !important;
+  height: 26px !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: calc(var(--r-sm) - 1px) !important;
+  color: var(--ink2);
+}
+
+.sign-page-nav-arrow:hover:not(:disabled) {
+  background: var(--card-bg);
+  color: var(--ink);
+}
+
+.sign-page-nav-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 0 10px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sign-toolbar-actions-btn {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--ink2);
+}
+
+.sign-toolbar-actions-btn:hover {
+  background: var(--bg);
+  border-color: var(--teal);
+  color: var(--ink);
+}
+
+.sign-workspace-document-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: var(--r);
+  box-shadow: var(--elev);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.sign-workspace-document-menu button {
+  justify-content: flex-start;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+}
+
+/* ── Restore Banner ──────────────────────────────────────────────────────── */
+.sign-workspace-restore-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 20px;
+  background: var(--blue-l);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.sign-restore-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sign-restore-icon {
+  color: var(--blue);
+  flex-shrink: 0;
+}
+
+.sign-restore-discard-btn {
+  min-height: 28px;
+  height: 28px;
+  font-size: 11.5px;
+  padding: 0 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--ink2);
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+}
+
+.sign-restore-discard-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-l, rgba(239, 68, 68, 0.08));
+}
+
+/* ── Layout & Columns ─────────────────────────────────────────────────────── */
+.sign-workspace .sign-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 100px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Large screens with thumbnails */
+@media (min-width: 1240px) {
+  .sign-workspace:not([data-mobile="true"]) .sign-editor-layout:has(.sign-workspace-thumbnails) {
+    grid-template-columns: 124px minmax(0, 1fr) 330px;
+  }
+  .sign-workspace:not([data-mobile="true"]) .sign-editor-layout:has(.sign-workspace-thumbnails) .sign-workspace-thumbnails {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    grid-column: 1;
+    grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    padding: 0 10px 24px;
+    overflow-y: auto;
+  }
+  .sign-workspace:not([data-mobile="true"]) .sign-editor-layout:has(.sign-workspace-thumbnails) .sign-editor-center {
+    grid-column: 2;
+  }
+  .sign-workspace:not([data-mobile="true"]) .sign-editor-layout:has(.sign-workspace-thumbnails) :is(.sign-workspace-sidebar-nav, .sign-editor-left, .sign-editor-right) {
+    grid-column: 3;
+  }
+}
+
+.sign-workspace-thumbnails {
+  display: none;
+  min-height: 0;
+}
+
+.sign-workspace .sign-workspace-thumbnail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink3);
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.sign-workspace .sign-workspace-thumbnail:hover {
+  background: var(--card-bg);
+  color: var(--ink);
+}
+
+.sign-workspace-thumbnail-sheet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 98px;
+  min-height: 70px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--card-bg);
+  box-shadow: var(--elev-sm);
+  transition: border-color 0.15s ease;
+}
+
+.sign-workspace-thumbnail[aria-current="page"] {
+  color: var(--teal);
+  background: var(--teal-l);
+  border-color: var(--teal-m);
+}
+
+.sign-workspace-thumbnail[aria-current="page"] .sign-workspace-thumbnail-sheet {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal);
+}
+
+/* ── Center Document Canvas ──────────────────────────────────────────────── */
+.sign-workspace .sign-editor-center {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  padding: 24px 20px 60px;
+  overflow: auto;
+  align-items: center;
+  box-sizing: border-box;
+  background: var(--bg);
+  position: relative;
+}
+
+.sign-workspace .sign-page-canvas-wrap {
+  flex-shrink: 0;
+  border-radius: 0;
+  box-shadow: var(--elev);
+  background: #ffffff;
+  border: 1px solid var(--border);
+}
+
+/* ── Floating / Sticky Placing Guide Banner ──────────────────────────────── */
+.sign-placing-guide-banner {
+  position: sticky;
+  bottom: 20px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 18px;
+  border-radius: var(--r);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: var(--elev-lg);
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+  animation: signBannerSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 540px;
+  width: calc(100% - 32px);
+  margin-inline: auto;
+}
+
+@keyframes signBannerSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sign-placing-guide-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sign-placing-cancel-btn {
+  color: hsl(var(--primary-foreground)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: var(--r-sm) !important;
+  padding: 0 10px !important;
+  height: 26px !important;
+  gap: 4px;
+}
+
+.sign-placing-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Right Panel & Sidebar Navigation ────────────────────────────────────── */
+.sign-workspace-sidebar-nav {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  padding: 10px 14px;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.sign-workspace-sidebar-nav .ds-tabs-list {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+
+.sign-workspace-sidebar-nav .ds-tabs-trigger {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  text-align: center;
+  justify-content: center;
+}
+
+.sign-workspace .sign-editor-left,
+.sign-workspace .sign-editor-right {
+  grid-column: 2;
+  grid-row: 2;
+  border-left: 1px solid var(--border);
+  border-right: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 10px;
+  padding-bottom: 40px;
+  background: var(--card-bg);
+  box-sizing: border-box;
+}
+
+/* ── Active Recipient Card & Assignee ─────────────────────────────────────── */
+.sign-workspace-active-recipient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 4px 16px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.sign-workspace-active-recipient > div:last-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.sign-workspace-active-recipient strong,
+.sign-workspace-active-recipient span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-workspace-active-recipient strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sign-workspace-active-recipient span {
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.sign-workspace-assignee {
+  padding: 0 16px 12px;
+}
+
+.sign-workspace-assignee button {
+  width: 100%;
+  min-height: var(--ctl-h, 36px);
+  border-radius: var(--r-sm);
+}
+
+/* ── Add Fillable Fields: Palette Buttons ────────────────────────────────── */
+.sign-workspace .sign-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  padding: 14px 16px 8px;
+}
+
+.sign-workspace .sign-field-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.sign-workspace .sign-field-type-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  height: auto !important;
+  padding: 6px 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r) !important;
+  background: var(--card-bg) !important;
+  color: var(--ink) !important;
+  font-family: var(--font) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  cursor: grab !important;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+}
+
+.sign-workspace .sign-field-type-btn:active {
+  cursor: grabbing !important;
+}
+
+.sign-workspace .sign-field-type-btn:hover {
+  border-color: var(--teal) !important;
+  background: var(--card-bg) !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transform: translateY(-1px);
+}
+
+.sign-workspace .sign-field-type-btn:hover .sign-field-icon-squircle {
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  transform: scale(1.05);
+}
+
+.sign-workspace .sign-field-type-btn:hover .sign-field-drag-hint {
+  opacity: 0.8;
+  color: var(--teal);
+}
+
+.sign-workspace .sign-field-icon-squircle {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--teal-l);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.sign-workspace .sign-field-type-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-workspace .sign-field-drag-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink3);
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+  margin-left: auto;
+}
+
+/* Active / Placing State */
+.sign-workspace .sign-field-type-btn.is-placing,
+.sign-workspace .sign-field-type-btn[aria-pressed="true"] {
+  border-color: var(--teal) !important;
+  background: var(--teal-l) !important;
+  color: var(--teal) !important;
+  box-shadow: 0 0 0 2px var(--teal-m) !important;
+}
+
+.sign-workspace .sign-field-type-btn.is-placing .sign-field-icon-squircle {
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+}
+
+.sign-workspace .sign-field-type-btn.is-placing .sign-field-type-label {
+  color: var(--teal-d);
+}
+
+.sign-workspace .sign-field-active-pill {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--teal);
+  background: var(--card-bg);
+  border: 1px solid var(--teal-m);
+  border-radius: 999px;
+  padding: 2px 7px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ── More Fields, Manage Recipients & Stamp Notice ────────────────────────── */
+.sign-workspace-more-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.sign-workspace-more-fields .sign-more-fields-btn {
+  justify-content: space-between;
+  width: 100%;
+  color: var(--ink2);
+  font-weight: 500;
+  border-radius: var(--r-sm);
+  min-height: 32px;
+}
+
+.sign-workspace-more-fields .sign-manage-recipients-btn {
+  justify-content: center;
+  width: 100%;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  min-height: var(--ctl-h, 36px);
+  gap: 8px;
+  border: 1px solid var(--border);
+}
+
+.sign-workspace-more-fields .sign-manage-recipients-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: var(--teal-l);
+}
+
+.sign-workspace-stamp-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* ── Review Mode ──────────────────────────────────────────────────────────── */
+.sign-workspace-review {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sign-workspace-review h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sign-workspace-review h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 6px 0 0;
+}
+
+.sign-workspace-review p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink3);
+  margin: 0;
+}
+
+.sign-workspace-review label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.sign-workspace-review .sign-workspace-review-otp {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.sign-workspace-review-document,
+.sign-workspace-review-recipient {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.sign-workspace-review-document > div,
+.sign-workspace-review-recipient > div:last-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.sign-workspace-review strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.sign-workspace-review span,
+.sign-workspace-review small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink3);
+  overflow-wrap: anywhere;
+}
+
+.sign-workspace-geometry {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sign-workspace-geometry label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.sign-workspace-execution-role {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.sign-workspace-execution-role label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.sign-workspace-execution-role p {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink3);
+  margin: 4px 0 0;
+}
+
+/* ── Responsive Ladder: Tablet & Laptop (769px – 1239px) ──────────────────── */
+@media (max-width: 1239px) {
+  .sign-workspace:not([data-mobile="true"]) .sign-editor-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+  .sign-workspace-thumbnails {
+    display: none !important;
+  }
+  .sign-workspace-step {
+    display: none;
+  }
+  .sign-workspace-file-label {
+    max-width: 160px;
+  }
+}
+
+/* ── Responsive Ladder: Mobile (< 768px or data-mobile="true") ───────────── */
+@media (max-width: 768px), (max-width: 900px) and (hover: none) {
+  .sign-workspace-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    height: auto;
+    min-height: 0;
+  }
+
+  .sign-workspace-identity {
+    flex-basis: 100%;
+  }
+
+  .sign-workspace-header-actions {
+    width: 100%;
+    justify-content: stretch;
+    gap: 6px;
+  }
+
+  .sign-workspace-header-actions button {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+
+  .sign-workspace-step {
+    display: none;
+  }
+
+  .sign-workspace-toolbar {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 0;
+  }
+
+  .sign-toolbar-left {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .sign-workspace-file-label,
+  .sign-workspace-toolbar-divider {
+    display: none;
+  }
+
+  .sign-toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sign-workspace-restore-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .sign-restore-discard-btn {
+    align-self: flex-end;
+  }
+
+  .sign-workspace .sign-editor-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    height: calc(100vh - 120px) !important;
+  }
+
+  .sign-workspace-sidebar-nav {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    border-left: 0 !important;
+    padding: 8px 12px !important;
+  }
+
+  .sign-workspace .sign-editor-center,
+  .sign-workspace .sign-editor-left,
+  .sign-workspace .sign-editor-right {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
+
+  .sign-workspace .sign-editor-center {
+    padding: 16px 10px 60px !important;
+  }
+}
+
+/* data-mobile="true" fallback for JS-driven mobile state */
+.sign-workspace[data-mobile="true"] .sign-workspace-header {
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-identity {
+  flex-basis: 100%;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-header-actions {
+  width: 100%;
+  justify-content: stretch;
+  gap: 6px;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-header-actions button {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 8px;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-step {
+  display: none;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-toolbar {
+  padding: 8px 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sign-workspace[data-mobile="true"] .sign-toolbar-left {
+  flex-basis: 100%;
+  justify-content: space-between;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-file-label,
+.sign-workspace[data-mobile="true"] .sign-workspace-toolbar-divider {
+  display: none;
+}
+
+.sign-workspace[data-mobile="true"] .sign-toolbar-right {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.sign-workspace[data-mobile="true"] .sign-editor-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+.sign-workspace[data-mobile="true"] .sign-workspace-sidebar-nav {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  border-left: 0 !important;
+}
+
+.sign-workspace[data-mobile="true"] .sign-editor-center,
+.sign-workspace[data-mobile="true"] .sign-editor-left,
+.sign-workspace[data-mobile="true"] .sign-editor-right {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  height: 100% !important;
+  border-left: 0 !important;
+}

@@ -30,6 +30,7 @@ import { pdflibAddPlaceholder } from '@signpdf/placeholder-pdf-lib';
 import { P12Signer } from '@signpdf/signer-p12';
 import { SUBFILTER_ETSI_CADES_DETACHED } from '@signpdf/utils';
 import QRCode from 'qrcode';
+import { signatureReference } from './signature-reference.js';
 import { dbPlatform } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { getSigningIdentity } from './pdf-signing-identity.service.js';
@@ -151,50 +152,30 @@ export async function drawStampImage(
   }
 }
 
-/** Draws the bracket-and-serial specimen mark under a signature/initials
- *  image — the general concept a signer's own reference screenshot showed
- *  (a bracket tying a "Signed by" label and a short identifier to the
- *  signature), reproduced as an original Hudumika mark: a square-cornered
- *  bracket (not DocuSign's rounded one), Hudumika's own teal accent, and
- *  "Digitally Signed by" rather than a reworded copy of their label text.
- *  Two lines stacked in the same below-the-box zone drawStampImage's own
- *  single-line caption already used safely (see drawFields's own long
- *  comment on why nothing is drawn *above* a user-placed field box) — this
- *  replaces that plain caption for signature/initials fields specifically,
- *  not drawStampImage's shared caption path itself (still used elsewhere
- *  with no bracket, e.g. QR captions).
- *  The bracket and this caption are visual only — a signature image can be
- *  copied like any picture. The cryptographic evidence a mark like this
- *  can never forge lives in sign_events (this signer, this timestamp, this
- *  IP) and the Digital Execution Seal (sign-seal.service.ts), not in pixels. */
-async function drawSignatureSpecimen(
+/** Keeps the complete reference and signature inside the placed field, including at page edges. */
+export async function drawSignatureSpecimen(
   doc: PDFDocument, page: PDFPage,
   box: { x: number; y: number; width: number; height: number },
-  recipientName: string, shortId: string,
+  signature: Buffer, recipientId: string,
 ): Promise<void> {
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const mono = await doc.embedFont(StandardFonts.Courier);
-  const teal = rgb(0.02, 0.45, 0.42);
-
-  const labelSize = 6.5;
-  const idSize = 5.5;
-  const lineGap = 1.5;
-  const idY = Math.max(2, box.y - idSize - 2);
-  const labelY = idY + idSize + lineGap;
-  const bracketX = box.x;
-  const textX = bracketX + 7;
-
-  // Square bracket ("[") rather than DocuSign's rounded one — spans just
-  // the two caption lines, not the signature image above them, so this
-  // never needs room this field's own box didn't already reserve.
-  const bracketTop = labelY + labelSize - 1;
-  const bracketBottom = idY - 1;
-  page.drawLine({ start: { x: bracketX, y: bracketTop }, end: { x: bracketX, y: bracketBottom }, thickness: 1, color: teal });
-  page.drawLine({ start: { x: bracketX, y: bracketTop }, end: { x: bracketX + 5, y: bracketTop }, thickness: 1, color: teal });
-  page.drawLine({ start: { x: bracketX, y: bracketBottom }, end: { x: bracketX + 5, y: bracketBottom }, thickness: 1, color: teal });
-
-  page.drawText('Digitally Signed by:', { x: textX, y: labelY, size: labelSize, font: bold, color: rgb(0.06, 0.09, 0.16) });
-  page.drawText(`${recipientName} · ${shortId}…`, { x: textX, y: idY, size: idSize, font: mono, color: rgb(0.45, 0.45, 0.45) });
+  const bold=await doc.embedFont(StandardFonts.HelveticaBold);
+  const mono=await doc.embedFont(StandardFonts.Courier);
+  const teal=rgb(0.02,0.45,0.42);
+  const reference=signatureReference(recipientId);
+  const inset=11.2;
+  const usable=Math.max(1,box.width-inset-4.2);
+  const idSize=Math.min(11.2,Math.max(7,box.height/10));
+  const chars=Math.max(1,Math.floor(usable/(idSize*.6)));
+  const lines=reference.match(new RegExp(`.{1,${chars}}`,'g')) || [reference];
+  const captionHeight=lines.length*(idSize+2.8)+5.6;
+  const label='Hudumika signed by:';
+  const labelSize=Math.min(14,usable/bold.widthOfTextAtSize(label,1));
+  const top=box.y+box.height;
+  page.drawLine({start:{x:box.x,y:top-2.8},end:{x:box.x,y:box.y+2.8},thickness:2.1,color:teal});
+  for(const y of [top-2.8,box.y+2.8])page.drawLine({start:{x:box.x,y},end:{x:box.x+8.4,y},thickness:2.1,color:teal});
+  page.drawText(label,{x:box.x+inset,y:top-labelSize-1.4,size:labelSize,font:bold,color:rgb(.06,.09,.16)});
+  await drawStampImage(doc,page,signature,{x:box.x+inset,y:box.y+captionHeight,width:usable,height:Math.max(1,box.height-captionHeight-labelSize-7)});
+  lines.forEach((line,index)=>page.drawText(line,{x:box.x+inset,y:box.y+4.2+(lines.length-index-1)*(idSize+2.8),size:idSize,font:mono,color:rgb(.15,.18,.22)}));
 }
 
 /** Draws a "CERTIFIED TRUE COPY" legal block — real text (name, title, roll
@@ -270,7 +251,7 @@ export async function buildSignedPdf(
   }
 
   await drawFields(doc, envelope, recipients, fields, await resolveTenantStamp(envelope, recipients, fields));
-  await drawAuditTrail(doc, envelope, events, recipients.some(r => r.is_certifier));
+  await drawAuditTrail(doc, envelope, events, recipients.some(r => r.is_certifier), recipients);
 
   const unsigned = Buffer.from(await doc.save());
   try {
@@ -402,16 +383,8 @@ async function resolveTenantStamp(
  *  field never renders blank just because nobody's cleared to apply the
  *  real seal.
  *
- *  Signature/initials fields also get drawSignatureSpecimen's bracket +
- *  "Digitally Signed by:" + name/id mark drawn just below the image — the
- *  general concept behind DocuSign's own "DocuSigned by:" + truncated id
- *  under the signature, reproduced as an original Hudumika mark (see that
- *  function's own header for the specific differences: square bracket, own
- *  wording, own color). The envelope's own id (not the human-facing
- *  verification_code, which is already prominent elsewhere on the stamp/
- *  audit page) is what gets truncated. Drawn just outside the field's own
- *  box, not inside it — the box is user-sized to fit exactly the signature
- *  image, and a fixed field size here has nowhere to add a caption inside it. */
+ *  Signature fields contain a framed, complete per-recipient reference;
+ *  initials and company/notarial stamps keep their separate rendering. */
 async function drawFields(
   doc: PDFDocument, envelope: SourceEnvelope, recipients: SourceRecipient[], fields: SourceField[],
   tenantStamp: { bytes: Buffer | null; authorizedRecipientIds: Set<string> },
@@ -420,7 +393,6 @@ async function drawFields(
   const pages = doc.getPages();
   let font: PDFFont | null = null;
   let boldFont: PDFFont | null = null;
-  const shortId = envelope.id.replace(/-/g, '').toUpperCase().slice(0, 16);
 
   for (const field of fields) {
     const page = pages[Math.max(0, (field.page || 1) - 1)] ?? pages[0];
@@ -451,10 +423,9 @@ async function drawFields(
       try {
         const parsed = parseDataUrl(recipient.signature_data);
         if (parsed) {
-          await drawStampImage(doc, page, parsed.bytes, { x: boxX, y: boxY, width: boxW, height: boxH });
-          if (field.field_type !== 'stamp') {
-            await drawSignatureSpecimen(doc, page, { x: boxX, y: boxY, width: boxW, height: boxH }, recipient.name, shortId);
-          }
+          const box={x:boxX,y:boxY,width:boxW,height:boxH};
+          if(field.field_type==='signature')await drawSignatureSpecimen(doc,page,box,parsed.bytes,recipient.id);
+          else await drawStampImage(doc,page,parsed.bytes,box);
         }
       } catch (err) {
         console.error('[Sign PDF] Failed to embed a signature image:', (err as Error).message);
@@ -476,7 +447,7 @@ async function drawFields(
  *  now traveling with the file itself. Paginates rather than truncating:
  *  a real envelope's audit trail should never be silently dropped just
  *  because it outgrew a single page. */
-async function drawAuditTrail(doc: PDFDocument, envelope: SourceEnvelope, events: SourceEvent[], hasCertifier: boolean): Promise<void> {
+async function drawAuditTrail(doc: PDFDocument, envelope: SourceEnvelope, events: SourceEvent[], hasCertifier: boolean, recipients: SourceRecipient[]): Promise<void> {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
@@ -585,6 +556,13 @@ async function drawAuditTrail(doc: PDFDocument, envelope: SourceEnvelope, events
     y -= 20;
   }
   await header();
+  for (const recipient of recipients.filter(item=>item.signature_data)) {
+    if(y<85){page=doc.addPage([PAGE_W,PAGE_H]);y=PAGE_H-50;}
+    page.drawText(`Signature reference: ${signatureReference(recipient.id)}`,{x:50,y,size:9,font:regular,color:rgb(.1,.1,.15)});
+    y-=14;
+    page.drawText(recipient.name,{x:50,y,size:10,font:bold,color:rgb(.1,.1,.15)});
+    y-=22;
+  }
 
   for (const ev of events) {
     if (y < 70) {

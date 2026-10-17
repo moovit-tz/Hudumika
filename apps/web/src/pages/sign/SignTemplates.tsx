@@ -61,7 +61,7 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
         {!results ? (
           <>
             <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 14px' }}>
-              One line per recipient — a separate envelope is created and sent to each: <code>Name, email@example.com, phone (optional)</code>
+              One line per recipient — a separate document is created and sent to each: <code>Name, email@example.com, phone (optional)</code>
             </p>
             <textarea
               value={raw}
@@ -115,12 +115,12 @@ export function SignTemplates() {
   const fetchStats = useCallback(() => { apiFetch('/v1/sign/templates/stats').then(setServerStats).catch(() => {}); }, []);
 
   useEffect(() => {
-    apiFetch('/v1/sign/templates').then(setTemplates).catch(console.error).finally(() => setLoading(false));
+    apiFetch('/v1/sign/templates').then(rows => setTemplates(rows.filter((row: SignTemplate) => !row.document_definition))).catch(console.error).finally(() => setLoading(false));
     fetchStats();
   }, [fetchStats]);
 
   async function deleteTemplate(id: string) {
-    if (!(await showConfirm('This template will no longer be available to start a new envelope from.', { title: 'Delete this template?', confirmLabel: 'Delete' }))) return;
+    if (!(await showConfirm('This template will no longer be available to start a new document from.', { title: 'Delete this template?', confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/sign/templates/${id}`, { method: 'DELETE' });
     setTemplates(prev => prev.filter(t => t.id !== id));
     fetchStats();
@@ -140,27 +140,27 @@ export function SignTemplates() {
       };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ padding: '16px 0', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
         <PageHeader
           crumbs={['Sign', 'Templates']}
-          titlePlain="Envelope"
-          titleEm="templates"
-          subtitle="Reusable document layouts for 1-click envelope creation & bulk sending."
+          titlePlain="Signing"
+          titleEm="layouts"
+          subtitle="Reusable document layouts for 1-click document creation & bulk sending."
           actions={
             <div style={{ display: 'flex', gap: 10 }}>
               <Button variant="outline" size="sm" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
                 <Icon name="arrowLeft" size={14} /> Back to Inbox
               </Button>
               <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 700 }}>
-                <Icon name="plus" size={14} /> New Envelope from Scratch
+                <Icon name="plus" size={14} /> New Document from Scratch
               </Button>
             </div>
           }
         />
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+      <div style={{ flex: 1, padding: '20px 0' }}>
         {!loading && templates.length > 0 && (
           <MetricsRow cards={[
             {
@@ -198,7 +198,7 @@ export function SignTemplates() {
             </div>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>No templates yet</div>
             <div style={{ fontSize: 13, maxWidth: 340, lineHeight: 1.5, marginBottom: 20 }}>
-              Save an envelope layout as a template to reuse field placements and recipients quickly for future documents.
+              Save an document layout as a template to reuse field placements and recipients quickly for future documents.
             </div>
             <Button variant="default" onClick={() => navigate('/sign/editor')} style={{ fontWeight: 600 }}>
               <Icon name="plus" size={14} /> Create New Template
@@ -223,7 +223,7 @@ export function SignTemplates() {
                   <Button variant="default" size="sm" onClick={() => navigate(`/sign/editor?template=${t.id}`)} style={{ flex: 2, fontWeight: 600 }}>
                     Use Template
                   </Button>
-                  <Tip label="Send this template to a list of recipients — one envelope each">
+                  <Tip label="Send this template to a list of recipients — one document each">
                     <Button variant="outline" size="sm" onClick={() => setBulkSendTarget(t)}
                       style={{ flex: 1, borderColor: 'var(--teal)', color: 'var(--teal)' }}>
                       <Icon name="send" size={12} /> Bulk

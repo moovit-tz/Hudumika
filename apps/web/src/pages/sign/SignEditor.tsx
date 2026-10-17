@@ -3,13 +3,16 @@
 // Fields are placed on the page by clicking the field type then clicking on the page.
 // Coordinates stored as fractions (0–1) so they survive font/page-size changes.
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiFetch, apiFetchBlob } from '../../lib/api.js';
-import type { SignFieldType } from '@hudumika/types';
+import { COUNTRIES, type SignFieldType } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
+import { cn } from '../../lib/utils.js';
 import { Button } from '../../components/ui/button.js';
+import { BackButton } from '../../components/ui/BackButton.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
@@ -46,7 +49,12 @@ import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { Card } from '../../components/ui/card.js';
 import './SignManagement.css';
 import { PageHeader } from '../../components/PageHeader.js';
+import { PersonAvatar } from '../../components/PersonAvatar.js';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
+import { Badge } from '../../components/ui/badge.js';
+import { Banner } from '../../components/ui/alert.js';
 import './Sign.css';
+import './SignWorkspace.css';
 
 const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; defaultW: number; defaultH: number }[] = [
   // Signature and stamp bumped up from 0.28x0.06 / 0.16x0.11 — both were
@@ -54,7 +62,7 @@ const FIELD_TYPES: { type: SignFieldType; label: string; icon: IconName; default
   // the drawn image to exactly fill field.width x field.height, so this is
   // the only lever there is; a placed field has no resize handle, only
   // drag-to-move, so the default is the field's size for good).
-  { type: 'signature', label: 'Signature',   icon: 'edit',      defaultW: 0.34, defaultH: 0.09 },
+  { type: 'signature', label: 'Signature',   icon: 'edit',      defaultW: 0.504, defaultH: 0.168 },
   { type: 'initials',  label: 'Initials',    icon: 'edit',      defaultW: 0.12, defaultH: 0.05 },
   { type: 'date',      label: 'Date',        icon: 'calendar',  defaultW: 0.18, defaultH: 0.04 },
   { type: 'text',      label: 'Text Field',  icon: 'fileText',  defaultW: 0.25, defaultH: 0.04 },
@@ -101,6 +109,52 @@ interface RecipientInput {
 }
 
 const A4_ASPECT = 1.414; // height/width ratio of A4
+
+function DocumentTitle({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const input = inputRef.current;
+    const measure = measureRef.current;
+    if (!input || !measure) return;
+    const fit = () => setScale(Math.min(1, Math.max(1, input.clientWidth - 4) / Math.max(1, measure.getBoundingClientRect().width)));
+    const observer = new ResizeObserver(fit);
+    observer.observe(input);
+    observer.observe(measure);
+    fit();
+    document.fonts.ready.then(fit);
+    return () => observer.disconnect();
+  }, [value]);
+  useLayoutEffect(() => { if (inputRef.current) inputRef.current.scrollLeft = 0; }, [scale, value]);
+  return <div className="sign-workspace-title-wrap">
+    <span ref={measureRef} className="sign-workspace-title-measure" aria-hidden="true">{value || 'Untitled document'}</span>
+    <Input ref={inputRef} className="sign-workspace-title" aria-label="Document title" title={value || 'Untitled document'} value={value} onChange={event=>onChange(event.target.value)} placeholder="Untitled document" style={{fontSize:`calc(var(--page-title-size) * ${scale})`,paddingBlock:0,borderWidth:0}}/>
+  </div>;
+}
+
+function PageThumbnail({ doc, page, active, onSelect }: { doc: PDFDocumentProxy; page: number; active: boolean; onSelect: () => void }) {
+  const [scale, setScale] = useState<number>();
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
+    }, { rootMargin: '160px' });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    doc.getPage(page).then(value => { if (!cancelled) setScale(104 / value.getViewport({ scale: 1 }).width); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [doc, page, visible]);
+  return <Button ref={ref} variant="ghost" size="sm" className="sign-workspace-thumbnail" aria-label={`Go to page ${page}`} aria-current={active?'page':undefined} onClick={onSelect}>
+    <span className="sign-workspace-thumbnail-sheet">{scale ? <PdfPageCanvas doc={doc} pageNumber={page} scale={scale}/> : <Icon name="fileText" size={24}/>}</span>
+    <span>Page {page}</span>
+  </Button>;
+}
 
 export function SignEditor() {
   const navigate = useNavigate();
@@ -169,13 +223,14 @@ export function SignEditor() {
   useEffect(() => {
     if (!pdfDoc) return;
     let cancelled = false;
-    pdfDoc.getPage(1).then(page => {
+    if(currentPdfPage>pdfNumPages)return;
+    pdfDoc.getPage(currentPdfPage).then(page => {
       if (cancelled) return;
       const vp = page.getViewport({ scale: 1 });
       setNaturalPageSize({ width: vp.width, height: vp.height });
-    });
+    }).catch(()=>{if(!cancelled)setNaturalPageSize(null);});
     return () => { cancelled = true; };
-  }, [pdfDoc]);
+  }, [pdfDoc,currentPdfPage,pdfNumPages]);
   const [recipients, setRecipients] = useState<RecipientInput[]>([
     { name: '', email: '', phone: '', role_label: '', sign_order: 1, user_id: null },
   ]);
@@ -193,9 +248,16 @@ export function SignEditor() {
     apiFetch('/v1/sign/certifiers').then(setCertifiers).catch(() => {});
   }, []);
   const [mobileTab, setMobileTab] = useState<'left' | 'center' | 'right'>('center');
+  const [sidebarMode,setSidebarMode] = useState<'fields'|'recipients'|'review'>('fields');
+  const [showAllFields,setShowAllFields] = useState(false);
+  const [zoom,setZoom] = useState(1);
+  const editorCenterRef = useRef<HTMLDivElement>(null);
+  const persistedEnvelopeIdRef = useRef(envelopeId);
+  useEffect(()=>{persistedEnvelopeIdRef.current=envelopeId;},[envelopeId]);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  function openSidebar(mode: 'fields'|'recipients'|'review') {setSidebarMode(mode);setShowPdfTools(false);if(isMobile)setMobileTab(mode==='recipients'?'left':'right');}
 
   const pageRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -259,7 +321,7 @@ export function SignEditor() {
   const createExternalRecipient = useCallback(async (name: string): Promise<PickerItem> => ({ id: '', label: name }), []);
 
   useEffect(() => {
-    apiFetch('/v1/sign/jurisdiction-rules/mine').then(setJurisdiction).catch(() => {});
+    if (!searchParams.get('document') && !envelopeId) apiFetch('/v1/sign/jurisdiction-rules/mine').then(setJurisdiction).catch(() => {});
   }, []);
 
   async function runAiAssist() {
@@ -297,6 +359,13 @@ export function SignEditor() {
       setRequireOtp(!!env.require_otp);
       setFileName(env.file_name ?? null);
       setDocumentData(env.document_data ?? null);
+      if (env.document_jurisdiction) {
+        const code = COUNTRIES.find(country => country.name === env.document_jurisdiction || country.code === env.document_jurisdiction)?.code;
+        if (code) apiFetch(`/v1/sign/jurisdiction-rules?jurisdiction=${code}`).then(result => setJurisdiction({ jurisdiction_code: code, rules: result.data })).catch(() => {});
+        else setJurisdiction({ jurisdiction_code: env.document_jurisdiction, rules: [] });
+      } else {
+        apiFetch('/v1/sign/jurisdiction-rules/mine').then(setJurisdiction).catch(() => {});
+      }
       if (env.document_data) setPreviewSrc(env.document_data);
       else if (env.file_id) {
         setSourceFileId(env.file_id);
@@ -359,6 +428,18 @@ export function SignEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envelopeId]);
 
+  useEffect(() => {
+    const documentId = searchParams.get('document');
+    if (envelopeId || !documentId) return;
+    apiFetch(`/v1/sign/generated-documents/${documentId}/pdf?format=source`).then(source => {
+      setTitle(source.title); setFileName(source.file_name);
+      setDocumentData(source.document_data); setPreviewSrc(source.document_data);
+      setSourceFileId(null);
+      if (source.jurisdiction_code) apiFetch(`/v1/sign/jurisdiction-rules?jurisdiction=${encodeURIComponent(source.jurisdiction_code)}`).then(result => setJurisdiction({ jurisdiction_code: source.jurisdiction_code, rules: result.data })).catch(() => {});
+      else setJurisdiction({ jurisdiction_code: source.jurisdiction, rules: [] });
+    }).catch(error => showAlert(error.message));
+  }, [envelopeId, searchParams]);
+
   // ── Start from a saved template (SignTemplates.tsx's "Use Template" button
   // — GET /sign/editor?template=<id>) ─────────────────────────────────────────
   // Only for a brand-new envelope, same reasoning as the Cloud-file effect above.
@@ -368,8 +449,9 @@ export function SignEditor() {
     if (!templateId) return;
     apiFetch(`/v1/sign/templates/${templateId}`).then(t => {
       setTitle(prev => prev || t.name);
+      setSkipUploadStep(true);
       if (t.recipients?.length) {
-        setRecipients(t.recipients.map((r: RecipientInput) => ({ name: r.name ?? '', email: r.email ?? '', phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order ?? 1, user_id: r.user_id ?? null })));
+        setRecipients(t.recipients.map((r: RecipientInput) => ({ ...r, name: r.name ?? '', email: r.email ?? '', phone: r.phone ?? '', role_label: r.role_label ?? '', sign_order: r.sign_order ?? 1, user_id: r.user_id ?? null })));
       }
       if (t.fields?.length) {
         setFields(t.fields.map((f: Omit<PlacedField, 'id'>) => ({
@@ -379,14 +461,15 @@ export function SignEditor() {
           required: f.required ?? true, placeholder: f.placeholder ?? undefined,
         })));
       }
-      if (t.file_id) {
+      if (t.document_data) {setDocumentData(t.document_data);setPreviewSrc(t.document_data);setFileName(t.file_name || `${t.name}.pdf`);}
+      else if (t.file_id) {
         setSourceFileId(t.file_id);
         if (t.file_name) setFileName(t.file_name);
         apiFetchBlob(`/v1/files/${t.file_id}/preview`).then(blob => setPreviewSrc(URL.createObjectURL(blob))).catch(console.error);
       }
     }).catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [envelopeId]);
+  }, [envelopeId, searchParams]);
 
   // ── Restore a not-yet-created envelope's local draft ────────────────────
   // Skipped when ?fileId= or ?template= is present — arriving here from
@@ -394,7 +477,7 @@ export function SignEditor() {
   // which should win over an old, possibly unrelated abandoned draft.
   useEffect(() => {
     if (envelopeId) return;
-    if (searchParams.get('fileId') || searchParams.get('template')) { draftReadyRef.current = true; return; }
+    if (searchParams.get('fileId') || searchParams.get('template') || searchParams.get('document')) { draftReadyRef.current = true; return; }
     loadDraft(draftKey(undefined)).then(draft => {
       if (draft && isMeaningfulDraft(draft)) {
         setTitle(draft.title);
@@ -546,7 +629,7 @@ export function SignEditor() {
 
   // ── Save as draft ─────────────────────────────────────────────────────────
   async function handleSave() {
-    if (!title.trim()) { showAlert('Please enter an envelope title'); return; }
+    if (!title.trim()) { showAlert('Please enter an document title'); return; }
     if (recipients.some(r => !r.name.trim() || !r.email.trim())) {
       showAlert('All recipients must have a name and email'); return;
     }
@@ -561,17 +644,20 @@ export function SignEditor() {
       // backend's NOT NULL uuid column rejected outright on every save of
       // an already-created draft that had any fields placed.
       const body = {
+        generated_document_id: searchParams.get('document') || undefined,
         title, message, matter_reference: matterReference.trim() || null,
         meeting_url: meetingLink.meetingUrl, bliss_meeting_id: meetingLink.blissMeetingId,
         order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
         document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields,
         changeSummary: pendingChangeSummary?.summary, changeDetails: pendingChangeSummary?.details,
       };
-      if (envelopeId) {
-        await apiFetch(`/v1/sign/envelopes/${envelopeId}`, { method: 'PUT', body: JSON.stringify(body) });
-        navigate(`/sign/envelope/${envelopeId}`);
+      const targetId=envelopeId || persistedEnvelopeIdRef.current;
+      if (targetId) {
+        await apiFetch(`/v1/sign/envelopes/${targetId}`, { method: 'PUT', body: JSON.stringify(body) });
+        navigate(`/sign/envelope/${targetId}`);
       } else {
         const env = await apiFetch('/v1/sign/envelopes', { method: 'POST', body: JSON.stringify(body) });
+        persistedEnvelopeIdRef.current=env.id;
         navigate(`/sign/envelope/${env.id}`);
       }
       setPendingChangeSummary(null);
@@ -594,16 +680,18 @@ export function SignEditor() {
     setSending(true);
     try {
       const body = {
+        generated_document_id: searchParams.get('document') || undefined,
         title, message, matter_reference: matterReference.trim() || null,
         meeting_url: meetingLink.meetingUrl, bliss_meeting_id: meetingLink.blissMeetingId,
         order_mode: orderMode, require_otp: requireOtp, file_name: fileName,
         document_data: sourceFileId ? null : documentData, file_id: sourceFileId, recipients, fields,
         changeSummary: pendingChangeSummary?.summary, changeDetails: pendingChangeSummary?.details,
       };
-      let envId = envelopeId;
+      let envId = envelopeId || persistedEnvelopeIdRef.current;
       if (!envId) {
         const env = await apiFetch('/v1/sign/envelopes', { method: 'POST', body: JSON.stringify(body) });
         envId = env.id;
+        persistedEnvelopeIdRef.current=env.id;
       } else {
         // An existing draft's current title/recipients/fields must actually
         // be persisted before sending — this used to build `body` and then
@@ -624,7 +712,7 @@ export function SignEditor() {
 
   // ── Save current layout as a reusable template ────────────────────────────
   async function handleSaveAsTemplate() {
-    if (!title.trim()) { showAlert('Please enter an envelope title first'); return; }
+    if (!title.trim()) { showAlert('Please enter an document title first'); return; }
     const name = await showPrompt('', { title: 'Template name', defaultValue: title, required: true, confirmLabel: 'Save Template' });
     if (!name?.trim()) return;
     try {
@@ -633,9 +721,10 @@ export function SignEditor() {
         body: JSON.stringify({
           name: name.trim(),
           fields: fields.map(f => ({ recipient_index: f.recipient_index, field_type: f.field_type, page: f.page, x: f.x, y: f.y, width: f.width, height: f.height, required: f.required, placeholder: f.placeholder ?? null })),
-          recipients: recipients.map(r => ({ name: r.name, email: r.email, phone: r.phone || null, user_id: r.user_id || null, role_label: r.role_label || null, sign_order: r.sign_order })),
+          recipients: recipients.map(r => ({ ...r, phone: r.phone || null, user_id: r.user_id || null, role_label: r.role_label || null })),
           file_id: sourceFileId,
           file_name: fileName,
+          document_data: documentData,
         }),
       });
       showAlert('Template saved — find it under Templates.', { variant: 'success' });
@@ -645,7 +734,8 @@ export function SignEditor() {
   }
 
   // ── Computed page size ────────────────────────────────────────────────────
-  const [pageW, setPageW] = useState(600);
+  const [basePageW, setPageW] = useState(600);
+  const pageW=Math.round(basePageW*zoom);
   // The real PDF page's own aspect ratio once known (see naturalPageSize
   // above) — a plain A4 guess for anything else (an image, or before the
   // PDF has loaded), same as before.
@@ -658,13 +748,15 @@ export function SignEditor() {
 
   useEffect(() => {
     function measure() {
-      const w = pageRef.current?.parentElement?.clientWidth ?? (window.innerWidth > 900 ? 600 : window.innerWidth - 32);
-      setPageW(Math.max(280, Math.min(w - 32, 800)));
+      const w = editorCenterRef.current?.clientWidth;
+      if(w) setPageW(Math.max(220, w - 40));
     }
     measure();
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
+    const observer=new ResizeObserver(measure);
+    if(editorCenterRef.current) observer.observe(editorCenterRef.current);
+    return () => {window.removeEventListener('resize', measure);observer.disconnect();};
+  }, [skipUploadStep,previewSrc,mobileTab]);
 
   const addRecipient = () => setRecipients(prev => [...prev, { name: '', email: '', phone: '', role_label: '', sign_order: prev.length + 1, user_id: null }]);
   const removeRecipient = (i: number) => {
@@ -674,6 +766,15 @@ export function SignEditor() {
   };
   const removeField = (id: string) => { setFields(prev => prev.filter(f => f.id !== id)); setSelectedField(null); };
   const selectedFieldData = fields.find(f => f.id === selectedField);
+  function updateGeometry(key:'x'|'y'|'width'|'height',value:number) {
+    if(!Number.isFinite(value))return;
+    setFields(previous=>previous.map(field=>{
+      if(field.id!==selectedField)return field;
+      const next={...field,[key]:Math.max(key==='width'||key==='height'?0.01:0,Math.min(1,value/100))};
+      next.x=Math.min(next.x,1-next.width);next.y=Math.min(next.y,1-next.height);
+      return next;
+    }));
+  }
 
   // ── Upload-first screen — new envelope, no document yet ───────────────────
   // Shown instead of the full 3-panel editor until a file is chosen. Once
@@ -682,20 +783,16 @@ export function SignEditor() {
   if (!previewSrc && !envelopeId && !skipUploadStep) {
     return (
       <main className="sign-new-envelope-page">
-        <Card className="sign-new-envelope-card" aria-label="Create a new envelope">
-          <PageHeader
-            crumbs={['eSign', 'Create']}
-            titlePlain="New"
-            titleEm="envelope"
-            subtitle="Add a document, choose recipients, and place signing fields."
-            actions={
-              <Tip label="Return to your eSign documents without creating an envelope">
-                <Button variant="outline" size="default" onClick={() => navigate('/sign')}>
-                  <Icon name="arrowLeft" size={14} /> Back
-                </Button>
-              </Tip>
-            }
-          />
+        <Card className="sign-new-envelope-card" aria-label="Create a new document">
+          <div className="sign-new-envelope-header">
+            <BackButton to="/sign" label="Back" color="var(--ink2)" />
+            <PageHeader
+              crumbs={[]}
+              titlePlain="New"
+              titleEm="document"
+              subtitle="Add a document, choose recipients, and place signing fields."
+            />
+          </div>
 
           <div className="sign-editor-steps" aria-label="Preparation steps">
             <span><Icon name="fileText" size={16} />1. Document</span>
@@ -718,11 +815,19 @@ export function SignEditor() {
               <div className="sign-new-envelope-chooser-heading">
                 <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="fileText" size={20} /></FeaturedIcon>
                 <div>
-                  <h2>Add your document</h2>
-                  <p>Choose a file or capture it with your camera.</p>
+                  <h2>Create your document</h2>
+                  <p>Import a template, write your own document, or upload a file for signing.</p>
                 </div>
               </div>
               <div className="sign-new-envelope-actions">
+                <Button type="button" variant="outline" className="sign-new-envelope-action" onClick={()=>navigate('/sign/editor?mode=import')}>
+                  <FeaturedIcon variant="brand" size="lg"><Icon name="layers" size={20}/></FeaturedIcon>
+                  <span className="sign-new-envelope-action-copy"><strong>Import template</strong><small>Preview, answer key decisions, and generate</small></span><Icon name="arrowRight" size={16}/>
+                </Button>
+                <Button type="button" variant="outline" className="sign-new-envelope-action" onClick={()=>navigate('/sign/editor?mode=author')}>
+                  <FeaturedIcon variant="brand" size="lg"><Icon name="edit" size={20}/></FeaturedIcon>
+                  <span className="sign-new-envelope-action-copy"><strong>Write a document</strong><small>Create wording and save a reusable template</small></span><Icon name="arrowRight" size={16}/>
+                </Button>
                 <Tip label="Choose an existing PDF, DOCX, PNG, or JPG from your device">
                   <Button type="button" variant="outline" className="sign-new-envelope-action" onClick={() => fileInputRef.current?.click()}>
                     <FeaturedIcon variant="brand" size="lg" shape="circle"><Icon name="upload" size={20} /></FeaturedIcon>
@@ -759,125 +864,104 @@ export function SignEditor() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--card-bg)' }}>
-      {/* Top control bar with responsive flex wrapping */}
-      <div className="sign-editor-control-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: '1 1 250px' }}>
-          <Button variant="outline" size="default" onClick={() => navigate('/sign')} style={{ fontWeight: 600, gap: 6, flexShrink: 0 }}>
-            <Icon name="arrowLeft" size={14} /> Back
-          </Button>
-          <Input aria-label="Document title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Document title…"
-            style={{ flex: 1, minWidth: 120, fontSize: 14.5, fontWeight: 700, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none', letterSpacing: '-0.01em', textOverflow: 'ellipsis' }} />
+    <div className="sign-workspace" data-mobile={isMobile} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--card-bg)' }}>
+      <header className="sign-workspace-header">
+        <div className="sign-workspace-identity">
+          <FeaturedIcon variant="brand" size="sm" shape="squircle"><Icon name="fileText" size={18}/></FeaturedIcon>
+          <div className="sign-workspace-identity-body">
+            <DocumentTitle value={title} onChange={setTitle}/>
+            <div className="sign-workspace-document-state">
+              <Badge variant="gray" className="font-semibold text-[11px]">Draft</Badge>
+              <span>{fields.length} fields · {recipients.length} recipients</span>
+            </div>
+          </div>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
-          <Select value={orderMode} onValueChange={v => setOrderMode(v as 'sequential' | 'parallel')}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+        <div className="sign-workspace-header-actions">
+          <span className="sign-workspace-step">Step {sidebarMode==='review'?3:2} of 3</span>
+          <Button variant="outline" size="sm" onClick={()=>navigate('/sign')} className="sign-header-btn-back">
+            <Icon name="chevronLeft" size={14}/>
+            <span>Back</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleSave} disabled={saving||sending} className="sign-header-btn-save">
+            <Icon name="save" size={14}/>
+            <span>{saving?'Saving…':'Save draft'}</span>
+          </Button>
+          <Button size="sm" onClick={()=>openSidebar('review')} disabled={sending} className="sign-header-btn-send font-semibold">
+            <Icon name="send" size={14}/>
+            <span>Review and send</span>
+          </Button>
+        </div>
+      </header>
+      <div className="sign-workspace-toolbar" role="toolbar" aria-label="Document tools">
+        <div className="sign-toolbar-left">
+          <Select value={String(zoom)} onValueChange={value=>setZoom(Number(value))}>
+            <SelectTrigger aria-label="Document zoom" className="sign-workspace-zoom">
+              <SelectValue/>
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="sequential">Sequential signing</SelectItem>
-              <SelectItem value="parallel">Parallel signing</SelectItem>
+              <SelectItem value="1">Fit width</SelectItem>
+              <SelectItem value="0.75">75%</SelectItem>
+              <SelectItem value="1.25">125%</SelectItem>
+              <SelectItem value="1.5">150%</SelectItem>
             </SelectContent>
           </Select>
-
-          <Tip label="Each recipient must have a phone number on file — they'll choose SMS or WhatsApp to receive their code">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}>
-              <Checkbox checked={requireOtp} onCheckedChange={c => setRequireOtp(c === true)} />
-              OTP / WhatsApp
-            </label>
-          </Tip>
-
-          <div style={{ height: 16, width: 1, background: 'var(--border)' }} />
-
-          {isPdf && previewSrc && (
-            <Tip label="Rotate, watermark, redact, OCR, compress">
-              <Button variant="outline" size="default" onClick={() => { setShowPdfTools(true); if (isMobile) setMobileTab('right'); }}>
-                <Icon name="layers" size={13} /> PDF tools
-              </Button>
-            </Tip>
-          )}
-
-          {isPdf && previewSrc && (sourceFileId || documentData) && (
-            <Tip label="Suggestions only — scans for blank fields and witness/notary blocks, never a validity check">
-              <Button variant="outline" size="default" onClick={runAiAssist} disabled={aiAssistLoading}>
-                <Icon name="sparkle" size={13} /> {aiAssistLoading ? 'Scanning…' : 'AI Scan'}
-              </Button>
-            </Tip>
-          )}
-
-          {envelopeId && (
-            <Tip label="See every saved version of this document and what changed, with the ability to revert">
-              <Button variant="outline" size="default" onClick={() => setShowVersionHistory(true)}>
-                <Icon name="clock" size={13} /> Versions
-              </Button>
-            </Tip>
-          )}
-
-          {/* Unified Save Dropdown Button */}
+          <span className="sign-workspace-toolbar-divider"/>
+          <span className="sign-workspace-file-label" title={fileName || 'Blank document'}>{fileName || 'Blank document'}</span>
+        </div>
+        <div className="sign-toolbar-right">
+          <div className="sign-workspace-page-nav">
+            <Button variant="ghost" size="icon" aria-label="Previous document page" disabled={currentPdfPage<=1} onClick={()=>setCurrentPdfPage(p=>Math.max(1,p-1))} className="sign-page-nav-arrow">
+              <Icon name="chevronLeft" size={14}/>
+            </Button>
+            <span className="sign-page-nav-text">Page {currentPdfPage} of {pdfNumPages || 1}</span>
+            <Button variant="ghost" size="icon" aria-label="Next document page" disabled={currentPdfPage>=(pdfNumPages || 1)} onClick={()=>setCurrentPdfPage(p=>Math.min(pdfNumPages || 1,p+1))} className="sign-page-nav-arrow">
+              <Icon name="chevronRight" size={14}/>
+            </Button>
+          </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="default">
-                <Icon name="save" size={13} /> {saving ? 'Saving…' : 'Save'} <Icon name="chevronDown" size={11} style={{ opacity: 0.6 }} />
+              <Button variant="outline" size="sm" className="sign-toolbar-actions-btn">
+                <Icon name="layers" size={14}/>
+                <span>Document actions</span>
+                <Icon name="chevronDown" size={12} className="opacity-70"/>
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" style={{ width: 185, padding: 4 }}>
-              <Button variant="ghost" size="default" onClick={handleSave} disabled={saving}
-                style={{ width: '100%', justifyContent: 'flex-start', fontWeight: 600, gap: 8 }}>
-                <Icon name="fileText" size={14} color="var(--blue)" /> Save draft
-              </Button>
-              <Button variant="ghost" size="default" onClick={handleSaveAsTemplate}
-                style={{ width: '100%', justifyContent: 'flex-start', fontWeight: 600, gap: 8 }}>
-                <Icon name="copy" size={14} color="var(--teal)" /> Save template
-              </Button>
+            <PopoverContent align="end" className="sign-workspace-document-menu w-52 p-1.5">
+              {isPdf&&previewSrc&&<Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={()=>{openSidebar('fields');setShowPdfTools(true);}}><Icon name="layers" size={14}/>PDF tools</Button>}
+              {isPdf&&previewSrc&&(sourceFileId||documentData)&&<Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={()=>{openSidebar('recipients');runAiAssist();}} disabled={aiAssistLoading}><Icon name="sparkle" size={14}/>{aiAssistLoading?'Scanning…':'AI scan'}</Button>}
+              {envelopeId&&<Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={()=>setShowVersionHistory(true)}><Icon name="clock" size={14}/>Version history</Button>}
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={handleSaveAsTemplate}><Icon name="copy" size={14}/>Save as template</Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={async()=>{if(await showConfirm("Importing a template starts a new document. Save this draft first if you want to keep it.",{title:"Import template?",confirmLabel:"Choose template"}))navigate("/sign/editor?mode=import");}}><Icon name="layers" size={14}/>Import template</Button>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={()=>fileInputRef.current?.click()}><Icon name="upload" size={14}/>Replace document</Button>
             </PopoverContent>
           </Popover>
-
-          <Button variant="default" size="default" onClick={handleSend} disabled={sending}>
-            {sending ? 'Sending…' : 'Send'} <Icon name="send" size={13} style={{ marginLeft: 4 }} />
-          </Button>
         </div>
       </div>
-
       {draftRestoredAt && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px', background: 'var(--blue-l)', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--ink2)', flexShrink: 0 }}>
-          <Icon name="clock" size={13} style={{ color: 'var(--blue)', flexShrink: 0 }} />
-          <span>Restored your unsaved edits from {new Date(draftRestoredAt).toLocaleString()}.</span>
-          <Button variant="ghost" size="default" onClick={() => { clearDraft(draftKey(envelopeId)); window.location.reload(); }} style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>
+        <div className="sign-workspace-restore-banner">
+          <div className="sign-restore-info">
+            <Icon name="info" size={14} className="sign-restore-icon" />
+            <span>Restored your unsaved edits from {new Date(draftRestoredAt).toLocaleString()}.</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => { clearDraft(draftKey(envelopeId)); window.location.reload(); }} className="sign-restore-discard-btn">
             Discard and start fresh
           </Button>
         </div>
       )}
 
-      {/* Mobile Tab Switcher (visible on phones and tablets) */}
-      {isMobile && (
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)', padding: '4px 8px', gap: 4 }}>
-          {[
-            { key: 'left', label: 'Recipients', icon: 'users' },
-            { key: 'center', label: 'Document', icon: 'fileText' },
-            showPdfTools ? { key: 'right', label: 'PDF tools', icon: 'layers' } : { key: 'right', label: 'Options', icon: 'settings' },
-          ].map(tab => (
-            <Button
-              key={tab.key}
-              variant="ghost"
-              size="default"
-              onClick={() => setMobileTab(tab.key as any)}
-              style={{
-                flex: 1,
-                background: mobileTab === tab.key ? 'var(--teal-l)' : 'transparent',
-                color: mobileTab === tab.key ? 'var(--teal)' : 'var(--ink3)',
-                fontWeight: 700, fontSize: 11.5, gap: 4,
-              }}
-            >
-              <Icon name={tab.icon as any} size={13} /> {tab.label}
-            </Button>
-          ))}
-        </div>
-      )}
-
       {/* Three-column editor body */}
       <div className="sign-editor-layout" style={{ flex: 1 }}>
+        <Tabs className="sign-workspace-sidebar-nav" value={isMobile && mobileTab==='center' ? 'document' : sidebarMode} onValueChange={value=>{if(value==='document')setMobileTab('center');else openSidebar(value as 'fields'|'recipients'|'review');}}>
+          <TabsList aria-label="Editor panels">
+            {isMobile&&<TabsTrigger value="document">Document</TabsTrigger>}
+            <TabsTrigger value="fields">Fields</TabsTrigger>
+            <TabsTrigger value="recipients">Recipients</TabsTrigger>
+            <TabsTrigger value="review">Review</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* LEFT: Field palette + Recipients */}
-        <div className="sign-editor-left" style={{ display: isMobile && mobileTab !== 'left' ? 'none' : undefined }}>
+        <div className="sign-editor-left" style={{ display: sidebarMode !== 'recipients' || (isMobile && mobileTab !== 'left') ? 'none' : undefined }}>
           {/* Recipients — signatories and any legal certifier(s) render as
               two visibly distinct groups, not one flat list. A certifier
               (Certified True Copy — an advocate/notary attesting the copy,
@@ -890,7 +974,7 @@ export function SignEditor() {
             {recipients.map((r, i) => ({ r, i })).filter(({ r }) => !r.is_certifier).map(({ r, i }) => (
               <div key={i} className={`sign-recipient-row ${activeRecipient === i ? 'active' : ''}`}
                 onClick={() => setActiveRecipient(i)}>
-                <div className="sign-recipient-color" style={{ background: RECIPIENT_COLORS[i % RECIPIENT_COLORS.length] }} />
+                <PersonAvatar userId={r.user_id || undefined} name={r.name || `Recipient ${i+1}`} size={30}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.name || `Recipient ${i + 1}`}
@@ -917,7 +1001,7 @@ export function SignEditor() {
                   <div key={i} className={`sign-recipient-row ${activeRecipient === i ? 'active' : ''}`}
                     onClick={() => setActiveRecipient(i)}
                     style={{ background: 'var(--blue-l)', border: '1px solid var(--blue)' }}>
-                    <div className="sign-recipient-color" style={{ background: RECIPIENT_COLORS[i % RECIPIENT_COLORS.length] }} />
+                    <PersonAvatar userId={r.user_id || undefined} name={r.name || `Recipient ${i+1}`} size={30}/>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {r.name || `Recipient ${i + 1}`}
@@ -982,36 +1066,24 @@ export function SignEditor() {
               />
             ))}
 
-            {/* Witness — the plainest advanced execution role: this
-                recipient's own signature is real (they still sign), but
-                their completion also records a distinct "witnessed" audit
-                event rather than being indistinguishable from an ordinary
-                signer's. Sits above certifier since witnessing is the far
-                more common of the two advanced roles. */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
-              <Checkbox checked={recipients[activeRecipient]?.execution_role === 'WITNESS'}
-                onCheckedChange={c => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, execution_role: c === true ? 'WITNESS' : 'SIGNER' } : r))} />
-              This recipient signs as a witness
-            </label>
-            {recipients[activeRecipient]?.execution_role === 'WITNESS' && (
-              <p style={{ fontSize: 11, color: 'var(--ink3)', margin: '4px 0 0', lineHeight: 1.4 }}>
-                Place them after the signer(s) they're witnessing in the signing order — a witness should see the document already signed.
-              </p>
-            )}
-
-            {/* Certified True Copy — collapsed behind its own checkbox since
-                most documents never need it; a real legal attestation by a
-                named licensed advocate/notary, not the tenant's own stamp. */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink2)', cursor: 'pointer', marginTop: 10 }}>
-              <Checkbox checked={!!recipients[activeRecipient]?.is_certifier}
-                onCheckedChange={c => setRecipients(prev => prev.map((r, i) => i === activeRecipient ? { ...r, is_certifier: c === true, execution_role: c === true ? 'CERTIFIER' : 'SIGNER' } : r))} />
-              This recipient certifies a true copy (advocate / notary)
-            </label>
+            <div className="sign-workspace-execution-role">
+              <label htmlFor="sign-execution-role">Signing capacity</label>
+              <Select value={recipients[activeRecipient]?.execution_role || (recipients[activeRecipient]?.is_certifier?'CERTIFIER':'SIGNER')} onValueChange={value=>setRecipients(prev=>prev.map((r,i)=>i===activeRecipient?{...r,execution_role:value as RecipientInput['execution_role'],is_certifier:value==='CERTIFIER'}:r))}>
+                <SelectTrigger id="sign-execution-role"><SelectValue/></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SIGNER">Signer</SelectItem>
+                  <SelectItem value="WITNESS">Witness</SelectItem>
+                  <SelectItem value="AFFIANT">Affiant / declarant under oath</SelectItem>
+                  <SelectItem value="CERTIFIER">Notary / commissioner for oaths</SelectItem>
+                </SelectContent>
+              </Select>
+              <p>{recipients[activeRecipient]?.execution_role==='AFFIANT'?'The person making the sworn statement. Add the notary or commissioner as a separate recipient.':recipients[activeRecipient]?.execution_role==='WITNESS'?'Place the witness after the person whose signature they witness.':recipients[activeRecipient]?.is_certifier?'Enter the official’s credentials and assign their signature and certification fields.':'Choose the capacity in which this recipient signs the document.'}</p>
+            </div>
             {recipients[activeRecipient]?.is_certifier && (
               <div style={{ marginTop: 6, padding: 10, borderRadius: 'var(--r-sm)', border: '1px dashed var(--border)', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {certifiers.length > 0 && (
                   <Select
-                    value="__none__"
+                    value={recipients[activeRecipient]?.certifier_id || '__none__'}
                     onValueChange={id => {
                       const c = certifiers.find(x => x.id === id);
                       if (!c) return;
@@ -1059,24 +1131,6 @@ export function SignEditor() {
             )}
           </div>
 
-          {/* Field type palette */}
-          <div className="sign-panel-title">Fields — drag or click to place</div>
-          <div className="sign-field-palette">
-            {FIELD_TYPES.map(ft => (
-              <Button variant="outline" key={ft.type} className="sign-field-type-btn" aria-pressed={placingType === ft.type}
-                draggable
-                onDragStart={e => {
-                  e.dataTransfer.setData('text/plain', ft.type);
-                }}
-                style={{ background: placingType === ft.type ? 'var(--sign-blue-l)' : undefined, borderColor: placingType === ft.type ? 'var(--sign-blue)' : undefined, color: placingType === ft.type ? 'var(--sign-blue)' : undefined }}
-                onClick={() => setPlacingType(prev => prev === ft.type ? null : ft.type)}>
-                <Icon name={ft.icon} size={15} style={{ marginRight: 8 }} />
-                <span>{ft.label}</span>
-                {placingType === ft.type && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700 }}>CLICK PAGE ↑</span>}
-              </Button>
-            ))}
-          </div>
-
           {/* Message */}
           <div className="sign-panel-title">Message (optional)</div>
           <div style={{ padding: '0 12px 16px' }}>
@@ -1099,9 +1153,9 @@ export function SignEditor() {
               rather than a second video system — see migration 432's own
               header. Shown for a notarial execution, where the certifier
               and affiant may need to meet live. */}
-          {inferredExecutionType === 'NOTARIAL_CERTIFICATION' && (
+          {(inferredExecutionType === 'NOTARIAL_CERTIFICATION' || inferredExecutionType === 'AFFIDAVIT') && (
             <>
-              <div className="sign-panel-title">Notary Session (optional)</div>
+              <div className="sign-panel-title">Notary / oath session (optional)</div>
               <div style={{ padding: '0 12px 16px' }}>
                 <MeetingLinkPanel title={title || 'Notary Session'} value={meetingLink} onChange={setMeetingLink} />
               </div>
@@ -1167,63 +1221,18 @@ export function SignEditor() {
           )}
         </div>
 
+        {isPdf && pdfDoc && !isMobile && <nav className="sign-workspace-thumbnails" aria-label="Document pages">
+          <div className="sign-panel-title">Pages</div>
+          {Array.from({length: pdfNumPages}, (_, index) => <PageThumbnail key={index+1} doc={pdfDoc} page={index+1} active={currentPdfPage===index+1} onSelect={()=>{setCurrentPdfPage(index+1);editorCenterRef.current?.scrollTo({top:0});}}/>)}
+        </nav>}
         {/* CENTER: A4 page preview */}
-        <div className="sign-editor-center" style={{ display: isMobile && mobileTab !== 'center' ? 'none' : undefined }}>
+        <div ref={editorCenterRef} className="sign-editor-center" style={{ display: isMobile && mobileTab !== 'center' ? 'none' : undefined }}>
           {/* Toolbar + canvas share a wrapper with no gap between them, so
               the dark bar and the white page below it read as one card, not
               two elements floating apart — .sign-editor-center's own 16px
               flex gap would otherwise land right between them, same as it
               correctly does around this whole group's other siblings. */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: fileName ? 0 : 16, width: '100%' }}>
-          {/* Dark document toolbar — filename + type badge + page nav, one
-              bar, same "Studio Control Bar" design as the sender's own
-              envelope detail view (SignInbox.tsx), the public signing page
-              (SignPublicPage.tsx) and the Cloud Lightbox. Used to be a light
-              filename banner with a separate dark pagination pill floating
-              below it with a gap between them — merged into the one
-              consistent bar every other document surface in the app uses. */}
-          {fileName && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              background: '#0f172a', borderRadius: '10px 10px 0 0', padding: '10px 16px',
-              marginBottom: 0, width: pageW, maxWidth: '100%', boxSizing: 'border-box',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <Icon name="fileText" size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
-                <span style={{ fontSize: 10, fontWeight: 800, background: '#1e293b', color: '#94a3b8', padding: '2px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase', flexShrink: 0 }}>
-                  {fileName.split('.').pop() || 'PDF'}
-                </span>
-              </div>
-
-              {/* Page navigation — real multi-page PDFs (a delivery order, a
-                  multi-page contract) can now actually be paged through;
-                  fields already carried a `page` property, it just had
-                  nowhere to go before since page 1 was the only page ever
-                  rendered. */}
-              {isPdf && pdfDoc && pdfNumPages >= 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#1e293b', borderRadius: 'var(--r-sm)', padding: '2px 6px', flexShrink: 0 }}>
-                  <Button variant="ghost" size="icon" onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
-                    style={{ height: 26, width: 26, minHeight: 0, opacity: currentPdfPage <= 1 ? 0.3 : 1, color: '#f8fafc' }}>
-                    <Icon name="chevronLeft" size={14} />
-                  </Button>
-                  <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)', padding: '0 4px' }}>
-                    {currentPdfPage} / {pdfNumPages}
-                  </span>
-                  <Button variant="ghost" size="icon" onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
-                    style={{ height: 26, width: 26, minHeight: 0, opacity: currentPdfPage >= pdfNumPages ? 0.3 : 1, color: '#f8fafc' }}>
-                    <Icon name="chevronRight" size={14} />
-                  </Button>
-                  {fields.some(f => f.page !== currentPdfPage) && (
-                    <span style={{ fontSize: 11, color: '#94a3b8', borderLeft: '1px solid #334155', paddingLeft: 8, marginLeft: 4 }}>
-                      {fields.filter(f => f.page !== currentPdfPage).length} on other pages
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, minWidth: pageW + 40, width: '100%' }}>
           {/* File upload area — two actions: Upload File and Scan Document */}
           {!previewSrc && (
             <div style={{ width: pageW, border: '2px dashed var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '32px 24px', background: 'var(--card-bg)', color: 'var(--ink3)', boxSizing: 'border-box' }}>
@@ -1329,8 +1338,15 @@ export function SignEditor() {
           </div>
 
           {placingType && (
-            <div style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', padding: '8px 16px', fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
-              Click anywhere on the page to place the <strong>{placingType}</strong> field
+            <div className="sign-placing-guide-banner">
+              <div className="sign-placing-guide-text">
+                <Icon name="target" size={15} />
+                <span>Click anywhere on the page to place the <strong>{FIELD_TYPES.find(f => f.type === placingType)?.label || placingType}</strong> field</span>
+              </div>
+              <Button variant="ghost" size="xs" onClick={() => setPlacingType(null)} className="sign-placing-cancel-btn">
+                <Icon name="close" size={12} />
+                <span>Cancel</span>
+              </Button>
             </div>
           )}
         </div>
@@ -1339,7 +1355,7 @@ export function SignEditor() {
             while a tool is active, rather than PDF tools covering the whole
             screen. Same panel, same mobile "Field Options" tab, so it stays
             reachable exactly the same way on a phone as on desktop. */}
-        <div className="sign-editor-right" style={{ display: isMobile && mobileTab !== 'right' ? 'none' : undefined }}>
+        <div className="sign-editor-right" style={{ display: sidebarMode === 'recipients' || (isMobile && mobileTab !== 'right') ? 'none' : undefined }}>
           {showPdfTools && previewSrc ? (
             <StirlingPdfTools
               embedded
@@ -1350,7 +1366,83 @@ export function SignEditor() {
             />
           ) : (
           <>
-          <div className="sign-panel-title">Field Properties</div>
+          {sidebarMode==='review' ? <div className="sign-workspace-review">
+            <h2>Review and send</h2><p>Confirm the document, signing order and recipients before sending their invitations.</p>
+            <div className="sign-workspace-review-document"><Icon name="fileText" size={20}/><div><strong>{title || 'Untitled document'}</strong><span>{fileName || 'Blank signing page'} · {pdfNumPages || 1} page(s)</span></div></div>
+            <label>Signing order<Select value={orderMode} onValueChange={value=>setOrderMode(value as 'sequential'|'parallel')}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="sequential">Sequential signing</SelectItem><SelectItem value="parallel">Parallel signing</SelectItem></SelectContent></Select></label>
+            <label className="sign-workspace-review-otp"><Checkbox checked={requireOtp} onCheckedChange={value=>setRequireOtp(value===true)}/>Require SMS / WhatsApp verification</label>
+            <h3>Recipients</h3>
+            {recipients.map((r,index)=><div className="sign-workspace-review-recipient" key={index}><PersonAvatar userId={r.user_id || undefined} name={r.name || `Recipient ${index+1}`} size={30}/><div><strong>{r.name || 'Missing name'}</strong><span>{r.email || 'Missing email'}</span><small>{fields.filter(f=>f.recipient_index===index).length} fields · {r.execution_role || 'SIGNER'}</small></div></div>)}
+            {(!title.trim() || recipients.some(r=>!r.name.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)))&&<Banner variant="warning">Enter a document title and a valid name and email for every recipient.</Banner>}
+            {requireOtp&&recipients.some(r=>!r.phone.trim())&&<Banner variant="warning">Every recipient needs a phone number for verification.</Banner>}
+            {fields.length===0&&<Banner variant="warning">No signing fields have been placed.</Banner>}
+            <label>Message to recipients<Textarea rows={3} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Add a message…"/></label>
+            <Button variant="outline" onClick={()=>openSidebar('recipients')}>Edit recipients and settings</Button>
+            <Button onClick={handleSend} disabled={sending||saving||!title.trim()||recipients.some(r=>!r.name.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))||(requireOtp&&recipients.some(r=>!r.phone.trim()))}><Icon name="send" size={15}/>{sending?'Sending…':'Send document'}</Button>
+          </div> : <>          <div className="sign-workspace-active-recipient"><PersonAvatar userId={recipients[activeRecipient]?.user_id || undefined} name={recipients[activeRecipient]?.name || 'Recipient'} size={34}/><div><strong>{recipients[activeRecipient]?.name || 'Choose a recipient'}</strong><span>{recipients[activeRecipient]?.email || 'Add signer details to assign fields'}</span></div></div>
+          <div className="sign-workspace-assignee"><Select value={String(activeRecipient)} onValueChange={value=>setActiveRecipient(Number(value))}><SelectTrigger aria-label="Assign new fields to"><SelectValue/></SelectTrigger><SelectContent>{recipients.map((r,index)=><SelectItem key={index} value={String(index)}>{r.name || `Recipient ${index+1}`}</SelectItem>)}</SelectContent></Select></div>          {/* Field type palette */}
+          <div className="sign-panel-title">Add fillable fields</div>
+          <div className="sign-field-palette">
+            {FIELD_TYPES.filter(ft=>showAllFields || ft.type!=='checkbox').map(ft => {
+              const isPlacing = placingType === ft.type;
+              return (
+                <Button
+                  variant="outline"
+                  key={ft.type}
+                  size="sm"
+                  className={cn("sign-field-type-btn group", isPlacing && "is-placing")}
+                  aria-pressed={isPlacing}
+                  draggable
+                  onDragStart={e => {
+                    e.dataTransfer.setData('text/plain', ft.type);
+                  }}
+                  onClick={() => {
+                    setPlacingType(prev => prev === ft.type ? null : ft.type);
+                    if (isMobile) setMobileTab('center');
+                  }}
+                >
+                  <span className="sign-field-icon-squircle">
+                    <Icon name={ft.icon} size={15} />
+                  </span>
+                  <span className="sign-field-type-label">{ft.label}</span>
+                  {isPlacing ? (
+                    <span className="sign-field-active-pill">
+                      Click page <Icon name="arrowUp" size={10} />
+                    </span>
+                  ) : (
+                    <span className="sign-field-drag-hint" title="Drag onto page">
+                      <Icon name="moreVertical" size={13} />
+                    </span>
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+
+          <div className="sign-workspace-more-fields">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAllFields(value => !value)}
+              className="sign-more-fields-btn"
+            >
+              <Icon name={showAllFields ? 'chevronUp' : 'chevronDown'} size={14} className="opacity-70" />
+              <span>{showAllFields ? 'Hide extra fields' : 'More fields'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openSidebar('recipients')}
+              className="sign-manage-recipients-btn font-semibold"
+            >
+              <Icon name="users" size={14} />
+              <span>Manage recipients</span>
+            </Button>
+            <div className="sign-workspace-stamp-notice">
+              <Icon name="info" size={13} className="shrink-0 text-muted-foreground mt-0.5" />
+              <span>Verification stamps use the configured company stamp. Certified copies use the assigned official’s credentials.</span>
+            </div>
+          </div>          {selectedFieldData&&<div className="sign-panel-title">Field properties</div>}
           {selectedFieldData ? (
             <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -1380,6 +1472,7 @@ export function SignEditor() {
                   onCheckedChange={c => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, required: c === true } : f))} />
                 <span style={{ fontSize: 13 }}>Required field</span>
               </label>
+              <div className="sign-workspace-geometry">{(['x','y','width','height'] as const).map(key=><label key={key} htmlFor={`field-${key}`}>{{x:'Left (%)',y:'Top (%)',width:'Width (%)',height:'Height (%)'}[key]}<Input id={`field-${key}`} type="number" min={key==='width'||key==='height'?1:0} max={100} step={0.5} value={Math.round(selectedFieldData[key]*1000)/10} onChange={e=>updateGeometry(key,Number(e.target.value))}/></label>)}</div>
               <Button variant="outline" size="default" onClick={() => removeField(selectedFieldData.id)}
                 style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)' }}>
                 <Icon name="trash" size={13} /> Remove Field
@@ -1398,7 +1491,7 @@ export function SignEditor() {
               <div style={{ padding: '0 12px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {fields.map((f, i) => (
                   <div key={f.id}
-                    onClick={() => { setSelectedField(f.id); setCurrentPdfPage(f.page || 1); }}
+                    onClick={() => { setSelectedField(f.id); setCurrentPdfPage(f.page || 1);if(isMobile)setMobileTab('center'); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer', background: selectedField === f.id ? 'var(--sign-blue-l)' : 'transparent', borderColor: selectedField === f.id ? 'var(--sign-blue)' : 'var(--border)' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: RECIPIENT_COLORS[f.recipient_index % RECIPIENT_COLORS.length], flexShrink: 0 }} />
                     <span style={{ fontSize: 12, flex: 1 }}>{FIELD_TYPES.find(ft => ft.type === f.field_type)?.label}</span>
@@ -1408,6 +1501,7 @@ export function SignEditor() {
               </div>
             </>
           )}
+          </>}
           </>
           )}
         </div>

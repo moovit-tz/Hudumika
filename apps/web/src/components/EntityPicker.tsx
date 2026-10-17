@@ -330,7 +330,7 @@ export function EntityPicker({
                   type="button"
                   onClick={() => selectItem(item)}
                   onMouseEnter={() => setActiveIndex(index)}
-                  className="search-result-row"
+                  className={cn("search-result-row", isSelected && "is-selected")}
                   data-ui-native-button=""
                 >
                   {hasAvatar && (
@@ -356,7 +356,7 @@ export function EntityPicker({
                     )}
                   </div>
                   {isSelected && (
-                    <div className="shrink-0 text-[var(--teal)] flex items-center justify-center pl-1">
+                    <div className="shrink-0 text-[var(--teal)] flex items-center justify-center pl-1 ml-auto">
                       <Icon name="check" size={13} color="var(--teal)" />
                     </div>
                   )}

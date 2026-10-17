@@ -293,7 +293,6 @@ export async function signStampsRoutes(fastify: FastifyInstance) {
       pdf_data?: string;
       position?: { page?: number; x: number; y: number; width: number; height: number };
       owner_type?: 'tenant' | 'user';
-      owner_user_id?: string;
     };
     if (!body.pdf_data || !body.position || !body.owner_type) {
       return reply.status(400).send({ error: 'pdf_data, position and owner_type are required' });
@@ -304,7 +303,7 @@ export async function signStampsRoutes(fastify: FastifyInstance) {
     try {
       const stamped = await applyStamp({
         tenantId: tenantId(req), userId: userId(req), userRole: userRole(req),
-        pdfBytes, position: body.position, ownerType: body.owner_type, ownerUserId: body.owner_user_id,
+        pdfBytes, position: body.position, ownerType: body.owner_type,
       });
       return reply.send({ pdf_data: `data:application/pdf;base64,${stamped.toString('base64')}` });
     } catch (err) {

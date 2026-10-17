@@ -4,6 +4,7 @@ import * as React from "react"
 import { Check, ChevronDown, Maximize2, Search, SlidersHorizontal, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Checkbox } from "./checkbox"
+import { Input } from "./input"
 import { cn } from "@/lib/utils"
 
 export interface FilterOption {
@@ -165,6 +166,7 @@ export function MultiSelectFilter({
 }
 
 export interface QuickFilterConfig {
+  searchable?: boolean
   label?: string
   allLabel?: string
   value: string | null
@@ -218,11 +220,15 @@ export interface SearchToolbarProps {
 
 function InlineQuickFilter({ config }: { config: QuickFilterConfig }) {
   const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState('')
+  const filteredOptions = config.searchable && query.trim()
+    ? config.options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : config.options
   const selected = config.options.find((o) => o.value === config.value)
   const displayLabel = selected?.label ?? config.allLabel ?? 'All'
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={value => { setOpen(value); if (!value) setQuery('') }}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -237,23 +243,24 @@ function InlineQuickFilter({ config }: { config: QuickFilterConfig }) {
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        style={config.columns && config.columns > 1 ? { width: `${config.columns * 130 + 24}px` } : undefined}
+        style={{ ...(config.columns && config.columns > 1 ? { width: `${config.columns * 130 + 24}px` } : {}), maxHeight: 'min(360px, var(--radix-popover-content-available-height, 360px))', overflowY: 'auto' }}
         className="p-1.5 shadow-xl border border-border bg-popover w-52"
       >
+        {config.searchable && <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search options…" aria-label={`${config.label || config.allLabel || 'Options'} filter search`} className="mb-1" />}
         <button
           type="button"
-          onClick={() => { config.onChange(null); setOpen(false) }}
+          onClick={() => { config.onChange(null); setOpen(false); setQuery('') }}
           className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <span>{config.allLabel ?? 'All'}</span>
           {!config.value && <Check className="h-3.5 w-3.5 text-primary" />}
         </button>
         <div style={config.columns && config.columns > 1 ? { display:'grid', gridTemplateColumns:`repeat(${config.columns}, 1fr)` } : undefined}>
-          {config.options.map((o) => (
+          {filteredOptions.map((o) => (
             <button
               key={o.value}
               type="button"
-              onClick={() => { config.onChange(o.value); setOpen(false) }}
+              onClick={() => { config.onChange(o.value); setOpen(false); setQuery('') }}
               className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               <span className="flex items-center gap-2">
@@ -263,6 +270,7 @@ function InlineQuickFilter({ config }: { config: QuickFilterConfig }) {
               {o.value === config.value && <Check className="h-3.5 w-3.5 text-primary" />}
             </button>
           ))}
+          {filteredOptions.length === 0 && <p className="px-3 py-2 text-xs text-muted-foreground">No matching options</p>}
         </div>
       </PopoverContent>
     </Popover>

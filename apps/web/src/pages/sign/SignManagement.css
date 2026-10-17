@@ -25,8 +25,32 @@
 .sign-verify-help { margin-top: 24px; padding: 20px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg); display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .sign-verify-help strong { display: block; color: var(--ink); margin-bottom: 6px; font-size: 14px; }
 .sign-verify-help p { font-size: 13px; color: var(--ink3); line-height: 1.6; margin: 0; }
-.sign-editor-steps { display: flex; gap: 20px; padding: 20px 24px; flex-wrap: wrap; border-bottom: 1px solid var(--border); color: var(--ink3); font-size: 13px; }
-.sign-editor-steps span { display: inline-flex; gap: 8px; align-items: center; }
+.sign-editor-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink3);
+  font-size: 13px;
+}
+.sign-editor-steps > span {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  line-height: 1.5;
+}
+.sign-editor-steps > span > svg { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .sign-editor-steps { gap: 6px; padding: 16px 8px; font-size: 12px; }
+  .sign-editor-steps > span { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+@media (max-width: 359px) {
+  .sign-editor-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 8px; }
+}
 .sign-editor-steps span:first-child { color: var(--teal); font-weight: 600; }
 .sign-editor-control-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--card-bg); flex-shrink: 0; }
 @media (max-width: 640px) {

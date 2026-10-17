@@ -1,3 +1,5 @@
+import { signatureReference } from '../services/signature-reference.js';
+import { z } from 'zod';
 // ─── eSign routes ─────────────────────────────────────────────────────────────
 // Prefix: /v1/sign
 //
@@ -29,9 +31,10 @@
 //   Anyone can look up a code and get back envelope metadata + signer list.
 //   Each lookup is recorded in sign_verifications for auditability.
 
+import { signEditorPayloadSchema, signRecipientSchema, validateSignEditorReferences, validateFieldAssignments } from '../services/sign-editor-validation.js';
 import { wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { createHash } from 'node:crypto';
+import { createHash, randomInt } from 'node:crypto';
 import { sql } from 'kysely';
 import { withTenant, dbPlatform } from '../db/client.js';
 import type { SignTemplate, UserRole } from '@hudumika/types';
@@ -59,6 +62,7 @@ import { ocrRecoverVerificationCode } from '../services/sign-seal-verify.service
  *  that ever checks it, so a slow KDF (bcrypt/argon2) buys nothing a TTL
  *  doesn't already provide. */
 const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
 function hashOtp(code: string): string {
   return createHash('sha256').update(code).digest('hex');
 }
@@ -118,6 +122,26 @@ export function assertCanActOnEnvelope(req: FastifyRequest, reply: FastifyReply,
   if (envelope.created_by === userId(req) || DOCUMENT_ADMIN_ROLES.includes(userRole(req))) return true;
   reply.status(403).send({ error: 'Only this document\'s owner or a tenant admin can do that.' });
   return false;
+}
+
+function canViewEnvelope(req: FastifyRequest, envelope: { created_by: string; recipients?: Array<{ email?: string; user_id?: string | null }> }): boolean {
+  if (envelope.created_by === userId(req)) return true;
+  if (DOCUMENT_ADMIN_ROLES.includes(userRole(req))) return true;
+  const uid = userId(req);
+  const email = userEmail(req);
+  return !!envelope.recipients?.some(r =>
+    (r.user_id && r.user_id === uid) || (email && r.email === email)
+  );
+}
+
+const RECIPIENT_SENSITIVE_KEYS = ['token', 'otp_code_hash', 'signature_data', 'saved_signature', 'signed_ip', 'signed_user_agent'] as const;
+
+function stripRecipientSecrets<T extends Record<string, unknown>>(recipients: T[]): Omit<T, (typeof RECIPIENT_SENSITIVE_KEYS)[number]>[] {
+  return recipients.map(r => {
+    const clean = { ...r };
+    for (const k of RECIPIENT_SENSITIVE_KEYS) delete clean[k];
+    return clean;
+  });
 }
 
 /** The "smart workflow" inference §11 asks for: a preparer who adds a
@@ -462,12 +486,15 @@ export async function signRoutes(fastify: FastifyInstance) {
   fastify.post('/envelopes', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);
     const uid = userId(req);
-    const body = req.body as {
+    const parsed=signEditorPayloadSchema.safeParse(req.body);
+    if(!parsed.success) return reply.status(400).send({error:parsed.error.issues[0].message});
+    const body = parsed.data as {
       title: string;
       message?: string;
       file_id?: string;
       file_name?: string;
       document_data?: string;
+      generated_document_id?: string;
       order_mode?: string;
       expires_at?: string;
       require_otp?: boolean;
@@ -486,11 +513,24 @@ export async function signRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(tid, async (trx) => {
+      const referenceError=await validateSignEditorReferences(trx,tid,parsed.data);
+      if(referenceError) return reply.status(404).send({error:referenceError});
+      const assignmentError=validateFieldAssignments(body.fields,body.recipients.length);
+      if(assignmentError) return reply.status(400).send({error:assignmentError});
+      let generatedDocument: { id: string; jurisdiction: string } | undefined;
+      if (body.generated_document_id) {
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.generated_document_id)) return reply.status(400).send({ error: 'Invalid generated document id' });
+        generatedDocument = await trx.selectFrom('sign_generated_documents').select(['id', 'jurisdiction'])
+          .where('id', '=', body.generated_document_id).where('tenant_id', '=', tid).where('created_by', '=', uid).executeTakeFirst();
+        if (!generatedDocument) return reply.status(404).send({ error: 'Generated document not found' });
+      }
       // Insert envelope
       const [envelope] = await trx.insertInto('sign_envelopes').values({
         tenant_id: tid,
         created_by: uid,
         title: body.title.trim(),
+        generated_document_id: generatedDocument?.id ?? null,
+        document_jurisdiction: generatedDocument?.jurisdiction ?? null,
         message: body.message ?? null,
         file_id: body.file_id ?? null,
         file_name: body.file_name ?? null,
@@ -570,7 +610,7 @@ export async function signRoutes(fastify: FastifyInstance) {
         await recordDocumentVersion(trx, tid, envelope.id, envelope.document_data, envelope.file_name, uid, userName(req), 'Document uploaded');
       }
 
-      return reply.status(201).send({ ...envelope, recipients: recipientRows });
+      return reply.status(201).send({ ...envelope, recipients: stripRecipientSecrets(recipientRows) });
     });
   });
 
@@ -580,12 +620,12 @@ export async function signRoutes(fastify: FastifyInstance) {
     return withTenant(tid, async (trx) => {
       const data = await getEnvelopeWithRelations(trx, req.params.id, tid);
       if (!data) return reply.status(404).send({ error: 'Envelope not found' });
-      // Same rule GET /envelopes?view=all already enforces for the list:
-      // a draft is a personal work-in-progress, visible to its creator (or
-      // a tenant admin) only — not fetchable by id from anyone else just
-      // because they knew/guessed it (HUD-0024/0027).
-      if (data.status === 'draft' && !assertCanActOnEnvelope(req, reply, data as any)) return;
-      return reply.send(data);
+      // ES-01: authorization for every status, not just draft. Creator,
+      // admin, or a named recipient (matched by user_id or email).
+      if (!canViewEnvelope(req, data as any)) {
+        return reply.status(403).send({ error: 'You do not have access to this document.' });
+      }
+      return reply.send({ ...data, recipients: stripRecipientSecrets(data.recipients) });
     });
   });
 
@@ -593,9 +633,16 @@ export async function signRoutes(fastify: FastifyInstance) {
   fastify.get('/envelopes/:id/download', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
-      const envelope = await trx.selectFrom('sign_envelopes').select(['title', 'stamped_file_url'])
+      const envelope = await trx.selectFrom('sign_envelopes')
+        .select(['id', 'title', 'stamped_file_url', 'created_by'])
         .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
+      // ES-01: same authorization matrix as detail — creator, admin, or named recipient
+      const recipients = await trx.selectFrom('sign_recipients')
+        .select(['email', 'user_id']).where('envelope_id', '=', envelope.id).execute();
+      if (!canViewEnvelope(req, { ...envelope, recipients })) {
+        return reply.status(403).send({ error: 'You do not have access to this document.' });
+      }
       if (!envelope.stamped_file_url) return reply.status(404).send({ error: 'This document has not been signed yet' });
       const buf = await MinioIntegration.readFile(envelope.stamped_file_url);
       if (!buf) return reply.status(404).send({ error: 'Signed document file not found' });
@@ -608,7 +655,9 @@ export async function signRoutes(fastify: FastifyInstance) {
   // ── Update envelope (draft edits) ──────────────────────────────────────────
   fastify.put('/envelopes/:id', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tid = tenantId(req);
-    const body = req.body as Partial<{
+    const parsed=signEditorPayloadSchema.safeParse(req.body);
+    if(!parsed.success) return reply.status(400).send({error:parsed.error.issues[0].message});
+    const body = parsed.data as Partial<{
       title: string; message: string; order_mode: string; expires_at: string;
       file_name: string; document_data: string; file_id: string; require_otp: boolean;
       execution_type: string; // sign_execution_type — see migration 416
@@ -632,13 +681,22 @@ export async function signRoutes(fastify: FastifyInstance) {
       if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'draft') return reply.status(409).send({ error: 'Only draft envelopes can be edited' });
 
+      const referenceError=await validateSignEditorReferences(trx,tid,parsed.data);
+      if(referenceError) return reply.status(404).send({error:referenceError});
+      const currentRecipients=await trx.selectFrom('sign_recipients').select('id').where('envelope_id','=',req.params.id).where('tenant_id','=',tid).execute();
+      const assignmentError=validateFieldAssignments(body.fields,body.recipients?.length ?? currentRecipients.length);
+      if(assignmentError) return reply.status(400).send({error:assignmentError});
+      if(body.recipients && body.fields===undefined) {
+        const existingField=await trx.selectFrom('sign_fields').select('id').where('envelope_id','=',req.params.id).where('tenant_id','=',tid).executeTakeFirst();
+        if(existingField) return reply.status(400).send({error:'Include signing fields when replacing recipients'});
+      }
       const requireOtp = body.require_otp ?? envelope.require_otp;
-      const finalRecipients = body.recipients ?? await trx.selectFrom('sign_recipients').select(['phone']).where('envelope_id', '=', req.params.id).execute();
+      const finalRecipients = body.recipients ?? await trx.selectFrom('sign_recipients').select(['phone']).where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid).execute();
       if (requireOtp && finalRecipients.some(r => !r.phone?.trim())) {
         return reply.status(400).send({ error: 'Every recipient needs a phone number when SMS verification is required' });
       }
 
-      const newDocumentData = body.document_data ?? envelope.document_data;
+      const newDocumentData = body.document_data !== undefined ? body.document_data : envelope.document_data;
       const documentChanged = body.document_data !== undefined && body.document_data !== envelope.document_data;
 
       // If recipients aren't part of this particular PATCH, infer from
@@ -647,7 +705,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       // a title-only save of an existing witnessed envelope).
       const recipientsForInference = body.recipients
         ?? await trx.selectFrom('sign_recipients').select(['execution_role', 'is_certifier'])
-          .where('envelope_id', '=', req.params.id).execute();
+          .where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid).execute();
 
       await trx.updateTable('sign_envelopes').set({
         title: body.title ?? envelope.title,
@@ -657,13 +715,13 @@ export async function signRoutes(fastify: FastifyInstance) {
         expires_at: body.expires_at ? new Date(body.expires_at) : envelope.expires_at,
         file_name: body.file_name ?? envelope.file_name,
         document_data: newDocumentData,
-        file_id: body.file_id ?? envelope.file_id,
+        file_id: body.file_id !== undefined ? body.file_id : envelope.file_id,
         execution_type: inferExecutionType(body.execution_type, recipientsForInference) as any,
         client_id: body.client_id !== undefined ? (body.client_id || null) : envelope.client_id,
         matter_reference: body.matter_reference !== undefined ? (body.matter_reference?.trim() || null) : envelope.matter_reference,
         meeting_url: body.meeting_url !== undefined ? (body.meeting_url || null) : envelope.meeting_url,
         bliss_meeting_id: body.bliss_meeting_id !== undefined ? (body.bliss_meeting_id || null) : envelope.bliss_meeting_id,
-      }).where('id', '=', req.params.id).execute();
+      }).where('id', '=', req.params.id).where('tenant_id', '=', tid).execute();
 
       if (documentChanged && newDocumentData) {
         await recordDocumentVersion(
@@ -679,7 +737,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       // real partial update, so a fields-only caller still resolves
       // correctly against whoever is already on the envelope).
       let recipientRows = await trx.selectFrom('sign_recipients').selectAll()
-        .where('envelope_id', '=', req.params.id).orderBy('sign_order', 'asc').execute();
+        .where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid).orderBy('sign_order', 'asc').execute();
 
       // Replace recipients if provided — capturing the freshly-inserted
       // rows' real ids is the fix: the previous version deleted+reinserted
@@ -688,7 +746,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       // client sent an empty string, which the NOT NULL uuid column
       // rejected outright on every save of an already-created draft.
       if (body.recipients) {
-        await trx.deleteFrom('sign_recipients').where('envelope_id', '=', req.params.id).execute();
+        await trx.deleteFrom('sign_recipients').where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid).execute();
         const certifierIds = [...new Set(body.recipients.map(r => r.certifier_id).filter((id): id is string => !!id))];
         const certifierMap = certifierIds.length
           ? new Map((await trx.selectFrom('sign_certifiers').selectAll().where('id', 'in', certifierIds).where('tenant_id', '=', tid).execute()).map(c => [c.id, c]))
@@ -720,7 +778,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       // recipient id, the same way POST /envelopes already does, instead of
       // trusting a recipient_id the client can't actually know in advance.
       if (body.fields) {
-        await trx.deleteFrom('sign_fields').where('envelope_id', '=', req.params.id).execute();
+        await trx.deleteFrom('sign_fields').where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid).execute();
         if (body.fields.length) {
           await trx.insertInto('sign_fields').values(
             body.fields.map(f => ({
@@ -738,7 +796,7 @@ export async function signRoutes(fastify: FastifyInstance) {
 
       await logEvent(trx, req.params.id, tid, 'updated', { actorName: userName(req), actorEmail: userEmail(req) });
       const updated = await getEnvelopeWithRelations(trx, req.params.id, tid);
-      return reply.send(updated);
+      return reply.send(updated ? { ...updated, recipients: stripRecipientSecrets(updated.recipients) } : updated);
     });
   });
 
@@ -773,17 +831,20 @@ export async function signRoutes(fastify: FastifyInstance) {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
-        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).forUpdate().executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
       if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'draft') return reply.status(409).send({ error: 'Envelope has already been sent' });
 
       const recipients = await trx.selectFrom('sign_recipients').selectAll()
-        .where('envelope_id', '=', req.params.id).orderBy('sign_order', 'asc').execute();
+        .where('envelope_id', '=', req.params.id).where('tenant_id', '=', tid).orderBy('sign_order', 'asc').execute();
       if (!recipients.length) return reply.status(400).send({ error: 'No recipients on this envelope' });
 
+      if(recipients.some(recipient=>!signRecipientSchema.safeParse(recipient).success)) return reply.status(400).send({error:'Every recipient needs a valid name and email'});
+      if(envelope.require_otp && recipients.some(recipient=>!recipient.phone?.trim())) return reply.status(400).send({error:'Every recipient needs a phone number for verification'});
+      if(envelope.expires_at && envelope.expires_at<=new Date()) return reply.status(400).send({error:'Update the expired signing deadline before sending'});
       await trx.updateTable('sign_envelopes').set({ status: 'sent', sent_at: new Date() })
-        .where('id', '=', req.params.id).execute();
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).execute();
 
       await logEvent(trx, req.params.id, tid, 'sent', {
         actorName: userName(req), actorEmail: userEmail(req),
@@ -799,14 +860,16 @@ export async function signRoutes(fastify: FastifyInstance) {
 
       // Each recipient gets a unique signing link via their token
       const data = await getEnvelopeWithRelations(trx, req.params.id, tid);
+      const signingLinks = (data?.recipients ?? []).map(r => ({
+        recipient_id: r.id,
+        name: r.name,
+        email: r.email,
+        signing_url: `/sign/public/${(r as any).token}`,
+      }));
       return reply.send({
         ...data,
-        signing_links: (data?.recipients ?? []).map(r => ({
-          recipient_id: r.id,
-          name: r.name,
-          email: r.email,
-          signing_url: `/sign/public/${r.token}`,
-        })),
+        recipients: data ? stripRecipientSecrets(data.recipients) : [],
+        signing_links: signingLinks,
       });
     });
   });
@@ -1197,7 +1260,7 @@ export async function signRoutes(fastify: FastifyInstance) {
                  AND jsonb_array_length(recipients::jsonb) > 0
                  AND jsonb_array_length(fields::jsonb) > 0)::text AS ready
         FROM sign_templates
-        WHERE tenant_id = ${tid}
+        WHERE tenant_id = ${tid} AND document_definition IS NULL
       `.execute(trx);
       const r = rows.rows[0];
       const total = Number(r?.total ?? 0);
@@ -1218,7 +1281,7 @@ export async function signRoutes(fastify: FastifyInstance) {
   fastify.get('/templates', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);
     return withTenant(tid, async (trx) => {
-      const templates = await trx.selectFrom('sign_templates').selectAll()
+      const templates = await trx.selectFrom('sign_templates').select(['id','tenant_id','created_by','name','description','fields','recipients','file_id','file_name','document_definition','created_at','updated_at'])
         .where('tenant_id', '=', tid)
         .orderBy('created_at', 'desc')
         .execute();
@@ -1238,12 +1301,19 @@ export async function signRoutes(fastify: FastifyInstance) {
 
   fastify.post('/templates', async (req: FastifyRequest, reply: FastifyReply) => {
     const tid = tenantId(req);
-    const body = req.body as Partial<SignTemplate>;
+    const parsed = z.object({name:z.string().trim().min(1).max(180),description:z.string().max(1000).nullable().optional(),file_id:z.string().uuid().nullable().optional(),file_name:z.string().max(500).nullable().optional(),document_data:z.string().max(30_000_000).regex(/^data:(application\/pdf|image\/(png|jpeg));base64,[A-Za-z0-9+/=\r\n]+$/).nullable().optional(),recipients:z.array(signRecipientSchema.extend({name:z.string().max(250),email:z.union([z.literal(''),z.string().email()]),phone:z.string().nullable().optional()})).max(100).default([]),fields:signEditorPayloadSchema.shape.fields.default([])}).safeParse(req.body);
+    if (!parsed.success) return reply.status(400).send({error:parsed.error.issues[0].message});
+    const body=parsed.data;
     return withTenant(tid, async (trx) => {
+      const referenceError=await validateSignEditorReferences(trx,tid,{file_id:body.file_id,recipients:body.recipients});
+      if(referenceError)return reply.status(404).send({error:referenceError});
+      const assignmentError=validateFieldAssignments(body.fields,body.recipients.length);
+      if(assignmentError)return reply.status(400).send({error:assignmentError});
       const [tmpl] = await trx.insertInto('sign_templates').values({
         tenant_id: tid,
         created_by: userId(req),
-        name: body.name ?? 'Untitled Template',
+        name: body.name,
+        document_data: body.document_data ?? null,
         description: body.description ?? null,
         fields: JSON.stringify(body.fields ?? []),
         recipients: JSON.stringify(body.recipients ?? []),
@@ -1299,7 +1369,7 @@ export async function signRoutes(fastify: FastifyInstance) {
 
           const [envelope] = await trx.insertInto('sign_envelopes').values({
             tenant_id: tid, created_by: uid, title: tmpl.name,
-            file_id: tmpl.file_id, file_name: tmpl.file_name,
+            file_id: tmpl.file_id, file_name: tmpl.file_name, document_data: tmpl.document_data,
             order_mode: 'sequential',
           }).returningAll().execute();
 
@@ -1349,21 +1419,29 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
       .where('id', '=', recipient.envelope_id).executeTakeFirst();
     if (!envelope) return reply.status(404).send({ error: 'Document not found' });
+    if (envelope.status === 'draft') return reply.status(403).send({ error: 'This document is not yet available for signing' });
     if (envelope.status === 'voided') return reply.status(410).send({ error: 'This document has been voided' });
     if (envelope.status === 'expired' || (envelope.status === 'sent' && envelope.expires_at && envelope.expires_at < new Date())) {
       return reply.status(410).send({ error: 'This document has expired and can no longer be signed' });
     }
-    if (envelope.status === 'completed') return reply.status(200).send({ already_completed: true, envelope });
+    if (envelope.status === 'completed') {
+      return reply.status(200).send({
+        already_completed: true,
+        envelope: { id: envelope.id, title: envelope.title, status: envelope.status, verification_code: envelope.verification_code },
+      });
+    }
 
     const fields = await dbPlatform.selectFrom('sign_fields').selectAll()
       .where('envelope_id', '=', envelope.id)
       .where('recipient_id', '=', recipient.id)
       .execute();
 
-    // Mark as viewed if first time
-    if (!recipient.viewed_at) {
+    // ES-05: only mark as viewed if still pending — never downgrade signed/declined
+    if (!recipient.viewed_at && recipient.status === 'pending') {
       await dbPlatform.updateTable('sign_recipients').set({ status: 'viewed', viewed_at: new Date() })
-        .where('id', '=', recipient.id).execute();
+        .where('id', '=', recipient.id)
+        .where('status', '=', 'pending')
+        .execute();
       await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'viewed', {
         recipientId: recipient.id,
         actorName: recipient.name, actorEmail: recipient.email,
@@ -1412,36 +1490,35 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     // of how the sender happened to add them. An external recipient whose
     // email matches nobody keeps drawing fresh, same as before.
     let savedSignature: string | null = null;
-    // The tenant's actual configured company stamp (Settings ▸ E-Sign) is
-    // only ever handed to a resolved colleague whose role clears the same
-    // canApplyTenantStamp gate that governs applying it everywhere else in
-    // the app — an anonymous external signer assigned a stamp field (a
-    // form-building mistake, not a real use case) never sees the real seal
-    // image over this unauthenticated endpoint; the field still renders
-    // (SignPublicPage's existing generic placeholder) so the document isn't
-    // silently missing content.
     let tenantStampImage: string | null = null;
-    let resolvedUserId = recipient.user_id;
-    if (!resolvedUserId && recipient.email) {
-      const matchedByEmail = await dbPlatform.selectFrom('users').select('id')
-        .where('tenant_id', '=', envelope.tenant_id).where('email', '=', recipient.email)
-        .executeTakeFirst();
-      resolvedUserId = matchedByEmail?.id ?? null;
-    }
-    if (resolvedUserId) {
-      const personal = await dbPlatform.selectFrom('sign_stamps').select('image_data')
-        .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'user')
-        .where('owner_user_id', '=', resolvedUserId)
-        .orderBy('created_at', 'desc').executeTakeFirst();
-      savedSignature = personal?.image_data ?? null;
+    // Saved signatures/stamps require verified identity — OTP must have been
+    // completed when enabled, and even without OTP the bearer token alone is
+    // not proof of identity (a sender can set any user_id). Only offer saved
+    // assets when OTP was required AND verified.
+    const identityVerified = envelope.require_otp && !!recipient.otp_verified_at;
+    if (identityVerified) {
+      let resolvedUserId = recipient.user_id;
+      if (!resolvedUserId && recipient.email) {
+        const matchedByEmail = await dbPlatform.selectFrom('users').select('id')
+          .where('tenant_id', '=', envelope.tenant_id).where('email', '=', recipient.email)
+          .executeTakeFirst();
+        resolvedUserId = matchedByEmail?.id ?? null;
+      }
+      if (resolvedUserId) {
+        const personal = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+          .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'user')
+          .where('owner_user_id', '=', resolvedUserId)
+          .orderBy('created_at', 'desc').executeTakeFirst();
+        savedSignature = personal?.image_data ?? null;
 
-      if (fields.some(f => f.field_type === 'stamp')) {
-        const taggedUser = await dbPlatform.selectFrom('users').select('role')
-          .where('id', '=', resolvedUserId).executeTakeFirst();
-        if (taggedUser && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, taggedUser.role)) {
-          const tenantStamp = await dbPlatform.selectFrom('sign_stamps').select('image_data')
-            .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
-          tenantStampImage = tenantStamp?.image_data ?? null;
+        if (fields.some(f => f.field_type === 'stamp')) {
+          const taggedUser = await dbPlatform.selectFrom('users').select('role')
+            .where('id', '=', resolvedUserId).executeTakeFirst();
+          if (taggedUser && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, taggedUser.role)) {
+            const tenantStamp = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+              .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
+            tenantStampImage = tenantStamp?.image_data ?? null;
+          }
         }
       }
     }
@@ -1449,17 +1526,18 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     // Return only safe public fields — phone is masked (last 4 digits only)
     // so the OTP gate can say where a code was sent without handing an
     // unauthenticated caller the recipient's full phone number.
+    // Withhold document content until OTP is verified when required
+    const otpPending = envelope.require_otp && !recipient.otp_verified_at;
     return reply.send({
       envelope: {
         id: envelope.id, title: envelope.title, message: envelope.message,
-        document_data: envelope.document_data, file_name: envelope.file_name,
+        document_data: otpPending ? null : envelope.document_data,
+        file_name: otpPending ? null : envelope.file_name,
         status: envelope.status, order_mode: envelope.order_mode,
         expires_at: envelope.expires_at,
         verification_code: envelope.verification_code,
         require_otp: envelope.require_otp,
         tenant_stamp_image: tenantStampImage,
-        // Phase S4 — not sensitive (no more than title/message), and its
-        // whole purpose is to be shown to exactly this recipient.
         meeting_url: envelope.meeting_url,
       },
       recipient: {
@@ -1521,7 +1599,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     // Send before persisting the hash — a code nobody actually received
     // (SMS/WhatsApp not configured, provider error) shouldn't sit in the
     // database looking like a real pending verification.
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const message = `Your Hudumika Sign verification code is ${code}. It expires in 10 minutes.`;
     const result = resolvedChannel === 'whatsapp'
       ? await WhatsAppIntegration.sendMessage(recipient.phone, message)
@@ -1537,6 +1615,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     await dbPlatform.updateTable('sign_recipients').set({
       otp_code_hash: hashOtp(code),
       otp_expires_at: new Date(Date.now() + OTP_TTL_MS),
+      otp_attempts: 0,
     }).where('id', '=', recipient.id).execute();
 
     return reply.send({ ok: true, sent_to: recipient.phone.replace(/.(?=.{4})/g, '•'), channel: resolvedChannel });
@@ -1554,12 +1633,22 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     if (recipient.otp_expires_at < new Date()) {
       return reply.status(410).send({ error: 'Verification code expired — request a new one' });
     }
+    // ES-09: per-token attempt limit to prevent brute-force guessing
+    if ((recipient.otp_attempts ?? 0) >= OTP_MAX_ATTEMPTS) {
+      await dbPlatform.updateTable('sign_recipients').set({
+        otp_code_hash: null, otp_expires_at: null,
+      }).where('id', '=', recipient.id).execute();
+      return reply.status(429).send({ error: 'Too many incorrect attempts — request a new code' });
+    }
     if (hashOtp((body.code ?? '').trim()) !== recipient.otp_code_hash) {
+      await dbPlatform.updateTable('sign_recipients').set({
+        otp_attempts: sql`COALESCE(otp_attempts, 0) + 1` as any,
+      }).where('id', '=', recipient.id).execute();
       return reply.status(401).send({ error: 'Incorrect code' });
     }
 
     await dbPlatform.updateTable('sign_recipients').set({
-      otp_verified_at: new Date(), otp_code_hash: null, otp_expires_at: null,
+      otp_verified_at: new Date(), otp_code_hash: null, otp_expires_at: null, otp_attempts: 0,
     }).where('id', '=', recipient.id).execute();
 
     return reply.send({ ok: true });
@@ -1568,9 +1657,38 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
   // ── Submit signature ───────────────────────────────────────────────────────
   fastify.post('/public/:token/sign', async (req: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
     const body = req.body as {
-      signature_data: string; // base64 PNG of drawn/typed signature
-      fields: Array<{ field_id: string; value: string }>;
+      signature_data?: string;
+      fields?: Array<{ field_id: string; value: string }>;
     };
+
+    // ES-04: validate signature data is present and decodable
+    if (!body.signature_data || typeof body.signature_data !== 'string') {
+      return reply.status(400).send({ error: 'A signature image is required' });
+    }
+    const sigMatch = body.signature_data.match(/^data:image\/(png|jpeg|jpg|svg\+xml);base64,(.+)$/);
+    if (!sigMatch) {
+      return reply.status(400).send({ error: 'Signature must be a valid image data URI (PNG, JPEG, or SVG)' });
+    }
+    try {
+      const decoded = Buffer.from(sigMatch[2], 'base64');
+      if (decoded.length < 8) throw new Error('too small');
+      const mime = sigMatch[1];
+      // Validate magic bytes for known image types
+      if (mime === 'png' && (decoded[0] !== 0x89 || decoded[1] !== 0x50 || decoded[2] !== 0x4E || decoded[3] !== 0x47)) {
+        throw new Error('invalid PNG header');
+      }
+      if ((mime === 'jpeg' || mime === 'jpg') && (decoded[0] !== 0xFF || decoded[1] !== 0xD8)) {
+        throw new Error('invalid JPEG header');
+      }
+    } catch {
+      return reply.status(400).send({ error: 'Signature image contains invalid data' });
+    }
+    if (body.signature_data.length > 2 * 1024 * 1024) {
+      return reply.status(400).send({ error: 'Signature image is too large' });
+    }
+    if (body.fields && !Array.isArray(body.fields)) {
+      return reply.status(400).send({ error: 'fields must be an array' });
+    }
 
     const recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
       .where('token', '=', req.params.token).executeTakeFirst();
@@ -1594,21 +1712,23 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'SMS verification is required before signing this document' });
     }
 
-    // §16's real requirement: a credential that has lapsed stops being
-    // eligible. Checked against the CURRENT sign_certifiers row, not the
-    // certifier_title/roll_number snapshotted onto this recipient when
-    // they were added — a commission can expire in the days between
-    // being assigned to an envelope and actually acting on it.
-    if (recipient.execution_role === 'CERTIFIER' && recipient.certifier_id) {
+    // A CERTIFIER must have a verified directory credential — a recipient
+    // with execution_role=CERTIFIER but no certifier_id is a configuration
+    // error, not an eligible certifier.
+    if (recipient.execution_role === 'CERTIFIER') {
+      if (!recipient.certifier_id) {
+        return reply.status(403).send({ error: 'Certification requires a verified credential from the Certifier Directory. This recipient has no credential on file.' });
+      }
       const cred = await dbPlatform.selectFrom('sign_certifiers').selectAll()
         .where('id', '=', recipient.certifier_id).executeTakeFirst();
-      if (cred) {
-        if (cred.verification_status === 'revoked') {
-          return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential has been revoked and can no longer certify documents.` });
-        }
-        if (cred.expiry_date && new Date(cred.expiry_date) < new Date()) {
-          return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential expired on ${cred.expiry_date} and can no longer certify documents. Update it in the Certifier Directory to continue.` });
-        }
+      if (!cred) {
+        return reply.status(403).send({ error: 'The linked credential was not found in the Certifier Directory.' });
+      }
+      if (cred.verification_status === 'revoked') {
+        return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential has been revoked and can no longer certify documents.` });
+      }
+      if (cred.expiry_date && new Date(cred.expiry_date) < new Date()) {
+        return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential expired on ${cred.expiry_date} and can no longer certify documents. Update it in the Certifier Directory to continue.` });
       }
     }
 
@@ -1624,10 +1744,36 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       }
     }
 
+    // ES-04: validate field submissions against stored fields for this recipient
+    const storedFields = await dbPlatform.selectFrom('sign_fields').selectAll()
+      .where('envelope_id', '=', envelope.id)
+      .where('recipient_id', '=', recipient.id)
+      .execute();
+    const storedFieldIds = new Set(storedFields.map(f => f.id));
+    const submittedFields = body.fields ?? [];
+    for (const f of submittedFields) {
+      if (!f.field_id || !storedFieldIds.has(f.field_id)) {
+        return reply.status(400).send({ error: `Unknown or unauthorized field: ${f.field_id}` });
+      }
+    }
+    const submittedById = new Map(submittedFields.map(f => [f.field_id, f.value]));
+    for (const sf of storedFields) {
+      if (sf.required && sf.field_type !== 'signature' && sf.field_type !== 'stamp') {
+        const val = submittedById.get(sf.id);
+        if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
+          return reply.status(400).send({ error: `Required field "${sf.placeholder || sf.field_type}" must be filled` });
+        }
+        // A required checkbox must be explicitly checked (true/'true'), not 'false'
+        if (sf.field_type === 'checkbox' && (val === 'false' || val === '0' || val === 'no')) {
+          return reply.status(400).send({ error: `Required checkbox "${sf.placeholder || 'checkbox'}" must be checked` });
+        }
+      }
+    }
+
     // Save signature + field values
     await dbPlatform.updateTable('sign_recipients').set({
       status: 'signed',
-      signature_data: body.signature_data,
+      signature_data: body.signature_data!,
       signed_at: new Date(),
       signed_ip: req.ip,
       signed_user_agent: req.headers['user-agent'] ?? null,
@@ -1672,15 +1818,14 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     let stampPayload = null;
     if (allSigned) {
       const now = new Date();
+      // Enter 'finalizing' — not 'completed' — until the signed PDF is persisted
       await dbPlatform.updateTable('sign_envelopes').set({
-        status: 'completed',
+        status: 'finalizing',
         completed_at: now,
-        stamp_applied: true,
         stamped_at: now,
       }).where('id', '=', envelope.id).execute();
 
-      await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'completed', { note: 'All recipients signed' });
-      await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'stamped', { note: 'Auto-stamped on completion' });
+      await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'finalizing', { note: 'All recipients signed — generating signed PDF' });
 
       let updatedEnvelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
         .where('id', '=', envelope.id).executeTakeFirst();
@@ -1689,20 +1834,6 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
           r.id === recipient.id ? { ...r, signed_at: now } : r
         ));
 
-        // Real audit-trail-baked PDF, built and stored synchronously — this
-        // is fast and entirely local (pdf-lib + disk), so it's safe to do
-        // inline. The Bitcoin anchor is NOT submitted here: stampHash() is a
-        // real network call to the public OpenTimestamps calendar servers,
-        // and blocking the signer's own completion response on an external
-        // network round-trip would be a real regression to their
-        // experience regardless of whether that call is slow or fast.
-        // sign-anchor-stamp.job.ts submits it shortly afterward, the same
-        // "the real business action just marks the work as ready, a
-        // scheduled job does the actual external call" split
-        // declaration-ledger-anchor.job.ts / seal-ledger-anchor.job.ts
-        // already established for their own daily stamp pass. Best-effort
-        // either way — a failure here must never undo a completion the
-        // signer has already seen confirmed, so it's logged, not thrown.
         try {
           const allEvents = await dbPlatform.selectFrom('sign_events').selectAll()
             .where('envelope_id', '=', envelope.id).orderBy('created_at', 'asc').execute();
@@ -1710,10 +1841,15 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
           const { storageKey } = await MinioIntegration.uploadSignedDocument(envelope.tenant_id, envelope.id, pdfBuffer);
           const anchorHash = createHash('sha256').update(pdfBuffer).digest('hex');
 
+          // PDF succeeded — now mark completed
           await dbPlatform.updateTable('sign_envelopes').set({
+            status: 'completed',
+            stamp_applied: true,
             stamped_file_url: storageKey,
             anchor_hash: anchorHash,
           }).where('id', '=', envelope.id).execute();
+          await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'completed', { note: 'All recipients signed' });
+          await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'stamped', { note: 'Auto-stamped on completion' });
           await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'verified', { note: 'Signed PDF generated — Bitcoin anchor submission queued' });
 
           // Digital Execution Seal — the compact, Ed25519-signed, QR-
@@ -1785,6 +1921,12 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
           }
         } catch (err) {
           console.error(`[Sign] Failed to build the signed PDF for envelope ${envelope.id}:`, (err as Error).message);
+          await dbPlatform.updateTable('sign_envelopes').set({
+            status: 'finalization_failed',
+          }).where('id', '=', envelope.id).execute();
+          await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'finalization_failed', {
+            note: `PDF generation failed: ${(err as Error).message}`,
+          });
         }
       }
     } else if (envelope.order_mode === 'sequential') {
@@ -1793,7 +1935,11 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       await notifyRecipients(envelope.tenant_id, envelope, recipientsToNotify(allRecipients, envelope.order_mode), 'invite');
     }
 
-    return reply.send({ ok: true, completed: allSigned, stamp: stampPayload });
+    // Read the final envelope status to return accurate completion state
+    const finalEnvelope = allSigned
+      ? await dbPlatform.selectFrom('sign_envelopes').select('status').where('id', '=', envelope.id).executeTakeFirstOrThrow()
+      : null;
+    return reply.send({ ok: true, completed: finalEnvelope?.status === 'completed', stamp: stampPayload });
   });
 
   // ── Decline signing ────────────────────────────────────────────────────────
@@ -1802,10 +1948,19 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     const recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
       .where('token', '=', req.params.token).executeTakeFirst();
     if (!recipient) return reply.status(404).send({ error: 'Signing link not found' });
+    // ES-05: lifecycle guards — already signed/declined recipients cannot decline again
+    if (recipient.status === 'signed') return reply.status(409).send({ error: 'You have already signed this document' });
+    if (recipient.status === 'declined') return reply.status(409).send({ error: 'You have already declined this document' });
 
     const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
       .where('id', '=', recipient.envelope_id).executeTakeFirst();
     if (!envelope) return reply.status(404).send({ error: 'Document not found' });
+    // ES-05: cannot decline a completed/voided/expired envelope
+    if (envelope.status === 'completed') return reply.status(409).send({ error: 'This document has already been completed' });
+    if (envelope.status === 'voided') return reply.status(410).send({ error: 'This document has been voided' });
+    if (envelope.status !== 'sent' && envelope.status !== 'needs_rerouting') {
+      return reply.status(409).send({ error: 'This document is not available for signing' });
+    }
 
     await dbPlatform.updateTable('sign_recipients').set({
       status: 'declined', declined_at: new Date(), decline_reason: body.reason ?? null,
@@ -1910,6 +2065,7 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       // a legitimate seal pasted onto a different document.
       seal: sealVerdict,
       signers: recipients.map(r => ({
+        signature_reference: r.status === 'signed' ? signatureReference(r.id) : null,
         name: r.name,
         email: r.email,
         role_label: r.role_label,

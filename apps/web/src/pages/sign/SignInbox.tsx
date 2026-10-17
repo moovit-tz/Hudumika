@@ -17,6 +17,7 @@ import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
+import { BackButton } from '../../components/ui/BackButton.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { MetricsRow } from '../../components/MetricCard.js';
@@ -114,7 +115,7 @@ const VIEW_TABS = [
   { key: 'needs_rerouting', label: 'Action needed', icon: 'refresh'     as const,
     subtitle: 'A signer declined — re-assign that slot to a different person to keep going.' },
   { key: 'declined',        label: 'Declined',     icon: 'userMinus'   as const,
-    subtitle: 'A signer refused to sign — the envelope stopped because of them, not you.' },
+    subtitle: 'A signer refused to sign — the document stopped because of them, not you.' },
   { key: 'expired',         label: 'Expired',      icon: 'clock'       as const,
     subtitle: 'Nobody cancelled or declined these — they just passed their signing deadline first.' },
 ] as const;
@@ -128,7 +129,7 @@ type BadgeVariant = 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info';
 function envelopeBadgeVariant(status: string): BadgeVariant {
   const map: Record<string, BadgeVariant> = {
     draft: 'gray', sent: 'info', completed: 'success', voided: 'error', declined: 'error', expired: 'gray',
-    needs_rerouting: 'warning',
+    needs_rerouting: 'warning', finalizing: 'info', finalization_failed: 'error',
   };
   return map[status] ?? 'gray';
 }
@@ -375,7 +376,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
     if (!ids.length || bulkBusy) return;
     if (action === 'void') {
       const ok = await showConfirm('Each one stops accepting signatures immediately. This cannot be undone.', {
-        title: `Void ${ids.length} envelope${ids.length === 1 ? '' : 's'}?`,
+        title: `Void ${ids.length} document${ids.length === 1 ? '' : 's'}?`,
         confirmLabel: 'Void', variant: 'danger',
       });
       if (!ok) return;
@@ -492,10 +493,10 @@ export function SignInbox({ view }: { view: ViewKey }) {
         crumbs={['eSign', (currentTab?.label ?? view).toUpperCase()]}
         titlePlain={(currentTab as any)?.titlePlain ?? 'eSign'}
         titleEm={(currentTab as any)?.emWord ?? (currentTab?.label ?? view).toLowerCase()}
-        subtitle={currentTab?.subtitle ?? 'Send documents for signature, track every recipient, and verify completed envelopes.'}
+        subtitle={currentTab?.subtitle ?? 'Send documents for signature, track every recipient, and verify completed documents.'}
         actions={view === 'inbox' ? <Button variant="outline" onClick={() => navigate('/sign')}><Icon name="fileText" />Documents</Button> : (
           <Button size="lg" onClick={() => navigate('/sign/editor')}>
-            <Icon name="plus" size={14} /> New envelope
+            <Icon name="plus" size={14} /> New document
           </Button>
         )}
       />
@@ -516,7 +517,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
           { title: 'Completed', value: String(envelopes.filter(envelope => envelope.status === 'completed').length), loading, icon: 'checkCircle', sub1Label: 'All signatures collected' },
         ]} />
       )}
-      <Card className="sign-inbox-panel" role="region" aria-label={`${currentTab?.label ?? view} envelopes`}>
+      <Card className="sign-inbox-panel" role="region" aria-label={`${currentTab?.label ?? view} documents`}>
         <div className="sign-inbox-navigation">
           <div className="sign-inbox-nav-content">
             <Tabs value={view} onValueChange={value => navigate(value === 'documents' ? '/sign' : `/sign/${value}`)}>
@@ -563,7 +564,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                   <div className="sign-filter-header">
                     <div className="sign-filter-title">
                       <Icon name="sliders" size={14} style={{ color: 'hsl(var(--primary))' }} />
-                      <span>Filter Envelopes</span>
+                      <span>Filter Documents</span>
                       {activeFilterCount > 0 && (
                         <span className="stb-green-badge">
                           <span className="stb-green-dot" />
@@ -669,7 +670,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                     <Button
                       type="button"
                       variant="outline"
-                      size="default"
+                      size="sm"
                       onClick={() => {
                         handleResetFilters();
                         close();
@@ -680,7 +681,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                     </Button>
                     <Button
                       type="button"
-                      size="default"
+                      size="sm"
                       onClick={() => close()}
                       style={{ fontSize: 12, fontWeight: 600 }}
                     >
@@ -711,16 +712,16 @@ export function SignInbox({ view }: { view: ViewKey }) {
         <div className="sign-inbox-bulk" role="status">
           <span>{selected.size} selected</span>
           {view !== 'inbox' && (
-            <Button size="default" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')}>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('remind')}>
               <Icon name="bell" size={13} /> Remind
             </Button>
           )}
           {view !== 'inbox' && (
-            <Button size="default" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} className="sign-inbox-void-btn">
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulkAction('void')} className="sign-inbox-void-btn">
               <Icon name="xCircle" size={13} /> Void
             </Button>
           )}
-          <Button type="button" size="default" variant="ghost" onClick={() => setSelected(new Set())} className="sign-inbox-clear-btn">
+          <Button type="button" size="sm" variant="ghost" onClick={() => setSelected(new Set())} className="sign-inbox-clear-btn">
             Clear
           </Button>
         </div>
@@ -740,21 +741,21 @@ export function SignInbox({ view }: { view: ViewKey }) {
                 : view === 'inbox' ? 'You’re all caught up'
                 : view === 'drafts' ? 'No drafts yet'
                 : view === 'documents' ? 'No documents yet'
-                : `No ${view} envelopes`}
+                : `No ${view} documents`}
             </div>
             <div className="sign-inbox-empty-copy">
               {(search.trim() || activeFilterCount > 0) ? 'Try another search or clear your filters.'
                 : view === 'inbox' ? 'Documents sent to you for signing or approval will appear here.'
-                : view === 'voided' ? 'Envelopes only land here once you cancel one yourself — nothing to show yet.'
+                : view === 'voided' ? 'Documents only land here once you cancel one yourself — nothing to show yet.'
                 : view === 'declined' ? 'This fills up if a signer ever refuses to sign — nothing here means everyone has signed so far.'
-                : view === 'expired' ? 'Envelopes land here only after their deadline passes unsigned — none have yet.'
-                : 'Create a new envelope to get started.'}
+                : view === 'expired' ? 'Documents land here only after their deadline passes unsigned — none have yet.'
+                : 'Create a new document to get started.'}
             </div>
             {(search.trim() || activeFilterCount > 0) && <Button variant="outline" onClick={handleResetFilters}>Clear filters</Button>}
             {view === 'inbox' && !search.trim() && activeFilterCount === 0 && <Button variant="outline" onClick={() => navigate('/sign')}>View documents</Button>}
             {view !== 'inbox' && !search.trim() && activeFilterCount === 0 && (
               <Button onClick={() => navigate('/sign/editor')}>
-                <Icon name="plus" size={14} /> Create envelope
+                <Icon name="plus" size={14} /> Create document
               </Button>
             )}
           </div>
@@ -804,7 +805,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                       </div>
                       {signUrl && (
                         <div className="sign-mobile-card-action" onClick={e => e.stopPropagation()}>
-                          <Button size="default" className="w-full" onClick={() => window.open(signUrl, '_blank', 'noopener')}>
+                          <Button size="sm" className="w-full" onClick={() => window.open(signUrl, '_blank', 'noopener')}>
                             <Icon name="edit" size={13} /> Sign Now
                           </Button>
                         </div>
@@ -857,7 +858,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                             ? true
                             : pageItems.some(envelope => selected.has(envelope.id)) ? 'indeterminate' : false}
                           onCheckedChange={checked => toggleAllVisible(checked === true)}
-                          aria-label="Select all visible envelopes"
+                          aria-label="Select all visible documents"
                         />
                       </th>
                       <th>Document</th>
@@ -931,7 +932,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                   value={verifyUrl}
                   style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
-                <Button variant="default" size="default" onClick={() => copy(verifyUrl, 'verify')} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+                <Button variant="default" size="sm" onClick={() => copy(verifyUrl, 'verify')} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'verify' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'verify' ? 'Copied!' : 'Copy Link'}
                 </Button>
@@ -954,7 +955,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                   value={downloadUrl}
                   style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
                 />
-                <Button variant="outline" size="default" onClick={() => copy(downloadUrl, 'download')} style={{ whiteSpace: 'nowrap' }}>
+                <Button variant="outline" size="sm" onClick={() => copy(downloadUrl, 'download')} style={{ whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'download' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'download' ? 'Copied!' : 'Copy PDF Link'}
                 </Button>
@@ -972,7 +973,7 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 <div style={{ padding: '8px 14px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: 'var(--teal)', letterSpacing: '0.06em', flex: 1 }}>
                   {env.verification_code}
                 </div>
-                <Button variant="outline" size="default" onClick={() => copy(env.verification_code!, 'code')}>
+                <Button variant="outline" size="sm" onClick={() => copy(env.verification_code!, 'code')}>
                   <Icon name={copiedKey === 'code' ? 'check' : 'copy'} size={13} />
                   {copiedKey === 'code' ? 'Copied!' : 'Copy Code'}
                 </Button>
@@ -1141,7 +1142,7 @@ export function SignEnvelopeDetail() {
 
   async function handleSend() {
     if (!env) return;
-    if (!(await showConfirm('This sends a real signing link to every recipient.', { title: 'Send this envelope for signing?', variant: 'info', confirmLabel: 'Send' }))) return;
+    if (!(await showConfirm('This sends a real signing link to every recipient.', { title: 'Send this document for signing?', variant: 'info', confirmLabel: 'Send' }))) return;
     try {
       await apiFetch(`/v1/sign/envelopes/${env.id}/send`, { method: 'POST' });
       const refreshed = await apiFetch(`/v1/sign/envelopes/${env.id}`);
@@ -1153,7 +1154,7 @@ export function SignEnvelopeDetail() {
 
   async function handleVoid() {
     if (!env) return;
-    const reason = await showPrompt("This stops the envelope for every recipient — it can't be un-voided.", { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void' });
+    const reason = await showPrompt("This stops the document for every recipient — it can't be un-voided.", { title: 'Reason for voiding (optional)', placeholder: 'e.g. Sent to the wrong recipient', confirmLabel: 'Void' });
     if (reason === null) return;
     await apiFetch(`/v1/sign/envelopes/${env.id}`, { method: 'DELETE', body: JSON.stringify({ reason }) });
     navigate('/sign');
@@ -1222,7 +1223,7 @@ export function SignEnvelopeDetail() {
 
   async function handleRename() {
     if (!env) return;
-    const next = await showPrompt('', { title: 'Rename this envelope', defaultValue: env.title, required: true, confirmLabel: 'Rename' });
+    const next = await showPrompt('', { title: 'Rename this document', defaultValue: env.title, required: true, confirmLabel: 'Rename' });
     if (next === null || !next.trim() || next.trim() === env.title) return;
     try {
       await apiFetch(`/v1/sign/envelopes/${env.id}/title`, { method: 'PATCH', body: JSON.stringify({ title: next.trim() }) });
@@ -1318,27 +1319,22 @@ export function SignEnvelopeDetail() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 380, gap: 12, color: 'var(--ink3)' }}>
         <Icon name="xCircle" size={36} style={{ color: 'var(--red)', opacity: 0.8 }} />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Document unavailable</div>
-        <Button variant="outline" size="default" onClick={() => navigate('/sign')}>View documents</Button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/sign')}>View documents</Button>
       </div>
     );
   }
 
   return (
     <div className="sign-envelope-detail">
+      <BackButton to="/sign" label="Documents" />
       <PageHeader
-        crumbs={['eSign', 'Envelopes']}
+        crumbs={['eSign', 'Documents']}
         title={env.title}
-        subtitle={env.version_number > 1 ? `Version ${env.version_number}` : undefined}
         actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="outline" size="default" onClick={() => navigate('/sign')} style={{ fontWeight: 600 }}>
-              <Icon name="arrowLeft" size={14} /> Documents
-            </Button>
-            <Badge variant={envelopeBadgeVariant(env.status)} className="capitalize">
-              {env.status}
-            </Badge>
-            {/* Only shown for an advanced execution — an ordinary envelope's
-                header looks exactly as it did before migration 416. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Badge variant={envelopeBadgeVariant(env.status)} className="capitalize">{env.status}</Badge>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>v{env.version_number || 1}</span>
+            <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 2px' }} />
             {env.execution_type && env.execution_type !== 'NORMAL_SIGN' && (
               <Badge variant="warning">
                 {EXECUTION_TYPE_LABEL[env.execution_type] ?? env.execution_type}
@@ -1364,7 +1360,7 @@ export function SignEnvelopeDetail() {
               </a>
             ) : env.client_id && (
               <Tip label="Create a draft invoice for this document's customer in FinOps">
-                <Button variant="outline" size="default" onClick={() => setShowBillModal(true)}>
+                <Button variant="outline" size="sm" onClick={() => setShowBillModal(true)}>
                   <Icon name="invoice" size={13} /> Bill client
                 </Button>
               </Tip>
@@ -1383,34 +1379,34 @@ export function SignEnvelopeDetail() {
             {env.status === 'completed' ? (
               !env.next_version && (
                 <Tip label="This document has an issue — create an amended Version 2">
-                  <Button variant="outline" size="default" onClick={handleAmend} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
+                  <Button variant="outline" size="sm" onClick={handleAmend} style={{ borderColor: 'var(--teal)', color: 'var(--teal)' }}>
                     <Icon name="gitBranch" size={14} /> Amend
                   </Button>
                 </Tip>
               )
             ) : (
-              <Tip label="Rename this envelope">
-                <Button variant="ghost" size="default" className="aspect-square px-0" onClick={handleRename} aria-label="Rename this envelope">
+              <Tip label="Rename this document">
+                <Button variant="ghost" size="sm" className="aspect-square px-0" onClick={handleRename} aria-label="Rename this document">
                   <Icon name="edit" size={14} />
                 </Button>
               </Tip>
             )}
             {env.status === 'draft' && (
               <>
-                <Button variant="outline" size="default" onClick={() => navigate(`/sign/editor/${env.id}`)}>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/sign/editor/${env.id}`)}>
                   <Icon name="edit" size={14} /> Edit
                 </Button>
-                <Button variant="default" size="default" onClick={handleSend} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
+                <Button variant="default" size="sm" onClick={handleSend}>
                   <Icon name="send" size={14} /> Send
                 </Button>
               </>
             )}
             {env.status === 'sent' && (
               <>
-                <Button variant="outline" size="default" onClick={handleRemind}>
+                <Button variant="outline" size="sm" onClick={handleRemind}>
                   <Icon name="mail" size={14} /> Remind
                 </Button>
-                <Button variant="outline" size="default" onClick={handleVoid}
+                <Button variant="outline" size="sm" onClick={handleVoid}
                   style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', fontWeight: 600 }}>
                   <Icon name="xCircle" size={14} /> Void
                 </Button>
@@ -1419,12 +1415,12 @@ export function SignEnvelopeDetail() {
             {env.status === 'needs_rerouting' && (
               <>
                 {env.recipients?.filter(r => r.status === 'declined').map(r => (
-                  <Button key={r.id} variant="outline" size="default" onClick={() => handleReroute(r.id, r.name, r.decline_reason ?? null)}
+                  <Button key={r.id} variant="outline" size="sm" onClick={() => handleReroute(r.id, r.name, r.decline_reason ?? null)}
                     style={{ borderColor: 'var(--gold)', background: 'var(--gold-l)', color: 'var(--ink)', fontWeight: 600 }}>
                     <Icon name="refresh" size={14} /> Re-assign {r.name}
                   </Button>
                 ))}
-                <Button variant="outline" size="default" onClick={handleVoid}
+                <Button variant="outline" size="sm" onClick={handleVoid}
                   style={{ borderColor: 'var(--sign-red)', background: 'var(--sign-red-l)', color: 'var(--sign-red)', fontWeight: 600 }}>
                   <Icon name="xCircle" size={14} /> Void
                 </Button>
@@ -1439,10 +1435,6 @@ export function SignEnvelopeDetail() {
           <FeaturedIcon size="xl"><Icon name="fileText" size={26} /></FeaturedIcon>
           <div className="sign-envelope-identity-text">
             <strong>{env.file_name || env.title}</strong>
-            <div className="sign-envelope-owner">
-              <PersonAvatar userId={env.created_by} name={env.created_by_name ?? 'Unknown'} size={30} />
-              <span>Created by <strong>{env.created_by_name ?? 'Unknown'}</strong></span>
-            </div>
           </div>
           <div className="sign-envelope-progress">
             <div><strong>Signing progress</strong><span>{env.recipients?.filter(r => r.status === 'signed').length ?? 0}/{env.recipients?.length ?? 0} signed</span></div>
@@ -1450,17 +1442,25 @@ export function SignEnvelopeDetail() {
           </div>
         </div>
         <dl className="sign-envelope-facts">
-          <div><dt>Created</dt><dd>{new Date(env.created_at).toLocaleDateString()}</dd></div>
+          <div className="sign-envelope-facts-creator">
+            <dt>Created by</dt>
+            <dd>
+              <PersonAvatar userId={env.created_by} name={env.created_by_name ?? 'Unknown'} size={28} />
+              <span>
+                <strong>{env.created_by_name ?? 'Unknown'}</strong>
+                <time>{new Date(env.created_at).toLocaleDateString()}</time>
+              </span>
+            </dd>
+          </div>
           <div><dt>Updated</dt><dd>{new Date(env.updated_at).toLocaleDateString()}</dd></div>
           <div><dt>Recipients</dt><dd>{env.recipients?.length ?? 0}</dd></div>
-          <div><dt>Version</dt><dd>{env.version_number || 1}</dd></div>
         </dl>
       </Card>
       {/* Version chain banners */}
       {env.previous_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.previous_version!.id}`)}
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.previous_version!.id}`); } }}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 'var(--r-sm)', padding: '10px 14px', fontSize: 12.5, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
           <span>This is Version {env.version_number}, amended from <strong>Version {env.previous_version.version_number} — {env.previous_version.title}</strong></span>
           <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--teal)' } as React.CSSProperties} />
@@ -1469,7 +1469,7 @@ export function SignEnvelopeDetail() {
       {env.next_version && (
         <div onClick={() => navigate(`/sign/envelope/${env.next_version!.id}`)}
           role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/sign/envelope/${env.next_version!.id}`); } }}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '12px 18px', fontSize: 13, color: 'var(--ink)' }}>
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r-sm)', padding: '10px 14px', fontSize: 12.5, color: 'var(--ink)' }}>
           <Icon name="gitBranch" size={16} style={{ color: 'var(--gold)', flexShrink: 0 } as React.CSSProperties} />
           <span>This signed document is unchanged, but it's been superseded by <strong>Version {env.next_version.version_number}</strong> ({env.next_version.status})</span>
           <Icon name="chevronRight" size={14} style={{ marginLeft: 'auto', color: 'var(--gold)' } as React.CSSProperties} />
@@ -1544,9 +1544,9 @@ export function SignEnvelopeDetail() {
 
           {/* Void / Decline Reason Banner */}
           {(env.status === 'voided' || env.status === 'declined') && env.void_reason && (
-            <div style={{ background: 'var(--sign-red-l)', border: '1px solid var(--sign-red)', borderRadius: 'var(--card-radius)', padding: '16px 20px', boxShadow: '0 2px 8px var(--sign-red-l)' }}>
+            <div style={{ background: 'var(--sign-red-l)', border: '1px solid var(--sign-red)', borderRadius: 'var(--r)', padding: '12px 16px' }}>
               <div style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--sign-red)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="xCircle" size={14} /> {env.status === 'declined' ? 'Envelope Declined' : 'Envelope Voided'}
+                <Icon name="xCircle" size={14} /> {env.status === 'declined' ? 'Document Declined' : 'Document Voided'}
               </div>
               <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5 }}>{env.void_reason}</div>
             </div>
@@ -1559,8 +1559,8 @@ export function SignEnvelopeDetail() {
             <div style={{
               position: 'relative', overflow: 'hidden',
               background: 'var(--sign-green-l)', border: '1px solid var(--sign-green)', borderRadius: 'var(--r)',
-              padding: '22px 24px', boxShadow: 'var(--elev-sm)',
-              display: 'flex', flexDirection: 'column', gap: 14,
+              padding: '14px 16px', boxShadow: 'var(--elev-sm)',
+              display: 'flex', flexDirection: 'column', gap: 10,
             }}>
               {/* Corner seal ring — a notary-stamp motif, not another icon-in-a-circle */}
               <div aria-hidden style={{
@@ -1589,7 +1589,7 @@ export function SignEnvelopeDetail() {
               {/* Certificate plate — the code presented like a serial number */}
               <div style={{
                 background: 'var(--white)', border: '1px dashed var(--sign-green)', borderRadius: 'var(--r-sm)',
-                padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+                padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
               }}>
                 <div>
                   <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--ink3)' }}>
@@ -1617,15 +1617,15 @@ export function SignEnvelopeDetail() {
               )}
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
-                <Button variant="outline" size="default" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 600 }}>
+                <Button variant="outline" size="sm" onClick={() => setShowShareModal(true)} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 600 }}>
                   <Icon name="share" size={13} /> Share link
                 </Button>
                 {env.stamped_file_url && (
-                  <Button variant="outline" size="default" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
+                  <Button variant="outline" size="sm" onClick={() => apiDownload(`/v1/sign/envelopes/${env.id}/download`, `${env.title} — signed.pdf`)} style={{ background: 'var(--sign-green-l)', borderColor: 'var(--sign-green)', color: 'var(--sign-green)', fontWeight: 700 }}>
                     <Icon name="download" size={13} /> Download PDF
                   </Button>
                 )}
-                <Button variant="outline" size="default" onClick={handleCopyCode} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
+                <Button variant="outline" size="sm" onClick={handleCopyCode} style={{ borderColor: 'var(--sign-green)', color: 'var(--sign-green)' }}>
                   <Icon name={copiedCode ? 'check' : 'copy'} size={13} /> {copiedCode ? 'Copied!' : 'Copy code'}
                 </Button>
               </div>
@@ -1652,7 +1652,7 @@ export function SignEnvelopeDetail() {
               // wrapping group, or a long reason growing this row taller
               // pushes past the single-line-height the trailing badges
               // assumed and overlaps them the same way.
-              <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, rowGap: 8, padding: '12px 14px', borderRadius: 'var(--r)', background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
+              <div key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, rowGap: 6, padding: '10px 12px', borderRadius: 'var(--r-sm)', background: r.is_certifier ? 'var(--blue-l)' : 'var(--bg)', border: `1px solid ${r.is_certifier ? 'var(--blue)' : 'var(--border)'}`, flexWrap: 'wrap' }}>
                 <Tip label={`${r.name} — ${r.email}`}>
                   <PersonAvatar userId={r.user_id ?? r.matched_user_id ?? undefined} name={r.name} size={38} />
                 </Tip>
@@ -1828,7 +1828,10 @@ export function SignAllDocuments() {
         quickFilter={{
           label: 'Status', allLabel: 'All statuses', value: statusFilter === 'all' ? null : statusFilter,
           onChange: value => setStatusFilter((value || 'all') as typeof statusFilter),
-          options: (['draft', 'sent', 'completed', 'voided', 'needs_rerouting', 'declined', 'expired'] as const).map(status => ({ value: status, label: status === 'needs_rerouting' ? 'Action needed' : status.charAt(0).toUpperCase() + status.slice(1) })),
+          options: (['draft', 'sent', 'completed', 'voided', 'needs_rerouting', 'declined', 'expired', 'finalizing', 'finalization_failed'] as const).map(status => {
+            const labels: Record<string, string> = { needs_rerouting: 'Action needed', finalizing: 'Finalizing', finalization_failed: 'Finalization failed' };
+            return { value: status, label: labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1) };
+          }),
           columns: 1,
         }}
 
@@ -1846,7 +1849,7 @@ export function SignAllDocuments() {
           <div className="sign-inbox-empty">
             <FeaturedIcon size="lg"><Icon name="fileText" size={24} /></FeaturedIcon>
             <div className="sign-inbox-empty-title">{search || statusFilter !== 'all' ? 'No matches' : 'No documents yet'}</div>
-            <div className="sign-inbox-empty-copy">{search || statusFilter !== 'all' ? 'Try another search or clear your filters.' : 'Workspace documents will appear here once an envelope is created.'}</div>
+            <div className="sign-inbox-empty-copy">{search || statusFilter !== 'all' ? 'Try another search or clear your filters.' : 'Workspace documents will appear here once an document is created.'}</div>
             {(search || statusFilter !== 'all') && <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Clear filters</Button>}
           </div>        ) : (
           <>

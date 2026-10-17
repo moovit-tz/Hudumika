@@ -14,8 +14,10 @@ import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../../components/ui/dropdown-menu.js';
 import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog.js';
 import { Card } from '../../components/ui/card.js';
+import { BackButton } from '../../components/ui/BackButton.js';
 import { MetricsRow } from '../../components/MetricCard.js';
 import { SkeletonTable } from '../../components/ui/skeleton.js';
 import './SignManagement.css';
@@ -141,7 +143,7 @@ const VERDICT_DETAILS: Record<string, VerdictConfig> = {
     variant: 'error',
     icon: 'xCircle',
     theme: 'danger',
-    desc: 'Severe structural or hash discrepancy. The uploaded document does not correlate with the registered envelope manifest baseline.',
+    desc: 'Severe structural or hash discrepancy. The uploaded document does not correlate with the registered document manifest baseline.',
   },
   INCONCLUSIVE: {
     label: 'Inconclusive Analysis',
@@ -362,7 +364,7 @@ function CaseListView() {
               <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                 <thead>
                   <tr>
-                    <th>Envelope Document</th>
+                    <th>Document</th>
                     <th>Verdict</th>
                     <th>Status</th>
                     <th>Opened By / Date</th>
@@ -466,6 +468,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<{ src: string; filename: string } | null>(null);
+  const [auditPage, setAuditPage] = useState(1);
+  const AUDIT_PER_PAGE = 10;
 
   function load() {
     apiFetch(`/v1/sign/forensics/cases/${id}`)
@@ -604,6 +608,7 @@ function CaseDetailView({ id }: { id: string }) {
       </Dialog>
 
       {/* Page Header */}
+      <BackButton to="/sign/forensics" label="Forensic Cases" />
       <PageHeader
         crumbs={['eSign', 'Forensics']}
         titlePlain={kase.envelope_title.split(' ').slice(0, -1).join(' ') || 'Forensic'}
@@ -624,51 +629,6 @@ function CaseDetailView({ id }: { id: string }) {
                 style={{ color: copiedKey === 'code' ? 'var(--green)' : 'var(--ink3)' }}
               />
             </div>
-          </div>
-        }
-        actions={
-          <div className="sfc-header-actions">
-            <Button variant="outline" size="default" onClick={() => navigate('/sign/forensics')} style={{ fontWeight: 600 }}>
-              <Icon name="arrowLeft" size={14} /> Back
-            </Button>
-            <Badge variant={STATUS_CFG[kase.status].variant} style={{ padding: '6px 12px', fontSize: 12.5, fontWeight: 700 }}>
-              {STATUS_CFG[kase.status].label}
-            </Badge>
-            <Button variant="outline" size="default" disabled={reanalyzing} onClick={reanalyze}>
-              <Icon name="refresh" size={14} /> {reanalyzing ? 'Re-analyzing…' : 'Re-analyze'}
-            </Button>
-            {latestReport ? (
-              <a href={`${BASE_URL}/v1/sign/forensics/cases/${kase.id}/evidence/${latestReport.id}/download`} target="_blank" rel="noreferrer">
-                <Button variant="outline" size="default">
-                  <Icon name="download" size={14} /> Download Report
-                </Button>
-              </a>
-            ) : (
-              <Button variant="outline" size="default" disabled={generatingReport} onClick={generateReport}>
-                <Icon name="fileText" size={14} /> {generatingReport ? 'Generating…' : 'Generate Report'}
-              </Button>
-            )}
-            {kase.status !== 'resolved' && kase.status !== 'dismissed' && (
-              <>
-                {kase.status === 'open' && (
-                  <Button variant="outline" size="default" disabled={updating} onClick={() => changeStatus('reviewing')}>
-                    Start Reviewing
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="default"
-                  disabled={updating}
-                  onClick={() => changeStatus('resolved')}
-                  style={{ borderColor: 'var(--green)', color: 'var(--green)' }}
-                >
-                  <Icon name="checkCircle" size={14} /> Mark Resolved
-                </Button>
-                <Button variant="outline" size="default" disabled={updating} onClick={() => changeStatus('dismissed')}>
-                  Dismiss
-                </Button>
-              </>
-            )}
           </div>
         }
       />
@@ -724,8 +684,51 @@ function CaseDetailView({ id }: { id: string }) {
             </div>
             <div className="sfc-verdict-body">
               <div className="sfc-verdict-title-row">
-                <div className="sfc-verdict-title">{verdict.label}</div>
-                <Badge variant={verdict.variant}>{verdict.label}</Badge>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                  <div className="sfc-verdict-title">{verdict.label}</div>
+                  <Badge variant={verdict.variant}>{verdict.label}</Badge>
+                  <Badge variant={STATUS_CFG[kase.status].variant}>{STATUS_CFG[kase.status].label}</Badge>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Icon name="settings" size={14} /> Actions <Icon name="chevronDown" size={12} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate(`/sign/envelope/${kase.envelope_id}`)}>
+                      <Icon name="fileText" size={14} /> Open Document
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled={reanalyzing} onClick={reanalyze}>
+                      <Icon name="refresh" size={14} /> {reanalyzing ? 'Re-analyzing…' : 'Re-analyze'}
+                    </DropdownMenuItem>
+                    {latestReport ? (
+                      <DropdownMenuItem onClick={() => window.open(`${BASE_URL}/v1/sign/forensics/cases/${kase.id}/evidence/${latestReport.id}/download`, '_blank')}>
+                        <Icon name="download" size={14} /> Download Report
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem disabled={generatingReport} onClick={generateReport}>
+                        <Icon name="fileText" size={14} /> {generatingReport ? 'Generating…' : 'Generate Report'}
+                      </DropdownMenuItem>
+                    )}
+                    {kase.status !== 'resolved' && kase.status !== 'dismissed' && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {kase.status === 'open' && (
+                          <DropdownMenuItem disabled={updating} onClick={() => changeStatus('reviewing')}>
+                            <Icon name="eye" size={14} /> Start Reviewing
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem disabled={updating} onClick={() => changeStatus('resolved')}>
+                          <Icon name="checkCircle" size={14} /> Mark Resolved
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled={updating} onClick={() => changeStatus('dismissed')}>
+                          <Icon name="xCircle" size={14} /> Dismiss
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="sfc-verdict-desc">{verdict.desc}</div>
 
@@ -916,7 +919,7 @@ function CaseDetailView({ id }: { id: string }) {
         {/* Right Column: Analysis History & Chain of Custody */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
           {/* Analysis History */}
-          <SectionCard title={`Analysis Runs (${kase.analysisRuns?.length || 0})`} collapsible={false}>
+          <SectionCard title={`Analysis Runs (${kase.analysisRuns?.length || 0})`}>
             <div className="sfc-run-list">
               {kase.analysisRuns?.map(run => {
                 const v = getVerdictInfo(run.content_verdict);
@@ -937,34 +940,42 @@ function CaseDetailView({ id }: { id: string }) {
           </SectionCard>
 
           {/* Chain of Custody Timeline */}
-          <SectionCard title="Chain of Custody & Audit Timeline" collapsible={false}>
-            <div className="sfc-timeline">
-              {kase.audit.map((ev, i) => {
-                const isLast = i === kase.audit.length - 1;
-                const icon = getAuditIcon(ev.action);
-                return (
-                  <div key={ev.id} className="sfc-timeline-row">
-                    {!isLast && <div className="sfc-timeline-line" />}
-                    <div className="sfc-timeline-dot">
-                      <Icon name={icon} size={13} />
-                    </div>
-                    <div className="sfc-timeline-content">
-                      <div className="sfc-timeline-title">
-                        {ACTION_LABEL[ev.action] ?? ev.action.replace(/_/g, ' ')}
-                        {ev.actor_name && (
-                          <span className="sfc-timeline-actor"> — {ev.actor_name}</span>
-                        )}
-                      </div>
-                      <div className="sfc-timeline-time">
-                        <Icon name="clock" size={11} />
-                        <span>{new Date(ev.created_at).toLocaleString()}</span>
-                        {ev.ip_address && <span>• IP {ev.ip_address}</span>}
-                      </div>
-                    </div>
+          <SectionCard title={`Chain of Custody & Audit Timeline (${kase.audit.length})`}>
+            {(() => {
+              const paged = kase.audit.slice((auditPage - 1) * AUDIT_PER_PAGE, auditPage * AUDIT_PER_PAGE);
+              return (
+                <>
+                  <div className="sfc-timeline">
+                    {paged.map((ev, i) => {
+                      const isLast = i === paged.length - 1;
+                      const icon = getAuditIcon(ev.action);
+                      return (
+                        <div key={ev.id} className="sfc-timeline-row">
+                          {!isLast && <div className="sfc-timeline-line" />}
+                          <div className="sfc-timeline-dot">
+                            <Icon name={icon} size={13} />
+                          </div>
+                          <div className="sfc-timeline-content">
+                            <div className="sfc-timeline-title">
+                              {ACTION_LABEL[ev.action] ?? ev.action.replace(/_/g, ' ')}
+                              {ev.actor_name && (
+                                <span className="sfc-timeline-actor"> — {ev.actor_name}</span>
+                              )}
+                            </div>
+                            <div className="sfc-timeline-time">
+                              <Icon name="clock" size={11} />
+                              <span>{new Date(ev.created_at).toLocaleString()}</span>
+                              {ev.ip_address && <span>• IP {ev.ip_address}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                  <Pagination total={kase.audit.length} page={auditPage} perPage={AUDIT_PER_PAGE} onPage={setAuditPage} />
+                </>
+              );
+            })()}
           </SectionCard>
         </div>
       </div>

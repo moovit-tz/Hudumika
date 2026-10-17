@@ -385,7 +385,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
               <div style={{ padding: embedded ? 14 : 20, borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: embedded ? 10 : 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ fontWeight: 700, fontSize: embedded ? 13 : 14, color: 'var(--teal)' }}>
                   Configure {active.label}
-                  {active.outputMode === 'download' && <div style={{ fontWeight: 500, fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Downloads a file, doesn’t change the envelope’s document</div>}
+                  {active.outputMode === 'download' && <div style={{ fontWeight: 500, fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Downloads a file, doesn’t change the document’s document</div>}
                 </div>
 
                 {active.key === 'rotate' && (

@@ -354,18 +354,22 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                   const isOpen = !section.title || (openSections[section.title] ?? true);
                   return (
                   <div key={si} className="app-sb-section-group">
-                    {section.title && !railCollapsed && (
-                      <div
-                        className={`app-sb-section-hdr${isCollapsible ? ' app-sb-section-hdr--collapsible' : ''}`}
-                        onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
-                      >
-                        <span>{section.title}</span>
-                        {isCollapsible && (
-                          <span className={`app-sb-section-toggle${isOpen ? ' app-sb-section-toggle--open' : ''}`}>
-                            <Icon name="chevronDown" size={11} strokeWidth={2.5} />
-                          </span>
-                        )}
-                      </div>
+                    {section.title && (
+                      railCollapsed ? (
+                        si > 0 && <div className="app-sb-section-divider" />
+                      ) : (
+                        <div
+                          className={`app-sb-section-hdr${isCollapsible ? ' app-sb-section-hdr--collapsible' : ''}`}
+                          onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
+                        >
+                          <span>{section.title}</span>
+                          {isCollapsible && (
+                            <span className={`app-sb-section-toggle${isOpen ? ' app-sb-section-toggle--open' : ''}`}>
+                              <Icon name="chevronDown" size={11} strokeWidth={2.5} />
+                            </span>
+                          )}
+                        </div>
+                      )
                     )}
                     {(isOpen || railCollapsed) && section.items.map(item => {
                       const active = isActive(item.path, item.exact);
