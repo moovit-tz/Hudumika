@@ -11,6 +11,9 @@
   overflow: hidden;
   background: var(--card-bg);
   font-family: var(--font);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, var(--r));
+  box-shadow: var(--card-shadow, var(--elev-sm));
 }
 
 /* ── Top Header ─────────────────────────────────────────────────────────── */
@@ -522,7 +525,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r);
   background: var(--card-bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--elev-sm);
 }
 
 .sign-workspace-active-recipient > div:last-child {
@@ -626,7 +629,7 @@
 .sign-workspace .sign-field-icon-squircle {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   background: var(--teal-l);
   color: var(--teal);
   display: flex;

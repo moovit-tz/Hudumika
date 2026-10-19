@@ -1580,7 +1580,7 @@ export function SignEnvelopeDetail() {
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%', flexShrink: 0, zIndex: 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--white)', border: '2px solid var(--sign-green)', color: 'var(--sign-green)', transform: 'rotate(-8deg)',
+                  background: 'var(--card-bg)', border: '2px solid var(--sign-green)', color: 'var(--sign-green)', transform: 'rotate(-8deg)',
                 }}>
                   <Icon name="stamp" size={18} />
                 </div>
@@ -1588,7 +1588,7 @@ export function SignEnvelopeDetail() {
 
               {/* Certificate plate — the code presented like a serial number */}
               <div style={{
-                background: 'var(--white)', border: '1px dashed var(--sign-green)', borderRadius: 'var(--r-sm)',
+                background: 'var(--card-bg)', border: '1px dashed var(--sign-green)', borderRadius: 'var(--r-sm)',
                 padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
               }}>
                 <div>
@@ -1727,7 +1727,7 @@ export function SignEnvelopeDetail() {
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span>{new Date(ev.created_at).toLocaleString()}</span>
                           {ev.ip_address && (
-                            <span style={{ background: 'var(--white)', padding: '1px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--font)' }}>
+                            <span style={{ background: 'var(--card-bg)', padding: '1px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 10.5, fontFamily: 'var(--font)' }}>
                               IP: {ev.ip_address}
                             </span>
                           )}

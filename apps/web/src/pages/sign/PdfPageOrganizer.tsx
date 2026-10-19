@@ -235,7 +235,7 @@ export function PdfPageOrganizer({ documentSrc, fileName, onExport, onClose }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--white)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap' }}>
         <Icon name="grid" size={16} style={{ color: 'var(--teal)' }} />
         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Organize Pages</span>

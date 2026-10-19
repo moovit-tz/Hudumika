@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { sanitizeDocumentHtml } from './sign-rich-document.service.js';
 import { z } from 'zod';
 import { documentFonts, applyDocumentFonts } from './document-branding.service.js';
 import { ALL_APP_IDS, expandSignDocument, type AppId, type SignDocumentDefinition, type SignDocumentLanguage } from '@hudumika/types';
@@ -7,6 +8,7 @@ import { draftedDefinition } from './sign-document-drafting.js';
 import { readFile } from 'node:fs/promises';
 
 export const documentDefinitionSchema: z.ZodType<SignDocumentDefinition, z.ZodTypeDef, unknown> = z.object({
+  editor_html: z.string().max(5000000).transform(sanitizeDocumentHtml).optional(),
   language: z.enum(['en','sw','zh']).optional(),
   translations: z.object({en:z.object({body:z.string().min(1).max(100000)}).optional(),sw:z.object({body:z.string().min(1).max(100000)}).optional(),zh:z.object({body:z.string().min(1).max(100000)}).optional()}).optional(),
   jurisdiction_clauses: z.record(z.object({en:z.string().max(10000),sw:z.string().max(10000),zh:z.string().max(10000)})).optional(),

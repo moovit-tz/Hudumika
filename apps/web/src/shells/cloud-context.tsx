@@ -501,7 +501,11 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   }, [drives, drivesLoading, searchParams, setSearchParams]);
 
   const loadData = useCallback(async () => {
-    if (!currentDriveId) return;
+    if (!currentDriveId) {
+      // Drive discovery can fail or return no accessible drives; do not hide its error behind a spinner.
+      if (!drivesLoading) setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -512,7 +516,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [currentDriveId]);
+  }, [currentDriveId, drivesLoading]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

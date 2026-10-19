@@ -342,7 +342,7 @@ function CaseListView() {
               color: 'var(--ink3)',
               textAlign: 'center',
               padding: 32,
-              background: 'var(--white)',
+              background: 'var(--card-bg)',
               borderRadius: 'var(--r)',
               border: '1px dashed var(--border)',
             }}
@@ -361,7 +361,7 @@ function CaseListView() {
           <>
             {/* Desktop Table */}
             <div className="sfc-list-table-wrap rtbl-wrap">
-              <table className="rtbl" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+              <table className="rtbl" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
                 <thead>
                   <tr>
                     <th>Document</th>

@@ -411,6 +411,31 @@ export function LawDepotDocumentBuilder({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => {
+              const currentContent = rawWordingMode && customWording
+                ? customWording
+                : (definition ? expandSignDocument(definition, answers, jurisdiction, language) : body);
+              navigate(`/sign/editor?mode=studio&title=${encodeURIComponent(title)}`, {
+                state: {
+                  title,
+                  jurisdiction,
+                  language,
+                  industry: template?.document_definition?.category || 'Corporate & Business',
+                  documentType: template?.document_definition?.document_type || 'agreement',
+                  body: currentContent,
+                },
+              });
+            }}
+            className="gap-1.5 font-medium"
+            title="Open in Full Text Studio with rich formatting, code, tables, images and multi-format exports"
+          >
+            <Icon name="edit" size={14} style={{ color: 'var(--teal)' }} />
+            <span className="hidden md:inline">Full Text Editor</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={saveDraftDocument}
             disabled={busy}
             className="gap-1.5 font-medium"
@@ -897,7 +922,7 @@ export function LawDepotDocumentBuilder({
           {/* Preview Toolbar */}
           <div className="lawdepot-preview-toolbar">
             <div className="lawdepot-preview-lang-tabs">
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginRight: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginRight: 8 }}>
                 Live Preview:
               </span>
               <button

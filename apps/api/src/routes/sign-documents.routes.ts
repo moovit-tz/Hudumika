@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { convertToPdf, officeConfigured } from '../integrations/office-convert.js';
+import { sanitizeDocumentHtml, documentHtmlText, buildRichDocumentPdf } from '../services/sign-rich-document.service.js';
 import { sql } from 'kysely';
 import { COUNTRIES, expandSignDocument } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
@@ -70,6 +72,34 @@ export async function signDocumentsRoutes(server: FastifyInstance) {
     });
   });
 
+  server.put<{ Params: { id: string } }>('/generated-documents/:id/content', async (req, reply) => {
+    const parsed = z.object({ title: z.string().trim().min(1).max(250), html: z.string().min(1).max(5000000), jurisdiction: z.string().trim().min(1).max(120), category: z.string().trim().min(1).max(80).optional(), document_type: z.enum(['agreement','letter','policy','record','form']).optional(), language: z.enum(['en','sw','zh']).optional() }).safeParse(req.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'Enter a title, jurisdiction and document content within the size limit.' });
+    if (!idSchema.safeParse(req.params.id).success) return reply.status(404).send({ error: 'Document not found' });
+    return withTenant(req.user.tenant_id, async trx => {
+      const existing = await trx.selectFrom('sign_generated_documents').selectAll().where('id', '=', req.params.id).where('tenant_id', '=', req.user.tenant_id).where('created_by', '=', req.user.sub).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Document not found' });
+      const definition = documentDefinitionSchema.parse(existing.definition);
+      if (definition.jurisdiction_clauses) return reply.status(409).send({ error: 'Complete this controlled template through its decision questions first.' });
+      const html = sanitizeDocumentHtml(parsed.data.html);
+      const body = documentHtmlText(html);
+      if (!body.trim()) return reply.status(400).send({ error: 'Add document text before saving.' });
+      return trx.updateTable('sign_generated_documents').set({ title: parsed.data.title, jurisdiction: parsed.data.jurisdiction, body, definition: JSON.stringify({ ...definition, body, editor_html: html, category: parsed.data.category ?? definition.category, document_type: parsed.data.document_type ?? definition.document_type, language: parsed.data.language ?? definition.language }), updated_at: new Date() }).where('id', '=', req.params.id).where('tenant_id', '=', req.user.tenant_id).where('created_by', '=', req.user.sub).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  server.post('/import-document', { bodyLimit: 72 * 1024 * 1024 }, async (req, reply) => {
+    const parsed = z.object({ extension: z.enum(['doc','docx']), data: z.string().max(70 * 1024 * 1024) }).safeParse(req.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'Choose a Word document under 50 MB.' });
+    if (!officeConfigured()) return reply.status(503).send({ error: 'Word conversion is not configured. Upload a PDF instead, or ask your administrator to configure LibreOffice.' });
+    const match = /^data:[^;,]+;base64,([A-Za-z0-9+/]+={0,2})$/.exec(parsed.data.data);
+    if (!match) return reply.status(400).send({ error: 'Invalid document data' });
+    const bytes = Buffer.from(match[1], 'base64');
+    if (bytes.length > 50 * 1024 * 1024 || (parsed.data.extension === 'docx' ? bytes.subarray(0,2).toString() !== 'PK' : bytes.subarray(0,4).toString('hex') !== 'd0cf11e0')) return reply.status(400).send({ error: 'Invalid Word document' });
+    try { const pdf = await convertToPdf(bytes, parsed.data.extension); return { document_data: `data:application/pdf;base64,${pdf.toString('base64')}` }; }
+    catch { return reply.status(422).send({ error: 'Could not convert this Word document. Export it to PDF and upload again.' }); }
+  });
+
   server.get<{ Params: { id: string } }>('/generated-documents/:id', async (req, reply) => {
     if (!idSchema.safeParse(req.params.id).success) return reply.status(404).send({ error: 'Document not found' });
     return withTenant(req.user.tenant_id, async trx => {
@@ -97,7 +127,8 @@ export async function signDocumentsRoutes(server: FastifyInstance) {
     if (!idSchema.safeParse(req.params.id).success) return reply.status(404).send({ error: 'Document not found' });
     const row = await withTenant(req.user.tenant_id, trx => trx.selectFrom('sign_generated_documents').selectAll().where('id', '=', req.params.id).where('tenant_id', '=', req.user.tenant_id).where('created_by', '=', req.user.sub).executeTakeFirst());
     if (!row) return reply.status(404).send({ error: 'Document not found' });
-    const pdf = await buildDocumentPdf(row.title, row.body);
+    const definition = documentDefinitionSchema.parse(row.definition);
+    const pdf = definition.editor_html ? await buildRichDocumentPdf(row.title, definition.editor_html) : await buildDocumentPdf(row.title, row.body);
     if (req.query.format === 'source') return { title: row.title, document_data: `data:application/pdf;base64,${pdf.toString('base64')}`, file_name: `${row.title}.pdf`, jurisdiction: row.jurisdiction, jurisdiction_code: COUNTRIES.find(country => country.name === row.jurisdiction || country.code === row.jurisdiction)?.code ?? null };
     return reply.type('application/pdf').header('Content-Disposition', `attachment; filename="document.pdf"; filename*=UTF-8''${encodeURIComponent(row.title)}.pdf`).send(pdf);
   });

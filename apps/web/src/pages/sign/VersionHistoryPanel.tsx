@@ -133,7 +133,7 @@ const STATUS_STYLE: Record<PageDiffStatus, { accent: string | null; tint: string
 function WordDiff({ oldText, newText }: { oldText: string; newText: string }) {
   const parts = useMemo(() => diffWords(oldText, newText), [oldText, newText]);
   return (
-    <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink2)', maxHeight: 140, overflowY: 'auto', padding: '8px 10px', background: 'var(--white)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+    <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink2)', maxHeight: 140, overflowY: 'auto', padding: '8px 10px', background: 'var(--card-bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
       {parts.map((part, i) => (
         <span key={i} style={
           part.added ? { background: 'var(--green-l)', color: 'var(--green)', textDecoration: 'underline' }
@@ -274,7 +274,7 @@ export function VersionHistoryPanel({ envelopeId, onRestore, onClose }: {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--white)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <Icon name="clock" size={16} style={{ color: 'var(--teal)' }} />
         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Version History</span>

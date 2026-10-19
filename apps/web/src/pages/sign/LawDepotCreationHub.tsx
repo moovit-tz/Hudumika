@@ -1,233 +1,363 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
+import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
-import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
-import {
-  LAWDEPOT_CATEGORIES,
-  LAWDEPOT_TEMPLATES,
-  type LawDepotTemplateItem,
-} from './LawDepotTemplateCatalog.js';
 import { LawDepotTemplateModal } from './LawDepotTemplateModal.js';
+import { saveDraft, draftKey, type SignDraft } from './draftStore.js';
+import { LAWDEPOT_CATEGORIES, LAWDEPOT_TEMPLATES } from './LawDepotTemplateCatalog.js';
 import './LawDepot.css';
 
 interface LawDepotCreationHubProps {
   onSelectTemplate: (templateId: string, templateName?: string) => void;
   onUploadFile: () => void;
-  onStartBlankSigning: () => void;
+  onBrowseLibrary: () => void;
   onWriteScratch: () => void;
 }
 
 export function LawDepotCreationHub({
   onSelectTemplate,
   onUploadFile,
-  onStartBlankSigning,
+  onBrowseLibrary,
   onWriteScratch,
 }: LawDepotCreationHubProps) {
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [display,setDisplay]=useState<'grid'|'rows'>('grid');
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const displayedTemplates = LAWDEPOT_TEMPLATES.filter(item => {
-    const q = search.trim().toLowerCase();
-    const matchCat =
-      selectedCategory === 'all'
-        ? true
-        : selectedCategory === '__popular'
-          ? !!item.popular
-          : item.category === selectedCategory;
-    const matchSearch =
-      !q ||
-      item.name.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      item.tags.some(t => t.toLowerCase().includes(q));
-    return matchCat && matchSearch;
-  });
+  const processFile = useCallback(async (file: File) => {
+    setUploadError('');
+    const validTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+    ];
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const isExtensionValid = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'].includes(extension || '');
+
+    if (!validTypes.includes(file.type) && !isExtensionValid) {
+      setUploadError('Please select a valid document (PDF, Word DOCX/DOC, PNG, or JPG).');
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError('File size exceeds the 50MB limit.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+        let dataUrl = e.target?.result as string;
+        const wordDocument = ['doc','docx'].includes(extension || '');
+        if (wordDocument) {
+          const converted = await apiFetch<{document_data:string}>('/v1/sign/import-document', { method: 'POST', body: JSON.stringify({extension,data:dataUrl}) });
+          dataUrl = converted.document_data;
+        }
+        const cleanTitle = file.name
+          .replace(/\.[^./]+$/, '')
+          .replace(/[_-]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        const draft: SignDraft = {
+          title: cleanTitle || 'Untitled Document',
+          message: '',
+          orderMode: 'sequential',
+          requireOtp: false,
+          fileName: wordDocument ? file.name.replace(/\.[^.]+$/, '.pdf') : file.name,
+          documentData: dataUrl,
+          sourceFileId: null,
+          recipients: [{ name: '', email: '', phone: '', role_label: 'Signer', sign_order: 1, user_id: null }],
+          fields: [],
+          pendingChangeSummary: { summary: 'Document uploaded for eSign' },
+          savedAt: Date.now(),
+        };
+
+        await saveDraft(draftKey(undefined), draft);
+        setUploading(false);
+        onUploadFile();
+        } catch(error) { setUploadError((error as Error).message); setUploading(false); }
+      };
+
+      reader.onerror = () => {
+        setUploadError('Failed to read the selected file. Please try again.');
+        setUploading(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch {
+      setUploadError('An error occurred while preparing the document for signing.');
+      setUploading(false);
+    }
+  }, [onUploadFile]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFile(files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      processFile(files[0]);
+    }
+  };
+
+  // Top popular starters across Hudumika industries
+  const featuredStarters = [
+    {
+      id: 'starter-sign-llc-operating-agreement',
+      name: 'LLC Operating Agreement',
+      category: 'Corporate & Business',
+      desc: 'Member-managed or manager-managed limited liability company operating agreement with capital contributions.',
+    },
+    {
+      id: 'starter-sign-residential-lease-agreement',
+      name: 'Residential Lease Agreement',
+      category: 'Rent or Lease',
+      desc: 'Lease residential property, house or apartment with customizable deposit, rent terms and house rules.',
+    },
+    {
+      id: 'starter-workspace-commercial-lease-agreement',
+      name: 'Commercial Lease Agreement',
+      category: 'Rent or Lease',
+      desc: 'Commercial premises lease for offices, retail stores, or warehouses with maintenance and renewal terms.',
+    },
+    {
+      id: 'starter-sign-non-disclosure-agreement',
+      name: 'Non-Disclosure Agreement (NDA)',
+      category: 'Protect Contracts & IP',
+      desc: 'Mutual or unilateral confidentiality agreement safeguarding proprietary business secrets and data.',
+    },
+    {
+      id: 'starter-cargotracker-freight-forwarding-agreement',
+      name: 'Freight Forwarding Agreement',
+      category: 'Logistics & Freight',
+      desc: 'Standard multimodal freight forwarding contract covering cargo transport, customs clearance and liability.',
+    },
+    {
+      id: 'starter-sign-independent-contractor-agreement',
+      name: 'Independent Contractor Agreement',
+      category: 'Sell or Provide Services',
+      desc: 'Engage freelance professionals and service contractors with clear milestones, IP handover and payment terms.',
+    },
+  ];
 
   return (
-    <div className="lawdepot-hub">
-      {/* Hero Heading */}
-      <div className="lawdepot-hub-hero">
-        <h1>Create Your Legal Document or Template</h1>
-        <p>
-          Select from our comprehensive Hudumika legal library, draft your own custom wording, or upload an existing file for signing.
-        </p>
-      </div>
-
-      {/* Quick Action Tiles */}
-      <div className="lawdepot-hub-quick-actions">
-        <div
-          className="lawdepot-action-tile"
-          onClick={() => onSelectTemplate('starter-sign-llc-operating-agreement', 'LLC Operating Agreement')}
-        >
-          <FeaturedIcon variant="brand" size="lg" shape="circle">
-            <Icon name="briefcase" size={22} />
-          </FeaturedIcon>
-          <div className="lawdepot-action-tile-copy">
-            <h3>LLC Operating Agreement</h3>
-            <p>Hudumika verified multi-member or single-member business agreement.</p>
-          </div>
-          <Icon name="arrowRight" size={16} style={{ color: 'var(--teal)' }} />
-        </div>
-
-        <div className="lawdepot-action-tile" onClick={() => setModalOpen(true)}>
-          <FeaturedIcon variant="brand" size="lg" shape="circle">
-            <Icon name="layers" size={22} />
-          </FeaturedIcon>
-          <div className="lawdepot-action-tile-copy">
-            <h3>Browse 12 Categories</h3>
-            <p>Rent &amp; Lease, Services, Loans, IP, Employment, and Family.</p>
-          </div>
-          <Icon name="arrowRight" size={16} style={{ color: 'var(--teal)' }} />
-        </div>
-
-        <div className="lawdepot-action-tile" onClick={onWriteScratch}>
-          <FeaturedIcon variant="brand" size="lg" shape="circle">
-            <Icon name="edit" size={22} />
-          </FeaturedIcon>
-          <div className="lawdepot-action-tile-copy">
-            <h3>Write Custom Template</h3>
-            <p>Author your own clauses, add placeholders, and save to company library.</p>
-          </div>
-          <Icon name="arrowRight" size={16} style={{ color: 'var(--teal)' }} />
-        </div>
-
-        <div className="lawdepot-action-tile" onClick={onUploadFile}>
-          <FeaturedIcon variant="gray" size="lg" shape="circle">
-            <Icon name="upload" size={22} />
-          </FeaturedIcon>
-          <div className="lawdepot-action-tile-copy">
-            <h3>Upload &amp; eSign File</h3>
-            <p>Upload a PDF, Word document, or image to place signature fields.</p>
-          </div>
-          <Icon name="arrowRight" size={16} style={{ color: 'var(--ink3)' }} />
-        </div>
-      </div>
-
-      {/* Unified Single-Row Search, Filter & Actions Toolbar */}
-      <SearchToolbar
-        search={search}
-        onSearch={setSearch}
-        placeholder="Search templates by name, keyword or category…"
-        className="lawdepot-hub-toolbar"
-        quickFilters={[
-          {
-            searchable: true,
-            label: 'Category',
-            value: selectedCategory === 'all' ? null : selectedCategory,
-            onChange: value => setSelectedCategory(value || 'all'),
-            allLabel: 'All categories',
-            options: [
-              {
-                value: '__popular',
-                label: `Popular Templates (${LAWDEPOT_TEMPLATES.filter(t => t.popular).length})`,
-                icon: <Icon name="star" size={14} />,
-              },
-              ...LAWDEPOT_CATEGORIES.map(category => ({
-                value: category.name,
-                label: `${category.name} (${LAWDEPOT_TEMPLATES.filter(item => item.category === category.name).length})`,
-                icon: <Icon name={category.icon} size={14} />,
-              })),
-            ],
-          },
-        ]}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onStartBlankSigning}
-              className="lawdepot-hub-start-blank-btn gap-1.5 whitespace-nowrap h-[var(--ctl-h-sm,32px)]"
-              title="Start blank signing without a template"
-            >
-              <Icon name="fileText" size={14} />
-              <span>Start blank</span>
-            </Button>
-            <div role="group" aria-label="Template display" className="lawdepot-hub-view-switcher">
-              <Button
-                variant={display === 'grid' ? 'secondary' : 'ghost'}
-                size="icon"
-                aria-label="Grid view"
-                aria-pressed={display === 'grid'}
-                onClick={() => setDisplay('grid')}
-                className="h-[var(--ctl-h-sm,32px)] w-[var(--ctl-h-sm,32px)]"
-              >
-                <Icon name="grid" size={14} />
-              </Button>
-              <Button
-                variant={display === 'rows' ? 'secondary' : 'ghost'}
-                size="icon"
-                aria-label="Rows view"
-                aria-pressed={display === 'rows'}
-                onClick={() => setDisplay('rows')}
-                className="h-[var(--ctl-h-sm,32px)] w-[var(--ctl-h-sm,32px)]"
-              >
-                <Icon name="list" size={14} />
-              </Button>
-            </div>
-          </div>
-        }
+    <div className="creation-hub">
+      <PageHeader
+        crumbs={['eSign', 'Create']}
+        titlePlain="Create"
+        titleEm="document"
+        subtitle="Start from verified templates, upload an existing file for signing, or draft a blank document with AI assistance."
       />
 
-      {(search || selectedCategory !== 'all') && (
-        <div className="lawdepot-hub-results-summary">
-          <span>
-            {displayedTemplates.length} {displayedTemplates.length === 1 ? 'template' : 'templates'} found
-            {selectedCategory !== 'all' ? ` in ${selectedCategory === '__popular' ? 'Popular' : selectedCategory}` : ''}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSearch('');
-              setSelectedCategory('all');
-            }}
-            className="h-6 text-xs text-muted-foreground hover:text-foreground"
-          >
-            Clear filters
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileInputChange}
+        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
+
+      {/* ── 3 Primary Document Creation Pathways ── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+          gap: 18,
+          marginBottom: 36,
+        }}
+      >
+        {/* Pathway 1: Start from Templates */}
+        <div
+          className="creation-hub-pathway-card"
+          onClick={onBrowseLibrary}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onBrowseLibrary();
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="creation-hub-pathway-top">
+            <FeaturedIcon variant="brand" size="md" shape="circle">
+              <Icon name="layers" size={20} />
+            </FeaturedIcon>
+            <Badge variant="brand">{LAWDEPOT_CATEGORIES.length} Industries</Badge>
+          </div>
+          <div className="creation-hub-pathway-copy">
+            <h3>Start from Templates</h3>
+            <p>
+              Browse 80+ verified legal contracts covering Real Estate, Corporate &amp; LLC, Loans, Logistics, Trade, HR, and SaaS.
+            </p>
+          </div>
+          <div className="creation-hub-pathway-action">
+            <span>Browse Template Library</span>
+            <Icon name="arrowRight" size={14} />
+          </div>
+        </div>
+
+        {/* Pathway 2: Upload Existing File */}
+        <div
+          className={`creation-hub-pathway-card ${isDragging ? 'border-teal-500 bg-teal-50' : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="creation-hub-pathway-top">
+            <FeaturedIcon variant="brand" size="md" shape="circle">
+              <Icon name={uploading ? 'refresh' : 'upload'} size={20} className={uploading ? 'animate-spin' : ''} />
+            </FeaturedIcon>
+            <Badge variant="gray">PDF, DOCX, Images</Badge>
+          </div>
+          <div className="creation-hub-pathway-copy">
+            <h3>Upload Existing File</h3>
+            <p>
+              Drag &amp; drop an existing contract or prepared document to place signatures, dates, stamps, and dispatch for signing.
+            </p>
+            {uploadError && (
+              <span style={{ color: 'var(--red)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                {uploadError}
+              </span>
+            )}
+          </div>
+          <div className="creation-hub-pathway-action">
+            <span>{uploading ? 'Processing File…' : 'Upload & Open Editor'}</span>
+            <Icon name="arrowRight" size={14} />
+          </div>
+        </div>
+
+        {/* Pathway 3: Start from Blank / AI Assistant */}
+        <div
+          className="creation-hub-pathway-card"
+          onClick={onWriteScratch}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onWriteScratch();
+            }
+          }}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="creation-hub-pathway-top">
+            <FeaturedIcon variant="brand" size="md" shape="circle">
+              <Icon name="sparkle" size={20} />
+            </FeaturedIcon>
+            <Badge variant="warning">AI-Assisted</Badge>
+          </div>
+          <div className="creation-hub-pathway-copy">
+            <h3>Start Blank or with AI</h3>
+            <p>
+              Select your document type, industry, jurisdiction, and terms. The AI assistant drafts your agreement, or write freely in the Full Text Editor.
+            </p>
+          </div>
+          <div className="creation-hub-pathway-action">
+            <span>Set Up Document &amp; Draft</span>
+            <Icon name="arrowRight" size={14} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Popular Starters Across Industries ── */}
+      <div className="creation-hub-starters-section">
+        <div className="creation-hub-starters-header">
+          <h2>Popular Legal Templates Across Industries</h2>
+          <Button variant="ghost" size="sm" onClick={onBrowseLibrary}>
+            View all {LAWDEPOT_TEMPLATES.length} templates
+            <Icon name="arrowRight" size={13} />
           </Button>
         </div>
-      )}
 
-      <div className="lawdepot-joined-templates" data-view={display}>
-        {displayedTemplates.map(item => (
-          <article key={item.id} className="lawdepot-template-cell">
-            <div className="lawdepot-card-top">
-              <span className="lawdepot-card-category">{item.category}</span>
-              {item.popular && <Badge variant="warning">Popular</Badge>}
-            </div>
-            <h4 className="lawdepot-card-title">{item.name}</h4>
-            <p className="lawdepot-card-desc">{item.description}</p>
-            <div className="lawdepot-card-actions">
-              <Button
-                variant="default"
-                size="sm"
-                className="lawdepot-use-btn"
-                aria-label={`Create ${item.name}`}
-                onClick={() => onSelectTemplate(item.starterId, item.name)}
-              >
-                <span>Create Document</span>
-                <Icon name="arrowRight" size={14} />
-              </Button>
-            </div>
-          </article>
-        ))}
-        {displayedTemplates.length===0&&<div className="lawdepot-hub-empty"><Icon name="search" size={24}/><h3>No matching templates</h3><p>Try another search or clear the category filter.</p><Button variant="outline" size="sm" onClick={()=>{setSearch('');setSelectedCategory('all');}}>Clear search and filters</Button></div>}
+        <div className="creation-hub-starters-grid">
+          {featuredStarters.map(starter => (
+            <button
+              key={starter.id}
+              type="button"
+              className="creation-hub-starter-card"
+              onClick={() => onSelectTemplate(starter.id, starter.name)}
+            >
+              <div className="creation-hub-starter-card-top">
+                <span className="creation-hub-starter-category">{starter.category}</span>
+                <Icon name="chevronRight" size={14} style={{ color: 'var(--ink3)' }} />
+              </div>
+              <h4>{starter.name}</h4>
+              <p>{starter.desc}</p>
+              <div className="creation-hub-starter-btn">
+                <span>Start Template</span>
+                <Icon name="arrowRight" size={12} />
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* LawDepot Template Browser Modal */}
+      {/* Footer Navigation */}
+      <div className="creation-hub-footer" style={{ marginTop: 24 }}>
+        <Button variant="outline" size="sm" onClick={onBrowseLibrary} className="gap-2">
+          <Icon name="grid" size={14} />
+          Open Document Library ({LAWDEPOT_CATEGORIES.length} Categories)
+        </Button>
+      </div>
+
+      {/* Pathway 1: Template Chooser Modal with Two-Pane Industry Navigation */}
       <LawDepotTemplateModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={templateModalOpen}
+        onClose={() => setTemplateModalOpen(false)}
         onSelectTemplate={(templateId, name) => {
-          setModalOpen(false);
+          setTemplateModalOpen(false);
           onSelectTemplate(templateId, name);
         }}
+        title="Select a Verified Legal Template"
+        subtitle={`Browse ${LAWDEPOT_CATEGORIES.length} industries covering business, real estate, logistics, trade, and legal agreements.`}
       />
+
+
     </div>
   );
 }

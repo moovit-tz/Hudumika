@@ -29,4 +29,5 @@ import { businessCatalogue } from './sign-document-catalogue-business.js';
 import { operationsCatalogue } from './sign-document-catalogue-operations.js';
 import { platformCatalogue } from './sign-document-catalogue-platform.js';
 import { lawdepotCatalogue } from './sign-document-catalogue-lawdepot.js';
-export const additionalDocumentStarters = buildCatalogue([...businessCatalogue, ...operationsCatalogue, ...platformCatalogue, ...lawdepotCatalogue]);
+import { industryCatalogue } from './sign-document-catalogue-industry.js';
+export const additionalDocumentStarters = buildCatalogue([...businessCatalogue, ...operationsCatalogue, ...platformCatalogue, ...lawdepotCatalogue, ...industryCatalogue]);

@@ -14,6 +14,7 @@ const TOOLBAR: ToolbarButton[] = [
   { label: 'U',  title: 'Underline',     command: 'underline' },
   { label: 'H2', title: 'Heading',       command: 'formatBlock', value: 'h2' },
   { label: 'H3', title: 'Subheading',    command: 'formatBlock', value: 'h3' },
+  { label: '</>', title: 'Code block', command: 'formatBlock', value: 'pre' },
   { label: '¶',  title: 'Paragraph',     command: 'formatBlock', value: 'p' },
   { label: '•',  title: 'Bullet list',   command: 'insertUnorderedList' },
   { label: '1.', title: 'Numbered list', command: 'insertOrderedList' },

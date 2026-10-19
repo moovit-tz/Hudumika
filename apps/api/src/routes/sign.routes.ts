@@ -1,4 +1,6 @@
 import { signatureReference } from '../services/signature-reference.js';
+import { normalizeSignatureImage } from '../services/sign-signature-image.js';
+import { extractToken } from '../lib/cookies.js';
 import { z } from 'zod';
 // ─── eSign routes ─────────────────────────────────────────────────────────────
 // Prefix: /v1/sign
@@ -35,9 +37,9 @@ import { signEditorPayloadSchema, signRecipientSchema, validateSignEditorReferen
 import { wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { createHash, randomInt } from 'node:crypto';
-import { sql } from 'kysely';
-import { withTenant, dbPlatform } from '../db/client.js';
-import type { SignTemplate, UserRole } from '@hudumika/types';
+import { sql, type Selectable } from 'kysely';
+import { type Database, withTenant, dbPlatform } from '../db/client.js';
+import type { SignTemplate, UserRole, JWTPayload } from '@hudumika/types';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
@@ -54,6 +56,13 @@ import {
 } from '../services/sign-notify.service.js';
 import { issueDigitalExecutionSeal, verifySealCryptography } from '../services/sign-seal.service.js';
 import { ocrRecoverVerificationCode } from '../services/sign-seal-verify.service.js';
+
+// Public tokens grant document access, never ownership of employee assets.
+async function authenticatedIdentity(req: FastifyRequest, reply: FastifyReply, fastify: FastifyInstance): Promise<JWTPayload | null> {
+  if (!req.headers.authorization && !extractToken(req)) return null;
+  await fastify.authenticate(req, reply);
+  return reply.sent ? null : req.user;
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -904,7 +913,7 @@ export async function signRoutes(fastify: FastifyInstance) {
     const body = req.body as { reason?: string } | undefined;
     return withTenant(tid, async (trx) => {
       const envelope = await trx.selectFrom('sign_envelopes').selectAll()
-        .where('id', '=', req.params.id).where('tenant_id', '=', tid).executeTakeFirst();
+        .where('id', '=', req.params.id).where('tenant_id', '=', tid).forUpdate().executeTakeFirst();
       if (!envelope) return reply.status(404).send({ error: 'Envelope not found' });
       if (!assertCanActOnEnvelope(req, reply, envelope)) return;
 
@@ -1014,9 +1023,9 @@ export async function signRoutes(fastify: FastifyInstance) {
     return withTenant(tid, async (trx) => {
       const results: { id: string; ok: boolean; error?: string }[] = [];
 
-      for (const id of ids) {
+      for (const id of [...new Set(ids)].sort()) {
         const envelope = await trx.selectFrom('sign_envelopes').selectAll()
-          .where('id', '=', id).where('tenant_id', '=', tid).executeTakeFirst();
+          .where('id', '=', id).where('tenant_id', '=', tid).forUpdate().executeTakeFirst();
         if (!envelope) { results.push({ id, ok: false, error: 'Not found' }); continue; }
         if (envelope.created_by !== userId(req) && !DOCUMENT_ADMIN_ROLES.includes(userRole(req))) {
           results.push({ id, ok: false, error: "Only this document's owner or a tenant admin can do that." });
@@ -1477,49 +1486,22 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       if (rule && rule.status !== 'NOT_SUPPORTED') jurisdictionRule = rule;
     }
 
-    // A recipient tagged to a real colleague (sign_recipients.user_id, M4's
-    // "sign in person" tag) gets their own saved signature offered as a
-    // one-click fill instead of a blank pad every time — the same
-    // sign_stamps rows their NexusHR profile (StaffDetail.tsx's Signature
-    // tab) already manages. Explicit tagging via the sender's staff picker
-    // is one way to get user_id set, but a sender who just types a known
-    // colleague's real work email (rather than remembering to use the
-    // picker) shouldn't lose this — falls back to matching the recipient's
-    // own email against a real platform user in this same tenant, so any
-    // genuine Hudumika user gets their saved signature offered regardless
-    // of how the sender happened to add them. An external recipient whose
-    // email matches nobody keeps drawing fresh, same as before.
+    // Reusable assets require the account owner's authenticated session.
     let savedSignature: string | null = null;
     let tenantStampImage: string | null = null;
-    // Saved signatures/stamps require verified identity — OTP must have been
-    // completed when enabled, and even without OTP the bearer token alone is
-    // not proof of identity (a sender can set any user_id). Only offer saved
-    // assets when OTP was required AND verified.
-    const identityVerified = envelope.require_otp && !!recipient.otp_verified_at;
-    if (identityVerified) {
-      let resolvedUserId = recipient.user_id;
-      if (!resolvedUserId && recipient.email) {
-        const matchedByEmail = await dbPlatform.selectFrom('users').select('id')
-          .where('tenant_id', '=', envelope.tenant_id).where('email', '=', recipient.email)
-          .executeTakeFirst();
-        resolvedUserId = matchedByEmail?.id ?? null;
-      }
-      if (resolvedUserId) {
-        const personal = await dbPlatform.selectFrom('sign_stamps').select('image_data')
-          .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'user')
-          .where('owner_user_id', '=', resolvedUserId)
-          .orderBy('created_at', 'desc').executeTakeFirst();
-        savedSignature = personal?.image_data ?? null;
-
-        if (fields.some(f => f.field_type === 'stamp')) {
-          const taggedUser = await dbPlatform.selectFrom('users').select('role')
-            .where('id', '=', resolvedUserId).executeTakeFirst();
-          if (taggedUser && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, taggedUser.role)) {
-            const tenantStamp = await dbPlatform.selectFrom('sign_stamps').select('image_data')
-              .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
-            tenantStampImage = tenantStamp?.image_data ?? null;
-          }
-        }
+    const identity = await authenticatedIdentity(req, reply, fastify);
+    if (reply.sent) return reply;
+    const identityVerified = identity?.tenant_id === envelope.tenant_id &&
+      (recipient.user_id ? identity.sub === recipient.user_id : identity.email.toLowerCase() === recipient.email.toLowerCase());
+    if (identityVerified && identity) {
+      const personal = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+        .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'user')
+        .where('owner_user_id', '=', identity.sub).orderBy('created_at', 'desc').executeTakeFirst();
+      savedSignature = personal?.image_data ?? null;
+      if (fields.some(f => f.field_type === 'stamp') && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, identity.role)) {
+        const stamp = await dbPlatform.selectFrom('sign_stamps').select('image_data')
+          .where('tenant_id', '=', envelope.tenant_id).where('owner_type', '=', 'tenant').executeTakeFirst();
+        tenantStampImage = stamp?.image_data ?? null;
       }
     }
 
@@ -1654,200 +1636,44 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
     return reply.send({ ok: true });
   });
 
-  // ── Submit signature ───────────────────────────────────────────────────────
-  fastify.post('/public/:token/sign', async (req: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
-    const body = req.body as {
-      signature_data?: string;
-      fields?: Array<{ field_id: string; value: string }>;
-    };
-
-    // ES-04: validate signature data is present and decodable
-    if (!body.signature_data || typeof body.signature_data !== 'string') {
-      return reply.status(400).send({ error: 'A signature image is required' });
-    }
-    const sigMatch = body.signature_data.match(/^data:image\/(png|jpeg|jpg|svg\+xml);base64,(.+)$/);
-    if (!sigMatch) {
-      return reply.status(400).send({ error: 'Signature must be a valid image data URI (PNG, JPEG, or SVG)' });
-    }
-    try {
-      const decoded = Buffer.from(sigMatch[2], 'base64');
-      if (decoded.length < 8) throw new Error('too small');
-      const mime = sigMatch[1];
-      // Validate magic bytes for known image types
-      if (mime === 'png' && (decoded[0] !== 0x89 || decoded[1] !== 0x50 || decoded[2] !== 0x4E || decoded[3] !== 0x47)) {
-        throw new Error('invalid PNG header');
-      }
-      if ((mime === 'jpeg' || mime === 'jpg') && (decoded[0] !== 0xFF || decoded[1] !== 0xD8)) {
-        throw new Error('invalid JPEG header');
-      }
-    } catch {
-      return reply.status(400).send({ error: 'Signature image contains invalid data' });
-    }
-    if (body.signature_data.length > 2 * 1024 * 1024) {
-      return reply.status(400).send({ error: 'Signature image is too large' });
-    }
-    if (body.fields && !Array.isArray(body.fields)) {
-      return reply.status(400).send({ error: 'fields must be an array' });
-    }
-
-    const recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
-      .where('token', '=', req.params.token).executeTakeFirst();
-    if (!recipient) return reply.status(404).send({ error: 'Signing link not found' });
-    if (recipient.status === 'signed') return reply.status(409).send({ error: 'Already signed' });
-    if (recipient.status === 'declined') return reply.status(409).send({ error: 'You have declined this document' });
-
-    const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
-      .where('id', '=', recipient.envelope_id).executeTakeFirst();
-    if (!envelope || envelope.status !== 'sent') {
-      return reply.status(409).send({ error: 'Document is not available for signing' });
-    }
-    // The scheduled sweep (sign-expiry.job.ts) is what normally flips an
-    // overdue envelope to 'expired', but that job may not have run yet in
-    // the minutes right after expires_at passes — this is the hard
-    // guarantee nobody can sign a document past its own stated deadline.
-    if (envelope.expires_at && envelope.expires_at < new Date()) {
-      return reply.status(409).send({ error: 'This document has expired and can no longer be signed' });
-    }
-    if (envelope.require_otp && !recipient.otp_verified_at) {
-      return reply.status(403).send({ error: 'SMS verification is required before signing this document' });
-    }
-
-    // A CERTIFIER must have a verified directory credential — a recipient
-    // with execution_role=CERTIFIER but no certifier_id is a configuration
-    // error, not an eligible certifier.
-    if (recipient.execution_role === 'CERTIFIER') {
-      if (!recipient.certifier_id) {
-        return reply.status(403).send({ error: 'Certification requires a verified credential from the Certifier Directory. This recipient has no credential on file.' });
-      }
-      const cred = await dbPlatform.selectFrom('sign_certifiers').selectAll()
-        .where('id', '=', recipient.certifier_id).executeTakeFirst();
-      if (!cred) {
-        return reply.status(403).send({ error: 'The linked credential was not found in the Certifier Directory.' });
-      }
-      if (cred.verification_status === 'revoked') {
-        return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential has been revoked and can no longer certify documents.` });
-      }
-      if (cred.expiry_date && new Date(cred.expiry_date) < new Date()) {
-        return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential expired on ${cred.expiry_date} and can no longer certify documents. Update it in the Certifier Directory to continue.` });
-      }
-    }
-
-    // Check sequential order — only the right-order recipient can sign now
-    if (envelope.order_mode === 'sequential') {
-      const prevUnsigned = await dbPlatform.selectFrom('sign_recipients').selectAll()
-        .where('envelope_id', '=', envelope.id)
-        .where('sign_order', '<', recipient.sign_order)
-        .where('status', '!=', 'signed')
-        .executeTakeFirst();
-      if (prevUnsigned) {
-        return reply.status(409).send({ error: `${prevUnsigned.name} must sign first` });
-      }
-    }
-
-    // ES-04: validate field submissions against stored fields for this recipient
-    const storedFields = await dbPlatform.selectFrom('sign_fields').selectAll()
-      .where('envelope_id', '=', envelope.id)
-      .where('recipient_id', '=', recipient.id)
-      .execute();
-    const storedFieldIds = new Set(storedFields.map(f => f.id));
-    const submittedFields = body.fields ?? [];
-    for (const f of submittedFields) {
-      if (!f.field_id || !storedFieldIds.has(f.field_id)) {
-        return reply.status(400).send({ error: `Unknown or unauthorized field: ${f.field_id}` });
-      }
-    }
-    const submittedById = new Map(submittedFields.map(f => [f.field_id, f.value]));
-    for (const sf of storedFields) {
-      if (sf.required && sf.field_type !== 'signature' && sf.field_type !== 'stamp') {
-        const val = submittedById.get(sf.id);
-        if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
-          return reply.status(400).send({ error: `Required field "${sf.placeholder || sf.field_type}" must be filled` });
-        }
-        // A required checkbox must be explicitly checked (true/'true'), not 'false'
-        if (sf.field_type === 'checkbox' && (val === 'false' || val === '0' || val === 'no')) {
-          return reply.status(400).send({ error: `Required checkbox "${sf.placeholder || 'checkbox'}" must be checked` });
-        }
-      }
-    }
-
-    // Save signature + field values
-    await dbPlatform.updateTable('sign_recipients').set({
-      status: 'signed',
-      signature_data: body.signature_data!,
-      signed_at: new Date(),
-      signed_ip: req.ip,
-      signed_user_agent: req.headers['user-agent'] ?? null,
-    }).where('id', '=', recipient.id).execute();
-
-    // Update field values
-    for (const f of (body.fields ?? [])) {
-      await dbPlatform.updateTable('sign_fields').set({ value: f.value })
-        .where('id', '=', f.field_id)
-        .where('recipient_id', '=', recipient.id)
-        .execute();
-    }
-
-    await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'signed', {
-      recipientId: recipient.id,
-      actorName: recipient.name, actorEmail: recipient.email,
-      ipAddress: req.ip, userAgent: req.headers['user-agent'],
-    });
-
-    // §21's "signature vs. notarial act" requirement: a WITNESS/AFFIANT/
-    // CERTIFIER recipient's completion is a real signature event (the
-    // 'signed' row above, and their name IS in the signature block) AND a
-    // distinct act — recorded as its own audit event rather than folded
-    // into "signed", so the certificate's audit-trail page reads "Signed —
-    // Jane Doe" *and* "Witnessed — Jane Doe" as two separate, real facts.
-    const ROLE_EVENT: Record<string, string> = { WITNESS: 'witnessed', AFFIANT: 'declared', CERTIFIER: 'certified' };
-    const roleEvent = ROLE_EVENT[recipient.execution_role];
-    if (roleEvent) {
-      await logEvent(dbPlatform, envelope.id, envelope.tenant_id, roleEvent, {
-        recipientId: recipient.id,
-        actorName: recipient.name, actorEmail: recipient.email,
-        ipAddress: req.ip, userAgent: req.headers['user-agent'],
-        note: recipient.certifier_title ? `As ${recipient.certifier_title}` : undefined,
-      });
-    }
-
-    // Check if all recipients have now signed — if so, complete + stamp
-    const allRecipients = await dbPlatform.selectFrom('sign_recipients').selectAll()
-      .where('envelope_id', '=', envelope.id).orderBy('sign_order', 'asc').execute();
-    const allSigned = allRecipients.every(r => r.status === 'signed' || r.id === recipient.id);
-
+  async function finalizeDocument(
+    dbPlatform: import('../services/sign-notify.service.js').Db,
+    envelope: Selectable<Database['sign_envelopes']>,
+    allRecipients: Selectable<Database['sign_recipients']>[],
+  ) {
     let stampPayload = null;
-    if (allSigned) {
+    {
       const now = new Date();
       // Enter 'finalizing' — not 'completed' — until the signed PDF is persisted
       await dbPlatform.updateTable('sign_envelopes').set({
         status: 'finalizing',
-        completed_at: now,
-        stamped_at: now,
-      }).where('id', '=', envelope.id).execute();
+        completed_at: null,
+        stamped_at: null,
+      }).where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).execute();
 
       await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'finalizing', { note: 'All recipients signed — generating signed PDF' });
 
       let updatedEnvelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
-        .where('id', '=', envelope.id).executeTakeFirst();
+        .where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirst();
       if (updatedEnvelope) {
-        stampPayload = await buildStampPayload(updatedEnvelope, allRecipients.map(r =>
-          r.id === recipient.id ? { ...r, signed_at: now } : r
-        ));
+        stampPayload = await buildStampPayload({ ...updatedEnvelope, completed_at: now }, allRecipients);
 
         try {
           const allEvents = await dbPlatform.selectFrom('sign_events').selectAll()
-            .where('envelope_id', '=', envelope.id).orderBy('created_at', 'asc').execute();
-          const pdfBuffer = await buildSignedPdf(updatedEnvelope, allRecipients, await dbPlatform.selectFrom('sign_fields').selectAll().where('envelope_id', '=', envelope.id).execute(), allEvents);
+            .where('envelope_id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).orderBy('created_at', 'asc').execute();
+          const pdfBuffer = await buildSignedPdf({ ...updatedEnvelope, completed_at: now }, allRecipients, await dbPlatform.selectFrom('sign_fields').selectAll().where('envelope_id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).execute(), allEvents);
           const { storageKey } = await MinioIntegration.uploadSignedDocument(envelope.tenant_id, envelope.id, pdfBuffer);
           const anchorHash = createHash('sha256').update(pdfBuffer).digest('hex');
 
           // PDF succeeded — now mark completed
           await dbPlatform.updateTable('sign_envelopes').set({
             status: 'completed',
+            completed_at: now,
+            stamped_at: now,
             stamp_applied: true,
             stamped_file_url: storageKey,
             anchor_hash: anchorHash,
-          }).where('id', '=', envelope.id).execute();
+          }).where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).execute();
           await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'completed', { note: 'All recipients signed' });
           await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'stamped', { note: 'Auto-stamped on completion' });
           await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'verified', { note: 'Signed PDF generated — Bitcoin anchor submission queued' });
@@ -1904,10 +1730,10 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
 
                 const { storageKey: driveStorageKey } = await MinioIntegration.uploadCloudFile(envelope.tenant_id, fileRow.id, fileName, pdfBuffer);
                 await dbPlatform.updateTable('cloud_files').set({ storage_key: driveStorageKey, updated_at: new Date() })
-                  .where('id', '=', fileRow.id).execute();
+                  .where('id', '=', fileRow.id).where('tenant_id', '=', envelope.tenant_id).execute();
                 if (sourceFile.parent_id) await bumpCloudFolderCount(dbPlatform, sourceFile.parent_id, envelope.tenant_id, 1, pdfBuffer.length);
 
-                await dbPlatform.updateTable('sign_envelopes').set({ drive_file_id: fileRow.id }).where('id', '=', envelope.id).execute();
+                await dbPlatform.updateTable('sign_envelopes').set({ drive_file_id: fileRow.id }).where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).execute();
 
                 emitDomainEventStandalone(envelope.tenant_id, {
                   type: 'file.uploaded', sourceApp: 'sign', entityType: 'document', entityId: fileRow.id,
@@ -1923,12 +1749,201 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
           console.error(`[Sign] Failed to build the signed PDF for envelope ${envelope.id}:`, (err as Error).message);
           await dbPlatform.updateTable('sign_envelopes').set({
             status: 'finalization_failed',
-          }).where('id', '=', envelope.id).execute();
+          }).where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).execute();
           await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'finalization_failed', {
             note: `PDF generation failed: ${(err as Error).message}`,
           });
         }
       }
+    }
+    return stampPayload;
+  }
+
+  fastify.post<{ Params: { id: string } }>('/envelopes/:id/retry-finalization', {
+    preHandler: [fastify.authenticate, requireEntitlement('sign')],
+  }, async (req, reply) => withTenant(req.user.tenant_id, async trx => {
+    const envelope = await trx.selectFrom('sign_envelopes').selectAll()
+      .where('id', '=', req.params.id).where('tenant_id', '=', req.user.tenant_id).forUpdate().executeTakeFirst();
+    if (!envelope) return reply.status(404).send({ error: 'Document not found' });
+    if (envelope.created_by !== req.user.sub && !DOCUMENT_ADMIN_ROLES.includes(req.user.role)) {
+      return reply.status(403).send({ error: 'Only the document owner or an administrator can retry finalization' });
+    }
+    if (envelope.status === 'completed') return { ok: true, completed: true };
+    if (!['finalization_failed', 'finalizing'].includes(envelope.status)) {
+      return reply.status(409).send({ error: 'Document is not awaiting finalization' });
+    }
+    const recipients = await trx.selectFrom('sign_recipients').selectAll()
+      .where('envelope_id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).where('tenant_id', '=', req.user.tenant_id).execute();
+    if (!recipients.length || recipients.some(r => r.status !== 'signed')) {
+      return reply.status(409).send({ error: 'Every recipient must sign before finalization' });
+    }
+    await finalizeDocument(trx, envelope, recipients);
+    const result = await trx.selectFrom('sign_envelopes').select('status')
+      .where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).where('tenant_id', '=', req.user.tenant_id).executeTakeFirstOrThrow();
+    return { ok: true, completed: result.status === 'completed' };
+  }));
+
+  // ── Submit signature ───────────────────────────────────────────────────────
+  fastify.post('/public/:token/sign', async (req: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
+    const identity = await authenticatedIdentity(req, reply, fastify);
+    if (reply.sent) return reply;
+    return dbPlatform.transaction().execute(async trx => {
+    const dbPlatform = trx;
+    const body = (req.body ?? {}) as {
+      signature_data?: string;
+      fields?: Array<{ field_id: string; value: string }>;
+    };
+
+    try {
+      body.signature_data = await normalizeSignatureImage(body.signature_data);
+    } catch (err) {
+      return reply.status(400).send({ error: (err as Error).message });
+    }
+    if (body.fields && !Array.isArray(body.fields)) {
+      return reply.status(400).send({ error: 'fields must be an array' });
+    }
+
+    let recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
+      .where('token', '=', req.params.token).executeTakeFirst();
+    if (!recipient) return reply.status(404).send({ error: 'Signing link not found' });
+    const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
+      .where('id', '=', recipient.envelope_id).where('tenant_id', '=', recipient.tenant_id).forUpdate().executeTakeFirst();
+    if (!envelope || envelope.status !== 'sent') {
+      return reply.status(409).send({ error: 'Document is not available for signing' });
+    }
+    recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
+      .where('id', '=', recipient.id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirstOrThrow();
+    if (recipient.status === 'signed') return reply.status(409).send({ error: 'Already signed' });
+    if (recipient.status === 'declined') return reply.status(409).send({ error: 'You have declined this document' });
+
+    const signerIdentity = identity?.tenant_id === envelope.tenant_id &&
+      (recipient.user_id ? identity.sub === recipient.user_id : identity.email.toLowerCase() === recipient.email.toLowerCase()) ? identity : null;
+    // The scheduled sweep (sign-expiry.job.ts) is what normally flips an
+    // overdue envelope to 'expired', but that job may not have run yet in
+    // the minutes right after expires_at passes — this is the hard
+    // guarantee nobody can sign a document past its own stated deadline.
+    if (envelope.expires_at && envelope.expires_at < new Date()) {
+      return reply.status(409).send({ error: 'This document has expired and can no longer be signed' });
+    }
+    if (envelope.require_otp && !recipient.otp_verified_at) {
+      return reply.status(403).send({ error: 'SMS verification is required before signing this document' });
+    }
+
+    // A CERTIFIER must have a verified directory credential — a recipient
+    // with execution_role=CERTIFIER but no certifier_id is a configuration
+    // error, not an eligible certifier.
+    if (recipient.execution_role === 'CERTIFIER' || recipient.is_certifier) {
+      if (!recipient.certifier_id) {
+        return reply.status(403).send({ error: 'Certification requires a verified credential from the Certifier Directory. This recipient has no credential on file.' });
+      }
+      const cred = await dbPlatform.selectFrom('sign_certifiers').selectAll()
+        .where('id', '=', recipient.certifier_id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirst();
+      if (!cred) {
+        return reply.status(403).send({ error: 'The linked credential was not found in the Certifier Directory.' });
+      }
+      if (cred.verification_status !== 'verified' || !signerIdentity ||
+          (cred.user_id ? cred.user_id !== signerIdentity.sub : !cred.email || cred.email.toLowerCase() !== signerIdentity.email.toLowerCase())) {
+        return reply.status(403).send({ error: 'A verified credential matching the authenticated certifier is required' });
+      }
+      if (cred.expiry_date && new Date(cred.expiry_date) < new Date()) {
+        return reply.status(403).send({ error: `${cred.name}'s ${cred.title} credential expired on ${cred.expiry_date} and can no longer certify documents. Update it in the Certifier Directory to continue.` });
+      }
+    }
+
+    // Check sequential order — only the right-order recipient can sign now
+    if (envelope.order_mode === 'sequential') {
+      const prevUnsigned = await dbPlatform.selectFrom('sign_recipients').selectAll()
+        .where('envelope_id', '=', envelope.id)
+        .where('sign_order', '<', recipient.sign_order)
+        .where('status', '!=', 'signed')
+        .executeTakeFirst();
+      if (prevUnsigned) {
+        return reply.status(409).send({ error: `${prevUnsigned.name} must sign first` });
+      }
+    }
+
+    // ES-04: validate field submissions against stored fields for this recipient
+    const storedFields = await dbPlatform.selectFrom('sign_fields').selectAll()
+      .where('envelope_id', '=', envelope.id)
+      .where('recipient_id', '=', recipient.id).where('tenant_id', '=', envelope.tenant_id)
+      .execute();
+    if (storedFields.some(f => f.field_type === 'stamp') &&
+        (!signerIdentity || !await canApplyTenantStamp(dbPlatform, envelope.tenant_id, signerIdentity.role))) {
+      return reply.status(403).send({ error: 'Applying a company stamp requires an authenticated authorized company signer' });
+    }
+    if (storedFields.some(f => f.field_type === 'certification_stamp') && recipient.execution_role !== 'CERTIFIER') {
+      return reply.status(403).send({ error: 'A certification stamp requires a verified certifier' });
+    }
+    const storedFieldIds = new Set(storedFields.map(f => f.id));
+    const submittedFields = body.fields ?? [];
+    for (const f of submittedFields) {
+      if (!f || typeof f.value !== 'string' || !f.field_id || !storedFieldIds.has(f.field_id)) {
+        return reply.status(400).send({ error: `Unknown or unauthorized field: ${f?.field_id}` });
+      }
+    }
+    const submittedById = new Map(submittedFields.map(f => [f.field_id, f.value]));
+    for (const sf of storedFields) {
+      if (sf.required && sf.field_type !== 'signature' && sf.field_type !== 'stamp') {
+        const val = submittedById.get(sf.id);
+        if (val === undefined || val === null || (typeof val === 'string' && !val.trim())) {
+          return reply.status(400).send({ error: `Required field "${sf.placeholder || sf.field_type}" must be filled` });
+        }
+        // A required checkbox must be explicitly checked (true/'true'), not 'false'
+        if (sf.field_type === 'checkbox' && val !== 'true') {
+          return reply.status(400).send({ error: `Required checkbox "${sf.placeholder || 'checkbox'}" must be checked` });
+        }
+      }
+    }
+
+    // Save signature + field values
+    await dbPlatform.updateTable('sign_recipients').set({
+      status: 'signed',
+      signature_data: body.signature_data!,
+      authenticated_signer_id: signerIdentity?.sub ?? null,
+      signed_at: new Date(),
+      signed_ip: req.ip,
+      signed_user_agent: req.headers['user-agent'] ?? null,
+    }).where('id', '=', recipient.id).where('tenant_id', '=', envelope.tenant_id).execute();
+
+    // Update field values
+    for (const f of (body.fields ?? [])) {
+      await dbPlatform.updateTable('sign_fields').set({ value: f.value })
+        .where('id', '=', f.field_id)
+        .where('recipient_id', '=', recipient.id).where('tenant_id', '=', envelope.tenant_id)
+        .execute();
+    }
+
+    await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'signed', {
+      recipientId: recipient.id,
+      actorName: recipient.name, actorEmail: recipient.email,
+      ipAddress: req.ip, userAgent: req.headers['user-agent'],
+    });
+
+    // §21's "signature vs. notarial act" requirement: a WITNESS/AFFIANT/
+    // CERTIFIER recipient's completion is a real signature event (the
+    // 'signed' row above, and their name IS in the signature block) AND a
+    // distinct act — recorded as its own audit event rather than folded
+    // into "signed", so the certificate's audit-trail page reads "Signed —
+    // Jane Doe" *and* "Witnessed — Jane Doe" as two separate, real facts.
+    const ROLE_EVENT: Record<string, string> = { WITNESS: 'witnessed', AFFIANT: 'declared', CERTIFIER: 'certified' };
+    const roleEvent = ROLE_EVENT[recipient.execution_role];
+    if (roleEvent) {
+      await logEvent(dbPlatform, envelope.id, envelope.tenant_id, roleEvent, {
+        recipientId: recipient.id,
+        actorName: recipient.name, actorEmail: recipient.email,
+        ipAddress: req.ip, userAgent: req.headers['user-agent'],
+        note: recipient.certifier_title ? `As ${recipient.certifier_title}` : undefined,
+      });
+    }
+
+    // Check if all recipients have now signed — if so, complete + stamp
+    const allRecipients = await dbPlatform.selectFrom('sign_recipients').selectAll()
+      .where('envelope_id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).orderBy('sign_order', 'asc').execute();
+    const allSigned = allRecipients.every(r => r.status === 'signed' || r.id === recipient.id);
+
+    let stampPayload = null;
+    if (allSigned) {
+      stampPayload = await finalizeDocument(dbPlatform, envelope, allRecipients);
     } else if (envelope.order_mode === 'sequential') {
       // This signer's turn is done — automatically email whoever is now
       // first in line, rather than leaving them to notice via "Copy Link".
@@ -1937,24 +1952,29 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
 
     // Read the final envelope status to return accurate completion state
     const finalEnvelope = allSigned
-      ? await dbPlatform.selectFrom('sign_envelopes').select('status').where('id', '=', envelope.id).executeTakeFirstOrThrow()
+      ? await dbPlatform.selectFrom('sign_envelopes').select('status').where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirstOrThrow()
       : null;
-    return reply.send({ ok: true, completed: finalEnvelope?.status === 'completed', stamp: stampPayload });
+    return { ok: true, completed: finalEnvelope?.status === 'completed', stamp: finalEnvelope?.status === 'completed' ? stampPayload : null };
+    });
   });
 
   // ── Decline signing ────────────────────────────────────────────────────────
   fastify.post('/public/:token/decline', async (req: FastifyRequest<{ Params: { token: string } }>, reply: FastifyReply) => {
-    const body = req.body as { reason?: string };
-    const recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
+    return dbPlatform.transaction().execute(async trx => {
+    const dbPlatform = trx;
+    const body = (req.body ?? {}) as { reason?: string };
+    let recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
       .where('token', '=', req.params.token).executeTakeFirst();
     if (!recipient) return reply.status(404).send({ error: 'Signing link not found' });
+    const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
+      .where('id', '=', recipient.envelope_id).where('tenant_id', '=', recipient.tenant_id).forUpdate().executeTakeFirst();
+    if (!envelope) return reply.status(404).send({ error: 'Document not found' });
+    recipient = await dbPlatform.selectFrom('sign_recipients').selectAll()
+      .where('id', '=', recipient.id).where('tenant_id', '=', envelope.tenant_id).executeTakeFirstOrThrow();
     // ES-05: lifecycle guards — already signed/declined recipients cannot decline again
     if (recipient.status === 'signed') return reply.status(409).send({ error: 'You have already signed this document' });
     if (recipient.status === 'declined') return reply.status(409).send({ error: 'You have already declined this document' });
 
-    const envelope = await dbPlatform.selectFrom('sign_envelopes').selectAll()
-      .where('id', '=', recipient.envelope_id).executeTakeFirst();
-    if (!envelope) return reply.status(404).send({ error: 'Document not found' });
     // ES-05: cannot decline a completed/voided/expired envelope
     if (envelope.status === 'completed') return reply.status(409).send({ error: 'This document has already been completed' });
     if (envelope.status === 'voided') return reply.status(410).send({ error: 'This document has been voided' });
@@ -1964,14 +1984,14 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
 
     await dbPlatform.updateTable('sign_recipients').set({
       status: 'declined', declined_at: new Date(), decline_reason: body.reason ?? null,
-    }).where('id', '=', recipient.id).execute();
+    }).where('id', '=', recipient.id).where('tenant_id', '=', envelope.tenant_id).execute();
 
     // Put the envelope into 'needs_rerouting' so the sender can reassign
     // the declined slot without voiding the whole document.  The sender
     // can still choose to void it via the normal void endpoint.
     await dbPlatform.updateTable('sign_envelopes').set({
       status: 'needs_rerouting',
-    }).where('id', '=', envelope.id).execute();
+    }).where('id', '=', envelope.id).where('tenant_id', '=', envelope.tenant_id).execute();
 
     await logEvent(dbPlatform, envelope.id, envelope.tenant_id, 'declined', {
       recipientId: recipient.id,
@@ -1985,7 +2005,8 @@ export async function signPublicRoutes(fastify: FastifyInstance) {
       `${recipient.name} (${recipient.email}) declined to sign${body.reason ? ` — ${body.reason}` : ''}. Open the envelope to re-assign this signing slot to a different person, or void the envelope.`,
     );
 
-    return reply.send({ ok: true });
+    return { ok: true };
+    });
   });
 
   // ── Download the signer's own signed copy (public — no auth, token-gated) ─

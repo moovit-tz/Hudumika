@@ -2,20 +2,21 @@
 // These are the canonical shapes for envelopes, recipients, fields,
 // audit events, and templates. Both apps/api and apps/web import from here.
 
-export type SignEnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined' | 'expired' | 'needs_rerouting';
+export type SignEnvelopeStatus = 'draft' | 'sent' | 'completed' | 'voided' | 'declined' | 'expired' | 'needs_rerouting' | 'finalizing' | 'finalization_failed';
 export type SignRecipientStatus = 'pending' | 'viewed' | 'signed' | 'declined';
 export type SignFieldType = 'signature' | 'initials' | 'date' | 'text' | 'checkbox' | 'stamp' | 'certification_stamp';
 export type SignOrderMode = 'sequential' | 'parallel';
 export type SignEventType =
   | 'created' | 'updated' | 'sent' | 'reminded' | 'viewed'
   | 'signed' | 'declined' | 'completed' | 'voided' | 'expired'
-  | 'stamped' | 'verified' | 'amended'
+  | 'stamped' | 'verified' | 'amended' | 'finalizing' | 'finalization_failed'
   // Migration 416 — distinct from 'signed': a WITNESS/AFFIANT/CERTIFIER
   // participant's completion is a real signature AND a separate act.
   | 'witnessed' | 'certified' | 'declared';
 
 export interface SignRecipient {
   id: string;
+  authenticated_signer_id?: string | null;
   envelope_id: string;
   tenant_id: string;
   name: string;
@@ -209,6 +210,7 @@ export interface SignDocumentQuestion {
 export type SignDocumentLanguage = 'en' | 'sw' | 'zh';
 export type SignDocumentType = 'agreement' | 'letter' | 'policy' | 'record' | 'form';
 export interface SignDocumentDefinition {
+  editor_html?: string;
   language?: SignDocumentLanguage;
   translations?: Partial<Record<SignDocumentLanguage, { body: string }>>;
   jurisdiction_guidance?: { jurisdiction: string; notes: Record<SignDocumentLanguage, string>; sources: { title: string; url: string }[] }[];

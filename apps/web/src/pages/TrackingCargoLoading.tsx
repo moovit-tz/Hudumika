@@ -1,3 +1,4 @@
+import { TruckLoadOverview, TruckLoadEmpty } from '../components/tracking/TruckLoadOverview.js';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
@@ -371,7 +372,7 @@ export const TrackingCargoLoading: React.FC = () => {
             crumbs={['HuduFreight', 'Cargo Loading']}
             titlePlain="Cargo"
             titleEm="loading"
-            subtitle="Plan a container/truck load and visualize it in 3D. Packing is computed automatically (first-fit-decreasing) — not manually draggable."
+            subtitle="Build your load plan, check available space, and prepare your cargo for dispatch."
           />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -388,9 +389,11 @@ export const TrackingCargoLoading: React.FC = () => {
       </div>
 
       {!manifest ? (
-        <div style={{ ...cardStyle, padding: '60px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Create a load plan to get started.</div>
+        <TruckLoadEmpty onCreate={() => setShowAddManifest(true)} />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16 }}>
+        <>
+        <TruckLoadOverview manifest={manifest} items={items} />
+        <div className="truck-load-workspace">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <SectionCard title={manifest.name} action={
               <Tip label="Delete load plan">
@@ -494,6 +497,7 @@ export const TrackingCargoLoading: React.FC = () => {
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ vi.mock('../services/sign-pdf.service.js', async importOriginal => ({
   buildSignedPdf: vi.fn().mockRejectedValue(new Error('Recheck fixture: PDF generation failure')),
 }));
 
-const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=';
+const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==';
 
 describe('eSign recheck: regression tests for fixed vulnerabilities', () => {
   let tenant: TestTenant;
@@ -131,4 +131,16 @@ describe('eSign recheck: regression tests for fixed vulnerabilities', () => {
     expect(response.statusCode).toBe(403);
     expect(response.json().error).toMatch(/credential/i);
   });
+  it('serializes a signature against a simultaneous decline', async () => {
+    const { envelope, recipient } = await fixture();
+    const app = await getApp();
+    const responses = await Promise.all([
+      app.inject({ method: 'POST', url: `/v1/sign/public/${recipient.token}/sign`, payload: { signature_data: png, fields: [] } }),
+      app.inject({ method: 'POST', url: `/v1/sign/public/${recipient.token}/decline`, payload: { reason: 'Disposable concurrency test' } }),
+    ]);
+    expect(responses.map(r => r.statusCode).sort()).toEqual([200, 409]);
+    const events = await dbPlatform.selectFrom('sign_events').select('event_type').where('envelope_id', '=', envelope.id).where('event_type', 'in', ['signed', 'declined']).execute();
+    expect(events).toHaveLength(1);
+  });
+
 });

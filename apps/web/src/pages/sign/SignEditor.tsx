@@ -864,7 +864,7 @@ export function SignEditor() {
   }
 
   return (
-    <div className="sign-workspace" data-mobile={isMobile} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--card-bg)' }}>
+    <div className="sign-workspace" data-mobile={isMobile}>
       <header className="sign-workspace-header">
         <div className="sign-workspace-identity">
           <FeaturedIcon variant="brand" size="sm" shape="squircle"><Icon name="fileText" size={18}/></FeaturedIcon>
@@ -1279,7 +1279,7 @@ export function SignEditor() {
                 a plain <img> for an image upload, a placeholder otherwise. */}
             {isPdf ? (
               pdfLoading || !pdfDoc ? (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 13 }}>
                   {pdfError ? "Couldn't load this PDF" : 'Loading document…'}
                 </div>
               ) : (
@@ -1288,14 +1288,14 @@ export function SignEditor() {
             ) : previewSrc ? (
               <img src={previewSrc} alt="document" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
             ) : (
-              <div style={{ width: '100%', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', padding: '5% 8%', boxSizing: 'border-box', gap: 8 }}>
+              <div style={{ width: '100%', height: '100%', background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', padding: '5% 8%', boxSizing: 'border-box', gap: 8 }}>
                 {/* Simulated document lines */}
-                <div style={{ height: 3, background: '#dbeafe', borderRadius: 2, width: '60%' }} />
+                <div style={{ height: 3, background: 'var(--blue-l, #dbeafe)', borderRadius: 2, width: '60%' }} />
                 {Array.from({ length: 22 }).map((_, i) => (
-                  <div key={i} style={{ height: 2, background: i % 5 === 0 ? '#e5e7eb' : '#f3f4f6', borderRadius: 1, width: i % 7 === 0 ? '70%' : i % 3 === 0 ? '85%' : '95%' }} />
+                  <div key={i} style={{ height: 2, background: i % 5 === 0 ? 'var(--border)' : 'var(--surface, var(--bg))', borderRadius: 1, width: i % 7 === 0 ? '70%' : i % 3 === 0 ? '85%' : '95%' }} />
                 ))}
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, opacity: 0.5 }}>
-                  <div style={{ fontSize: 13, color: '#9ca3af' }}>Upload a document above or place fields directly</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Upload a document above or place fields directly</div>
                 </div>
               </div>
             )}
@@ -1329,7 +1329,7 @@ export function SignEditor() {
             {/* Stamp badge (decorative, shows bottom-right on completed) */}
             {fields.length > 0 && (
               <div style={{ position: 'absolute', bottom: 12, right: 12, opacity: 0.25, pointerEvents: 'none' }}>
-                <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'var(--blue)', border: '1px solid var(--blue)', borderRadius: 'var(--r-sm)', padding: '4px 8px', background: 'rgba(255,255,255,0.9)', letterSpacing: '0.05em', fontWeight: 700 }}>
+                <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'var(--blue)', border: '1px solid var(--blue)', borderRadius: 'var(--r-sm)', padding: '4px 8px', background: 'color-mix(in srgb, var(--card-bg) 90%, transparent)', letterSpacing: '0.05em', fontWeight: 700 }}>
                   HSGN-XXXXXX-XXXXXX
                 </div>
               </div>

@@ -5124,6 +5124,7 @@ export interface SignRecipientsTable {
   email: string;
   phone: string | null;
   user_id: string | null;
+  authenticated_signer_id: string | null;
   role_label: string | null;
   sign_order: Generated<number>;
   status: Generated<string>; // sign_recipient_status enum

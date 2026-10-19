@@ -6823,7 +6823,308 @@ html[data-expanded="true"] .fin-shell {
   border-radius: var(--r-sm, 10px) !important;
 }
 
-/* ── Idle lock-screen password dot animation ──────────────────────── */
+/* ── Idle lock-screen ─────────────────────────────────────────── */
+
+/* Overlay — frosted glass, accent-tinted radial halo */
+.ls-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: var(--font);
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 5%, transparent), transparent),
+    rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(22px) saturate(1.3) brightness(0.82);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.82);
+}
+
+/* Card — glass panel, no .card base class (avoids !important wars) */
+.ls-card {
+  width: 100%;
+  max-width: 440px;
+  padding: clamp(28px, 4.5vw, 36px) clamp(24px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--card-radius, var(--r-xl, 24px));
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow:
+    0 24px 64px -12px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(255, 255, 255, 0.30) inset;
+  backdrop-filter: blur(48px) saturate(1.2);
+  -webkit-backdrop-filter: blur(48px) saturate(1.2);
+}
+
+/* ── Locked badge ─────────────────────────────────────────────── */
+.ls-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--badge-radius, 9999px);
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--teal-l, color-mix(in srgb, var(--teal) 12%, transparent));
+  color: var(--teal);
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, transparent);
+  margin-bottom: 22px;
+}
+
+/* ── Avatar wrapper ───────────────────────────────────────────── */
+.ls-avatar-wrap { position: relative; margin-bottom: 14px; }
+
+.ls-avatar-emblem {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid var(--card-bg);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--teal) 45%, rgba(0, 0, 0, 0.25));
+}
+
+/* ── Identity text ────────────────────────────────────────────── */
+.ls-identity { text-align: center; margin-bottom: 24px; }
+.ls-name {
+  font-weight: 800;
+  font-size: var(--text-xl, 20px);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.ls-subtitle {
+  font-size: var(--text-sm, 13px);
+  color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* ── Error banner wrapper ─────────────────────────────────────── */
+.ls-error { width: 100%; margin-bottom: 16px; }
+
+/* ── Form ─────────────────────────────────────────────────────── */
+.ls-form { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.ls-field { position: relative; }
+
+.ls-field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.ls-field .input-field,
+.ls-field input[class] {
+  min-height: var(--ctl-h-lg, 46px);
+  padding-left: 40px;
+  padding-right: 48px;
+  font-size: var(--text-md, 15px);
+  border-radius: var(--r, 10px);
+}
+
+/* Dot overlay */
+.ls-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  padding-left: 40px;
+  padding-right: 48px;
+  gap: 7px;
+}
+.ls-dots-placeholder {
+  font-size: var(--text-md, 14.5px);
+  color: var(--ink3);
+}
+
+/* Eye toggle */
+.ls-eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  color: var(--ink3);
+  z-index: 2;
+}
+.ls-eye:hover { color: var(--ink); }
+
+/* Caps lock warning */
+.ls-caps {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs, 11.5px);
+  color: var(--gold, #d97706);
+  font-weight: 600;
+  padding-left: 2px;
+}
+
+/* 2FA field icon override */
+.ls-field-2fa .ls-field-icon { color: var(--teal); }
+
+/* ── Actions bar ──────────────────────────────────────────────── */
+.ls-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  gap: 12px;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.ls-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink2, #475569);
+  font-weight: 600;
+}
+.ls-unlock-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 118px;
+  justify-content: center;
+  font-weight: 700;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 35%, transparent);
+}
+.ls-unlock-btn:disabled { box-shadow: none; }
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.ls-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  font-size: var(--text-xs, 11px);
+  color: var(--ink3);
+  opacity: 0.7;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Dark mode — the overlay is position:fixed at z-index 99999,
+   outside the app's scoped theme wrapper, so every color must
+   be set explicitly here rather than relying on inherited
+   --ink/--ink3/--card-bg variables.
+   ══════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ls-overlay {
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 6%, transparent), transparent),
+      rgba(0, 0, 0, 0.25);
+    -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
+    backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
+  }
+  :root:not([data-theme="light"]) .ls-card {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(255, 255, 255, 0.10);
+    box-shadow:
+      0 24px 64px -12px rgba(0, 0, 0, 0.50),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  }
+  :root:not([data-theme="light"]) .ls-name { color: #f1f5f9; }
+  :root:not([data-theme="light"]) .ls-subtitle { color: #94a3b8; }
+  :root:not([data-theme="light"]) .ls-footer { color: #64748b; }
+  :root:not([data-theme="light"]) .ls-badge {
+    background: color-mix(in srgb, var(--teal) 15%, transparent);
+    color: var(--teal);
+    border-color: color-mix(in srgb, var(--teal) 35%, transparent);
+  }
+  :root:not([data-theme="light"]) .ls-field-icon { color: #64748b; }
+  :root:not([data-theme="light"]) .ls-dots-placeholder { color: #64748b; }
+  :root:not([data-theme="light"]) .ls-eye { color: #64748b; }
+  :root:not([data-theme="light"]) .ls-eye:hover { color: #cbd5e1; }
+  :root:not([data-theme="light"]) .ls-avatar-emblem {
+    border-color: rgba(15, 23, 42, 0.85);
+  }
+  :root:not([data-theme="light"]) .ls-field .input-field,
+  :root:not([data-theme="light"]) .ls-field input[class] {
+    background: rgba(15, 23, 42, 0.60);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+  }
+  :root:not([data-theme="light"]) .ls-field .input-field::placeholder { color: #64748b; }
+  :root:not([data-theme="light"]) .ls-logout-btn { color: #94a3b8; }
+  :root:not([data-theme="light"]) .ls-logout-btn:hover { color: #cbd5e1; }
+  :root:not([data-theme="light"]) .ls-theme-toggle {
+    background: rgba(15, 23, 42, 0.70);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+  }
+}
+:root[data-theme="dark"] .ls-overlay {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 6%, transparent), transparent),
+    rgba(0, 0, 0, 0.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
+  backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
+}
+:root[data-theme="dark"] .ls-card {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    0 24px 64px -12px rgba(0, 0, 0, 0.50),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+:root[data-theme="dark"] .ls-name { color: #f1f5f9; }
+:root[data-theme="dark"] .ls-subtitle { color: #94a3b8; }
+:root[data-theme="dark"] .ls-footer { color: #64748b; }
+:root[data-theme="dark"] .ls-badge {
+  background: color-mix(in srgb, var(--teal) 15%, transparent);
+  color: var(--teal);
+  border-color: color-mix(in srgb, var(--teal) 35%, transparent);
+}
+:root[data-theme="dark"] .ls-field-icon { color: #64748b; }
+:root[data-theme="dark"] .ls-dots-placeholder { color: #64748b; }
+:root[data-theme="dark"] .ls-eye { color: #64748b; }
+:root[data-theme="dark"] .ls-eye:hover { color: #cbd5e1; }
+:root[data-theme="dark"] .ls-avatar-emblem {
+  border-color: rgba(15, 23, 42, 0.85);
+}
+:root[data-theme="dark"] .ls-field .input-field,
+:root[data-theme="dark"] .ls-field input[class] {
+  background: rgba(15, 23, 42, 0.60);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+:root[data-theme="dark"] .ls-field .input-field::placeholder { color: #64748b; }
+:root[data-theme="dark"] .ls-logout-btn { color: #94a3b8; }
+:root[data-theme="dark"] .ls-logout-btn:hover { color: #cbd5e1; }
+:root[data-theme="dark"] .ls-theme-toggle {
+  background: rgba(15, 23, 42, 0.70);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+/* ── Password dot animation ───────────────────────────────────── */
 @keyframes ls-dot-pop {
   0%   { transform: scale(1.85); opacity: 0.65; }
   55%  { transform: scale(0.84); }
@@ -6857,33 +7158,33 @@ html[data-expanded="true"] .fin-shell {
   animation: ls-cursor-blink 1.1s step-end infinite;
 }
 
-/* ── Idle lock-screen theme toggle ─────────────────────────────── */
+/* ── Theme toggle ─────────────────────────────────────────────── */
 .ls-theme-toggle {
   position: fixed;
   top: 24px;
   right: 24px;
   width: 42px;
   height: 42px;
-  border-radius: 9999px !important;
-  background: color-mix(in srgb, var(--white) 88%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--card-bg) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
   color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.08);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   z-index: 100000;
   outline: none;
 }
 .ls-theme-toggle:hover {
   transform: scale(1.08);
-  background: var(--white);
+  background: var(--card-bg);
   border-color: var(--teal);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2), 0 0 14px color-mix(in srgb, var(--teal) 35%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 14px color-mix(in srgb, var(--teal) 35%, transparent);
 }
 .ls-theme-toggle:active {
   transform: scale(0.92);

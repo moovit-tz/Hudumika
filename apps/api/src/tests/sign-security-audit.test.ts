@@ -12,7 +12,7 @@ vi.mock('../services/sign-pdf.service.js', async importOriginal => ({
 }));
 import { compareExtractedText } from '../services/sign-seal-verify.service.js';
 
-const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=';
+const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==';
 
 describe('eSign security: regression tests for fixed vulnerabilities', () => {
   let tenant: TestTenant;

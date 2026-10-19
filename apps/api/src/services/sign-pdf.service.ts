@@ -60,6 +60,7 @@ interface SourceRecipient {
   email: string;
   signature_data: string | null;
   user_id?: string | null;
+  authenticated_signer_id?: string | null;
   // Certified True Copy (migration 342) — real when this recipient is a
   // licensed advocate/notary/commissioner certifying the document, not the
   // tenant's own stamp.
@@ -254,17 +255,7 @@ export async function buildSignedPdf(
   await drawAuditTrail(doc, envelope, events, recipients.some(r => r.is_certifier), recipients);
 
   const unsigned = Buffer.from(await doc.save());
-  try {
-    return await applyDigitalSignature(unsigned, envelope, recipients);
-  } catch (err) {
-    // The visual document (signatures + audit trail) is real and complete
-    // either way — a real cryptographic signature is a genuine additional
-    // guarantee, not something the rest of the feature depends on, so a
-    // failure here returns the honest unsigned-but-complete PDF rather
-    // than losing the whole completion.
-    console.error('[Sign PDF] Digital signature failed, returning the document unsigned:', (err as Error).message);
-    return unsigned;
-  }
+  return await applyDigitalSignature(unsigned, envelope, recipients);
 }
 
 /** Adds a real PKCS#7 signature dictionary — reserves a placeholder in the
@@ -338,8 +329,7 @@ async function buildFallbackDoc(envelope: SourceEnvelope, imageBytes: Buffer | n
 
 /** Resolves the tenant's real configured company stamp (Settings ▸ E-Sign)
  *  for any 'stamp' field on this document, plus which recipients are
- *  actually cleared to have it drawn on their behalf — a recipient tagged
- *  to a real colleague (sign_recipients.user_id) whose role clears the same
+ *  actually cleared to have it drawn on their behalf — a recipient with a server-recorded authenticated signer whose role clears the same
  *  canApplyTenantStamp gate the rest of the stamp system already enforces.
  *  Returns null bytes / an empty allow-set when there's no stamp field at
  *  all, so drawFields falls back to its old per-recipient-signature
@@ -350,14 +340,14 @@ async function resolveTenantStamp(
 ): Promise<{ bytes: Buffer | null; authorizedRecipientIds: Set<string> }> {
   if (!fields.some(f => f.field_type === 'stamp')) return { bytes: null, authorizedRecipientIds: new Set() };
 
-  const taggedRecipients = recipients.filter((r): r is SourceRecipient & { user_id: string } => !!r.user_id);
+  const taggedRecipients = recipients.filter((r): r is SourceRecipient & { authenticated_signer_id: string } => !!r.authenticated_signer_id);
   const authorizedRecipientIds = new Set<string>();
   if (taggedRecipients.length) {
     const users = await dbPlatform.selectFrom('users').select(['id', 'role'])
-      .where('id', 'in', taggedRecipients.map(r => r.user_id)).execute();
+      .where('id', 'in', taggedRecipients.map(r => r.authenticated_signer_id!)).where('tenant_id', '=', envelope.tenant_id).execute();
     const roleByUserId = new Map(users.map(u => [u.id, u.role]));
     for (const r of taggedRecipients) {
-      const role = roleByUserId.get(r.user_id);
+      const role = roleByUserId.get(r.authenticated_signer_id!);
       if (role && await canApplyTenantStamp(dbPlatform, envelope.tenant_id, role)) authorizedRecipientIds.add(r.id);
     }
   }

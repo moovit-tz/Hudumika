@@ -6,7 +6,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.js';
-import { BASE_URL } from '../../lib/api.js';
+import { apiFetch, BASE_URL } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
@@ -107,6 +107,7 @@ export function SignPublicPage() {
   const [logoFailed, setLogoFailed] = useState(false);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [currentField, setCurrentField] = useState(0);
+  const [documentCompleted, setDocumentCompleted] = useState(false);
   const [step, setStep] = useState<'review' | 'sign' | 'done'>('review');
   const [stamp, setStamp] = useState<StampPayload | null>(null);
   const isMobile = useIsMobile();
@@ -183,8 +184,7 @@ export function SignPublicPage() {
   const accentFg = `hsl(${pickForegroundHsl(accent)})`;
 
   useEffect(() => {
-    fetch(`${BASE_URL}/v1/sign/public/${token}`)
-      .then(r => { if (!r.ok) throw new Error('Signing link not found'); return r.json(); })
+    apiFetch<PublicSigningData>(`/v1/sign/public/${token}`)
       .then((d: PublicSigningData) => {
         setData(d);
         setOtpVerified(!d.already_completed && !!d.recipient.otp_verified);
@@ -202,11 +202,9 @@ export function SignPublicPage() {
     setOtpRequesting(true);
     setOtpError(null);
     try {
-      const res = await fetch(`${BASE_URL}/v1/sign/public/${token}/request-otp`, {
+      const result = await apiFetch(`/v1/sign/public/${token}/request-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channel }),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error ?? 'Could not send verification code');
       setOtpChannel(channel);
       setOtpSentTo(result.sent_to ?? null);
     } catch (e: unknown) {
@@ -221,12 +219,12 @@ export function SignPublicPage() {
     setOtpVerifying(true);
     setOtpError(null);
     try {
-      const res = await fetch(`${BASE_URL}/v1/sign/public/${token}/verify-otp`, {
+      const result = await apiFetch(`/v1/sign/public/${token}/verify-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: otpCode.trim() }),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error ?? 'Incorrect code');
+      const refreshed = await apiFetch<PublicSigningData>(`/v1/sign/public/${token}`);
+      setData(refreshed);
       setOtpVerified(true);
     } catch (e: unknown) {
       setOtpError(e instanceof Error ? e.message : 'Incorrect code');
@@ -239,7 +237,7 @@ export function SignPublicPage() {
     if (!data || !signature) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${BASE_URL}/v1/sign/public/${token}/sign`, {
+      const result = await apiFetch(`/v1/sign/public/${token}/sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,9 +245,8 @@ export function SignPublicPage() {
           fields: Object.entries(fieldValues).map(([field_id, value]) => ({ field_id, value })),
         }),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error ?? 'Failed to submit');
-      if (result.stamp) setStamp(result.stamp);
+      setDocumentCompleted(result.completed === true);
+      if (result.completed && result.stamp) setStamp(result.stamp);
       setStep('done');
     } catch (e: unknown) {
       showAlert(e instanceof Error ? e.message : 'Failed to submit');
@@ -263,7 +260,7 @@ export function SignPublicPage() {
     const reason = await showPrompt('', { title: 'Reason for declining (optional)', placeholder: 'Let the sender know why' }) ?? '';
     setDeclining(true);
     try {
-      await fetch(`${BASE_URL}/v1/sign/public/${token}/decline`, {
+      await apiFetch(`/v1/sign/public/${token}/decline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
@@ -300,7 +297,7 @@ export function SignPublicPage() {
   if (step === 'done') return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       {/* Public Branded Header */}
-      <header style={{ background: '#fff', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
+      <header style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--border)', height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
           <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: accentFg }}>
             <Icon name="edit" size={16} />
@@ -311,13 +308,13 @@ export function SignPublicPage() {
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '32px', maxWidth: 520, width: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '32px', maxWidth: 520, width: '100%', boxShadow: 'var(--elev-sm)' }}>
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-l)', border: '1px solid var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               <Icon name="checkCircle" size={24} style={{ color: 'var(--green)' }} />
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 6px', color: 'var(--ink)' }}>Document Signed</h1>
-            <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>Your signature has been securely recorded and legally timestamped.</p>
+            <p style={{ color: 'var(--ink3)', fontSize: 13, margin: 0 }}>Your signature has been securely recorded.</p>
           </div>
 
           {stamp && (
@@ -330,7 +327,7 @@ export function SignPublicPage() {
                 <div key={i} style={{ fontSize: 12, color: 'var(--ink2)', display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
                   <Icon name="checkCircle" size={12} style={{ color: 'var(--green)', flexShrink: 0 }} />
                   <span><strong>{s.name}</strong> ({s.email})</span>
-                  {s.signed_at && <span style={{ marginLeft: 'auto', color: '#6b7280' }}>{new Date(s.signed_at).toLocaleDateString()}</span>}
+                  {s.signed_at && <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{new Date(s.signed_at).toLocaleDateString()}</span>}
                 </div>
               ))}
               {/* Points at the same public verification page as "Verify a
@@ -340,16 +337,21 @@ export function SignPublicPage() {
               {stamp.qr_data_uri && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--green)' }}>
                   <img src={stamp.qr_data_uri} alt="Scan to verify this document" width={64} height={64} style={{ borderRadius: 'var(--r-sm)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.4 }}>Scan to verify this document's status at any time, from anywhere.</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.4 }}>Scan to verify this document's status at any time, from anywhere.</span>
                 </div>
               )}
             </div>
           )}
 
+          {!documentCompleted && <p role="status" style={{ color: 'var(--ink3)', marginBottom: 16 }}>
+            Your signature has been recorded. The final signed PDF is not ready yet. The sender can check its status and retry preparation if needed.
+          </p>}
+          {documentCompleted && (
           <a href={`${BASE_URL}/v1/sign/public/${token}/download`} download
             style={{ display: 'block', textAlign: 'center', width: '100%', padding: '10px 16px', borderRadius: 'var(--r-sm)', background: accent, color: accentFg, fontSize: 13.5, fontWeight: 600, textDecoration: 'none', marginBottom: 12, boxSizing: 'border-box' }}>
             Download Signed PDF
           </a>
+          )}
           <Button variant="outline" onClick={() => window.close()}
             style={{ width: '100%', height: 38, fontSize: 13, fontWeight: 600 }}>
             Close Window
@@ -600,7 +602,7 @@ export function SignPublicPage() {
             }}>
               {isPdf ? (
                 pdfLoading || !pdfDoc ? (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#9ca3af', fontSize: 13 }}>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--ink3)', fontSize: 13 }}>
                     {pdfError ? "Couldn't load this document" : (
                       <>
                         <Icon name="clock" size={22} style={{ animation: 'ds-spin 2s linear infinite', color: accent }} />
@@ -684,7 +686,7 @@ export function SignPublicPage() {
                       fieldValues[field.id] === 'true' ? (
                         <Icon name="check" size={14} style={{ color: 'var(--green)', fontWeight: 900 }} />
                       ) : (
-                        <span style={{ fontSize: 10, color: '#9ca3af' }}>[ ]</span>
+                        <span style={{ fontSize: 10, color: 'var(--ink3)' }}>[ ]</span>
                       )
                     ) : (field.field_type === 'text' || field.field_type === 'date') && fieldValues[field.id] ? (
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', width: '100%', textAlign: 'center', padding: '2px 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -846,8 +848,8 @@ export function SignPublicPage() {
               Decline
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={!signature || submitting}
-              style={{ flex: 2, height: 38, fontSize: 13, fontWeight: 700, background: signature ? accent : 'var(--border)', color: signature ? accentFg : '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Icon name="checkCircle" size={15} color={signature ? accentFg : '#fff'} />
+              style={{ flex: 2, height: 38, fontSize: 13, fontWeight: 700, background: signature ? accent : 'var(--border)', color: signature ? accentFg : 'var(--ink3)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Icon name="checkCircle" size={15} color={signature ? accentFg : 'var(--ink3)'} />
               {submitting ? 'Submitting…' : 'Sign & Submit'}
             </Button>
           </div>

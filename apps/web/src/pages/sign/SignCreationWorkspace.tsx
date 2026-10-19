@@ -1,24 +1,26 @@
-import React, { useState } from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { SignEditor } from './SignEditor.js';
 import { LawDepotDocumentBuilder } from './LawDepotDocumentBuilder.js';
 import { LawDepotCreationHub } from './LawDepotCreationHub.js';
 import { SignTemplatePreview } from './SignTemplatePreview.js';
+import { SignCompose } from './SignCompose.js';
 import './LawDepot.css';
 
 export function SignCreationRedirect({ mode }: { mode: 'author' | 'guided' | 'draft' | 'template' }) {
   const route = useParams();
   const [params] = useSearchParams();
   const target = new URLSearchParams(params);
-  target.set('mode', mode === 'author' || mode === 'template' ? 'builder' : mode);
+  target.set('mode', mode === 'author' ? 'blank' : mode === 'template' ? 'builder' : mode);
   if (route.templateId) target.set('source', route.templateId);
   if (route.documentId) target.set('draft', route.documentId);
   return <Navigate replace to={`/sign/editor?${target}`} />;
 }
 
 export function SignCreationWorkspace() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const [viewOverride, setViewOverride] = useState<'editor' | 'builder' | 'hub' | null>(null);
+  const [viewOverride, setViewOverride] = useState<'editor' | 'builder' | 'studio' | 'hub' | null>(null);
 
   const mode = params.get('mode');
   const source = params.get('source') || params.get('template');
@@ -26,23 +28,24 @@ export function SignCreationWorkspace() {
   const documentForSigning = params.get('document');
   const fileId = params.get('fileId');
 
-  // If a generated document is ready for signing (from the builder), show the eSign placement canvas
+
+  // Direct signing canvas (e.g. uploaded file, envelope placement)
   if (documentForSigning || fileId || viewOverride === 'editor') {
     return <SignEditor />;
   }
 
-  // If viewing template preview
+  if (['studio','blank','compose','resume','author'].includes(mode || '')) return <SignCompose />;
+
   if (mode === 'preview') {
     return <SignTemplatePreview />;
   }
 
-  // If working on a template, draft, or guided builder
+  // Guided Template Builder
   if (
     source ||
     draft ||
     mode === 'guided' ||
     mode === 'draft' ||
-    mode === 'author' ||
     mode === 'builder' ||
     mode === 'template' ||
     viewOverride === 'builder'
@@ -60,22 +63,20 @@ export function SignCreationWorkspace() {
     );
   }
 
-  // Otherwise, render the LawDepot Creation Hub (the unified starting point for documents, templates, or files)
+  // Default: Creation Hub with 3 Pathways (Templates, Upload, Blank/AI)
   return (
     <div className="lawdepot-studio" style={{ overflowY: 'auto' }}>
       <LawDepotCreationHub
-        onSelectTemplate={(templateId, templateName) => {
+        onSelectTemplate={(templateId) => {
           setParams({ source: templateId });
         }}
         onUploadFile={() => {
           setViewOverride('editor');
         }}
-        onStartBlankSigning={() => {
-          setViewOverride('editor');
+        onBrowseLibrary={() => {
+          navigate('/sign/templates?creating=1');
         }}
-        onWriteScratch={() => {
-          setParams({ mode: 'builder', source: 'starter-sign-llc-operating-agreement' });
-        }}
+        onWriteScratch={() => setParams({ mode: 'blank' })}
       />
     </div>
   );

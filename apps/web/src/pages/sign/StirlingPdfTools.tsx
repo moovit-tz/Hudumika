@@ -300,7 +300,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
   return (
     <div style={embedded
       ? { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minWidth: 0 }
-      : { position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--white)', display: 'flex', flexDirection: 'column' }
+      : { position: 'fixed', inset: 0, zIndex: 1000, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }
     }>
       <div style={{ display: 'flex', alignItems: 'center', gap: embedded ? 8 : 12, padding: embedded ? '12px 16px' : '10px 18px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <Icon name="layers" size={16} style={{ color: 'var(--teal)' }} />
@@ -364,7 +364,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                       onClick={() => t.outputMode === 'organizer' ? setShowOrganizer(true) : setActiveTool(t.key)}
                       style={{
                         padding: embedded ? '8px 10px' : 14, borderRadius: 'var(--r)', border: `1px solid ${activeTool === t.key ? 'var(--teal)' : 'var(--border)'}`,
-                        background: activeTool === t.key ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer',
+                        background: activeTool === t.key ? 'var(--teal-l)' : 'var(--card-bg)', cursor: 'pointer',
                         display: 'flex', flexDirection: 'column', gap: embedded ? 2 : 6, transition: 'all 0.15s ease'
                       }}
                     >
@@ -382,7 +382,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
             ))}
 
             {active && (
-              <div style={{ padding: embedded ? 14 : 20, borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: embedded ? 10 : 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
+              <div style={{ padding: embedded ? 14 : 20, borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--card-bg)', display: 'flex', flexDirection: 'column', gap: embedded ? 10 : 14, position: 'sticky', bottom: 0, boxShadow: 'var(--elev-lg)' }}>
                 <div style={{ fontWeight: 700, fontSize: embedded ? 13 : 14, color: 'var(--teal)' }}>
                   Configure {active.label}
                   {active.outputMode === 'download' && <div style={{ fontWeight: 500, fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Downloads a file, doesn’t change the document’s document</div>}

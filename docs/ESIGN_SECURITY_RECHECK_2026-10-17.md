@@ -1,5 +1,23 @@
 # eSign security recheck — 17 October 2026
 
+**Remediation update:** the blockers from the second recheck have now been addressed in the working tree. See [the Claude Code review trail](ESIGN_CLAUDE_CODE_REVIEW_2026-10-17.md) for scoped files, migration 607, regression evidence and remaining production work. The recheck findings below are the historical evidence that motivated those fixes, not a fresh claim that the same code is still present. Final verification is recorded in the review trail.
+
+## Second recheck — latest checkout
+
+The latest six-suite run reports **39 passed, 1 failed (40 tests)**. The focused recheck rerun repeats the same failure (5 passed, 1 failed). Earlier entries below describe the first recheck and are historical.
+
+Confirmed improvements: OTP attempt lockout now passes; creation responses omit recipient tokens; saved signatures are withheld without OTP; document bytes are withheld before required OTP; malformed signatures and false required checkboxes are rejected; certification with no credential is rejected.
+
+**Remaining release blockers:**
+
+- **Broken finalization audit events:** the signing route logs `finalizing` and `finalization_failed`, but migration 606 only adds values to `sign_envelope_status`. Direct inspection of the test database confirms these values are absent from `sign_event_type`. The real finalization regression returns HTTP 400 / PostgreSQL 22P02 after recording the recipient signature. Add a migration for the event enum and verify a successful completion and a forced PDF failure end to end. This is an incomplete migration, not simply an unapplied status migration.
+- **OTP identity remains sender-controlled:** creation persists the supplied recipient `user_id` and phone; OTP is delivered to that supplied phone, while asset lookup uses `user_id`. OTP possession therefore does not independently establish ownership of the saved signature. Bind reusable assets to authenticated ownership or an independently verified account contact. This is source-confirmed; no real SMS was sent during this recheck.
+- **Certifier validation remains partial:** signing rejects missing/revoked/expired credentials but does not require `verification_status === 'verified'`, bind the credential to the signer, or include tenant scope in the credential lookup. An existing unverified credential is not blocked by this guard.
+- **Cryptographic failure still falls back to unsigned PDF:** `sign-pdf.service.ts` catches signing errors and returns unsigned bytes. The completion handler cannot distinguish these from successfully digitally signed bytes and logs a verified event. Require an explicit signing assurance result and truthful status, or fail closed where cryptographic signing is required.
+- **Concurrency and recovery remain open:** public signing still lacks an atomic transaction/lock; no finalization retry/recovery path was found. Completion/stamping timestamps are set before artifact generation.
+
+Other dependency, source-snapshot, OCR/privacy, key-management and deployment findings remain pending unless independently closed. No product code was changed in this recheck.
+
 **Release decision: still NO-GO for production signing and notarial certification.** This recheck supersedes the original audit's claim that every finding remains unchanged; several fixes are now present.
 
 ## Verified improvements

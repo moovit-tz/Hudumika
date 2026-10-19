@@ -10,11 +10,6 @@ import { Button } from './ui/button.js';
 import { Banner } from './ui/alert.js';
 import { PersonAvatar } from './PersonAvatar.js';
 
-/**
- * The idle-lock overlay — rendered alongside the mounted app,
- * preserving session state while requiring password re-authentication.
- * Styled dynamically with Hudumika Design System tokens and platform colors.
- */
 export function LockScreen() {
   const { user, logout } = useAuth();
   const { unlock } = useIdleLock();
@@ -29,7 +24,6 @@ export function LockScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // One stable key per character position for the pop animation.
   const [dotKeys, setDotKeys] = useState<string[]>([]);
   const prevLenRef = useRef(0);
   useEffect(() => {
@@ -45,9 +39,7 @@ export function LockScreen() {
   }, [password.length]);
 
   const handleKeyActivity = (e: React.KeyboardEvent) => {
-    if (e.getModifierState) {
-      setCapsLock(e.getModifierState('CapsLock'));
-    }
+    if (e.getModifierState) setCapsLock(e.getModifierState('CapsLock'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,24 +61,7 @@ export function LockScreen() {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 99999,
-        background: isDark
-          ? 'radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 5%, transparent), rgba(0,0,0,0.25)), rgba(0,0,0,0.20)'
-          : 'radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 4%, transparent), rgba(255,255,255,0.18)), rgba(255,255,255,0.12)',
-        backdropFilter: `blur(20px) saturate(1.3) brightness(${isDark ? '0.5' : '0.82'})`,
-        WebkitBackdropFilter: `blur(20px) saturate(1.3) brightness(${isDark ? '0.5' : '0.82'})`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        fontFamily: 'var(--font)',
-      }}
-    >
-      {/* Floating Rounded Light/Dark Mode Switcher */}
+    <div className="ls-overlay">
       <button
         type="button"
         className="ls-theme-toggle"
@@ -97,51 +72,15 @@ export function LockScreen() {
         <Icon name={isDark ? 'sun' : 'moon'} size={18} color="var(--ink)" />
       </button>
 
-      <div
-        className="card"
-        style={{
-          width: '100%',
-          maxWidth: 440,
-          padding: 'clamp(28px, 4.5vw, 36px) clamp(24px, 4vw, 32px)',
-          background: isDark
-            ? 'rgba(30, 41, 59, 0.50)'
-            : 'rgba(255, 255, 255, 0.50)',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
-          borderRadius: 'var(--card-radius, var(--r-xl, 24px))',
-          boxShadow: isDark
-            ? '0 24px 64px -12px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)'
-            : '0 24px 64px -12px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.25)',
-          backdropFilter: 'blur(48px) saturate(1.2)',
-          WebkitBackdropFilter: 'blur(48px) saturate(1.2)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        {/* Locked Badge */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 12px',
-            borderRadius: 'var(--badge-radius, 9999px)',
-            fontSize: 'var(--text-xs, 11px)',
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-            background: 'var(--teal-l, color-mix(in srgb, var(--teal) 12%, transparent))',
-            color: 'var(--teal)',
-            border: '1px solid color-mix(in srgb, var(--teal) 28%, transparent)',
-            marginBottom: 22,
-          }}
-        >
+      <div className="ls-card">
+        {/* Locked badge */}
+        <div className="ls-badge">
           <Icon name="lock" size={12} color="var(--teal)" />
           <span>Locked</span>
         </div>
 
-        {/* User Profile Avatar with Lock Emblem */}
-        <div style={{ position: 'relative', marginBottom: 14 }}>
+        {/* Avatar + lock emblem */}
+        <div className="ls-avatar-wrap">
           <PersonAvatar
             userId={(user as any)?.id}
             name={user?.name ?? 'User'}
@@ -151,64 +90,31 @@ export function LockScreen() {
               boxShadow: '0 8px 24px -4px color-mix(in srgb, var(--teal) 25%, rgba(0, 0, 0, 0.2))',
             }}
           />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -2,
-              right: -2,
-              width: 26,
-              height: 26,
-              borderRadius: '50%',
-              background: 'var(--teal)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2.5px solid var(--white)',
-              boxShadow: '0 2px 8px color-mix(in srgb, var(--teal) 45%, black)',
-            }}
-          >
-            <Icon name="lock" size={12} color="var(--primary-foreground, #ffffff)" />
+          <div className="ls-avatar-emblem">
+            <Icon name="lock" size={12} color="hsl(var(--primary-foreground))" />
           </div>
         </div>
 
-        {/* User Identity Details */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontWeight: 800, fontSize: 'var(--text-xl, 20px)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-            {user?.name}
-          </div>
-          <div style={{ fontSize: 'var(--text-sm, 13px)', color: 'var(--ink3)', marginTop: 4 }}>
-            Enter your password to unlock your workspace
-          </div>
+        {/* Identity */}
+        <div className="ls-identity">
+          <div className="ls-name">{user?.name}</div>
+          <div className="ls-subtitle">Enter your password to unlock your workspace</div>
         </div>
 
-        {/* Error Alert */}
+        {/* Error */}
         {error && (
-          <div style={{ width: '100%', marginBottom: 16 }}>
+          <div className="ls-error">
             <Banner variant="error">{error}</Banner>
           </div>
         )}
 
-        {/* Unlock Form */}
-        <form onSubmit={handleSubmit} noValidate style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ position: 'relative' }}>
-            {/* Left Lock Icon */}
-            <div
-              style={{
-                position: 'absolute',
-                left: 14,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                pointerEvents: 'none',
-                color: 'var(--ink3)',
-                display: 'flex',
-                alignItems: 'center',
-                zIndex: 2,
-              }}
-            >
+        {/* Form */}
+        <form onSubmit={handleSubmit} noValidate className="ls-form">
+          {/* Password field */}
+          <div className="ls-field">
+            <div className="ls-field-icon">
               <Icon name="key" size={16} />
             </div>
-
-            {/* Real Input */}
             <Input
               type={showPass ? 'text' : 'password'}
               placeholder={showPass ? 'Password' : ''}
@@ -219,107 +125,47 @@ export function LockScreen() {
               autoComplete="current-password"
               autoFocus
               style={{
-                minHeight: 'var(--ctl-h-lg, 46px)',
-                paddingLeft: 40,
-                paddingRight: 48,
-                fontSize: 'var(--text-md, 15px)',
-                color: showPass ? 'var(--ink)' : 'transparent',
-                caretColor: showPass ? 'var(--ink)' : 'transparent',
-                borderRadius: 'var(--r, 10px)',
+                color: showPass ? undefined : 'transparent',
+                caretColor: showPass ? undefined : 'transparent',
               }}
             />
-
-            {/* Animated dot display overlay */}
             {!showPass && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  paddingLeft: 40,
-                  paddingRight: 48,
-                  gap: 7,
-                }}
-              >
+              <div className="ls-dots">
                 {dotKeys.length === 0 ? (
-                  <span style={{ fontSize: 'var(--text-md, 14.5px)', color: 'var(--ink3)' }}>Password</span>
+                  <span className="ls-dots-placeholder">Password</span>
                 ) : (
                   <>
                     {dotKeys.map((k, i) => (
-                      <span
-                        key={k}
-                        className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`}
-                      />
+                      <span key={k} className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`} />
                     ))}
                     <span className="ls-cursor" />
                   </>
                 )}
               </div>
             )}
-
-            {/* Eye Toggle Button */}
             <button
               type="button"
+              className="ls-eye"
               onClick={() => setShowPass(p => !p)}
               title={showPass ? 'Hide password' : 'Show password'}
-              style={{
-                position: 'absolute',
-                right: 6,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                borderRadius: 'var(--r-sm)',
-                color: 'var(--ink3)',
-                zIndex: 2,
-              }}
               data-ui-native-button=""
             >
               <Icon name={showPass ? 'eyeOff' : 'eye'} size={18} />
             </button>
           </div>
 
-          {/* Caps Lock Warning */}
+          {/* Caps lock */}
           {capsLock && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: 'var(--text-xs, 11.5px)',
-                color: 'var(--gold, #d97706)',
-                fontWeight: 600,
-                paddingLeft: 2,
-              }}
-            >
+            <div className="ls-caps">
               <Icon name="alertTriangle" size={12} color="var(--gold, #d97706)" />
               Caps Lock is on
             </div>
           )}
 
-          {/* 2FA One-Time Code Field */}
+          {/* 2FA */}
           {needs2fa && (
-            <div style={{ position: 'relative' }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 14,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  color: 'var(--teal)',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
+            <div className="ls-field ls-field-2fa">
+              <div className="ls-field-icon">
                 <Icon name="shield" size={16} color="var(--teal)" />
               </div>
               <Input
@@ -330,90 +176,39 @@ export function LockScreen() {
                 onChange={e => setTotp(e.target.value)}
                 autoComplete="one-time-code"
                 autoFocus
-                style={{
-                  minHeight: 'var(--ctl-h-lg, 46px)',
-                  paddingLeft: 40,
-                  fontSize: 'var(--text-md, 15px)',
-                  borderRadius: 'var(--r, 10px)',
-                }}
               />
             </div>
           )}
 
-          {/* Actions Bar — Shortened "Log out" Button */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: 6,
-              gap: 12,
-            }}
-          >
+          {/* Actions */}
+          <div className="ls-actions">
             <Button
               type="button"
               variant="ghost"
               size="lg"
               onClick={logout}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                color: 'var(--ink2)',
-                fontWeight: 600,
-                borderRadius: 'var(--r, 10px)',
-              }}
+              className="ls-logout-btn"
             >
-              <Icon name="logOut" size={15} color="var(--ink2)" />
+              <Icon name="logOut" size={15} color="currentColor" />
               Log out
             </Button>
             <Button
               type="submit"
               size="lg"
               disabled={submitting || !password}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                minWidth: 118,
-                justifyContent: 'center',
-                fontWeight: 700,
-                borderRadius: 'var(--r, 10px)',
-                background: 'var(--teal)',
-                color: 'var(--primary-foreground, #ffffff)',
-                boxShadow: submitting || !password ? 'none' : '0 4px 14px color-mix(in srgb, var(--teal) 35%, transparent)',
-              }}
+              className="ls-unlock-btn"
             >
-              {submitting ? (
-                'Unlocking…'
-              ) : (
-                <>
-                  <span>Unlock</span>
-                  <Icon name="arrowRight" size={14} color="currentColor" />
-                </>
-              )}
+              {submitting ? 'Unlocking…' : <><span>Unlock</span><Icon name="arrowRight" size={14} color="currentColor" /></>}
             </Button>
           </div>
         </form>
 
-        {/* Security Footer Note */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            marginTop: 24,
-            fontSize: 'var(--text-xs, 11px)',
-            color: 'var(--ink3)',
-            opacity: 0.8,
-          }}
-        >
+        {/* Footer */}
+        <div className="ls-footer">
           <Icon name="shield" size={12} color="var(--teal)" />
-          Encrypted Session · {branding.platformName || 'Hudumika'} Workspace Security
+          Encrypted Session · {branding.platformName || 'Hudumika'} Security
         </div>
       </div>
     </div>
   );
 }
-

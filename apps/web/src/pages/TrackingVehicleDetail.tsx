@@ -1,3 +1,4 @@
+import { TruckLoadOverview, TruckLoadEmpty } from '../components/tracking/TruckLoadOverview.js';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
@@ -695,20 +696,16 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
 
   if (!manifest) {
     return (
-      <div style={{ ...cardStyle, padding: '40px 20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 12 }}>No load plan yet for this vehicle.</div>
-        <button type="button" onClick={createDefaultPlan} disabled={creating}
-          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-          {creating ? 'Creating…' : 'Create load plan'}
-        </button>
-      </div>
+      <TruckLoadEmpty onCreate={createDefaultPlan} creating={creating} />
     );
   }
 
   const smallInput: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 14 }}>
+    <div>
+      <TruckLoadOverview manifest={manifest} items={items} />
+      <div className="truck-load-workspace">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={cardStyle}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{manifest.name}</div>
@@ -791,6 +788,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
           <CargoScene manifest={manifest} items={items} cameraPreset={cameraPreset} />
         </div>
       </div>
+    </div>
     </div>
   );
 }

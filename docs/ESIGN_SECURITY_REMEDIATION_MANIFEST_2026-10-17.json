@@ -1,0 +1,46 @@
+[
+  {
+    "path": "apps/api/src/db/migrations/607_sign_finalization_security.sql",
+    "sha256": "7E8356ECEE5B19AD6830A6836768F9F2BEEAABAFA9341DA0073736BC25A83923"
+  },
+  {
+    "path": "apps/api/src/db/client.ts",
+    "sha256": "35F3C1A625C9A0F43D44736DBBF602194AF6865600B0BB6887903278D63A5BC8"
+  },
+  {
+    "path": "apps/api/src/routes/sign.routes.ts",
+    "sha256": "E0D3DBE80C9E8A2B08AB8070F3B56976FAF5555E686E3ACA6DAE9C66E3BCF7F1"
+  },
+  {
+    "path": "apps/api/src/services/sign-pdf.service.ts",
+    "sha256": "8636ECE35057DDC00EC058B302800F252F41B74D858E175F67351FBEE0D331EA"
+  },
+  {
+    "path": "apps/api/src/services/sign-signature-image.ts",
+    "sha256": "3E797108E8B5A9B7214AA7B8A149650B51F5FA24F2FE28A915690B9E7DE63DE6"
+  },
+  {
+    "path": "apps/api/src/tests/sign-security-audit.test.ts",
+    "sha256": "C639DF3AB1C036C92059AB93D7517108F37644FC1F551CA9A98FC310AD1F3931"
+  },
+  {
+    "path": "apps/api/src/tests/sign-security-recheck.test.ts",
+    "sha256": "716668C504D24877377C8DB262F24049BD293ED3988B5AD698472E0A4EDDE03F"
+  },
+  {
+    "path": "apps/api/src/tests/sign-security-remediation.test.ts",
+    "sha256": "AFEC8F3E37A6FC0FDD9ECA1913D8BFB32E608429E01ACE63564F79C36055DCAA"
+  },
+  {
+    "path": "apps/api/src/tests/signature-reference.test.ts",
+    "sha256": "1BD08364A44CE9CC5AC3E0C7CF05EA34587DF2FFF30D113D506533BD73DB5F78"
+  },
+  {
+    "path": "apps/web/src/pages/sign/SignPublicPage.tsx",
+    "sha256": "B41086494BDE6BF3615058D9443FF6CAF026EC02953183407BCDB7CAB78F9612"
+  },
+  {
+    "path": "packages/types/src/sign.ts",
+    "sha256": "9EAC270E97B140624ECF215D525CC3C0D3A967F7850A473E864A703F702DEBE0"
+  }
+]
