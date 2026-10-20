@@ -1,0 +1,11 @@
+.responsive-record-table { table-layout: fixed; width: 100%; }
+.responsive-record-table th, .responsive-record-table td { overflow-wrap: anywhere; white-space: normal; }
+@media (max-width: 700px) {
+  .responsive-record-table, .responsive-record-table tbody, .responsive-record-table tr { display: block; width: 100%; }
+  .responsive-record-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+  .responsive-record-table tr { padding: 8px 0; }
+  .responsive-record-table td { display: grid; grid-template-columns: minmax(90px, 36%) minmax(0, 1fr); gap: 12px; align-items: start; min-width: 0; padding: 8px 14px !important; text-align: left !important; }
+  .responsive-record-table td::before { content: attr(data-label); color: var(--ink3); font-size: 12px; font-weight: 500; }
+  .responsive-record-table td[colspan] { display: block; }
+  .responsive-record-table td[colspan]::before { display: none; }
+}

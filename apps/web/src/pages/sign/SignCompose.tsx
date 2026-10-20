@@ -7,17 +7,29 @@ import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Card } from '../../components/ui/card.js';
-import { Badge } from '../../components/ui/badge.js';
 import { Combobox } from '../../components/ui/combobox.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../../components/ui/dropdown-menu.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '../../components/ui/dropdown-menu.js';
 import { Icon } from '../../components/Icon.js';
+import { Banner } from '../../components/ui/alert.js';
+import { Tip } from '../../components/ui/tooltip.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog.js';
 import { LAWDEPOT_TEMPLATES, LAWDEPOT_CATEGORIES } from './LawDepotTemplateCatalog.js';
 import { SaveAsTemplateModal } from './SaveAsTemplateModal.js';
 import { AiDocumentGeneratorModal, type GeneratedDocumentResult } from './AiDocumentGeneratorModal.js';
 import './SignCompose.css';
 
 const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function downloadDocument(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 const textHtml = (s: string) => s.split(/\n\n+/).map(p => `<p>${escape(p).replace(/\n/g, '<br>')}</p>`).join('');
 const textOf = (html: string) => {
   const node = document.createElement('div');
@@ -114,6 +126,26 @@ const CODE_BLOCK_HTML = `
 }</code></pre><p></p>
 `;
 
+const PAGE_FORMATS = {
+  a4:        { label: 'A4',        w: 210,    h: 297,   desc: '210 × 297 mm' },
+  letter:    { label: 'US Letter', w: 215.9,  h: 279.4, desc: '8.5 × 11 in' },
+  legal:     { label: 'US Legal',  w: 215.9,  h: 355.6, desc: '8.5 × 14 in' },
+  a3:        { label: 'A3',        w: 297,    h: 420,   desc: '297 × 420 mm' },
+  a5:        { label: 'A5',        w: 148,    h: 210,   desc: '148 × 210 mm' },
+  b5:        { label: 'B5',        w: 176,    h: 250,   desc: '176 × 250 mm' },
+  executive: { label: 'Executive', w: 184.15, h: 266.7, desc: '7.25 × 10.5 in' },
+  tabloid:   { label: 'Tabloid',   w: 279.4,  h: 431.8, desc: '11 × 17 in' },
+} as const;
+
+type PageFormatKey = keyof typeof PAGE_FORMATS;
+
+const MM_TO_PX = 96 / 25.4;
+const PRINT_OVERHEAD_MM = 20 + 20 + 12 + 10; // top margin + bottom margin + header + footer
+
+function EditorTool({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return <Tip label={label}><Button variant="ghost" size="icon" aria-label={label} onMouseDown={event => event.preventDefault()} onClick={onClick}>{children}</Button></Tip>;
+}
+
 export function SignCompose() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -140,11 +172,24 @@ export function SignCompose() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(Boolean(initial?.body));
+  const savingRef = useRef(false);
+  const selectionRef = useRef<Range | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('https://');
+  const [linkLabel, setLinkLabel] = useState('');
+  const [linkError, setLinkError] = useState('');
 
   // Editor Typography & Styling state
   const [fontFamily, setFontFamily] = useState('Georgia, serif');
   const [fontSize, setFontSize] = useState('11.5pt');
+
+  // Page format & pagination
+  const [pageFormat, setPageFormat] = useState<PageFormatKey>('a4');
+  const [pageCount, setPageCount] = useState(1);
+  const fmt = PAGE_FORMATS[pageFormat];
+  const sheetWidthPx = Math.round(fmt.w * MM_TO_PX);
+  const contentPerPage = Math.round((fmt.h - PRINT_OVERHEAD_MM) * MM_TO_PX);
 
   // Modals state
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
@@ -197,6 +242,7 @@ export function SignCompose() {
         setHtml(item.document_definition.editor_html);
         if (editorRef.current) editorRef.current.innerHTML = item.document_definition.editor_html;
         setIndustry(item.document_definition.category);
+        setJurisdiction(item.document_definition.jurisdictions[0] || 'Tanzania Mainland');
         setType(item.document_definition.document_type || 'agreement');
         setLanguage(item.document_definition.language || 'en');
         setEditing(true);
@@ -230,6 +276,7 @@ export function SignCompose() {
         setJurisdiction(d.jurisdiction || 'Tanzania Mainland');
         setType(d.definition.document_type || 'agreement');
         setIndustry(d.definition.category);
+        setLanguage(d.definition.language || 'en');
         const nextHtml = d.definition.editor_html || textHtml(d.body);
         setHtml(nextHtml);
         if (editorRef.current) editorRef.current.innerHTML = nextHtml;
@@ -255,6 +302,48 @@ export function SignCompose() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  useEffect(() => {
+    const rememberSelection = () => {
+      const selection = window.getSelection();
+      if (selection?.rangeCount && editorRef.current?.contains(selection.anchorNode) && editorRef.current.contains(selection.focusNode)) {
+        selectionRef.current = selection.getRangeAt(0).cloneRange();
+      }
+    };
+    document.addEventListener('selectionchange', rememberSelection);
+    return () => document.removeEventListener('selectionchange', rememberSelection);
+  }, []);
+
+  function focusEditor() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    let range = selectionRef.current;
+    if (!range || !editor.contains(range.commonAncestorContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+
+  // Auto-pagination: observe body content height → derive page count
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el || !editing) return;
+    const recalc = () => {
+      const h = el.scrollHeight;
+      setPageCount(Math.max(1, Math.ceil(h / contentPerPage)));
+    };
+    const ro = new ResizeObserver(recalc);
+    ro.observe(el);
+    const mo = new MutationObserver(recalc);
+    mo.observe(el, { childList: true, subtree: true, characterData: true });
+    recalc();
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, [editing, contentPerPage]);
 
   // Track image selection inside editor for resizing
   useEffect(() => {
@@ -304,13 +393,13 @@ export function SignCompose() {
   };
 
   const exec = (command: string, value: string | undefined = undefined) => {
-    editorRef.current?.focus();
+    focusEditor();
     document.execCommand(command, false, value);
     handleEditorInput();
   };
 
   const insertHtmlAtCursor = (insertHtml: string) => {
-    editorRef.current?.focus();
+    focusEditor();
     const sel = window.getSelection();
     if (sel && sel.getRangeAt && sel.rangeCount) {
       const range = sel.getRangeAt(0);
@@ -339,16 +428,16 @@ export function SignCompose() {
   };
 
   const handleInsertLink = () => {
-    const url = prompt('Enter link destination URL (https://...):', 'https://');
-    if (!url || url === 'https://') return;
-    const label = prompt('Enter display text for this link:', 'Attached Schedule / Agreement');
-    insertHtmlAtCursor(`<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--teal, #0d9488); text-decoration: underline; font-weight: 500;">${label || url}</a>&nbsp;`);
+    setLinkError('');
+    setLinkUrl('https://');
+    setLinkLabel(window.getSelection()?.toString() || '');
+    setLinkOpen(true);
   };
 
   const handleImagePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
+    if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024) {
       setError('Choose a PNG or JPEG under 2 MB.');
       return;
     }
@@ -439,15 +528,14 @@ export function SignCompose() {
   }
 
   async function persist() {
-    let current = doc;
+    if (draftId && !doc) throw new Error('This draft has not loaded. Reopen it before saving.');
     const currentHtml = editorRef.current?.innerHTML || html;
-    if (!current) {
-      current = await apiFetch<SignGeneratedDocument>('/v1/sign/generated-documents', {
+    const saved = !doc
+      ? await apiFetch<SignGeneratedDocument>('/v1/sign/generated-documents', {
         method: 'POST',
-        body: JSON.stringify({ title, definition: definition() }),
-      });
-    }
-    const saved = await apiFetch<SignGeneratedDocument>(`/v1/sign/generated-documents/${current.id}/content`, {
+        body: JSON.stringify({ title, jurisdiction, definition: definition() }),
+      })
+      : await apiFetch<SignGeneratedDocument>(`/v1/sign/generated-documents/${doc.id}/content`, {
       method: 'PUT',
       body: JSON.stringify({
         title,
@@ -456,10 +544,12 @@ export function SignCompose() {
         category: industry,
         document_type: type,
         language,
+        expected_updated_at: doc.updated_at,
       }),
     });
     setDoc(saved);
     setHtml(saved.definition.editor_html || currentHtml);
+    if (editorRef.current) editorRef.current.innerHTML = saved.definition.editor_html || currentHtml;
     setDirty(false);
     setNotice('Document saved successfully.');
     if (!draftId) setParams({ mode: 'compose', draft: saved.id }, { replace: true });
@@ -467,6 +557,8 @@ export function SignCompose() {
   }
 
   async function run(action: () => Promise<unknown>) {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setBusy(true);
     setError('');
     try {
@@ -474,6 +566,7 @@ export function SignCompose() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      savingRef.current = false;
       setBusy(false);
     }
   }
@@ -481,17 +574,12 @@ export function SignCompose() {
   // Multi-format export system
   async function exportFile(format: 'pdf' | 'word' | 'html' | 'txt' | 'json') {
     const saved = await persist();
-    const currentHtml = editorRef.current?.innerHTML || saved.definition.editor_html || html;
+    const currentHtml = saved.definition.editor_html || textHtml(saved.body);
     const sanitizedTitle = title.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Document';
 
     if (format === 'pdf') {
       const blob = await apiFetchBlob(`/v1/sign/generated-documents/${saved.id}/pdf`);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${sanitizedTitle}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadDocument(blob, `${sanitizedTitle}.pdf`);
       setNotice('PDF document downloaded.');
       return;
     }
@@ -513,18 +601,13 @@ export function SignCompose() {
   </style>
 </head>
 <body>
-  <div class="header-box">HUDUMIKA VERIFIED LEGAL ARCHIVE &bull; ${escape(jurisdiction.toUpperCase())} &bull; REF: ${saved.id.slice(0, 8).toUpperCase()}</div>
+  <div class="header-box">HUDUMIKA DOCUMENT STUDIO &bull; ${escape(jurisdiction.toUpperCase())} &bull; REF: ${saved.id.slice(0, 8).toUpperCase()}</div>
   <article>${currentHtml}</article>
-  <div class="footer-box">HUDUMIKA LEGAL STUDIO &bull; OFFICIAL BINDING INSTRUMENT</div>
+  <div class="footer-box">HUDUMIKA LEGAL STUDIO &bull; DRAFT DOCUMENT — REVIEW BEFORE SIGNING</div>
 </body>
 </html>`;
       const blob = new Blob(['\ufeff', wordDocHtml], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${sanitizedTitle}.doc`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadDocument(blob, `${sanitizedTitle}.doc`);
       setNotice('Microsoft Word document (.doc) downloaded.');
       return;
     }
@@ -547,31 +630,21 @@ export function SignCompose() {
 </head>
 <body>
   <div class="legal-strip">
-    <span>HUDUMIKA VERIFIED LEGAL ARCHIVE</span>
+    <span>HUDUMIKA DOCUMENT STUDIO</span>
     <span>${escape(jurisdiction.toUpperCase())}</span>
   </div>
   <article>${currentHtml}</article>
 </body>
 </html>`;
       const blob = new Blob([standaloneHtml], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${sanitizedTitle}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadDocument(blob, `${sanitizedTitle}.html`);
       setNotice('HTML web document downloaded.');
       return;
     }
 
     if (format === 'txt') {
       const blob = new Blob([saved.body || textOf(currentHtml)], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${sanitizedTitle}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadDocument(blob, `${sanitizedTitle}.txt`);
       setNotice('Plain text document downloaded.');
       return;
     }
@@ -597,12 +670,7 @@ export function SignCompose() {
         2
       );
       const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${sanitizedTitle}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadDocument(blob, `${sanitizedTitle}.json`);
       setNotice('Contract JSON schema exported.');
       return;
     }
@@ -628,6 +696,25 @@ export function SignCompose() {
 
   return (
     <div className="sign-studio-root">
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)]">
+          <DialogHeader><DialogTitle>Insert link</DialogTitle><DialogDescription>Add a website or email link to your document.</DialogDescription></DialogHeader>
+          <form onSubmit={event => {
+            event.preventDefault();
+            try {
+              const url = new URL(linkUrl.trim());
+              if (!['https:', 'http:', 'mailto:'].includes(url.protocol)) throw new Error();
+              insertHtmlAtCursor(`<a href="${escape(url.href)}">${escape(linkLabel.trim() || url.href)}</a>&nbsp;`);
+              setLinkOpen(false);
+            } catch { setLinkError('Enter a valid http, https or email link.'); }
+          }} className="sign-link-form">
+            {linkError && <Banner variant="error">{linkError}</Banner>}
+            <label>Link address<Input autoFocus value={linkUrl} onChange={event => setLinkUrl(event.target.value)} required /></label>
+            <label>Display text<Input value={linkLabel} onChange={event => setLinkLabel(event.target.value)} /></label>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button><Button type="submit">Insert link</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       {/* ── Hidden File Picker for Image Uploads ── */}
       <input
         ref={fileInputRef}
@@ -644,6 +731,7 @@ export function SignCompose() {
           <Button
             variant="ghost"
             size="icon"
+            disabled={busy}
             onClick={async () => {
               if (!dirty || (await showConfirm('Leave without saving your document changes?', { title: 'Unsaved changes', confirmLabel: 'Leave' }))) {
                 navigate('/sign/editor');
@@ -658,6 +746,9 @@ export function SignCompose() {
 
           <div className="sign-title-input-wrap">
             <Input
+              aria-label="Document title"
+              disabled={busy}
+              maxLength={250}
               value={title}
               onChange={e => {
                 setTitle(e.target.value);
@@ -669,18 +760,13 @@ export function SignCompose() {
             />
           </div>
 
-          <Badge variant="outline" className="sign-jurisdiction-badge" title="Governing Jurisdiction">
-            <Icon name="mapPin" size={12} className="sign-brand-icon" />
-            <span>{jurisdiction}</span>
-          </Badge>
-
           {dirty ? (
             <span className="sign-sync-pill sign-sync-pill--dirty" title="Unsaved changes in editor">
-              <span className="sign-pulse-dot" /> <span className="hidden xl:inline">Unsaved edits</span>
+              <span className="sign-pulse-dot" /> <span className="sign-sync-label">Unsaved edits</span>
             </span>
           ) : (
-            <span className="sign-sync-pill sign-sync-pill--clean" title="All edits saved to cloud">
-              <Icon name="check" size={12} /> <span className="hidden xl:inline">Saved</span>
+            <span className="sign-sync-pill sign-sync-pill--clean" title={doc ? "Draft saved" : "Draft not saved yet"}>
+              <Icon name="check" size={12} /> <span className="sign-sync-label">{doc ? 'Saved' : 'New draft'}</span>
             </span>
           )}
         </div>
@@ -696,31 +782,31 @@ export function SignCompose() {
                 disabled={busy || !valid}
                 onClick={() => run(persist)}
                 className="sign-action-btn"
-                title="Save document draft"
+                aria-label="Save draft" title="Save document draft"
               >
                 <Icon name="save" size={14} />
-                <span className="hidden sm:inline">{dirty ? 'Save Draft *' : 'Save Draft'}</span>
+                <span className="hidden sm:inline">Save</span>
               </Button>
 
               {/* Save as Template */}
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 disabled={busy}
                 onClick={() => setSaveTemplateOpen(true)}
                 className="sign-action-btn"
-                title="Save as reusable company template"
+                aria-label="Save as template" title="Save as reusable company template"
               >
                 <Icon name="copy" size={14} />
-                <span className="hidden md:inline">Save as Template</span>
+
               </Button>
 
               {/* Multi-Format Export Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={busy} className="sign-action-btn" title="Export document">
+                  <Button variant="outline" size="icon" disabled={busy} className="sign-action-btn" aria-label="Export document" title="Export document">
                     <Icon name="download" size={14} />
-                    <span className="hidden md:inline">Export ▾</span>
+
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" style={{ width: 230 }}>
@@ -752,14 +838,14 @@ export function SignCompose() {
               {/* AI Generator */}
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 disabled={busy}
                 onClick={() => setAiModalOpen(true)}
                 className="sign-action-btn"
-                title="AI Legal Document Generator"
+                aria-label="AI document generator" title="AI Legal Document Generator"
               >
                 <Icon name="sparkle" size={14} className="sign-brand-icon" />
-                <span className="hidden lg:inline">AI Wizard</span>
+
               </Button>
 
               {/* KEY PRIMARY ACTION: Prepare for signing */}
@@ -776,7 +862,7 @@ export function SignCompose() {
                 title="Proceed to recipient and signature tag placement"
               >
                 <Icon name="edit" size={14} />
-                <span>Prepare for signing</span>
+                <span>Sign</span>
                 <Icon name="arrowRight" size={13} className="hidden sm:inline" />
               </Button>
             </>
@@ -785,25 +871,8 @@ export function SignCompose() {
       </header>
 
       {/* ── System Feedback Notice ── */}
-      {error && (
-        <div className="sign-studio-banner sign-studio-banner--error">
-          <Icon name="alertCircle" size={15} />
-          <span>{error}</span>
-          <button type="button" onClick={() => setError('')} className="sign-banner-dismiss" aria-label="Dismiss error">
-            <Icon name="close" size={12} />
-          </button>
-        </div>
-      )}
-
-      {notice && (
-        <div className="sign-studio-banner sign-studio-banner--success">
-          <Icon name="checkCircle" size={15} />
-          <span>{notice}</span>
-          <button type="button" onClick={() => setNotice('')} className="sign-banner-dismiss" aria-label="Dismiss notice">
-            <Icon name="close" size={12} />
-          </button>
-        </div>
-      )}
+      {error && <Banner variant="error" onDismiss={() => setError('')}>{error}</Banner>}
+      {notice && <Banner variant="success" onDismiss={() => setNotice('')}>{notice}</Banner>}
 
       {/* ── Document Docket Metadata Ribbon (Single Row) ── */}
       <div className="sign-docket-ribbon">
@@ -811,7 +880,7 @@ export function SignCompose() {
           <span className="sign-docket-label">
             <Icon name="layers" size={12} className="sign-brand-icon" /> Type:
           </span>
-          <Select value={type} onValueChange={v => setType(v as SignDocumentType)}>
+          <Select value={type} disabled={busy} onValueChange={v => { setType(v as SignDocumentType); setDirty(true); }}>
             <SelectTrigger className="sign-docket-select">
               <SelectValue />
             </SelectTrigger>
@@ -837,8 +906,8 @@ export function SignCompose() {
           </span>
           <Combobox
             value={industry}
-            onChange={setIndustry}
-            options={[...new Set(['Business & services', ...LAWDEPOT_TEMPLATES.map(t => t.category), ...LAWDEPOT_CATEGORIES.map(c => c.name)])]
+            disabled={busy} onChange={value => { setIndustry(value); setDirty(true); }}
+            options={[...new Set([industry, 'Business & services', ...LAWDEPOT_TEMPLATES.map(t => t.category), ...LAWDEPOT_CATEGORIES.map(c => c.name)])]
               .sort()
               .map(v => ({ value: v, label: v }))}
           />
@@ -850,7 +919,7 @@ export function SignCompose() {
           </span>
           <Combobox
             value={jurisdiction}
-            onChange={setJurisdiction}
+            disabled={busy} onChange={value => { setJurisdiction(value); setDirty(true); }}
             options={[
               { value: 'Tanzania Mainland', label: 'Tanzania Mainland' },
               { value: 'Zanzibar', label: 'Zanzibar' },
@@ -868,7 +937,7 @@ export function SignCompose() {
           <span className="sign-docket-label">
             <Icon name="globe" size={12} className="sign-brand-icon" /> Language:
           </span>
-          <Select value={language} onValueChange={setLanguage}>
+          <Select value={language} disabled={busy} onValueChange={value => { setLanguage(value); setDirty(true); }}>
             <SelectTrigger className="sign-docket-select">
               <SelectValue />
             </SelectTrigger>
@@ -876,6 +945,24 @@ export function SignCompose() {
               <SelectItem value="en">English</SelectItem>
               <SelectItem value="sw">Kiswahili</SelectItem>
               <SelectItem value="zh">简体中文</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="sign-docket-field">
+          <span className="sign-docket-label">
+            <Icon name="fileText" size={12} className="sign-brand-icon" /> Preview page:
+          </span>
+          <Select value={pageFormat} onValueChange={v => setPageFormat(v as PageFormatKey)}>
+            <SelectTrigger className="sign-docket-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PAGE_FORMATS) as PageFormatKey[]).map(key => (
+                <SelectItem key={key} value={key}>
+                  {PAGE_FORMATS[key].label} ({PAGE_FORMATS[key].desc})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -896,7 +983,7 @@ export function SignCompose() {
               </div>
               <Button variant="outline" size="sm" onClick={() => setAiModalOpen(true)} className="sign-brief-guided-btn">
                 <Icon name="sparkle" size={13} className="sign-brand-icon" />
-                <span>Guided AI Wizard</span>
+                <span>Guided AI</span>
               </Button>
             </div>
 
@@ -919,14 +1006,14 @@ export function SignCompose() {
                 'Commercial Lease Agreement with 3-month deposit',
                 'Shareholder Resolution for Bank Mandate',
               ].map(suggest => (
-                <button
+                <Button variant="ghost" size="sm"
                   key={suggest}
                   type="button"
                   className="sign-brief-chip"
                   onClick={() => setRequirements(prev => (prev ? `${prev}\n${suggest}` : suggest))}
                 >
                   + {suggest}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -936,7 +1023,7 @@ export function SignCompose() {
               </p>
               <div className="sign-brief-actions">
                 <Button variant="outline" disabled={busy || !valid} onClick={() => start(false)} className="sign-action-btn">
-                  Open Blank Parchment Editor
+                  Blank document
                 </Button>
                 <Button
                   disabled={busy || !valid || requirements.trim().length < 8}
@@ -952,200 +1039,61 @@ export function SignCompose() {
         </div>
       ) : (
         /* ── Full Studio Workbench with Top Ribbon & Centered Parchment Sheet ── */
-        <div className="sign-studio-workbench">
+        <div className="sign-studio-workbench" inert={busy} aria-busy={busy}>
           {/* ── Attached Formatting & Insert Ribbon ── */}
-          <div className="sign-paper-toolbar">
-            {/* Font Family Selector */}
-            <div className="sign-toolbar-select-wrap">
+          <div className="sign-paper-toolbar" role="toolbar" aria-label="Document formatting">
+            <div className="sign-toolbar-group">
               <Select value={fontFamily} onValueChange={setFontFamily}>
-                <SelectTrigger style={{ width: 125, height: 28, fontSize: 12 }}>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger aria-label="Preview font" className="sign-font-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                  <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
-                  <SelectItem value="'Inter', -apple-system, sans-serif">Inter</SelectItem>
-                  <SelectItem value="'Garamond', serif">Garamond</SelectItem>
-                  <SelectItem value="'Courier New', monospace">Courier</SelectItem>
+                  {[["Georgia, serif",'Georgia'],["\'Times New Roman\', serif",'Times New Roman'],["\'Inter\', -apple-system, sans-serif",'Inter'],["\'Garamond\', serif",'Garamond'],["\'Courier New\', monospace",'Courier']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Font Size Selector */}
-            <div className="sign-toolbar-select-wrap">
               <Select value={fontSize} onValueChange={setFontSize}>
-                <SelectTrigger style={{ width: 80, height: 28, fontSize: 12 }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10pt">10 pt</SelectItem>
-                  <SelectItem value="11pt">11 pt</SelectItem>
-                  <SelectItem value="11.5pt">11.5 pt</SelectItem>
-                  <SelectItem value="12pt">12 pt</SelectItem>
-                  <SelectItem value="14pt">14 pt</SelectItem>
-                  <SelectItem value="16pt">16 pt</SelectItem>
-                </SelectContent>
+                <SelectTrigger aria-label="Preview font size" className="sign-size-select"><SelectValue /></SelectTrigger>
+                <SelectContent>{['10','11','11.5','12','14','16'].map(size => <SelectItem key={size} value={`${size}pt`}>{size} pt</SelectItem>)}</SelectContent>
               </Select>
             </div>
-
-            <div className="sign-toolbar-divider" />
-
-            {/* Formatting Glyphs: B, I, U, S */}
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('bold')} title="Bold (Ctrl+B)">
-              <strong>B</strong>
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('italic')} title="Italic (Ctrl+I)">
-              <em style={{ fontFamily: 'serif' }}>I</em>
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('underline')} title="Underline (Ctrl+U)">
-              <u>U</u>
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('strikeThrough')} title="Strikethrough">
-              <s>S</s>
-            </button>
-
-            <div className="sign-toolbar-divider" />
-
-            {/* Headings */}
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('formatBlock', 'h2')} title="Heading 2">
-              H2
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('formatBlock', 'h3')} title="Heading 3">
-              H3
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('formatBlock', 'p')} title="Paragraph (¶)">
-              ¶
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('formatBlock', 'blockquote')} title="Blockquote">
-              &ldquo;
-            </button>
-
-            <div className="sign-toolbar-divider" />
-
-            {/* Alignment */}
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('justifyLeft')} title="Align Left">
-              <Icon name="alignLeft" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('justifyCenter')} title="Align Center">
-              <Icon name="alignCenter" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('justifyRight')} title="Align Right">
-              <Icon name="alignRight" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('justifyFull')} title="Justify (Formal Legal)">
-              <Icon name="menu" size={13} />
-            </button>
-
-            <div className="sign-toolbar-divider" />
-
-            {/* Lists & Indents */}
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('insertUnorderedList')} title="Bullet List">
-              <Icon name="list" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('insertOrderedList')} title="Numbered List (1., 2.)">
-              <span style={{ fontSize: 11, fontWeight: 700 }}>1.</span>
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('outdent')} title="Decrease Indent">
-              <Icon name="chevronLeft" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('indent')} title="Increase Indent">
-              <Icon name="chevronRight" size={13} />
-            </button>
-
-            <div className="sign-toolbar-divider" />
-
-            {/* Quick Insertion Tools */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="sign-fmt-btn sign-fmt-btn--wide" title="Insert Standard Legal Clauses">
-                  <Icon name="fileText" size={13} />
-                  <span>Clause ▾</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent style={{ width: 270 }}>
-                <DropdownMenuLabel>Standard Legal Clauses</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {BOILERPLATE_CLAUSES.map(c => (
-                  <DropdownMenuItem key={c.name} onSelect={() => insertHtmlAtCursor(c.html)}>
-                    <Icon name="plus" size={13} style={{ marginRight: 6, color: 'var(--teal)' }} />
-                    <span>{c.name}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <button
-              type="button"
-              className="sign-fmt-btn"
-              onClick={() => insertHtmlAtCursor(SIGNATURE_BLOCK_HTML)}
-              title="Insert Dual Signature Block"
-            >
-              <Icon name="edit" size={13} />
-            </button>
-
-            <button
-              type="button"
-              className="sign-fmt-btn"
-              onClick={() => insertHtmlAtCursor(MILESTONE_TABLE_HTML)}
-              title="Insert Milestone Deliverables Table"
-            >
-              <Icon name="table" size={13} />
-            </button>
-
-            <button
-              type="button"
-              className="sign-fmt-btn"
-              onClick={() => insertHtmlAtCursor(CODE_BLOCK_HTML)}
-              title="Insert Code / Tech Spec Block"
-            >
-              <Icon name="terminal" size={13} />
-            </button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="sign-fmt-btn" title="Insert Variable Placeholder">
-                  <span style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: 11 }}>[V] ▾</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent style={{ width: 210 }}>
-                <DropdownMenuLabel>Insert Merge Placeholder</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {['party_one', 'party_two', 'effective_date', 'payment_amount', 'jurisdiction', 'delivery_date', 'notice_period'].map(token => (
-                  <DropdownMenuItem
-                    key={token}
-                    onSelect={() =>
-                      insertHtmlAtCursor(
-                        `<span style="background: var(--teal-l, #ccfbf1); color: var(--teal, #0f766e); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-weight: bold; border: 1px solid var(--teal-m, #99f6e4);">[${token.toUpperCase()}]</span>&nbsp;`
-                      )
-                    }
-                  >
-                    <span style={{ fontFamily: 'monospace', fontSize: 12 }}>[{token.toUpperCase()}]</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <button type="button" className="sign-fmt-btn" onClick={handleInsertLink} title="Insert Link">
-              <Icon name="link" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => fileInputRef.current?.click()} title="Insert Image / Seal">
-              <Icon name="image" size={13} />
-            </button>
-
-            <div className="sign-toolbar-divider" />
-
-            {/* Undo / Redo / Clear formatting */}
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('undo')} title="Undo (Ctrl+Z)">
-              <Icon name="arrowLeft" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('redo')} title="Redo (Ctrl+Y)">
-              <Icon name="arrowRight" size={13} />
-            </button>
-            <button type="button" className="sign-fmt-btn" onClick={() => exec('removeFormat')} title="Clear Formatting">
-              <Icon name="trash" size={13} />
-            </button>
+            <div className="sign-toolbar-group">
+              <EditorTool label="Bold" onClick={() => exec('bold')}><strong>B</strong></EditorTool>
+              <EditorTool label="Italic" onClick={() => exec('italic')}><em>I</em></EditorTool>
+              <EditorTool label="Underline" onClick={() => exec('underline')}><u>U</u></EditorTool>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" aria-label="Text style" title="Text style">Style<Icon name="chevronDown" size={12} /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {[['p','Paragraph'],['h2','Heading 2'],['h3','Heading 3'],['blockquote','Quote']].map(([value,label]) => <DropdownMenuItem key={value} onSelect={() => exec('formatBlock',value)}>{label}</DropdownMenuItem>)}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => exec('strikeThrough')}>Strikethrough</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => exec('removeFormat')}>Clear formatting</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Alignment" title="Alignment"><Icon name="alignLeft" size={16} /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent>{[['justifyLeft','Left'],['justifyCenter','Center'],['justifyRight','Right'],['justifyFull','Justify']].map(([command,label]) => <DropdownMenuItem key={command} onSelect={() => exec(command)}>{label}</DropdownMenuItem>)}</DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Lists and indentation" title="Lists and indentation"><Icon name="list" size={16} /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent>{[['insertUnorderedList','Bullets'],['insertOrderedList','Numbering'],['outdent','Decrease indent'],['indent','Increase indent']].map(([command,label]) => <DropdownMenuItem key={command} onSelect={() => exec(command)}>{label}</DropdownMenuItem>)}</DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="sign-toolbar-group">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" aria-label="Insert content"><Icon name="plus" size={16} />Insert<Icon name="chevronDown" size={12} /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onSelect={handleInsertLink}><Icon name="link" size={15} />Link</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}><Icon name="image" size={15} />Image</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => insertHtmlAtCursor(MILESTONE_TABLE_HTML)}><Icon name="table" size={15} />Table</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => insertHtmlAtCursor(SIGNATURE_BLOCK_HTML)}><Icon name="edit" size={15} />Signature block</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => insertHtmlAtCursor(CODE_BLOCK_HTML)}><Icon name="terminal" size={15} />Code block</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub><DropdownMenuSubTrigger>Clause</DropdownMenuSubTrigger><DropdownMenuSubContent className="max-w-[calc(100vw-2rem)]">{BOILERPLATE_CLAUSES.map(clause => <DropdownMenuItem key={clause.name} onSelect={() => insertHtmlAtCursor(clause.html)}>{clause.name}</DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
+                  <DropdownMenuSub><DropdownMenuSubTrigger>Placeholder</DropdownMenuSubTrigger><DropdownMenuSubContent>{['party_one','party_two','effective_date','payment_amount','jurisdiction','delivery_date','notice_period'].map(token => <DropdownMenuItem key={token} onSelect={() => insertHtmlAtCursor(`[${token.toUpperCase()}]&nbsp;`)}>{token.replaceAll('_',' ')}</DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <EditorTool label="Undo" onClick={() => exec('undo')}><Icon name="arrowLeft" size={16} /></EditorTool>
+              <EditorTool label="Redo" onClick={() => exec('redo')}><Icon name="arrowRight" size={16} /></EditorTool>
+            </div>
           </div>
-
           {/* ── Image Resizer & Alignment Floating Controls ── */}
           {selectedImg && (
             <div className="sign-compose-img-toolbar" onMouseDown={e => e.preventDefault()}>
@@ -1154,64 +1102,64 @@ export function SignCompose() {
                 <span>Image Resize:</span>
               </div>
               <div className="sign-img-presets">
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   className={`sign-img-btn ${imgWidth === 140 ? 'is-active' : ''}`}
                   onClick={() => applyImageWidth(140)}
                 >
                   Small
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost" size="sm"
                   type="button"
                   className={`sign-img-btn ${imgWidth === 260 ? 'is-active' : ''}`}
                   onClick={() => applyImageWidth(260)}
                 >
                   Medium
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost" size="sm"
                   type="button"
                   className={`sign-img-btn ${imgWidth === 420 ? 'is-active' : ''}`}
                   onClick={() => applyImageWidth(420)}
                 >
                   Large
-                </button>
-                <button type="button" className="sign-img-btn" onClick={() => applyImageWidth('100%')}>
+                </Button>
+                <Button variant="ghost" size="sm" type="button" className="sign-img-btn" onClick={() => applyImageWidth('100%')}>
                   Fit Width
-                </button>
-                <button type="button" className="sign-img-btn" onClick={() => applyImageWidth('original')}>
+                </Button>
+                <Button variant="ghost" size="sm" type="button" className="sign-img-btn" onClick={() => applyImageWidth('original')}>
                   Original
-                </button>
+                </Button>
               </div>
               <div className="sign-img-aligns">
-                <button type="button" className="sign-img-btn" onClick={() => applyImageAlign('left')}>
+                <Button variant="ghost" size="sm" type="button" className="sign-img-btn" onClick={() => applyImageAlign('left')}>
                   Left
-                </button>
-                <button type="button" className="sign-img-btn" onClick={() => applyImageAlign('center')}>
+                </Button>
+                <Button variant="ghost" size="sm" type="button" className="sign-img-btn" onClick={() => applyImageAlign('center')}>
                   Center
-                </button>
-                <button type="button" className="sign-img-btn" onClick={() => applyImageAlign('right')}>
+                </Button>
+                <Button variant="ghost" size="sm" type="button" className="sign-img-btn" onClick={() => applyImageAlign('right')}>
                   Right
-                </button>
+                </Button>
               </div>
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 className="sign-img-btn sign-img-btn--danger"
                 onClick={deleteSelectedImage}
                 title="Remove image"
               >
                 <Icon name="trash" size={13} />
-              </button>
+              </Button>
             </div>
           )}
 
           {/* ── Desk Viewport with Centered Legal Parchment Sheet ── */}
           <div className="sign-paper-desk">
-            <div className="sign-parchment-sheet">
+            <div className="sign-parchment-sheet" style={{ maxWidth: sheetWidthPx }}>
               {/* Authentic Legal Header Strip */}
               <div className="sign-sheet-header">
                 <div className="sign-sheet-header-brand">
                   <span className="sign-sheet-brand-dot" />
-                  <span>HUDUMIKA VERIFIED LEGAL ARCHIVE</span>
+                  <span>HUDUMIKA DOCUMENT STUDIO</span>
                 </div>
                 <div className="sign-sheet-header-meta">
                   <span>{jurisdiction.toUpperCase()}</span>
@@ -1220,25 +1168,45 @@ export function SignCompose() {
                 </div>
               </div>
 
-              {/* ContentEditable Parchment Body */}
-              <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={handleEditorInput}
-                className="sign-sheet-body"
-                style={{
-                  fontFamily,
-                  fontSize,
-                  lineHeight: 1.75,
-                }}
-                data-placeholder="Start writing or drafting your legal document…"
-              />
+              {/* ContentEditable Parchment Body with page-break overlays */}
+              <div className="sign-sheet-body-wrap">
+                <div
+                  ref={editorRef}
+                  role="textbox"
+                  aria-label="Document body"
+                  aria-multiline="true"
+                  aria-busy={busy}
+                  contentEditable={!busy}
+                  suppressContentEditableWarning
+                  onInput={handleEditorInput}
+                  className="sign-sheet-body"
+                  style={{
+                    fontFamily,
+                    fontSize,
+                    lineHeight: 1.75,
+                    minHeight: contentPerPage,
+                  }}
+                  data-placeholder="Start writing or drafting your legal document…"
+                />
+
+                {/* Visual page-break indicators */}
+                {pageCount > 1 && Array.from({ length: pageCount - 1 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="sign-page-break-marker"
+                    style={{ top: contentPerPage * (i + 1) }}
+                  >
+                    <span className="sign-page-break-label">
+                      Page {i + 2} of {pageCount}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
               {/* Authentic Document Watermark Footer */}
               <div className="sign-sheet-footer">
-                <span>HUDUMIKA LEGAL STUDIO &bull; OFFICIAL BINDING INSTRUMENT</span>
-                <span>PAGE 1 OF 1</span>
+                <span>HUDUMIKA LEGAL STUDIO &bull; DRAFT DOCUMENT — REVIEW BEFORE SIGNING</span>
+                <span>PREVIEW · {fmt.label.toUpperCase()} · PDF EXPORT: A4</span>
               </div>
             </div>
           </div>
@@ -1260,6 +1228,10 @@ export function SignCompose() {
               <span>&bull;</span>
               <span>
                 Font: <strong>{fontFamily.split(',')[0].replace(/'/g, '')}</strong> ({fontSize})
+              </span>
+              <span>&bull;</span>
+              <span>
+                <strong>{pageCount}</strong> {pageCount === 1 ? 'page' : 'pages'} ({fmt.label})
               </span>
             </div>
 
@@ -1283,25 +1255,31 @@ export function SignCompose() {
         initialName={title}
         initialCategory={industry}
         initialDescription={requirements}
+        initialDocumentType={type}
         onSave={async data => {
-          await persist();
-          await apiFetch('/v1/sign/document-library', {
-            method: 'POST',
-            body: JSON.stringify({
-              name: data.name,
-              description: data.description,
-              document_definition: {
-                category: data.category,
-                document_type: data.documentType,
-                jurisdictions: [jurisdiction],
-                body: editorRef.current?.innerText || title,
-                editor_html: editorRef.current?.innerHTML || html,
-                questions: [],
-                language: language as 'en' | 'sw' | 'zh',
-              },
-            }),
-          });
-          setNotice('Template published to your Company Template Library.');
+          if (savingRef.current) throw new Error('Wait for the current save to finish.');
+          savingRef.current = true;
+          setBusy(true);
+          try {
+            const saved = await persist();
+            await apiFetch('/v1/sign/document-library', {
+              method: 'POST',
+              body: JSON.stringify({
+                name: data.name,
+                description: data.description,
+                document_definition: {
+                  category: data.category,
+                  document_type: data.documentType,
+                  jurisdictions: [jurisdiction],
+                  body: saved.body,
+                  editor_html: saved.definition.editor_html,
+                  questions: [],
+                  language: language as 'en' | 'sw' | 'zh',
+                },
+              }),
+            });
+            setNotice('Template published to your Company Template Library.');
+            } finally { savingRef.current = false; setBusy(false); }
         }}
       />
 

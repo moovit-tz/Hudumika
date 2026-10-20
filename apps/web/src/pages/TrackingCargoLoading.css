@@ -1,0 +1,147 @@
+/* TrackingCargoLoading.css - Responsive and Dark Mode Styles */
+
+.cargo-loading-page {
+  padding-bottom: 32px;
+  color: var(--ink);
+}
+
+.cargo-loading-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.cargo-vehicle-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cargo-vehicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 860px;
+  overflow-y: auto;
+}
+
+.cargo-vehicle-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: var(--elev-sm);
+}
+
+.cargo-vehicle-card:hover {
+  border-color: var(--teal);
+  box-shadow: var(--elev);
+}
+
+.cargo-vehicle-card.is-selected {
+  border-color: var(--orange, #f97316);
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.12);
+}
+
+[data-theme="dark"] .cargo-vehicle-card.is-selected {
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.22);
+}
+
+.cargo-kpi-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.cargo-kpi-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+}
+
+.cargo-loading-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+}
+
+.cargo-driver-card-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.cargo-driver-phone-btn {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+}
+
+[data-theme="dark"] .cargo-driver-phone-btn {
+  background: rgba(249, 115, 22, 0.14);
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.25);
+}
+
+.cargo-driver-chat-btn {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+[data-theme="dark"] .cargo-driver-chat-btn:hover {
+  background: var(--hover-bg);
+}
+
+/* =========================================================
+   RESPONSIVE BREAKPOINTS
+========================================================= */
+@media (max-width: 1040px) {
+  .cargo-loading-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .cargo-vehicle-list {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    max-height: none;
+  }
+
+  .cargo-vehicle-card {
+    min-width: 250px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .cargo-loading-bottom-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cargo-kpi-ribbon {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .cargo-kpi-divider {
+    display: none;
+  }
+}

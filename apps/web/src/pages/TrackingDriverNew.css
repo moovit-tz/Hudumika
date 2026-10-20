@@ -1,0 +1,17 @@
+.driver-registration { max-width: 960px; width: 100%; margin-inline: auto; padding-bottom: 24px; }
+.driver-registration-progress { display: grid; gap: 14px; margin-bottom: 24px; color: var(--ink2); font-size: 13px; }
+.driver-registration-form { display: grid; gap: 24px; }
+.driver-registration-form h2 { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
+.driver-registration-form h2:focus { outline: none; }
+.driver-registration-help { font-size: 13px; color: var(--ink2); line-height: 1.6; margin: 0; }
+.driver-registration-fields { border: 0; padding: 0; margin: 0; display: grid; gap: 20px; min-width: 0; }
+.driver-registration-fields label, .driver-registration-label { display: grid; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.driver-registration-label { margin-bottom: 8px; }
+.driver-registration-optional { font-size: 12px; font-weight: 400; color: var(--ink3); }
+.driver-registration-actions { border-top: 1px solid var(--border); padding-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.driver-registration-actions > div { display: flex; gap: 10px; }
+.driver-registration-review { margin: 0; }
+.driver-registration-review > div { display: grid; grid-template-columns: 150px minmax(0,1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.driver-registration-review dt { color: var(--ink3); font-size: 13px; }
+.driver-registration-review dd { margin: 0; color: var(--ink); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+@media(max-width: 480px) { .driver-registration-review > div { grid-template-columns: 1fr; gap: 6px; } .driver-registration-actions { flex-wrap: wrap; } }

@@ -27,6 +27,7 @@ import { TrackingFuel } from '../pages/TrackingFuel.js';
 import { TrackingFuelNew } from '../pages/TrackingFuelNew.js';
 import { TrackingPartsStock } from '../pages/TrackingPartsStock.js';
 import { TrackingVendors } from '../pages/TrackingVendors.js';
+import { TrackingVendorDetail } from '../pages/TrackingVendorDetail.js';
 import { TrackingDocuments } from '../pages/TrackingDocuments.js';
 import { TrackingReminders } from '../pages/TrackingReminders.js';
 import { TrackingGeofences } from '../pages/TrackingGeofences.js';
@@ -62,7 +63,6 @@ export function TrackingShell() {
         { label: 'Fleet Assets',   icon: 'truck',   path: '/tracking/vehicles' },
         { label: 'Drivers',        icon: 'user',    path: '/tracking/drivers' },
         { label: 'Trips',          icon: 'package', path: '/tracking/shipments' },
-        { label: 'Operations Ledger', icon: 'clipboardList', path: '/tracking/ledger' },
         { label: 'Route Planner',  icon: 'compass', path: '/tracking/route-planner' },
         { label: 'Cargo Loading',  icon: 'layers', path: '/tracking/cargo-loading', ...enterpriseBadge },
         { label: 'Expense Entry',  icon: 'dollarSign', path: '/tracking/expenses/new' },
@@ -152,7 +152,7 @@ export function TrackingShell() {
                 <Route path="drivers/:id" element={<TrackingDriverDetail />} />
                 <Route path="shipments" element={<TrackingShipments />} />
                 <Route path="shipments/:id" element={<TrackingTripDetail />} />
-                <Route path="ledger" element={<Navigate to="/tracking?tab=ledger" replace />} />
+                <Route path="ledger" element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="trips" element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="consignments" element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="cargo-loading" element={<TrackingCargoLoading />} />
@@ -167,6 +167,7 @@ export function TrackingShell() {
                 <Route path="fuel/new" element={<TrackingFuelNew />} />
                 <Route path="parts" element={<TrackingPartsStock />} />
                 <Route path="vendors" element={<TrackingVendors />} />
+                <Route path="vendors/:id" element={<TrackingVendorDetail />} />
                 <Route path="warehouse" element={<TrackingWarehouse />} />
                 <Route path="documents" element={<TrackingDocuments />} />
                 <Route path="reminders" element={<TrackingReminders />} />

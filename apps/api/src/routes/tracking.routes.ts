@@ -178,8 +178,8 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   fastify.post('/gpswox/sync-now', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     try {
-      return await gpswoxService.syncPositions(user.tenant_id, (vehicleId, lat, lng) => {
-        broadcastToTenant(fastify, user.tenant_id, { type: 'vehicle.position_updated', vehicleId, latitude: lat, longitude: lng });
+      return await gpswoxService.syncPositions(user.tenant_id, (vehicleId, lat, lng, observation) => {
+        broadcastToTenant(fastify, user.tenant_id, { type: 'vehicle.position_updated', vehicleId, latitude: lat, longitude: lng, ...observation });
       });
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
@@ -248,30 +248,36 @@ export async function trackingRoutes(fastify: FastifyInstance) {
       `.execute(trx);
 
       const drivers = await trx.selectFrom('drivers')
-        .select(['id', 'assigned_vehicle_id'])
+        .select(['id', 'assigned_vehicle_id', 'name', 'phone'])
         .where('tenant_id', '=', user.tenant_id)
         .where('assigned_vehicle_id', 'is not', null)
         .execute();
 
-      // Sends the driver's id, not a raw avatar_url/photo_url — the client
-      // fetches the actual picture through PersonAvatar's own identity-
-      // system proxy (GET /v1/identity/drivers/:id/avatar), same as every
-      // other driver picture in the app, rather than a second, independent
-      // read of the same column that could drift from what that shows.
-      const driverByVehicle = new Map(drivers.map(d => [d.assigned_vehicle_id, d.id]));
+      const driverByVehicle = new Map(drivers.map(d => [d.assigned_vehicle_id, d]));
 
-      // A vehicle's current route/cargo on the live map used to be a fixed
-      // set of invented strings (same "Dar es Salaam Port Terminal" origin,
-      // same 8.4t cargo weight) attached to every vehicle regardless of what
-      // it was actually doing — the real answer already exists as that
-      // vehicle's own IN_PROGRESS trip row; a vehicle with no active trip
-      // gets null here rather than a fabricated stand-in.
       const activeTrips = await trx.selectFrom('trips')
-        .select(['vehicle_id', 'origin', 'destination', 'cargo_type', 'cargo_weight_kg', 'cargo_temp_c', 'load_capacity_pct', 'scheduled_end'])
+        .select(['id', 'vehicle_id', 'origin', 'destination', 'cargo_type', 'cargo_weight_kg', 'cargo_temp_c', 'load_capacity_pct', 'scheduled_end', 'shipment_id'])
         .where('tenant_id', '=', user.tenant_id)
         .where('status', '=', 'IN_PROGRESS')
         .execute();
+
+      const shipmentIds = [...new Set(activeTrips.map(t => t.shipment_id).filter((s): s is string => !!s))];
+      const refByShipment = new Map<string, string>();
+      if (shipmentIds.length > 0) {
+        try {
+          const scRows = await trx.selectFrom('shipment_cases')
+            .select(['id', 'ref_number'])
+            .where('tenant_id', '=', user.tenant_id)
+            .where('id', 'in', shipmentIds)
+            .execute();
+          scRows.forEach(sc => refByShipment.set(sc.id, sc.ref_number));
+        } catch { /* shipment_cases not provisioned */ }
+      }
+
       const tripByVehicle = new Map(activeTrips.map(t => [t.vehicle_id, {
+        id: t.id,
+        shipment_id: t.shipment_id ?? null,
+        shipment_ref: t.shipment_id ? (refByShipment.get(t.shipment_id) ?? null) : null,
         origin: t.origin, destination: t.destination, cargo_type: t.cargo_type,
         cargo_weight_kg: numOrNull(t.cargo_weight_kg), cargo_temp_c: numOrNull(t.cargo_temp_c),
         load_capacity_pct: numOrNull(t.load_capacity_pct), eta: t.scheduled_end,
@@ -282,17 +288,19 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         latitude: Number(r.latitude), longitude: Number(r.longitude),
         speed: numOrNull(r.speed), heading: numOrNull(r.heading), battery_pct: numOrNull(r.battery_pct),
       }]));
-      // device_secret never leaves the server once set (see the separate,
-      // unauthenticated device-ingestion route) — a plain vehicle list read
-      // by any dispatcher is not the place to hand out the credential a real
-      // GPS tracker authenticates with.
-      return vehicles.map(v => ({
-        ...stripSecret(v),
-        mileage_km: numOrNull(v.mileage_km),
-        driver_id: driverByVehicle.get(v.id) ?? null,
-        last_position: posByVehicle.get(v.id) ?? null,
-        current_trip: tripByVehicle.get(v.id) ?? null,
-      }));
+
+      return vehicles.map(v => {
+        const d = driverByVehicle.get(v.id);
+        return {
+          ...stripSecret(v),
+          mileage_km: numOrNull(v.mileage_km),
+          driver_id: d?.id ?? null,
+          driver_name: d?.name ?? v.driver_name ?? null,
+          driver_phone: d?.phone ?? v.driver_phone ?? null,
+          last_position: posByVehicle.get(v.id) ?? null,
+          current_trip: tripByVehicle.get(v.id) ?? null,
+        };
+      });
     });
   });
 
@@ -381,10 +389,13 @@ export async function trackingRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/vehicles/:id/history', async (req) => {
+  fastify.get('/vehicles/:id/history', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const { from, to } = req.query as { from?: string; to?: string };
+    const parsed = z.object({ from: z.string().datetime({ offset: true }).optional(), to: z.string().datetime({ offset: true }).optional() }).safeParse(req.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Enter a valid date range' });
+    const { from, to } = parsed.data;
+    if (from && to && Date.parse(from) > Date.parse(to)) return reply.status(400).send({ error: 'From must be before To' });
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('vehicle_positions')
         .selectAll()
@@ -392,8 +403,8 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id);
       if (from) q = q.where('recorded_at', '>=', new Date(from));
       if (to) q = q.where('recorded_at', '<=', new Date(to));
-      const rows = await q.orderBy('recorded_at', 'asc').limit(2000).execute();
-      return rows.map(r => ({
+      const rows = await q.orderBy('recorded_at', 'desc').limit(2000).execute();
+      return rows.reverse().map(r => ({
         ...r,
         latitude: Number(r.latitude), longitude: Number(r.longitude),
         speed: numOrNull(r.speed), heading: numOrNull(r.heading), battery_pct: numOrNull(r.battery_pct),

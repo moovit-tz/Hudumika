@@ -80,6 +80,7 @@ export const ALL_FEATURE_KEYS = [
   // silently a no-op even though the backend genuinely enforces it.
   'sign',
   'sms',
+  'travel',
   // Enterprise Identity & Governance (migration 387) — a sub-feature key
   // sitting alongside its parent 'ondi', same dotted convention as
   // tracking.*: SAML SSO federation, JIT-expiring role grants, and SIEM

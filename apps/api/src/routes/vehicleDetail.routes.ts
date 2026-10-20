@@ -1,3 +1,4 @@
+import { readFleetDocuments } from '../services/fleet-documents.service.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
@@ -64,9 +65,7 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
         .orderBy('expense_date', 'desc').limit(200).execute();
       const expenses = expenseRows.map(r => ({ ...r, amount: Number(r.amount) }));
 
-      const documents = await trx.selectFrom('vehicle_documents').selectAll()
-        .where('vehicle_id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .orderBy('expiry_date').execute();
+      const documents = await readFleetDocuments(trx, user.tenant_id, id);
 
       const reminders = await trx.selectFrom('fleet_reminders').selectAll()
         .where('vehicle_id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -88,6 +87,18 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
         .where('vehicle_id', '=', id).where('tenant_id', '=', user.tenant_id)
         .where('status', '=', 'IN_PROGRESS')
         .orderBy('actual_start', 'desc').executeTakeFirst();
+
+      let shipmentRef: string | null = null;
+      if (activeTrip?.shipment_id) {
+        try {
+          const sc = await trx.selectFrom('shipment_cases')
+            .select(['ref_number'])
+            .where('tenant_id', '=', user.tenant_id)
+            .where('id', '=', activeTrip.shipment_id)
+            .executeTakeFirst();
+          if (sc) shipmentRef = sc.ref_number;
+        } catch { /* shipment_cases table optional */ }
+      }
 
       // Cost of ownership by month (fuel + maintenance + expenses), last 12 months.
       const since12mo = new Date(Date.now() - 365 * 86_400_000);
@@ -137,14 +148,16 @@ export async function vehicleDetailRoutes(fastify: FastifyInstance) {
 
       return {
         vehicle: { ...stripSecret(vehicle), mileage_km: numOrNull(vehicle.mileage_km) },
-        driver: driver ?? null,
+        driver: driver ?? (vehicle.driver_name ? { id: '', name: vehicle.driver_name, phone: vehicle.driver_phone ?? null } : null),
         last_position: lastPosition ? {
           ...lastPosition, latitude: Number(lastPosition.latitude), longitude: Number(lastPosition.longitude),
           speed: numOrNull(lastPosition.speed), heading: numOrNull(lastPosition.heading),
           battery_pct: numOrNull(lastPosition.battery_pct),
         } : null,
         active_trip: activeTrip ? {
-          ...activeTrip, distance_km: numOrNull(activeTrip.distance_km),
+          ...activeTrip,
+          shipment_ref: shipmentRef,
+          distance_km: numOrNull(activeTrip.distance_km),
           cargo_weight_kg: numOrNull(activeTrip.cargo_weight_kg), cargo_temp_c: numOrNull(activeTrip.cargo_temp_c),
           load_capacity_pct: numOrNull(activeTrip.load_capacity_pct),
         } : null,

@@ -7030,95 +7030,54 @@ html[data-expanded="true"] .fin-shell {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Dark mode — the overlay is position:fixed at z-index 99999,
-   outside the app's scoped theme wrapper, so every color must
-   be set explicitly here rather than relying on inherited
-   --ink/--ink3/--card-bg variables.
+   Dark mode — driven by the .ls-dark class that LockScreen.tsx
+   adds when useIsDarkMode() returns true.  The overlay sits at
+   z-index 99999 outside the app's scoped wrapper, and the old
+   @media (prefers-color-scheme) + :root:not([data-theme="light"])
+   selectors stayed dark after the user toggled to light on an
+   OS-dark system (toggleThemeWithAnimation removes data-theme
+   rather than setting it to "light", so :not(…) still matched).
+   A React-state class eliminates the mismatch entirely.
    ══════════════════════════════════════════════════════════════ */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .ls-overlay {
-    background:
-      radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 6%, transparent), transparent),
-      rgba(0, 0, 0, 0.25);
-    -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
-    backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
-  }
-  :root:not([data-theme="light"]) .ls-card {
-    background: rgba(15, 23, 42, 0.72);
-    border-color: rgba(255, 255, 255, 0.10);
-    box-shadow:
-      0 24px 64px -12px rgba(0, 0, 0, 0.50),
-      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  }
-  :root:not([data-theme="light"]) .ls-name { color: #f1f5f9; }
-  :root:not([data-theme="light"]) .ls-subtitle { color: #94a3b8; }
-  :root:not([data-theme="light"]) .ls-footer { color: #64748b; }
-  :root:not([data-theme="light"]) .ls-badge {
-    background: color-mix(in srgb, var(--teal) 15%, transparent);
-    color: var(--teal);
-    border-color: color-mix(in srgb, var(--teal) 35%, transparent);
-  }
-  :root:not([data-theme="light"]) .ls-field-icon { color: #64748b; }
-  :root:not([data-theme="light"]) .ls-dots-placeholder { color: #64748b; }
-  :root:not([data-theme="light"]) .ls-eye { color: #64748b; }
-  :root:not([data-theme="light"]) .ls-eye:hover { color: #cbd5e1; }
-  :root:not([data-theme="light"]) .ls-avatar-emblem {
-    border-color: rgba(15, 23, 42, 0.85);
-  }
-  :root:not([data-theme="light"]) .ls-field .input-field,
-  :root:not([data-theme="light"]) .ls-field input[class] {
-    background: rgba(15, 23, 42, 0.60);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #f1f5f9;
-  }
-  :root:not([data-theme="light"]) .ls-field .input-field::placeholder { color: #64748b; }
-  :root:not([data-theme="light"]) .ls-logout-btn { color: #94a3b8; }
-  :root:not([data-theme="light"]) .ls-logout-btn:hover { color: #cbd5e1; }
-  :root:not([data-theme="light"]) .ls-theme-toggle {
-    background: rgba(15, 23, 42, 0.70);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #e2e8f0;
-  }
-}
-:root[data-theme="dark"] .ls-overlay {
+.ls-dark {
   background:
     radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 6%, transparent), transparent),
     rgba(0, 0, 0, 0.25);
   -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
   backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
 }
-:root[data-theme="dark"] .ls-card {
+.ls-dark .ls-card {
   background: rgba(15, 23, 42, 0.72);
   border-color: rgba(255, 255, 255, 0.10);
   box-shadow:
     0 24px 64px -12px rgba(0, 0, 0, 0.50),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 }
-:root[data-theme="dark"] .ls-name { color: #f1f5f9; }
-:root[data-theme="dark"] .ls-subtitle { color: #94a3b8; }
-:root[data-theme="dark"] .ls-footer { color: #64748b; }
-:root[data-theme="dark"] .ls-badge {
+.ls-dark .ls-name { color: #f1f5f9; }
+.ls-dark .ls-subtitle { color: #94a3b8; }
+.ls-dark .ls-footer { color: #64748b; }
+.ls-dark .ls-badge {
   background: color-mix(in srgb, var(--teal) 15%, transparent);
   color: var(--teal);
   border-color: color-mix(in srgb, var(--teal) 35%, transparent);
 }
-:root[data-theme="dark"] .ls-field-icon { color: #64748b; }
-:root[data-theme="dark"] .ls-dots-placeholder { color: #64748b; }
-:root[data-theme="dark"] .ls-eye { color: #64748b; }
-:root[data-theme="dark"] .ls-eye:hover { color: #cbd5e1; }
-:root[data-theme="dark"] .ls-avatar-emblem {
+.ls-dark .ls-field-icon { color: #64748b; }
+.ls-dark .ls-dots-placeholder { color: #64748b; }
+.ls-dark .ls-eye { color: #64748b; }
+.ls-dark .ls-eye:hover { color: #cbd5e1; }
+.ls-dark .ls-avatar-emblem {
   border-color: rgba(15, 23, 42, 0.85);
 }
-:root[data-theme="dark"] .ls-field .input-field,
-:root[data-theme="dark"] .ls-field input[class] {
+.ls-dark .ls-field .input-field,
+.ls-dark .ls-field input[class] {
   background: rgba(15, 23, 42, 0.60);
   border-color: rgba(255, 255, 255, 0.12);
   color: #f1f5f9;
 }
-:root[data-theme="dark"] .ls-field .input-field::placeholder { color: #64748b; }
-:root[data-theme="dark"] .ls-logout-btn { color: #94a3b8; }
-:root[data-theme="dark"] .ls-logout-btn:hover { color: #cbd5e1; }
-:root[data-theme="dark"] .ls-theme-toggle {
+.ls-dark .ls-field .input-field::placeholder { color: #64748b; }
+.ls-dark .ls-logout-btn { color: #94a3b8; }
+.ls-dark .ls-logout-btn:hover { color: #cbd5e1; }
+.ls-dark .ls-theme-toggle {
   background: rgba(15, 23, 42, 0.70);
   border-color: rgba(255, 255, 255, 0.12);
   color: #e2e8f0;

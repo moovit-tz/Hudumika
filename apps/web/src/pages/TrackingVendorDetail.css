@@ -1,0 +1,229 @@
+/* ── TrackingVendorDetail.css ──────────────────────────────────── */
+.trk-vendor-detail-container {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 40px;
+}
+
+/* Profile Hero Card */
+.trk-vd-hero {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 24px;
+  box-shadow: var(--elev-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.trk-vd-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  flex: 1;
+}
+
+.trk-vd-avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--elev-sm);
+}
+
+.trk-vd-avatar-lg.WORKSHOP { background: var(--teal-l); color: var(--teal); }
+.trk-vd-avatar-lg.PARTS_SUPPLIER { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.trk-vd-avatar-lg.FUEL_STATION { background: var(--gold-l); color: var(--gold); }
+.trk-vd-avatar-lg.LEASING,
+.trk-vd-avatar-lg.FINANCING,
+.trk-vd-avatar-lg.VEHICLE_HIRE { background: var(--green-l); color: var(--green); }
+.trk-vd-avatar-lg.INSURANCE { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
+.trk-vd-avatar-lg.OTHER { background: var(--bg2); color: var(--ink2); }
+
+.trk-vd-hero-meta {
+  min-width: 0;
+}
+
+.trk-vd-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.trk-vd-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.trk-vd-contact-pills {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink2);
+  flex-wrap: wrap;
+}
+
+.trk-vd-contact-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--ink2);
+}
+
+.trk-vd-contact-pill a {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.trk-vd-contact-pill a:hover {
+  color: var(--teal);
+  text-decoration: underline;
+}
+
+.trk-vd-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* KPI Grid */
+.trk-vd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.trk-vd-kpi-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 18px;
+  box-shadow: var(--elev-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.trk-vd-kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.trk-vd-kpi-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+/* Two-column overview layout */
+.trk-vd-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Connected operations grid */
+.trk-vd-conn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.trk-vd-conn-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.trk-vd-conn-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--teal);
+  background: var(--white);
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .trk-vd-hero,
+[data-theme="dark"] .trk-vd-kpi-card {
+  background: var(--card, #1e293b);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .trk-vd-conn-card {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .trk-vd-conn-card:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: var(--teal);
+}
+
+/* Responsive Media Queries */
+@media (max-width: 900px) {
+  .trk-vd-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .trk-vd-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trk-vd-hero-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .trk-vd-hero-actions > * {
+    flex: 1;
+  }
+
+  .trk-vd-contact-pills {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .trk-vd-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .trk-vd-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -56,6 +56,7 @@ export const APP_LABELS: Record<AppId, string> = {
   sms:           'SMS',
   projects:      'Projects',
   developer:     'Developer',
+  travel:        'Travel',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -91,6 +92,7 @@ export const APP_COLORS: Record<AppId, string> = {
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
   hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR,
   sms: DEFAULT_APP_COLOR, projects: DEFAULT_APP_COLOR, developer: '#0f766e',
+  travel: '#7c3aed',
 };
 
 /**
@@ -130,6 +132,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   admin: 7, ondi: 7, onesite: 7, onsite: 7, workspace: 7,
   studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7, projects: 7, developer: 7,
   sign: 2,  // compliance & legal slot — signatures belong here
+  travel: 4,  // people slot — personal travel workspace
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

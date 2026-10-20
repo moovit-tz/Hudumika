@@ -4,35 +4,26 @@ import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog.js';
+import { Banner } from '../../components/ui/alert.js';
+import { ButtonSpinner } from '../../components/ui/spinner.js';
 import { LAWDEPOT_CATEGORIES } from './LawDepotTemplateCatalog.js';
-import './LawDepot.css';
 
 interface SaveAsTemplateModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: {
-    name: string;
-    description: string;
-    category: string;
-    documentType: string;
-  }) => Promise<void>;
+  onSave: (data: { name: string; description: string; category: string; documentType: string }) => Promise<void>;
   initialName?: string;
   initialCategory?: string;
   initialDescription?: string;
+  initialDocumentType?: string;
 }
 
-export function SaveAsTemplateModal({
-  open,
-  onClose,
-  onSave,
-  initialName = '',
-  initialCategory = 'Start & Manage a Business',
-  initialDescription = '',
-}: SaveAsTemplateModalProps) {
+export function SaveAsTemplateModal({ open, onClose, onSave, initialName = '', initialCategory = 'Start & Manage a Business', initialDescription = '', initialDocumentType = 'agreement' }: SaveAsTemplateModalProps) {
   const [name, setName] = useState(initialName);
   const [category, setCategory] = useState(initialCategory);
   const [description, setDescription] = useState(initialDescription);
-  const [documentType, setDocumentType] = useState('agreement');
+  const [documentType, setDocumentType] = useState(initialDocumentType);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,128 +32,37 @@ export function SaveAsTemplateModal({
       setName(initialName || 'Company Template');
       setCategory(initialCategory || 'Start & Manage a Business');
       setDescription(initialDescription || '');
+      setDocumentType(initialDocumentType);
       setError('');
     }
-  }, [open, initialName, initialCategory, initialDescription]);
+  }, [open, initialName, initialCategory, initialDescription, initialDocumentType]);
 
-  if (!open) return null;
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError('Please provide a name for this template.');
-      return;
-    }
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy || !name.trim()) return;
     setBusy(true);
     setError('');
     try {
-      await onSave({
-        name: name.trim(),
-        description: description.trim(),
-        category,
-        documentType,
-      });
+      await onSave({ name: name.trim(), description: description.trim(), category, documentType });
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save template');
-    } finally {
-      setBusy(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to save template'); }
+    finally { setBusy(false); }
   }
 
-  return (
-    <div className="lawdepot-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="lawdepot-save-modal-card" onClick={e => e.stopPropagation()}>
-        <div className="lawdepot-modal-header">
-          <div className="lawdepot-modal-header-copy">
-            <div className="lawdepot-modal-badge">
-              <Icon name="copy" size={14} />
-              <span>Company Template Library</span>
-            </div>
-            <h2>Save as Reusable Template</h2>
-            <p>Publish this document wording, clauses, and key decisions to your tenant library for future reuse.</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close modal">
-            <Icon name="close" size={18} />
-          </Button>
-        </div>
-
-        {error && <div className="lawdepot-banner-error">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="lawdepot-save-form">
-          <label className="lawdepot-form-field">
-            <span>Template Name *</span>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g., Master Services Agreement (Standard)"
-              required
-            />
-          </label>
-
-          <label className="lawdepot-form-field">
-            <span>Category</span>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {LAWDEPOT_CATEGORIES.map(cat => (
-                  <SelectItem key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="Other">Other / General</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
-
-          <label className="lawdepot-form-field">
-            <span>Document Type</span>
-            <Select value={documentType} onValueChange={setDocumentType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="agreement">Agreement / Contract</SelectItem>
-                <SelectItem value="letter">Letter / Notice</SelectItem>
-                <SelectItem value="policy">Policy / Guideline</SelectItem>
-                <SelectItem value="record">Record / Minutes</SelectItem>
-                <SelectItem value="form">Form / Checklist</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
-
-          <label className="lawdepot-form-field">
-            <span>Description & Notes</span>
-            <Textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Briefly describe when your team should use this template and any special signing requirements..."
-              rows={3}
-            />
-          </label>
-
-          <div className="lawdepot-save-modal-actions">
-            <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="default" disabled={busy || !name.trim()}>
-              {busy ? (
-                <>
-                  <Icon name="refresh" size={14} className="animate-spin" />
-                  Saving template…
-                </>
-              ) : (
-                <>
-                  <Icon name="check" size={14} />
-                  Save Template
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+  const categories = [...new Set([initialCategory, ...LAWDEPOT_CATEGORIES.map(item => item.name), 'Other'])].filter(Boolean);
+  return <Dialog open={open} onOpenChange={value => { if (!value && !busy) onClose(); }}>
+    <DialogContent className="w-[calc(100vw-2rem)] max-h-[90dvh] overflow-y-auto sm:max-w-lg" onInteractOutside={event => { if (busy) event.preventDefault(); }} onEscapeKeyDown={event => { if (busy) event.preventDefault(); }}>
+      <DialogHeader><DialogTitle>Save as reusable template</DialogTitle><DialogDescription>Keep this document in your company library for your team to reuse.</DialogDescription></DialogHeader>
+      {error && <Banner variant="error">{error}</Banner>}
+      <form onSubmit={handleSubmit}>
+        <fieldset disabled={busy} className="flex min-w-0 flex-col gap-4 border-0 p-0">
+          <label className="flex flex-col gap-2 text-sm">Template name<Input autoFocus required maxLength={180} value={name} onChange={event => setName(event.target.value)} /></label>
+          <label className="flex flex-col gap-2 text-sm">Category<Select value={category} onValueChange={setCategory} disabled={busy}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{categories.map(value => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></label>
+          <label className="flex flex-col gap-2 text-sm">Document type<Select value={documentType} onValueChange={setDocumentType} disabled={busy}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[['agreement','Agreement / Contract'],['letter','Letter / Notice'],['policy','Policy / Guideline'],['record','Record / Minutes'],['form','Form / Checklist']].map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+          <label className="flex flex-col gap-2 text-sm">Description<Textarea rows={3} maxLength={1000} value={description} onChange={event => setDescription(event.target.value)} placeholder="When should your team use this template?" /></label>
+          <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button type="submit" disabled={busy || !name.trim()}>{busy ? <ButtonSpinner /> : <Icon name="check" size={14} />}{busy ? 'Saving template…' : 'Save template'}</Button></DialogFooter>
+        </fieldset>
+      </form>
+    </DialogContent>
+  </Dialog>;
 }

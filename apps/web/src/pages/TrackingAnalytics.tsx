@@ -1,3 +1,4 @@
+import { useChartColors } from '../hooks/useChartColors.js';
 import React, { useState, useEffect } from 'react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
@@ -15,7 +16,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 interface VehicleScore { vehicle_id: string; name: string; score: number }
 interface Analytics {
-  fleet_health_score: number;
+  fleet_health_score: number | null;
   health_breakdown: Record<string, number>;
   vehicle_scores: VehicleScore[];
   cost_breakdown: { fuel: number; maintenance: number };
@@ -36,13 +37,14 @@ interface Analytics {
 }
 
 const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
-const BUCKET_COLORS: Record<string, string> = { Excellent: '#10b981', Good: '#84cc16', Fair: '#eab308', Poor: '#f97316', Critical: 'var(--red)' };
+
 
 function HealthGauge({ score }: { score: number }) {
+  const colors = useChartColors();
   const radius = 70, stroke = 14;
   const circumference = Math.PI * radius; // half circle
   const pct = Math.max(0, Math.min(100, score)) / 100;
-  const color = score >= 80 ? '#10b981' : score >= 60 ? '#84cc16' : score >= 40 ? '#eab308' : score >= 20 ? '#f97316' : 'var(--red)';
+  const color = score >= 80 ? colors.success : score >= 60 ? colors.brand : score >= 40 ? colors.warning : colors.error;
   const label = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : score >= 20 ? 'Poor' : 'Critical';
   return (
     <svg width={180} height={100} viewBox="0 0 180 100">
@@ -69,19 +71,23 @@ function UpgradeEmptyState({ feature }: { feature: string }) {
 }
 
 export const TrackingAnalytics: React.FC = () => {
+  const colors = useChartColors();
+  const BUCKET_COLORS: Record<string,string> = {Excellent:colors.success,Good:colors.brand,Fair:colors.warning,Poor:colors.error,Critical:colors.error};
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [locked, setLocked] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     apiFetch('/v1/tracking/analytics')
       .then(setData)
-      .catch((e: any) => { if (e.message?.includes('plan')) setLocked(true); })
+      .catch((e: any) => { if (e.message?.includes('plan')) setLocked(true); else setError(e.message || 'Unable to load analytics.'); })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <PageLoading label="Loading fleet analytics…" />;
-  if (locked || !data) return <UpgradeEmptyState feature="Fleet Analytics" />;
+  if (locked) return <UpgradeEmptyState feature="Fleet Analytics" />;
+  if (!data) return <div role="alert"><p>{error || 'No analytics available.'}</p><Button onClick={() => window.location.reload()}>Retry</Button></div>;
 
   const breakdownData = {
     labels: Object.keys(data.health_breakdown),
@@ -90,36 +96,36 @@ export const TrackingAnalytics: React.FC = () => {
 
   const trendData = {
     labels: data.vehicle_scores.map(v => v.name),
-    datasets: [{ label: 'Health score', data: data.vehicle_scores.map(v => v.score), borderColor: '#0891b2', backgroundColor: '#0891b2', tension: 0.25, pointRadius: 3 }],
+    datasets: [{ label: 'Health score', data: data.vehicle_scores.map(v => v.score), borderColor: colors.brand, backgroundColor: colors.brand, tension: 0.25, pointRadius: 3 }],
   };
 
   const fuelTrendData = {
     labels: data.fuel_by_month.map(f => f.month),
-    datasets: [{ label: 'Fuel cost', data: data.fuel_by_month.map(f => f.cost), backgroundColor: '#0891b2' }],
+    datasets: [{ label: 'Fuel cost', data: data.fuel_by_month.map(f => f.cost), backgroundColor: colors.brand }],
   };
 
   const costData = {
     labels: ['Fuel', 'Maintenance'],
-    datasets: [{ data: [data.cost_breakdown.fuel, data.cost_breakdown.maintenance], backgroundColor: ['#0891b2', '#9a6700'], borderWidth: 0 }],
+    datasets: [{ data: [data.cost_breakdown.fuel, data.cost_breakdown.maintenance], backgroundColor: [colors.brand, colors.warning], borderWidth: 0 }],
   };
 
   const totalCostData = {
     labels: data.total_cost_by_month.map(c => c.month),
-    datasets: [{ label: 'Total cost', data: data.total_cost_by_month.map(c => c.total), backgroundColor: '#7c3aed' }],
+    datasets: [{ label: 'Total cost', data: data.total_cost_by_month.map(c => c.total), backgroundColor: colors.purple }],
   };
 
   const serviceCostData = {
     labels: data.total_cost_by_month.map(c => c.month),
-    datasets: [{ label: 'Service cost', data: data.total_cost_by_month.map(c => c.service), backgroundColor: '#9a6700' }],
+    datasets: [{ label: 'Service cost', data: data.total_cost_by_month.map(c => c.service), backgroundColor: colors.warning }],
   };
 
   const costPerKmData = {
     labels: data.cost_per_km_by_month.map(c => c.month),
-    datasets: [{ label: 'Cost / km', data: data.cost_per_km_by_month.map(c => c.cost_per_km), borderColor: '#0891b2', backgroundColor: '#0891b2', tension: 0.25, pointRadius: 3 }],
+    datasets: [{ label: 'Cost / km', data: data.cost_per_km_by_month.map(c => c.cost_per_km), borderColor: colors.brand, backgroundColor: colors.brand, tension: 0.25, pointRadius: 3 }],
   };
 
   const vehicleStatusItems: { label: string; value: number; color: string }[] = [
-    { label: 'Active', value: data.vehicle_status_breakdown.active, color: '#7c3aed' },
+    { label: 'Active', value: data.vehicle_status_breakdown.active, color: colors.purple },
     { label: 'Out of Service', value: data.vehicle_status_breakdown.out_of_service, color: 'var(--gold)' },
     { label: 'Rented', value: data.vehicle_status_breakdown.rented, color: 'var(--green)' },
   ];
@@ -136,7 +142,7 @@ export const TrackingAnalytics: React.FC = () => {
       </div>
 
       <MetricsRow cards={[
-        { title: 'Fleet health', value: String(data.fleet_health_score), comparisonLabel: 'Composite score out of 100', progress: data.fleet_health_score, progressLabel: 'Fleet health score', barHighlight: data.fleet_health_score >= 80 ? 'var(--green)' : data.fleet_health_score >= 60 ? 'var(--gold)' : 'var(--red)' },
+        { title: 'Fleet health', value: data.fleet_health_score == null ? 'No fleet data' : String(data.fleet_health_score), comparisonLabel: 'Rule-based score; not mechanical diagnostics', progress: data.fleet_health_score ?? undefined, progressLabel: 'Fleet health score', barHighlight: (data.fleet_health_score ?? 0) >= 80 ? 'var(--green)' : (data.fleet_health_score ?? 0) >= 60 ? 'var(--gold)' : 'var(--red)' },
         { title: 'On-time trips', value: data.on_time_trip_pct != null ? `${data.on_time_trip_pct}%` : '—', comparisonLabel: data.on_time_trip_pct != null ? 'Completed on schedule' : 'No completed-trip timing data', barHighlight: 'var(--teal)' },
         { title: 'Documents expiring', value: String(data.documents_expiring_30d), comparisonLabel: 'Due within 30 days', barHighlight: data.documents_expiring_30d > 0 ? 'var(--gold)' : 'var(--green)' },
         { title: 'Overdue service', value: String(data.overdue_service_count), comparisonLabel: 'Vehicles past service due date', barHighlight: data.overdue_service_count > 0 ? 'var(--red)' : 'var(--green)' },
@@ -145,7 +151,7 @@ export const TrackingAnalytics: React.FC = () => {
       <div className="mb-5 grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <SectionCard title="Fleet Health Score">
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <HealthGauge score={data.fleet_health_score} />
+            {data.fleet_health_score == null ? <p>No vehicles to score.</p> : <HealthGauge score={data.fleet_health_score} />}
           </div>
         </SectionCard>
         <SectionCard title="Health Score Breakdown">

@@ -1,3 +1,4 @@
+import type { PartStockMovement } from '@hudumika/types';
 import pg from 'pg';
 import { Kysely, PostgresDialect, sql, Generated, ColumnType, Transaction } from 'kysely';
 import { env } from '../config/env.js';
@@ -6120,6 +6121,7 @@ export interface Database {
   trips: TripsTable;
   maintenance_records: MaintenanceRecordsTable;
   parts_stock: PartsStockTable;
+  parts_stock_movements: PartsStockMovementsTable;
   fuel_logs: FuelLogsTable;
   vehicle_documents: VehicleDocumentsTable;
   transporters: TransportersTable;
@@ -6253,6 +6255,11 @@ export interface Database {
   container_survey_reports: ContainerSurveyReportsTable;
   container_repairs: ContainerRepairsTable;
   container_stage_history: ContainerStageHistoryTable;
+  // ─── Travel Workspace (Migration 612) ───────────────────────
+  travel_trips: TravelTripsTable;
+  travel_itinerary_items: TravelItineraryItemsTable;
+  travel_bookings: TravelBookingsTable;
+  travel_expenses: TravelExpensesTable;
 }
 
 export interface DeveloperAccountsTable {
@@ -7955,6 +7962,7 @@ export interface VehicleVendorsTable {
   active: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  service_capabilities: Generated<string[]>;
 }
 
 export interface TripsTable {
@@ -8003,6 +8011,7 @@ export interface MaintenanceRecordsTable {
 }
 
 export interface PartsStockTable {
+  archived_at: Date | null;
   id: Generated<string>;
   tenant_id: string;
   part_name: string;
@@ -8018,6 +8027,7 @@ export interface PartsStockTable {
 }
 
 export interface WarehouseLocationsTable {
+  seal_compartment_id: string | null;
   id: Generated<string>;
   tenant_id: string;
   code: string;
@@ -8045,6 +8055,10 @@ export interface WarehouseDockAppointmentsTable {
 }
 
 export interface CargoManifestsTable {
+  status: Generated<'DRAFT' | 'APPROVED' | 'DISPATCHED'>;
+  shipment_id: string | null;
+  origin: string | null;
+  destination: string | null;
   id: Generated<string>;
   tenant_id: string;
   vehicle_id: string | null;
@@ -8070,7 +8084,7 @@ export interface CargoItemsTable {
   weight_kg: number;
   quantity: Generated<number>;
   color: string | null;
-  placements: Generated<string>;
+  placements: Generated<{ x: number; y: number; z: number }[]>;
   created_at: Generated<Date>;
 }
 
@@ -8090,6 +8104,7 @@ export interface FuelLogsTable {
 }
 
 export interface VehicleDocumentsTable {
+  comply_certificate_id: string | null;
   id: Generated<string>;
   tenant_id: string;
   vehicle_id: string;
@@ -8153,6 +8168,7 @@ export interface TrailerDocumentsTable {
 }
 
 export interface FleetRemindersTable {
+  notified_at: Date | null;
   id: Generated<string>;
   tenant_id: string;
   vehicle_id: string | null;
@@ -11954,4 +11970,50 @@ export interface FinanceAccountingOutboxTable {
  status: Generated<'PENDING' | 'RUNNING' | 'SUCCESS' | 'RETRY' | 'RECONCILE' | 'FAILED'>;
  attempts: Generated<number>; next_attempt_at: Generated<Date>; last_error: string | null;
  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface PartsStockMovementsTable extends Omit<PartStockMovement, 'id' | 'created_at'> {
+  id: Generated<string>; created_at: Generated<Date>;
+}
+
+// ─── Travel Workspace (Migration 612) ──────────────────────────────
+export interface TravelTripsTable {
+  id: Generated<string>; tenant_id: string; created_by: string;
+  title: string; destination: string; country_code: string | null; cover_image: string | null;
+  start_date: string | null; end_date: string | null;
+  status: Generated<'planning' | 'upcoming' | 'active' | 'completed' | 'cancelled'>;
+  budget_amount: Generated<number>; budget_currency: Generated<string>;
+  notes: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface TravelItineraryItemsTable {
+  id: Generated<string>; tenant_id: string; trip_id: string;
+  day_number: Generated<number>; sort_order: Generated<number>;
+  item_type: Generated<'flight' | 'hotel' | 'transport' | 'activity' | 'restaurant' | 'meeting' | 'other'>;
+  title: string; description: string | null; location: string | null;
+  start_time: Date | null; end_time: Date | null; confirmation: string | null;
+  cost: number | null; currency: string | null;
+  status: Generated<'planned' | 'confirmed' | 'cancelled'>;
+  metadata: Generated<Record<string, unknown>>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface TravelBookingsTable {
+  id: Generated<string>; tenant_id: string; trip_id: string | null; created_by: string;
+  booking_type: Generated<'flight' | 'hotel' | 'car' | 'train' | 'bus' | 'ferry' | 'tour' | 'insurance' | 'other'>;
+  provider: string | null; reference: string | null; title: string;
+  status: Generated<'pending' | 'confirmed' | 'cancelled' | 'completed'>;
+  start_date: Date | null; end_date: Date | null;
+  cost: number | null; currency: string | null;
+  passengers: Generated<unknown[]>; details: Generated<Record<string, unknown>>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface TravelExpensesTable {
+  id: Generated<string>; tenant_id: string; trip_id: string | null; created_by: string;
+  category: Generated<'flights' | 'accommodation' | 'transport' | 'food' | 'activities' | 'insurance' | 'shopping' | 'other'>;
+  description: string; amount: number; currency: Generated<string>;
+  expense_date: Generated<string>; receipt_file_id: string | null;
+  reimbursable: Generated<boolean>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
 }

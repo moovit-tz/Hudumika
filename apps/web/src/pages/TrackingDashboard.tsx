@@ -1,3 +1,4 @@
+import { SectionCard } from '../components/SectionCard.js';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
@@ -112,6 +113,7 @@ export const TrackingDashboard: React.FC = () => {
 
   // Active view tab synced with URL query (?tab=ledger)
   const tabParam = searchParams.get('tab');
+  useEffect(() => { if (searchParams.get('tab') === 'ledger') navigate('/tracking/shipments', { replace: true }); }, [searchParams, navigate]);
   const [activeTab, setActiveTab] = useState<'all' | 'fleet' | 'warehouse' | 'ledger'>(() => {
     if (tabParam === 'fleet' || tabParam === 'warehouse' || tabParam === 'ledger') return tabParam;
     return 'all';
@@ -146,18 +148,6 @@ export const TrackingDashboard: React.FC = () => {
   const [trips, setTrips] = useState<RawTrip[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Search, Filter & Pagination state for trip operations ledger
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
-  const [ledgerPage, setLedgerPage] = useState(1);
-  const [ledgerPageSize, setLedgerPageSize] = useState(10);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setLedgerPage(1);
-  }, [searchQuery, statusFilter]);
 
   // Drawers
   const [copilotOpen, setCopilotOpen] = useState(false);
@@ -251,28 +241,7 @@ export const TrackingDashboard: React.FC = () => {
     });
   }, [trips, vehicles, drivers]);
 
-  // Filtered shipments
-  const filteredShipments = useMemo(() => {
-    return allShipments.filter(item => {
-      const matchesSearch =
-        item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.vehicle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.driverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.origin.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.destination.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus = !statusFilter || item.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [allShipments, searchQuery, statusFilter]);
-
-  // Paginated slice for current page
-  const paginatedShipments = useMemo(() => {
-    const start = (ledgerPage - 1) * ledgerPageSize;
-    return filteredShipments.slice(start, start + ledgerPageSize);
-  }, [filteredShipments, ledgerPage, ledgerPageSize]);
 
   // Handle Copilot Send
   const handleSendCopilot = (customPrompt?: string) => {
@@ -298,26 +267,6 @@ export const TrackingDashboard: React.FC = () => {
       }
       setCopilotMessages(prev => [...prev, { role: 'ai', text: aiReply, time: 'Just now' }]);
     }, 600);
-  };
-
-  const isPageAllSelected = useMemo(() => {
-    return paginatedShipments.length > 0 && paginatedShipments.every(s => selectedShipmentIds.includes(s.id));
-  }, [paginatedShipments, selectedShipmentIds]);
-
-  const toggleSelectAll = () => {
-    if (isPageAllSelected) {
-      const pageIds = new Set(paginatedShipments.map(s => s.id));
-      setSelectedShipmentIds(prev => prev.filter(id => !pageIds.has(id)));
-    } else {
-      const pageIds = paginatedShipments.map(s => s.id);
-      setSelectedShipmentIds(prev => Array.from(new Set([...prev, ...pageIds])));
-    }
-  };
-
-  const toggleSelectShipment = (id: string) => {
-    setSelectedShipmentIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
   };
 
   return (
@@ -385,10 +334,10 @@ export const TrackingDashboard: React.FC = () => {
           <button
             type="button"
             className={`logistics-tab-btn ${activeTab === 'ledger' ? 'is-active' : ''}`}
-            onClick={() => handleTabChange('ledger')}
+            onClick={() => navigate('/tracking/shipments')}
            data-ui-native-button="">
             <Icon name="clipboardList" size={14} />
-            <span>Operations Ledger</span>
+            <span>Trips</span>
           </button>
         </div>
 
@@ -1236,252 +1185,7 @@ export const TrackingDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── SECTION 5: Shipment Operations Ledger (Interactive Data Table) ── */}
-      {(activeTab === 'all' || activeTab === 'ledger') && (
-        <div className="logistics-card" id="shipment-operations-ledger">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Shipment Operations Ledger</h3>
-              <Badge variant="gray">{filteredShipments.length} {filteredShipments.length === 1 ? 'trip' : 'trips'}</Badge>
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--ink3)', margin: '2px 0 0 0' }}>
-              Monitor trips, prioritize delays, and manage carrier handovers
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {/* Search Input */}
-            <div style={{ position: 'relative', minWidth: 220 }}>
-              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }} />
-              <Input
-                type="search"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search trips, driver, route…"
-                style={{ paddingLeft: 32 }}
-              />
-            </div>
-
-            {/* Status Filter */}
-            <SingleSelectFilter
-              label="Status"
-              options={[
-                { value: 'In Transit', label: 'In Transit' },
-                { value: 'Delivered', label: 'Delivered' },
-                { value: 'Delayed', label: 'Delayed' },
-                { value: 'Customs', label: 'Customs' },
-                { value: 'Exception', label: 'Exception' },
-              ]}
-              value={statusFilter}
-              onChange={v => setStatusFilter(v)}
-              allLabel="All Statuses"
-            />
-
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => navigate('/tracking/shipments')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Icon name="plus" size={14} />
-              <span>New Dispatch</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Table View */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 800 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)', fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                <th style={{ padding: '10px 8px', width: 32 }}>
-                  <Checkbox
-                    checked={isPageAllSelected}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="Select all shipments on this page"
-                  />
-                </th>
-                <th style={{ padding: '10px 8px' }}>Shipment ID</th>
-                <th style={{ padding: '10px 8px' }}>Customer / Cargo</th>
-                <th style={{ padding: '10px 8px' }}>Carrier / Mode</th>
-                <th style={{ padding: '10px 8px' }}>Corridor Route</th>
-                <th style={{ padding: '10px 8px' }}>Status</th>
-                <th style={{ padding: '10px 8px' }}>Priority</th>
-                <th style={{ padding: '10px 8px' }}>Vehicle / Driver</th>
-                <th style={{ padding: '10px 8px' }}>ETA</th>
-                <th style={{ padding: '10px 8px', textAlign: 'right' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredShipments.length === 0 ? (
-                <tr>
-                  <td colSpan={10} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--ink3)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      <Icon name="package" size={28} color="var(--ink3)" />
-                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink2)' }}>No operational shipments found</div>
-                      <div style={{ fontSize: 12 }}>
-                        {searchQuery || statusFilter
-                          ? 'No shipments match the current search filters.'
-                          : 'Create a dispatch trip to begin tracking its route and status.'}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate('/tracking/shipments')}
-                        style={{ marginTop: 6 }}
-                      >
-                        <Icon name="plus" size={14} /> New Dispatch Trip
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paginatedShipments.map(item => (
-                  <tr
-                    key={item.id}
-                    style={{
-                      borderBottom: '1px solid var(--border)',
-                      fontSize: 12.5,
-                      transition: 'background 0.15s ease',
-                      background: selectedShipmentIds.includes(item.id) ? 'var(--teal-l)' : 'transparent',
-                    }}
-                  >
-                    <td style={{ padding: '10px 8px' }}>
-                      <Checkbox
-                        checked={selectedShipmentIds.includes(item.id)}
-                        onCheckedChange={() => toggleSelectShipment(item.id)}
-                        aria-label={`Select shipment ${item.code}`}
-                      />
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/tracking/shipments/${item.id}`)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: 0,
-                          fontWeight: 700,
-                          color: 'var(--teal)',
-                          cursor: 'pointer',
-                          fontFamily: 'var(--font)',
-                          fontSize: 12.5,
-                          textAlign: 'left',
-                        }}
-                        title="Open trip detail"
-                       data-ui-native-button="">
-                        {item.code}
-                      </button>
-                    </td>
-                    <td style={{ padding: '10px 8px', color: 'var(--ink)' }}>
-                      {item.customer}
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <div>{item.carrier}</div>
-                      <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{item.mode}</span>
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <div style={{ fontSize: 12 }}>{item.origin} → {item.destination}</div>
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <Badge
-                        variant={
-                          item.status === 'Delivered'
-                            ? 'success'
-                            : item.status === 'Delayed'
-                            ? 'warning'
-                            : item.status === 'Exception'
-                            ? 'error'
-                            : item.status === 'Customs'
-                            ? 'info'
-                            : 'brand'
-                        }
-                      >
-                        {item.status}
-                      </Badge>
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '2px 6px',
-                        borderRadius: 'var(--r-sm)',
-                        fontSize: 10,
-                        fontWeight: 800,
-                        background: item.priority === 'P1' ? 'var(--red-l)' : item.priority === 'P2' ? 'var(--gold-l)' : 'var(--bg)',
-                        color: item.priority === 'P1' ? 'var(--red)' : item.priority === 'P2' ? 'var(--gold)' : 'var(--ink3)',
-                      }}>
-                        {item.priority}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <PersonAvatar name={item.driverName} userId={item.driverId} size={24} />
-                        <div>
-                          {item.vehicleId ? (
-                            <Link
-                              to={`/tracking/vehicles/${item.vehicleId}`}
-                              style={{ fontWeight: 600, color: 'var(--ink)', textDecoration: 'none' }}
-                              title="View vehicle telematics"
-                            >
-                              {item.vehicle}
-                            </Link>
-                          ) : (
-                            <div style={{ fontWeight: 600 }}>{item.vehicle}</div>
-                          )}
-                          {item.driverId ? (
-                            <Link
-                              to={`/tracking/drivers/${item.driverId}`}
-                              style={{ fontSize: 10.5, color: 'var(--ink3)', textDecoration: 'none', display: 'block' }}
-                              title="View driver profile"
-                            >
-                              {item.driverName}
-                            </Link>
-                          ) : (
-                            <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{item.driverName}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 8px', color: 'var(--ink2)' }}>
-                      {item.eta}
-                    </td>
-                    <td style={{ padding: '10px 8px', textAlign: 'right' }}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/tracking/shipments/${item.id}`)}
-                        style={{ padding: '4px 8px', fontSize: 11 }}
-                      >
-                        Open
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Canonical Pagination Bar */}
-        {filteredShipments.length > 0 && (
-          <div style={{ marginTop: 12 }}>
-            <PaginationBar
-              page={ledgerPage}
-              pageSize={ledgerPageSize}
-              total={filteredShipments.length}
-              onPageChange={setLedgerPage}
-              onPageSizeChange={size => {
-                setLedgerPageSize(size);
-                setLedgerPage(1);
-              }}
-              pageSizeOptions={[10, 20, 50]}
-              itemLabel="shipment"
-            />
-          </div>
-        )}
-      </div>
-      )}
+      {activeTab === 'all' && <SectionCard title="Trips"><p>Manage trip assignments, cargo, schedules and status in the shared trip register.</p><Button asChild><Link to="/tracking/shipments">Open trips</Link></Button></SectionCard>}
 
       {/* ── INTERACTIVE DRAWER: AI Logistics Copilot ── */}
       {copilotOpen && (

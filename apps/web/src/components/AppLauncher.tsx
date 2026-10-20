@@ -33,6 +33,7 @@ export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; 
   sms:          { icon: 'message',       color: '#1257c6', label: 'SMS' },
   projects:     { icon: 'columns',       color: '#f59e0b', label: 'Projects' },
   developer:    { icon: 'terminal',      color: '#0f766e', label: 'Developer' },
+  travel:       { icon: 'plane',         color: '#7c3aed', label: 'Travel' },
   hudubi:       { icon: 'barChart',      color: '#18181b', label: 'HuduBI' },
   onesite:      { icon: 'globe',         color: '#06b6d4', label: 'CMS' },
   onsite:       { icon: 'server',        color: '#0f172a', label: 'Onsite' },

@@ -1,3 +1,4 @@
+import { ResponsiveTable } from '../ui/responsive-table.js';
 import { useState } from 'react';
 import type { Manifest, CargoItem } from '../../pages/TrackingCargoLoading.js';
 import { Button } from '../ui/button.js';
@@ -32,11 +33,11 @@ export function TruckLoadOverview({ manifest, items }: { manifest: Manifest; ite
   return <section className="truck-load-overview" aria-label="Truck loading overview">
     <div className="truck-load-heading"><div><span className="truck-load-eyebrow">LOAD OVERVIEW</span><h2>{manifest.vehicle_plate || manifest.vehicle_name || manifest.name}</h2></div><Badge variant="outline">{manifest.status}</Badge></div>
     <Tabs defaultValue="cargo" className="truck-load-visual">
-      <div className="truck-load-visual-toolbar"><TabsList><TabsTrigger value="cargo">Cargo layout</TabsTrigger><TabsTrigger value="capacity">Space utilization</TabsTrigger></TabsList><span><Icon name="truck" size={14} /> {manifest.shipment_ref || 'Load planning'}</span></div>
+      <div className="truck-load-visual-toolbar"><TabsList wrap><TabsTrigger value="cargo">Cargo layout</TabsTrigger><TabsTrigger value="capacity">Space utilization</TabsTrigger></TabsList><span><Icon name="truck" size={14} /> {manifest.shipment_ref || 'Load planning'}</span></div>
     <div className="truck-load-stage">
       <div className="truck-load-rig">
         <img className="truck-load-chassis" src="/images/freight/truck-side-v1.png" alt="Illustrative cargo truck side view" />
-        <TabsContent value="cargo" className="truck-load-trailer" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, minmax(110px, 1fr))` }}>
+        <TabsContent value="cargo" className="truck-load-trailer" style={{ gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(items.length / 2))}, minmax(0, 1fr))` }}>
           {items.length ? items.map((item, index) => <Button variant="ghost" type="button" key={item.id} className={`truck-load-block ${selected === item.id ? 'is-selected' : ''}`} onClick={() => setSelected(selected === item.id ? null : item.id)} aria-pressed={selected === item.id}>
             <span className="truck-load-block-top"><span>{String(index + 1).padStart(2, '0')}</span><span>{item.quantity} units</span></span>
             <strong>{item.label}</strong><span>{(item.weight_kg * item.quantity).toLocaleString()} kg</span>
@@ -66,10 +67,10 @@ export function TruckLoadOverview({ manifest, items }: { manifest: Manifest; ite
     </div>
     <div className="truck-load-manifest">
       <div className="truck-load-toolbar"><div className="truck-load-filters">{['All', 'Packed', 'Pending'].map(value => <Button key={value} size="sm" variant={filter === value ? 'secondary' : 'ghost'} onClick={() => setFilter(value)}>{value}</Button>)}</div><Input aria-label="Search cargo" placeholder="Search cargo…" value={search} onChange={event => setSearch(event.target.value)} /></div>
-      <Table><TableHeader><TableRow>{['Cargo item', 'Dimensions (cm)', 'Quantity', 'Total weight', 'Packed', 'Status'].map(label => <TableHead key={label}>{label}</TableHead>)}</TableRow></TableHeader><TableBody>
+      <ResponsiveTable><TableHeader><TableRow>{['Cargo item', 'Dimensions (cm)', 'Quantity', 'Total weight', 'Packed', 'Status'].map(label => <TableHead key={label}>{label}</TableHead>)}</TableRow></TableHeader><TableBody>
         {visible.map(item => <TableRow key={item.id} data-state={selected === item.id ? 'selected' : undefined}><TableCell><strong>{item.label}</strong></TableCell><TableCell>{item.length_cm} × {item.width_cm} × {item.height_cm}</TableCell><TableCell>{item.quantity}</TableCell><TableCell>{(item.weight_kg * item.quantity).toLocaleString()} kg</TableCell><TableCell>{item.placements.length} / {item.quantity}</TableCell><TableCell><Badge variant="outline">{item.placements.length >= item.quantity ? 'Packed' : item.placements.length ? 'Partially packed' : 'Pending'}</Badge></TableCell></TableRow>)}
         {!visible.length && <TableRow><TableCell colSpan={6}> {items.length ? 'No cargo matches your filters.' : 'No cargo added to this load plan yet.'}</TableCell></TableRow>}
-      </TableBody></Table>
+      </TableBody></ResponsiveTable>
     </div>
   </section>;
 }

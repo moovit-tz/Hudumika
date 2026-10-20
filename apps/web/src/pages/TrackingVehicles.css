@@ -1,9 +1,13 @@
-﻿.trk-dashboard {
+.trk-dashboard {
   /* Vertical only — the side gutter is .app-shell-content's. */
   padding: 24px 0;
   background: var(--bg);
   min-height: calc(100vh - 60px);
   color: var(--ink);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: clip;
 }
 
 /* .trk-header is gone: PageHeader owns the title row and its own actions
@@ -83,6 +87,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .trk-section-title {
@@ -143,11 +149,6 @@
 }
 
 .trk-kpi-trend.positive {
-  background: rgba(22,163,74,0.14);
-  color: var(--green);
-}
-
-.trk-kpi-trend.negative {
   background: rgba(220,38,38,0.12);
   color: var(--red);
 }
@@ -163,11 +164,14 @@
   display: grid;
   grid-template-columns: 350px 1fr;
   gap: 24px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (max-width: 1024px) {
   .trk-main-grid {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
 }
 
@@ -329,17 +333,66 @@
 .trk-vcard-badge.maintenance { color: var(--red); background: rgba(220,38,38,0.12); border-color: rgba(220,38,38,0.35); }
 
 .trk-vcard-img-container {
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
+  height: 140px;
+  width: 100%;
+  border-radius: var(--r);
+  position: relative;
+  overflow: hidden;
+  background: var(--card-sunken);
+  margin-bottom: 14px;
 }
 
 .trk-vcard-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.trk-vcard:hover .trk-vcard-img {
+  transform: scale(1.03);
+}
+
+.trk-vcard-telemetry {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  pointer-events: none;
+}
+
+.trk-vcard-telemetry-sm {
+  bottom: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.trk-telemetry-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trk-telemetry-dot.active {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.trk-telemetry-dot.offline {
+  background: #94a3b8;
 }
 
 .trk-vcard-driver-sec {
@@ -438,17 +491,23 @@
 
 .trk-vlist-img-container {
   width: 140px;
-  height: 90px;
+  height: 96px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: var(--r);
   overflow: hidden;
-  background: var(--bg);
+  background: var(--card-sunken);
+  position: relative;
 }
 
 .trk-vlist-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.trk-vlist-item:hover .trk-vlist-img {
+  transform: scale(1.03);
 }
 
 .trk-vlist-content {
@@ -521,49 +580,204 @@
 .trk-page-btn:disabled { opacity: 0.4; cursor: default; }
 .trk-page-btn.active { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
+/* Responsive adjustments for KPI cards on mobile */
+@media (max-width: 640px) {
+  .trk-dashboard .mc-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+  .trk-dashboard .mc-card {
+    padding: 12px 14px !important;
+    flex: unset !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .trk-dashboard .mc-title {
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+  }
+  .trk-dashboard .mc-value {
+    font-size: 20px !important;
+  }
+  .trk-map-container {
+    height: 190px !important;
+  }
+}
+
 @media (max-width: 768px) {
   .trk-vlist-item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
   }
   .trk-vlist-img-container {
     width: 100%;
-    height: 180px;
+    height: 140px;
   }
   .trk-vlist-content {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: stretch;
+    gap: 12px;
     width: 100%;
+  }
+  .trk-vlist-main {
+    min-width: 0;
+  }
+  .trk-vlist-specs {
+    min-width: 0;
   }
   .trk-vlist-status {
     align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
   }
 }
 
 @media (max-width: 640px) {
-  .trk-fleet-header { flex-direction: column; align-items: stretch; }
-  .trk-fleet-header-controls { flex-direction: column; align-items: stretch; }
+  .trk-fleet-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .trk-fleet-header-controls {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .trk-fleet-header-controls::-webkit-scrollbar {
+    display: none;
+  }
+  .trk-fleet-header-controls [role="tablist"],
+  .trk-fleet-header-controls .ds-tabs-list {
+    flex-wrap: nowrap !important;
+    display: flex !important;
+    width: max-content !important;
+    max-width: none !important;
+  }
   .trk-search-bar { width: 100%; }
   .trk-primary-btn { justify-content: center; }
 }
 
 /* Asset-type category selector */
-.trk-category-tabs { margin-bottom: 20px; }
-.trk-cat-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); font-size: 10px; font-weight: 700; color: var(--ink2); margin-left: 5px; }
-.trk-category-hint { font-size: 12px; color: var(--ink3); margin-top: 10px; }
+.trk-category-tabs {
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.trk-cat-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink2);
+  margin-left: 5px;
+}
+.trk-category-hint {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .trk-category-tabs {
+    margin-bottom: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .trk-category-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .trk-category-tabs [role="tablist"],
+  .trk-category-tabs .ds-tabs-list {
+    flex-wrap: nowrap !important;
+    display: flex !important;
+    width: max-content !important;
+    max-width: none !important;
+  }
+  .trk-category-tabs [role="tab"],
+  .trk-category-tabs .ds-tabs-trigger {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+}
 
 /* Trailers full-width section */
-.trk-trailers-section { display: flex; flex-direction: column; gap: 16px; }
+.trk-trailers-section { display: flex; flex-direction: column; gap: 16px; width: 100%; min-width: 0; }
 .trk-trailers-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-@media(max-width: 700px) { .trk-trailers-toolbar { flex-direction: column; align-items: stretch; } }
+@media(max-width: 700px) {
+  .trk-trailers-toolbar { flex-direction: column; align-items: stretch; }
+  .trk-trailers-toolbar > div { width: 100%; justify-content: space-between; }
+}
 
-/* PageHeader's actions slot (.trk-actions: search + date-range Select +
-   refresh) has no room to sit on one row once the header's own title block
-   also needs space — wraps as a block above, but the search bar itself
-   still needs to go full-width or it wraps mid-way and looks cramped. */
 @media (max-width: 480px) {
   .trk-actions .trk-search-bar {
     width: 100%;
   }
+}
+
+
+.trk-unified-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; min-width: 0; flex-wrap: wrap; }
+.trk-unified-toolbar > [role="combobox"] { width: 170px; flex-shrink: 0; }
+.trk-unified-toolbar > :nth-child(3) { flex: 1; min-width: 140px; margin-bottom: 0; }
+.trk-unified-toolbar > a { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .trk-unified-toolbar > [role="combobox"] { flex: 1 1 140px; }
+  .trk-unified-toolbar > :nth-child(3) { flex-basis: 100%; }
+}
+
+.trk-fleet-full-width { width: 100%; min-width: 0; }
+.trk-card-location { border-radius: var(--r-sm); overflow: hidden; background: var(--bg); min-width: 0; }
+.trk-card-location small { display: block; padding: 4px 8px; color: var(--ink3); font-size: 10px; }
+.trk-vcard > .trk-card-location { margin-bottom: 12px; }
+.trk-vlist-item > .trk-card-location { width: 200px; flex: 0 0 200px; }
+.trk-card-location-empty { padding: 12px; color: var(--ink3); font-size: 12px; }
+@media (max-width: 800px) { .trk-vlist-item { flex-wrap: wrap; } .trk-vlist-item > .trk-card-location { width: 100%; flex-basis: 100%; } }
+
+/* Fleet cards use the shared surface, spacing and interaction tokens. */
+.trk-fleet-full-width .trk-vcard, .trk-fleet-full-width .trk-vlist-item {
+  border-radius: var(--r); border: 1px solid var(--border); background: var(--white);
+  box-shadow: none; padding: 20px; gap: 20px; transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.trk-fleet-full-width .trk-vcard:hover, .trk-fleet-full-width .trk-vlist-item:hover {
+  transform: none; border-color: var(--teal); box-shadow: var(--elev-sm);
+}
+.trk-fleet-full-width .trk-vcard:focus-visible, .trk-fleet-full-width .trk-vlist-item:focus-visible {
+  outline: 2px solid var(--teal); outline-offset: 3px;
+}
+.trk-vlist-content { gap: 20px; min-width: 0; }
+.trk-vlist-main { flex: 1; min-width: 0; }
+.trk-vcard-title { line-height: 1.4; overflow-wrap: anywhere; }
+.trk-vcard-id, .trk-vcard-updated { font-size: 12px; line-height: 1.5; }
+.trk-card-location-empty { background: var(--bg); border-radius: var(--r-sm); border: 1px dashed var(--border); }
+.trk-vlist-item > .trk-card-location-empty { width: 180px; flex-shrink: 0; }
+.trk-card-location { isolation: isolate; }
+@media (max-width: 1100px) { .trk-vlist-content { flex-wrap: wrap; } .trk-vlist-specs, .trk-vlist-status { min-width: 120px; } }
+@media (max-width: 640px) {
+  .trk-fleet-full-width .trk-vlist-item { align-items: flex-start; padding: 16px; gap: 12px; }
+  .trk-vlist-item > .trk-card-location-empty { width: 100%; }
+  .trk-vlist-content { width: 100%; flex-basis: 100%; gap: 16px; }
+  .trk-vlist-main { flex-basis: 100%; }
+  .trk-vcard-driver, .trk-vcard-driver-info { flex-wrap: wrap; gap: 8px; }
 }

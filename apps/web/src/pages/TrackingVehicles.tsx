@@ -1,17 +1,13 @@
+import { Progress } from '../components/ui/progress.js';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
-import { MapContainer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
 import { formatDistanceToNow } from 'date-fns';
-import { MapTileLayer } from '../components/MapTileLayer.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { Combobox } from '../components/ui/combobox.js';
 import './TrackingVehicles.css';
-import 'leaflet/dist/leaflet.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Button } from '../components/ui/button.js';
@@ -24,6 +20,7 @@ import { Badge } from '../components/ui/badge.js';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu.js';
 
 interface Vehicle {
+  current_trip?: { origin: string | null; destination: string | null } | null;
   id: string; name: string; plate_number: string | null; type: string;
   driver_name: string | null; driver_phone: string | null; device_id: string; status: string;
   photo_url: string | null; current_load_pct: number | null;
@@ -52,8 +49,8 @@ interface DashboardKPIs {
 // Explicit operational-use taxonomy avoids ambiguous substring matches such
 // as a horse-towing pickup being classified as a generic commercial truck.
 const CATEGORY_TYPES: Record<string, string[]> = {
-  trucks: ['TRUCK', 'HEAVY_DUTY_TRUCK', 'FLATBED_TRUCK', 'BOX_TRUCK', 'TANKER_TRUCK', 'DUMP_TRUCK', 'SEMI_TRACTOR', 'RIGID_LORRY', 'TIPPER'],
-  shuttle: ['SUV', 'MINIVAN', 'VAN', 'PASSENGER_VAN', 'SHUTTLE_BUS', 'BUS', 'COACH', 'SEDAN', 'HIACE'],
+  trucks: ['TRUCK', 'HEAVY_DUTY_TRUCK', 'FLATBED_TRUCK', 'BOX_TRUCK', 'TANKER_TRUCK', 'FUEL_TANKER', 'REFRIGERATED_TRUCK', 'DUMP_TRUCK', 'SEMI_TRACTOR', 'RIGID_LORRY', 'TIPPER'],
+  shuttle: ['PICKUP', 'SUV', 'MINIBUS', 'MINIVAN', 'VAN', 'PASSENGER_VAN', 'SHUTTLE_BUS', 'BUS', 'COACH', 'SEDAN', 'HIACE'],
   horse: ['HORSE', 'HEAVY_DUTY_PICKUP', 'HORSE_TOW_SUV', 'HORSE_LORRY', 'HORSE_VAN', 'LIVESTOCK_TRUCK', 'EQUINE_TRANSPORT'],
 };
 
@@ -72,6 +69,24 @@ function getCategoryForType(type: string): string {
   return 'other';
 }
 
+export function getFleetVehiclePhoto(v: { name?: string | null; make?: string | null; model?: string | null; type?: string | null; photo_url?: string | null }): string {
+  if (v.photo_url && v.photo_url.trim().length > 0) return v.photo_url;
+  const str = `${v.name || ''} ${v.make || ''} ${v.model || ''} ${v.type || ''}`.toLowerCase();
+  if (str.includes('scania')) return '/images/freight/scania-r500.jpg';
+  if (str.includes('volvo')) return '/images/freight/volvo-fh16.jpg';
+  if (str.includes('transit') || str.includes('ford')) return '/images/freight/ford-transit.jpg';
+  if (str.includes('canter') || str.includes('fuso') || str.includes('mitsubishi')) return '/images/freight/canter-truck.jpg';
+  if (str.includes('sprinter') || str.includes('van') || str.includes('shuttle') || str.includes('hiace') || str.includes('minibus')) return '/images/freight/sprinter-van.jpg';
+  if (str.includes('pickup') || str.includes('isuzu') || str.includes('hilux') || str.includes('ranger') || str.includes('horse') || str.includes('d-max')) return '/images/freight/isuzu-pickup.jpg';
+
+  const typeUpper = (v.type || '').toUpperCase();
+  if (['SEMI_TRACTOR', 'HEAVY_DUTY_TRUCK', 'FLATBED_TRUCK', 'TANKER_TRUCK', 'FUEL_TANKER'].includes(typeUpper)) return '/images/freight/volvo-fh16.jpg';
+  if (['BOX_TRUCK', 'RIGID_LORRY', 'TIPPER', 'DUMP_TRUCK', 'TRUCK'].includes(typeUpper)) return '/images/freight/canter-truck.jpg';
+  if (['PICKUP', 'SUV', 'EQUINE_TRANSPORT', 'HORSE_TOW_SUV', 'HORSE_LORRY'].includes(typeUpper)) return '/images/freight/isuzu-pickup.jpg';
+  if (['PASSENGER_VAN', 'MINIVAN', 'SHUTTLE_BUS', 'BUS', 'COACH'].includes(typeUpper)) return '/images/freight/sprinter-van.jpg';
+  return '/images/freight/volvo-fh16.jpg';
+}
+
 function formatAssetType(type: string) {
   return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 }
@@ -79,17 +94,6 @@ function formatAssetType(type: string) {
 const TRAILER_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'gray'> = {
   ACTIVE: 'success', MAINTENANCE: 'warning', OUT_OF_SERVICE: 'error', DECOMMISSIONED: 'gray',
 };
-
-const customMarkerGreen = new L.DivIcon({
-  className: 'custom-div-icon',
-  html: `<div style="background-color:var(--green); width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
-  iconSize: [16, 16], iconAnchor: [8, 8],
-});
-const customMarkerRed = new L.DivIcon({
-  className: 'custom-div-icon',
-  html: `<div style="background-color:var(--red); width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
-  iconSize: [16, 16], iconAnchor: [8, 8],
-});
 
 export const TrackingVehicles: React.FC = () => {
   const [params] = useSearchParams();
@@ -107,7 +111,6 @@ export const TrackingVehicles: React.FC = () => {
   // vehicle-list controls
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
@@ -139,19 +142,11 @@ export const TrackingVehicles: React.FC = () => {
 
   useEffect(() => { reload(); }, [reload]);
 
-  useEffect(() => {
-    if (vehicles.length > 0 && !selectedVehicleId) setSelectedVehicleId(vehicles[0].id);
-  }, [vehicles, selectedVehicleId]);
-
-  const mapCenter: [number, number] = vehicles.find(v => v.last_position)?.last_position
-    ? [vehicles.find(v => v.last_position)!.last_position!.latitude, vehicles.find(v => v.last_position)!.last_position!.longitude]
-    : [-6.7924, 39.2083];
-
   const getDisplayStatus = (v: Vehicle) => {
-    if (v.status !== 'ACTIVE') return 'Maintenance';
-    if (v.last_position && (v.last_position.speed ?? 0) > 0) return 'On route';
-    if ((v.current_load_pct ?? 0) > 0 && (v.current_load_pct ?? 0) < 100) return 'Loading';
-    return 'In warehouse';
+    if (v.status !== 'ACTIVE') return 'Unavailable';
+    if (v.current_trip) return 'On trip';
+    if (v.last_position && Date.now() - Date.parse(v.last_position.recorded_at) < 15 * 60 * 1000 && (v.last_position.speed ?? 0) > 0) return 'Moving';
+    return 'Active';
   };
 
   // ── Vehicle filtering (status + search + category)
@@ -243,14 +238,7 @@ export const TrackingVehicles: React.FC = () => {
         subtitle="Manage vehicles, individually tracked horses, and towable assets in one inventory with clear operating and ownership categories."
         actions={
           <div className="trk-actions">
-            <Select defaultValue="30d">
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-              </SelectContent>
-            </Select>
+
             <Tip label="Refresh fleet data">
               <Button variant="outline" size="icon" aria-label="Refresh fleet data" onClick={reload}><Icon name="refresh" size={16} /></Button>
             </Tip>
@@ -279,7 +267,7 @@ export const TrackingVehicles: React.FC = () => {
         ]} />
       ) : (
         <MetricsRow cards={[
-          { title: 'Active fleet', value: kpis ? kpis.vehicles_total.toLocaleString() : '—', icon: 'truck', updatedLabel: 'Vehicles registered to this workspace', loading },
+          { title: 'Registered vehicles', value: kpis ? kpis.vehicles_total.toLocaleString() : '—', icon: 'truck', updatedLabel: 'Vehicles registered to this workspace', loading },
           { title: 'Trips today', value: kpis ? kpis.trips_today.toLocaleString() : '—', icon: 'package', updatedLabel: 'Scheduled to start today', loading },
           { title: 'Avg. delivery time', value: kpis?.avg_delivery_minutes_today != null ? `${Math.floor(kpis.avg_delivery_minutes_today / 60)}h ${Math.round(kpis.avg_delivery_minutes_today % 60)}m` : '—', icon: 'clock', updatedLabel: 'Trips completed today', loading, empty: !loading && kpis?.avg_delivery_minutes_today == null },
           { title: 'On-time performance', value: kpis?.on_time_pct_today != null ? `${kpis.on_time_pct_today}%` : '—', icon: 'checkCircle', updatedLabel: 'Deliveries completed on schedule today', loading, empty: !loading && kpis?.on_time_pct_today == null, emphasis: 'primary' },
@@ -292,38 +280,22 @@ export const TrackingVehicles: React.FC = () => {
         </div>
       )}
 
-      {/* Asset-type category selector — spans full width above the grid */}
-      <div className="trk-category-tabs">
-        <Tabs value={category} onValueChange={cat => { setCategory(cat); setFilter('All'); setTrailerFilter('All'); }}>
-          <TabsList>
-            <TabsTrigger value="all">
-              All mobile assets <span className="trk-cat-count">{categoryCounts.all}</span>
-            </TabsTrigger>
-            <TabsTrigger value="trucks">
-              <Icon name="truck" size={13} />
-              Commercial trucks <span className="trk-cat-count">{categoryCounts.trucks}</span>
-            </TabsTrigger>
-            <TabsTrigger value="shuttle">
-              <Icon name="users" size={13} />
-              Shuttle & passenger <span className="trk-cat-count">{categoryCounts.shuttle}</span>
-            </TabsTrigger>
-            <TabsTrigger value="horse">
-              <Icon name="package" size={13} />
-              Horse transport <span className="trk-cat-count">{categoryCounts.horse}</span>
-            </TabsTrigger>
-            <TabsTrigger value="other">
-              <Icon name="moreHorizontal" size={13} />
-              Other <span className="trk-cat-count">{categoryCounts.other}</span>
-            </TabsTrigger>
-            <TabsTrigger value="trailers">
-              <Icon name="box2" size={13} />
-              Trailers <span className="trk-cat-count">{categoryCounts.trailers}</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {category !== 'all' && category !== 'trailers' && CATEGORY_HINTS[category] && (
-          <div className="trk-category-hint">{CATEGORY_HINTS[category]}</div>
-        )}
+      <div className="trk-unified-toolbar">
+        <Select value={category} onValueChange={cat => { setCategory(cat); setFilter('All'); setTrailerFilter('All'); }}>
+          <SelectTrigger aria-label="Asset category"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {([['all', 'All assets'], ['trucks', 'Trucks'], ['shuttle', 'Passenger'], ['horse', 'Horse transport'], ['other', 'Other'], ['trailers', 'Trailers']] as const).map(([value, label]) => <SelectItem key={value} value={value}>{label} ({categoryCounts[value]})</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {category !== 'trailers' && <>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger aria-label="Vehicle status"><SelectValue /></SelectTrigger>
+            <SelectContent>{['All', 'Active', 'On trip', 'Moving', 'Unavailable'].map(value => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent>
+          </Select>
+          <SearchToolbar search={search} onSearch={setSearch} placeholder="Vehicle or driver" />
+          <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented"><TabsList><TabsTrigger value="grid" aria-label="Grid view"><Icon name="grid" size={14} /></TabsTrigger><TabsTrigger value="list" aria-label="List view"><Icon name="list" size={14} /></TabsTrigger></TabsList></Tabs>
+          {returnTo && <Button type="button" variant="outline" size="sm" onClick={() => window.history.back()}><Icon name="arrowLeft" size={13} /> Back</Button>}
+        </>}
       </div>
 
       {/* ── TRAILERS tab: full-width DataTable ── */}
@@ -331,7 +303,7 @@ export const TrackingVehicles: React.FC = () => {
         <div className="trk-trailers-section">
           <div className="trk-trailers-toolbar">
             <Tabs value={trailerFilter} onValueChange={setTrailerFilter}>
-              <TabsList>
+              <TabsList wrap>
                 <TabsTrigger value="All">All ({trailerStats.all})</TabsTrigger>
                 <TabsTrigger value="In use">In use ({trailerStats.inUse})</TabsTrigger>
                 <TabsTrigger value="Maintenance">Maintenance ({trailerStats.maintenance})</TabsTrigger>
@@ -369,114 +341,49 @@ export const TrackingVehicles: React.FC = () => {
         </div>
       ) : (
         /* ── VEHICLES tabs: two-column map + grid ── */
-        <div className="trk-main-grid">
-          {/* Left Column: Map */}
-          <div>
-            <div className="trk-section-header">
-              <div className="trk-section-title">Fleet monitoring</div>
-              <Combobox
-                options={vehicles.map(v => ({ value: v.id, label: `Vehicle ID: ${v.plate_number || v.name}` }))}
-                value={selectedVehicleId} onChange={setSelectedVehicleId}
-                triggerClassName="h-7 py-1 text-[11px]"
-              />
-            </div>
-            <div className="trk-section-header">
-              <div className="trk-section-title">Logistics network map</div>
-              <Icon name="moreVertical" size={14} style={{ color: 'var(--ink3)' }} />
-            </div>
-            <div className="trk-card" style={{ padding: 0 }}>
-              <div className="trk-map-container" style={{ marginTop: 0, border: 'none' }}>
-                <MapContainer center={mapCenter} zoom={11} style={{ width: '100%', height: '100%' }}>
-                  <MapTileLayer />
-                  {vehicles.filter(v => v.last_position).map(v => (
-                    <Marker
-                      key={v.id}
-                      position={[v.last_position!.latitude, v.last_position!.longitude]}
-                      icon={v.status === 'ACTIVE' ? customMarkerGreen : customMarkerRed}
-                    >
-                      <Popup>{v.name}</Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </div>
-              <div style={{ display: 'flex', gap: 16, padding: '12px 16px', fontSize: 11, fontWeight: 600, color: 'var(--ink2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }}></span> On schedule
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }}></span> Delayed
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }}></span> Issue
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="trk-fleet-full-width">
           {/* Right Column: Fleet Grid */}
           <div>
-            <div className="trk-fleet-header">
-              <div className="trk-fleet-header-controls">
-                <Tabs value={filter} onValueChange={setFilter}>
-                  <TabsList>
-                    {['All', 'In warehouse', 'On route', 'Loading', 'Maintenance'].map(f => (
-                      <TabsTrigger key={f} value={f}>{f}</TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
-              </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                <Tabs value={viewMode} onValueChange={v => setViewMode(v as typeof viewMode)} variant="segmented">
-                  <TabsList>
-                    <TabsTrigger value="grid"><Icon name="grid" size={14} /></TabsTrigger>
-                    <TabsTrigger value="list"><Icon name="list" size={14} /></TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <Button asChild>
-                  <Link to="/tracking/shipments/new"><Icon name="plus" size={15} /> New shipment</Link>
-                </Button>
-                {returnTo && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => window.history.back()}>
-                    <Icon name="arrowLeft" size={13} /> Back
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <SearchToolbar
-              search={search}
-              onSearch={setSearch}
-              placeholder="Search by vehicle or driver"
-              className="mb-3"
-            />
-
             {loading ? (
               <SectionLoading label="Loading fleet data…" />
             ) : viewMode === 'grid' ? (
               <div className="trk-vehicles-grid">
                 {pagedVehicles.map(v => {
                   const status = getDisplayStatus(v);
-                  const badgeClass = status.toLowerCase().replace(' ', '_');
+                  const photo = getFleetVehiclePhoto(v);
+                  const hasGps = !!(v.last_position && Number.isFinite(v.last_position.latitude));
                   return (
                     <Link to={`/tracking/vehicles/${v.id}`} key={v.id} className="trk-vcard">
                       <div className="trk-vcard-top">
-                        <div>
+                        <div style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
                           <div className="trk-vcard-title">{v.name}</div>
                           <div className="trk-vcard-id">ID: {v.plate_number || v.id.slice(0, 8)}</div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           {v.ownership && v.ownership !== 'OWNED' && <Badge variant="info">{v.ownership}</Badge>}
-                          <div className={`trk-vcard-badge ${badgeClass}`}>{status}</div>
+                          <Badge variant={status === 'Unavailable' ? 'gray' : status === 'On trip' || status === 'Moving' ? 'success' : 'info'}>{status}</Badge>
                         </div>
                       </div>
-                      <div className="trk-vcard-img-container" style={{ height: 140, marginBottom: 16, borderRadius: 'var(--r)' }}>
-                        {v.photo_url ? (
-                          <img src={v.photo_url} alt={v.name} className="trk-vcard-img" style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: 'var(--r)' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', borderRadius: 'var(--r)', background: 'var(--bg-subtle, #f1f5f9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Icon name="truck" size={32} style={{ color: 'var(--ink3)' }} />
-                          </div>
-                        )}
+                      <div className="trk-vcard-img-container">
+                        <img
+                          src={photo}
+                          alt={v.name}
+                          className="trk-vcard-img"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/images/freight/volvo-fh16.jpg';
+                          }}
+                        />
+                        <div className="trk-vcard-telemetry">
+                          <span className={`trk-telemetry-dot ${hasGps ? 'active' : 'offline'}`} />
+                          <span>
+                            {hasGps
+                              ? (v.last_position!.speed != null && v.last_position!.speed > 0
+                                ? `${Math.round(v.last_position!.speed)} km/h`
+                                : 'GPS Active')
+                              : 'Telemetry standby'}
+                          </span>
+                        </div>
                       </div>
                       <div className="trk-vcard-specs">
                         <div className="trk-spec-line">
@@ -493,22 +400,22 @@ export const TrackingVehicles: React.FC = () => {
                         </div>
                       </div>
                       <div className="trk-vcard-driver-sec">
-                        <div className="trk-vcard-label">Driver</div>
+                        <div className="trk-vcard-label">Assigned Driver</div>
                         <div className="trk-vcard-driver">
                           <div className="trk-vcard-driver-info">
                             <PersonAvatar userId={v.driver_id} kind="drivers" name={v.driver_name || 'Unassigned'} size={24} style={{ borderRadius: '50%' }} />
                             <span className="trk-vcard-driver-name">{v.driver_name || 'Unassigned'}</span>
                           </div>
                           <div className="trk-vcard-updated">
-                            Updated {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), { addSuffix: true }) : 'No GPS data yet'}
+                            {v.last_position ? formatDistanceToNow(new Date(v.last_position.recorded_at), { addSuffix: true }) : 'No recent pings'}
                           </div>
                         </div>
                         <div className="trk-vcard-load">
-                          <span style={{ fontWeight: 600, color: 'var(--ink3)' }}>Load status</span>
-                          <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{v.current_load_pct ?? 0}%</span>
+                          <span style={{ fontWeight: 600, color: 'var(--ink3)' }}>Load capacity</span>
+                          <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{v.current_load_pct == null ? 'Unknown' : `${v.current_load_pct}%`}</span>
                         </div>
                         <div className="trk-vcard-load-bar-bg">
-                          <div className="trk-vcard-load-bar-fill" style={{ width: `${v.current_load_pct ?? 0}%` }}></div>
+                          <div className="trk-vcard-load-bar-fill" style={{ width: `${v.current_load_pct == null ? 0 : Math.min(100, Math.max(0, v.current_load_pct))}%` }}></div>
                         </div>
                       </div>
                     </Link>
@@ -526,23 +433,30 @@ export const TrackingVehicles: React.FC = () => {
               <div className="trk-vehicles-list">
                 {pagedVehicles.map(v => {
                   const status = getDisplayStatus(v);
-                  const badgeClass = status.toLowerCase().replace(' ', '_');
+                  const photo = getFleetVehiclePhoto(v);
+                  const hasGps = !!(v.last_position && Number.isFinite(v.last_position.latitude));
                   return (
                     <Link to={`/tracking/vehicles/${v.id}`} key={v.id} className="trk-vlist-item">
                       <div className="trk-vlist-img-container">
-                        {v.photo_url ? (
-                          <img src={v.photo_url} alt={v.name} className="trk-vlist-img" />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-subtle, #f1f5f9)' }}>
-                            <Icon name="truck" size={28} style={{ color: 'var(--ink3)' }} />
-                          </div>
-                        )}
+                        <img
+                          src={photo}
+                          alt={v.name}
+                          className="trk-vlist-img"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/images/freight/volvo-fh16.jpg';
+                          }}
+                        />
+                        <div className="trk-vcard-telemetry trk-vcard-telemetry-sm">
+                          <span className={`trk-telemetry-dot ${hasGps ? 'active' : 'offline'}`} />
+                          <span>{hasGps ? 'GPS' : 'Standby'}</span>
+                        </div>
                       </div>
                       <div className="trk-vlist-content">
                         <div className="trk-vlist-main">
                           <div className="trk-vcard-title" style={{ fontSize: 16 }}>{v.name}</div>
                           <div className="trk-vcard-id">ID: {v.plate_number || v.id.slice(0, 8)}</div>
-                          <div style={{ marginTop: 5, display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <div style={{ marginTop: 5, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                             <Badge variant="gray">{formatAssetType(v.type)}</Badge>
                             {v.ownership && v.ownership !== 'OWNED' && <Badge variant="info">{v.ownership}</Badge>}
                           </div>
@@ -561,14 +475,14 @@ export const TrackingVehicles: React.FC = () => {
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v.dimensions || 'N/A'}</div>
                         </div>
                         <div className="trk-vlist-status">
-                          <div className={`trk-vcard-badge ${badgeClass}`}>{status}</div>
+                          <Badge variant={status === 'Unavailable' ? 'gray' : status === 'On trip' || status === 'Moving' ? 'success' : 'info'}>{status}</Badge>
                           <div style={{ width: '100%', maxWidth: 120, marginTop: 12 }}>
                             <div className="trk-vcard-load">
                               <span style={{ fontWeight: 600, color: 'var(--ink3)' }}>Load</span>
-                              <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{v.current_load_pct ?? 0}%</span>
+                              <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{v.current_load_pct == null ? 'Unknown' : `${v.current_load_pct}%`}</span>
                             </div>
                             <div className="trk-vcard-load-bar-bg">
-                              <div className="trk-vcard-load-bar-fill" style={{ width: `${v.current_load_pct ?? 0}%` }}></div>
+                              <div className="trk-vcard-load-bar-fill" style={{ width: `${v.current_load_pct == null ? 0 : Math.min(100, Math.max(0, v.current_load_pct))}%` }}></div>
                             </div>
                           </div>
                         </div>

@@ -240,7 +240,7 @@ export type ServerEvent =
   | { type: 'declaration.status_changed'; declarationId: string; status: string }
   | { type: 'declaration.selectivity_result'; declarationId: string; channel: string }
   // ── Tracking Events ──
-  | { type: 'vehicle.position_updated'; vehicleId: string; latitude: number; longitude: number }
+  | { type: 'vehicle.position_updated'; vehicleId: string; latitude: number; longitude: number; speed?: number | null; heading?: number | null; battery_pct?: number | null; ignition?: 'ON' | 'OFF' | boolean | null; recorded_at?: string }
   // ── Bliss / Support Events ──
   | { type: 'support.message_received'; ticketId: string; message: string }
   // ── Bliss / Team Chat Events ── deliberately carries no message content:

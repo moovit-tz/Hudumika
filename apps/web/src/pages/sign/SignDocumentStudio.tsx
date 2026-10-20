@@ -75,6 +75,22 @@ const SIGNATURE_BLOCK_HTML = `
   </table>
 `;
 
+const PAGE_FORMATS = {
+  a4:        { label: 'A4',        w: 210,    h: 297,   desc: '210 × 297 mm' },
+  letter:    { label: 'US Letter', w: 215.9,  h: 279.4, desc: '8.5 × 11 in' },
+  legal:     { label: 'US Legal',  w: 215.9,  h: 355.6, desc: '8.5 × 14 in' },
+  a3:        { label: 'A3',        w: 297,    h: 420,   desc: '297 × 420 mm' },
+  a5:        { label: 'A5',        w: 148,    h: 210,   desc: '148 × 210 mm' },
+  b5:        { label: 'B5',        w: 176,    h: 250,   desc: '176 × 250 mm' },
+  executive: { label: 'Executive', w: 184.15, h: 266.7, desc: '7.25 × 10.5 in' },
+  tabloid:   { label: 'Tabloid',   w: 279.4,  h: 431.8, desc: '11 × 17 in' },
+} as const;
+
+type PageFormatKey = keyof typeof PAGE_FORMATS;
+
+const MM_TO_PX = 96 / 25.4;
+const PRINT_OVERHEAD_MM = 20 + 20 + 12 + 10;
+
 export function SignDocumentStudio({
   initialTitle = 'Untitled Legal Agreement',
   initialContent = '',
@@ -95,6 +111,13 @@ export function SignDocumentStudio({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // Page format & pagination
+  const [pageFormat, setPageFormat] = useState<PageFormatKey>('a4');
+  const [pageCount, setPageCount] = useState(1);
+  const fmt = PAGE_FORMATS[pageFormat];
+  const sheetWidthPx = Math.round(fmt.w * MM_TO_PX);
+  const contentPerPage = Math.round((fmt.h - PRINT_OVERHEAD_MM) * MM_TO_PX);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -245,6 +268,22 @@ export function SignDocumentStudio({
   useEffect(() => {
     updateStats();
   }, [updateStats]);
+
+  // Auto-pagination: observe body content height → derive page count
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const recalc = () => {
+      const h = el.scrollHeight;
+      setPageCount(Math.max(1, Math.ceil(h / contentPerPage)));
+    };
+    const ro = new ResizeObserver(recalc);
+    ro.observe(el);
+    const mo = new MutationObserver(recalc);
+    mo.observe(el, { childList: true, subtree: true, characterData: true });
+    recalc();
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, [contentPerPage]);
 
   // Save to draft store
   const handleSaveDraft = async () => {
@@ -813,6 +852,24 @@ export function SignDocumentStudio({
           <span>Signatures</span>
         </Button>
 
+        <div style={{ height: 20, width: 1, background: 'var(--border, #cbd5e1)', margin: '0 2px' }} />
+
+        {/* Page Format */}
+        <div style={{ minWidth: 100 }}>
+          <Select value={pageFormat} onValueChange={v => setPageFormat(v as PageFormatKey)}>
+            <SelectTrigger style={{ height: 30, fontSize: 12 }}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PAGE_FORMATS) as PageFormatKey[]).map(key => (
+                <SelectItem key={key} value={key}>
+                  {PAGE_FORMATS[key].label} ({PAGE_FORMATS[key].desc})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Page Break */}
         <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={handleInsertPageBreak} title="Insert Page Break">
           <Icon name="plus" size={14} />
@@ -846,8 +903,8 @@ export function SignDocumentStudio({
         <div
           style={{
             width: '100%',
-            maxWidth: '850px',
-            minHeight: '1100px',
+            maxWidth: sheetWidthPx,
+            minHeight: '900px',
             background: '#ffffff',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)',
             borderRadius: '4px',
@@ -865,26 +922,39 @@ export function SignDocumentStudio({
             <span>{jurisdiction.toUpperCase()}</span>
           </div>
 
-          {/* Editable Content Canvas */}
-          <div
-            ref={editorRef}
-            contentEditable
-            suppressContentEditableWarning
-            onInput={handleEditorInput}
-            style={{
-              outline: 'none',
-              fontFamily: fontFamily,
-              fontSize: fontSize,
-              lineHeight: 1.75,
-              color: 'var(--ink)',
-              minHeight: '800px',
-            }}
-          />
+          {/* Editable Content Canvas with page-break overlays */}
+          <div style={{ position: 'relative', flex: 1 }}>
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleEditorInput}
+              style={{
+                outline: 'none',
+                fontFamily: fontFamily,
+                fontSize: fontSize,
+                lineHeight: 1.75,
+                color: 'var(--ink)',
+                minHeight: contentPerPage,
+              }}
+            />
+            {pageCount > 1 && Array.from({ length: pageCount - 1 }, (_, i) => (
+              <div
+                key={i}
+                className="sign-page-break-marker"
+                style={{ top: contentPerPage * (i + 1) }}
+              >
+                <span className="sign-page-break-label">
+                  Page {i + 2} of {pageCount}
+                </span>
+              </div>
+            ))}
+          </div>
 
           {/* Document Footer Watermark */}
           <div style={{ marginTop: 48, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)' }}>
             <span>HUDUMIKA LEGAL STUDIO &bull; OFFICIAL INSTRUMENT</span>
-            <span>PAGE 1</span>
+            <span>{pageCount} {pageCount === 1 ? 'PAGE' : 'PAGES'} &bull; {fmt.label.toUpperCase()}</span>
           </div>
         </div>
       </div>
@@ -896,6 +966,8 @@ export function SignDocumentStudio({
           <span><strong>{stats.characters}</strong> characters</span>
           <span>~<strong>{stats.readingTime}</strong> min read</span>
           <span>Font: <strong>{fontFamily.split(',')[0]}</strong> ({fontSize})</span>
+          <span>&bull;</span>
+          <span><strong>{pageCount}</strong> {pageCount === 1 ? 'page' : 'pages'} ({fmt.label})</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

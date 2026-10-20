@@ -81,8 +81,17 @@ export async function recordInterchange(tenantId: string, userId: string, input:
   const equipmentNumber = input.equipmentNumber.trim().toUpperCase();
   const referenceNumber = `EIR-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-  const receipt = await withTenant(tenantId, (trx) =>
-    trx.insertInto('equipment_interchange_receipts').values({
+  return withTenant(tenantId, async trx => {
+    const tables = { depot_equipment: 'depot_equipment', container_tracking: 'container_tracking', seal_container: 'seal_containers' } as const;
+    if (input.subjectType !== 'adhoc') {
+      if (!input.subjectId) throw new Error('Select the linked equipment or container.');
+      const row = await trx.selectFrom(tables[input.subjectType]).selectAll().where('id', '=', input.subjectId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!row) throw new Error('Linked equipment or container not found.');
+      const number = (row as any).container_number || (row as any).equipment_number;
+      if (number && number.toUpperCase() !== equipmentNumber) throw new Error('Equipment number does not match the selected record.');
+    }
+    if (input.releaseDocumentId && !await trx.selectFrom('delivery_documents').select('id').where('id', '=', input.releaseDocumentId).where('tenant_id', '=', tenantId).executeTakeFirst()) throw new Error('Release document not found.');
+    const receipt = await trx.insertInto('equipment_interchange_receipts').values({
       tenant_id: tenantId,
       subject_type: input.subjectType,
       subject_id: input.subjectId,
@@ -98,11 +107,9 @@ export async function recordInterchange(tenantId: string, userId: string, input:
       signature_name: input.signatureName ?? null,
       reference_number: referenceNumber,
       created_by: userId,
-    }).returningAll().executeTakeFirstOrThrow()
-  );
+    }).returningAll().executeTakeFirstOrThrow();
 
-  await withTenant(tenantId, (trx) =>
-    trx.updateTable('depot_equipment')
+    await trx.updateTable('depot_equipment')
       .set({
         status: input.direction === 'GATE_IN' ? 'AVAILABLE' : 'OUT',
         condition: input.conditionAtInterchange ?? 'GOOD',
@@ -111,10 +118,12 @@ export async function recordInterchange(tenantId: string, userId: string, input:
       })
       .where('tenant_id', '=', tenantId)
       .where('equipment_number', '=', equipmentNumber)
-      .execute()
-  ).catch(() => { /* no matching depot_equipment row — the receipt still stands on its own */ });
-
-  return receipt;
+      .execute();
+    if (input.subjectType === 'seal_container' && input.subjectId) {
+      await trx.updateTable('seal_containers').set({ [input.direction === 'GATE_IN' ? 'gate_in_at' : 'gate_out_at']: new Date(), eir_reference: referenceNumber }).where('id', '=', input.subjectId).where('tenant_id', '=', tenantId).execute();
+    }
+    return receipt;
+  });
 }
 
 export async function listInterchangeReceipts(tenantId: string, equipmentNumber?: string, releaseDocumentId?: string) {

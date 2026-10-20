@@ -15,114 +15,51 @@
 
 /* ── Top Executive Studio App Bar ── */
 .sign-studio-app-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 18px;
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border, #e2e8f0);
-  position: sticky;
-  top: 0;
-  z-index: 25;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:16px; background:var(--white); border:1px solid var(--border); border-radius:var(--r) var(--r) 0 0; box-shadow:var(--elev-sm);
 }
 
 .sign-studio-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
+  display:flex; align-items:center; gap:10px; flex:1 1 340px; min-width:0;
 }
 
 .sign-back-btn {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: var(--r-sm, 6px) !important;
-  color: var(--ink2, #475569) !important;
-  flex-shrink: 0;
+  flex-shrink:0; color:var(--ink2);
 }
 
 .sign-back-btn:hover {
-  background: var(--hover-bg, #f1f5f9) !important;
-  color: var(--ink, #0f172a) !important;
+  color:var(--ink);
 }
 
 .sign-title-input-wrap {
-  max-width: 340px;
-  flex: 1;
-  min-width: 140px;
+  flex:1; min-width:0; max-width:420px;
 }
 
 .sign-title-input {
-  font-weight: 700 !important;
-  font-size: 14px !important;
-  height: 32px !important;
-  border-radius: var(--r-sm, 6px) !important;
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  padding: 0 8px !important;
-  color: var(--ink, #0f172a) !important;
-  transition: all 0.15s ease !important;
+  font-weight:600; color:var(--ink); background:var(--bg);
 }
 
 .sign-title-input:hover {
-  border-color: var(--border, #cbd5e1) !important;
-  background: var(--bg) !important;
+  border-color:var(--border);
 }
 
 .sign-title-input:focus {
-  border-color: var(--teal, var(--app-color, #1a56db)) !important;
-  background: var(--card-bg) !important;
-  box-shadow: 0 0 0 2px var(--teal-l, rgba(26, 86, 219, 0.15)) !important;
-  outline: none !important;
-}
-
-.sign-jurisdiction-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: var(--r-full, 9999px);
-  border-color: var(--border, #cbd5e1);
-  color: var(--ink, #0f172a);
-  background: var(--card-bg);
-  flex-shrink: 0;
+  border-color:var(--teal);
 }
 
 .sign-sync-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: var(--r-full, 9999px);
-  flex-shrink: 0;
+  display:inline-flex; align-items:center; gap:6px; font-size:var(--badge-fs); padding:var(--badge-py) var(--badge-px); border-radius:var(--r-sm); flex-shrink:0;
 }
 
 .sign-sync-pill--dirty {
-  background: var(--gold-l);
-  color: var(--gold);
-  border: 1px solid var(--gold-m, color-mix(in srgb, var(--gold) 28%, transparent));
+  background:var(--gold-l); color:var(--ink); border:1px solid var(--border);
 }
 
 .sign-sync-pill--clean {
-  background: var(--teal-l, #f0fdfa);
-  color: var(--teal, #0d9488);
-  border: 1px solid var(--teal-m, #99f6e4);
+  background:var(--teal-l); color:var(--ink); border:1px solid var(--teal-m);
 }
 
 .sign-pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-  display: inline-block;
-  animation: signPulse 1.6s infinite ease-in-out;
+  width:6px; height:6px; border-radius:50%; background:var(--gold); display:inline-block;
 }
 
 @keyframes signPulse {
@@ -132,66 +69,32 @@
 
 /* ── Top Bar Right Action Buttons ── */
 .sign-studio-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0;
 }
 
 .sign-action-btn {
-  height: 32px !important;
-  font-size: 12.5px !important;
-  font-weight: 600 !important;
-  padding: 0 10px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  border-radius: var(--r-sm, 6px) !important;
-  border: 1px solid var(--border, #cbd5e1) !important;
-  background: var(--card-bg) !important;
-  color: var(--ink, #0f172a) !important;
-  transition: all 0.15s ease !important;
+  flex-shrink:0;
 }
 
 .sign-action-btn:hover:not(:disabled) {
-  border-color: var(--teal, var(--app-color, #1a56db)) !important;
-  background: var(--hover-bg, #f1f5f9) !important;
-  color: var(--teal, var(--app-color, #1a56db)) !important;
+  border-color:var(--teal);
 }
 
 /* ── Primary Action Button (Inherits App Design System Theme Color) ── */
 .sign-btn-primary {
-  height: 32px !important;
-  font-size: 12.5px !important;
-  font-weight: 700 !important;
-  padding: 0 14px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  border-radius: var(--r-sm, 6px) !important;
-  background: hsl(var(--primary)) !important;
-  color: hsl(var(--primary-foreground)) !important;
-  border: 1px solid hsl(var(--primary)) !important;
-  box-shadow: 0 2px 8px -1px var(--teal-m, rgba(26, 86, 219, 0.35)) !important;
-  cursor: pointer !important;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  white-space: nowrap !important;
+  flex-shrink:0;
 }
 
 .sign-btn-primary:hover:not(:disabled) {
-  filter: brightness(0.92) !important;
-  box-shadow: 0 4px 14px -1px var(--teal-m, rgba(26, 86, 219, 0.45)) !important;
-  transform: translateY(-1px);
+  filter:brightness(.96);
 }
 
 .sign-btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  transform:none;
 }
 
 .sign-btn-primary:disabled {
-  opacity: 0.55 !important;
-  cursor: not-allowed !important;
-  box-shadow: none !important;
+  cursor:not-allowed;
 }
 
 .sign-brand-icon {
@@ -205,7 +108,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.4;
   border-bottom: 1px solid transparent;
   animation: signBannerSlide 0.15s ease-out;
@@ -244,39 +147,19 @@
 
 /* ── Document Docket Metadata Ribbon (Single Row) ── */
 .sign-docket-ribbon {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 7px 18px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border, #e2e8f0);
-  flex-wrap: wrap;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); gap:12px; padding:16px; background:var(--white); border:1px solid var(--border); border-top:0;
 }
 
 .sign-docket-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  display:flex; flex-direction:column; align-items:stretch; min-width:0; gap:6px; font-size:12px;
 }
 
 .sign-docket-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-  color: var(--ink3, #64748b);
-  font-size: 11.5px;
-  white-space: nowrap;
+  display:flex; align-items:center; gap:6px; font-weight:500; color:var(--ink3); font-size:12px;
 }
 
 .sign-docket-select {
-  height: 28px !important;
-  font-size: 12px !important;
-  padding: 0 8px !important;
-  border-radius: 4px !important;
-  background: var(--card-bg) !important;
-  border: 1px solid var(--border, #cbd5e1) !important;
+  width:100%; background:var(--bg);
 }
 
 /* ── Brief Intake Screen (!editing) ── */
@@ -288,7 +171,7 @@
 }
 
 .sign-compose-brief-card {
-  background: var(--card-bg) !important;
+  background: var(--white) !important;
   border: 1px solid var(--border, #e2e8f0) !important;
   border-radius: var(--r-lg, 12px) !important;
   padding: 24px 28px !important;
@@ -340,7 +223,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .sign-brief-label {
@@ -367,7 +250,7 @@
 }
 
 .sign-brief-chip-label {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink3, #64748b);
 }
@@ -378,7 +261,7 @@
   color: var(--ink2, #334155);
   padding: 3px 9px;
   border-radius: var(--r-full, 9999px);
-  font-size: 11.5px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.12s ease;
 }
@@ -416,7 +299,7 @@
 
 /* ── Studio Workbench & Formatting Ribbon ── */
 .sign-studio-workbench {
-  background: var(--card-bg);
+  background: var(--white);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -425,66 +308,7 @@
 }
 
 .sign-paper-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 6px 16px;
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border, #e2e8f0);
-  flex-wrap: wrap;
-  position: sticky;
-  top: 52px;
-  z-index: 15;
-}
-
-.sign-toolbar-select-wrap {
-  display: flex;
-  align-items: center;
-}
-
-.sign-toolbar-divider {
-  width: 1px;
-  height: 18px;
-  background: var(--border, #cbd5e1);
-  margin: 0 4px;
-  flex-shrink: 0;
-}
-
-.sign-fmt-btn {
-  height: 28px;
-  min-width: 28px;
-  padding: 0 5px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 1px solid transparent;
-  border-radius: var(--r-sm, 5px);
-  background: transparent;
-  color: var(--ink2, #334155);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  user-select: none;
-}
-
-.sign-fmt-btn:hover {
-  background: var(--hover-bg, #f1f5f9);
-  border-color: var(--border, #e2e8f0);
-  color: var(--ink, #0f172a);
-}
-
-.sign-fmt-btn:active {
-  background: var(--teal-l, #ccfbf1);
-  color: var(--teal, var(--app-color, #1a56db));
-}
-
-.sign-fmt-btn--wide {
-  padding: 0 8px;
-  font-size: 11.5px;
-  border-color: var(--border, #e2e8f0);
-  background: var(--bg);
+  display:flex; align-items:center; gap:4px; padding:12px; background:var(--white); border:1px solid var(--border); border-top:0; flex-wrap:wrap; overflow:visible;
 }
 
 /* ── Image Resizer & Alignment Floating Controls ── */
@@ -516,20 +340,11 @@
 }
 
 .sign-img-btn {
-  padding: 2px 7px;
-  border: 1px solid var(--border, #cbd5e1);
-  border-radius: 4px;
-  background: var(--card-bg);
-  color: var(--ink2, #334155);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.12s ease;
+  flex-shrink:0;
 }
 
 .sign-img-btn:hover {
-  background: var(--hover-bg, #f1f5f9);
-  border-color: var(--teal, var(--app-color, #1a56db));
+  border-color:var(--teal);
 }
 
 .sign-img-btn.is-active {
@@ -545,48 +360,22 @@
 }
 
 .sign-img-btn--danger:hover {
-  background: color-mix(in srgb, var(--red) 12%, var(--card-bg));
+  background: color-mix(in srgb, var(--red) 12%, var(--white));
   border-color: var(--red);
 }
 
 /* ── Desk Viewport & Authentic A4 Parchment Sheet ── */
 .sign-paper-desk {
-  background: var(--bg);
-  padding: 32px 16px 60px;
-  display: flex;
-  justify-content: center;
-  min-height: 850px;
-  overflow-y: auto;
-  flex: 1;
-  box-sizing: border-box;
+  background:var(--bg); padding:32px 20px 48px; display:flex; justify-content:center; min-width:0; flex:1; box-sizing:border-box;
 }
 
 .sign-parchment-sheet {
-  width: 100%;
-  max-width: 820px;
-  min-height: 1080px;
-  background: #ffffff;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
-  padding: 56px 68px 84px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  box-sizing: border-box;
+  width:100%; min-width:0; min-height:600px; background:#ffffff; color:#0f172a; box-shadow:var(--elev); border:1px solid var(--border); border-radius:var(--r-sm); padding:48px 56px 64px; display:flex; flex-direction:column; position:relative; box-sizing:border-box;
 }
 
 /* Authentic Form Header Strip */
 .sign-sheet-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1.5px solid #e2e8f0;
-  padding-bottom: 12px;
-  margin-bottom: 32px;
-  font-size: 11px;
-  color: #94a3b8;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid #e2e8f0; padding-bottom:12px; margin-bottom:28px; font-size:10px; color:#64748b; letter-spacing:.06em; text-transform:uppercase;
 }
 
 .sign-sheet-header-brand {
@@ -606,19 +395,53 @@
 }
 
 .sign-sheet-header-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:600;
+}
+
+/* ── Body wrapper (holds editor + page-break overlays) ── */
+.sign-sheet-body-wrap {
+  position: relative;
+  flex: 1;
 }
 
 /* ContentEditable Parchment Body */
 .sign-sheet-body {
   outline: none;
   color: #0f172a;
-  flex: 1;
-  min-height: 800px;
   overflow-wrap: anywhere;
+}
+
+/* ── Visual page-break markers ── */
+.sign-page-break-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28px;
+  transform: translateY(-14px);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sign-page-break-marker::before,
+.sign-page-break-marker::after {
+  content: '';
+  flex: 1;
+  border-top: 1.5px dashed color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.sign-page-break-label {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  padding: 2px 12px;
+  background: #ffffff;
+  border-radius: 9999px;
+  border: 1px dashed color-mix(in srgb, var(--border) 50%, transparent);
 }
 
 .sign-sheet-body:empty::before {
@@ -690,17 +513,7 @@
 
 /* Authentic Document Watermark Footer */
 .sign-sheet-footer {
-  margin-top: 52px;
-  padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 10px;
-  color: #94a3b8;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 600;
+  margin-top:40px; padding-top:16px; border-top:1px solid #e2e8f0; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; font-size:10px; color:#64748b; letter-spacing:.04em; text-transform:uppercase;
 }
 
 /* ── Live Document Statistics Bar ── */
@@ -709,7 +522,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 18px;
-  background: var(--card-bg);
+  background: var(--white);
   border-top: 1px solid var(--border, #e2e8f0);
   font-size: 11px;
   color: var(--ink3, #64748b);
@@ -719,9 +532,7 @@
 
 .sign-stats-left,
 .sign-stats-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px;
 }
 
 .sign-stats-jurisdiction {
@@ -733,14 +544,14 @@
 }
 
 /* ── Responsive Viewport Optimizations (Zero Horizontal Scroll) ── */
-@media (max-width: 860px) {
+@container sign-compose (max-width: 860px) {
   .sign-parchment-sheet {
     padding: 36px 32px 48px;
     min-height: 700px;
   }
 }
 
-@media (max-width: 640px) {
+@container sign-compose (max-width: 640px) {
   .sign-parchment-sheet {
     padding: 24px 20px 40px;
     min-height: 500px;
@@ -763,4 +574,70 @@
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+.sign-link-form { display:flex; flex-direction:column; gap:18px; }
+.sign-link-form label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:500; }
+.sign-studio-root { max-width:100%; container-type:inline-size; container-name:sign-compose; }
+.sign-studio-root .sign-docket-field>button { width:100%; min-width:0; }
+.sign-studio-root .sign-title-input { width:100%; }
+.sign-stats-left,.sign-stats-right { flex-wrap:wrap; }
+.sign-paper-stats-bar { background:var(--white); }
+.sign-sheet-body { overflow-wrap:anywhere; min-width:0; }
+.sign-sheet-body table { width:100%; table-layout:fixed; border-collapse:collapse; }
+.sign-sheet-body td,.sign-sheet-body th { overflow-wrap:anywhere; border:1px solid #cbd5e1; padding:8px; }
+.sign-sheet-body pre { white-space:pre-wrap; overflow-wrap:anywhere; max-width:100%; }
+@container sign-compose (max-width: 1100px) { .sign-studio-app-bar { align-items:stretch; } .sign-studio-bar-left { flex-basis:100%; } .sign-studio-bar-right { justify-content:flex-end; } }
+@container sign-compose (max-width: 640px) {
+  .sign-studio-app-bar { padding:12px; gap:10px; }
+  .sign-studio-bar-left { flex-wrap:wrap; gap:8px; }
+  .sign-title-input-wrap { flex:1 1 calc(100% - 60px); }
+  .sign-jurisdiction-badge { display:none; }
+  .sign-sync-pill { margin-left:auto; }
+  .sign-studio-bar-right { width:100%; justify-content:flex-start; }
+  .sign-studio-bar-right .sign-btn-primary { flex:1; }
+  .sign-docket-ribbon { grid-template-columns:repeat(2,minmax(0,1fr)); padding:12px; }
+  .sign-docket-field>button { max-width:100%; }
+  .sign-paper-desk { padding:16px 0 24px; }
+  .sign-parchment-sheet { padding:24px 18px 36px; box-shadow:var(--elev-sm); }
+  .sign-sheet-header-meta { font-size:9px; }
+  .sign-sheet-body p { text-align:start; }
+  .sign-paper-toolbar { padding:8px; }
+  .sign-paper-toolbar button,.sign-studio-bar-right button { min-height:max(44px,var(--ctl-h-sm)); }
+  .sign-brief-wrap { padding:16px 0; }
+  .sign-compose-brief-card { padding:20px !important; }
+  .sign-brief-header,.sign-brief-footer { flex-direction:column; }
+  .sign-brief-actions { flex-wrap:wrap; width:100%; }
+}
+@media(prefers-reduced-motion:reduce) { .sign-studio-root,.sign-studio-banner { animation:none; } }
+
+@container sign-compose (max-width:640px) {
+  .sign-studio-bar-right .sign-action-btn { width:44px; padding-inline:0; }
+  .sign-studio-bar-right .sign-action-btn:first-child { width:44px; padding-inline:0; }
+  .sign-studio-bar-right .sign-action-btn span { display:none; }
+  .sign-studio-bar-right .sign-action-btn:first-child span { display:none; }
+  .sign-studio-bar-right .sign-btn-primary { flex:0 0 auto; }
+  .sign-studio-bar-left .sign-title-input-wrap { flex-basis:calc(100% - 60px); }
+}
+
+@container sign-compose (max-width:640px) { .sign-title-input { font-size:16px; } }
+
+.sign-paper-toolbar { position:sticky; top:0; z-index:15; }
+
+.sign-toolbar-group { display:flex; flex-wrap:wrap; align-items:center; gap:4px; min-width:0; }
+.sign-toolbar-group:not(:first-child) { border-left:1px solid var(--border); padding-left:8px; }
+.sign-font-select { width:145px; }
+.sign-size-select { width:90px; }
+.sign-studio-root .sign-paper-toolbar { gap:8px; max-width:100%; box-sizing:border-box; }
+.sign-studio-bar-right { flex-wrap:wrap; }
+.sign-studio-root .sign-parchment-sheet { color-scheme:light; }
+.sign-studio-root .sign-sheet-body,
+.sign-studio-root .sign-sheet-body :where(p,div,span,li,td,th,strong,b,i,em,u,s,h1,h2,h3,h4) { color:#0f172a !important; }
+@container sign-compose (max-width:640px) {
+  .sign-toolbar-group:not(:first-child) { border-left:0; padding-left:0; }
+  .sign-toolbar-group:first-child { flex-basis:100%; }
+  .sign-studio-bar-right { justify-content:flex-end; }
+  .sign-studio-bar-right .sign-btn-primary { flex:0 0 auto; }
+  .sign-studio-bar-right .sign-action-btn { padding-inline:0; }
+  .sign-studio-bar-right .sign-action-btn:first-child { padding-inline:0; }
 }

@@ -61,7 +61,7 @@ export function LockScreen() {
   };
 
   return (
-    <div className="ls-overlay">
+    <div className={`ls-overlay${isDark ? ' ls-dark' : ''}`}>
       <button
         type="button"
         className="ls-theme-toggle"

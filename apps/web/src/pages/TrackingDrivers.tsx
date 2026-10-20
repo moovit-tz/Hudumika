@@ -1,3 +1,4 @@
+import { Banner } from '../components/ui/alert.js';
 ﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
@@ -6,7 +7,7 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { MetricsRow, MetricCardProps } from '../components/MetricCard.js';
-import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DriverChatPanel } from '../components/DriverChatPanel.js';
 import './TrackingDrivers.css';
 import { PageHeader } from '../components/PageHeader.js';
@@ -15,11 +16,11 @@ import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
 
 interface DriverMetrics {
-  tracking_id: string | null; transit_status: string; transit_progress_pct: number;
+  tracking_id: string | null; transit_status: string; transit_progress_pct: number | null;
   origin: string | null; destination: string | null; eta: string | null;
   deliveries_week: { day: string; value: number }[];
   total_completed: number;
-  on_time_rate: number; on_time_deliveries: number;
+  on_time_rate: number | null; on_time_deliveries: number;
   total_delays: number; delays: { name: string; value: number; color: string }[];
 }
 
@@ -31,6 +32,8 @@ interface DriverDetailed {
 }
 
 export const TrackingDrivers: React.FC = () => {
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const navigate = useNavigate();
   const [drivers, setDrivers] = useState<DriverDetailed[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,8 +50,9 @@ export const TrackingDrivers: React.FC = () => {
   }, []);
 
   const reload = useCallback(() => {
+    setPageError('');
     setLoading(true);
-    apiFetch('/v1/tracking/drivers').then(setDrivers).catch(console.error).finally(() => setLoading(false));
+    apiFetch('/v1/tracking/drivers').then(setDrivers).catch(reportError).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { reload(); fetchStats(); }, [reload, fetchStats]);
@@ -57,7 +61,7 @@ export const TrackingDrivers: React.FC = () => {
     if (selectedDriver) {
       setMetrics(null);
       apiFetch(`/v1/tracking/drivers/${selectedDriver.id}/metrics`)
-        .then(setMetrics).catch(console.error);
+        .then(setMetrics).catch(reportError);
     }
   }, [selectedDriver]);
 
@@ -96,7 +100,7 @@ export const TrackingDrivers: React.FC = () => {
     {
       title: 'TOTAL DRIVERS',
       value: String(dTotal),
-      sub1Label: 'LICENSED FLEET',
+      sub1Label: 'REGISTERED FLEET',
       sub1Value: `${dTotal} Drivers Registered`,
       sub2Label: 'ASSIGNED VEHICLES',
       sub2Value: `${dAssigned} Active Trucks`,
@@ -107,7 +111,7 @@ export const TrackingDrivers: React.FC = () => {
     {
       title: 'AVAILABLE NOW',
       value: String(dAvailable),
-      sub1Label: 'DISPATCH READY',
+      sub1Label: 'ACTIVE RECORDS',
       sub1Value: `${dAvailable} Ready for Assignment`,
       sub2Label: 'STANDBY RATE',
       sub2Value: dTotal > 0 ? `${Math.round((dAvailable / dTotal) * 100)}% Available` : '100%',
@@ -132,7 +136,7 @@ export const TrackingDrivers: React.FC = () => {
       sub1Label: 'SHIFT STATUS',
       sub1Value: `${dOffDuty} Off Shift`,
       sub2Label: 'COMPLIANCE',
-      sub2Value: 'Rest Hours Logged',
+      sub2Value: 'Schedule and licence checks required',
       barHighlight: 'var(--gold)',
       icon: 'clock',
       loading: !driverStats,
@@ -140,11 +144,11 @@ export const TrackingDrivers: React.FC = () => {
   ];
 
   return (
-    <div className="drv-page-root">
+    <div className="drv-page-root">{pageError && <Banner variant="error">{pageError}</Banner>}
       <PageHeader
         crumbs={['HuduFreight', 'Drivers Directory']}
-        titlePlain="Fleet &"
-        titleEm="driver lifecycle"
+        titlePlain="Fleet"
+        titleEm="drivers"
         subtitle="Manage drivers, active dispatches, assigned vehicles, license compliance & messaging."
         actions={
           <Button asChild>
@@ -164,7 +168,7 @@ export const TrackingDrivers: React.FC = () => {
             {/* Status Segmented Tabs */}
             <div className="drv-cats-scroll">
               <Tabs value={filter} onValueChange={v => setFilter(v as typeof filter)} variant="segmented">
-                <TabsList>
+                <TabsList wrap>
                   <TabsTrigger value="All">All <span className="drv-tab-count">({stats.total})</span></TabsTrigger>
                   <TabsTrigger value="Available">Available <span className="drv-tab-count">({stats.available})</span></TabsTrigger>
                   <TabsTrigger value="On Route">On Route <span className="drv-tab-count">({stats.onRoute})</span></TabsTrigger>
@@ -184,14 +188,14 @@ export const TrackingDrivers: React.FC = () => {
             <div className="drv-toolbar-right">
               <div className="drv-view-toggle">
                 <Tip label="Card grid view">
-                  <button type="button" aria-label="Card grid view" className={`drv-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} data-ui-native-button="">
+                  <Button type="button" aria-label="Card grid view" className={`drv-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} data-ui-native-button="">
                     <Icon name="grid" size={15} />
-                  </button>
+                  </Button>
                 </Tip>
                 <Tip label="Table list view">
-                  <button type="button" aria-label="Table list view" className={`drv-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} data-ui-native-button="">
+                  <Button type="button" aria-label="Table list view" className={`drv-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} data-ui-native-button="">
                     <Icon name="list" size={15} />
-                  </button>
+                  </Button>
                 </Tip>
               </div>
             </div>
@@ -262,13 +266,13 @@ export const TrackingDrivers: React.FC = () => {
                     </div>
 
                     <div className="drv-card-footer" onClick={e => e.stopPropagation()}>
-                      <button
+                      <Button
                         type="button"
                         className="drv-action-btn-sm"
                         onClick={() => setSelectedDriver(d)}
                        data-ui-native-button="">
                         <Icon name="barChart2" size={13} /> Quick Peek
-                      </button>
+                      </Button>
 
                       <Link
                         to={`/tracking/drivers/${d.id}`}
@@ -332,13 +336,13 @@ export const TrackingDrivers: React.FC = () => {
                         </td>
                         <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                            <button
+                            <Button
                               type="button"
                               className="drv-action-btn-sm"
                               onClick={() => setSelectedDriver(d)}
                              data-ui-native-button="">
                               <Icon name="eye" size={13} /> Peek
-                            </button>
+                            </Button>
                             <Link
                               to={`/tracking/drivers/${d.id}`}
                               className="drv-action-btn-primary"
@@ -384,14 +388,14 @@ export const TrackingDrivers: React.FC = () => {
                 >
                   Full Profile →
                 </Link>
-                <button
+                <Button
                   type="button"
                   className="drv-sb-close-btn"
                   onClick={() => setSelectedDriver(null)}
                   aria-label="Close driver details"
                  data-ui-native-button="">
                   <Icon name="x" size={16} />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -401,20 +405,20 @@ export const TrackingDrivers: React.FC = () => {
                 <div className="drv-trk-id">
                   <div className="drv-trk-icon"><Icon name="package" size={16} /></div>
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase' }}>ACTIVE TRIP</div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase' }}>TRIP SUMMARY</div>
                     <div style={{ fontWeight: 700, fontSize: 13.5 }}>{metrics.tracking_id ?? 'No active dispatch'}</div>
                   </div>
                 </div>
                 <div className="drv-trk-status-col">
                   <span className="drv-status drv-status--on-route">{metrics.transit_status}</span>
-                  {metrics.tracking_id && <div className="drv-trk-progress-text">{metrics.transit_progress_pct}% Completed</div>}
+                  {metrics.tracking_id && <div className="drv-trk-progress-text">{metrics.transit_progress_pct == null ? 'No schedule estimate' : `${metrics.transit_progress_pct}% scheduled time elapsed`}</div>}
                 </div>
               </div>
 
               {metrics.tracking_id && (
                 <>
                   <div className="drv-trk-bar-bg">
-                    <div className="drv-trk-bar-fill" style={{ width: `${metrics.transit_progress_pct}%` }}></div>
+                    <div className="drv-trk-bar-fill" style={{ width: `${metrics.transit_progress_pct ?? 0}%` }}></div>
                   </div>
                   <div className="drv-trk-route">
                     <div className="drv-trk-col">
@@ -434,25 +438,20 @@ export const TrackingDrivers: React.FC = () => {
             {/* Delivery Stats Chart */}
             <div className="drv-sb-section">
               <div className="drv-sb-sec-header">
-                <div className="drv-sb-sec-title">Weekly Dispatch Performance</div>
+                <div className="drv-sb-sec-title">Weekly deliveries</div>
                 <span className="drv-sb-pill">This Week</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
-                <div className="drv-chart-val">{metrics.total_completed}</div>
+                <div className="drv-chart-val">{metrics.deliveries_week.reduce((sum, day) => sum + day.value, 0)}</div>
                 <div className="drv-chart-label">Completed Deliveries</div>
               </div>
               <div style={{ height: 110, width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={metrics.deliveries_week} margin={{ top: 8, right: 0, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--teal)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="var(--teal)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <Area type="monotone" dataKey="value" stroke="var(--teal)" strokeWidth={2} fillOpacity={1} fill="url(#colorVal)" />
-                  </AreaChart>
+                  <BarChart data={metrics.deliveries_week} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--ink3)' }} />
+                    <RechartsTooltip cursor={false} contentStyle={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--ink)' }} />
+                    <Bar dataKey="value" name="Completed deliveries" fill="var(--teal)" maxBarSize={24} radius={[3, 3, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -461,10 +460,10 @@ export const TrackingDrivers: React.FC = () => {
             <div className="drv-sb-section">
               <div className="drv-sb-sec-header">
                 <div className="drv-sb-sec-title">On-Time Delivery Rate</div>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--green)' }}>{metrics.on_time_rate}%</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--green)' }}>{metrics.on_time_rate == null ? 'No completed trips' : `${metrics.on_time_rate}%`}</span>
               </div>
               <div className="drv-perf-bar-bg">
-                <div className="drv-perf-bar-fill" style={{ width: `${metrics.on_time_rate}%` }}></div>
+                <div className="drv-perf-bar-fill" style={{ width: `${metrics.on_time_rate ?? 0}%` }}></div>
               </div>
               <div className="drv-perf-footer">
                 <div className="drv-perf-footer-left">{metrics.on_time_deliveries} <span>/ {metrics.total_completed} On-Time Trips</span></div>

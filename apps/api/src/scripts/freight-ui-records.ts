@@ -1,0 +1,24 @@
+import { getApp, authHeaders } from '../tests/helpers.js';
+import { dbPlatform } from '../db/client.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+const fixture=JSON.parse(readFileSync('freight-ui-tenant.tmp.json','utf8'));
+const app=await getApp();
+const token=app.jwt.sign({sub:fixture.userId,tenant_id:fixture.tenantId,role:'TENANT_ADMIN',name:'UI TEST operator',email:fixture.email} as any);
+await dbPlatform.updateTable('tenant_settings').set({settings:JSON.stringify({'enabled-apps':{tracking:true,'tracking.analytics':true,'tracking.cargo-loading':true,'tracking.warehouse':true,seal:true,complyos:true}}) as any}).where('tenant_id','=',fixture.tenantId).execute();
+async function create(path:string,payload:object){const res=await app.inject({method:'POST',url:'/v1/'+path,headers:authHeaders(token),payload});if(res.statusCode>=300)throw new Error(path+': '+res.body);return res.json();}
+const driver=await create('tracking/drivers',{name:'UI TEST driver',license_number:'UI-TEST-NOT-A-LICENCE'});
+const vehicle=await create('tracking/vehicles',{name:'UI TEST truck',type:'TRUCK',device_id:randomUUID(),plate_number:'UI-TEST',driver_id:driver.id});
+const vendor=await create('tracking/vendors',{name:'UI TEST parts supplier',vendor_type:'PARTS_SUPPLIER'});
+const compartment=await dbPlatform.insertInto('seal_compartments').values({tenant_id:fixture.tenantId,code:'UI-TEST',name:'UI TEST bonded warehouse'} as any).returningAll().executeTakeFirstOrThrow();
+const location=await create('tracking/warehouse/locations',{name:'UI TEST parts rack',code:'UI-RACK',capacity_units:100,seal_compartment_id:compartment.id});
+await create('tracking/parts',{part_name:'UI TEST brake pad',quantity:12,reorder_level:5,location_id:location.id,vendor_id:vendor.id});
+await create('tracking/transporters',{name:'UI TEST carrier',contact_name:'UI TEST dispatcher'});
+await create('tracking/documents',{vehicle_id:vehicle.id,doc_type:'OTHER',doc_number:'UI-TEST-UNVERIFIED',expiry_date:'2027-01-01'});
+await create('tracking/reminders',{vehicle_id:vehicle.id,title:'UI TEST service reminder',due_date:'2026-12-01'});
+await create('tracking/alerts',{vehicle_id:vehicle.id,alert_type:'MANUAL',message:'UI TEST alert; no sensor fault asserted',severity:'INFO'});
+await create('depot/equipment',{equipmentNumber:'UI-TEST-001',equipmentType:'OTHER'});
+await create('depot/interchange-receipts',{subjectType:'adhoc',equipmentNumber:'UI-TEST-001',direction:'GATE_IN',partyName:'UI TEST carrier'});
+await dbPlatform.insertInto('vehicle_positions').values([0,1,2].map(i=>({tenant_id:fixture.tenantId,vehicle_id:vehicle.id,latitude:-6.79+i*0.001,longitude:39.20+i*0.001,speed:i===1?null:10,recorded_at:new Date(Date.now()-(3-i)*60000)} as any))).execute();
+fixture.vehicleId=vehicle.id;fixture.compartmentId=compartment.id;writeFileSync('freight-ui-tenant.tmp.json',JSON.stringify(fixture));
+console.log(JSON.stringify({tenant:'Disposable UI TEST tenant',vehicleId:vehicle.id,created:true}));process.exit(0);

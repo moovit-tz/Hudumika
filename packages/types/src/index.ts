@@ -1,6 +1,7 @@
 // ─── Hudumika Types — Barrel Export ────────────────────────────
 
 export * from './core.js';
+export * from './freight-operations.js';
 export * from './user.js';
 export * from './api.js';
 export * from './notifications.js';

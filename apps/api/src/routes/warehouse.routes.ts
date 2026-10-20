@@ -15,6 +15,7 @@ const locationCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   zone: z.string().max(100).optional(),
   capacity_units: z.number().int().min(0).optional(),
+  seal_compartment_id: z.string().uuid().nullable().optional(),
 });
 const locationPatchSchema = locationCreateSchema.partial().extend({ active: z.boolean().optional() });
 
@@ -46,7 +47,7 @@ async function computeOccupancy(trx: Transaction<Database>, tenantId: string): P
     const zoneName = loc.zone || 'Unassigned';
     const occupied = qtyByLocation.get(loc.id) ?? 0;
     const capacity = loc.capacity_units;
-    const occupancy_pct = capacity ? Math.min(100, Math.round((occupied / capacity) * 1000) / 10) : null;
+    const occupancy_pct = capacity ? Math.round((occupied / capacity) * 1000) / 10 : null;
     const arr = zonesMap.get(zoneName) ?? [];
     arr.push({ id: loc.id, code: loc.code, name: loc.name, capacity_units: capacity, occupied_units: occupied, occupancy_pct });
     zonesMap.set(zoneName, arr);
@@ -67,6 +68,22 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.addHook('preHandler', async (req, reply) => {
+    if (!['POST', 'PATCH'].includes(req.method)) return;
+    await requireRole(...FLEET_ROLES)(req, reply);
+    if (reply.sent) return;
+    const body = req.body as Record<string, unknown>;
+    if (!body) return;
+    if (body.seal_compartment_id) { await requireEntitlement('seal')(req, reply); if (reply.sent) return; }
+    return withTenant(req.user.tenant_id, async trx => {
+      for (const [key, table] of [['vehicle_id', 'vehicles'], ['seal_compartment_id', 'seal_compartments']] as const) {
+        if (!body[key]) continue;
+        if (!z.string().uuid().safeParse(body[key]).success) return reply.status(400).send({ error: `Invalid ${key}` });
+        if (!await trx.selectFrom(table).select('id').where('id', '=', body[key] as string).where('tenant_id', '=', req.user.tenant_id).executeTakeFirst()) return reply.status(404).send({ error: `${key} not found` });
+      }
+    });
+  });
+
   // ── Locations ────────────────────────────────────────────────
 
   fastify.get('/warehouse/locations', async (req) => {
@@ -84,6 +101,7 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
       trx.insertInto('warehouse_locations').values({
         tenant_id: user.tenant_id, code: body.code, name: body.name,
         zone: body.zone ?? null, capacity_units: body.capacity_units ?? null,
+        seal_compartment_id: body.seal_compartment_id ?? null,
       } as any).returningAll().executeTakeFirstOrThrow()
     );
   });
@@ -95,7 +113,7 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = locationPatchSchema.parse(req.body);
-    const patch = pick(body, ['code', 'name', 'zone', 'capacity_units', 'active']);
+    const patch = pick(body, ['code', 'name', 'zone', 'capacity_units', 'active', 'seal_compartment_id']);
     const updated = await withTenant(user.tenant_id, async (trx) =>
       trx.updateTable('warehouse_locations').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -144,41 +162,22 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.patch('/warehouse/dock-appointments/:id/check-in', async (req, reply) => {
-    const user = req.user;
-    const { id } = req.params as { id: string };
-    const updated = await withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('warehouse_dock_appointments').set({ status: 'CHECKED_IN', updated_at: new Date() })
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst()
-    );
-    if (!updated) return reply.status(404).send({ error: 'Dock appointment not found' });
-    return updated;
-  });
-
-  fastify.patch('/warehouse/dock-appointments/:id/complete', async (req, reply) => {
-    const user = req.user;
-    const { id } = req.params as { id: string };
-    const updated = await withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('warehouse_dock_appointments').set({ status: 'COMPLETED', updated_at: new Date() })
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst()
-    );
-    if (!updated) return reply.status(404).send({ error: 'Dock appointment not found' });
-    return updated;
-  });
-
-  fastify.patch('/warehouse/dock-appointments/:id/cancel', async (req, reply) => {
-    const user = req.user;
-    const { id } = req.params as { id: string };
-    const updated = await withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('warehouse_dock_appointments').set({ status: 'CANCELLED', updated_at: new Date() })
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst()
-    );
-    if (!updated) return reply.status(404).send({ error: 'Dock appointment not found' });
-    return updated;
-  });
+  const transitions = [
+    { action: 'check-in', next: 'CHECKED_IN', from: ['SCHEDULED'] },
+    { action: 'complete', next: 'COMPLETED', from: ['CHECKED_IN'] },
+    { action: 'cancel', next: 'CANCELLED', from: ['SCHEDULED', 'CHECKED_IN'] },
+  ];
+  for (const transition of transitions) {
+    fastify.patch(`/warehouse/dock-appointments/:id/${transition.action}`, { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+      const { id } = req.params as { id: string };
+      return withTenant(req.user.tenant_id, async trx => {
+        const appointment = await trx.selectFrom('warehouse_dock_appointments').selectAll().where('id', '=', id).where('tenant_id', '=', req.user.tenant_id).forUpdate().executeTakeFirst();
+        if (!appointment) return reply.status(404).send({ error: 'Dock appointment not found' });
+        if (!transition.from.includes(appointment.status)) return reply.status(409).send({ error: `Cannot ${transition.action} an appointment in ${appointment.status} state.` });
+        return trx.updateTable('warehouse_dock_appointments').set({ status: transition.next, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', req.user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      });
+    });
+  }
 
   fastify.delete('/warehouse/dock-appointments/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;

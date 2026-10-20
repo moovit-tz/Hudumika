@@ -115,6 +115,8 @@ export async function depotRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/seal-containers', { preHandler: requireEntitlement('seal') }, async req => withTenant(req.user.tenant_id, trx => trx.selectFrom('seal_containers').select(['id', 'container_number', 'container_size']).where('tenant_id', '=', req.user.tenant_id).orderBy('container_number').limit(500).execute()));
+
   fastify.post('/equipment', async (request: any, reply) => {
     const input = equipmentSchema.parse(request.body);
     try {
@@ -153,6 +155,10 @@ export async function depotRoutes(fastify: FastifyInstance) {
   fastify.post('/interchange-receipts', async (request: any, reply) => {
     const input = interchangeSchema.parse(request.body);
     const tenantId = request.user.tenant_id;
+    if (input.subjectType === 'seal_container') {
+      await requireEntitlement('seal')(request, reply);
+      if (reply.sent) return;
+    }
     try {
       const receipt = await recordInterchange(tenantId, request.user.sub, { ...input, subjectId: input.subjectId ?? null });
 

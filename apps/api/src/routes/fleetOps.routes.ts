@@ -1,3 +1,4 @@
+import { FLEET_PARTNER_CATEGORIES } from '@hudumika/types';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
@@ -9,13 +10,16 @@ import { pick } from '../lib/pick.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
 
+const categoryValues = FLEET_PARTNER_CATEGORIES.map(c => c.type) as [string, ...string[]];
 const vendorCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
-  vendor_type: z.string().max(50).optional(),
-  phone: z.string().max(30).optional(),
-  email: z.string().email().max(320).optional(),
-  address: z.string().max(500).optional(),
-  notes: z.string().max(2000).optional(),
+  vendor_type: z.enum(categoryValues).optional(),
+  service_capabilities: z.array(z.enum(categoryValues)).max(18).transform(values => [...new Set(values)]).optional(),
+  active: z.boolean().optional(),
+  phone: z.string().max(50).optional().nullable().or(z.literal('')),
+  email: z.string().email().max(200).optional().nullable().or(z.literal('')),
+  address: z.string().max(500).optional().nullable().or(z.literal('')),
+  notes: z.string().max(2000).optional().nullable().or(z.literal('')),
 });
 const vendorPatchSchema = vendorCreateSchema.partial().extend({ active: z.boolean().optional() });
 
@@ -27,6 +31,7 @@ const partCreateSchema = z.object({
   unit_cost: z.number().min(0).optional(),
   reorder_level: z.number().int().min(0).optional(),
   vendor_id: z.string().uuid().optional(),
+  location_id: z.string().uuid().nullable().optional(),
 });
 const partPatchSchema = partCreateSchema.partial();
 
@@ -66,7 +71,7 @@ const NON_DISPATCHABLE_TRAILER_STATUSES = new Set(['OUT_OF_SERVICE', 'MAINTENANC
  * cannot be sent out either. `excludeTripId` lets re-dispatching the same
  * trip (e.g. re-PATCHing it to IN_PROGRESS) skip colliding with itself.
  */
-async function assertDispatchable(
+export async function assertDispatchable(
   trx: any, tenantId: string, vehicleId: string, driverId: string | null | undefined,
   trailerId?: string | null, excludeTripId?: string
 ): Promise<string | null> {
@@ -85,7 +90,15 @@ async function assertDispatchable(
   }
 
   const now = new Date();
+  const invalidCertificate = await trx.selectFrom('vehicle_documents as d')
+    .innerJoin('comply_certificates as c', 'c.id', 'd.comply_certificate_id')
+    .select(['c.name', 'c.status', 'c.expiry_date'])
+    .where('d.tenant_id', '=', tenantId).where('c.tenant_id', '=', tenantId).where('d.vehicle_id', '=', vehicleId)
+    .where((eb: any) => eb.or([eb('c.status', 'in', ['revoked', 'expired']), eb('c.expiry_date', '<', now)]))
+    .executeTakeFirst();
+  if (invalidCertificate) return `${invalidCertificate.name} is expired or revoked in ComplyOS. Renew it before dispatch.`;
   const expiredDoc = await trx.selectFrom('vehicle_documents').select(['doc_type', 'expiry_date'])
+    .where('comply_certificate_id', 'is', null)
     .where('vehicle_id', '=', vehicleId).where('tenant_id', '=', tenantId)
     .where('expiry_date', 'is not', null).where('expiry_date', '<', now)
     .orderBy('expiry_date').executeTakeFirst();
@@ -216,9 +229,9 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         ).map(t => t.driver_id)
       );
 
-      return drivers.map((d, i) => ({
+      return drivers.map((d) => ({
         ...d,
-        custom_id: `DRV${String(i + 1).padStart(3, '0')}`,
+        custom_id: `DRV-${d.id.split('-')[0].toUpperCase()}`,
         email: d.hr_email || null,
         status: activeTripDriverIds.has(d.id) ? 'On Route' : d.status === 'ACTIVE' ? 'Available' : 'Off Duty',
       }));
@@ -247,13 +260,13 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         ?? trips.filter(t => t.status === 'COMPLETED').sort((a, b) => (b.actual_end ? +new Date(b.actual_end) : 0) - (a.actual_end ? +new Date(a.actual_end) : 0))[0]
         ?? null;
 
-      let transit_progress_pct = 0;
+      let transit_progress_pct: number | null = null;
       if (current) {
         if (current.status === 'COMPLETED') transit_progress_pct = 100;
         else if (current.status === 'IN_PROGRESS' && current.actual_start && current.scheduled_end) {
           const total = +new Date(current.scheduled_end) - +new Date(current.actual_start);
           const elapsed = now.getTime() - +new Date(current.actual_start);
-          transit_progress_pct = total > 0 ? Math.max(0, Math.min(100, Math.round((elapsed / total) * 100))) : 0;
+          transit_progress_pct = total > 0 ? Math.max(0, Math.min(100, Math.round((elapsed / total) * 100))) : null;
         }
       }
       const STATUS_LABEL: Record<string, string> = { PLANNED: 'Scheduled', IN_PROGRESS: 'In Transit', COMPLETED: 'Delivered', CANCELLED: 'Cancelled' };
@@ -271,7 +284,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       const withBothDates = completed.filter(t => t.scheduled_end && t.actual_end);
       const onTime = withBothDates.filter(t => new Date(t.actual_end!) <= new Date(t.scheduled_end!));
       const late = withBothDates.filter(t => new Date(t.actual_end!) > new Date(t.scheduled_end!));
-      const on_time_rate = withBothDates.length > 0 ? Math.round((onTime.length / withBothDates.length) * 100) : 100;
+      const on_time_rate = withBothDates.length > 0 ? Math.round((onTime.length / withBothDates.length) * 100) : null;
 
       // No structured "delay reason" taxonomy exists in the schema — bucket
       // honestly by whether a serious vehicle issue was logged around the
@@ -436,11 +449,121 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
 
   fastify.get('/vendors', async (req) => {
     const user = req.user;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.selectFrom('vehicle_vendors').selectAll()
+    return withTenant(user.tenant_id, async (trx) => {
+      const vendors = await trx.selectFrom('vehicle_vendors').selectAll()
         .where('tenant_id', '=', user.tenant_id)
-        .orderBy('name').execute()
-    );
+        .orderBy('name').execute();
+
+      if (vendors.length === 0) return [];
+
+      const [maintenanceCounts, partsCounts, fuelCounts, expenseCounts] = await Promise.all([
+        sql<{ vendor_id: string; count: number; total_cost: number }>`
+          SELECT vendor_id, COUNT(*)::int as count, COALESCE(SUM(cost), 0)::numeric as total_cost
+          FROM maintenance_records
+          WHERE tenant_id = ${user.tenant_id} AND vendor_id IS NOT NULL
+          GROUP BY vendor_id
+        `.execute(trx),
+        sql<{ vendor_id: string; count: number; total_value: number }>`
+          SELECT vendor_id, COUNT(*)::int as count, COALESCE(SUM(quantity * COALESCE(unit_cost, 0)), 0)::numeric as total_value
+          FROM parts_stock
+          WHERE tenant_id = ${user.tenant_id} AND vendor_id IS NOT NULL
+          GROUP BY vendor_id
+        `.execute(trx),
+        sql<{ vendor_id: string; count: number; total_cost: number; total_liters: number }>`
+          SELECT vendor_id, COUNT(*)::int as count, COALESCE(SUM(cost), 0)::numeric as total_cost, COALESCE(SUM(liters), 0)::numeric as total_liters
+          FROM fuel_logs
+          WHERE tenant_id = ${user.tenant_id} AND vendor_id IS NOT NULL
+          GROUP BY vendor_id
+        `.execute(trx),
+        sql<{ vendor_id: string; count: number; total_amount: number }>`
+          SELECT vendor_id, COUNT(*)::int as count, COALESCE(SUM(amount), 0)::numeric as total_amount
+          FROM vehicle_expenses
+          WHERE tenant_id = ${user.tenant_id} AND vendor_id IS NOT NULL
+          GROUP BY vendor_id
+        `.execute(trx),
+      ]);
+
+      const mByVendor = new Map(maintenanceCounts.rows.map(m => [m.vendor_id, { count: m.count, total: Number(m.total_cost) }]));
+      const pByVendor = new Map(partsCounts.rows.map(p => [p.vendor_id, { count: p.count, total: Number(p.total_value) }]));
+      const fByVendor = new Map(fuelCounts.rows.map(f => [f.vendor_id, { count: f.count, total: Number(f.total_cost), liters: Number(f.total_liters) }]));
+      const eByVendor = new Map(expenseCounts.rows.map(e => [e.vendor_id, { count: e.count, total: Number(e.total_amount) }]));
+
+      return vendors.map(v => {
+        const m = mByVendor.get(v.id) ?? { count: 0, total: 0 };
+        const p = pByVendor.get(v.id) ?? { count: 0, total: 0 };
+        const f = fByVendor.get(v.id) ?? { count: 0, total: 0, liters: 0 };
+        const e = eByVendor.get(v.id) ?? { count: 0, total: 0 };
+        const totalSpend = m.total + f.total + e.total;
+        const totalRecords = m.count + p.count + f.count + e.count;
+
+        return {
+          ...v,
+          maintenance_count: m.count,
+          maintenance_spend: m.total,
+          parts_count: p.count,
+          parts_inventory_value: p.total,
+          fuel_logs_count: f.count,
+          fuel_spend: f.total,
+          fuel_liters: f.liters,
+          expenses_count: e.count,
+          expenses_spend: e.total,
+          total_spend: totalSpend,
+          total_records: totalRecords,
+        };
+      });
+    });
+  });
+
+  fastify.get('/vendors/:id', async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const vendor = await trx.selectFrom('vehicle_vendors').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!vendor) return reply.status(404).send({ error: 'Vendor not found' });
+
+      const [maintenance, parts, fuel, expenses] = await Promise.all([
+        trx.selectFrom('maintenance_records as mr')
+          .leftJoin('vehicles as v', 'v.id', 'mr.vehicle_id')
+          .select(['mr.id', 'mr.service_type', 'mr.cost', 'mr.service_date', 'mr.next_due_date', 'v.name as vehicle_name', 'v.plate_number as vehicle_plate'])
+          .where('mr.tenant_id', '=', user.tenant_id)
+          .where('mr.vendor_id', '=', id)
+          .orderBy('mr.service_date', 'desc')
+          .limit(20)
+          .execute(),
+        trx.selectFrom('parts_stock')
+          .select(['id', 'part_name', 'part_number', 'category', 'quantity', 'unit_cost', 'reorder_level'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('vendor_id', '=', id)
+          .orderBy('part_name')
+          .limit(30)
+          .execute(),
+        trx.selectFrom('fuel_logs as fl')
+          .leftJoin('vehicles as v', 'v.id', 'fl.vehicle_id')
+          .select(['fl.id', 'fl.liters', 'fl.cost', 'fl.logged_at', 'v.name as vehicle_name', 'v.plate_number as vehicle_plate'])
+          .where('fl.tenant_id', '=', user.tenant_id)
+          .where('fl.vendor_id', '=', id)
+          .orderBy('fl.logged_at', 'desc')
+          .limit(20)
+          .execute(),
+        trx.selectFrom('vehicle_expenses as ve')
+          .leftJoin('vehicles as v', 'v.id', 've.vehicle_id')
+          .select(['ve.id', 've.category', 've.amount', 've.expense_date', 've.description', 'v.name as vehicle_name', 'v.plate_number as vehicle_plate'])
+          .where('ve.tenant_id', '=', user.tenant_id)
+          .where('ve.vendor_id', '=', id)
+          .orderBy('ve.expense_date', 'desc')
+          .limit(20)
+          .execute(),
+      ]);
+
+      return {
+        vendor,
+        maintenance: maintenance.map(m => ({ ...m, cost: numOrNull(m.cost) })),
+        parts: parts.map(p => ({ ...p, unit_cost: numOrNull(p.unit_cost) })),
+        fuel: fuel.map(f => ({ ...f, liters: Number(f.liters), cost: numOrNull(f.cost) })),
+        expenses: expenses.map(e => ({ ...e, amount: Number(e.amount) })),
+      };
+    });
   });
 
   fastify.post('/vendors', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
@@ -451,6 +574,8 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         tenant_id: user.tenant_id,
         name: body.name,
         vendor_type: body.vendor_type ?? 'WORKSHOP',
+        service_capabilities: body.service_capabilities ?? [],
+        active: body.active ?? true,
         phone: body.phone ?? null,
         email: body.email ?? null,
         address: body.address ?? null,
@@ -463,7 +588,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = vendorPatchSchema.parse(req.body);
-    const patch = pick(body, ['name', 'vendor_type', 'phone', 'email', 'address', 'notes', 'active']);
+    const patch = pick(body, ['name', 'vendor_type', 'service_capabilities', 'phone', 'email', 'address', 'notes', 'active']);
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('vehicle_vendors').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -911,11 +1036,44 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
 
   // ── Parts Stock ──────────────────────────────────────────────
 
+  fastify.get('/parts/:id/movements', async (req) => {
+    const { id } = req.params as { id: string };
+    return withTenant(req.user.tenant_id, trx => trx.selectFrom('parts_stock_movements').selectAll().where('tenant_id', '=', req.user.tenant_id).where('part_id', '=', id).orderBy('created_at', 'desc').limit(200).execute());
+  });
+
+  fastify.post('/parts/:id/movements', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({ quantity_delta: z.number().int().min(-1000000).max(1000000).refine(v => v !== 0), reason: z.string().trim().min(1).max(1000) }).parse(req.body);
+    return withTenant(req.user.tenant_id, async trx => {
+      const part = await trx.selectFrom('parts_stock').selectAll().where('tenant_id', '=', req.user.tenant_id).where('id', '=', id).forUpdate().executeTakeFirst();
+      if (!part || part.archived_at) return reply.status(404).send({ error: 'Part not found' });
+      const balance = part.quantity + body.quantity_delta;
+      if (balance < 0) return reply.status(409).send({ error: 'Insufficient stock. The balance cannot be negative.' });
+      await trx.updateTable('parts_stock').set({ quantity: balance, updated_at: new Date() }).where('tenant_id', '=', req.user.tenant_id).where('id', '=', id).execute();
+      return trx.insertInto('parts_stock_movements').values({ tenant_id: req.user.tenant_id, part_id: id, quantity_delta: body.quantity_delta, balance_after: balance, reason: body.reason, created_by: req.user.sub }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.addHook('preHandler', async (req, reply) => {
+    if (!req.routeOptions.url?.includes('/parts') || !['POST', 'PATCH'].includes(req.method)) return;
+    const body = req.body as Record<string, unknown>;
+    if (!body) return;
+    return withTenant(req.user.tenant_id, async trx => {
+      for (const [key, table] of [['vendor_id', 'vehicle_vendors'], ['location_id', 'warehouse_locations']] as const) {
+        if (!body[key]) continue;
+        if (!z.string().uuid().safeParse(body[key]).success) return reply.status(400).send({ error: `Invalid ${key}` });
+        if (!await trx.selectFrom(table).select('id').where('id', '=', body[key] as string).where('tenant_id', '=', req.user.tenant_id).executeTakeFirst()) return reply.status(404).send({ error: `${key} not found` });
+      }
+      if (req.method === 'PATCH' && body.quantity !== undefined) return reply.status(409).send({ error: 'Record a stock movement with a reason to change quantity.' });
+    });
+  });
+
   fastify.get('/parts', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       const rows = await trx.selectFrom('parts_stock').selectAll()
         .where('tenant_id', '=', user.tenant_id)
+        .where('archived_at', 'is', null)
         .orderBy('part_name').execute();
       return rows.map(r => ({ ...r, unit_cost: numOrNull(r.unit_cost) }));
     });
@@ -924,8 +1082,8 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
   fastify.post('/parts', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const body = partCreateSchema.parse(req.body);
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.insertInto('parts_stock').values({
+    return withTenant(user.tenant_id, async (trx) => {
+      const part = await trx.insertInto('parts_stock').values({
         tenant_id: user.tenant_id,
         part_name: body.part_name,
         part_number: body.part_number ?? null,
@@ -934,15 +1092,18 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         unit_cost: body.unit_cost ?? null,
         reorder_level: body.reorder_level ?? 5,
         vendor_id: body.vendor_id ?? null,
+        location_id: body.location_id ?? null,
       } as any).returningAll().executeTakeFirstOrThrow()
-    );
+      if (part.quantity > 0) await trx.insertInto('parts_stock_movements').values({ tenant_id: user.tenant_id, part_id: part.id, quantity_delta: part.quantity, balance_after: part.quantity, reason: 'Opening balance', created_by: user.sub }).execute();
+      return part;
+    });
   });
 
   fastify.patch('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = partPatchSchema.parse(req.body);
-    const patch = pick(body, ['part_name', 'part_number', 'category', 'quantity', 'unit_cost', 'reorder_level', 'vendor_id']);
+    const patch = pick(body, ['part_name', 'part_number', 'category', 'unit_cost', 'reorder_level', 'vendor_id', 'location_id']);
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('parts_stock').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -952,13 +1113,16 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
+  fastify.delete('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    await withTenant(user.tenant_id, async (trx) =>
-      trx.deleteFrom('parts_stock').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute()
-    );
-    return { ok: true };
+    return withTenant(user.tenant_id, async (trx) => {
+      const part = await trx.selectFrom('parts_stock').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
+      if (!part) return reply.status(404).send({ error: 'Part not found' });
+      if (part.quantity !== 0) return reply.status(409).send({ error: 'Issue or adjust remaining stock before archiving this part.' });
+      await trx.updateTable('parts_stock').set({ archived_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      return { ok: true };
+    });
   });
 
   // ── Fuel Logs ────────────────────────────────────────────────

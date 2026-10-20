@@ -1,5 +1,11 @@
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { matchesRecordSearch } from '../lib/record-search.js';
+import { Banner } from '../components/ui/alert.js';
+import './FreightOperations.css';
+import { ResponsiveTable } from '../components/ui/responsive-table.js';
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { DriveFilePicker } from '../components/DriveFilePicker.js';
+import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -15,7 +21,7 @@ import { Button } from '../components/ui/button.js';
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Doc {
   id: string; vehicle_id: string; doc_type: string; doc_number: string | null;
-  issued_date: string | null; expiry_date: string | null; notes: string | null;
+  issued_date: string | null; expiry_date: string | null; notes: string | null; source_status: string | null; file_url: string | null; comply_certificate_id: string | null;
 }
 
 const DOC_TYPES = ['REGISTRATION', 'INSURANCE', 'INSPECTION', 'PERMIT', 'OTHER'];
@@ -29,6 +35,12 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
   const [expiryDate, setExpiryDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fileUrl, setFileUrl] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [certificateId, setCertificateId] = useState('');
+  const [certificates, setCertificates] = useState<{id:string;name:string;cert_number:string;issued_date:string|null;expiry_date:string|null;document_url:string|null}[]>([]);
+  const [certificateError, setCertificateError] = useState('');
+  useEffect(() => { apiFetch('/v1/comply/certificates').then(setCertificates).catch(e => setCertificateError(e.message)); }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +50,7 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
         method: 'POST',
         body: JSON.stringify({
           vehicle_id: vehicleId, doc_type: docType, doc_number: docNumber,
-          issued_date: issuedDate || undefined, expiry_date: expiryDate || undefined,
+          issued_date: issuedDate || undefined, expiry_date: expiryDate || undefined, file_url: fileUrl || undefined, comply_certificate_id: certificateId || undefined,
         }),
       });
       onAdded(); onClose();
@@ -47,6 +59,8 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
   }
 
   return (
+    <>
+    <DriveFilePicker description="Link a saved file. Access remains governed by its Drive permissions." open={pickerOpen} onOpenChange={setPickerOpen} onPick={file => { setFileUrl(`/v1/files/${file.id}/download`); setPickerOpen(false); }} />
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a document</DialogTitle>
@@ -69,7 +83,8 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
               </Select>
             </div>
           </div>
-          <div><label style={labelStyle}>Document number</label><Input value={docNumber} onChange={e => setDocNumber(e.target.value)} /></div>
+          <label className="freight-field">ComplyOS certificate (optional)<Combobox value={certificateId} onChange={value => { setCertificateId(value); const c = certificates.find(c => c.id === value); if(c) { setDocNumber(c.cert_number); setIssuedDate(c.issued_date || ''); setExpiryDate(c.expiry_date || ''); setFileUrl(c.document_url || ''); } }} options={[{value:'',label:'No linked certificate'},...certificates.map(c => ({value:c.id,label:c.name,sublabel:c.cert_number}))]} /></label>{certificateError && <p className="freight-note">ComplyOS certificates unavailable: {certificateError}</p>}<label className="freight-field">Document link<Input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://…" /></label><Button type="button" variant="outline" onClick={() => setPickerOpen(true)}>Attach from Drive</Button>
+          <div><label htmlFor="trackingdocuments-field-1" style={labelStyle}>Document number</label><Input id="trackingdocuments-field-1" value={docNumber} onChange={e => setDocNumber(e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Issued date</label><DatePicker date={parseDateOnly(issuedDate)} onChange={d => setIssuedDate(toDateOnlyString(d))} /></div>
             <div style={{ flex: 1 }}><label style={labelStyle}>Expiry date</label><DatePicker date={parseDateOnly(expiryDate)} onChange={d => setExpiryDate(toDateOnlyString(d))} /></div>
@@ -81,24 +96,28 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
           </div>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog></>
   );
 }
 
 export const TrackingDocuments: React.FC = () => {
+  const [query, setQuery] = useState('');
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const [docs, setDocs] = useState<Doc[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
 
   const reload = useCallback(() => {
+    setPageError('');
     setLoading(true);
-    apiFetch('/v1/tracking/documents').then(setDocs).catch(() => setDocs([])).finally(() => setLoading(false));
+    apiFetch('/v1/tracking/documents').then(setDocs).catch(reportError).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     reload();
-    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
+    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(reportError);
   }, [reload]);
 
   const vehicleName = (id: string) => vehicles.find(v => v.id === id)?.name ?? '—';
@@ -108,7 +127,7 @@ export const TrackingDocuments: React.FC = () => {
     const days = (new Date(date).getTime() - Date.now()) / 86_400_000;
     if (days < 0) return { label: 'EXPIRED', variant: 'error' };
     if (days < 30) return { label: 'EXPIRING SOON', variant: 'warning' };
-    return { label: 'VALID', variant: 'success' };
+    return { label: 'IN DATE (UNVERIFIED)', variant: 'success' };
   }
 
   async function remove(id: string) {
@@ -118,7 +137,7 @@ export const TrackingDocuments: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="freight-workspace">{pageError && <Banner variant="error">{pageError}</Banner>}
       {showAdd && <AddDocModal vehicles={vehicles} onClose={() => setShowAdd(false)} onAdded={reload} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
@@ -135,8 +154,9 @@ export const TrackingDocuments: React.FC = () => {
         </Button>
       </div>
 
+      <SearchToolbar search={query} onSearch={setQuery} placeholder="Search records…" />
       <SectionCard>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
               {['Vehicle', 'Type', 'Number', 'Expiry', 'Status', ''].map(h => (
@@ -145,8 +165,8 @@ export const TrackingDocuments: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {!loading && docs.map(d => {
-              const st = expiryStatus(d.expiry_date);
+            {!loading && docs.filter(record => matchesRecordSearch(record, query)).map(d => {
+              const st = d.source_status === 'revoked' ? {label:'REVOKED',variant:'error' as const} : expiryStatus(d.expiry_date);
               return (
                 <tr key={d.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{vehicleName(d.vehicle_id)}</td>
@@ -156,18 +176,18 @@ export const TrackingDocuments: React.FC = () => {
                   <td style={{ padding: '10px 14px' }}>
                     {st && <Badge variant={st.variant}>{st.label}</Badge>}
                   </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                    <button type="button" onClick={() => remove(d.id)} title="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
+                  <td style={{ padding: '10px 14px', textAlign: 'right' }}>{d.file_url && <Button variant="ghost" size="icon" aria-label="View document" title="View document" onClick={() => { if (d.file_url?.startsWith('/v1/files/')) void apiViewBlob(d.file_url).catch(reportError); else if (d.file_url && /^https?:\/\//i.test(d.file_url)) window.open(d.file_url, '_blank', 'noopener,noreferrer'); }}><Icon name="fileText" size={16} /></Button>}{d.comply_certificate_id && <Button variant="ghost" asChild><a href="/complyos/vault">ComplyOS</a></Button>}
+                    <Button type="button" onClick={() => { void remove(d.id).catch(reportError); }} title="Remove" aria-label="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
                       <Icon name="close" size={14} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               );
             })}
           </tbody>
-        </table>
+        </ResponsiveTable>
         {!loading && docs.length === 0 && (
-          <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents added yet.</div>
+          <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No matching documents.</div>
         )}
       </SectionCard>
     </div>

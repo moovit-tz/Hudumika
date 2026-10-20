@@ -1,3 +1,5 @@
+import { Banner } from '../components/ui/alert.js';
+import './FreightOperations.css';
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -20,6 +22,8 @@ interface Transporter {
  * actually makes it distinguishable from an owned one, not just a label.
  */
 export const TrackingTransporters: React.FC = () => {
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -31,10 +35,11 @@ export const TrackingTransporters: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const reload = useCallback(() => {
+    setPageError('');
     setLoading(true);
     apiFetch('/v1/tracking/transporters')
       .then(res => setTransporters(Array.isArray(res) ? res : []))
-      .catch(() => setTransporters([]))
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,17 +76,17 @@ export const TrackingTransporters: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '0 0 24px' }}>
+    <div className="freight-workspace">{pageError && <Banner variant="error">{pageError}</Banner>}
       <PageHeader
         crumbs={['HuduFreight', 'Transporters']}
         titlePlain="Subcontracted"
         titleEm="transporters"
         subtitle="Third-party haulage providers whose vehicles and trailers run in this fleet."
         actions={
-          <button type="button" onClick={() => setAdding(a => !a)}
+          <Button type="button" onClick={() => setAdding(a => !a)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)' }} data-ui-native-button="">
             <Icon name={adding ? 'x' : 'plus'} size={15} /> {adding ? 'Cancel' : 'Add transporter'}
-          </button>
+          </Button>
         }
       />
 
@@ -116,9 +121,9 @@ export const TrackingTransporters: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     {t.contract_ref && <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Contract: {t.contract_ref}</span>}
-                    <button type="button" onClick={() => toggleStatus(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
+                    <Button type="button" onClick={() => toggleStatus(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                       <Badge variant={t.status === 'ACTIVE' ? 'success' : 'gray'}>{t.status}</Badge>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}

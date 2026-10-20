@@ -2,8 +2,19 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { assertDispatchable } from './fleetOps.routes.js';
+import { z } from 'zod';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
+
+async function lockDraft(trx: Transaction<Database>, tenantId: string, id: string) {
+  const manifest = await trx.selectFrom('cargo_manifests').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
+  if (!manifest) throw Object.assign(new Error('Manifest not found'), { statusCode: 404 });
+  if (manifest.status !== 'DRAFT') throw Object.assign(new Error('Only draft plans can be changed'), { statusCode: 409 });
+  return manifest;
+}
 
 // ── Extreme-point 3D bin-packing heuristic ─────────────────────────────
 // No rotation (boxes keep their given L/W/H orientation). Candidate corner
@@ -81,6 +92,45 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Validate foreign references before a write, even when RLS protects the target table.
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (!['POST', 'PATCH', 'DELETE'].includes(request.method)) return;
+    await requireRole(...FLEET_ROLES)(request, reply);
+    if (reply.sent) return;
+    const path = request.routeOptions.url || '';
+    const body = (request.body || {}) as Record<string, unknown>;
+    const positive = z.number().finite().min(0.1).max(1000000);
+    const dimensions = z.object({ container_length_cm: positive, container_width_cm: positive, container_height_cm: positive, max_weight_kg: positive });
+    let schema: z.ZodTypeAny | undefined;
+    if (path.endsWith('/manifests') && request.method === 'POST') schema = dimensions.extend({ name: z.string().trim().min(1).max(200) });
+    if (path.endsWith('/manifests/:id/items') && request.method === 'POST') schema = z.object({ label: z.string().trim().min(1).max(200), length_cm: positive, width_cm: positive, height_cm: positive, weight_kg: positive, quantity: z.number().int().min(1).max(10000).optional() });
+    if (path.endsWith('/manifests/:id') && request.method === 'PATCH') schema = dimensions.partial();
+    if (schema && !schema.safeParse(body).success) return reply.status(400).send({ error: 'Enter valid names, positive measurements and whole quantities.' });
+    const tenantId = request.user.tenant_id;
+    return withTenant(tenantId, async trx => {
+      for (const [field, table] of [['vehicle_id', 'vehicles'], ['shipment_id', 'shipment_cases']] as const) {
+        if (body[field] == null || body[field] === '') continue;
+        if (!z.string().uuid().safeParse(body[field]).success) return reply.status(400).send({ error: `Invalid ${field}` });
+        const row = await trx.selectFrom(table).select('id').where('id', '=', body[field] as string).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!row) return reply.status(404).send({ error: `${field} not found` });
+      }
+      const { id } = request.params as { id?: string };
+      if (!id) return;
+      let manifestId = id;
+      if (path.endsWith('/items/:id')) {
+        const item = await trx.selectFrom('cargo_items').select('manifest_id').where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!item) return reply.status(404).send({ error: 'Cargo item not found' });
+        manifestId = item.manifest_id;
+      }
+      const manifest = await trx.selectFrom('cargo_manifests').selectAll().where('id', '=', manifestId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
+      if (path.endsWith('/dispatch')) {
+        if (manifest.status !== 'APPROVED') return reply.status(409).send({ error: 'Approve the load plan before dispatch.' });
+        if (!body.vehicle_id) return reply.status(400).send({ error: 'Select a vehicle.' });
+      } else if (manifest.status !== 'DRAFT') return reply.status(409).send({ error: 'Only draft plans can be changed.' });
+    });
+  });
+
   // ── Manifests ────────────────────────────────────────────────
 
   fastify.get('/manifests', async (req) => {
@@ -148,6 +198,7 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     const body = req.body as any;
 
     return withTenant(user.tenant_id, async (trx) => {
+      await lockDraft(trx, user.tenant_id, id);
       let q = trx.updateTable('cargo_manifests' as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id);
       if (body.name !== undefined) q = q.set({ name: body.name });
       if (body.vehicle_id !== undefined) q = q.set({ vehicle_id: body.vehicle_id || null });
@@ -160,6 +211,9 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       if (body.max_weight_kg !== undefined) q = q.set({ max_weight_kg: body.max_weight_kg });
       const updated = await q.returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Manifest not found' });
+      if (['container_length_cm', 'container_width_cm', 'container_height_cm', 'max_weight_kg'].some(key => body[key] !== undefined)) {
+        await trx.updateTable('cargo_items').set({ placements: JSON.stringify([]) as any }).where('manifest_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      }
       return updated;
     });
   });
@@ -168,7 +222,11 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { status } = req.body as { status: string };
+    if (status !== 'APPROVED') return reply.status(400).send({ error: 'Only approval is supported. Use dispatch to start a trip.' });
     return withTenant(user.tenant_id, async (trx) => {
+      await lockDraft(trx, user.tenant_id, id);
+      const items = await trx.selectFrom('cargo_items').selectAll().where('manifest_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      if (!items.length || items.some(item => !Array.isArray(item.placements) || item.placements.length !== item.quantity)) return reply.status(409).send({ error: 'Pack all cargo units before approving.' });
       const updated = await trx.updateTable('cargo_manifests' as any).set({ status })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Manifest not found' });
@@ -182,14 +240,22 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     const { vehicle_id } = req.body as { vehicle_id: string };
 
     return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('cargo_manifests').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Manifest not found' });
+      if (existing.status !== 'APPROVED') return reply.status(409).send({ error: 'Plan must be approved and not previously dispatched.' });
+      await trx.selectFrom('vehicles').select('id').where('id', '=', vehicle_id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
+      const blocker = await assertDispatchable(trx, user.tenant_id, vehicle_id, null);
+      if (blocker) return reply.status(409).send({ error: blocker });
+      if (!existing.origin || !existing.destination) return reply.status(400).send({ error: 'Set the origin and destination before dispatch.' });
+      const cargo = await trx.selectFrom('cargo_items').selectAll().where('manifest_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      const trip = await trx.insertInto('trips').values({ tenant_id: user.tenant_id, vehicle_id, origin: existing.origin, destination: existing.destination, shipment_id: existing.shipment_id, cargo_weight_kg: cargo.reduce((sum, item) => sum + Number(item.weight_kg) * item.quantity, 0), cargo_desc: existing.name, status: 'IN_PROGRESS', actual_start: new Date(), created_by: user.sub } as any).returning('id').executeTakeFirstOrThrow();
       const manifest = await trx.updateTable('cargo_manifests' as any)
-        .set({ status: 'DISPATCHED', vehicle_id })
+        .set({ status: 'DISPATCHED', vehicle_id, trip_id: trip.id })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
 
-      // Optionally create a trip or just rely on the vehicle_id link
-      return manifest;
+      return { ...manifest, trip_id: trip.id };
     });
   });
 
@@ -199,9 +265,7 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     const { shipment_id } = req.body as { shipment_id: string };
 
     return withTenant(user.tenant_id, async (trx) => {
-      const manifest = await trx.selectFrom('cargo_manifests').select('id')
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
+      await lockDraft(trx, user.tenant_id, id);
 
       // Fetch shipment containers
       const shipment = await trx.selectFrom('shipment_cases').selectAll()
@@ -211,28 +275,29 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
       
       const containers = (shipment.containers as any) || [];
+      if (!Array.isArray(containers) || !containers.length || containers.some((c: any) => ['length_cm', 'width_cm', 'height_cm', 'weight_kg'].some(key => !Number.isFinite(Number(c[key])) || Number(c[key]) <= 0))) {
+        return reply.status(422).send({ error: 'Shipment cargo needs measured length_cm, width_cm, height_cm and weight_kg. Add measured cargo manually when these are unavailable.' });
+      }
       const newItems = [];
       const colors = ['#0891b2', '#f97316', '#8b5cf6', '#10b981', '#ef4444', '#eab308'];
       
       for (let i = 0; i < containers.length; i++) {
         const c = containers[i];
-        // We guess dimensions for typical TEU or LCL if not specified
-        const l = c.size === '20FT' ? 590 : c.size === '40FT' || c.size === '40HC' ? 1200 : 100;
-        const w = 235;
-        const h = c.size === '40HC' ? 269 : 239;
+        const l = Number(c.length_cm), w = Number(c.width_cm), h = Number(c.height_cm);
         
         const item = await trx.insertInto('cargo_items').values({
           tenant_id: user.tenant_id,
           manifest_id: id,
           label: c.container_number || `Imported Item ${i+1}`,
           length_cm: l, width_cm: w, height_cm: h,
-          weight_kg: 2000, // Dummy fallback if unspecified
+          weight_kg: Number(c.weight_kg),
           quantity: 1,
           color: colors[i % colors.length],
         }).returningAll().executeTakeFirstOrThrow();
         newItems.push(item);
       }
       
+      await trx.updateTable('cargo_manifests').set({ shipment_id }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { items: newItems };
     });
   });
@@ -240,9 +305,10 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
   fastify.delete('/manifests/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    await withTenant(user.tenant_id, async (trx) =>
-      trx.deleteFrom('cargo_manifests').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute()
-    );
+    await withTenant(user.tenant_id, async (trx) => {
+      await lockDraft(trx, user.tenant_id, id);
+      await trx.deleteFrom('cargo_manifests').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+    });
     return { ok: true };
   });
 
@@ -265,21 +331,24 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       label: string; length_cm: number; width_cm: number; height_cm: number;
       weight_kg: number; quantity?: number; color?: string;
     };
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.insertInto('cargo_items').values({
+    return withTenant(user.tenant_id, async (trx) => {
+      await lockDraft(trx, user.tenant_id, id);
+      return trx.insertInto('cargo_items').values({
         tenant_id: user.tenant_id, manifest_id: id, label: body.label,
         length_cm: body.length_cm, width_cm: body.width_cm, height_cm: body.height_cm,
         weight_kg: body.weight_kg, quantity: body.quantity ?? 1, color: body.color ?? '#0891b2',
-      } as any).returningAll().executeTakeFirstOrThrow()
-    );
+      } as any).returningAll().executeTakeFirstOrThrow();
+    });
   });
 
   fastify.delete('/items/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    await withTenant(user.tenant_id, async (trx) =>
-      trx.deleteFrom('cargo_items').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute()
-    );
+    await withTenant(user.tenant_id, async (trx) => {
+      const item = await trx.selectFrom('cargo_items').select('manifest_id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
+      await lockDraft(trx, user.tenant_id, item.manifest_id);
+      await trx.deleteFrom('cargo_items').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+    });
     return { ok: true };
   });
 
@@ -290,12 +359,11 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
 
     return withTenant(user.tenant_id, async (trx) => {
-      const manifest = await trx.selectFrom('cargo_manifests').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
+      const manifest = await lockDraft(trx, user.tenant_id, id);
 
       const items = await trx.selectFrom('cargo_items').selectAll()
         .where('manifest_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      if (items.reduce((sum, item) => sum + item.quantity, 0) > 2000) return reply.status(422).send({ error: 'A packing run supports at most 2,000 units. Split this load into smaller plans.' });
 
       const container: Dims = {
         l: Number(manifest.container_length_cm), w: Number(manifest.container_width_cm), h: Number(manifest.container_height_cm),

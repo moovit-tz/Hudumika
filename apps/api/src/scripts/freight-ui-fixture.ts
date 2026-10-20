@@ -1,0 +1,14 @@
+import { getApp, createTestTenant } from '../tests/helpers.js';
+import { dbPlatform } from '../db/client.js';
+import { hashPassword } from '../lib/password.js';
+import { randomUUID } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
+await getApp();
+const t = await createTestTenant();
+const password = `Ui-${randomUUID()}!`;
+const email = `freight-ui-${randomUUID().slice(0,8)}@test.invalid`;
+await dbPlatform.updateTable('users').set({ email, password_hash: hashPassword(password) }).where('id','=',t.userId).where('tenant_id','=',t.tenantId).execute();
+await dbPlatform.insertInto('tenant_settings').values({tenant_id:t.tenantId,settings:JSON.stringify({'enabled-apps':{tracking:true,'tracking.cargo-loading':true,'tracking.warehouse':true,seal:true,complyos:true}}) as any}).onConflict(c=>c.column('tenant_id').doUpdateSet({settings:JSON.stringify({'enabled-apps':{tracking:true,'tracking.cargo-loading':true,'tracking.warehouse':true,seal:true,complyos:true}}) as any})).execute();
+writeFileSync('freight-ui-tenant.tmp.json',JSON.stringify({tenantId:t.tenantId,userId:t.userId,email,password}));
+console.log(JSON.stringify({email,password}));
+process.exit(0);

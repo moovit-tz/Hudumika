@@ -38,13 +38,13 @@ export const documentDefinitionSchema: z.ZodType<SignDocumentDefinition, z.ZodTy
   }
 });
 
-export function renderDocument(definition: SignDocumentDefinition, answers: Record<string, string>, jurisdiction: string, language: SignDocumentLanguage = definition.language || 'en') {
-  if (definition.jurisdictions.length && !definition.jurisdictions.includes(jurisdiction)) throw new Error('Choose one of this template’s supported jurisdictions');
-  if (definition.jurisdiction_clauses && !definition.jurisdiction_clauses[jurisdiction]) throw new Error('Choose one of this template’s supported jurisdictions');
-  if (answers.authority_start === 'condition' && !answers.authority_condition?.trim()) throw new Error('Specify the condition that starts the authority');
+export function renderDocument(definition: SignDocumentDefinition, answers: Record<string, string>, jurisdiction: string, language: SignDocumentLanguage = definition.language || 'en', draft = false) {
+  if (!draft && definition.jurisdictions.length && !definition.jurisdictions.includes(jurisdiction)) throw new Error('Choose one of this template’s supported jurisdictions');
+  if (!draft && definition.jurisdiction_clauses && !definition.jurisdiction_clauses[jurisdiction]) throw new Error('Choose one of this template’s supported jurisdictions');
+  if (!draft && answers.authority_start === 'condition' && !answers.authority_condition?.trim()) throw new Error('Specify the condition that starts the authority');
   for (const q of definition.questions) {
     const value = answers[q.key]?.trim();
-    if (q.required && !value) throw new Error(`${q.label} is required`);
+    if (!draft && q.required && !value) throw new Error(`${q.label} is required`);
     if (value && q.type === 'email' && !z.string().email().safeParse(value).success) throw new Error(`${q.label} must be a valid email`);
     if (value && q.type === 'number' && !Number.isFinite(Number(value))) throw new Error(`${q.label} must be a number`);
     if (value && ['notice_days','cure_days'].includes(q.key) && (Number(value)<0 || Number(value)>3650 || !Number.isInteger(Number(value)))) throw new Error(`${q.label} must be a whole number between 0 and 3650`);

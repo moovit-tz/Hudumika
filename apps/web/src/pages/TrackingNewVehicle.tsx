@@ -14,6 +14,7 @@ import { SectionCard } from '../components/SectionCard.js';
 // categories — used only to seed the Make picker with relevant suggestions.
 function vpicTypeFor(type: string): string {
   if (['SUV', 'MINIVAN', 'VAN', 'PASSENGER_VAN', 'HORSE_TOW_SUV', 'HORSE_VAN'].includes(type)) return 'multipurpose passenger vehicle (mpv)';
+  if (['BUS', 'MINIBUS', 'SHUTTLE_BUS', 'COACH'].includes(type)) return 'bus';
   if (type === 'MOTORBIKE') return 'motorcycle';
   if (['CAR', 'SEDAN'].includes(type)) return 'car';
   return 'truck';
@@ -23,11 +24,11 @@ const VEHICLE_TYPE_GROUPS = [
   { label: 'Commercial trucks', options: [
     ['TRUCK', 'General truck'], ['FLATBED_TRUCK', 'Flatbed truck'], ['BOX_TRUCK', 'Box truck'],
     ['TANKER_TRUCK', 'Tanker truck'], ['DUMP_TRUCK', 'Dump truck'], ['SEMI_TRACTOR', 'Semi-trailer tractor unit'],
-    ['RIGID_LORRY', 'Rigid lorry'],
+    ['RIGID_LORRY', 'Rigid lorry'], ['PICKUP', 'Pickup'], ['REFRIGERATED_TRUCK', 'Refrigerated truck'], ['FUEL_TANKER', 'Fuel tanker'],
   ] },
   { label: 'Shuttle & passenger', options: [
     ['SUV', 'SUV'], ['MINIVAN', 'Minivan'], ['PASSENGER_VAN', 'Passenger van'],
-    ['SHUTTLE_BUS', 'Shuttle bus'], ['COACH', 'Coach'], ['SEDAN', 'Sedan / car'],
+    ['BUS', 'Bus'], ['MINIBUS', 'Minibus'], ['SHUTTLE_BUS', 'Shuttle bus'], ['COACH', 'Coach'], ['SEDAN', 'Sedan / car'],
   ] },
   { label: 'Horse transport', options: [
     ['HORSE', 'Horse (individual tracked asset)'],

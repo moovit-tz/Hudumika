@@ -55,7 +55,8 @@
   gap: 12px;
   margin-bottom: 20px;
   box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
-  overflow-x: auto;
+  flex-wrap: wrap;
+  overflow: visible;
   scrollbar-width: none;
 }
 .drv-toolbar::-webkit-scrollbar {
@@ -116,7 +117,8 @@
 .drv-cats-scroll {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  overflow: visible;
   scrollbar-width: none;
   display: flex;
   align-items: center;
@@ -619,3 +621,9 @@
     position: static;
   }
 }
+
+.drv-sb-section { border-radius: var(--r); background: var(--white); padding: 18px; }
+.drv-sb-sec-header { gap: 12px; flex-wrap: wrap; }
+.drv-sb-sec-title { line-height: 1.4; }
+.drv-chart-label { color: var(--ink2); }
+.drv-sb-header { gap: 12px; }

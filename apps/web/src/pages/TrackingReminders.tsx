@@ -1,3 +1,8 @@
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { matchesRecordSearch } from '../lib/record-search.js';
+import { Banner } from '../components/ui/alert.js';
+import './FreightOperations.css';
+import { ResponsiveTable } from '../components/ui/responsive-table.js';
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -15,7 +20,7 @@ interface Vehicle { id: string; name: string }
 interface Driver { id: string; name: string }
 interface Reminder {
   id: string; vehicle_id: string | null; driver_id: string | null; title: string;
-  reminder_type: string; due_date: string; status: string; notes: string | null;
+  notified_at: string | null; reminder_type: string; due_date: string; status: string; notes: string | null;
 }
 
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 };
@@ -53,7 +58,7 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
       <DialogContent className="max-w-[min(440px,92vw)] gap-0" style={{ padding: 28 }}>
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a reminder</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={labelStyle}>Title</label><Input required value={title} onChange={e => setTitle(e.target.value)} /></div>
+          <div><label htmlFor="trackingreminders-field-1" style={labelStyle}>Title</label><Input id="trackingreminders-field-1" required value={title} onChange={e => setTitle(e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Type</label>
@@ -84,7 +89,7 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
               />
             </div>
           </div>
-          <div><label style={labelStyle}>Notes</label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div>
+          <div><label htmlFor="trackingreminders-field-2" style={labelStyle}>Notes</label><Input id="trackingreminders-field-2" value={notes} onChange={e => setNotes(e.target.value)} /></div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -97,6 +102,9 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
 }
 
 export const TrackingReminders: React.FC = () => {
+  const [query, setQuery] = useState('');
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -104,14 +112,15 @@ export const TrackingReminders: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
 
   const reload = useCallback(() => {
+    setPageError('');
     setLoading(true);
-    apiFetch('/v1/tracking/reminders').then(setReminders).catch(() => setReminders([])).finally(() => setLoading(false));
+    apiFetch('/v1/tracking/reminders').then(setReminders).catch(reportError).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     reload();
-    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
-    apiFetch('/v1/tracking/drivers').then(setDrivers).catch(() => setDrivers([]));
+    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(reportError);
+    apiFetch('/v1/tracking/drivers').then(setDrivers).catch(reportError);
   }, [reload]);
 
   const vehicleName = (id: string | null) => vehicles.find(v => v.id === id)?.name;
@@ -125,7 +134,7 @@ export const TrackingReminders: React.FC = () => {
   const overdue = (date: string) => new Date(date).getTime() < Date.now();
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="freight-workspace">{pageError && <Banner variant="error">{pageError}</Banner>}
       {showAdd && <AddReminderModal vehicles={vehicles} drivers={drivers} onClose={() => setShowAdd(false)} onAdded={reload} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
@@ -134,7 +143,7 @@ export const TrackingReminders: React.FC = () => {
             crumbs={['HuduFreight', 'Reminders']}
             titlePlain="Service"
             titleEm="reminders"
-            subtitle="Maintenance, document &amp; custom due dates"
+            subtitle="Pending reminders appear in Tasks. An in-app notification goes to the creator when due (checked every five minutes). Maintenance, document &amp; custom due dates"
           />
         </div>
         <Button type="button" onClick={() => setShowAdd(true)}>
@@ -142,17 +151,18 @@ export const TrackingReminders: React.FC = () => {
         </Button>
       </div>
 
+      <SearchToolbar search={query} onSearch={setQuery} placeholder="Search records…" />
       <SectionCard>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
-              {['Title', 'Type', 'Related to', 'Due', 'Status', ''].map(h => (
+              {['Title', 'Type', 'Related to', 'Due', 'Status', 'Notification', 'Actions'].map(h => (
                 <th key={h} style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {!loading && reminders.map(r => (
+            {!loading && reminders.filter(record => matchesRecordSearch(record, query)).map(r => (
               <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
                 <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{r.title}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{r.reminder_type}</td>
@@ -163,18 +173,18 @@ export const TrackingReminders: React.FC = () => {
                 <td style={{ padding: '10px 14px' }}>
                   <Badge variant={r.status === 'DONE' ? 'success' : r.status === 'DISMISSED' ? 'gray' : 'warning'}>{r.status}</Badge>
                 </td>
-                <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <td style={{ padding: '10px 14px' }}>{r.notified_at ? `Sent ${new Date(r.notified_at).toLocaleString()}` : r.status === 'PENDING' ? 'Scheduled for due date' : 'Not sent'}</td><td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {r.status === 'PENDING' && (
                     <>
-                      <button type="button" onClick={() => setStatus(r.id, 'DONE')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Mark done</button>
-                      <button type="button" onClick={() => setStatus(r.id, 'DISMISSED')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Dismiss</button>
+                      <Button type="button" onClick={() => { void setStatus(r.id, 'DONE').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Mark done</Button>
+                      <Button type="button" onClick={() => { void setStatus(r.id, 'DISMISSED').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Dismiss</Button>
                     </>
                   )}
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </ResponsiveTable>
         {!loading && reminders.length === 0 && (
           <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No reminders yet.</div>
         )}

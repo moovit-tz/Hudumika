@@ -1,4 +1,4 @@
-﻿/* Tracking brand color — set dynamically by WorkspaceApp via useBranding() */
+/* Tracking brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-tracking] {}
 
 /* Live Map is a full-bleed tool (like Bliss's ticket workspace/live chat),
@@ -484,7 +484,8 @@
   color: var(--foreground);
 }
 [data-theme="dark"] .trk-search-box input:focus {
-  background: var(--white);
+  background: rgba(15, 23, 42, 0.95);
+  border-color: var(--teal);
 }
 
 [data-theme="dark"] .trk-vehicle-item {

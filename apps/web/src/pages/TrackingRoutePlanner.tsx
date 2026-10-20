@@ -1,3 +1,7 @@
+import './FreightOperations.css';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Banner } from '../components/ui/alert.js';
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, Marker, Polyline, useMapEvents } from 'react-leaflet';
@@ -59,20 +63,38 @@ export const TrackingRoutePlanner: React.FC = () => {
   
   // Destination search text state (mock input for UI matching)
   const [destinationStr, setDestinationStr] = useState('');
+  const [addresses, setAddresses] = useState<{display_name:string;lat:string;lon:string}[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [savedTripId, setSavedTripId] = useState('');
+  async function searchAddress() {
+    if (!destinationStr.trim()) return;
+    setSearching(true); setError('');
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(destinationStr.trim())}`);
+      if (!response.ok) throw new Error('Address search is unavailable');
+      const results = await response.json(); setAddresses(results);
+      if (!results.length) setError('No matching addresses. Try a nearby landmark or select the point on the map.');
+    } catch (e) { setError(e instanceof Error ? e.message : 'Address search failed'); } finally { setSearching(false); }
+  }
+  async function bookTrip() {
+    if (!route || !selectedVehicleId) return;
+    setLoading(true); setError('');
+    try { const trip = await apiFetch('/v1/tracking/trips', { method:'POST', body:JSON.stringify({vehicle_id:selectedVehicleId,origin:route.waypoints[0].name,destination:route.waypoints[route.waypoints.length-1].name,notes:`Road estimate: ${route.distanceKm.toFixed(1)} km, ${Math.round(route.durationMin)} min. Waypoints: ${JSON.stringify(waypoints)}. Requires truck clearance and dispatch review.`}) }); setSavedTripId(trip.id); } catch(e) { setError(e instanceof Error ? e.message : 'Trip could not be saved'); } finally { setLoading(false); }
+  }
   const [mapVariant, setMapVariant] = useState<MapVariant | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/tracking/vehicles').then(data => {
       setVehicles(data);
       if (data.length > 0) setSelectedVehicleId(data[0].id);
-    }).catch(console.error);
+    }).catch(e => setError(e.message));
   }, []);
 
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
 
   const addWaypoint = useCallback((pos: [number, number]) => {
     setWaypoints(prev => [...prev, pos]);
-    setRoute(null);
+    setRoute(null); setSavedTripId('');
   }, []);
 
   const clear = () => { setWaypoints([]); setRoute(null); setError(''); setDestinationStr(''); };
@@ -161,9 +183,9 @@ export const TrackingRoutePlanner: React.FC = () => {
           <DropdownMenu>
             <Tip label="Map layers">
               <DropdownMenuTrigger asChild>
-              <button className="rp-mc-btn" aria-label="Map layers" data-ui-native-button="">
+              <Button className="rp-mc-btn" aria-label="Map layers" data-ui-native-button="">
                 <Icon name="layers" size={16} />
-              </button>
+              </Button>
               </DropdownMenuTrigger>
             </Tip>
             <DropdownMenuContent align="end" className="w-36">
@@ -197,7 +219,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           </div>
           <div style={{ fontSize: '11px', color: 'var(--ink3)', marginBottom: '8px' }}>Cargo Weight</div>
           <div className="rp-widget-val-row">
-            <span className="rp-widget-val">6,000 Kg</span>
+            <span className="rp-widget-val">{(selectedVehicle as any).current_trip?.cargo_weight_kg == null ? 'Not recorded' : `${Number((selectedVehicle as any).current_trip.cargo_weight_kg).toLocaleString()} kg`}</span>
             <span className="rp-widget-val-sub">{selectedVehicle.current_load_pct ?? 0}% of capacity</span>
           </div>
           <div className="rp-widget-bar-bg">
@@ -229,7 +251,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                     {selectedVehicle.driver_name || 'Unassigned Driver'}
                     <span className="rp-driver-badge">Driver</span>
                   </div>
-                  <div className="rp-driver-desc">Available for deliveries</div>
+                  <div className="rp-driver-desc">Assignment shown; dispatch readiness checked when booking</div>
                 </div>
               </div>
 
@@ -249,53 +271,32 @@ export const TrackingRoutePlanner: React.FC = () => {
           )}
 
           <div className="rp-section-title" style={{ marginTop: '24px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Icon name="compass" size={16} color="var(--blue)" /> ETA & Route Tracking Optimization</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Icon name="compass" size={16} color="var(--blue)" /> Route planning</span>
           </div>
           
-          <div className="rp-input-row">
-            <div>
-              <label className="rp-label">Destination Address</label>
-              <input 
-                className="rp-input" 
-                placeholder="Click map to add waypoints..." 
-                value={destinationStr || (waypoints.length > 0 ? `${waypoints.length} waypoints selected` : '')} 
-                onChange={e => setDestinationStr(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="rp-label">Preferred Priority</label>
-              <Select defaultValue="fast">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fast">Fast</SelectItem>
-                  <SelectItem value="economic">Economic</SelectItem>
-                  <SelectItem value="avoid_tolls">Avoid Tolls</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <label className="rp-label" htmlFor="route-address">Add a stop</label>
+          <div className="rp-address-search"><Input id="route-address" placeholder="Search address or place" value={destinationStr} onChange={e => setDestinationStr(e.target.value)} onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); void searchAddress(); } }} /><Button variant="outline" disabled={searching || !destinationStr.trim()} onClick={searchAddress}>Find</Button></div>
+          {addresses.length > 0 && <Combobox value="" placeholder="Choose a matching address" options={addresses.map((address,index) => ({value:String(index),label:address.display_name}))} onChange={value => { const address=addresses[Number(value)]; addWaypoint([Number(address.lat),Number(address.lon)]); setAddresses([]); setDestinationStr(''); }} />}
+          <p className="freight-note">Select two or more stops by address or map. Road estimates do not include live traffic or truck restrictions.</p>
 
-          <button className="rp-btn-generate" onClick={planRoute} disabled={waypoints.length < 2 || loading} data-ui-native-button="">
-            <Icon name="map" size={16} /> {loading ? 'Optimizing Route...' : 'Generate Route'}
-          </button>
+          <Button className="rp-btn-generate" onClick={planRoute} disabled={waypoints.length < 2 || loading} data-ui-native-button="">
+            <Icon name="map" size={16} /> {loading ? 'Planning…' : 'Plan route'}
+          </Button>
           
           {error && <div style={{ marginTop: '12px', padding: '10px', background: 'var(--red-l)', color: 'var(--red)', fontSize: '12px', borderRadius: 'var(--r)' }}>{error}</div>}
 
           {/* Results & Timeline Area */}
           {(route || waypoints.length > 0) && (
             <div className="rp-results-box">
-              <div className="rp-section-title" style={{ margin: '0 0 4px' }}>{route ? 'Route Tracking Result' : 'Selected Waypoints'}</div>
+              <div className="rp-section-title" style={{ margin: '0 0 4px' }}>{route ? 'Road route estimate' : 'Selected Waypoints'}</div>
 
               {route && (
                 <>
                   <div className="rp-travel-est">travel estimate - {Math.floor(route.durationMin / 60)} Hours {Math.floor(route.durationMin % 60)} minutes ({route.distanceKm.toFixed(1)} km)</div>
 
-                  <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
-                    <TabsList style={{ marginBottom: '20px' }}>
-                      <TabsTrigger value="fastest"><Icon name="zap" size={12}/> Fastest Route</TabsTrigger>
-                      <TabsTrigger value="regular">Regular Route</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <Button disabled={loading || !!savedTripId || !selectedVehicleId} onClick={bookTrip}>{savedTripId ? 'Trip booked' : 'Book trip'}</Button>
+                  {savedTripId && <Banner variant="success">Trip saved. Review the assignment and dispatch from <Link to="/tracking/shipments">Trips</Link>.</Banner>}
+
                 </>
               )}
 
@@ -312,7 +313,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                       <div className="rp-tl-type">
                         <div className="rp-tl-type-badge">
                           <Icon name={idx === 0 ? "play" : idx === route.waypoints.length - 1 ? "checkCircle" : "mapPin"} size={12} />
-                          {idx === 0 ? "Hook Container" : idx === route.waypoints.length - 1 ? "Transit Warehouse" : "Delivery Stop"}
+                          {idx === 0 ? "Start" : idx === route.waypoints.length - 1 ? "Destination" : "Delivery Stop"}
                         </div>
                         <span style={{ color: 'var(--ink3)' }}>{idx === 0 ? 'Start' : idx === route.waypoints.length - 1 ? 'Termination' : 'Stop'}</span>
                       </div>
@@ -335,7 +336,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                 ))}
               </div>
 
-              <button className="rp-btn-clear" onClick={clear} data-ui-native-button="">Clear route</button>
+              <Button className="rp-btn-clear" onClick={clear} data-ui-native-button="">Clear route</Button>
             </div>
           )}
         </div>

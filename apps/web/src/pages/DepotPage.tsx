@@ -1,3 +1,5 @@
+import './FreightOperations.css';
+import { ResponsiveTable } from '../components/ui/responsive-table.js';
 ﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
@@ -52,6 +54,10 @@ const CONDITION_VARIANT: Record<string, 'success' | 'error' | 'warning'> = { GOO
 
 export function DepotPage() {
   usePageSEO('Container Depot', 'Equipment sitting at a depot, and a real Equipment Interchange Receipt for every gate movement — not a print-and-forget popup.');
+  const [sealContainers, setSealContainers] = useState<{id:string;container_number:string;container_size:string}[]>([]);
+  const [sealId, setSealId] = useState('');
+  const [sealError, setSealError] = useState('');
+  useEffect(() => { apiFetch('/v1/depot/seal-containers').then(setSealContainers).catch(e => setSealError(e.message)); }, []);
   const [tab, setTab] = useState<'equipment' | 'receipts'>('equipment');
 
   const [equipment, setEquipment] = useState<Equipment[]>([]);
@@ -69,8 +75,8 @@ export function DepotPage() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
-      apiFetch('/v1/depot/equipment').catch(() => []),
-      apiFetch('/v1/depot/interchange-receipts').catch(() => []),
+      apiFetch('/v1/depot/equipment'),
+      apiFetch('/v1/depot/interchange-receipts'),
       // Issued release/delivery orders — the ones a truck could actually be
       // collecting against right now. Lives in FinOps now (migration 263).
       apiFetch('/v1/delivery-documents?status=issued').catch(() => []),
@@ -78,7 +84,7 @@ export function DepotPage() {
       setEquipment(Array.isArray(eq) ? eq : []);
       setReceipts(Array.isArray(rc) ? rc : []);
       setReleaseDocs(Array.isArray(docs) ? docs.filter((d: any) => d.doc_type !== 'DELIVERY_NOTE') : []);
-    }).finally(() => setLoading(false));
+    }).catch(e => setError(e.message)).finally(() => setLoading(false));
   }, []);
   useEffect(load, [load]);
 
@@ -113,8 +119,8 @@ export function DepotPage() {
       await apiFetch('/v1/depot/interchange-receipts', {
         method: 'POST',
         body: JSON.stringify({
-          subjectType: matched ? 'depot_equipment' : 'adhoc',
-          subjectId: matched?.id,
+          subjectType: sealId ? 'seal_container' : matched ? 'depot_equipment' : 'adhoc',
+          subjectId: sealId || matched?.id,
           releaseDocumentId: rcForm.releaseDocumentId || undefined,
           equipmentNumber: rcForm.equipmentNumber.trim(), direction: rcForm.direction, partyName: rcForm.partyName.trim(),
           conditionAtInterchange: rcForm.conditionAtInterchange, damageNotes: rcForm.damageNotes.trim() || undefined,
@@ -168,7 +174,7 @@ export function DepotPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {showEqForm && (
             <SectionCard title="Add equipment" collapsible={false}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Equipment number *</label>
                   <Input value={eqForm.equipmentNumber} onChange={e => setEqForm(p => ({ ...p, equipmentNumber: e.target.value.toUpperCase() }))} placeholder="TCLU9988776" />
@@ -200,7 +206,7 @@ export function DepotPage() {
             ) : equipment.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No equipment recorded at any depot yet.</div>
             ) : (
-              <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="rtbl-wrap"><ResponsiveTable className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     {['Equipment No.', 'Type', 'Condition', 'Location', 'Owner', 'Status'].map(h => (
@@ -232,7 +238,7 @@ export function DepotPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table></div>
+              </ResponsiveTable></div>
             )}
           </SectionCard>
         </div>
@@ -242,7 +248,8 @@ export function DepotPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {showRcForm && (
             <SectionCard title="Record interchange" collapsible={false}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+              <label className="freight-field">SEAL container (optional)<Combobox value={sealId} onChange={value => { setSealId(value); const container=sealContainers.find(c=>c.id===value); if(container) setRcForm(p=>({...p,equipmentNumber:container.container_number})); }} options={[{value:'',label:'Depot equipment / ad hoc'},...sealContainers.map(c=>({value:c.id,label:c.container_number,sublabel:c.container_size}))]} /></label>{sealError && <p className="freight-note">SEAL containers unavailable: {sealError}</p>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Equipment number *</label>
                   <Input value={rcForm.equipmentNumber} onChange={e => setRcForm(p => ({ ...p, equipmentNumber: e.target.value.toUpperCase() }))} placeholder="TCLU9988776" />
@@ -304,7 +311,7 @@ export function DepotPage() {
             ) : receipts.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>No interchange receipts yet.</div>
             ) : (
-              <div className="rtbl-wrap"><table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="rtbl-wrap"><ResponsiveTable className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     {['Reference', 'Equipment No.', 'Direction', 'Party', 'Condition', 'Occurred', ''].map(h => (
@@ -336,7 +343,7 @@ export function DepotPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table></div>
+              </ResponsiveTable></div>
             )}
           </SectionCard>
         </div>

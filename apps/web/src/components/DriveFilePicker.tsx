@@ -1,3 +1,6 @@
+import { Banner } from './ui/alert.js';
+import { Button } from './ui/button.js';
+import { Input } from './ui/input.js';
 import { useEffect, useState } from 'react';
 import { Icon } from './Icon.js';
 import { Spinner } from './ui/spinner.js';
@@ -14,20 +17,21 @@ const fmtSize = (n: number | null) => n == null ? '' : n >= 1048576 ? `${(n / 10
  * to attach a Drive file to a message; generic enough for any "pick a file"
  * flow. Folders are filtered out.
  */
-export function DriveFilePicker({ open, onOpenChange, onPick, busy }: {
-  open: boolean; onOpenChange: (open: boolean) => void; onPick: (file: DriveFile) => void; busy?: boolean;
+export function DriveFilePicker({ open, onOpenChange, onPick, busy, description }: {
+  open: boolean; onOpenChange: (open: boolean) => void; onPick: (file: DriveFile) => void; busy?: boolean; description?: string;
 }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
+    setLoading(true); setError('');
     const t = setTimeout(() => {
       apiFetch(`/v1/files?q=${encodeURIComponent(q.trim())}`)
         .then((res: any) => setResults((Array.isArray(res) ? res : []).filter((f: any) => f.type !== 'folder').slice(0, 50)))
-        .catch(() => setResults([]))
+        .catch(e => setError(e.message || 'Could not load Drive files'))
         .finally(() => setLoading(false));
     }, q ? 300 : 0);
     return () => clearTimeout(t);
@@ -38,24 +42,24 @@ export function DriveFilePicker({ open, onOpenChange, onPick, busy }: {
       <DialogContent size="md">
         <DialogHeader>
           <DialogTitle>Attach from Drive</DialogTitle>
-          <DialogDescription>Choose a file from your Drive to attach. It is copied into the message.</DialogDescription>
+          <DialogDescription>{description || 'Choose a file from your Drive to attach. It is copied into the message.'}</DialogDescription>
         </DialogHeader>
-        <DialogBody>
-          <input
+        <DialogBody>{error && <Banner variant="error">{error}</Banner>}
+          <Input aria-label="Search Drive files"
             autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Search your files…"
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm mb-3"
           />
           {loading ? <div style={{ padding: 24, textAlign: 'center' }}><Spinner /></div>
             : results.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>{q ? 'No matching files.' : 'No files in your Drive yet.'}</div>
             : results.map(f => (
-              <button
+              <Button variant="ghost"
                 key={f.id} type="button" disabled={busy} onClick={() => onPick(f)}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 8px', border: 'none', background: 'none', textAlign: 'left', borderBottom: '1px solid var(--border)', cursor: busy ? 'default' : 'pointer' }}
                data-ui-native-button="">
                 <Icon name="fileText" size={16} />
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13, color: 'var(--ink)' }}>{f.name}</span>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtSize(f.size)}</span>
-              </button>
+              </Button>
             ))}
         </DialogBody>
       </DialogContent>

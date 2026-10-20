@@ -1,0 +1,20 @@
+.freight-workspace { min-width: 0; display: grid; gap: 16px; padding-bottom: 24px; }
+.freight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.freight-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; align-items: end; }
+.freight-field { display: grid; gap: 6px; min-width: 0; font-size: 13px; color: var(--ink2); }
+.freight-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.freight-record { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; align-items: start; justify-content: space-between; gap: 12px; overflow-wrap: anywhere; }
+.freight-record:last-child { border-bottom: 0; }
+.freight-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 16px; margin: 0; }
+.freight-facts dt { font-size: 12px; color: var(--ink3); }
+.freight-facts dd { margin: 6px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.freight-note { color: var(--ink3); font-size: 13px; line-height: 1.6; }
+.freight-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .freight-overview-grid { grid-template-columns: 1fr !important; } }
+@media (max-width: 600px) { .freight-actions > [data-slot="combobox-trigger"] { width: 100%; } .freight-record { flex-wrap: wrap; } }
+
+.freight-trips-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.freight-trips-table th, .freight-trips-table td { padding: 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+.freight-trips-table th { font-size: 11px; color: var(--ink3); font-weight: 600; }
+.freight-trips-table td > div { margin-top: 4px; }
+.freight-trips-table a { color: var(--teal); font-weight: 600; }

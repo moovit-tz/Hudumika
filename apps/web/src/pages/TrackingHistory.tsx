@@ -1,3 +1,8 @@
+import { useChartColors } from '../hooks/useChartColors.js';
+import './FreightOperations.css';
+import { DateRangePicker } from '../components/ui/date-picker.js';
+import type { DateRange } from 'react-day-picker';
+import { Banner } from '../components/ui/alert.js';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MapContainer, Polyline, Marker, Popup } from 'react-leaflet';
@@ -22,26 +27,35 @@ interface Position { latitude: number; longitude: number; speed: number | null; 
 const DEFAULT_CENTER: [number, number] = [-6.7924, 39.2083];
 
 export const TrackingHistory: React.FC = () => {
+  const chartColors = useChartColors();
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const [searchParams, setSearchParams] = useSearchParams();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleId, setVehicleId] = useState(searchParams.get('vehicle') || '');
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(false);
+  const [range, setRange] = useState<DateRange | undefined>();
 
   useEffect(() => {
     apiFetch('/v1/tracking/vehicles').then(list => {
       setVehicles(list);
       if (!vehicleId && list.length > 0) setVehicleId(list[0].id);
-    }).catch(() => setVehicles([]));
+    }).catch(reportError);
   }, []);
 
-  const loadHistory = useCallback((id: string) => {
-    if (!id) return;
-    setLoading(true);
-    apiFetch(`/v1/tracking/vehicles/${id}/history`).then(setPositions).catch(() => setPositions([])).finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { if (vehicleId) { loadHistory(vehicleId); setSearchParams({ vehicle: vehicleId }); } }, [vehicleId, loadHistory]);
+  useEffect(() => {
+    let active = true;
+    setPositions([]);
+    if (!vehicleId) return;
+    const query = new URLSearchParams();
+    if (range?.from) query.set('from', range.from.toISOString());
+    if (range?.to) { const end = new Date(range.to); end.setHours(23,59,59,999); query.set('to',end.toISOString()); }
+    setLoading(true); setPageError('');
+    apiFetch(`/v1/tracking/vehicles/${vehicleId}/history?${query}`).then(rows=>{ if(active) setPositions(rows); }).catch(e=>{if(active)reportError(e);}).finally(()=>{if(active)setLoading(false);});
+    setSearchParams({vehicle:vehicleId}, {replace:true});
+    return ()=>{active=false;};
+  }, [vehicleId, range]);
 
   const trail: [number, number][] = positions.map(p => [p.latitude, p.longitude]);
   const center = trail.length ? trail[trail.length - 1] : DEFAULT_CENTER;
@@ -49,23 +63,23 @@ export const TrackingHistory: React.FC = () => {
   const chartData = {
     labels: positions.map(p => new Date(p.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
     datasets: [{
-      label: 'Speed (km/h)', data: positions.map(p => p.speed ?? 0),
-      borderColor: 'var(--teal)', backgroundColor: 'var(--teal)', tension: 0.25, pointRadius: 0,
+      label: 'Speed (km/h)', data: positions.map(p => p.speed),
+      borderColor: chartColors.brand, backgroundColor: chartColors.brand, tension: 0.25, pointRadius: 0,
     }],
   };
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="freight-workspace">{pageError && <Banner variant="error">{pageError}</Banner>}
       <PageHeader
         crumbs={['HuduFreight', 'History']}
         titlePlain="Trip"
         titleEm="history"
-        subtitle="Route trail and speed for a vehicle"
-        actions={(
+        subtitle="Latest 2,000 recorded positions and observed speeds. Gaps indicate missing speed data."
+        actions={(<div className="freight-actions"><DateRangePicker range={range} onChange={setRange} numberOfMonths={1} />
           <Combobox
             options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}
             value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…" triggerClassName="w-60"
-          />
+          /></div>
         )}
       />
 
@@ -83,7 +97,7 @@ export const TrackingHistory: React.FC = () => {
       ) : (
         <>
           <div style={{ height: 380, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 20 }}>
-            <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }}>
+            <MapContainer key={vehicleId} center={center} zoom={12} style={{ height: '100%', width: '100%' }}>
               <MapTileLayer />
               {trail.length > 1 && <Polyline positions={trail} pathOptions={{ color: 'var(--teal)', weight: 3 }} />}
               {trail.length > 0 && (

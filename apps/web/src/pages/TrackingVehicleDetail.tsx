@@ -1,11 +1,13 @@
-import { TruckLoadOverview, TruckLoadEmpty } from '../components/tracking/TruckLoadOverview.js';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useChartColors } from '../hooks/useChartColors.js';
+import { ResponsiveTable } from '../components/ui/responsive-table.js';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
 } from 'chart.js';
 import { MapContainer, Marker } from 'react-leaflet';
+import L from 'leaflet';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -13,8 +15,6 @@ import type { IconName } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import 'leaflet/dist/leaflet.css';
-import { CargoScene } from './TrackingCargoLoading.js';
-import type { CameraPreset, Manifest as CargoManifest, CargoItem, PackResult } from './TrackingCargoLoading.js';
 import { useVehicleMakes, useVehicleModels } from '../hooks/useVehicleMakeModel.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -23,9 +23,16 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { PageHeader } from '../components/PageHeader.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
+import { PageLoading } from '../components/ui/spinner.js';
+import './FreightOperations.css';
+import './TrackingVehicleDetail.css';
+import { Truck3DViewer } from '../components/tracking/Truck3DViewer.js';
+import { TruckLoadOverview } from '../components/tracking/TruckLoadOverview.js';
+import { getFleetVehicleById, type FleetVehicle } from '../lib/freightFleetData.js';
 import { VehicleSensorSnapshotsTab } from '../components/tracking/VehicleSensorSnapshotsTab.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
@@ -35,6 +42,7 @@ interface Vehicle {
   vin: string | null; year: number | null; make: string | null; model: string | null;
   trim: string | null; color: string | null; ownership: string; mileage_km: number | null; device_id: string;
   fuel_type: string | null; group_name: string | null; speed_limit_kmh: number | null;
+  photo_url?: string | null;
 }
 interface Driver { id: string; name: string; phone: string | null }
 interface Position {
@@ -42,6 +50,9 @@ interface Position {
   battery_pct: number | null; ignition: string | null; recorded_at: string;
 }
 interface ActiveTrip {
+  id?: string;
+  shipment_id?: string | null;
+  shipment_ref?: string | null;
   origin: string | null; destination: string | null;
   cargo_type: string | null; cargo_weight_kg: number | null; cargo_temp_c: number | null; load_capacity_pct: number | null;
 }
@@ -67,10 +78,18 @@ interface Detail {
 const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
 const statLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' };
 
-const TABS = ['Overview', 'Service History', 'Fuel', 'Documents', 'Issues', 'Expenses', 'Assignments', 'Load Plan', 'Sensor Snapshots'] as const;
+const TABS = ['Overview', '3D Schematics & Loading', 'Service History', 'Fuel', 'Documents', 'Issues', 'Expenses', 'Assignments', 'Load Plan', 'Sensor Snapshots'] as const;
 type Tab = typeof TABS[number];
 
+const vehicleMapMarker = new L.DivIcon({
+  className: 'custom-div-icon',
+  html: `<div style="background-color:var(--teal); width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 6px rgba(0,0,0,0.45); position:relative;"><div style="position:absolute; inset:-5px; border-radius:50%; border:2px solid var(--teal); opacity:0.65;"></div></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
 export const TrackingVehicleDetail: React.FC = () => {
+  const chartColors = useChartColors();
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -84,13 +103,29 @@ export const TrackingVehicleDetail: React.FC = () => {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const { makes } = useVehicleMakes('truck');
   const { models } = useVehicleModels(editForm.make || '');
 
   const reload = useCallback(() => {
     if (!id) return;
+    setError('');
     setLoading(true);
-    apiFetch(`/v1/tracking/vehicles/${id}/detail`).then(setDetail).catch(() => setDetail(null)).finally(() => setLoading(false));
+    apiFetch(`/v1/tracking/vehicles/${id}/detail`)
+      .then(res => {
+        if (res && res.vehicle) {
+          setDetail(res);
+        } else {
+          setDetail(null);
+          setError('Vehicle record not found');
+        }
+      })
+      .catch((err) => {
+        setDetail(null);
+        setError(err instanceof Error ? err.message : 'Could not load vehicle details');
+      })
+      .finally(() => setLoading(false));
+
     apiFetch('/v1/tracking/maintenance').then((rows: MaintenanceRow[] & { vehicle_id: string }[]) => setMaintenance((rows as any[]).filter(r => r.vehicle_id === id))).catch(() => setMaintenance([]));
     apiFetch('/v1/tracking/fuel').then((rows: any[]) => setFuel(rows.filter(r => r.vehicle_id === id))).catch(() => setFuel([]));
     apiFetch('/v1/tracking/assignments').then((rows: any[]) => setAssignments(rows.filter(r => r.vehicle_id === id))).catch(() => setAssignments([]));
@@ -99,18 +134,79 @@ export const TrackingVehicleDetail: React.FC = () => {
 
   useEffect(() => { reload(); }, [reload]);
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Loading vehicle…</div>;
-  if (!detail) return <div style={{ padding: 24, color: 'var(--ink3)', fontSize: 13 }}>Vehicle not found.</div>;
-
-  const { vehicle, driver, last_position, active_trip, cost_of_ownership, total_cost, cost_per_km, service_reminders, reminders, documents, open_issues } = detail;
+  const vehicle = detail?.vehicle;
+  const driver = detail?.driver;
+  const last_position = detail?.last_position;
+  const active_trip = detail?.active_trip;
+  const cost_of_ownership = detail?.cost_of_ownership || [];
+  const total_cost = detail?.total_cost || 0;
+  const cost_per_km = detail?.cost_per_km;
+  const service_reminders = detail?.service_reminders || { overdue: 0, due_soon: 0, dismissed: 0 };
+  const reminders = detail?.reminders || [];
+  const documents = detail?.documents || [];
+  const open_issues = detail?.open_issues || [];
   const minutesAgo = last_position ? Math.round((Date.now() - new Date(last_position.recorded_at).getTime()) / 60000) : null;
 
+  const viewerVehicle = useMemo<FleetVehicle>(() => {
+    const base = getFleetVehicleById(vehicle?.make || vehicle?.type || 'truck');
+    return {
+      ...base,
+      id: vehicle?.id || id || 'vehicle',
+      name: vehicle?.name || 'Vehicle',
+      plate_number: vehicle?.plate_number || 'No plate',
+      make: vehicle?.make || base.make,
+      model: vehicle?.model || base.model,
+      year: vehicle?.year || base.year,
+      status: (vehicle?.status || 'ACTIVE') as any,
+      specs: {
+        ...base.specs,
+        mileageKm: vehicle?.mileage_km ?? base.specs.mileageKm,
+        currentSpeedKmh: last_position?.speed ?? 0,
+        loadCapacityPct: active_trip?.load_capacity_pct ?? 0,
+      },
+      driver: {
+        id: driver?.id || 'unassigned',
+        name: driver?.name || 'Unassigned',
+        phone: driver?.phone || 'No phone recorded',
+        licenseNo: 'Commercial License',
+        sinceYear: 2023,
+        rating: 5.0,
+      },
+      activeTrip: active_trip ? {
+        id: 'active-trip',
+        loadId: 'TRP',
+        origin: active_trip.origin || 'Origin not specified',
+        destination: active_trip.destination || 'Destination not specified',
+        distanceKm: 0,
+        remainingKm: 0,
+        timeSpent: 'En route',
+        etaMinutes: 0,
+        progressPct: active_trip.load_capacity_pct ?? 0,
+        status: 'On Track',
+        waypoints: [],
+      } : base.activeTrip,
+    };
+  }, [id, vehicle, driver, last_position, active_trip]);
+
+  if (loading && !detail) return <PageLoading label="Loading vehicle…" />;
+  if (!detail || !vehicle) {
+    return (
+      <div className="freight-workspace">
+        <PageHeader crumbs={['HuduFreight', 'Vehicle']} titlePlain="Vehicle" titleEm="detail" />
+        <BackButton to="/tracking/vehicles" label="Back to Vehicles" />
+        <Banner variant="error" title="Vehicle not found">
+          {error || `Vehicle with ID "${id}" could not be found in the fleet register.`}
+        </Banner>
+      </div>
+    );
+  }
   async function resolveIssue(issueId: string) {
     await apiFetch(`/v1/tracking/issues/${issueId}/resolve`, { method: 'PATCH', body: JSON.stringify({}) });
     reload();
   }
 
   function startEdit() {
+    if (!vehicle) return;
     setEditForm({
       name: vehicle.name || '',
       plate_number: vehicle.plate_number || '',
@@ -144,7 +240,7 @@ export const TrackingVehicleDetail: React.FC = () => {
       setEditing(false);
       reload();
     } catch (err) {
-      console.error('Failed to save vehicle', err);
+      setError(err instanceof Error ? err.message : 'Could not save vehicle');
     } finally {
       setSaving(false);
     }
@@ -153,29 +249,29 @@ export const TrackingVehicleDetail: React.FC = () => {
   const costChartData = {
     labels: cost_of_ownership.map(c => c.month),
     datasets: [
-      { label: 'Fuel', data: cost_of_ownership.map(c => c.fuel), backgroundColor: '#0891b2' },
-      { label: 'Service', data: cost_of_ownership.map(c => c.service), backgroundColor: '#9a6700' },
-      { label: 'Other', data: cost_of_ownership.map(c => c.other), backgroundColor: '#64748b' },
+      { label: 'Fuel', data: cost_of_ownership.map(c => c.fuel), backgroundColor: chartColors.brand },
+      { label: 'Service', data: cost_of_ownership.map(c => c.service), backgroundColor: chartColors.warning },
+      { label: 'Other', data: cost_of_ownership.map(c => c.other), backgroundColor: chartColors.neutral },
     ],
   };
 
   const addActions: { key: string; label: string; icon: IconName }[] = [
-    { key: 'assignment', label: 'Add Vehicle Assignment', icon: 'user' },
-    { key: 'fuel', label: 'Add Fuel Entry', icon: 'activity' },
-    { key: 'expense', label: 'Add Expense Entry', icon: 'dollarSign' },
-    { key: 'service', label: 'Add Service Entry', icon: 'clipboardList' },
-    { key: 'issue', label: 'Add Issue', icon: 'alertTriangle' },
-    { key: 'inspection', label: 'Add Inspection Submission', icon: 'tasks' },
-    { key: 'workorder', label: 'Add Work Order', icon: 'tool' },
-    { key: 'reminder', label: 'Add Service Reminder', icon: 'bell' },
-    { key: 'renewal', label: 'Add Vehicle Renewal Reminder', icon: 'refresh' },
-    { key: 'meter', label: 'Add Meter Entry', icon: 'barChart2' },
+    { key: 'assignment', label: 'Assignment', icon: 'user' },
+    { key: 'fuel', label: 'Fuel', icon: 'activity' },
+    { key: 'expense', label: 'Expense', icon: 'dollarSign' },
+    { key: 'service', label: 'Service', icon: 'clipboardList' },
+    { key: 'issue', label: 'Issue', icon: 'alertTriangle' },
+    { key: 'inspection', label: 'Inspection', icon: 'tasks' },
+    { key: 'workorder', label: 'Work order', icon: 'tool' },
+    { key: 'reminder', label: 'Reminder', icon: 'bell' },
+    { key: 'renewal', label: 'Renewal', icon: 'refresh' },
+    { key: 'meter', label: 'Meter', icon: 'barChart2' },
   ];
   const createdEntry = searchParams.get('created');
   const createdLabel = addActions.find(action => action.key === createdEntry)?.label.replace(/^Add /, '') || 'Entry';
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="freight-workspace">{error && <Banner variant="error">{error}</Banner>}
       <PageHeader
         crumbs={['HuduFreight', 'Vehicle']}
         titlePlain="Vehicle"
@@ -198,22 +294,74 @@ export const TrackingVehicleDetail: React.FC = () => {
         </Banner>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name="truck" size={28} color="var(--teal)" />
+      <div className="vdetail-hero">
+        <div className="vdetail-hero-left">
+          <div className="vdetail-hero-avatar">
+            {vehicle.photo_url ? (
+              <img
+                src={vehicle.photo_url}
+                alt={vehicle.name}
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : viewerVehicle?.photoUrl ? (
+              <img
+                src={viewerVehicle.photoUrl}
+                alt={`${vehicle.name} (Model)`}
+                title="Stock asset model representation"
+                style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.9 }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <Icon name="truck" size={28} color="var(--teal)" />
+            )}
+            {!vehicle.photo_url && viewerVehicle?.photoUrl && (
+              <span style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 4,
+                fontSize: 9,
+                fontWeight: 700,
+                background: 'rgba(0,0,0,0.6)',
+                color: '#fff',
+                padding: '1px 3px',
+                borderRadius: 2,
+              }}>MODEL</span>
+            )}
           </div>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{vehicle.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>
-              {[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.type} · {vehicle.plate_number || 'No plate'} · {vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'No mileage recorded'}
+          <div className="vdetail-hero-meta">
+            <div className="vdetail-hero-title-row">
+              <span className="vdetail-hero-name">{vehicle.name}</span>
+              <Badge variant={vehicle.status === 'ACTIVE' || vehicle.status === 'ON_ROUTE' ? 'success' : 'gray'}>
+                {vehicle.status === 'ON_ROUTE' ? 'On Route' : vehicle.status}
+              </Badge>
+              {viewerVehicle?.category && (
+                <span className="vdetail-category-pill">
+                  {viewerVehicle.category}
+                </span>
+              )}
+            </div>
+            <div className="vdetail-hero-specs">
+              <span>{[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.type}</span>
+              <span>·</span>
+              <span>{vehicle.plate_number || 'No plate'}</span>
+              <span>·</span>
+              <span>{vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'No mileage recorded'}</span>
             </div>
           </div>
         </div>
-        <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
-          <Badge variant={vehicle.status === 'ACTIVE' ? 'success' : 'gray'} className="self-center">
-            {vehicle.status}
-          </Badge>
+
+        <div className="vdetail-hero-actions">
+          <Button variant="outline" asChild>
+            <Link to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(id || '')}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="package" size={14} /> 3D Cargo Planner
+            </Link>
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button">
@@ -233,30 +381,30 @@ export const TrackingVehicleDetail: React.FC = () => {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => { setTab(v as Tab); setSearchParams(v === 'Overview' ? {} : { tab: v }, { replace: true }); }} variant="segmented">
-        <TabsList style={{ marginBottom: 20 }}>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v as Tab); setSearchParams(v === 'Overview' ? {} : { tab: v }, { replace: true }); }} variant="segmented" className="vdetail-tabs-root">
+        <TabsList className="vehicle-detail-tabs-list">
           {TABS.map(t => (
-            <TabsTrigger key={t} value={t}>{t}</TabsTrigger>
+            <TabsTrigger key={t} value={t} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{t}</TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
 
       {tab === 'Overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div className="freight-overview-grid">
           <SectionCard title="All Fields Details" action={
             !editing ? (
-              <button type="button" onClick={startEdit}
+              <Button variant="ghost" type="button" onClick={startEdit}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="edit" size={13} /> Edit
-              </button>
+              </Button>
             ) : (
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={() => setEditing(false)}
-                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-                <button type="button" onClick={saveEdit} disabled={saving}
+                <Button variant="ghost" type="button" onClick={() => setEditing(false)}
+                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</Button>
+                <Button variant="ghost" type="button" onClick={saveEdit} disabled={saving}
                   style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Saving…' : 'Save'}
-                </button>
+                </Button>
               </div>
             )
           }>
@@ -275,8 +423,8 @@ export const TrackingVehicleDetail: React.FC = () => {
               ['Speed Limit', vehicle.speed_limit_kmh != null ? `${vehicle.speed_limit_kmh} km/h` : '—'],
               ['Device ID', vehicle.device_id],
             ] as [string, any][]).map(([k, v]) => (
-              <div key={k as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
-                <span style={{ color: 'var(--ink3)', minWidth: 110 }}>{editing ? v : k}</span>
+              <div key={k as string} className={`vdetail-field-row ${editing ? 'is-editing' : ''}`}>
+                <span className="vdetail-field-key">{editing ? v : k}</span>
                 {editing ? (
                   k === 'status' ? (
                     <Select value={editForm[k] || ''} onValueChange={v => setEditForm({ ...editForm, [k]: v })}>
@@ -310,25 +458,25 @@ export const TrackingVehicleDetail: React.FC = () => {
                     </Select>
                   ) : k === 'make' ? (
                     <>
-                      <input value={editForm[k] || ''} list="vdetail-make-options" title="Make" placeholder="e.g. Isuzu"
+                      <Input value={editForm[k] || ''} list="vdetail-make-options" title="Make" placeholder="e.g. Isuzu"
                         onChange={e => setEditForm({ ...editForm, make: e.target.value, model: '' })}
                         style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
                       <datalist id="vdetail-make-options">{makes.map(m => <option key={m} value={m} />)}</datalist>
                     </>
                   ) : k === 'model' ? (
                     <>
-                      <input value={editForm[k] || ''} list="vdetail-model-options" disabled={!editForm.make} title="Model" placeholder="e.g. NPR"
+                      <Input value={editForm[k] || ''} list="vdetail-model-options" disabled={!editForm.make} title="Model" placeholder="e.g. NPR"
                         onChange={e => setEditForm({ ...editForm, model: e.target.value })}
                         style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
                       <datalist id="vdetail-model-options">{models.map(m => <option key={m} value={m} />)}</datalist>
                     </>
                   ) : (
-                    <input value={editForm[k] || ''} onChange={e => setEditForm({ ...editForm, [k]: e.target.value })}
+                    <Input value={editForm[k] || ''} onChange={e => setEditForm({ ...editForm, [k]: e.target.value })}
                       type={k === 'year' || k === 'mileage_km' ? 'number' : 'text'}
                       style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
                   )
                 ) : (
-                  <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{v}</span>
+                  <span className="vdetail-field-val">{v}</span>
                 )}
               </div>
             ))}
@@ -368,7 +516,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               <div style={{ height: 200, borderRadius: 'var(--r)', overflow: 'hidden' }}>
                 <MapContainer center={[last_position.latitude, last_position.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
                   <MapTileLayer />
-                  <Marker position={[last_position.latitude, last_position.longitude]} />
+                  <Marker position={[last_position.latitude, last_position.longitude]} icon={vehicleMapMarker} />
                 </MapContainer>
               </div>
             ) : <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No GPS position recorded yet.</div>}
@@ -427,6 +575,62 @@ export const TrackingVehicleDetail: React.FC = () => {
             </div>
           </SectionCard>
 
+          <SectionCard title="Connected Shipment Job" action={
+            active_trip?.shipment_ref ? (
+              <Badge variant="brand">{active_trip.shipment_ref}</Badge>
+            ) : undefined
+          }>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14 }}>
+              {active_trip?.shipment_id
+                ? `Linked to Commercial Clearance Job #${active_trip.shipment_ref || active_trip.shipment_id.slice(0, 8)} across Hudumika.`
+                : 'Direct Road Transport Job. A shipment remains one connected job across Hudumika apps.'}
+            </div>
+            <div className="vdetail-connected-grid">
+              <Link
+                to={active_trip?.shipment_id ? `/clearos/ops?shipment=${encodeURIComponent(active_trip.shipment_id)}` : '/clearos/ops'}
+                className="vdetail-connected-item"
+              >
+                <Icon name="briefcase" size={15} color="var(--teal)" />
+                <span>ClearOS Clearance</span>
+              </Link>
+              <Link
+                to="/cargotracker/track"
+                className="vdetail-connected-item"
+              >
+                <Icon name="anchor" size={15} color="var(--teal)" />
+                <span>CargoTracker</span>
+              </Link>
+              <Link
+                to="/seal/fulfillment"
+                className="vdetail-connected-item"
+              >
+                <Icon name="archive" size={15} color="var(--teal)" />
+                <span>SEAL Release</span>
+              </Link>
+              <Link
+                to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(vehicle.id)}`}
+                className="vdetail-connected-item"
+              >
+                <Icon name="package" size={15} color="var(--teal)" />
+                <span>Cargo Loading</span>
+              </Link>
+              <Link
+                to="/finance/delivery-documents"
+                className="vdetail-connected-item"
+              >
+                <Icon name="fileText" size={15} color="var(--teal)" />
+                <span>Delivery Notes</span>
+              </Link>
+              <Link
+                to="/finance/invoices"
+                className="vdetail-connected-item"
+              >
+                <Icon name="dollarSign" size={15} color="var(--teal)" />
+                <span>FinOps Invoices</span>
+              </Link>
+            </div>
+          </SectionCard>
+
           <SectionCard title="Open Issues" action={
             <div style={{ textAlign: 'right' }}><div style={statLabel}>Open</div><div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{open_issues.length}</div></div>
           }>
@@ -435,7 +639,7 @@ export const TrackingVehicleDetail: React.FC = () => {
               <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
                 <Icon name="alertTriangle" size={14} color="var(--red)" />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{i.title}</div>
-                <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</button>
+                <Button variant="ghost" type="button" onClick={() => { void resolveIssue(i.id).catch(e => setError(e.message)); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</Button>
               </div>
             ))}
           </SectionCard>
@@ -444,7 +648,7 @@ export const TrackingVehicleDetail: React.FC = () => {
 
       {tab === 'Service History' && (
         <SectionCard>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr style={{ textAlign: 'left' }}>{['Service', 'Cost', 'Date', 'Next Due'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
             <tbody>
               {maintenance.map(m => (
@@ -456,14 +660,14 @@ export const TrackingVehicleDetail: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </ResponsiveTable>
           {maintenance.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No service history yet.</div>}
         </SectionCard>
       )}
 
       {tab === 'Fuel' && (
         <SectionCard>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr style={{ textAlign: 'left' }}>{['Liters', 'Cost', 'Date'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
             <tbody>
               {fuel.map(f => (
@@ -474,14 +678,14 @@ export const TrackingVehicleDetail: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </ResponsiveTable>
           {fuel.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No fuel entries yet.</div>}
         </SectionCard>
       )}
 
       {tab === 'Documents' && (
         <SectionCard>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead><tr style={{ textAlign: 'left' }}>{['Type', 'Number', 'Expiry'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
             <tbody>
               {documents.map(d => (
@@ -492,15 +696,15 @@ export const TrackingVehicleDetail: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </ResponsiveTable>
           {documents.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents on file. Registration, insurance &amp; renewal records live here — add them from the Documents &amp; Insurance page.</div>}
         </SectionCard>
       )}
 
       {tab === 'Issues' && (
         <SectionCard>
-          {detail.issues.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues reported.</div>}
-          {detail.issues.map(i => (
+          {(detail?.issues || []).length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues reported.</div>}
+          {(detail?.issues || []).map((i: Issue) => (
             <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
               <Badge variant={i.status === 'RESOLVED' ? 'success' : 'error'}>{i.status}</Badge>
               <Link to={`/tracking/issues/${i.id}`} style={{ flex: 1, fontSize: 13, color: 'var(--ink)', textDecoration: 'none', fontWeight: 600 }}
@@ -509,10 +713,48 @@ export const TrackingVehicleDetail: React.FC = () => {
                 {i.title}
               </Link>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(i.created_at).toLocaleDateString()}</div>
-              {i.status !== 'RESOLVED' && <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</button>}
+              {i.status !== 'RESOLVED' && <Button variant="ghost" type="button" onClick={() => { void resolveIssue(i.id).catch(e => setError(e.message)); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</Button>}
             </div>
           ))}
         </SectionCard>
+      )}
+
+      {tab === '3D Schematics & Loading' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SectionCard title="3D 360° Rotatable Loading Schematics & Telemetry">
+            <div className="vdetail-3d-stage">
+              <Truck3DViewer vehicle={viewerVehicle} />
+            </div>
+          </SectionCard>
+
+          <TruckLoadOverview
+            manifest={{
+              id: `mnf-${viewerVehicle.id}`,
+              name: `${vehicle.name} Loading Plan`,
+              container_length_cm: viewerVehicle.specs.containerLengthCm,
+              container_width_cm: viewerVehicle.specs.containerWidthCm,
+              container_height_cm: viewerVehicle.specs.containerHeightCm,
+              max_weight_kg: viewerVehicle.specs.maxWeightKg,
+              status: active_trip ? 'DISPATCHED' : 'APPROVED',
+              vehicle_id: vehicle.id,
+              vehicle_plate: vehicle.plate_number || viewerVehicle.plate_number,
+              vehicle_name: vehicle.name,
+              origin: active_trip?.origin || viewerVehicle.activeTrip?.origin,
+              destination: active_trip?.destination || viewerVehicle.activeTrip?.destination,
+            }}
+            items={(viewerVehicle.cargoItems || []).map((c: any) => ({
+              id: c.id,
+              label: c.label,
+              length_cm: c.length_cm,
+              width_cm: c.width_cm,
+              height_cm: c.height_cm,
+              weight_kg: c.weight_kg,
+              quantity: c.quantity,
+              color: c.color,
+              placements: c.placements,
+            }))}
+          />
+        </div>
       )}
 
       {tab === 'Expenses' && <VehicleExpensesTab vehicleId={id!} />}
@@ -528,7 +770,7 @@ function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
   useEffect(() => { apiFetch(`/v1/tracking/vehicles/${vehicleId}/expenses`).then(setExpenses).catch(() => setExpenses([])); }, [vehicleId]);
   return (
     <SectionCard>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead><tr style={{ textAlign: 'left' }}>{['Category', 'Description', 'Amount', 'Date'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
         <tbody>
           {expenses.map(e => (
@@ -540,7 +782,7 @@ function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </ResponsiveTable>
       {expenses.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No expenses logged yet.</div>}
     </SectionCard>
   );
@@ -563,7 +805,7 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
 
   return (
     <SectionCard title="Driver Assignments History">
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
           <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
             {['Driver', 'Start Time', 'End Time', 'Labels', 'Comments'].map(h => (
@@ -591,7 +833,7 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </ResponsiveTable>
       {assignments.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No driver assignments recorded.</div>}
     </SectionCard>
   );
@@ -602,193 +844,5 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
 // the standalone page — this tab just shows an inline upgrade message scoped
 // to its own content instead of blocking the whole vehicle-detail page.
 function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
-  const [manifests, setManifests] = useState<CargoManifest[]>([]);
-  const [manifestId, setManifestId] = useState('');
-  const [items, setItems] = useState<CargoItem[]>([]);
-  const [packResult, setPackResult] = useState<PackResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [locked, setLocked] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [packing, setPacking] = useState(false);
-  const [cameraPreset, setCameraPreset] = useState<CameraPreset>('iso');
-
-  const [itemLabel, setItemLabel] = useState('');
-  const [itemL, setItemL] = useState('100');
-  const [itemW, setItemW] = useState('100');
-  const [itemH, setItemH] = useState('100');
-  const [itemWeight, setItemWeight] = useState('50');
-  const [itemQty, setItemQty] = useState('1');
-
-  const reloadManifests = useCallback(() => {
-    apiFetch(`/v1/tracking/manifests?vehicle_id=${vehicleId}`)
-      .then((list: CargoManifest[]) => { setManifests(list); if (list.length > 0) setManifestId(prev => prev || list[0].id); })
-      .catch((e: any) => { if (e.message?.includes('plan')) setLocked(true); })
-      .finally(() => setLoading(false));
-  }, [vehicleId]);
-
-  useEffect(() => { reloadManifests(); }, [reloadManifests]);
-
-  const reloadItems = useCallback(() => {
-    if (!manifestId) { setItems([]); return; }
-    apiFetch(`/v1/tracking/manifests/${manifestId}/items`).then(setItems).catch(() => setItems([]));
-    setPackResult(null);
-  }, [manifestId]);
-
-  useEffect(() => { reloadItems(); }, [reloadItems]);
-
-  const manifest = manifests.find(m => m.id === manifestId);
-
-  async function createDefaultPlan() {
-    setCreating(true);
-    try {
-      const created = await apiFetch('/v1/tracking/manifests', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: 'Load Plan', vehicle_id: vehicleId,
-          container_length_cm: 1200, container_width_cm: 235, container_height_cm: 260, max_weight_kg: 24000,
-        }),
-      });
-      setManifestId(created.id);
-      reloadManifests();
-    } finally { setCreating(false); }
-  }
-
-  async function addItem(e: React.FormEvent) {
-    e.preventDefault();
-    if (!manifestId) return;
-    await apiFetch(`/v1/tracking/manifests/${manifestId}/items`, {
-      method: 'POST',
-      body: JSON.stringify({
-        label: itemLabel, length_cm: Number(itemL), width_cm: Number(itemW), height_cm: Number(itemH),
-        weight_kg: Number(itemWeight), quantity: Number(itemQty),
-      }),
-    });
-    setItemLabel('');
-    reloadItems();
-  }
-
-  async function removeItem(itemId: string) {
-    await apiFetch(`/v1/tracking/items/${itemId}`, { method: 'DELETE' });
-    reloadItems();
-  }
-
-  async function pack() {
-    if (!manifestId) return;
-    setPacking(true);
-    try {
-      const result = await apiFetch(`/v1/tracking/manifests/${manifestId}/pack`, { method: 'POST', body: JSON.stringify({}) });
-      setPackResult(result);
-      setItems(result.items);
-    } finally { setPacking(false); }
-  }
-
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading load plan…</div>;
-
-  if (locked) {
-    return (
-      <div style={{ ...cardStyle, padding: '40px 20px', textAlign: 'center' }}>
-        <Icon name="lock" size={24} color="var(--ink3)" />
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 10 }}>Cargo Loading is an Enterprise feature</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>Upgrade your plan to plan and visualize loads for this vehicle.</div>
-      </div>
-    );
-  }
-
-  if (!manifest) {
-    return (
-      <TruckLoadEmpty onCreate={createDefaultPlan} creating={creating} />
-    );
-  }
-
-  const smallInput: React.CSSProperties = { width: '100%', padding: '6px 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' };
-
-  return (
-    <div>
-      <TruckLoadOverview manifest={manifest} items={items} />
-      <div className="truck-load-workspace">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{manifest.name}</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-            {manifest.container_length_cm} × {manifest.container_width_cm} × {manifest.container_height_cm} cm · max {manifest.max_weight_kg.toLocaleString()} kg
-          </div>
-        </div>
-
-        <div style={cardStyle}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Add item</div>
-          <form onSubmit={addItem} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <input required value={itemLabel} onChange={e => setItemLabel(e.target.value)} placeholder="Label" style={smallInput} />
-            <div style={{ display: 'flex', gap: 5 }}>
-              <input type="number" value={itemL} onChange={e => setItemL(e.target.value)} placeholder="L cm" style={smallInput} />
-              <input type="number" value={itemW} onChange={e => setItemW(e.target.value)} placeholder="W cm" style={smallInput} />
-              <input type="number" value={itemH} onChange={e => setItemH(e.target.value)} placeholder="H cm" style={smallInput} />
-            </div>
-            <div style={{ display: 'flex', gap: 5 }}>
-              <input type="number" value={itemWeight} onChange={e => setItemWeight(e.target.value)} placeholder="kg" style={smallInput} />
-              <input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="Qty" style={smallInput} />
-            </div>
-            <button type="submit" style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 12, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Add item</button>
-          </form>
-        </div>
-
-        <div style={cardStyle}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Items ({items.length})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 160, overflowY: 'auto' }}>
-            {items.map(it => (
-              <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                <div style={{ width: 9, height: 9, borderRadius: 3, background: it.color || '#0891b2', flexShrink: 0 }} />
-                <div style={{ flex: 1, color: 'var(--ink)' }}>{it.label} × {it.quantity}</div>
-                <button type="button" onClick={() => removeItem(it.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={11} /></button>
-              </div>
-            ))}
-            {items.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No items added yet.</div>}
-          </div>
-          <button type="button" onClick={pack} disabled={packing || items.length === 0}
-            style={{ marginTop: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            {packing ? 'Packing…' : 'Pack load'}
-          </button>
-        </div>
-
-        {packResult && (
-          <div style={cardStyle}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Utilization</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-              <span>Volume</span><strong>{packResult.volume_utilization_pct}%</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span>Weight</span><strong>{packResult.weight_utilization_pct}%</strong>
-            </div>
-            {packResult.unplaced_items.length > 0 && (
-              <div style={{ marginTop: 8, padding: '7px 9px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 11, color: 'var(--red)' }}>
-                Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          {([['iso', 'Iso'], ['front', 'Front'], ['side', 'Side'], ['top', 'Top']] as [CameraPreset, string][]).map(([preset, label]) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => setCameraPreset(preset)}
-              style={{
-                padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                border: `1px solid ${cameraPreset === preset ? 'var(--teal)' : 'var(--border)'}`,
-                background: cameraPreset === preset ? 'var(--teal-l)' : 'var(--white)',
-                color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-             data-ui-native-button="">
-              {label}
-            </button>
-          ))}
-        </div>
-        <div style={{ height: 480, borderRadius: 'var(--r)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-          <CargoScene manifest={manifest} items={items} cameraPreset={cameraPreset} />
-        </div>
-      </div>
-    </div>
-    </div>
-  );
+  return <SectionCard title="Vehicle load plans" collapsible={false}><p className="freight-note">Create, pack, approve and dispatch this vehicle's loads in the shared cargo workspace.</p><Button asChild><Link to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(vehicleId)}`}>Open load plans</Link></Button></SectionCard>;
 }

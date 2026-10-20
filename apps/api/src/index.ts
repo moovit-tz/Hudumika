@@ -47,6 +47,7 @@ import { financeRoutes } from './routes/finance.routes.js';
 import { financeExpensesRoutes } from './routes/financeExpenses.routes.js';
 import { financeExpenseReportRoutes } from './routes/finance-expense-reports.routes.js';
 import { pettiRoutes } from './routes/petti.routes.js';
+import { travelRoutes } from './routes/travel.routes.js';
 import { notesRoutes } from './routes/notes.routes.js';
 import { analyticsRoutes } from './routes/analytics.routes.js';
 import { notificationRoutes } from './routes/notifications.routes.js';
@@ -545,6 +546,7 @@ export async function registerApp() {
     await server.register(financeIndustryWorkRoutes, { prefix: '/v1/finance/industries' });
     await server.register(posRoutes, { prefix: '/v1/finance/pos' });
     await server.register(pettiRoutes, { prefix: '/v1/petti' });
+    await server.register(travelRoutes, { prefix: '/v1/travel' });
     await server.register(notesRoutes, { prefix: '/v1/notes' });
     await server.register(analyticsRoutes, { prefix: '/v1/analytics' });
     await server.register(notificationRoutes, { prefix: '/v1/notifications' });

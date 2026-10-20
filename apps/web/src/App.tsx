@@ -116,6 +116,7 @@ const OnsiteShell = React.lazy(() => import('./shells/OnsiteShell.js').then(m =>
 const HuduBIShell = React.lazy(() => import('./shells/HuduBIShell.js').then(m => ({ default: m.HuduBIShell })));
 const SignShell = React.lazy(() => import('./shells/SignShell.js').then(m => ({ default: m.SignShell })));
 const DeveloperShell = React.lazy(() => import('./shells/DeveloperShell.js').then(m => ({ default: m.DeveloperShell })));
+const TravelShell = React.lazy(() => import('./shells/TravelShell.js').then(m => ({ default: m.TravelShell })));
 
 /* ── Hub page — shares search state between header and workspace.
    Branches between the Advanced hub (WorkspaceHome, under the shared
@@ -525,6 +526,7 @@ const AppContentBody: React.FC = () => {
             <Route path="/petti/*"     element={<PettiShell />} />
             <Route path="/sms/*"       element={<SmsShell />} />
             <Route path="/developer/*" element={<DeveloperShell />} />
+            <Route path="/travel/*"    element={<TravelShell />} />
             <Route path="/dev/*"       element={<Navigate to="/developer" replace />} />
 
             {/* Legacy redirects for old routes */}

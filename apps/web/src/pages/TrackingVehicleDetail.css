@@ -1,0 +1,299 @@
+/* TrackingVehicleDetail.css - Mobile Responsive & Dark Mode Styles */
+
+.vehicle-detail-page {
+  padding-bottom: 36px;
+  color: var(--ink);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Ensure workspace never overflows horizontally on mobile */
+.freight-workspace {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Hero Section */
+.vdetail-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+.vdetail-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.vdetail-hero-avatar {
+  width: 88px;
+  height: 64px;
+  border-radius: var(--r);
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  padding: 4px;
+  box-shadow: var(--elev-sm);
+  position: relative;
+}
+
+.vdetail-hero-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.vdetail-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.vdetail-hero-name {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.vdetail-category-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.vdetail-hero-specs {
+  font-size: 13px;
+  color: var(--ink3);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vdetail-hero-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* Tabs: smooth horizontal swipe on mobile */
+.vdetail-tabs-root {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.vehicle-detail-tabs-list {
+  display: flex !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--border) transparent !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+  box-sizing: border-box !important;
+  padding: 4px 4px 6px !important;
+  margin-bottom: 20px !important;
+}
+
+.vehicle-detail-tabs-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.vehicle-detail-tabs-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* Overview grid columns */
+.freight-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.freight-overview-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Field Rows in All Fields Details */
+.vdetail-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.vdetail-field-key {
+  color: var(--ink3);
+  min-width: 95px;
+  flex-shrink: 0;
+  font-size: 12.5px;
+}
+
+.vdetail-field-val {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* Connected Shipment Job Links */
+.vdetail-connected-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.vdetail-connected-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  min-width: 0;
+}
+
+.vdetail-connected-item:hover {
+  background: var(--hover-bg);
+  border-color: var(--teal);
+}
+
+.vdetail-connected-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3D Schematics View Stage */
+.vdetail-3d-stage {
+  height: 480px;
+  border-radius: var(--r);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Document cards */
+.vehicle-detail-doc-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.vehicle-detail-doc-card:hover {
+  border-color: var(--teal);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 900px) {
+  .freight-overview-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .vdetail-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .vdetail-hero-left {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .vdetail-hero-avatar {
+    width: 72px;
+    height: 54px;
+  }
+  .vdetail-hero-name {
+    font-size: 19px !important;
+  }
+  .vdetail-hero-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .vdetail-hero-actions > * {
+    width: 100%;
+  }
+  .vdetail-hero-actions button,
+  .vdetail-hero-actions a {
+    width: 100%;
+    justify-content: center;
+  }
+  .vdetail-3d-stage {
+    height: 320px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vdetail-field-row.is-editing {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .vdetail-field-row.is-editing .vdetail-field-key {
+    min-width: 0;
+    font-size: 11.5px;
+  }
+  .vdetail-field-row.is-editing input,
+  .vdetail-field-row.is-editing [data-slot="select-trigger"] {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .vdetail-connected-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .vdetail-hero-actions {
+    grid-template-columns: 1fr;
+  }
+}

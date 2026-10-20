@@ -1479,7 +1479,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.get('/linked', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const [shipmentTasks, invoiceTasks, sealTasks, inventoryTasks] = await Promise.all([
+      const [shipmentTasks, invoiceTasks, sealTasks, inventoryTasks, fleetReminders] = await Promise.all([
         trx.selectFrom('shipment_tasks')
           .innerJoin('shipment_cases', 'shipment_cases.id', 'shipment_tasks.shipment_id')
           .select(['shipment_tasks.id', 'shipment_tasks.title', 'shipment_tasks.due_date', 'shipment_tasks.status', 'shipment_cases.ref_number', 'shipment_tasks.shipment_id'])
@@ -1508,9 +1508,13 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           .where('inventory_tasks.assigned_to', '=', user.sub)
           .where('inventory_tasks.status', '!=', 'complete')
           .execute(),
+        trx.selectFrom('fleet_reminders').select(['id', 'title', 'due_date'])
+          .where('tenant_id', '=', user.tenant_id).where('created_by', '=', user.sub)
+          .where('status', '=', 'PENDING').execute(),
       ]);
 
       const data = [
+        ...fleetReminders.map(t => ({ id: `freight:${t.id}`, title: t.title, due: t.due_date, sourceApp: 'HuduFreight', sourceLabel: 'Fleet reminder', path: '/tracking/reminders' })),
         ...shipmentTasks.map(t => ({
           id: `shipment:${t.id}`, title: t.title, due: t.due_date,
           sourceApp: 'ClearOS', sourceLabel: t.ref_number, path: `/clearos/clearance/${t.shipment_id}`,

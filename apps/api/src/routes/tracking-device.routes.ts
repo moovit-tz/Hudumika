@@ -34,7 +34,7 @@ export async function trackingDeviceRoutes(fastify: FastifyInstance) {
       lng: z.number().min(-180).max(180),
       speed: z.number().min(0).optional(),
       heading: z.number().min(0).max(360).optional(),
-      timestamp: z.string().optional(),
+      timestamp: z.string().refine(value => Number.isFinite(Date.parse(value)), 'Invalid observation timestamp').optional(),
       battery_pct: z.number().min(0).max(100).optional(),
       ignition: z.enum(['ON', 'OFF']).optional(),
     }).parse(req.body);
@@ -78,6 +78,11 @@ export async function trackingDeviceRoutes(fastify: FastifyInstance) {
         vehicleId: vehicle.id,
         latitude: body.lat,
         longitude: body.lng,
+        speed: body.speed ?? null,
+        recorded_at: recordedAt.toISOString(),
+        heading: body.heading ?? null,
+        battery_pct: body.battery_pct ?? null,
+        ignition: body.ignition ?? null,
       });
 
       return { ok: true, vehicle_id: vehicle.id };

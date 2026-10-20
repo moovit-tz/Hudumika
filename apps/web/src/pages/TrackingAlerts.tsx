@@ -1,3 +1,7 @@
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { matchesRecordSearch } from '../lib/record-search.js';
+import { Banner } from '../components/ui/alert.js';
+import './FreightOperations.css';
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -18,20 +22,24 @@ const SEVERITY_VARIANT: Record<string, 'info' | 'warning' | 'error'> = {
 };
 
 export const TrackingAlerts: React.FC = () => {
+  const [query, setQuery] = useState('');
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAcknowledged, setShowAcknowledged] = useState(false);
 
   const reload = useCallback(() => {
+    setPageError('');
     setLoading(true);
     apiFetch(`/v1/tracking/alerts${showAcknowledged ? '' : '?acknowledged=false'}`)
-      .then(setAlerts).catch(() => setAlerts([])).finally(() => setLoading(false));
+      .then(setAlerts).catch(reportError).finally(() => setLoading(false));
   }, [showAcknowledged]);
 
   useEffect(() => {
     reload();
-    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
+    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(reportError);
   }, [reload]);
 
   const vehicleName = (id: string | null) => vehicles.find(v => v.id === id)?.name ?? 'Fleet-wide';
@@ -42,7 +50,7 @@ export const TrackingAlerts: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="freight-workspace">{pageError && <Banner variant="error">{pageError}</Banner>}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <PageHeader
@@ -58,8 +66,9 @@ export const TrackingAlerts: React.FC = () => {
         </label>
       </div>
 
+      <SearchToolbar search={query} onSearch={setQuery} placeholder="Search records…" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {!loading && alerts.map(a => {
+        {!loading && alerts.filter(record => matchesRecordSearch(record, query)).map(a => {
           const severityVariant = SEVERITY_VARIANT[a.severity] ?? 'info';
           return (
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', opacity: a.acknowledged ? 0.6 : 1 }}>
@@ -75,7 +84,7 @@ export const TrackingAlerts: React.FC = () => {
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{new Date(a.created_at).toLocaleString()}</div>
               </div>
               {!a.acknowledged && (
-                <Button type="button" variant="outline" size="sm" onClick={() => acknowledge(a.id)} style={{ flexShrink: 0 }}>
+                <Button type="button" variant="outline" size="sm" onClick={() => { void acknowledge(a.id).catch(reportError); }} style={{ flexShrink: 0 }}>
                   Acknowledge
                 </Button>
               )}

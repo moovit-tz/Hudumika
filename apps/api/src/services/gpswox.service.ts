@@ -127,7 +127,7 @@ export class GpswoxService {
    * something a human would type in). Runs the same geofence-transition
    * check used by the manual /positions/ingest path.
    */
-  async syncPositions(tenantId: string, onPosition?: (vehicleId: string, lat: number, lng: number) => void): Promise<GpswoxSyncResult> {
+  async syncPositions(tenantId: string, onPosition?: (vehicleId: string, lat: number, lng: number, observation: { speed: number | null; heading: number | null; battery_pct: number | null; ignition: 'ON' | 'OFF' | null; recorded_at: string }) => void): Promise<GpswoxSyncResult> {
     const creds = await this.getCreds(tenantId);
     if (!creds) {
       return { ok: false, reason: 'not_configured', matched: 0, unmatched: [], offline_alerts_created: 0, synced_at: new Date().toISOString() };
@@ -172,6 +172,9 @@ export class GpswoxService {
         const lat = Number(device.lat ?? device.latitude);
         const lng = Number(device.lng ?? device.longitude);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        const sourceTime = device.last_update || device.updated_at;
+        if (!sourceTime || !Number.isFinite(Date.parse(sourceTime))) continue;
+        const recordedAt = new Date(sourceTime);
 
         let ignition: 'ON' | 'OFF' | null = null;
         let batteryPct: number | null = null;
@@ -189,7 +192,7 @@ export class GpswoxService {
           heading: device.course != null ? Number(device.course) : null,
           battery_pct: batteryPct,
           ignition,
-          recorded_at: (device.last_update || device.updated_at) ? new Date(device.last_update || device.updated_at!) : new Date(),
+          recorded_at: recordedAt,
         } as any).execute();
 
         await checkGeofenceTransitions(trx, tenantId, vehicleId, vehicleRow!.name, lat, lng);
@@ -211,7 +214,7 @@ export class GpswoxService {
           }
         }
 
-        onPosition?.(vehicleId, lat, lng);
+        onPosition?.(vehicleId, lat, lng, { speed: currentSpeed, heading: device.course != null ? Number(device.course) : null, battery_pct: batteryPct, ignition, recorded_at: recordedAt.toISOString() });
         matched++;
       }
 

@@ -74,6 +74,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   sms:       'messageSquare',
   projects:  'briefcase',
   developer: 'terminal',
+  travel:    'plane',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -98,6 +99,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   seal:          'Warehouse & Inventory',
   petti:         'Petty Cash Wallet',
   developer:     'API Gateway & Platform',
+  travel:        'Trips & Itineraries',
 };
 
 export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, loading }: Props) {

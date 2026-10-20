@@ -1,3 +1,7 @@
+import { Link } from 'react-router-dom';
+import { Banner } from '../components/ui/alert.js';
+import './FreightOperations.css';
+import { ResponsiveTable } from '../components/ui/responsive-table.js';
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -22,7 +26,7 @@ const toLocalDateTimeString = (d: Date): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-interface Location { id: string; code: string; name: string; zone: string | null; capacity_units: number | null; active: boolean }
+interface Location { id: string; code: string; name: string; zone: string | null; capacity_units: number | null; active: boolean; seal_compartment_id: string | null }
 interface Vehicle { id: string; name: string }
 interface DockAppointment {
   id: string; dock_number: string; appointment_type: 'INBOUND' | 'OUTBOUND';
@@ -56,6 +60,11 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const [name, setName] = useState('');
   const [zone, setZone] = useState('');
   const [capacity, setCapacity] = useState('');
+  const [sealId, setSealId] = useState('');
+  const [sealLocations, setSealLocations] = useState<{id:string;name:string;code:string}[]>([]);
+  const [linkError, setLinkError] = useState('');
+  const [error, setError] = useState('');
+  useEffect(() => { apiFetch('/v1/seal/compartments').then(res=>setSealLocations(Array.isArray(res)?res:res.data||[])).catch(e=>setLinkError(e.message)); }, []);
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -64,24 +73,25 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
     try {
       await apiFetch('/v1/tracking/warehouse/locations', {
         method: 'POST',
-        body: JSON.stringify({ code, name, zone, capacity_units: capacity ? Number(capacity) : undefined }),
+        body: JSON.stringify({ code, name, zone, seal_compartment_id: sealId || undefined, capacity_units: capacity ? Number(capacity) : undefined }),
       });
       onAdded(); onClose();
-    } finally { setSaving(false); }
+    } catch(e) { setError(e instanceof Error ? e.message : 'Could not save location'); } finally { setSaving(false); }
   }
 
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="max-w-[min(420px,92vw)] gap-0" style={{ padding: 28 }}>
-        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a storage location</DialogTitle>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add a storage location</DialogTitle>{error && <Banner variant="error">{error}</Banner>}
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label className="freight-field">Linked SEAL warehouse (optional)<Combobox value={sealId} onChange={setSealId} options={[{value:'',label:'No linked warehouse'},...sealLocations.map(loc=>({value:loc.id,label:loc.name,sublabel:loc.code}))]} /></label>{linkError && <p className="freight-note">SEAL warehouses unavailable: {linkError}</p>}
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Code</label><Input required value={code} onChange={e => setCode(e.target.value)} placeholder="A-01" /></div>
-            <div style={{ flex: 2 }}><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label htmlFor="trackingwarehouse-field-1" style={labelStyle}>Code</label><Input id="trackingwarehouse-field-1" required value={code} onChange={e => setCode(e.target.value)} placeholder="A-01" /></div>
+            <div style={{ flex: 2 }}><label htmlFor="trackingwarehouse-field-2" style={labelStyle}>Name</label><Input id="trackingwarehouse-field-2" required value={name} onChange={e => setName(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Zone</label><Input value={zone} onChange={e => setZone(e.target.value)} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Capacity (units)</label><Input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label htmlFor="trackingwarehouse-field-3" style={labelStyle}>Zone</label><Input id="trackingwarehouse-field-3" value={zone} onChange={e => setZone(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label htmlFor="trackingwarehouse-field-4" style={labelStyle}>Capacity (units)</label><Input id="trackingwarehouse-field-4" type="number" value={capacity} onChange={e => setCapacity(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -127,7 +137,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
         <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Schedule a dock appointment</DialogTitle>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Dock number</label><Input required value={dockNumber} onChange={e => setDockNumber(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label htmlFor="trackingwarehouse-field-5" style={labelStyle}>Dock number</label><Input id="trackingwarehouse-field-5" required value={dockNumber} onChange={e => setDockNumber(e.target.value)} /></div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Type</label>
               <Select value={type} onValueChange={v => setType(v as any)}>
@@ -146,7 +156,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
               value={vehicleId} onChange={setVehicleId} placeholder="— None —"
             />
           </div>
-          <div><label style={labelStyle}>Reference</label><Input value={reference} onChange={e => setReference(e.target.value)} /></div>
+          <div><label htmlFor="trackingwarehouse-field-6" style={labelStyle}>Reference</label><Input id="trackingwarehouse-field-6" value={reference} onChange={e => setReference(e.target.value)} /></div>
           <div><label style={labelStyle}>Scheduled at *</label><DateTimePicker date={scheduledAt ? new Date(scheduledAt) : undefined} onChange={d => setScheduledAt(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -159,6 +169,8 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
 }
 
 export const TrackingWarehouse: React.FC = () => {
+  const [pageError, setPageError] = useState('');
+  const reportError = (e: unknown) => setPageError(e instanceof Error ? e.message : 'Unable to load records.');
   const [tab, setTab] = useState<'locations' | 'dock' | 'map'>('locations');
   const [locations, setLocations] = useState<Location[]>([]);
   const [appointments, setAppointments] = useState<DockAppointment[]>([]);
@@ -175,24 +187,25 @@ export const TrackingWarehouse: React.FC = () => {
   const [insightError, setInsightError] = useState<string | null>(null);
 
   const reload = useCallback(() => {
+    setPageError('');
     setLoading(true);
     Promise.all([
       apiFetch('/v1/tracking/warehouse/locations'),
       apiFetch('/v1/tracking/warehouse/dock-appointments'),
     ]).then(([locs, appts]) => { setLocations(locs); setAppointments(appts); })
-      .catch((e: any) => { if (e.message?.includes('plan')) setLocked(true); })
+      .catch((e: any) => { if (e.message?.includes('plan')) setLocked(true); else reportError(e); })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     reload();
-    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => setVehicles([]));
+    apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(reportError);
   }, [reload]);
 
   useEffect(() => {
     if (tab !== 'map' || occupancy !== null) return;
     setOccupancyLoading(true);
-    apiFetch('/v1/tracking/warehouse/occupancy').then(setOccupancy).catch(() => setOccupancy([])).finally(() => setOccupancyLoading(false));
+    apiFetch('/v1/tracking/warehouse/occupancy').then(setOccupancy).catch(reportError).finally(() => setOccupancyLoading(false));
   }, [tab, occupancy]);
 
   async function generateInsight() {
@@ -222,7 +235,7 @@ export const TrackingWarehouse: React.FC = () => {
   if (locked) return <UpgradeEmptyState feature="Warehouse" />;
 
   return (
-    <div style={{ padding: '0 0 24px'}}>
+    <div className="freight-workspace">{pageError && <Banner variant="error">{pageError}</Banner>}
       {showAddLocation && <AddLocationModal onClose={() => setShowAddLocation(false)} onAdded={reload} />}
       {showAddAppointment && <AddAppointmentModal vehicles={vehicles} onClose={() => setShowAddAppointment(false)} onAdded={reload} />}
 
@@ -232,14 +245,14 @@ export const TrackingWarehouse: React.FC = () => {
             crumbs={['HuduFreight', 'Warehouse']}
             titlePlain="Warehouse"
             titleEm="operations"
-            subtitle="Storage locations &amp; dock scheduling"
+            subtitle="Parts storage and dock scheduling, with links to SEAL bonded warehouses."
           />
         </div>
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="segmented">
-          <TabsList>
+          <TabsList wrap>
             <TabsTrigger value="locations">Locations</TabsTrigger>
             <TabsTrigger value="dock">Dock Schedule</TabsTrigger>
-            <TabsTrigger value="map">Warehouse Map</TabsTrigger>
+            <TabsTrigger value="map">Parts map</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -252,7 +265,7 @@ export const TrackingWarehouse: React.FC = () => {
             </Button>
           </div>
           <SectionCard>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
                   {['Code', 'Name', 'Zone', 'Capacity', 'Status', ''].map(h => (
@@ -264,19 +277,19 @@ export const TrackingWarehouse: React.FC = () => {
                 {locations.map(l => (
                   <tr key={l.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{l.code}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.name}</td>
+                    <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.name}{l.seal_compartment_id && <Button variant="link" asChild><Link to={`/seal/compartments/${l.seal_compartment_id}`}>SEAL</Link></Button>}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.zone || '—'}</td>
                     <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{l.capacity_units ?? '—'}</td>
                     <td style={{ padding: '10px 14px' }}>
                       <Badge variant={l.active ? 'success' : 'gray'}>{l.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                      <button type="button" onClick={() => removeLocation(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="close" size={14} /></button>
+                      <Button type="button" onClick={() => { void removeLocation(l.id).catch(reportError); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="close" size={14} /></Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </ResponsiveTable>
             {locations.length === 0 && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No storage locations yet.</div>}
           </SectionCard>
         </>
@@ -290,7 +303,7 @@ export const TrackingWarehouse: React.FC = () => {
             </Button>
           </div>
           <SectionCard>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', textAlign: 'left' }}>
                   {['Dock', 'Type', 'Vehicle', 'Reference', 'Scheduled', 'Status', ''].map(h => (
@@ -312,22 +325,22 @@ export const TrackingWarehouse: React.FC = () => {
                         <Badge variant="gray">{a.status.replace('_', ' ')}</Badge>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {a.status === 'SCHEDULED' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'check-in')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Check in</button>}
-                        {a.status === 'CHECKED_IN' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'complete')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Complete</button>}
-                        {(a.status === 'SCHEDULED' || a.status === 'CHECKED_IN') && <button type="button" onClick={() => setAppointmentStatus(a.id, 'cancel')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Cancel</button>}
+                        {a.status === 'SCHEDULED' && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'check-in').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Check in</Button>}
+                        {a.status === 'CHECKED_IN' && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'complete').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Complete</Button>}
+                        {(a.status === 'SCHEDULED' || a.status === 'CHECKED_IN') && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'cancel').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Cancel</Button>}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </ResponsiveTable>
             {appointments.length === 0 && <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No dock appointments scheduled.</div>}
           </SectionCard>
         </>
       )}
 
       {tab === 'map' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {occupancyLoading && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading occupancy…</div>}
             {!occupancyLoading && occupancy?.length === 0 && (
@@ -361,7 +374,7 @@ export const TrackingWarehouse: React.FC = () => {
           </div>
 
           <div style={{ position: 'sticky', top: 16 }}>
-          <SectionCard title="AI Insight">
+          <SectionCard title="AI Insight" aria-label="AI Insight">
             {!insight && !insightLoading && !insightError && (
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>Generate a rearrangement suggestion based on real occupancy data.</div>
             )}

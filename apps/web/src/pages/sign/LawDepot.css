@@ -1365,3 +1365,36 @@
   .creation-hub-card { padding: 16px; gap: 12px; }
   .creation-hub-card-copy h3 { font-size: 14px; }
 }
+
+/* ── Visual page-break markers (shared with SignCompose) ── */
+.sign-page-break-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28px;
+  transform: translateY(-14px);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sign-page-break-marker::before,
+.sign-page-break-marker::after {
+  content: '';
+  flex: 1;
+  border-top: 1.5px dashed color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.sign-page-break-label {
+  flex-shrink: 0;
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  padding: 2px 12px;
+  background: #ffffff;
+  border-radius: 9999px;
+  border: 1px dashed color-mix(in srgb, var(--border) 50%, transparent);
+}

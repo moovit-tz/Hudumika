@@ -1,3 +1,4 @@
+import { readFleetDocuments } from '../services/fleet-documents.service.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
@@ -47,50 +48,33 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
       // Real, deterministic health score per vehicle: start at 100, deduct
       // for overdue maintenance, expired documents, unacknowledged critical
       // alerts, and a stale (>2h) or missing GPS fix.
-      const scores: { vehicle_id: string; name: string; score: number }[] = [];
-      for (const v of vehicles) {
-        let score = 100;
-
-        const overdueMaint = await trx.selectFrom('maintenance_records')
-          .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
-          .where('next_due_date', 'is not', null)
-          .where('next_due_date', '<', toDateParam(now))
-          .executeTakeFirst();
-        score -= Number(overdueMaint?.count ?? 0) * 15;
-
-        const expiredDocs = await trx.selectFrom('vehicle_documents')
-          .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
-          .where('expiry_date', 'is not', null)
-          .where('expiry_date', '<', toDateParam(now))
-          .executeTakeFirst();
-        score -= Number(expiredDocs?.count ?? 0) * 10;
-
-        const criticalAlerts = await trx.selectFrom('fleet_alerts')
-          .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
-          .where('severity', '=', 'CRITICAL')
-          .where('acknowledged', '=', false)
-          .executeTakeFirst();
-        score -= Number(criticalAlerts?.count ?? 0) * 20;
-
-        const lastPos = await trx.selectFrom('vehicle_positions').select('recorded_at')
-          .where('vehicle_id', '=', v.id).where('tenant_id', '=', user.tenant_id)
-          .orderBy('recorded_at', 'desc').executeTakeFirst();
-        if (!lastPos || now.getTime() - new Date(lastPos.recorded_at).getTime() > 2 * 3_600_000) {
-          score -= 10;
-        }
-
-        score = Math.max(0, Math.min(100, score));
-        scores.push({ vehicle_id: v.id, name: v.name, score });
+      const [documents, maintenanceCounts, criticalCounts, positions] = await Promise.all([
+        readFleetDocuments(trx, user.tenant_id),
+        trx.selectFrom('maintenance_records').select(['vehicle_id']).select(({fn})=>fn.count<number>('id').as('count'))
+          .where('tenant_id','=',user.tenant_id).where('next_due_date','is not',null).where('next_due_date','<',toDateParam(now)).groupBy('vehicle_id').execute(),
+        trx.selectFrom('fleet_alerts').select(['vehicle_id']).select(({fn})=>fn.count<number>('id').as('count'))
+          .where('tenant_id','=',user.tenant_id).where('severity','=','CRITICAL').where('acknowledged','=',false).groupBy('vehicle_id').execute(),
+        trx.selectFrom('vehicle_positions').select(['vehicle_id','recorded_at']).distinctOn('vehicle_id').where('tenant_id','=',user.tenant_id).orderBy('vehicle_id').orderBy('recorded_at','desc').execute(),
+      ]);
+      const maintenanceByVehicle = new Map(maintenanceCounts.map(row=>[row.vehicle_id,Number(row.count)]));
+      const criticalByVehicle = new Map(criticalCounts.map(row=>[row.vehicle_id,Number(row.count)]));
+      const positionByVehicle = new Map(positions.map(row=>[row.vehicle_id,row.recorded_at]));
+      const expiredByVehicle = new Map<string,number>();
+      for (const doc of documents) {
+        if (doc.source_status === 'revoked' || (doc.expiry_date && new Date(doc.expiry_date) < now)) expiredByVehicle.set(doc.vehicle_id,(expiredByVehicle.get(doc.vehicle_id)||0)+1);
       }
+      const scores = vehicles.map(vehicle=>{
+        const latest = positionByVehicle.get(vehicle.id);
+        const stale = !latest || now.getTime()-new Date(latest).getTime()>2*3600000;
+        const score = Math.max(0,100-(maintenanceByVehicle.get(vehicle.id)||0)*15-(expiredByVehicle.get(vehicle.id)||0)*10-(criticalByVehicle.get(vehicle.id)||0)*20-(stale?10:0));
+        return {vehicle_id:vehicle.id,name:vehicle.name,score};
+      });
 
       const breakdown: Record<string, number> = { Excellent: 0, Good: 0, Fair: 0, Poor: 0, Critical: 0 };
       for (const s of scores) breakdown[bucketFor(s.score)]++;
       const fleetHealthScore = scores.length
         ? Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length)
-        : 100;
+        : null;
 
       // Cost breakdown (fuel vs maintenance) over the last 90 days.
       const since90 = new Date(now.getTime() - 90 * 86_400_000);
@@ -259,11 +243,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
         fuel_by_month: [...fuelByMonth.entries()].sort(([a], [b]) => a.localeCompare(b))
           .map(([month, v]) => ({ month, ...v })),
         on_time_trip_pct: onTimePct,
-        documents_expiring_30d: await trx.selectFrom('vehicle_documents')
-          .select(({ fn }) => [fn.count<number>('id').as('count')])
-          .where('tenant_id', '=', user.tenant_id)
-          .where('expiry_date', 'is not', null).where('expiry_date', '<=', toDateParam(horizon30))
-          .executeTakeFirst().then(r => Number(r?.count ?? 0)),
+        documents_expiring_30d: documents.filter(doc => doc.expiry_date && new Date(doc.expiry_date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()) && new Date(doc.expiry_date) <= horizon30).length,
         vehicle_status_breakdown: vehicleStatusBreakdown,
         total_cost_by_month: totalCostByMonth,
         cost_per_km_by_month: costPerKmByMonth,
