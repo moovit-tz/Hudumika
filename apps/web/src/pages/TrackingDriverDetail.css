@@ -1,13 +1,15 @@
-﻿/* TrackingDriverDetail.css — Driver Lifecycle & Detail Page Styling */
+/* TrackingDriverDetail.css — Driver Lifecycle & Detail Page Styling */
 
 .dd-layout {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  background: var(--bg);
+  background: transparent;
   color: var(--ink);
   font-family: var(--font);
-  padding: 0 0 32px;
+  padding: 0;
+  min-width: 0;
+  width: 100%;
 }
 
 .dd-top-bar {
@@ -41,14 +43,16 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .dd-action-btn {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 0 14px;
-  height: 38px;
+  min-height: var(--ctl-h);
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
@@ -78,11 +82,11 @@
 /* Driver Lifecycle Step Tracker Bar */
 .dd-lifecycle-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 14px 18px;
   box-shadow: var(--elev-sm);
 }
@@ -91,6 +95,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   opacity: 0.5;
   transition: opacity 0.2s ease;
 }
@@ -100,6 +105,7 @@
 }
 
 .step-num {
+  flex-shrink: 0;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -114,9 +120,9 @@
 }
 
 .dd-lifecycle-step.active .step-num {
-  background: var(--teal);
-  color: rgba(255,255,255,0.95);
-  border-color: var(--teal);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
 }
 
 .step-text {
@@ -129,7 +135,7 @@
 .dd-alert.warning {
   background: var(--gold-l);
   border: 1px solid var(--gold);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 14px 18px;
   display: flex;
   align-items: center;
@@ -171,7 +177,7 @@
   background: var(--gold);
   color: rgba(255,255,255,0.95);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 700;
@@ -182,16 +188,17 @@
 /* Profile Grid (2 Columns) */
 .dd-profile-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 
 .dd-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r);
   padding: 20px;
   box-shadow: var(--elev-sm);
+  min-width: 0;
 }
 
 .dd-card-header {
@@ -201,6 +208,8 @@
   margin-bottom: 18px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .dd-card-title-wrap {
@@ -256,13 +265,13 @@
   color: var(--ink2);
   background: var(--bg);
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
 }
 
 .dd-info-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -270,7 +279,17 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
+
+.dd-info-item--wide { grid-column: 1 / -1; }
+
+.dd-layout :is(.dd-info-value, .dd-courier-name, .dd-vh-title, .dd-vh-sub, .dd-ncard-val, .dd-doc-title, .dd-doc-sub) {
+  overflow-wrap: anywhere;
+}
+
+.dd-layout :is(.dd-courier-top, .dd-vehicle-hero, .dd-doc-card) > div { min-width: 0; }
+.dd-layout .dd-courier-top > :first-child { flex-shrink: 0; }
 
 .dd-info-label {
   font-size: 11.5px;
@@ -295,14 +314,15 @@
   gap: 14px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   padding: 14px 16px;
 }
 
 .dd-vh-icon {
+  flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: var(--teal-l);
   color: var(--teal);
   border: 1px solid var(--teal-m);
@@ -323,22 +343,13 @@
   margin-top: 2px;
 }
 
-.dd-condition-pill {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: var(--green-l);
-  color: var(--green);
-  border: 1px solid var(--green);
-}
 
 .dd-condition-dot {
   display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--teal);
   margin-right: 6px;
 }
 
@@ -347,7 +358,7 @@
   text-align: center;
   background: var(--bg);
   border: 1px dashed var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
 }
 
 /* Main Tabs Card */
@@ -357,6 +368,18 @@
 
 .dd-tabs-header {
   margin-bottom: 16px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.dd-tabs-header .ds-tabs-list { width: max-content; min-width: 100%; }
+.dd-tabs-header .ds-tabs-trigger { flex-shrink: 0; }
+
+.dd-report-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
 }
 
 .dd-report-list {
@@ -368,7 +391,7 @@
 .dd-report-item {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   overflow: hidden;
 }
 
@@ -392,6 +415,8 @@
   color: var(--ink);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 .dd-route-meta {
@@ -401,26 +426,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
-.dd-route-status {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-}
 
-.dd-route-status.completed {
-  background: var(--green-l);
-  color: var(--green);
-  border: 1px solid var(--green);
-}
 
-.dd-route-status.transit {
-  background: var(--blue-l, rgba(37, 99, 235, 0.12));
-  color: var(--blue);
-  border: 1px solid var(--blue-m, rgba(147, 197, 253, 0.5));
-}
 
 .dd-trip-details-panel {
   padding: 16px;
@@ -437,7 +448,7 @@
   gap: 10px;
   background: var(--bg);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
 }
 
@@ -465,7 +476,7 @@
 .dd-ncard {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 12px 14px;
 }
 
@@ -498,7 +509,7 @@
 /* Compliance Grid */
 .dd-compliance-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 14px;
   margin-top: 14px;
 }
@@ -506,17 +517,19 @@
 .dd-doc-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   padding: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .dd-doc-icon {
+  flex-shrink: 0;
   width: 38px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   border: 1px solid var(--border);
   display: flex;
@@ -537,65 +550,8 @@
   margin-top: 2px;
 }
 
-.dd-doc-status.verified {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--green);
-  background: var(--green-l);
-  padding: 3px 8px;
-  border-radius: 6px;
-  margin-left: auto;
-  border: 1px solid var(--green);
-}
 
-/* Modal Backdrops & Dialogs */
-.dd-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.dd-modal-content {
-  background: var(--white);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  box-shadow: var(--elev-lg);
-  width: 100%;
-  max-width: 520px;
-  overflow: hidden;
-  animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modalIn {
-  from { opacity: 0; transform: scale(0.96) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.dd-modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dd-modal-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
+/* Driver form fields */
 
 .dd-form-row {
   display: grid;
@@ -615,36 +571,6 @@
   color: var(--ink2);
 }
 
-.dd-form-input, .dd-form-select {
-  width: 100%;
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  font-family: var(--font);
-  font-size: 13px;
-  color: var(--ink);
-  box-sizing: border-box;
-}
-
-.dd-form-input:focus, .dd-form-select:focus {
-  outline: none;
-  border-color: var(--teal);
-  background: var(--white);
-  box-shadow: 0 0 0 3px var(--teal-l);
-}
-
-.dd-modal-footer {
-  padding: 14px 20px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  background: var(--bg);
-}
-
 @media (max-width: 860px) {
   .dd-profile-grid {
     grid-template-columns: 1fr;
@@ -655,6 +581,34 @@
   .dd-form-row {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 600px) {
+  .dd-layout { gap: 16px; }
+  .dd-header-actions { gap: 8px; width: 100%; }
+  .dd-header-actions > button { flex: 1 1 auto; padding-inline: 12px; }
+  .dd-layout .page-header-actions-wrap { width: 100%; }
+  .dd-layout .page-header-title { overflow-wrap: anywhere; }
+  .dd-layout .page-header-crumb { flex-wrap: wrap; }
+  .dd-card, .dd-main-tabs-card { padding: 16px; }
+  .dd-lifecycle-bar { padding: 12px; gap: 12px 8px; }
+  .dd-lifecycle-step { align-items: flex-start; gap: 8px; }
+  .dd-layout .step-text { font-size: 12px; }
+  .dd-alert.warning { flex-direction: column; align-items: stretch; padding: 14px; }
+  .dd-alert-content { align-items: flex-start; }
+  .dd-vehicle-hero { flex-wrap: wrap; padding: 12px; }
+  .dd-report-header { flex-direction: column; align-items: stretch; padding: 12px; }
+  .dd-report-status { justify-content: space-between; }
+  .dd-status-badge { overflow-wrap: anywhere; }
+  .dd-trip-details-panel { padding: 12px; }
+  .dd-metrics-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dd-metric { min-width: 0; overflow-wrap: anywhere; }
+  .dd-ncard-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 380px) {
+  .dd-info-grid { grid-template-columns: 1fr; }
+  .dd-courier-top { align-items: flex-start; gap: 12px; }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -697,8 +651,7 @@
 [data-theme="dark"] .dd-lifecycle-step.active .step-num {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
-  border-color: var(--teal);
-  box-shadow: 0 0 14px rgba(13, 148, 136, 0.6);
+  border-color: hsl(var(--primary));
 }
 
 [data-theme="dark"] .dd-alert.warning {
@@ -715,7 +668,7 @@
 [data-theme="dark"] .dd-card {
   background: var(--white);
   border-color: var(--border);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--elev-sm);
 }
 
 [data-theme="dark"] .dd-courier-badge {
@@ -730,16 +683,11 @@
 }
 
 [data-theme="dark"] .dd-vh-icon {
-  background: rgba(13, 148, 136, 0.18);
+  background: var(--teal-l);
   color: var(--teal);
-  border-color: rgba(13, 148, 136, 0.35);
+  border-color: var(--teal-m);
 }
 
-[data-theme="dark"] .dd-condition-pill {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--green);
-  border-color: rgba(16, 185, 129, 0.35);
-}
 
 [data-theme="dark"] .dd-report-item {
   background: var(--white);
@@ -754,17 +702,7 @@
   background: color-mix(in srgb, var(--teal-l) 30%, var(--bg));
 }
 
-[data-theme="dark"] .dd-route-status.transit {
-  background: rgba(37, 99, 235, 0.2);
-  color: var(--blue);
-  border-color: rgba(96, 165, 250, 0.4);
-}
 
-[data-theme="dark"] .dd-route-status.completed {
-  background: rgba(16, 185, 129, 0.18);
-  color: var(--green);
-  border-color: rgba(16, 185, 129, 0.35);
-}
 
 [data-theme="dark"] .dd-trip-details-panel {
   background: var(--white);
@@ -792,38 +730,5 @@
   color: var(--ink);
 }
 
-[data-theme="dark"] .dd-doc-status.verified {
-  background: rgba(16, 185, 129, 0.18);
-  color: var(--green);
-  border-color: rgba(16, 185, 129, 0.35);
-}
 
-[data-theme="dark"] .dd-modal-backdrop {
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-}
-
-[data-theme="dark"] .dd-modal-content {
-  background: var(--white);
-  border-color: var(--border);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-}
-
-[data-theme="dark"] .dd-modal-header,
-[data-theme="dark"] .dd-modal-footer {
-  background: var(--bg);
-  border-color: var(--border);
-}
-
-[data-theme="dark"] .dd-form-input,
-[data-theme="dark"] .dd-form-select {
-  background: var(--bg);
-  border-color: var(--border);
-  color: var(--ink);
-}
-
-[data-theme="dark"] .dd-form-input:focus,
-[data-theme="dark"] .dd-form-select:focus {
-  background: var(--white);
-  border-color: var(--teal);
-}
+.dd-doc-status { margin-left: auto; }

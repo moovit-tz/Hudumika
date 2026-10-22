@@ -30,6 +30,7 @@ function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; tot
     balance: b?.balance ?? 0, totalPaid: b?.totalPaid ?? 0,
     bankName: s.bank_name || '', bankAccount: s.bank_account || '',
     createdAt: s.created_at ? String(s.created_at).slice(0, 10) : '', notes: s.notes || '',
+    refCode: s.ref_code || '',
   };
 }
 
@@ -42,7 +43,7 @@ const EMPTY_VENDOR: Vendor = {
   address: '', city: '', country: 'Tanzania', taxId: '',
   category: 'other', currency: 'TZS', paymentTerms: 'net_30',
   status: 'active', balance: 0, totalPaid: 0,
-  bankName: '', bankAccount: '', createdAt: '', notes: '',
+  bankName: '', bankAccount: '', createdAt: '', notes: '', refCode: '',
 };
 
 const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
@@ -101,6 +102,10 @@ function VendorForm({ vendor, onSave, onClose }: {
               <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Tanzania Ports Authority" />
             </F>
           </div>
+          <F label="Ref Code">
+            <input style={{ ...inp, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 1 }} value={form.refCode} onChange={e => set('refCode', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="Auto" maxLength={20} />
+            <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Leave blank to auto-generate from name</span>
+          </F>
           <F label="Category *">
             <Select value={form.category} onValueChange={v => set('category', v as VendorCategory)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -286,6 +291,7 @@ export function FinanceVendors() {
       address: v.address, city: v.city, country: v.country, tax_id: v.taxId,
       category: v.category, currency: v.currency, payment_terms: v.paymentTerms, status: v.status,
       bank_name: v.bankName, bank_account: v.bankAccount, notes: v.notes,
+      ref_code: v.refCode || undefined,
     };
     try {
       if (v.id) await apiFetch(`/v1/suppliers/${v.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -414,7 +420,10 @@ export function FinanceVendors() {
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
                   >
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{v.name}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {v.name}
+                        {v.refCode && <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)' }}>{v.refCode}</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--font)' }}>{v.id}</div>
                     </td>
                     <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{VENDOR_CATEGORY_LABEL[v.category]}</td>

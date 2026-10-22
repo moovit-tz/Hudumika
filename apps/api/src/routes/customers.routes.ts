@@ -13,6 +13,8 @@ import { renderCustomerStatementPdf } from '../services/customer-statement-pdf.s
 import { EmailIntegration } from '../integrations/email.js';
 import { wrapEmailHtml } from '../lib/email-envelope.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
 import { parse } from 'csv-parse/sync';
 import { hashPassword } from '../lib/password.js';
 
@@ -36,6 +38,29 @@ function pick(norm: Record<string, string>, aliases: string[]): string | undefin
 
 function parseCsv(buf: Buffer): Record<string, unknown>[] {
   return parse(buf, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, unknown>[];
+}
+
+/**
+ * Auto-generates a unique short ref code from a customer name.
+ * Tries the first 3 uppercase alpha chars, then appends digits until unique.
+ * "Aleka Logistics" → ALK, "MSC Shipping" → MSC, "DHL" → DHL.
+ */
+async function generateRefCode(trx: Transaction<Database>, tenantId: string, name: string): Promise<string> {
+  const alpha = name.replace(/[^A-Za-z]/g, '').toUpperCase();
+  const base = alpha.slice(0, 3) || 'CUS';
+  const existing = await trx.selectFrom('customers')
+    .select('ref_code')
+    .where('tenant_id', '=', tenantId)
+    .where('ref_code', 'like', `${base}%`)
+    .where('deleted_at', 'is', null)
+    .execute();
+  const taken = new Set(existing.map(r => r.ref_code));
+  if (!taken.has(base)) return base;
+  for (let i = 2; i <= 999; i++) {
+    const candidate = `${base}${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return `${base}${Date.now() % 10000}`;
 }
 
 // A malformed (non-UUID) :id used to reach the DB as-is and crash with a raw
@@ -87,6 +112,7 @@ const customerPatchSchema = z.object({
   // Daily shipment-report automation (migration 258) — null = platform
   // default (on); see shipment-report.service.ts's tri-state logic.
   daily_report_enabled: z.boolean().nullable().optional(),
+  ref_code: z.string().max(20).nullable().optional(),
 });
 
 export async function customerRoutes(fastify: FastifyInstance) {
@@ -167,6 +193,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
           city: { type: 'string' },
           country: { type: 'string' },
           website: { type: 'string' },
+          ref_code: { type: 'string' },
         },
       },
       response: { 201: { type: 'object', additionalProperties: true } },
@@ -180,6 +207,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
       const initials = input.name.substring(0, 2).toUpperCase();
       const colors = ['#0b7264', '#0e1f3d', '#1849a9', '#5b3ea8', '#b57d0a'];
       const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+
+      const refCode = input.ref_code?.trim().toUpperCase() || await generateRefCode(trx, user.tenant_id, input.name);
 
       const customer = await trx
         .insertInto('customers')
@@ -201,6 +230,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
           avatar_initials: initials,
           avatar_color: avatarColor,
           assigned_officer_id: user.role === 'OFFICER' ? user.sub : null,
+          ref_code: refCode,
           active: true,
           created_at: new Date(),
           updated_at: new Date(),
@@ -299,7 +329,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
                      'registry_number', 'entity_type', 'registration_status', 'registered_address', 'incorporation_date',
                      'website', 'city', 'country', 'vat_number', 'import_license', 'preferred_port',
                      'freight_terms', 'commodity_type', 'credit_days', 'client_type', 'currency', 'tancis_number',
-                     'organization_id', 'daily_report_enabled'];
+                     'organization_id', 'daily_report_enabled', 'ref_code'];
 
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const key of allowed) {
@@ -313,11 +343,22 @@ export async function customerRoutes(fastify: FastifyInstance) {
         // comparison silently always fail and force active=false on every
         // status change regardless of which status was picked).
         else if (key === 'account_status') { patch['account_status'] = body[key]; patch['active'] = body[key] === 'Active'; }
+        else if (key === 'ref_code' && body[key] != null) patch['ref_code'] = String(body[key]).trim().toUpperCase();
         else patch[key] = body[key];
       }
     }
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (patch.ref_code) {
+        const clash = await trx.selectFrom('customers').select('id')
+          .where('tenant_id', '=', user.tenant_id)
+          .where('ref_code', '=', patch.ref_code)
+          .where('id', '!=', id)
+          .where('deleted_at', 'is', null)
+          .executeTakeFirst();
+        if (clash) return reply.status(409).send({ error: `Reference code "${patch.ref_code}" is already used by another customer.` });
+      }
+
       const updated = await trx
         .updateTable('customers')
         .set(patch)

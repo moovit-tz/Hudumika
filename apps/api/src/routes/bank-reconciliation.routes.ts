@@ -139,14 +139,40 @@ export async function bankReconciliationRoutes(fastify: FastifyInstance) {
     const { id, lineId } = request.params as { id: string; lineId: string };
     const { journal_line_id } = z.object({ journal_line_id: z.string().uuid() }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const statement = await trx.selectFrom('bank_statements').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const statement = await trx.selectFrom('bank_statements').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!statement) return reply.status(404).send({ error: 'Bank statement not found' });
-      const line = await trx.selectFrom('bank_statement_lines').select('id').where('id', '=', lineId).where('bank_statement_id', '=', id).executeTakeFirst();
-      if (!line) return reply.status(404).send({ error: 'Statement line not found' });
-      // A journal line can only back one statement line — confirmed by
-      // checking no other statement line already claims it.
-      const alreadyUsed = await trx.selectFrom('bank_statement_lines').select('id').where('matched_journal_line_id', '=', journal_line_id).executeTakeFirst();
+      const stmtLine = await trx.selectFrom('bank_statement_lines').selectAll().where('id', '=', lineId).where('bank_statement_id', '=', id).forUpdate().executeTakeFirst();
+      if (!stmtLine) return reply.status(404).send({ error: 'Statement line not found' });
+      if (stmtLine.matched_journal_line_id) return reply.status(409).send({ error: 'This statement line is already matched.' });
+
+      // Validate the journal line belongs to this tenant, is not voided,
+      // and sits on the statement's cash account.
+      const jl = await trx.selectFrom('journal_lines as jl')
+        .innerJoin('journal_entries as je', 'je.id', 'jl.journal_entry_id')
+        .innerJoin('chart_of_accounts as coa', 'coa.id', 'jl.account_id')
+        .select(['jl.id', 'jl.debit', 'jl.credit', 'jl.currency', 'je.status', 'coa.code as account_code'])
+        .where('jl.id', '=', journal_line_id)
+        .where('je.tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!jl) return reply.status(404).send({ error: 'Journal line not found in this workspace.' });
+      if (jl.status === 'VOIDED') return reply.status(400).send({ error: 'Cannot match against a voided journal entry.' });
+      if (jl.account_code !== statement.account_code) {
+        return reply.status(400).send({ error: `Journal line is on account ${jl.account_code}, but this statement uses ${statement.account_code}.` });
+      }
+
+      // Prevent the same journal line being matched to multiple statement lines.
+      const alreadyUsed = await trx.selectFrom('bank_statement_lines').select('id')
+        .where('matched_journal_line_id', '=', journal_line_id)
+        .forUpdate()
+        .executeTakeFirst();
       if (alreadyUsed) return reply.status(409).send({ error: 'That ledger entry is already matched to another statement line.' });
+
+      // Validate amount: the statement line amount must match the journal line's net amount
+      const jlNet = Math.round((Number(jl.debit) - Number(jl.credit)) * 100) / 100;
+      const stmtAmt = Math.round(Number(stmtLine.amount) * 100) / 100;
+      if (Math.abs(stmtAmt - jlNet) > 0.01 && Math.abs(stmtAmt + jlNet) > 0.01) {
+        return reply.status(400).send({ error: `Amount mismatch: statement line is ${stmtAmt} but ledger entry is ${jlNet}.` });
+      }
 
       await trx.updateTable('bank_statement_lines').set({ matched_journal_line_id: journal_line_id, matched_at: new Date(), matched_by: user.sub }).where('id', '=', lineId).where('bank_statement_id', '=', id).execute();
       return { success: true };

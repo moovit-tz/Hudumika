@@ -5,7 +5,6 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { BackButton } from '../components/ui/BackButton.js';
 import { Badge } from '../components/ui/badge.js';
 
 interface Issue {
@@ -103,11 +102,12 @@ export const TrackingIssueDetail: React.FC = () => {
   return (
     <div style={{ padding: '0 0 24px'}}>
       <PageHeader
-        crumbs={['HuduFreight', 'Issue']}
+        crumbs={['HuduFreight', 'Issues', issue.title]}
         titlePlain="Issue"
         titleEm="detail"
+        backTo="/tracking/issues"
+        backLabel="Issues"
       />
-      <BackButton to="/tracking/issues" label="Issues" />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{issue.title}</div>

@@ -1,5 +1,6 @@
 import { db, withTenant } from '../db/client.js';
 import { resolveTaxCode } from './tax-code.service.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 
 export const quotationService = {
   async list(tenantId: string, filters?: { status?: string; customer_id?: string; search?: string; page?: number; page_size?: number }) {
@@ -110,15 +111,10 @@ export const quotationService = {
     }>;
   }) {
     return withTenant(tenantId, async (trx) => {
-      // Generate quote number
-      const count = await trx
-        .selectFrom('quotations')
-        .where('tenant_id', '=', tenantId)
-        .select(trx.fn.countAll().as('count'))
-        .executeTakeFirstOrThrow();
-
-      const nextNum = Number(count.count) + 1;
-      const quoteNumber = `QT-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
+      const quoteNumber = (data.customer_id
+          ? await getNextCustomerDocNumber(trx, tenantId, data.customer_id, 'quotation')
+          : null)
+        || await getNextDocNumber(trx, tenantId, 'quotation');
 
       // Resolve any tax codes the caller sent, against this tenant only — the
       // FK guarantees a code row exists, not that it belongs to you. A code,

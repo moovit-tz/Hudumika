@@ -565,6 +565,16 @@ export interface CustomersTable {
    *  A shipment_cases row can further override this per shipment. */
   daily_report_enabled: boolean | null;
   party_id: string | null;
+  /** Short uppercase alpha code unique per tenant (e.g. 'ALK', 'MSC') used as
+   *  the customer segment in per-customer invoice numbering. Migration 613. */
+  ref_code: string | null;
+}
+
+export interface CustomerInvoiceSequencesTable {
+  tenant_id: string;
+  customer_id: string;
+  doc_type: Generated<string>;
+  next_number: Generated<number>;
 }
 
 /** Platform-level identity for a real-world company, sitting above `tenants`
@@ -3521,6 +3531,9 @@ export interface SuppliersTable {
   updated_at: Generated<Date>;
   /** migration 506 — canonical ORGANIZATION party (id = supplier id), set by trigger */
   party_id: string | null;
+  /** Short uppercase alpha code unique per tenant (e.g. 'MSC', 'DHL') used as
+   *  the supplier segment in per-supplier doc numbering. Migration 614. */
+  ref_code: string | null;
 }
 
 export interface SupplierBillsTable {
@@ -5952,6 +5965,7 @@ export interface Database {
   billing_webhook_events: BillingWebhookEventsTable;
   cloud_retention_policies: CloudRetentionPoliciesTable;
   invoice_sequences: InvoiceSequencesTable;
+  customer_invoice_sequences: CustomerInvoiceSequencesTable;
   platform_support_tickets: PlatformSupportTicketsTable;
   platform_support_attachments: PlatformSupportAttachmentsTable;
   platform_support_messages: PlatformSupportMessagesTable;
@@ -9064,7 +9078,7 @@ export interface CloudRetentionPoliciesTable {
 
 export interface InvoiceSequencesTable {
   tenant_id: string;
-  doc_type: 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract' | 'change_request' | 'payment_request' | 'project_po' | 'grn';
+  doc_type: 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract' | 'change_request' | 'payment_request' | 'project_po' | 'grn' | 'credit_note' | 'bill';
   prefix: Generated<string>;
   pad_length: Generated<number>;
   next_number: Generated<number>;

@@ -1,7 +1,7 @@
 ﻿.rp-container {
   position: relative;
   width: 100%;
-  height: calc(100vh - 60px); /* Fill the screen minus navbar */
+  height: calc(100vh - 60px);
   overflow: hidden;
   font-family: var(--font);
 }
@@ -9,10 +9,10 @@
 .rp-map-wrapper {
   position: absolute;
   inset: 0;
-  z-index: 1; /* Leaflet map is z-index 1 */
+  z-index: 1;
 }
 
-/* ── Floating map controls (layer toggle) ── */
+/* ── Floating map controls ── */
 .rp-map-controls {
   position: absolute;
   bottom: 24px;
@@ -22,7 +22,7 @@
 .rp-mc-btn {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid rgba(255, 255, 255, 0.4);
   background: rgba(255, 255, 255, 0.85);
   -webkit-backdrop-filter: blur(10px);
@@ -37,38 +37,6 @@
 }
 .rp-mc-btn:hover { background: var(--hover-bg); transform: translateY(-2px); }
 
-.rp-layers-menu {
-  position: absolute;
-  bottom: 0;
-  right: 48px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.95);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--elev-lg);
-  min-width: 110px;
-}
-.rp-layers-menu-item {
-  padding: 7px 10px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: var(--ink);
-  font-family: var(--font);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-.rp-layers-menu-item:hover { background: var(--hover-bg); }
-.rp-layers-menu-item.active { background: var(--teal-l); color: var(--teal); }
-
 /* ── Floating Left Panel ── */
 .rp-sidebar {
   position: absolute;
@@ -76,20 +44,14 @@
   left: 24px;
   bottom: 24px;
   width: 400px;
-  background: var(--white);
-  border-radius: 16px;
+  background: var(--card-bg);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
   box-shadow: var(--elev-lg);
-  z-index: 1000; /* Over Leaflet Map */
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .rp-sidebar {
-    width: calc(100% - 48px);
-    bottom: 50%;
-  }
 }
 
 .rp-sidebar-scroll {
@@ -98,35 +60,21 @@
   padding: 20px;
 }
 
-.rp-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
 .rp-driver-card {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px;
   background: var(--bg);
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
-}
-
-.rp-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--border);
 }
 
 .rp-driver-info {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
 }
 
 .rp-driver-name {
@@ -136,16 +84,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.rp-driver-badge {
-  font-size: var(--badge-fs-sm);
-  font-weight: 700;
-  padding: var(--badge-py-sm) var(--badge-px-sm);
-  background: rgba(79,70,229,0.12);
-  color: var(--purple);
-  border-radius: 6px;
-  text-transform: uppercase;
 }
 
 .rp-driver-desc {
@@ -170,7 +108,7 @@
   gap: 12px;
   padding: 12px;
   border: 1px dashed var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 .rp-info-block {
@@ -186,14 +124,7 @@
   min-height: 44px;
 }
 
-.rp-info-block svg {
-  color: var(--blue);
-}
-
-/* Optimization Segment */
-.rp-form-group {
-  margin-bottom: 16px;
-}
+.rp-info-block svg { color: var(--blue); }
 
 .rp-label {
   display: block;
@@ -203,70 +134,10 @@
   margin-bottom: 6px;
 }
 
-.rp-input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--white);
-  font-family: var(--font);
-  font-size: 13px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.rp-input-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 12px;
-}
-
-.rp-btn-generate {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: opacity 0.2s;
-  margin-top: 16px;
-}
-
-.rp-btn-generate:hover {
-  opacity: 0.9;
-}
-
-.rp-btn-generate:disabled {
-  background: var(--border);
-  cursor: not-allowed;
-}
-
-.rp-btn-clear {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--white);
-  color: var(--ink2);
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 8px;
-}
-
-/* Results Area */
+/* ── Results Area ── */
 .rp-results-box {
   background: var(--bg);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px;
   margin-top: 24px;
 }
@@ -275,30 +146,6 @@
   font-size: 12px;
   color: var(--ink3);
   margin-bottom: 12px;
-}
-
-.rp-tabs {
-  display: flex;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.rp-tab {
-  flex: 1;
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink2);
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.rp-tab.active {
-  background: rgba(79,70,229,0.12);
-  color: var(--purple);
 }
 
 /* ── Timeline ── */
@@ -332,7 +179,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--white);
+  background: var(--card-bg);
   border: 2px solid var(--blue);
   display: flex;
   align-items: center;
@@ -346,20 +193,20 @@
 .rp-timeline-marker.start {
   background: var(--green);
   border-color: var(--green);
-  color: rgba(255,255,255,0.95);
+  color: #fff;
 }
 
 .rp-timeline-marker.end {
   background: var(--gold);
   border-color: var(--gold);
-  color: rgba(255,255,255,0.95);
+  color: #fff;
 }
 
 .rp-timeline-content {
   flex: 1;
-  background: var(--white);
+  background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 12px;
   box-shadow: var(--elev-sm);
 }
@@ -370,17 +217,8 @@
   justify-content: space-between;
   font-size: 11px;
   font-weight: 600;
-  color: var(--blue);
+  color: var(--ink3);
   margin-bottom: 8px;
-}
-
-.rp-tl-type-badge {
-  background: rgba(79,70,229,0.12);
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .rp-tl-title {
@@ -404,14 +242,15 @@
   color: var(--ink2);
 }
 
-/* ── Floating Map Widgets ── */
+/* ── Floating Load Info Widget ── */
 .rp-widget-top-right {
   position: absolute;
   top: 24px;
   right: 24px;
   width: 260px;
-  background: var(--white);
-  border-radius: 12px;
+  background: var(--card-bg);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
   box-shadow: var(--elev-lg);
   z-index: 1000;
   padding: 16px;
@@ -431,6 +270,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.rp-widget-cargo-type {
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.rp-widget-label {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-bottom: 8px;
 }
 
 .rp-widget-val-row {
@@ -454,32 +312,17 @@
 .rp-widget-bar-bg {
   height: 8px;
   background: var(--bg);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   overflow: hidden;
 }
 
 .rp-widget-bar-fill {
   height: 100%;
   background: var(--blue);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
 }
 
-/* Custom dropdown specifically for Vehicle select */
-.rp-vehicle-select {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  outline: none;
-  cursor: pointer;
-  appearance: none; /* remove default arrow */
-}
-
+/* ── Dark mode ── */
 [data-theme="dark"] .rp-mc-btn {
   background: rgba(30, 41, 59, 0.85);
   border-color: rgba(255, 255, 255, 0.1);
@@ -487,18 +330,49 @@
 [data-theme="dark"] .rp-mc-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
-[data-theme="dark"] .rp-layers-menu {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
-}
 
+/* ── Address search row ── */
 .rp-address-search { display: flex; gap: 8px; margin-bottom: 10px; }
 .rp-address-search input { min-width: 0; }
+
+/* ── Responsive ── */
 @media (max-width: 1100px) { .rp-widget-top-right { display: none; } }
+
+@media (max-width: 768px) {
+  .rp-sidebar {
+    width: calc(100% - 48px);
+    bottom: 50%;
+  }
+}
+
 @media (max-width: 700px) {
-  .rp-container { height: auto; min-height: 100%; overflow: visible; display: flex; flex-direction: column; gap: 12px; }
-  .rp-map-wrapper { position: relative; height: 40svh; min-height: 260px; flex-shrink: 0; }
-  .rp-sidebar { position: relative; inset: auto; width: 100%; max-height: none; border: 1px solid var(--border); border-radius: var(--r); }
-  .rp-sidebar-scroll { overflow: visible; padding: 16px; }
-  .rp-map-controls { bottom: 12px; right: 12px; }
+  .rp-container {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .rp-map-wrapper {
+    position: relative;
+    height: 40svh;
+    min-height: 260px;
+    flex-shrink: 0;
+  }
+  .rp-sidebar {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    max-height: none;
+    border-radius: var(--r);
+  }
+  .rp-sidebar-scroll {
+    overflow: visible;
+    padding: 16px;
+  }
+  .rp-map-controls {
+    bottom: 12px;
+    right: 12px;
+  }
 }

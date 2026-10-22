@@ -117,7 +117,7 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id?: string };
       if (!id) return;
       let manifestId = id;
-      if (path.endsWith('/items/:id')) {
+      if (path.endsWith('/items/:id') || path.endsWith('/items/:id/placement')) {
         const item = await trx.selectFrom('cargo_items').select('manifest_id').where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
         if (!item) return reply.status(404).send({ error: 'Cargo item not found' });
         manifestId = item.manifest_id;
@@ -140,20 +140,22 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       let q = trx.selectFrom('cargo_manifests' as any)
         .leftJoin('vehicles', 'vehicles.id', 'cargo_manifests.vehicle_id')
         .leftJoin('shipment_cases', 'shipment_cases.id', 'cargo_manifests.shipment_id')
+        .leftJoin('trips', 'trips.id', 'cargo_manifests.trip_id')
+        .leftJoin('drivers', 'drivers.id', 'trips.driver_id')
         .select([
           'cargo_manifests.id', 'cargo_manifests.name', 'cargo_manifests.container_length_cm',
           'cargo_manifests.container_width_cm', 'cargo_manifests.container_height_cm',
           'cargo_manifests.max_weight_kg', 'cargo_manifests.vehicle_id', 'cargo_manifests.shipment_id',
           'cargo_manifests.origin', 'cargo_manifests.destination', 'cargo_manifests.created_at',
-          'cargo_manifests.status',
+          'cargo_manifests.status', 'cargo_manifests.trip_id',
           'vehicles.name as vehicle_name', 'vehicles.plate_number as vehicle_plate',
-          'shipment_cases.ref_number as shipment_ref'
+          'vehicles.make as vehicle_make', 'vehicles.model as vehicle_model', 'vehicles.photo_url as vehicle_photo_url',
+          'shipment_cases.ref_number as shipment_ref',
+          'drivers.id as driver_id', 'drivers.name as driver_name', 'drivers.phone as driver_phone', 'drivers.license_number as driver_license'
         ])
         .where('cargo_manifests.tenant_id', '=', user.tenant_id);
       if (vehicle_id) q = q.where('cargo_manifests.vehicle_id', '=', vehicle_id);
       const rows = await q.orderBy('cargo_manifests.created_at', 'desc').execute();
-      // Postgres NUMERIC columns come back as strings — coerce for the 3D
-      // scene's arithmetic and the header's .toLocaleString() call.
       return rows.map(r => ({
         ...r,
         container_length_cm: Number(r.container_length_cm),
@@ -237,7 +239,13 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
   fastify.post('/manifests/:id/dispatch', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const { vehicle_id } = req.body as { vehicle_id: string };
+    const { vehicle_id, driver_id, dock_number, seal_number, notes } = req.body as {
+      vehicle_id: string;
+      driver_id?: string;
+      dock_number?: string;
+      seal_number?: string;
+      notes?: string;
+    };
 
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('cargo_manifests').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
@@ -248,14 +256,39 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       if (blocker) return reply.status(409).send({ error: blocker });
       if (!existing.origin || !existing.destination) return reply.status(400).send({ error: 'Set the origin and destination before dispatch.' });
       const cargo = await trx.selectFrom('cargo_items').selectAll().where('manifest_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
-      const trip = await trx.insertInto('trips').values({ tenant_id: user.tenant_id, vehicle_id, origin: existing.origin, destination: existing.destination, shipment_id: existing.shipment_id, cargo_weight_kg: cargo.reduce((sum, item) => sum + Number(item.weight_kg) * item.quantity, 0), cargo_desc: existing.name, status: 'IN_PROGRESS', actual_start: new Date(), created_by: user.sub } as any).returning('id').executeTakeFirstOrThrow();
+      
+      const tripNoteParts = [];
+      if (notes) tripNoteParts.push(notes);
+      if (dock_number) tripNoteParts.push(`Dock: ${dock_number}`);
+      if (seal_number) tripNoteParts.push(`Seal: ${seal_number}`);
+      const tripNotes = tripNoteParts.length ? tripNoteParts.join(' · ') : null;
+
+      const trip = await trx.insertInto('trips').values({
+        tenant_id: user.tenant_id,
+        vehicle_id,
+        driver_id: driver_id || null,
+        origin: existing.origin,
+        destination: existing.destination,
+        shipment_id: existing.shipment_id,
+        cargo_weight_kg: cargo.reduce((sum, item) => sum + Number(item.weight_kg) * item.quantity, 0),
+        cargo_desc: existing.name,
+        status: 'IN_PROGRESS',
+        actual_start: new Date(),
+        notes: tripNotes,
+        created_by: user.sub,
+      } as any).returning('id').executeTakeFirstOrThrow();
+
+      if (driver_id) {
+        await trx.updateTable('drivers').set({ assigned_vehicle_id: vehicle_id } as any).where('id', '=', driver_id).where('tenant_id', '=', user.tenant_id).execute();
+      }
+
       const manifest = await trx.updateTable('cargo_manifests' as any)
         .set({ status: 'DISPATCHED', vehicle_id, trip_id: trip.id })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       if (!manifest) return reply.status(404).send({ error: 'Manifest not found' });
 
-      return { ...manifest, trip_id: trip.id };
+      return { ...manifest, trip_id: trip.id, driver_id, dock_number, seal_number };
     });
   });
 
@@ -350,6 +383,19 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
       await trx.deleteFrom('cargo_items').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
     });
     return { ok: true };
+  });
+
+  fastify.patch('/items/:id/placement', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    const { placements } = req.body as { placements: any[] };
+    return withTenant(user.tenant_id, async (trx) => {
+      const item = await trx.selectFrom('cargo_items').select('manifest_id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!item) return reply.status(404).send({ error: 'Item not found' });
+      await lockDraft(trx, user.tenant_id, item.manifest_id);
+      const updated = await trx.updateTable('cargo_items').set({ placements: JSON.stringify(placements) as any }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+      return updated;
+    });
   });
 
   // ── Pack ─────────────────────────────────────────────────────

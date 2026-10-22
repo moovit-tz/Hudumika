@@ -399,7 +399,7 @@ export async function emailRoutes(fastify: FastifyInstance) {
       // Inbox display preference (Settings ▸ Inbox) — 'default' is plain
       // chronological, unchanged from before this preference existed.
       const accountRow = await trx.selectFrom('user_email_accounts').select('inbox_sort').where('user_id', '=', user.sub).executeTakeFirst();
-      let sortedQ = q.selectAll('m').select('o.status as delivery_status');
+      let sortedQ = q;
       if (accountRow?.inbox_sort === 'unread_first') sortedQ = sortedQ.orderBy('m.read', 'asc');
       else if (accountRow?.inbox_sort === 'starred_first') sortedQ = sortedQ.orderBy('m.starred', 'desc');
       const rows = await sortedQ

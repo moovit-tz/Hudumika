@@ -1,3 +1,4 @@
+import { VEHICLE_EDIT_ROLES } from '@hudumika/types';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -368,7 +369,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   // HUD-0097 (addendum): both PATCH routes below crashed on a wrong/stale
   // id instead of 404ing — multi-line-chain misses from the original
   // sweep, found by hand while tracing this file.
-  fastify.patch('/vehicles/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req, reply) => {
+  fastify.patch('/vehicles/:id', { preHandler: requireRole(...VEHICLE_EDIT_ROLES) }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = vehiclePatchSchema.parse(req.body);
@@ -385,7 +386,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Vehicle not found' });
-      return updated;
+      return stripSecret(updated);
     });
   });
 
@@ -472,17 +473,65 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   fastify.get('/dashboard-summary', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const vehicles = await trx.selectFrom('vehicles').select(['id', 'status'])
-        .where('tenant_id', '=', user.tenant_id).execute();
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+      const horizon = new Date(Date.now() + 30 * 86_400_000);
+      const since30 = new Date(Date.now() - 30 * 86_400_000);
 
-      const latest = await sql<{ vehicle_id: string; speed: number | null; recorded_at: Date }>`
-        SELECT DISTINCT ON (vehicle_id) vehicle_id, speed, recorded_at
-        FROM vehicle_positions
-        WHERE tenant_id = ${user.tenant_id}
-        ORDER BY vehicle_id, recorded_at DESC
-      `.execute(trx);
+      const [vehicles, latest, tripsToday, expiringDocs, pendingReminders,
+             recentAlerts, tripsCompletedToday, inMaintenanceVehicles,
+             fuelCost30d, maintenanceCost30d] = await Promise.all([
+        trx.selectFrom('vehicles').select(['id', 'status'])
+          .where('tenant_id', '=', user.tenant_id).execute(),
+        sql<{ vehicle_id: string; speed: number | null; recorded_at: Date }>`
+          SELECT DISTINCT ON (vehicle_id) vehicle_id, speed, recorded_at
+          FROM vehicle_positions WHERE tenant_id = ${user.tenant_id}
+          ORDER BY vehicle_id, recorded_at DESC
+        `.execute(trx),
+        trx.selectFrom('trips')
+          .select(({ fn }) => [fn.count<number>('id').as('count')])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('scheduled_start', '>=', todayStart)
+          .where('scheduled_start', '<', todayEnd)
+          .executeTakeFirst(),
+        trx.selectFrom('vehicle_documents')
+          .select(({ fn }) => [fn.count<number>('id').as('count')])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('expiry_date', 'is not', null)
+          .where('expiry_date', '<=', toDateParam(horizon))
+          .executeTakeFirst(),
+        trx.selectFrom('fleet_reminders')
+          .select(({ fn }) => [fn.count<number>('id').as('count')])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', '=', 'PENDING')
+          .where('due_date', '<=', toDateParam(horizon))
+          .executeTakeFirst(),
+        trx.selectFrom('fleet_alerts').selectAll()
+          .where('tenant_id', '=', user.tenant_id)
+          .where('acknowledged', '=', false)
+          .orderBy('created_at', 'desc').limit(10).execute(),
+        trx.selectFrom('trips')
+          .select(['scheduled_end', 'actual_end', 'actual_start'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', '=', 'COMPLETED')
+          .where('actual_end', '>=', todayStart).where('actual_end', '<', todayEnd)
+          .execute(),
+        trx.selectFrom('maintenance_records')
+          .select('vehicle_id').distinct()
+          .where('tenant_id', '=', user.tenant_id).where('status', '=', 'SCHEDULED')
+          .execute(),
+        trx.selectFrom('fuel_logs')
+          .select(({ fn }) => [fn.sum<number>('cost').as('total')])
+          .where('tenant_id', '=', user.tenant_id).where('logged_at', '>=', since30)
+          .executeTakeFirst(),
+        trx.selectFrom('maintenance_records')
+          .select(({ fn }) => [fn.sum<number>('cost').as('total')])
+          .where('tenant_id', '=', user.tenant_id).where('service_date', '>=', toDateParam(since30))
+          .executeTakeFirst(),
+      ]);
+
       const posByVehicle = new Map(latest.rows.map(r => [r.vehicle_id, r]));
-
       let moving = 0, stopped = 0, offline = 0;
       for (const v of vehicles) {
         const pos = posByVehicle.get(v.id);
@@ -493,75 +542,14 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         else stopped++;
       }
 
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const todayEnd = new Date(todayStart.getTime() + 86_400_000);
-
-      const tripsToday = await trx.selectFrom('trips')
-        .select(({ fn }) => [fn.count<number>('id').as('count')])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('scheduled_start', '>=', todayStart)
-        .where('scheduled_start', '<', todayEnd)
-        .executeTakeFirst();
-
-      const horizon = new Date(Date.now() + 30 * 86_400_000);
-      const expiringDocs = await trx.selectFrom('vehicle_documents')
-        .select(({ fn }) => [fn.count<number>('id').as('count')])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('expiry_date', 'is not', null)
-        .where('expiry_date', '<=', toDateParam(horizon))
-        .executeTakeFirst();
-
-      const pendingReminders = await trx.selectFrom('fleet_reminders')
-        .select(({ fn }) => [fn.count<number>('id').as('count')])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('status', '=', 'PENDING')
-        .where('due_date', '<=', toDateParam(horizon))
-        .executeTakeFirst();
-
-      const recentAlerts = await trx.selectFrom('fleet_alerts').selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .where('acknowledged', '=', false)
-        .orderBy('created_at', 'desc').limit(10).execute();
-
-      const tripsCompletedToday = await trx.selectFrom('trips')
-        .select(['scheduled_end', 'actual_end'])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('status', '=', 'COMPLETED')
-        .where('actual_end', '>=', todayStart).where('actual_end', '<', todayEnd)
-        .execute();
-      let onTime = 0;
-      let totalDurationMin = 0, durationCount = 0;
+      let onTime = 0, totalDurationMin = 0, durationCount = 0;
       for (const t of tripsCompletedToday) {
         if (t.scheduled_end && t.actual_end && new Date(t.actual_end) <= new Date(t.scheduled_end)) onTime++;
-      }
-      const inProgressToday = await trx.selectFrom('trips')
-        .select(['actual_start', 'actual_end'])
-        .where('tenant_id', '=', user.tenant_id).where('status', '=', 'COMPLETED')
-        .where('actual_start', 'is not', null).where('actual_end', 'is not', null)
-        .where('actual_end', '>=', todayStart).where('actual_end', '<', todayEnd)
-        .execute();
-      for (const t of inProgressToday) {
         if (t.actual_start && t.actual_end) {
-          totalDurationMin += (new Date(t.actual_end).getTime() - new Date(t.actual_start).getTime()) / 60000;
+          totalDurationMin += (new Date(t.actual_end).getTime() - new Date(t.actual_start!).getTime()) / 60000;
           durationCount++;
         }
       }
-
-      const inMaintenanceVehicles = await trx.selectFrom('maintenance_records')
-        .select('vehicle_id').distinct()
-        .where('tenant_id', '=', user.tenant_id).where('status', '=', 'SCHEDULED')
-        .execute();
-
-      const since30 = new Date(Date.now() - 30 * 86_400_000);
-      const fuelCost30d = await trx.selectFrom('fuel_logs')
-        .select(({ fn }) => [fn.sum<number>('cost').as('total')])
-        .where('tenant_id', '=', user.tenant_id).where('logged_at', '>=', since30)
-        .executeTakeFirst();
-      const maintenanceCost30d = await trx.selectFrom('maintenance_records')
-        .select(({ fn }) => [fn.sum<number>('cost').as('total')])
-        .where('tenant_id', '=', user.tenant_id).where('service_date', '>=', toDateParam(since30))
-        .executeTakeFirst();
 
       const totalCost30d = Number(fuelCost30d?.total ?? 0) + Number(maintenanceCost30d?.total ?? 0);
 

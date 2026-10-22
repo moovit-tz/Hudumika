@@ -21,6 +21,7 @@ import { AlertHost } from './components/AlertHost.js';
 import { ConfirmHost } from './components/ConfirmHost.js';
 import { PromptHost } from './components/PromptHost.js';
 import { InAppBrowserHost } from './components/InAppBrowserHost.js';
+import { hasSnapshot, restorePageState } from './lib/pageState.js';
 import { AppHeader } from './components/AppHeader.js';
 import { PageLayout } from './components/PageLayout.js';
 import { Welcome } from './pages/Welcome.js';
@@ -314,6 +315,17 @@ const CustomerShell: React.FC = () => {
       <CustomerBottomNav />
     </div>
   );
+};
+
+/** Restores scroll + form inputs saved by capturePageState() before a 401 redirect. */
+const PageStateRestorer: React.FC = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!hasSnapshot(pathname)) return;
+    const t = setTimeout(restorePageState, 300);
+    return () => clearTimeout(t);
+  }, [pathname]);
+  return null;
 };
 
 /* ── Main app shell ── */
@@ -649,6 +661,7 @@ const LockScreenGate: React.FC = () => {
 
 const AppContent: React.FC = () => (
   <IdleLockProvider>
+    <PageStateRestorer />
     <AppContentBody />
     <LockScreenGate />
   </IdleLockProvider>

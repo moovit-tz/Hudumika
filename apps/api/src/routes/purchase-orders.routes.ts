@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
-import { getNextDocNumber } from '../lib/doc-numbering.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
 import { InventoryService } from '../services/inventory.service.js';
 import { sql, type Transaction } from 'kysely';
@@ -171,7 +171,9 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
       const subtotal = built.subtotal;
       const tax_amount = built.tax;
       const total = subtotal + tax_amount;
-      const poNumber = body.po_number || await getNextDocNumber(trx, user.tenant_id, 'purchase_order');
+      const poNumber = body.po_number
+        || (body.supplier_id ? await getNextCustomerDocNumber(trx, user.tenant_id, body.supplier_id, 'purchase_order', 'suppliers') : null)
+        || await getNextDocNumber(trx, user.tenant_id, 'purchase_order');
 
       const po = await trx
         .insertInto('purchase_orders')

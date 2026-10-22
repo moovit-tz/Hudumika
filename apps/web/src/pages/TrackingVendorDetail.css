@@ -1,95 +1,226 @@
-/* ── TrackingVendorDetail.css ──────────────────────────────────── */
+/* ── TrackingVendorDetail.css ────────────────────────────────────
+   Executive Fleet Vendor Dossier & Responsive Partner Detail Styles
+   Strict adherence to Hudumika Design System tokens and scales.
+   ───────────────────────────────────────────────────────────────── */
+
 .trk-vendor-detail-container {
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-bottom: 40px;
+  padding-bottom: 48px;
+  color: var(--ink);
 }
 
-/* Profile Hero Card */
-.trk-vd-hero {
-  background: var(--white);
+/* =========================================================================
+   EXECUTIVE VENDOR DOSSIER CARD (UX & UI Lead Architecture)
+   ========================================================================= */
+.trk-vd-dossier-card {
+  background: var(--card-bg, #ffffff);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 24px;
   box-shadow: var(--elev-sm);
+  padding: 24px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 20px;
-  flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.trk-vd-hero-left {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-width: 0;
-  flex: 1;
+[data-theme="dark"] .trk-vd-dossier-card {
+  background: var(--card-bg, #111827);
+  border-color: var(--border);
 }
 
+.trk-vd-dossier-main {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+/* Avatar / Insignia */
 .trk-vd-avatar-lg {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   box-shadow: var(--elev-sm);
+  border: 1px solid var(--border);
+  transition: transform 0.2s ease;
 }
 
-.trk-vd-avatar-lg.WORKSHOP { background: var(--teal-l); color: var(--teal); }
-.trk-vd-avatar-lg.PARTS_SUPPLIER { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
-.trk-vd-avatar-lg.FUEL_STATION { background: var(--gold-l); color: var(--gold); }
+.trk-vd-avatar-lg:hover {
+  transform: scale(1.03);
+}
+
+.trk-vd-avatar-lg.WORKSHOP,
+.trk-vd-avatar-lg.SERVICE_CENTRE,
+.trk-vd-avatar-lg.BODYWORK,
+.trk-vd-avatar-lg.AUTO_ELECTRICAL {
+  background: var(--teal-l);
+  color: var(--teal);
+  border-color: rgba(13, 122, 107, 0.25);
+}
+
+.trk-vd-avatar-lg.PARTS_SUPPLIER,
+.trk-vd-avatar-lg.TYRE_SERVICES {
+  background: rgba(13, 122, 107, 0.1);
+  color: var(--teal);
+  border-color: rgba(13, 122, 107, 0.2);
+}
+
+.trk-vd-avatar-lg.FUEL_STATION {
+  background: var(--gold-l);
+  color: var(--gold);
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
 .trk-vd-avatar-lg.LEASING,
 .trk-vd-avatar-lg.FINANCING,
-.trk-vd-avatar-lg.VEHICLE_HIRE { background: var(--green-l); color: var(--green); }
-.trk-vd-avatar-lg.INSURANCE { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
-.trk-vd-avatar-lg.OTHER { background: var(--bg2); color: var(--ink2); }
+.trk-vd-avatar-lg.VEHICLE_HIRE,
+.trk-vd-avatar-lg.VEHICLE_DEALER {
+  background: var(--green-l);
+  color: var(--green);
+  border-color: rgba(16, 185, 129, 0.25);
+}
 
+.trk-vd-avatar-lg.INSURANCE,
+.trk-vd-avatar-lg.INSPECTION,
+.trk-vd-avatar-lg.TELEMATICS,
+.trk-vd-avatar-lg.TRANSPORTER,
+.trk-vd-avatar-lg.DRIVER_TRAINING,
+.trk-vd-avatar-lg.OTHER {
+  background: var(--bg2);
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+/* Center Meta */
 .trk-vd-hero-meta {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trk-vd-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .trk-vd-name {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--ink);
-  line-height: 1.25;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
 
 .trk-vd-badges {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
   flex-wrap: wrap;
 }
 
+/* Pulse indicator for live active status */
+.trk-vd-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trk-vd-status-badge.is-active {
+  background: var(--green-l);
+  color: var(--green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.trk-vd-status-badge.is-inactive {
+  background: var(--bg2);
+  color: var(--ink3);
+  border: 1px solid var(--border);
+}
+
+.trk-vd-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: trk-vd-pulse 2s infinite;
+}
+
+@keyframes trk-vd-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.trk-vd-category-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  background: var(--bg2);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.trk-vd-capability-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--bg);
+  color: var(--ink3);
+  border: 1px solid var(--border);
+}
+
+/* Contact Pills Matrix */
 .trk-vd-contact-pills {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-top: 10px;
   font-size: 13px;
   color: var(--ink2);
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .trk-vd-contact-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  text-decoration: none;
   color: var(--ink2);
+  font-weight: 500;
 }
 
 .trk-vd-contact-pill a {
   color: var(--ink);
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.15s ease;
 }
 
 .trk-vd-contact-pill a:hover {
@@ -97,35 +228,157 @@
   text-decoration: underline;
 }
 
-.trk-vd-hero-actions {
+/* Direct Communications Action Box (Right side of Dossier) */
+.trk-vd-direct-comms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trk-vd-comm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.trk-vd-comm-btn:hover {
+  background: var(--surface);
+  border-color: var(--teal);
+  color: var(--teal);
+  transform: translateY(-1px);
+}
+
+.trk-vd-comm-btn.primary {
+  background: var(--teal);
+  color: #ffffff;
+  border-color: var(--teal);
+}
+
+.trk-vd-comm-btn.primary:hover {
+  opacity: 0.92;
+  color: #ffffff;
+}
+
+/* Quick Actions Integrated Toolbar */
+.trk-vd-quick-actions-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
   flex-wrap: wrap;
 }
 
-/* KPI Grid */
+.trk-vd-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.trk-vd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.trk-vd-btn:hover {
+  background: var(--surface);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.trk-vd-btn.primary {
+  background: var(--teal);
+  color: #ffffff;
+  border-color: var(--teal);
+}
+
+.trk-vd-btn.primary:hover {
+  opacity: 0.92;
+  color: #ffffff;
+}
+
+.trk-vd-meta-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+/* =========================================================================
+   4-METRIC EXECUTIVE KPI GRID
+   ========================================================================= */
 .trk-vd-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
 
 .trk-vd-kpi-card {
-  background: var(--white);
+  background: var(--card-bg, #ffffff);
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 16px 18px;
   box-shadow: var(--elev-sm);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.trk-vd-kpi-val {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--ink);
-  line-height: 1.2;
+[data-theme="dark"] .trk-vd-kpi-card {
+  background: var(--card-bg, #111827);
+  border-color: var(--border);
+}
+
+.trk-vd-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+}
+
+.trk-vd-kpi-card.spend::before { background: var(--teal); }
+.trk-vd-kpi-card.records::before { background: var(--gold); }
+.trk-vd-kpi-card.category::before { background: var(--green); }
+.trk-vd-kpi-card.compliance::before { background: var(--ink3); }
+
+.trk-vd-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
 .trk-vd-kpi-lbl {
@@ -133,29 +386,76 @@
   font-weight: 700;
   color: var(--ink3);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-top: 4px;
+  letter-spacing: 0.05em;
 }
 
-/* Two-column overview layout */
+.trk-vd-kpi-icon {
+  color: var(--ink3);
+}
+
+.trk-vd-kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.trk-vd-kpi-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* =========================================================================
+   TWO-COLUMN OVERVIEW & DETAILS GRID
+   ========================================================================= */
 .trk-vd-overview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
 }
 
-/* Connected operations grid */
+.trk-vd-prop-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+
+.trk-vd-prop-row:last-child {
+  border-bottom: none;
+}
+
+.trk-vd-prop-label {
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+.trk-vd-prop-value {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+/* Connected Operations Modules */
 .trk-vd-conn-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
+  margin-top: 10px;
 }
 
 .trk-vd-conn-card {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 14px 16px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -169,61 +469,191 @@
 .trk-vd-conn-card:hover {
   transform: translateY(-2px);
   border-color: var(--teal);
-  background: var(--white);
-}
-
-/* Dark Mode Overrides */
-[data-theme="dark"] .trk-vd-hero,
-[data-theme="dark"] .trk-vd-kpi-card {
-  background: var(--card, #1e293b);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--surface);
 }
 
 [data-theme="dark"] .trk-vd-conn-card {
-  background: rgba(15, 23, 42, 0.6);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border);
 }
 
 [data-theme="dark"] .trk-vd-conn-card:hover {
-  background: rgba(30, 41, 59, 0.9);
+  background: rgba(255, 255, 255, 0.07);
   border-color: var(--teal);
 }
 
-/* Responsive Media Queries */
-@media (max-width: 900px) {
-  .trk-vd-overview-grid {
-    grid-template-columns: 1fr;
+/* Timeline & Recent Activity */
+.trk-vd-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trk-vd-timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.trk-vd-timeline-icon {
+  margin-top: 2px;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.trk-vd-timeline-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.trk-vd-timeline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.trk-vd-timeline-desc {
+  font-size: 12px;
+  color: var(--ink2);
+  margin-top: 2px;
+}
+
+.trk-vd-timeline-date {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* =========================================================================
+   TABLES & EMPTY STATES
+   ========================================================================= */
+.trk-vd-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.trk-vd-empty-state {
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--ink3);
+  font-size: 13.5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* =========================================================================
+   HEADER ACTION BAR WRAPPING
+   ========================================================================= */
+.trk-vd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================================
+   RESPONSIVENESS FOR SMALL SCREENS DOWN TO 375PX
+   ========================================================================= */
+@media (max-width: 1024px) {
+  .trk-vd-dossier-main {
+    grid-template-columns: auto 1fr;
+  }
+  .trk-vd-direct-comms {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .trk-vd-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 600px) {
-  .trk-vd-hero {
-    flex-direction: column;
-    align-items: flex-start;
+@media (max-width: 768px) {
+  .trk-vd-overview-grid {
+    grid-template-columns: 1fr;
   }
+  .trk-vd-dossier-main {
+    grid-template-columns: 1fr;
+  }
+  .trk-vd-avatar-lg {
+    margin-bottom: 4px;
+  }
+}
 
-  .trk-vd-hero-actions {
+@media (max-width: 640px) {
+  .trk-vd-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     width: 100%;
-    justify-content: flex-start;
   }
-
-  .trk-vd-hero-actions > * {
-    flex: 1;
+  .trk-vd-header-actions > * {
+    flex: 1 1 140px;
+    justify-content: center;
+    text-align: center;
   }
-
+  .trk-vd-dossier-card {
+    padding: 16px;
+    gap: 16px;
+  }
+  .trk-vd-name {
+    font-size: 20px;
+  }
   .trk-vd-contact-pills {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
-
-  .trk-vd-kpi-grid {
+  .trk-vd-direct-comms {
+    flex-direction: column;
+    width: 100%;
+  }
+  .trk-vd-comm-btn {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .trk-vd-quick-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .trk-vd-action-group {
+    display: grid;
     grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+  .trk-vd-action-group > * {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .trk-vd-btn {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .trk-vd-meta-info {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
 @media (max-width: 420px) {
   .trk-vd-kpi-grid {
     grid-template-columns: 1fr;
+  }
+  .trk-vd-action-group {
+    grid-template-columns: 1fr;
+  }
+  .trk-vd-header-actions > * {
+    flex: 1 1 100%;
   }
 }

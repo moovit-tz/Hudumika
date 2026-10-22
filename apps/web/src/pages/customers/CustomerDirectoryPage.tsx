@@ -170,7 +170,8 @@ export const CustomerDirectoryPage: React.FC = () => {
         (c.contact_name || '').toLowerCase().includes(q) ||
         (c.tax_id || '').toLowerCase().includes(q) ||
         (c.city || '').toLowerCase().includes(q) ||
-        (c.preferred_port || '').toLowerCase().includes(q);
+        (c.preferred_port || '').toLowerCase().includes(q) ||
+        (c.ref_code || '').toLowerCase().includes(q);
 
       const status = c.account_status || 'Active';
       const matchStatus = statusFilter === 'all' || status === statusFilter;
@@ -190,9 +191,10 @@ export const CustomerDirectoryPage: React.FC = () => {
   }, [customers, search, statusFilter, clientTypeFilter]);
 
   function exportCSV(rows: Customer[]) {
-    const hdr = ['Name', 'Client Type', 'Email', 'Phone', 'Contact Person', 'TIN Number', 'City', 'Preferred Port', 'Shipments', 'Status', 'Joined'].join(',');
+    const hdr = ['Name', 'Ref Code', 'Client Type', 'Email', 'Phone', 'Contact Person', 'TIN Number', 'City', 'Preferred Port', 'Shipments', 'Status', 'Joined'].join(',');
     const body = rows.map(c => [
       `"${c.name.replace(/"/g, '""')}"`,
+      `"${(c.ref_code || '').replace(/"/g, '""')}"`,
       `"${c.client_type || 'Corporate'}"`,
       `"${(c.email || '').replace(/"/g, '""')}"`,
       `"${(c.phone_wa || '').replace(/"/g, '""')}"`,
@@ -475,7 +477,10 @@ export const CustomerDirectoryPage: React.FC = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                               <Avatar name={c.name} />
                               <div>
-                                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{c.name}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{c.name}</span>
+                                  {c.ref_code && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 5px', borderRadius: 'var(--r-sm)', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{c.ref_code}</span>}
+                                </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                   <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>{clientTag}</span>
                                   {c.city && <><span style={{ color: 'var(--border)' }}>·</span><span style={{ fontSize: 11, color: 'var(--ink3)' }}>{c.city}</span></>}
@@ -668,6 +673,11 @@ export const CustomerDirectoryPage: React.FC = () => {
                 <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Company / Legal Name *</label>
                   <input type="text" required value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Acme Industrial Supplies Ltd" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Reference Code</label>
+                  <input type="text" value={(createForm as any).ref_code || ''} onChange={e => setCreateForm(p => ({ ...p, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))} placeholder="e.g. ALK (auto-generated if blank)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)', textTransform: 'uppercase', fontFamily: 'monospace' }} />
+                  <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, display: 'block' }}>Used in invoice numbers. Auto-generated from company name if left blank.</span>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Client Classification</label>

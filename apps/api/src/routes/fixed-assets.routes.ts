@@ -122,7 +122,7 @@ export async function fixedAssetRoutes(fastify: FastifyInstance) {
           { accountCode: assetAccountCode, debit: Number(asset.cost), credit: 0, description: `Acquisition: ${asset.name}` },
           { accountCode: body.funded_by === 'AP' ? '2000' : '1010', debit: 0, credit: Number(asset.cost), description: `Acquisition: ${asset.name}` },
         ],
-      });
+      }, trx);
       const updated = await trx.updateTable('fixed_assets').set({ acquisition_journal_entry_id: journalEntryId })
         .where('id', '=', asset.id).returningAll().executeTakeFirstOrThrow();
 

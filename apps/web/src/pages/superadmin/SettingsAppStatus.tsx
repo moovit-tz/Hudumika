@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
@@ -20,6 +20,8 @@ import { showAlert } from '../../lib/alert.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
 import { AI_PROVIDERS } from '../../lib/aiProviders.js';
 import { ALL_FEATURE_KEYS } from '@hudumika/types';
+import { CarVehicleImage } from '../../components/CarVehicleImage.js';
+import { CarVehicle3DViewer } from '../../components/CarVehicle3DViewer.js';
 import {
   Badge, type Company, type Subscription, type Package,
   Spark, BarChart, PageHdr,
@@ -32,6 +34,7 @@ const SETTINGS_SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'ai',        label: 'AI Providers',         icon: 'sparkle' },
   { id: 'ocr',       label: 'OCR',                 icon: 'zap' },
   { id: 'ondiSso',   label: 'Ondi SSO',             icon: 'key' },
+  { id: 'carimages', label: 'CarImages & Maps APIs', icon: 'truck' },
   { id: 'api',       label: 'API & Webhooks',       icon: 'terminal' },
   { id: 'modules-pointer', label: 'Modules & Plan Features', icon: 'package' },
   { id: 'cron',      label: 'Cron Jobs',            icon: 'clock' },
@@ -85,6 +88,46 @@ export function SettingsView() {
   const setAiRow = (provider: string, patch: Partial<{ apiKey: string; model: string }>) =>
     setAi(prev => ({ ...prev, providers: { ...prev.providers, [provider]: { ...(prev.providers[provider] ?? { apiKey: '', model: '' }), ...patch } } }));
   const [ondiSso, setOndiSso] = useState<{ enabled: boolean; googleClientId?: string; microsoftClientId?: string; appleClientId?: string }>({ enabled: false });
+
+  // ── CarImages & Maps API Integration ──
+  const [carimages, setCarimages] = useState({
+    enabled: true,
+    apiKey: 'ci_a723d0e11a412579a5440a33bf4d55b0e2b51a56bce1bb4ce70d6290',
+    secret: 'c0c395cf7a6010c8801d7da31fff5b70e237b719d2b44b02de0ed6cb6710eb9e',
+    baseUrl: 'https://carimagesapi.com',
+  });
+  const [showCarimagesSecret, setShowCarimagesSecret] = useState(false);
+  const [testingCarimages, setTestingCarimages] = useState(false);
+  const [carimagesTested, setCarimagesTested] = useState<boolean | null>(null);
+  const [carimagesTestMsg, setCarimagesTestMsg] = useState<string>('');
+
+  const [mapbox, setMapbox] = useState({
+    enabled: true,
+    accessToken: typeof localStorage !== 'undefined' ? localStorage.getItem('hudumika_mapbox_token') || '' : '',
+    defaultStyle: 'mapbox/streets-v12',
+  });
+  const [testingMapbox, setTestingMapbox] = useState(false);
+  const [mapboxTested, setMapboxTested] = useState<boolean | null>(null);
+  const [mapboxTestMsg, setMapboxTestMsg] = useState<string>('');
+
+  // Sample runner & playground
+  const [sampleMake, setSampleMake] = useState('BMW');
+  const [sampleModel, setSampleModel] = useState('3 Series');
+  const [sampleYear, setSampleYear] = useState('2022');
+  const [sampleMode, setSampleMode] = useState<'2d' | '3d'>('2d');
+  const [sampleView, setSampleView] = useState<'3-4' | 'side' | 'front' | 'rear' | 'top'>('3-4');
+  const [sampleBackdrop, setSampleBackdrop] = useState<'light' | 'graphite' | 'dark' | 'slate' | 'sand' | 'sky' | 'mint' | 'black'>('graphite');
+  const [runningSample, setRunningSample] = useState(false);
+  const [sampleOutputUrl, setSampleOutputUrl] = useState<string | null>('https://carimagesapi.com/image?make=BMW&model=3+Series&api_key=ci_a723d0e11a412579a5440a33bf4d55b0e2b51a56bce1bb4ce70d6290&format=webp');
+  const [sampleModelUrl, setSampleModelUrl] = useState<string | null>(null);
+  const [activeSnippetTab, setActiveSnippetTab] = useState<'loader' | '2d' | '3d' | 'rest'>('loader');
+  const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
+
+  const [syncingFleet, setSyncingFleet] = useState(false);
+  const [syncFleetResult, setSyncFleetResult] = useState<{ totalScanned?: number; updatedCount?: number } | null>(null);
+  const [seedingAssets, setSeedingAssets] = useState(false);
+  const [seedingResult, setSeedingResult] = useState<{ createdCount?: number } | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTested, setSmtpTested] = useState(false);
@@ -139,6 +182,13 @@ export function SettingsView() {
         }
         setSettingsLoaded(true);
         if (s.ondiSso) setOndiSso(prev => ({ ...prev, ...s.ondiSso }));
+        if (s.carimages) setCarimages(prev => ({ ...prev, ...s.carimages }));
+        if (s.mapbox) {
+          setMapbox(prev => ({ ...prev, ...s.mapbox }));
+          if (s.mapbox.accessToken) {
+            localStorage.setItem('hudumika_mapbox_token', s.mapbox.accessToken);
+          }
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -156,6 +206,8 @@ export function SettingsView() {
       security,
       api,
       ocr,
+      carimages,
+      mapbox,
       ...(settingsLoaded ? { ai: {
         enabled: ai.enabled,
         provider: ai.provider,
@@ -166,6 +218,10 @@ export function SettingsView() {
       } } : {}),
       ondiSso
     };
+
+    if (mapbox.accessToken?.trim()) {
+      localStorage.setItem('hudumika_mapbox_token', mapbox.accessToken.trim());
+    }
 
     try {
       await apiFetch('/v1/superadmin/settings', {
@@ -255,6 +311,120 @@ export function SettingsView() {
       showAlert(`Gemini Test Failed: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setTestingOcr(false);
+    }
+  }
+
+  async function testCarimages() {
+    setTestingCarimages(true);
+    setCarimagesTested(null);
+    try {
+      const res = await apiFetch('/v1/superadmin/carimages/test', {
+        method: 'POST',
+        body: JSON.stringify({ apiKey: carimages.apiKey, secret: carimages.secret }),
+      });
+      setCarimagesTested(true);
+      setCarimagesTestMsg(`Connected! ${res.totalMakes ?? 206} vehicle makes available (${res.latencyMs ?? 180} ms).`);
+    } catch (err: any) {
+      setCarimagesTested(false);
+      setCarimagesTestMsg(err?.message || 'Connection failed');
+    } finally {
+      setTestingCarimages(false);
+    }
+  }
+
+  async function testMapbox() {
+    if (!mapbox.accessToken?.trim()) {
+      showAlert('Enter a Mapbox Access Token first.');
+      return;
+    }
+    setTestingMapbox(true);
+    setMapboxTested(null);
+    try {
+      const res = await apiFetch('/v1/superadmin/mapbox/test', {
+        method: 'POST',
+        body: JSON.stringify({ accessToken: mapbox.accessToken.trim() }),
+      });
+      setMapboxTested(true);
+      setMapboxTestMsg(`Mapbox token is valid (${res.code || 'TokenValid'}). Saved for live map tile rendering.`);
+      localStorage.setItem('hudumika_mapbox_token', mapbox.accessToken.trim());
+    } catch (err: any) {
+      setMapboxTested(false);
+      setMapboxTestMsg(err?.message || 'Mapbox token validation failed');
+    } finally {
+      setTestingMapbox(false);
+    }
+  }
+
+  async function runCarimagesSample() {
+    setRunningSample(true);
+    try {
+      if (sampleMode === '2d') {
+        const res = await apiFetch('/v1/superadmin/carimages/signed-url', {
+          method: 'POST',
+          body: JSON.stringify({
+            make: sampleMake,
+            model: sampleModel,
+            year: sampleYear ? Number(sampleYear) : undefined,
+            view: sampleView,
+            format: 'webp',
+          }),
+        });
+        setSampleOutputUrl(res.url);
+      } else {
+        const res = await apiFetch('/v1/superadmin/carimages/signed-model-url', {
+          method: 'POST',
+          body: JSON.stringify({
+            make: sampleMake,
+            model: sampleModel,
+            year: sampleYear ? Number(sampleYear) : undefined,
+          }),
+        });
+        setSampleModelUrl(res.url);
+      }
+    } catch (err: any) {
+      showAlert(`Sample runner failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setRunningSample(false);
+    }
+  }
+
+  async function syncFleetAssets() {
+    setSyncingFleet(true);
+    try {
+      const res = await apiFetch('/v1/superadmin/carimages/sync-fleet', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setSyncFleetResult(res);
+      showAlert(`Successfully enriched ${res.updatedCount} fleet vehicles with realistic CarImages studio photos!`);
+    } catch (err: any) {
+      showAlert(`Fleet sync failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSyncingFleet(false);
+    }
+  }
+
+  async function createRealisticFleetAssets() {
+    setSeedingAssets(true);
+    try {
+      const res = await apiFetch('/v1/superadmin/carimages/create-sample-assets', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setSeedingResult(res);
+      showAlert(`Created and updated ${res.createdCount} realistic commercial fleet assets with verified CarImages specs!`);
+    } catch (err: any) {
+      showAlert(`Failed to seed fleet assets: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSeedingAssets(false);
+    }
+  }
+
+  function copySnippet(text: string, id: string) {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedSnippet(id);
+      setTimeout(() => setCopiedSnippet(null), 2200);
     }
   }
 
@@ -704,6 +874,588 @@ export function SettingsView() {
               Add this platform's origin as an authorized JavaScript origin (Google/Microsoft) or Return URL (Apple) in the respective provider's console.
             </div>
           </div>
+        </div>
+      </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="carimages">
+      {/* ── CarImages API & Vehicle Data Integration ── */}
+      <SectionCard
+        title="Vehicle Realistic Images & Fleet Assets (CarImages API)"
+        sub="Automated 2D studio photography, 3D interactive models, and fleet data enrichment across Hudumika Workspaces"
+        section="carimages"
+      >
+        <div style={{ marginBottom: 20 }}>
+          <Banner variant="info">
+            CarImages API provides authentic high-resolution studio photography and interactive 3D models for passenger cars, commercial haul trucks, pickups, and vans. Assets are served with fast edge caching and signed URLs.
+          </Banner>
+        </div>
+
+        {/* Credentials and Connection Testing */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <Field label="CarImages API Key" hint="Public identifier used by client loader and signed-url requests">
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                title="CarImages API Key"
+                type="text"
+                value={carimages.apiKey}
+                onChange={e => setCarimages(p => ({ ...p, apiKey: e.target.value }))}
+                className="input-field"
+                style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+              />
+              <Tip label={copiedSnippet === 'api-key' ? 'Copied!' : 'Copy API Key'}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => copySnippet(carimages.apiKey, 'api-key')}
+                >
+                  <Icon name={copiedSnippet === 'api-key' ? 'check' : 'clipboard'} size={13} />
+                </Button>
+              </Tip>
+            </div>
+          </Field>
+
+          <Field label="CarImages API Secret" hint="Server-side secret used for administrative REST calls and make catalogs">
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                title="CarImages API Secret"
+                type={showCarimagesSecret ? 'text' : 'password'}
+                value={carimages.secret}
+                onChange={e => setCarimages(p => ({ ...p, secret: e.target.value }))}
+                className="input-field"
+                style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+              />
+              <Tip label={showCarimagesSecret ? 'Hide secret' : 'Show secret'}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => setShowCarimagesSecret(s => !s)}
+                >
+                  <Icon name={showCarimagesSecret ? 'eyeOff' : 'eye'} size={13} />
+                </Button>
+              </Tip>
+              <Tip label={copiedSnippet === 'api-secret' ? 'Copied!' : 'Copy API Secret'}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => copySnippet(carimages.secret, 'api-secret')}
+                >
+                  <Icon name={copiedSnippet === 'api-secret' ? 'check' : 'clipboard'} size={13} />
+                </Button>
+              </Tip>
+            </div>
+          </Field>
+        </div>
+
+        {/* Test Connection Button & Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={testCarimages}
+            disabled={testingCarimages}
+            style={{ gap: 6 }}
+          >
+            {testingCarimages ? 'Testing Connection...' : <><Icon name="zap" size={13} /> Test Connection</>}
+          </Button>
+
+          {carimagesTested === true && (
+            <UiBadge variant="success" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="check" size={12} /> {carimagesTestMsg || 'Live — Connected to CarImages API'}
+            </UiBadge>
+          )}
+
+          {carimagesTested === false && (
+            <UiBadge variant="error" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="alertCircle" size={12} /> {carimagesTestMsg || 'Connection failed'}
+            </UiBadge>
+          )}
+        </div>
+
+        {/* ── Step 1: Copy your API Key & Script Loader ── */}
+        <div className="sa-api-step-card">
+          <div className="sa-api-step-header">
+            <div className="sa-api-step-title-wrap">
+              <span className="sa-api-step-num">1</span>
+              <div>
+                <div className="sa-api-step-title">Add the Loader to your site</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                  One line script tag in &lt;head&gt; with your API key pre-filled
+                </div>
+              </div>
+            </div>
+            <Tip label={copiedSnippet === 'loader-tag' ? 'Copied!' : 'Copy Script Tag'}>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() =>
+                  copySnippet(
+                    `<script src="https://carimagesapi.com/assets/js/carimages.js"\n        data-api-key="${carimages.apiKey}" async></script>`,
+                    'loader-tag'
+                  )
+                }
+                style={{ gap: 5 }}
+              >
+                <Icon name={copiedSnippet === 'loader-tag' ? 'check' : 'clipboard'} size={13} />
+                {copiedSnippet === 'loader-tag' ? 'Copied' : 'Copy Snippet'}
+              </Button>
+            </Tip>
+          </div>
+
+          <pre className="sa-api-code-snippet">
+{`<script src="https://carimagesapi.com/assets/js/carimages.js"
+        data-api-key="${carimages.apiKey}" async></script>`}
+          </pre>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink2)' }}>
+            <UiBadge variant="brand">Tip</UiBadge>
+            <span>Serving motorcycles and commercial trucks too? Add <code>data-ci-type="any"</code> to your image tags.</span>
+          </div>
+        </div>
+
+        {/* ── Step 2: Run a Sample Below (Interactive Playground) ── */}
+        <div className="sa-api-step-card">
+          <div className="sa-api-step-header">
+            <div className="sa-api-step-title-wrap">
+              <span className="sa-api-step-num">2</span>
+              <div>
+                <div className="sa-api-step-title">Run a sample below</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                  Test 2D studio photography and interactive 3D models live
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={runCarimagesSample}
+              disabled={runningSample}
+              style={{ gap: 6 }}
+            >
+              <Icon name="play" size={13} />
+              {runningSample ? 'Fetching Asset...' : '▶ Run Sample'}
+            </Button>
+          </div>
+
+          {/* Playground Controls */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+            <Field label="Make">
+              <input
+                type="text"
+                value={sampleMake}
+                onChange={e => setSampleMake(e.target.value)}
+                placeholder="e.g. BMW, Toyota, Scania"
+                className="input-field"
+                style={{ width: '100%', fontSize: 12 }}
+              />
+            </Field>
+
+            <Field label="Model">
+              <input
+                type="text"
+                value={sampleModel}
+                onChange={e => setSampleModel(e.target.value)}
+                placeholder="e.g. 3 Series, X5, Hilux"
+                className="input-field"
+                style={{ width: '100%', fontSize: 12 }}
+              />
+            </Field>
+
+            <Field label="Year">
+              <input
+                type="text"
+                value={sampleYear}
+                onChange={e => setSampleYear(e.target.value)}
+                placeholder="2022"
+                className="input-field"
+                style={{ width: '100%', fontSize: 12 }}
+              />
+            </Field>
+
+            <Field label="Display Mode">
+              <div style={{ display: 'flex', gap: 4 }}>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant={sampleMode === '2d' ? 'default' : 'outline'}
+                  onClick={() => setSampleMode('2d')}
+                  style={{ flex: 1 }}
+                >
+                  2D Studio
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant={sampleMode === '3d' ? 'default' : 'outline'}
+                  onClick={() => setSampleMode('3d')}
+                  style={{ flex: 1 }}
+                >
+                  3D Model
+                </Button>
+              </div>
+            </Field>
+
+            {sampleMode === '2d' ? (
+              <Field label="Camera Angle">
+                <select
+                  value={sampleView}
+                  onChange={e => setSampleView(e.target.value as any)}
+                  className="input-field"
+                  style={{ width: '100%', fontSize: 12 }}
+                >
+                  <option value="3-4">3/4 Front Studio</option>
+                  <option value="side">Direct Side</option>
+                  <option value="front">Direct Front</option>
+                  <option value="rear">Direct Rear</option>
+                  <option value="top">Top Down</option>
+                </select>
+              </Field>
+            ) : (
+              <Field label="Backdrop Studio">
+                <select
+                  value={sampleBackdrop}
+                  onChange={e => setSampleBackdrop(e.target.value as any)}
+                  className="input-field"
+                  style={{ width: '100%', fontSize: 12 }}
+                >
+                  <option value="graphite">Graphite Studio</option>
+                  <option value="dark">Dark Minimal</option>
+                  <option value="slate">Slate Industrial</option>
+                  <option value="sand">Sand Warm</option>
+                  <option value="mint">Mint Clean</option>
+                  <option value="light">Light Crisp</option>
+                </select>
+              </Field>
+            )}
+          </div>
+
+          {/* Playground Visual Stage */}
+          <div className="sa-api-playground-stage">
+            {sampleMode === '2d' ? (
+              sampleOutputUrl ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+                  <img
+                    src={sampleOutputUrl}
+                    alt={`${sampleMake} ${sampleModel}`}
+                    className="sa-api-playground-img"
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--ink3)' }}>
+                    <UiBadge variant="success">2D Studio Output Verified</UiBadge>
+                    <span>{sampleMake} {sampleModel} ({sampleYear})</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>
+                  <Icon name="image" size={32} style={{ marginBottom: 6, opacity: 0.5 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Click &quot;▶ Run Sample&quot; to fetch realistic studio image</div>
+                </div>
+              )
+            ) : (
+              <div style={{ width: '100%' }}>
+                <CarVehicle3DViewer
+                  make={sampleMake}
+                  model={sampleModel}
+                  year={sampleYear}
+                  modelUrl={sampleModelUrl}
+                  backdrop={sampleBackdrop}
+                  height={280}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Step 3: Paste the Snippet into your site ── */}
+        <div className="sa-api-step-card">
+          <div className="sa-api-step-header">
+            <div className="sa-api-step-title-wrap">
+              <span className="sa-api-step-num">3</span>
+              <div>
+                <div className="sa-api-step-title">Paste the snippet into your site</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                  Drop-in 2D studio images, interactive 3D models, or server-side cURL commands
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 4 }}>
+              <Button
+                type="button"
+                size="xs"
+                variant={activeSnippetTab === 'loader' ? 'default' : 'outline'}
+                onClick={() => setActiveSnippetTab('loader')}
+              >
+                Loader
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant={activeSnippetTab === '2d' ? 'default' : 'outline'}
+                onClick={() => setActiveSnippetTab('2d')}
+              >
+                2D Image Tag
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant={activeSnippetTab === '3d' ? 'default' : 'outline'}
+                onClick={() => setActiveSnippetTab('3d')}
+              >
+                3D &lt;model-viewer&gt;
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant={activeSnippetTab === 'rest' ? 'default' : 'outline'}
+                onClick={() => setActiveSnippetTab('rest')}
+              >
+                REST API (cURL)
+              </Button>
+            </div>
+          </div>
+
+          {activeSnippetTab === 'loader' && (
+            <div>
+              <pre className="sa-api-code-snippet">
+{`<script src="https://carimagesapi.com/assets/js/carimages.js"
+        data-api-key="${carimages.apiKey}" async></script>`}
+              </pre>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() =>
+                    copySnippet(
+                      `<script src="https://carimagesapi.com/assets/js/carimages.js"\n        data-api-key="${carimages.apiKey}" async></script>`,
+                      'loader-snippet'
+                    )
+                  }
+                  style={{ gap: 5 }}
+                >
+                  <Icon name={copiedSnippet === 'loader-snippet' ? 'check' : 'clipboard'} size={13} />
+                  {copiedSnippet === 'loader-snippet' ? 'Copied' : 'Copy Loader Script'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeSnippetTab === '2d' && (
+            <div>
+              <pre className="sa-api-code-snippet">
+{`<img data-ci-make="${sampleMake}" data-ci-model="${sampleModel}" data-ci-year="${sampleYear}" data-ci-type="any" alt="${sampleMake} ${sampleModel}">`}
+              </pre>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() =>
+                    copySnippet(
+                      `<img data-ci-make="${sampleMake}" data-ci-model="${sampleModel}" data-ci-year="${sampleYear}" data-ci-type="any" alt="${sampleMake} ${sampleModel}">`,
+                      '2d-snippet'
+                    )
+                  }
+                  style={{ gap: 5 }}
+                >
+                  <Icon name={copiedSnippet === '2d-snippet' ? 'check' : 'clipboard'} size={13} />
+                  {copiedSnippet === '2d-snippet' ? 'Copied' : 'Copy 2D &lt;img&gt; Tag'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeSnippetTab === '3d' && (
+            <div>
+              <pre className="sa-api-code-snippet">
+{`<model-viewer data-ci-make="${sampleMake}" data-ci-model="${sampleModel}" data-ci-year="${sampleYear}"
+              camera-controls auto-rotate></model-viewer>`}
+              </pre>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() =>
+                    copySnippet(
+                      `<model-viewer data-ci-make="${sampleMake}" data-ci-model="${sampleModel}" data-ci-year="${sampleYear}"\n              camera-controls auto-rotate></model-viewer>`,
+                      '3d-snippet'
+                    )
+                  }
+                  style={{ gap: 5 }}
+                >
+                  <Icon name={copiedSnippet === '3d-snippet' ? 'check' : 'clipboard'} size={13} />
+                  {copiedSnippet === '3d-snippet' ? 'Copied' : 'Copy 3D &lt;model-viewer&gt; Tag'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeSnippetTab === 'rest' && (
+            <div>
+              <pre className="sa-api-code-snippet">
+{`# 1. List all makes — server-side needs your key and secret
+curl -H "Authorization: Bearer ${carimages.apiKey}" \\
+     -H "X-Api-Secret: ${carimages.secret}" \\
+  https://carimagesapi.com/api/v1/makes
+
+# 2. Signed URL for browser — API key only (image or 3D model)
+curl "https://carimagesapi.com/api/v1/signed-url?api_key=${carimages.apiKey}&make=${encodeURIComponent(sampleMake)}&model=${encodeURIComponent(sampleModel)}"`}
+              </pre>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() =>
+                    copySnippet(
+                      `curl -H "Authorization: Bearer ${carimages.apiKey}" -H "X-Api-Secret: ${carimages.secret}" https://carimagesapi.com/api/v1/makes`,
+                      'rest-snippet'
+                    )
+                  }
+                  style={{ gap: 5 }}
+                >
+                  <Icon name={copiedSnippet === 'rest-snippet' ? 'check' : 'clipboard'} size={13} />
+                  {copiedSnippet === 'rest-snippet' ? 'Copied' : 'Copy cURL Command'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Fleet Asset Data & Image Creation ── */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+            Hudumika Fleet Data &amp; Realistic Asset Generation
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>
+            Use the CarImages API to populate realistic studio photos across all fleet assets and create commercial heavy vehicles.
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={syncFleetAssets}
+              disabled={syncingFleet}
+              style={{ gap: 6 }}
+            >
+              <Icon name="refresh" size={13} />
+              {syncingFleet ? 'Enriching Fleet Vehicles...' : 'Sync & Enrich Live Fleet Assets'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={createRealisticFleetAssets}
+              disabled={seedingAssets}
+              style={{ gap: 6 }}
+            >
+              <Icon name="truck" size={13} />
+              {seedingAssets ? 'Creating Assets...' : 'Generate Realistic Fleet Samples'}
+            </Button>
+          </div>
+
+          {syncFleetResult && (
+            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--teal)' }}>
+              ✓ Scanned {syncFleetResult.totalScanned} vehicles; updated {syncFleetResult.updatedCount} with realistic CarImages photography!
+            </div>
+          )}
+
+          {seedingResult && (
+            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--teal)' }}>
+              ✓ Successfully created/updated {seedingResult.createdCount} commercial vehicles with verified specifications and photo URLs!
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* ── Mapbox Maps API Setup ── */}
+      <SectionCard
+        title="Mapbox Maps Integration"
+        sub="High-resolution vector maps, dark basemaps, and satellite terrain for live vehicle tracking and route planning"
+        section="mapbox"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Banner variant="info">
+            Hudumika uses Mapbox vector and raster tiles for live freight GPS tracking, geofence radius monitoring, and corridor route maps. See{' '}
+            <a
+              href="https://docs.mapbox.com/help/getting-started/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--teal)', fontWeight: 600, textDecoration: 'underline' }}
+            >
+              Getting Started | Help | Mapbox
+            </a>{' '}
+            for token creation.
+          </Banner>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
+          <Field label="Mapbox Public Access Token" hint="Format: pk.eyJ1Ijo... (from account.mapbox.com/access-tokens)">
+            <input
+              title="Mapbox Access Token"
+              type="text"
+              placeholder="pk.eyJ1IjoiaHVkdW1pa2EiLCJhIjoi..."
+              value={mapbox.accessToken}
+              onChange={e => setMapbox(p => ({ ...p, accessToken: e.target.value }))}
+              className="input-field"
+              style={{ width: '100%', fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+            />
+          </Field>
+
+          <Field label="Default Map Style" hint="Basemap style preset for tracking and vehicle routes">
+            <select
+              value={mapbox.defaultStyle}
+              onChange={e => setMapbox(p => ({ ...p, defaultStyle: e.target.value }))}
+              className="input-field"
+              style={{ width: '100%', fontSize: 12 }}
+            >
+              <option value="mapbox/streets-v12">Mapbox Streets (streets-v12)</option>
+              <option value="mapbox/dark-v11">Mapbox Dark (dark-v11)</option>
+              <option value="mapbox/satellite-streets-v12">Mapbox Satellite Streets (satellite-streets-v12)</option>
+            </select>
+          </Field>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={testMapbox}
+            disabled={testingMapbox}
+            style={{ gap: 6 }}
+          >
+            {testingMapbox ? 'Validating Token...' : <><Icon name="checkCircle" size={13} /> Test Mapbox Token</>}
+          </Button>
+
+          {mapboxTested === true && (
+            <UiBadge variant="success" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="check" size={12} /> {mapboxTestMsg || 'Mapbox Token Active'}
+            </UiBadge>
+          )}
+
+          {mapboxTested === false && (
+            <UiBadge variant="error" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="alertCircle" size={12} /> {mapboxTestMsg || 'Invalid Mapbox Token'}
+            </UiBadge>
+          )}
+
+          {!mapboxTested && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+              {mapbox.accessToken ? 'Token entered — click Test to verify' : 'When no token is provided, maps gracefully use OpenStreetMap and Esri tiles'}
+            </div>
+          )}
         </div>
       </SectionCard>
         </TabsContent>

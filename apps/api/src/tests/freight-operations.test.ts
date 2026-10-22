@@ -42,6 +42,18 @@ describe('Freight operational persistence and isolation', () => {
     expect((await call('POST', 'tracking/vendors', { name: 'Invalid', service_capabilities: ['MADE_UP'] })).statusCode).toBe(400);
   }, 90000);
 
+  it('enforces vehicle edit roles and rejects foreign tenant changes', async () => {
+    const app = await getApp();
+    for (const role of ['MANAGER', 'SENIOR', 'JUNIOR', 'FINANCE', 'SALES'] as const) {
+      const member = await owner.addUser(role);
+      const result = await app.inject({ method: 'PATCH', url: `/v1/tracking/vehicles/${vehicleId}`, headers: authHeaders(member.token), payload: { color: 'Access test' } });
+      expect(result.statusCode, `${role}: ${result.body}`).toBe(['MANAGER', 'SENIOR', 'JUNIOR'].includes(role) ? 200 : 403);
+      if (result.statusCode === 200) expect(result.json()).not.toHaveProperty('device_secret');
+    }
+    expect((await call('PATCH', `tracking/vehicles/${foreignVehicle}`, { name: 'Forbidden overwrite' })).statusCode).toBe(404);
+    expect((await call('PATCH', `tracking/vehicles/${vehicleId}`, { year: -1 })).statusCode).toBe(400);
+  }, 90000);
+
   it('rejects invalid measurements and foreign vehicle links', async () => {
     expect((await call('POST', 'tracking/manifests', { ...plan, max_weight_kg: -1 })).statusCode).toBe(400);
     expect((await call('POST', 'tracking/manifests', { ...plan, vehicle_id: foreignVehicle })).statusCode).toBe(404);

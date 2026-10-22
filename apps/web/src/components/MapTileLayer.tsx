@@ -17,14 +17,50 @@ const DARK_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ';
 const SATELLITE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
 
+// Mapbox Tile URLs and Attribution
+const MAPBOX_ATTRIBUTION = '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+export function getMapboxToken(): string | null {
+  try {
+    return (
+      localStorage.getItem('hudumika_mapbox_token') ||
+      (import.meta as any).env?.VITE_MAPBOX_TOKEN ||
+      (window as any).__HUDUMIKA_CONFIG__?.mapboxToken ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Drop-in replacement for react-leaflet's <TileLayer>. Defaults to swapping
  * light/dark basemaps by app theme; pass `override` to force a specific
  * variant (e.g. a user-selected satellite view) regardless of theme.
+ * Uses high-res Mapbox tiles if a token is configured.
  */
 export const MapTileLayer: React.FC<{ override?: MapVariant | null }> = ({ override }) => {
   const isDark = useIsDarkMode();
   const variant: MapVariant = override ?? (isDark ? 'dark' : 'light');
+  const mapboxToken = getMapboxToken();
+
+  if (mapboxToken) {
+    let styleId = 'streets-v12';
+    if (variant === 'dark') styleId = 'dark-v11';
+    else if (variant === 'satellite') styleId = 'satellite-streets-v12';
+
+    const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/${styleId}/tiles/256/{z}/{x}/{y}@2x?access_token=${mapboxToken}`;
+
+    return (
+      <TileLayer
+        key={`mapbox-${styleId}`}
+        attribution={MAPBOX_ATTRIBUTION}
+        url={mapboxUrl}
+        tileSize={256}
+        maxZoom={22}
+      />
+    );
+  }
 
   if (variant === 'satellite') return <TileLayer key="satellite" attribution={SATELLITE_ATTRIBUTION} url={SATELLITE_URL} />;
   if (variant === 'dark') {

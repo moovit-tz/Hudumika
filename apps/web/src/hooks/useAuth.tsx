@@ -4,7 +4,7 @@ import type { SafeUser, OnboardingCompleteResponse, JoinRequestSubmitResponse } 
 import { resetEnabledAppsCache } from './useEnabledApps.js';
 import { resetFinanceCapabilitiesCache } from './useFinanceCapabilities.js';
 import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
-import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
+import { resetTasksCache } from '../data/calendarStore.js';
 import { applyTenantLocale } from '../lib/tenantLocale.js';
 import { clearIdleLockState } from '../lib/idleLockKeys.js';
 
@@ -131,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setUser(JSON.parse(storedUser));
         hydrateCompanyFromServer();
-        hydrateTasksFromServer();
         // The stored copy is as old as the session. It was written at login and
         // never refreshed, so a picture set afterwards — or a name, role or
         // phone changed by an administrator — appeared nowhere until the person
@@ -162,7 +161,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetTasksCache();
     setUser(res.user);
     hydrateCompanyFromServer();
-    hydrateTasksFromServer();
     // Also on a fresh sign-in, not only when restoring a stored session — this
     // is the first moment a new colleague sees the workspace, and it is exactly
     // when the workspace's own language should already be in place.
@@ -309,7 +307,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(KEYS.user, JSON.stringify(res.user));
     setUser(res.user);
     hydrateCompanyFromServer();
-    hydrateTasksFromServer();
   };
 
   /**

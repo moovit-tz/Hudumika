@@ -5,6 +5,7 @@ import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 
 // PENDING_APPROVAL added for M9 — supplier_bills.status has never carried
 // a DB-level CHECK constraint, so this is a pure app-level addition.
@@ -239,20 +240,22 @@ async function recomputeBillPosting(trx: Transaction<Database>, tenantId: string
  */
 function billJournalLines(args: {
   byAccount: Map<string, number>; recoverable: number; nonRecoverable: number; total: number; businessLineId?: string | null;
+  currency?: string; exchangeRate?: number;
 }) {
-  const { byAccount, recoverable, nonRecoverable, total, businessLineId } = args;
+  const { byAccount, recoverable, nonRecoverable, total, businessLineId, currency, exchangeRate } = args;
   const dimensions = businessLineId ? { business_line_id: businessLineId } : undefined;
+  const fxMeta = currency ? { currency, exchangeRate: exchangeRate ?? 1 } : {};
   return [
     ...[...byAccount.entries()]
       .filter(([, amount]) => amount !== 0)
       .map(([accountCode, amount]) => ({
         accountCode, debit: amount, credit: 0,
-        description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase', dimensions,
+        description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase', dimensions, ...fxMeta,
       })),
     ...(recoverable > 0
-      ? [{ accountCode: '1150', debit: recoverable, credit: 0, description: 'VAT input tax (recoverable)', dimensions }]
+      ? [{ accountCode: '1150', debit: recoverable, credit: 0, description: 'VAT input tax (recoverable)', dimensions, ...fxMeta }]
       : []),
-    { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable', dimensions },
+    { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable', dimensions, ...fxMeta },
   ];
 }
 
@@ -575,7 +578,9 @@ export async function billRoutes(fastify: FastifyInstance) {
       const { subtotal, tax: tax_amount, recoverable, nonRecoverable } = built;
       const total = subtotal + tax_amount;
 
-      const billNumber = body.bill_number || `BILL-${Date.now()}`;
+      const billNumber = body.bill_number
+        || (body.supplier_id ? await getNextCustomerDocNumber(trx, user.tenant_id, body.supplier_id, 'bill', 'suppliers') : null)
+        || await getNextDocNumber(trx, user.tenant_id, 'bill');
       if (body.bill_number) {
         const clash = await trx.selectFrom('supplier_bills').select('id')
           .where('tenant_id', '=', user.tenant_id).where('bill_number', '=', billNumber)
@@ -649,8 +654,8 @@ export async function billRoutes(fastify: FastifyInstance) {
           sourceModule: 'AP',
           sourceId: bill.id,
           createdBy: user.sub,
-          lines: billJournalLines({ byAccount: built.byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id }),
-        });
+          lines: billJournalLines({ byAccount: built.byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id, currency: bill.currency }),
+        }, trx);
       }
 
       // Trigger accounting integration sync in background
@@ -715,8 +720,8 @@ export async function billRoutes(fastify: FastifyInstance) {
           entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
           description: `Supplier bill: ${bill.bill_number}`,
           reference: bill.bill_number, sourceModule: 'AP', sourceId: bill.id, createdBy: user.sub,
-          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id }),
-        });
+          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id, currency: bill.currency }),
+        }, trx);
       }
 
       const updated = await trx.updateTable('supplier_bills')
@@ -787,8 +792,8 @@ export async function billRoutes(fastify: FastifyInstance) {
           entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
           description: `Supplier bill: ${bill.bill_number}`,
           reference: bill.bill_number, sourceModule: 'AP', sourceId: bill.id, createdBy: user.sub,
-          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id }),
-        });
+          lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total, businessLineId: bill.business_line_id, currency: bill.currency }),
+        }, trx);
       }
       const posted = await trx.updateTable('supplier_bills')
         .set({ status: 'POSTED', updated_at: new Date() })
@@ -974,8 +979,8 @@ export async function billRoutes(fastify: FastifyInstance) {
               sourceModule: 'AP',
               sourceId: bill.id,
               createdBy: user.sub,
-              lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total: totalVal, businessLineId: bill.business_line_id }),
-            });
+              lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total: totalVal, businessLineId: bill.business_line_id, currency: bill.currency }),
+            }, trx);
           }
         }
       }
@@ -1146,9 +1151,19 @@ export async function billRoutes(fastify: FastifyInstance) {
         whtAmount = Math.min(remaining, Math.round(billTotalWht * (Number(amount) / billTotal) * 100) / 100);
       }
 
-      // Post payment to GL — 3 lines when WHT applies (net cash paid to the
-      // supplier is less than the AP being cleared, the difference now owed
-      // to the tax authority instead), otherwise the original 2-line entry.
+      // Post payment to GL — convert to reporting currency, same as invoice receipts.
+      const billPayFxRate = Number(bill.exchange_rate) || 1;
+      const billPayFx = { currency: bill.currency, exchangeRate: billPayFxRate };
+      const billPayDims = bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined;
+
+      const tsBillPay = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const sBillPay = tsBillPay ? (typeof tsBillPay.settings === 'string' ? JSON.parse(tsBillPay.settings) : tsBillPay.settings) : {};
+      const reportingCcyBillPay = (sBillPay?.company?.currency || 'TZS').toUpperCase();
+      const billCcyPay = bill.currency.toUpperCase();
+      const needsBillPayConversion = billCcyPay !== reportingCcyBillPay && billPayFxRate > 1;
+      const glBillPayAmt = needsBillPayConversion ? Math.round(Number(amount) * billPayFxRate * 100) / 100 : Number(amount);
+      const glBillWht = needsBillPayConversion ? Math.round(whtAmount * billPayFxRate * 100) / 100 : whtAmount;
+
       const journalEntryId = await GLService.post(user.tenant_id, {
         entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
         description: `Bill payment: ${bill.bill_number}`,
@@ -1156,13 +1171,13 @@ export async function billRoutes(fastify: FastifyInstance) {
         sourceModule: 'AP',
         sourceId: bill.id,
         createdBy: user.sub,
-        lines: whtAmount > 0.01 ? [
-          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
-          { accountCode: '1010', debit: 0, credit: Number(amount) - whtAmount, description: 'Cash paid (net of WHT)', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
-          { accountCode: '2300', debit: 0, credit: whtAmount, description: 'Withholding tax deducted', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
+        lines: glBillWht > 0.01 ? [
+          { accountCode: '2000', debit: glBillPayAmt, credit: 0, description: 'Clear AP', dimensions: billPayDims, ...billPayFx },
+          { accountCode: '1010', debit: 0, credit: glBillPayAmt - glBillWht, description: 'Cash paid (net of WHT)', dimensions: billPayDims, ...billPayFx },
+          { accountCode: '2300', debit: 0, credit: glBillWht, description: 'Withholding tax deducted', dimensions: billPayDims, ...billPayFx },
         ] : [
-          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
-          { accountCode: '1010', debit: 0, credit: Number(amount), description: 'Cash paid', dimensions: bill.business_line_id ? { business_line_id: bill.business_line_id } : undefined },
+          { accountCode: '2000', debit: glBillPayAmt, credit: 0, description: 'Clear AP', dimensions: billPayDims, ...billPayFx },
+          { accountCode: '1010', debit: 0, credit: glBillPayAmt, description: 'Cash paid', dimensions: billPayDims, ...billPayFx },
         ],
       }, trx);
 

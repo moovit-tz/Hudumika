@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useSessionDraft, clearSessionDrafts } from '../hooks/useSessionDraft.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Icon } from '../components/Icon.js';
 import { Spinner } from '../components/ui/spinner.js';
@@ -141,7 +142,7 @@ export function CreateShipmentPage() {
   const returnTo = searchParams.get('returnTo') || '';
   const presetCustomerId = searchParams.get('customer_id') || '';
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useSessionDraft('shipment:step', 1);
   
   const [customers, setCustomers] = useState<any[]>([]);
   const [officers, setOfficers] = useState<any[]>([]);
@@ -172,7 +173,7 @@ export function CreateShipmentPage() {
     { key: 'dest_port',   label: 'Destination port' },
   ];
 
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useSessionDraft('shipment:form', {
     customer_id: presetCustomerId,
     type: 'SEA_FCL' as ShipmentType,
     goods_desc: '',
@@ -214,8 +215,8 @@ export function CreateShipmentPage() {
   // of legally-required fields (mirrors DangerousGoodsPage.tsx's own form,
   // trimmed to what's essential inline) and, on submit, creates a draft
   // dg_declarations row linked to the new shipment.
-  const [natureOfGoods, setNatureOfGoods] = useState<'general' | 'dangerous'>('general');
-  const [dgForm, setDgForm] = useState({
+  const [natureOfGoods, setNatureOfGoods] = useSessionDraft<'general' | 'dangerous'>('shipment:nature', 'general');
+  const [dgForm, setDgForm] = useSessionDraft('shipment:dg', {
     transportMode: 'SEA' as 'AIR' | 'SEA' | 'ROAD',
     packagingType: '', numberOfPackages: '', netQuantity: '', quantityUnit: 'kg',
     shipperName: '', shipperAddress: '', emergencyContact: '',
@@ -568,6 +569,7 @@ export function CreateShipmentPage() {
         }
       }
 
+      clearSessionDrafts('shipment:');
       if (returnTo) {
         const sep = returnTo.includes('?') ? '&' : '?';
         navigate(`${returnTo}${sep}shipment_id=${shipmentId}&new=1`);

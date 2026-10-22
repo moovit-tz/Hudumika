@@ -7,7 +7,6 @@ import { Button } from '../components/ui/button.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { BackButton } from '../components/ui/BackButton.js';
 import { showAlert } from '../lib/alert.js';
 
 interface Trailer {
@@ -72,11 +71,12 @@ export const TrackingTrailerDetail: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px' }}>
-      <BackButton to="/tracking/trailers" label="Trailers" />
       <PageHeader
-        crumbs={['HuduFreight', 'Trailer']}
+        crumbs={['HuduFreight', 'Trailers', trailer.name]}
         titlePlain="Trailer"
-        titleEm={trailer.name}
+        titleEm="detail"
+        backTo="/tracking/trailers"
+        backLabel="Trailers"
         subtitle={trailer.registration_number || 'No registration on file'}
         actions={<Badge variant={STATUS_VARIANT[trailer.status] ?? 'gray'}>{trailer.status.replace(/_/g, ' ')}</Badge>}
       />

@@ -105,6 +105,7 @@ export interface CreateCustomerInput {
   country?: string;
   website?: string;
   send_invite?: boolean;
+  ref_code?: string;
 }
 
 // ── Record Expense Input ─────────────────────────────────────

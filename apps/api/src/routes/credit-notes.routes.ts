@@ -8,6 +8,7 @@ import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import { GLService } from '../services/gl.service.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
 import { invoiceGrandTotal, invoiceNetAndTax } from './invoices.routes.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 
 const lineSchema = z.object({
   name: z.string().max(300),
@@ -106,7 +107,7 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const rows = await sql`
-        SELECT cn.status,
+        SELECT cn.status, cn.currency,
                count(*)::text AS cnt,
                coalesce(sum(
                  (SELECT coalesce(sum(l.rate * l.qty * (1 + coalesce(l.tax_pct,0)/100)), 0)
@@ -115,16 +116,19 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
                count(*) filter (where cn.original_invoice_id is not null)::text AS linked
         FROM credit_notes cn
         WHERE cn.tenant_id = ${user.tenant_id}
-        GROUP BY cn.status
+        GROUP BY cn.status, cn.currency
       `.execute(trx);
       const byStatus: Record<string, { count: number; amount: number }> = {};
-      let total = 0, totalCredited = 0, linkedCount = 0;
+      const creditedByCurrency: Record<string, number> = {};
+      let total = 0, linkedCount = 0;
       for (const r of rows.rows as any[]) {
         const cnt = Number(r.cnt);
         const amt = Number(r.total_amount);
-        byStatus[r.status] = { count: cnt, amount: amt };
+        const status = r.status as string;
+        const ccy = (r.currency as string) || 'TZS';
+        byStatus[status] = { count: (byStatus[status]?.count ?? 0) + cnt, amount: (byStatus[status]?.amount ?? 0) + amt };
         total += cnt;
-        if (r.status === 'POSTED') totalCredited += amt;
+        if (status === 'POSTED') creditedByCurrency[ccy] = (creditedByCurrency[ccy] ?? 0) + amt;
         linkedCount += Number(r.linked);
       }
       return {
@@ -132,7 +136,8 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
         draftCount: byStatus['DRAFT']?.count ?? 0,
         postedCount: byStatus['POSTED']?.count ?? 0,
         voidCount: byStatus['VOID']?.count ?? 0,
-        totalCredited,
+        creditedByCurrency,
+        totalCredited: Object.values(creditedByCurrency).reduce((s, v) => s + v, 0),
         linkedCount,
         voidRate: total ? Math.round(((byStatus['VOID']?.count ?? 0) / total) * 100) : 0,
       };
@@ -166,9 +171,19 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = createSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      let sourceInvoice: { id: string; customer_id: string | null; currency: string; exchange_rate: unknown; status: string } | undefined;
       if (body.original_invoice_id) {
-        const inv = await trx.selectFrom('sales_invoices').select('id').where('id', '=', body.original_invoice_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-        if (!inv) return reply.status(400).send({ error: 'The linked invoice was not found.' });
+        sourceInvoice = await trx.selectFrom('sales_invoices')
+          .select(['id', 'customer_id', 'currency', 'exchange_rate', 'status'])
+          .where('id', '=', body.original_invoice_id)
+          .where('tenant_id', '=', user.tenant_id)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!sourceInvoice) return reply.status(400).send({ error: 'The linked invoice was not found.' });
+        if (sourceInvoice.status === 'Draft' || sourceInvoice.status === 'Void')
+          return reply.status(400).send({ error: `Cannot issue a credit note against a ${sourceInvoice.status.toLowerCase()} invoice.` });
+        if (body.customer_id && sourceInvoice.customer_id && body.customer_id !== sourceInvoice.customer_id)
+          return reply.status(400).send({ error: 'Credit note customer must match the source invoice customer.' });
       }
 
       const codeIds = [...new Set(body.items.map(it => it.tax_code_id).filter(Boolean))] as string[];
@@ -186,12 +201,17 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       let currency: string;
       if (body.currency) {
         currency = body.currency;
+      } else if (sourceInvoice) {
+        currency = sourceInvoice.currency;
       } else {
         const ts = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         const s = ts ? (typeof ts.settings === 'string' ? JSON.parse(ts.settings) : ts.settings) : {};
         currency = s?.company?.currency || 'TZS';
       }
-      const exchangeRate = body.exchange_rate ?? 1;
+      if (sourceInvoice && currency.toUpperCase() !== sourceInvoice.currency.toUpperCase())
+        return reply.status(400).send({ error: `Credit note currency (${currency}) must match the source invoice currency (${sourceInvoice.currency}).` });
+
+      const exchangeRate = body.exchange_rate ?? (sourceInvoice ? Number(sourceInvoice.exchange_rate) || 1 : 1);
       const lines = body.items.map((it, i) => ({
         name: it.name,
         unit: it.unit || 'PER BIL',
@@ -207,15 +227,33 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       const grandTotal = invoiceGrandTotal(lines, currency, exchangeRate);
       const { net, tax } = invoiceNetAndTax(lines, currency, exchangeRate);
 
-      // Same year-scoped sequential shape as GLService.post()'s own entry
-      // numbering — credit notes don't share invoice_sequences (a closed
-      // DocType union that doesn't include this document type), so this
-      // is a real, tenant-scoped count, not a timestamp.
-      const year = new Date().getFullYear();
-      const countResult = await trx.selectFrom('credit_notes').select(trx.fn.count('id').as('n'))
-        .where('tenant_id', '=', user.tenant_id).where('credit_note_number', 'like', `CN-${year}-%`).executeTakeFirst();
-      const seq = String(Number(countResult?.n ?? 0) + 1).padStart(4, '0');
-      const creditNoteNumber = `CN-${year}-${seq}`;
+      // Enforce cumulative creditable limit: total of all non-void credit notes
+      // against this invoice must not exceed the invoice's grand total.
+      if (sourceInvoice) {
+        const invLines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', sourceInvoice.id).execute();
+        const invFx = Number(sourceInvoice.exchange_rate) || 1;
+        const invTotal = invoiceGrandTotal(invLines, sourceInvoice.currency, invFx);
+
+        const existingCredits = await trx.selectFrom('credit_notes as cn')
+          .innerJoin('credit_note_lines as cl', 'cl.credit_note_id', 'cn.id')
+          .select(({ fn }) => fn.sum(sql<number>`cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)`).as('credited'))
+          .where('cn.original_invoice_id', '=', sourceInvoice.id)
+          .where('cn.tenant_id', '=', user.tenant_id)
+          .where('cn.status', '!=', 'VOID')
+          .executeTakeFirst();
+        const alreadyCredited = Number(existingCredits?.credited || 0);
+
+        if (alreadyCredited + grandTotal > invTotal + 0.01) {
+          return reply.status(400).send({
+            error: `This credit note (${grandTotal} ${currency}) would exceed the invoice total (${invTotal} ${currency}). Already credited: ${Math.round(alreadyCredited * 100) / 100}.`,
+          });
+        }
+      }
+
+      const creditNoteNumber = (body.customer_id
+          ? await getNextCustomerDocNumber(trx, user.tenant_id, body.customer_id, 'credit_note')
+          : null)
+        || await getNextDocNumber(trx, user.tenant_id, 'credit_note');
 
       const cn = await trx.insertInto('credit_notes').values({
         tenant_id: user.tenant_id,
@@ -235,6 +273,15 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       await trx.insertInto('credit_note_lines').values(lines.map(l => ({ ...l, credit_note_id: cn.id }))).execute();
 
       if (grandTotal > 0) {
+        const cnFxMeta = { currency, exchangeRate };
+        const tsCn = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        const sCn = tsCn ? (typeof tsCn.settings === 'string' ? JSON.parse(tsCn.settings) : tsCn.settings) : {};
+        const reportingCcyCn = (sCn?.company?.currency || 'TZS').toUpperCase();
+        const needsCnConversion = currency.toUpperCase() !== reportingCcyCn && exchangeRate > 1;
+        const glCnGrand = needsCnConversion ? Math.round(grandTotal * exchangeRate * 100) / 100 : grandTotal;
+        const glCnNet   = needsCnConversion ? Math.round(net * exchangeRate * 100) / 100 : net;
+        const glCnTax   = needsCnConversion ? Math.round(tax * exchangeRate * 100) / 100 : tax;
+
         await GLService.post(user.tenant_id, {
           entryDate: cn.credit_date ?? new Date().toISOString().slice(0, 10),
           description: `Credit note: ${cn.credit_note_number}`,
@@ -243,11 +290,11 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
           sourceId: cn.id,
           createdBy: user.sub,
           lines: [
-            { accountCode: '4000', debit: net, credit: 0, description: 'Revenue reversed' },
-            ...(tax > 0 ? [{ accountCode: '2200', debit: tax, credit: 0, description: 'VAT output reversed' }] : []),
-            { accountCode: '1100', debit: 0, credit: grandTotal, description: 'Accounts receivable reduced' },
+            { accountCode: '4000', debit: glCnNet, credit: 0, description: 'Revenue reversed', ...cnFxMeta },
+            ...(glCnTax > 0 ? [{ accountCode: '2200', debit: glCnTax, credit: 0, description: 'VAT output reversed', ...cnFxMeta }] : []),
+            { accountCode: '1100', debit: 0, credit: glCnGrand, description: 'Accounts receivable reduced', ...cnFxMeta },
           ],
-        });
+        }, trx);
       }
 
       if (body.original_invoice_id) {
@@ -270,7 +317,7 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       if (!cn) return reply.status(404).send({ error: 'Credit note not found' });
       if (cn.status === 'VOID') return reply.status(409).send({ error: 'This credit note is already void.' });
 
-      await GLService.reverseBySource(user.tenant_id, 'AR', cn.id, user.sub, `Credit note voided: ${reason}`);
+      await GLService.reverseBySource(user.tenant_id, 'AR', cn.id, user.sub, `Credit note voided: ${reason}`, trx);
       await trx.updateTable('credit_notes').set({ status: 'VOID', notes: `${cn.notes ? cn.notes + ' | ' : ''}Voided: ${reason}`, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
       return { success: true };

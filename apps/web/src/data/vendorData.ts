@@ -22,6 +22,7 @@ export interface Vendor {
   bankAccount: string;
   createdAt: string;
   notes: string;
+  refCode: string;
 }
 
 export const VENDOR_CATEGORY_LABEL: Record<VendorCategory, string> = {

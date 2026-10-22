@@ -150,6 +150,19 @@ function CargoBox3D({
 }) {
   const [hovered, setHovered] = useState(false);
 
+  const edgesGeometry = useMemo(() => {
+    const box = new THREE.BoxGeometry(...dims);
+    const edges = new THREE.EdgesGeometry(box);
+    box.dispose();
+    return edges;
+  }, [dims[0], dims[1], dims[2]]);
+
+  useEffect(() => {
+    return () => {
+      edgesGeometry.dispose();
+    };
+  }, [edgesGeometry]);
+
   return (
     <group position={position}>
       {/* Crate Mesh */}
@@ -169,8 +182,7 @@ function CargoBox3D({
       </mesh>
 
       {/* Wireframe Outline */}
-      <lineSegments>
-        <edgesGeometry args={[new THREE.BoxGeometry(...dims)]} />
+      <lineSegments geometry={edgesGeometry}>
         <lineBasicMaterial color={selected ? '#ffffff' : hovered ? '#93c5fd' : '#1e293b'} linewidth={1.5} />
       </lineSegments>
 

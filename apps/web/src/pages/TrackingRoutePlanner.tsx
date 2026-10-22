@@ -1,19 +1,18 @@
 import './FreightOperations.css';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { Input } from '../components/ui/input.js';
 import { Banner } from '../components/ui/alert.js';
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import { Icon } from '../components/Icon.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { MapVariant } from '../components/MapTileLayer.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '../components/ui/dropdown-menu.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { apiFetch } from '../lib/api.js';
@@ -59,9 +58,7 @@ export const TrackingRoutePlanner: React.FC = () => {
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'fastest' | 'regular'>('fastest');
-  
-  // Destination search text state (mock input for UI matching)
+  // Destination search text state
   const [destinationStr, setDestinationStr] = useState('');
   const [addresses, setAddresses] = useState<{display_name:string;lat:string;lon:string}[]>([]);
   const [searching, setSearching] = useState(false);
@@ -214,10 +211,10 @@ export const TrackingRoutePlanner: React.FC = () => {
             </div>
             <Icon name="info" size={14} style={{ color: 'var(--ink3)' }} />
           </div>
-          <div style={{ background: 'var(--bg)', padding: '8px 12px', borderRadius: 'var(--r)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <div className="rp-widget-cargo-type">
             <Icon name="package" size={14} color="var(--blue)" /> {selectedVehicle.type === 'REFRIGERATED' ? 'Refrigerated' : 'General Cargo'}
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--ink3)', marginBottom: '8px' }}>Cargo Weight</div>
+          <div className="rp-widget-label">Cargo Weight</div>
           <div className="rp-widget-val-row">
             <span className="rp-widget-val">{(selectedVehicle as any).current_trip?.cargo_weight_kg == null ? 'Not recorded' : `${Number((selectedVehicle as any).current_trip.cargo_weight_kg).toLocaleString()} kg`}</span>
             <span className="rp-widget-val-sub">{selectedVehicle.current_load_pct ?? 0}% of capacity</span>
@@ -249,7 +246,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                 <div className="rp-driver-info">
                   <div className="rp-driver-name">
                     {selectedVehicle.driver_name || 'Unassigned Driver'}
-                    <span className="rp-driver-badge">Driver</span>
+                    <Badge variant="info">Driver</Badge>
                   </div>
                   <div className="rp-driver-desc">Assignment shown; dispatch readiness checked when booking</div>
                 </div>
@@ -279,11 +276,11 @@ export const TrackingRoutePlanner: React.FC = () => {
           {addresses.length > 0 && <Combobox value="" placeholder="Choose a matching address" options={addresses.map((address,index) => ({value:String(index),label:address.display_name}))} onChange={value => { const address=addresses[Number(value)]; addWaypoint([Number(address.lat),Number(address.lon)]); setAddresses([]); setDestinationStr(''); }} />}
           <p className="freight-note">Select two or more stops by address or map. Road estimates do not include live traffic or truck restrictions.</p>
 
-          <Button className="rp-btn-generate" onClick={planRoute} disabled={waypoints.length < 2 || loading} data-ui-native-button="">
+          <Button onClick={planRoute} disabled={waypoints.length < 2 || loading} className="w-full" style={{ marginTop: '16px' }}>
             <Icon name="map" size={16} /> {loading ? 'Planning…' : 'Plan route'}
           </Button>
           
-          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'var(--red-l)', color: 'var(--red)', fontSize: '12px', borderRadius: 'var(--r)' }}>{error}</div>}
+          {error && <div style={{ marginTop: '12px' }}><Banner variant="error">{error}</Banner></div>}
 
           {/* Results & Timeline Area */}
           {(route || waypoints.length > 0) && (
@@ -294,7 +291,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                 <>
                   <div className="rp-travel-est">travel estimate - {Math.floor(route.durationMin / 60)} Hours {Math.floor(route.durationMin % 60)} minutes ({route.distanceKm.toFixed(1)} km)</div>
 
-                  <Button disabled={loading || !!savedTripId || !selectedVehicleId} onClick={bookTrip}>{savedTripId ? 'Trip booked' : 'Book trip'}</Button>
+                  <Button disabled={loading || !!savedTripId || !selectedVehicleId} onClick={bookTrip} className="w-full">{savedTripId ? 'Trip booked' : 'Book trip'}</Button>
                   {savedTripId && <Banner variant="success">Trip saved. Review the assignment and dispatch from <Link to="/tracking/shipments">Trips</Link>.</Banner>}
 
                 </>
@@ -311,11 +308,11 @@ export const TrackingRoutePlanner: React.FC = () => {
                     <div className={`rp-timeline-marker ${markerClass}`}>{idx + 1}</div>
                     <div className="rp-timeline-content">
                       <div className="rp-tl-type">
-                        <div className="rp-tl-type-badge">
+                        <Badge variant={idx === 0 ? 'success' : idx === route.waypoints.length - 1 ? 'brand' : 'info'}>
                           <Icon name={idx === 0 ? "play" : idx === route.waypoints.length - 1 ? "checkCircle" : "mapPin"} size={12} />
                           {idx === 0 ? "Start" : idx === route.waypoints.length - 1 ? "Destination" : "Delivery Stop"}
-                        </div>
-                        <span style={{ color: 'var(--ink3)' }}>{idx === 0 ? 'Start' : idx === route.waypoints.length - 1 ? 'Termination' : 'Stop'}</span>
+                        </Badge>
+                        <span>{idx === 0 ? 'Start' : idx === route.waypoints.length - 1 ? 'Termination' : 'Stop'}</span>
                       </div>
                       <div className="rp-tl-title">{wp.name}</div>
                       <div className="rp-tl-address">{wp.location[0].toFixed(4)}, {wp.location[1].toFixed(4)}</div>
@@ -336,7 +333,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                 ))}
               </div>
 
-              <Button className="rp-btn-clear" onClick={clear} data-ui-native-button="">Clear route</Button>
+              <Button variant="outline" onClick={clear} className="w-full" style={{ marginTop: '8px' }}>Clear route</Button>
             </div>
           )}
         </div>

@@ -1662,6 +1662,7 @@ export const CustomerDetailPage: React.FC = () => {
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
             <ViewField label="Legal Company Name" value={sel.name} />
+            <ViewField label="Reference Code" value={sel.ref_code} mono />
             <ViewField label="Tax Identification (TIN)" value={sel.tax_id} mono />
             <ViewField label="VRN / VAT Number" value={sel.vrn_number || sel.vat_number} mono />
             <ViewField label="Account Status" value={sel.status || sel.account_status} />
@@ -1698,6 +1699,17 @@ export const CustomerDetailPage: React.FC = () => {
                   value={form.name || ''}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Reference Code</label>
+                <input
+                  className="input-field"
+                  style={{ width: '100%', textTransform: 'uppercase', fontFamily: 'monospace' }}
+                  placeholder="e.g. ALK"
+                  value={form.ref_code || ''}
+                  onChange={e => setForm(f => ({ ...f, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))}
+                />
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Used in invoice numbers: INV-{form.ref_code || '???'}/0001</span>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Primary Phone</label>

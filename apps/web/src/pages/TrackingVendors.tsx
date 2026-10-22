@@ -290,7 +290,7 @@ export const TrackingVendors: React.FC = () => {
       {/* Page Header */}
       <PageHeader
         crumbs={['HuduFreight', 'Fleet Operations', 'Vendors']}
-        titlePlain="Fleet service &"
+        titlePlain="Fleet service"
         titleEm="vendors"
         subtitle="Maintenance, spares, fuel, leasing, hire, finance and insurance providers."
         actions={

@@ -1,13 +1,29 @@
-/* TrackingVehicleDetail.css - Mobile Responsive & Dark Mode Styles */
+/* TrackingVehicleDetail.css - Premium Fleet Vehicle Dossier & Mobile Responsive Styles */
 
 .vehicle-detail-page {
-  padding-bottom: 36px;
+  padding-bottom: 48px;
   color: var(--ink);
   min-width: 0;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
-/* Ensure workspace never overflows horizontally on mobile */
+.vehicle-detail-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vehicle-detail-header-actions > button { padding-inline: 12px; white-space: nowrap; }
+.vdetail-telemetry-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; font-size: 12px; color: var(--ink2); }
+.vdetail-telemetry-meta > span { min-width: 0; overflow-wrap: anywhere; }
+.vehicle-detail-page .page-header-title { overflow-wrap: anywhere; }
+.vehicle-detail-page .page-header-crumb { flex-wrap: wrap; }
+.vehicle-detail-page .section-card { min-width: 0; max-width: 100%; }
+.vdetail-dossier-main > *, .vdetail-dossier-kpis > * { min-width: 0; }
+.vdetail-driver-chip { flex-wrap: wrap; overflow-wrap: anywhere; }
+.vdetail-kpi-value, .vdetail-kpi-sub, .vdetail-field-val { overflow-wrap: anywhere; }
+.vdetail-issue-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.vdetail-issue-row > div { min-width: 0; overflow-wrap: anywhere; }
+.vehicle-record-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.vehicle-record-dialog form > div:last-child { flex-wrap: wrap; }
+.vehicle-record-dialog form > div:last-child > button { flex: 1 1 auto; padding-inline: 12px; }
+
 .freight-workspace {
   min-width: 0 !important;
   max-width: 100% !important;
@@ -15,167 +31,372 @@
   box-sizing: border-box !important;
 }
 
-/* Hero Section */
-.vdetail-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 14px;
-  min-width: 0;
-  width: 100%;
-}
-
-.vdetail-hero-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-  flex: 1 1 320px;
-}
-
-.vdetail-hero-avatar {
-  width: 88px;
-  height: 64px;
-  border-radius: var(--r);
-  background: var(--card-sunken);
+/* =========================================================================
+   VEHICLE DOSSIER HERO CARD (UX & UI Lead Redesign)
+========================================================================= */
+.vdetail-dossier-card {
+  background: var(--white);
   border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--elev-sm);
+  padding: 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .vdetail-dossier-card {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+.vdetail-dossier-main {
+  display: grid;
+  grid-template-columns: minmax(160px, 200px) minmax(0, 1fr) minmax(220px, 260px);
+  gap: 24px;
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .vdetail-dossier-main {
+    grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  }
+  .vdetail-dossier-kpis {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .vdetail-dossier-main {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .vdetail-dossier-kpis {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* Vehicle Image Showcase Box */
+.vdetail-image-box {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-sm);
+  background: var(--card-sunken, #f8fafc);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-  padding: 4px;
-  box-shadow: var(--elev-sm);
-  position: relative;
+  padding: 8px;
 }
 
-.vdetail-hero-meta {
+[data-theme="dark"] .vdetail-image-box {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.vdetail-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.25s ease;
+}
+
+.vdetail-image-box:hover img {
+  transform: scale(1.04);
+}
+
+/* Authentic Transport License Plate Badge */
+.vdetail-plate-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  padding: 2px 8px 2px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  user-select: all;
+}
+
+.vdetail-plate-flag {
+  background: var(--teal-l);
+  color: var(--teal);
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 5px;
+  border-radius: 2px 0 0 2px;
+  margin-right: 6px;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Vehicle Identity Column */
+.vdetail-identity-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
-  flex: 1;
 }
 
-.vdetail-hero-title-row {
+.vdetail-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.vdetail-hero-name {
-  font-size: 22px;
+.vdetail-tagline {
+  font-size: 13px;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vdetail-meta-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.vdetail-driver-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-sunken, #f1f5f9);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+[data-theme="dark"] .vdetail-driver-chip {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.vdetail-driver-chip strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Dossier KPI Metric Cards (Right Side) */
+.vdetail-dossier-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.vdetail-kpi-card {
+  background: var(--card-sunken, #f8fafc);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+[data-theme="dark"] .vdetail-kpi-card {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.vdetail-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vdetail-kpi-value {
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
-  word-break: break-word;
 }
 
-.vdetail-category-pill {
+.vdetail-kpi-sub {
   font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: var(--r-sm);
-  background: var(--teal-l);
-  color: var(--teal);
-}
-
-.vdetail-hero-specs {
-  font-size: 13px;
   color: var(--ink3);
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
-.vdetail-hero-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  flex-shrink: 0;
+/* Quick Action Bar under Dossier */
+
+[data-theme="dark"] .vdetail-device-tag {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: var(--border);
 }
 
-/* Tabs: smooth horizontal swipe on mobile */
+/* =========================================================================
+   SCROLLABLE SEGMENTED TABS
+========================================================================= */
 .vdetail-tabs-root {
-  min-width: 0 !important;
-  max-width: 100% !important;
-  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
+  margin-bottom: 20px;
 }
 
 .vehicle-detail-tabs-list {
   display: flex !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  scrollbar-width: thin !important;
-  scrollbar-color: var(--border) transparent !important;
+  scrollbar-width: none !important;
   max-width: 100% !important;
   width: 100% !important;
   min-width: 0 !important;
   flex-wrap: nowrap !important;
   box-sizing: border-box !important;
-  padding: 4px 4px 6px !important;
-  margin-bottom: 20px !important;
+  padding: 4px !important;
+  gap: 4px !important;
 }
 
 .vehicle-detail-tabs-list::-webkit-scrollbar {
-  height: 4px;
+  display: none;
 }
 
-.vehicle-detail-tabs-list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
-
-/* Overview grid columns */
+/* =========================================================================
+   OVERVIEW MODULAR GRID
+========================================================================= */
 .freight-overview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 18px;
   min-width: 0;
   width: 100%;
   max-width: 100%;
 }
 
-.freight-overview-grid > * {
-  min-width: 0;
-  max-width: 100%;
+@media (max-width: 960px) {
+  .freight-overview-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
 }
 
-/* Field Rows in All Fields Details */
+/* Specification Rows */
 .vdetail-field-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 8px 0;
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   font-size: 13px;
   gap: 12px;
-  min-width: 0;
+}
+
+.vdetail-field-row:last-child {
+  border-bottom: none;
 }
 
 .vdetail-field-key {
   color: var(--ink3);
-  min-width: 95px;
-  flex-shrink: 0;
-  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 120px;
 }
 
 .vdetail-field-val {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
   text-align: right;
   word-break: break-word;
-  min-width: 0;
 }
 
-/* Connected Shipment Job Links */
+.vdetail-field-row.is-editing {
+  align-items: center;
+}
+
+.vdetail-field-row.is-editing input,
+.vdetail-field-row.is-editing [data-slot="select-trigger"] {
+  max-width: 240px;
+}
+
+/* Stat labels & boxes */
+.vdetail-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.vdetail-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.vdetail-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.vdetail-stat-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.vdetail-stat-box {
+  background: var(--card-sunken, #f8fafc);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+[data-theme="dark"] .vdetail-stat-box {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.vdetail-stat-box-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.vdetail-stat-box-label {
+  font-size: 10.5px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Load capacity progress track */
+.vdetail-progress-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.vdetail-progress-fill {
+  height: 100%;
+  background: var(--teal);
+}
+
+/* Connected Applications Grid */
 .vdetail-connected-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 10px;
-  width: 100%;
 }
 
 .vdetail-connected-item {
@@ -184,25 +405,23 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: var(--r-sm);
-  background: var(--bg);
+  background: var(--card-sunken, #f8fafc);
   border: 1px solid var(--border);
   color: var(--ink);
-  text-decoration: none;
   font-size: 12px;
   font-weight: 600;
+  text-decoration: none;
   transition: all 0.15s ease;
-  min-width: 0;
+}
+
+[data-theme="dark"] .vdetail-connected-item {
+  background: rgba(15, 23, 42, 0.5);
 }
 
 .vdetail-connected-item:hover {
-  background: var(--hover-bg);
+  background: var(--teal-l);
   border-color: var(--teal);
-}
-
-.vdetail-connected-item span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--teal);
 }
 
 /* 3D Schematics View Stage */
@@ -211,89 +430,130 @@
   border-radius: var(--r);
   overflow: hidden;
   position: relative;
-}
-
-/* Document cards */
-.vehicle-detail-doc-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: var(--r-sm);
-  background: var(--bg);
+  background: var(--card-sunken);
   border: 1px solid var(--border);
-  font-size: 12px;
-  transition: all 0.15s ease;
 }
 
-.vehicle-detail-doc-card:hover {
-  border-color: var(--teal);
+/* Tables */
+.vdetail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
-/* Responsive Breakpoints */
-@media (max-width: 900px) {
-  .freight-overview-grid {
-    grid-template-columns: 1fr !important;
-    gap: 14px;
-  }
+.vdetail-table th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  text-align: left;
 }
 
+.vdetail-table td {
+  padding: 10px 12px;
+}
+
+.vdetail-table tbody tr {
+  border-top: 1px solid var(--border);
+}
+
+.vdetail-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--ink3);
+  font-size: 13px;
+}
+
+/* Mobile Responsiveness for Small Viewports (Down to 375px) */
+/* Mobile Responsiveness for Small Viewports (Down to 375px) */
 @media (max-width: 640px) {
-  .vdetail-hero {
+  .vehicle-detail-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .vehicle-detail-header-actions > * {
+    flex: 1 1 140px;
+    justify-content: center;
+    text-align: center;
+  }
+  .vdetail-dossier-card {
+    padding: 14px;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .vdetail-image-box {
+    max-height: 160px;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+  }
+  .vdetail-title-row {
+    gap: 6px;
+  }
+  .vdetail-tagline {
+    font-size: 12px;
+    gap: 4px;
+  }
+  .vdetail-meta-pills {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 14px;
-  }
-  .vdetail-hero-left {
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .vdetail-hero-avatar {
-    width: 72px;
-    height: 54px;
-  }
-  .vdetail-hero-name {
-    font-size: 19px !important;
-  }
-  .vdetail-hero-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .vdetail-hero-actions > * {
+    gap: 6px;
     width: 100%;
   }
-  .vdetail-hero-actions button,
-  .vdetail-hero-actions a {
+  .vdetail-driver-chip {
     width: 100%;
-    justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-sizing: border-box;
+    font-size: 11.5px;
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
   }
-  .vdetail-3d-stage {
-    height: 320px;
+  .vdetail-dossier-kpis {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100%;
   }
-}
-
-@media (max-width: 480px) {
+  .vdetail-kpi-card {
+    padding: 8px 10px;
+  }
+  .vdetail-kpi-label {
+    font-size: 9px;
+  }
+  .vdetail-kpi-value {
+    font-size: 13.5px;
+  }
+  .vdetail-kpi-sub {
+    font-size: 10px;
+  }
   .vdetail-field-row.is-editing {
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
-  }
-  .vdetail-field-row.is-editing .vdetail-field-key {
-    min-width: 0;
-    font-size: 11.5px;
   }
   .vdetail-field-row.is-editing input,
   .vdetail-field-row.is-editing [data-slot="select-trigger"] {
     max-width: 100% !important;
     width: 100% !important;
   }
-  .vdetail-connected-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+  .vdetail-3d-stage {
+    height: 340px;
   }
-  .vdetail-hero-actions {
-    grid-template-columns: 1fr;
+}
+
+@media (max-width: 400px) {
+  .vdetail-plate-badge {
+    font-size: 12px;
+    padding: 2px 6px 2px 0;
+  }
+  .vdetail-plate-flag {
+    font-size: 8px;
+    padding: 2px 4px;
+    margin-right: 4px;
   }
 }

@@ -12,6 +12,7 @@ import { DriverChatPanel } from '../components/DriverChatPanel.js';
 import './TrackingDrivers.css';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
 
@@ -100,44 +101,36 @@ export const TrackingDrivers: React.FC = () => {
     {
       title: 'TOTAL DRIVERS',
       value: String(dTotal),
-      sub1Label: 'REGISTERED FLEET',
-      sub1Value: `${dTotal} Drivers Registered`,
-      sub2Label: 'ASSIGNED VEHICLES',
-      sub2Value: `${dAssigned} Active Trucks`,
+      sub1Label: 'ASSIGNED VEHICLES',
+      sub1Value: `${dAssigned} Active Trucks`,
       barHighlight: 'var(--teal)',
       icon: 'user',
       loading: !driverStats,
     },
     {
-      title: 'AVAILABLE NOW',
+      title: 'AVAILABLE',
       value: String(dAvailable),
-      sub1Label: 'ACTIVE RECORDS',
-      sub1Value: `${dAvailable} Ready for Assignment`,
-      sub2Label: 'STANDBY RATE',
-      sub2Value: dTotal > 0 ? `${Math.round((dAvailable / dTotal) * 100)}% Available` : '100%',
-      barHighlight: 'var(--green)',
+      sub1Label: 'STANDBY RATE',
+      sub1Value: dTotal > 0 ? `${Math.round((dAvailable / dTotal) * 100)}% Available` : '0%',
+      barHighlight: 'var(--teal)',
       icon: 'checkCircle',
       loading: !driverStats,
     },
     {
-      title: 'ON ROUTE / DISPATCHED',
+      title: 'ON ROUTE',
       value: String(dOnRoute),
-      sub1Label: 'LIVE TRANSIT',
-      sub1Value: `${dOnRoute} Active Trips`,
-      sub2Label: 'FLEET UTILIZATION',
-      sub2Value: dTotal > 0 ? `${Math.round((dOnRoute / dTotal) * 100)}% On Route` : '0%',
-      barHighlight: 'var(--blue)',
+      sub1Label: 'FLEET UTILIZATION',
+      sub1Value: dTotal > 0 ? `${Math.round((dOnRoute / dTotal) * 100)}% On Route` : '0%',
+      barHighlight: 'var(--teal)',
       icon: 'truck',
       loading: !driverStats,
     },
     {
-      title: 'OFF DUTY / REST',
+      title: 'OFF DUTY',
       value: String(dOffDuty),
       sub1Label: 'SHIFT STATUS',
       sub1Value: `${dOffDuty} Off Shift`,
-      sub2Label: 'COMPLIANCE',
-      sub2Value: 'Schedule and licence checks required',
-      barHighlight: 'var(--gold)',
+      barHighlight: 'var(--teal)',
       icon: 'clock',
       loading: !driverStats,
     },
@@ -215,7 +208,6 @@ export const TrackingDrivers: React.FC = () => {
             <div className="drv-grid">
               {filteredDrivers.map(d => {
                 const isSelected = selectedDriver?.id === d.id;
-                const statusClass = d.status?.toLowerCase().replace(/\s+/g, '-') || 'available';
                 return (
                   <div
                     key={d.id}
@@ -228,10 +220,9 @@ export const TrackingDrivers: React.FC = () => {
                     <div className="drv-card-top">
                       <div className="drv-card-header">
                         <PersonAvatar userId={d.id} kind="drivers" name={d.name} size={48} style={{ border: '2px solid var(--white)', boxShadow: 'var(--elev-sm)' }} />
-                        <span className={`drv-status drv-status--${statusClass}`}>
-                          <span className="drv-status-dot"></span>
+                        <Badge variant={['Off Duty', 'INACTIVE'].includes(d.status) ? 'gray' : 'brand'}>
                           {d.status || 'Available'}
-                        </span>
+                        </Badge>
                       </div>
                       
                       <div className="drv-name">{d.name}</div>
@@ -302,7 +293,6 @@ export const TrackingDrivers: React.FC = () => {
                 <tbody>
                   {filteredDrivers.map(d => {
                     const isSelected = selectedDriver?.id === d.id;
-                    const statusClass = d.status?.toLowerCase().replace(/\s+/g, '-') || 'available';
                     return (
                       <tr
                         key={d.id}
@@ -318,10 +308,9 @@ export const TrackingDrivers: React.FC = () => {
                         </td>
                         <td style={{ fontFamily: 'var(--font)', color: 'var(--ink2)', fontWeight: 600 }}>{d.custom_id}</td>
                         <td>
-                          <span className={`drv-status drv-status--${statusClass}`}>
-                            <span className="drv-status-dot"></span>
+                          <Badge variant={['Off Duty', 'INACTIVE'].includes(d.status) ? 'gray' : 'brand'}>
                             {d.status || 'Available'}
-                          </span>
+                          </Badge>
                         </td>
                         <td style={{ fontSize: 13, color: 'var(--ink)' }}>{d.phone || '—'}</td>
                         <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{d.email || '—'}</td>
@@ -410,7 +399,7 @@ export const TrackingDrivers: React.FC = () => {
                   </div>
                 </div>
                 <div className="drv-trk-status-col">
-                  <span className="drv-status drv-status--on-route">{metrics.transit_status}</span>
+                  <Badge variant="brand">{metrics.transit_status}</Badge>
                   {metrics.tracking_id && <div className="drv-trk-progress-text">{metrics.transit_progress_pct == null ? 'No schedule estimate' : `${metrics.transit_progress_pct}% scheduled time elapsed`}</div>}
                 </div>
               </div>
@@ -460,7 +449,7 @@ export const TrackingDrivers: React.FC = () => {
             <div className="drv-sb-section">
               <div className="drv-sb-sec-header">
                 <div className="drv-sb-sec-title">On-Time Delivery Rate</div>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--green)' }}>{metrics.on_time_rate == null ? 'No completed trips' : `${metrics.on_time_rate}%`}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--teal)' }}>{metrics.on_time_rate == null ? 'No completed trips' : `${metrics.on_time_rate}%`}</span>
               </div>
               <div className="drv-perf-bar-bg">
                 <div className="drv-perf-bar-fill" style={{ width: `${metrics.on_time_rate ?? 0}%` }}></div>

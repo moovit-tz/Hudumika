@@ -126,7 +126,8 @@ export const TrackingNewVehicle: React.FC = () => {
         title="Add a vehicle"
         subtitle="Register a vehicle and configure its fleet operating details."
         variant="create"
-        onBack={() => navigate(-1)}
+        backTo="/tracking/vehicles"
+        backLabel="Vehicles"
         actions={<div style={{ display: 'flex', gap: 12 }}>
           <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             + Multiple Vehicles

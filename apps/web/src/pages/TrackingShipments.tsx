@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -8,71 +8,672 @@ import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { ResponsiveTable } from '../components/ui/responsive-table.js';
-import { SectionLoading } from '../components/ui/spinner.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Icon } from '../components/Icon.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
+import { MetricsRow } from '../components/MetricCard.js';
+import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { PaginationBar } from '../components/PaginationBar.js';
-import './FreightOperations.css';
+import { Tip } from '../components/ui/tooltip.js';
+import { getFleetVehiclePhoto } from './TrackingVehicles.js';
+import './TrackingShipments.css';
 
 interface Trip {
-  id: string; vehicle_id: string; driver_id: string | null; customer_id: string | null;
-  origin: string | null; destination: string | null; scheduled_start: string | null; scheduled_end: string | null;
-  actual_start?: string | null; actual_end?: string | null;
-  status: string; cargo_desc: string | null; cargo_weight_kg?: number | null;
-  job_type: string; shipment_ref: string | null;
+  id: string;
+  vehicle_id: string | null;
+  driver_id: string | null;
+  customer_id: string | null;
+  origin: string | null;
+  destination: string | null;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  actual_start?: string | null;
+  actual_end?: string | null;
+  status: string;
+  cargo_desc: string | null;
+  cargo_type?: string | null;
+  cargo_weight_kg?: number | null;
+  cargo_temp_c?: number | null;
+  load_capacity_pct?: number | null;
+  distance_km?: number | null;
+  notes?: string | null;
+  job_type?: string;
+  shipment_ref?: string | null;
+  shipment_id?: string | null;
+  created_at?: string;
 }
-interface Named { id: string; name: string; plate_number?: string | null }
-const statuses: Record<string, string> = { PLANNED: 'Planned', IN_PROGRESS: 'In progress', COMPLETED: 'Completed', CANCELLED: 'Cancelled', DELAYED: 'Delayed' };
-const date = (value: string | null | undefined) => value ? new Date(value).toLocaleString() : 'Not recorded';
+
+interface Vehicle {
+  id: string;
+  name: string;
+  plate_number?: string | null;
+  make?: string | null;
+  model?: string | null;
+  type?: string | null;
+  photo_url?: string | null;
+}
+
+interface Driver {
+  id: string;
+  name: string;
+  phone?: string | null;
+  custom_id?: string;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  email?: string | null;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'info' | 'gray' | 'warning' | 'error' | 'brand'; progress: number }> = {
+  IN_PROGRESS: { label: 'In Transit', variant: 'success', progress: 65 },
+  PLANNED:     { label: 'Scheduled', variant: 'info', progress: 20 },
+  COMPLETED:   { label: 'Delivered', variant: 'brand', progress: 100 },
+  DELAYED:     { label: 'Delayed', variant: 'warning', progress: 45 },
+  CANCELLED:   { label: 'Cancelled', variant: 'error', progress: 0 },
+};
+
+function fmtDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  try {
+    const d = new Date(value);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return String(value);
+  }
+}
 
 export const TrackingShipments: React.FC = () => {
+  const [params, setParams] = useSearchParams();
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [vehicles, setVehicles] = useState<Named[]>([]);
-  const [drivers, setDrivers] = useState<Named[]>([]);
-  const [customers, setCustomers] = useState<Named[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState('ALL');
+  const [error, setError] = useState<string | null>(null);
+
+  // Filter controls
+  const [statusFilter, setStatusFilter] = useState<string>(params.get('status') || 'ALL');
+  const [customerFilter, setCustomerFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(12);
+
   const reload = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError(null);
     try {
-      const [rows, assets, people, clients] = await Promise.all([apiFetch('/v1/tracking/trips'), apiFetch('/v1/tracking/vehicles'), apiFetch('/v1/tracking/drivers'), apiFetch('/v1/customers')]);
-      setTrips(rows); setVehicles(assets); setDrivers(people); setCustomers(clients.data ?? clients);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load trips.'); }
-    finally { setLoading(false); }
+      const [tripsRes, vehiclesRes, driversRes, customersRes] = await Promise.all([
+        apiFetch('/v1/tracking/trips').catch(() => []),
+        apiFetch('/v1/tracking/vehicles').catch(() => []),
+        apiFetch('/v1/tracking/drivers').catch(() => []),
+        apiFetch('/v1/customers').catch(() => []),
+      ]);
+
+      setTrips(Array.isArray(tripsRes) ? tripsRes : (tripsRes?.data ?? []));
+      setVehicles(Array.isArray(vehiclesRes) ? vehiclesRes : (vehiclesRes?.data ?? []));
+      setDrivers(Array.isArray(driversRes) ? driversRes : (driversRes?.data ?? []));
+      setCustomers(Array.isArray(customersRes) ? customersRes : (customersRes?.data ?? []));
+    } catch (e: any) {
+      setError(e instanceof Error ? e.message : 'Unable to load shipments.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
-  useEffect(() => { void reload(); }, [reload]);
-  useEffect(() => { setPage(1); }, [search, filter]);
-  const vehicle = (row: Trip) => { const asset = vehicles.find(item => item.id === row.vehicle_id); return asset ? `${asset.name}${asset.plate_number ? ' · '+asset.plate_number : ''}` : 'Unassigned'; };
-  const driver = (row: Trip) => drivers.find(item => item.id === row.driver_id)?.name || 'Unassigned';
-  const customer = (row: Trip) => customers.find(item => item.id === row.customer_id)?.name || 'Not linked';
-  const filtered = trips.filter(row => (filter === 'ALL' || row.status === filter) && [row.id,row.shipment_ref,row.cargo_desc,row.origin,row.destination,vehicle(row),driver(row),customer(row)].some(value => value?.toLowerCase().includes(search.trim().toLowerCase())));
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
-  return <div className="freight-workspace">
-    <PageHeader crumbs={['HuduFreight', 'Trips']} titleEm="Trips" subtitle="Plan and review road movements, assignments, cargo and delivery schedules in one register." actions={<Button asChild><Link to="/tracking/shipments/new">New trip</Link></Button>} />
-    <div className="freight-actions" style={{ marginBottom: 16 }}>
-      <Input aria-label="Search trips" placeholder="Trip, customer, driver, vehicle or route" value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
-      <Select value={filter} onValueChange={setFilter}><SelectTrigger aria-label="Trip status" style={{ width: 180 }}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ALL">All statuses</SelectItem>{Object.entries(statuses).map(([value,label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
-      <Button variant="outline" onClick={() => void reload()} disabled={loading}>Refresh</Button>
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, customerFilter, viewMode]);
+
+  // Resolvers
+  const getVehicle = useCallback((vehicleId: string | null) => {
+    if (!vehicleId) return null;
+    return vehicles.find(v => v.id === vehicleId) || null;
+  }, [vehicles]);
+
+  const getDriver = useCallback((driverId: string | null) => {
+    if (!driverId) return null;
+    return drivers.find(d => d.id === driverId) || null;
+  }, [drivers]);
+
+  const getCustomer = useCallback((customerId: string | null) => {
+    if (!customerId) return null;
+    return customers.find(c => c.id === customerId) || null;
+  }, [customers]);
+
+  // KPI Calculations
+  const stats = useMemo(() => {
+    const total = trips.length;
+    const inProgress = trips.filter(t => t.status === 'IN_PROGRESS').length;
+    const planned = trips.filter(t => t.status === 'PLANNED').length;
+    const completed = trips.filter(t => t.status === 'COMPLETED').length;
+    const delayed = trips.filter(t => t.status === 'DELAYED').length;
+    const cancelled = trips.filter(t => t.status === 'CANCELLED').length;
+    const totalWeight = trips.reduce((sum, t) => sum + (t.cargo_weight_kg || 0), 0);
+    return { total, inProgress, planned, completed, delayed, cancelled, totalWeight };
+  }, [trips]);
+
+  // Filtering
+  const filteredTrips = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return trips.filter(t => {
+      if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
+      if (customerFilter !== 'ALL' && t.customer_id !== customerFilter) return false;
+
+      if (!q) return true;
+
+      const v = getVehicle(t.vehicle_id);
+      const d = getDriver(t.driver_id);
+      const c = getCustomer(t.customer_id);
+
+      const searchStrings = [
+        t.id,
+        `TRIP-${t.id.slice(0, 8)}`,
+        t.shipment_ref || '',
+        t.cargo_desc || '',
+        t.cargo_type || '',
+        t.origin || '',
+        t.destination || '',
+        v?.name || '',
+        v?.plate_number || '',
+        d?.name || '',
+        c?.name || '',
+      ];
+
+      return searchStrings.some(s => s.toLowerCase().includes(q));
+    });
+  }, [trips, statusFilter, customerFilter, search, getVehicle, getDriver, getCustomer]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTrips.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTrips = filteredTrips.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Table Columns Definition
+  const tableColumns: TableColumn<Trip>[] = [
+    {
+      key: 'shipment',
+      header: 'Shipment / Job',
+      accessor: 'id',
+      sortable: true,
+      render: t => {
+        return (
+          <div style={{ minWidth: 160 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Link to={`/tracking/shipments/${t.id}`} className="font-bold text-foreground hover:text-primary">
+                TRIP-{t.id.slice(0, 8).toUpperCase()}
+              </Link>
+              {t.shipment_ref && (
+                <Badge variant="brand">ClearOS #{t.shipment_ref}</Badge>
+              )}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground line-clamp-1">
+              {t.cargo_desc || 'General Freight'}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      accessor: 'status',
+      sortable: true,
+      render: t => {
+        const conf = STATUS_CONFIG[t.status] || { label: t.status, variant: 'gray' as const };
+        return <Badge variant={conf.variant}>{conf.label}</Badge>;
+      },
+    },
+    {
+      key: 'route',
+      header: 'Route',
+      sortable: true,
+      render: t => (
+        <div style={{ minWidth: 150 }}>
+          <div className="text-xs font-semibold text-foreground">
+            {t.origin || 'Depot'} → {t.destination || 'Destination'}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {t.distance_km ? `${t.distance_km} km` : 'Direct Transit'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'assignment',
+      header: 'Vehicle & Driver',
+      hideAt: 'sm',
+      render: t => {
+        const v = getVehicle(t.vehicle_id);
+        const d = getDriver(t.driver_id);
+        return (
+          <div style={{ minWidth: 150 }}>
+            <div className="text-xs font-medium text-foreground">
+              {v ? (
+                <Link to={`/tracking/vehicles/${v.id}`} className="hover:text-primary">
+                  {v.name} {v.plate_number ? `(${v.plate_number})` : ''}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">Unassigned asset</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground">
+              <PersonAvatar userId={d?.id || null} kind="drivers" name={d?.name || 'Unassigned'} size={18} style={{ borderRadius: '50%' }} />
+              <span>{d?.name || 'No driver assigned'}</span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'customer',
+      header: 'Customer',
+      hideAt: 'md',
+      render: t => {
+        const c = getCustomer(t.customer_id);
+        return (
+          <span className="text-xs text-foreground">
+            {c ? c.name : <span className="text-muted-foreground">Direct account</span>}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'schedule',
+      header: 'Schedule',
+      sortable: true,
+      hideAt: 'md',
+      render: t => (
+        <div className="text-xs text-muted-foreground">
+          <div>Start: {fmtDateTime(t.scheduled_start)}</div>
+          {t.actual_start && <div className="text-teal font-medium">Departed: {fmtDateTime(t.actual_start)}</div>}
+        </div>
+      ),
+    },
+    {
+      key: 'weight',
+      header: 'Cargo Specs',
+      align: 'right',
+      render: t => (
+        <div className="text-right">
+          <div className="text-xs font-semibold text-foreground">
+            {t.cargo_weight_kg != null ? `${t.cargo_weight_kg.toLocaleString()} kg` : '—'}
+          </div>
+          {t.cargo_temp_c != null && (
+            <div className="text-[11px] text-cyan-600 font-medium">
+              ❄ {t.cargo_temp_c}°C
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'action',
+      header: '',
+      align: 'right',
+      render: t => (
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={`/tracking/shipments/${t.id}`} className="inline-flex items-center gap-1">
+            <span>View</span>
+            <Icon name="chevronRight" size={12} />
+          </Link>
+        </Button>
+      ),
+    },
+  ];
+
+  return (
+    <div className="trk-shipments-page">
+      <PageHeader
+        crumbs={['HuduFreight', 'Shipments']}
+        titlePlain="Shipments &"
+        titleEm="dispatch"
+        subtitle="Manage road freight movements, real-time trip status, ClearOS linked consignments, and vehicle cargo allocations."
+        actions={
+          <div className="trk-shipments-header-actions">
+            <Tip label="Refresh road movements">
+              <Button variant="outline" size="icon" aria-label="Refresh road movements" onClick={reload} disabled={loading}>
+                <Icon name="refresh" size={16} />
+              </Button>
+            </Tip>
+            <Button variant="outline" asChild>
+              <Link to="/tracking/cargo-loading">
+                <Icon name="package" size={15} /> 3D Cargo Planner
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/tracking/map">
+                <Icon name="mapPin" size={15} /> Fleet Radar
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/tracking/shipments/new">
+                <Icon name="plus" size={15} /> New shipment
+              </Link>
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="trk-section-header">
+        <div className="trk-section-title">Dispatch overview</div>
+        <div className="trk-section-subtitle">Real-time status across registered movements</div>
+      </div>
+
+      <MetricsRow cards={[
+        {
+          title: 'Active in transit',
+          value: String(stats.inProgress),
+          icon: 'truck',
+          updatedLabel: 'Road movements en route right now',
+          loading,
+          emphasis: 'primary',
+        },
+        {
+          title: 'Scheduled / Planned',
+          value: String(stats.planned),
+          icon: 'clock',
+          updatedLabel: 'Ready for loading and departure',
+          loading,
+        },
+        {
+          title: 'Delivered',
+          value: String(stats.completed),
+          icon: 'checkCircle',
+          updatedLabel: 'Completed destination arrivals',
+          loading,
+        },
+        {
+          title: 'Freight payload',
+          value: stats.totalWeight > 0 ? `${(stats.totalWeight / 1000).toFixed(1)}t` : String(stats.total),
+          icon: 'box2',
+          updatedLabel: 'Aggregate freight weight',
+          loading,
+        },
+      ]} />
+
+      {error && (
+        <Banner variant="error" style={{ marginBottom: 16 }}>
+          {error}
+        </Banner>
+      )}
+
+      <div className="trk-shipments-toolbar">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger aria-label="Trip status"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All trips ({stats.total})</SelectItem>
+            <SelectItem value="IN_PROGRESS">In transit ({stats.inProgress})</SelectItem>
+            <SelectItem value="PLANNED">Scheduled ({stats.planned})</SelectItem>
+            <SelectItem value="COMPLETED">Delivered ({stats.completed})</SelectItem>
+            <SelectItem value="DELAYED">Delayed ({stats.delayed})</SelectItem>
+            <SelectItem value="CANCELLED">Cancelled ({stats.cancelled})</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="trk-search-box">
+          <Input
+            aria-label="Search shipments"
+            placeholder="Search by trip, cargo, route, driver, or vehicle…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {customers.length > 0 && (
+          <Select value={customerFilter} onValueChange={setCustomerFilter}>
+            <SelectTrigger aria-label="Filter by customer">
+              <SelectValue placeholder="All customers" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All customers</SelectItem>
+              {customers.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <div className="trk-shipments-toolbar-right">
+          <Tabs value={viewMode} onValueChange={v => setViewMode(v as 'grid' | 'table')} variant="segmented">
+            <TabsList>
+              <TabsTrigger value="grid" aria-label="Cards view">
+                <Icon name="grid" size={14} />
+              </TabsTrigger>
+              <TabsTrigger value="table" aria-label="Table view">
+                <Icon name="list" size={14} />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {viewMode === 'table' ? (
+        <SectionCard padded={false}>
+          <DataTable
+            columns={tableColumns}
+            rows={filteredTrips}
+            loading={loading}
+            error={error ?? undefined}
+            onRetry={reload}
+            filteredEmpty={filteredTrips.length === 0 && trips.length > 0}
+            empty={!loading && trips.length === 0}
+            emptyIcon="truck"
+            emptyTitle="No shipments recorded"
+            emptyMessage="Create your first road transport shipment to dispatch cargo, drivers, and fleet assets."
+            defaultSortKey="shipment"
+            defaultSortDir="asc"
+            pageSize={pageSize}
+          />
+        </SectionCard>
+      ) : (
+        /* Cards / Board View */
+        <div>
+          {loading ? (
+            <div className="trk-shipment-grid">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="trk-shipment-card" style={{ minHeight: 220, opacity: 0.6 }}>
+                  <div style={{ height: 20, width: '40%', background: 'var(--card-sunken)', borderRadius: 4 }} />
+                  <div style={{ height: 60, width: '100%', background: 'var(--card-sunken)', borderRadius: 6, margin: '10px 0' }} />
+                  <div style={{ height: 16, width: '70%', background: 'var(--card-sunken)', borderRadius: 4 }} />
+                </div>
+              ))}
+            </div>
+          ) : filteredTrips.length === 0 ? (
+            <div className="trk-shipments-empty">
+              <Icon name="package" size={40} color="var(--ink3)" />
+              <div className="trk-shipments-empty-title">
+                {trips.length === 0 ? 'No shipments registered yet' : 'No shipments match current filters'}
+              </div>
+              <div className="trk-shipments-empty-desc">
+                {trips.length === 0
+                  ? 'Book and track road movements, connect with ClearOS commercial customs clearance, and track real-time delivery performance.'
+                  : 'Try clearing your search query or switching status filters to view all trips.'}
+              </div>
+              {trips.length === 0 ? (
+                <Button asChild>
+                  <Link to="/tracking/shipments/new">
+                    <Icon name="plus" size={15} /> Create your first shipment
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('ALL'); setCustomerFilter('ALL'); }}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="trk-shipment-grid">
+              {pagedTrips.map(trip => {
+                const conf = STATUS_CONFIG[trip.status] || { label: trip.status, variant: 'gray' as const, progress: 30 };
+                const vehicle = getVehicle(trip.vehicle_id);
+                const driver = getDriver(trip.driver_id);
+                const customer = getCustomer(trip.customer_id);
+                const vehiclePhoto = vehicle ? getFleetVehiclePhoto(vehicle) : '/images/freight/volvo-fh16.jpg';
+
+                return (
+                  <Link to={`/tracking/shipments/${trip.id}`} key={trip.id} className="trk-shipment-card">
+                    {/* Top Row: Reference, ClearOS tag & Status */}
+                    <div className="trk-shipment-card-top">
+                      <div className="trk-shipment-ref-group">
+                        <span className="trk-shipment-id">TRIP-{trip.id.slice(0, 8).toUpperCase()}</span>
+                        {trip.shipment_ref && (
+                          <Badge variant="brand">ClearOS #{trip.shipment_ref}</Badge>
+                        )}
+                        {trip.job_type === 'TRANSPORT_ONLY' && (
+                          <Badge variant="gray">Direct Freight</Badge>
+                        )}
+                      </div>
+                      <div className="trk-shipment-badges">
+                        <Badge variant={conf.variant}>{conf.label}</Badge>
+                      </div>
+                    </div>
+
+                    {/* Route Visual Flow */}
+                    <div className="trk-route-flow">
+                      <div className="trk-route-node">
+                        <span className="trk-route-label">Origin</span>
+                        <span className="trk-route-city" title={trip.origin || 'Depot'}>
+                          {trip.origin || 'Depot'}
+                        </span>
+                      </div>
+                      <div className="trk-route-line-wrap">
+                        <span className="trk-route-dist">
+                          {trip.distance_km ? `${trip.distance_km} km` : 'Road transit'}
+                        </span>
+                        <div className="trk-route-line" />
+                      </div>
+                      <div className="trk-route-node" style={{ textAlign: 'right' }}>
+                        <span className="trk-route-label">Destination</span>
+                        <span className="trk-route-city" title={trip.destination || 'Delivery Point'}>
+                          {trip.destination || 'Delivery Point'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar & Timing */}
+                    <div className="trk-shipment-progress">
+                      <div className="trk-shipment-progress-meta">
+                        <span>
+                          {trip.actual_start ? `Departed ${fmtDateTime(trip.actual_start)}` : `Sched. Start ${fmtDateTime(trip.scheduled_start)}`}
+                        </span>
+                        <span>
+                          {trip.status === 'COMPLETED' ? 'Delivered' : conf.label}
+                        </span>
+                      </div>
+                      <div className="trk-shipment-track">
+                        <div
+                          className={`trk-shipment-fill status-${trip.status.toLowerCase()}`}
+                          style={{ width: `${conf.progress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Cargo Specs */}
+                    <div className="trk-shipment-cargo">
+                      <div className="trk-cargo-desc">
+                        {trip.cargo_desc || 'Commercial Consignment Cargo'}
+                      </div>
+                      <div className="trk-shipment-specs">
+                        {trip.cargo_weight_kg != null && (
+                          <span className="trk-spec-chip">
+                            ⚖ {trip.cargo_weight_kg.toLocaleString()} kg
+                          </span>
+                        )}
+                        {trip.cargo_temp_c != null && (
+                          <span className="trk-spec-chip temp">
+                            ❄ {trip.cargo_temp_c}°C Reefer
+                          </span>
+                        )}
+                        {trip.load_capacity_pct != null && (
+                          <span className="trk-spec-chip">
+                            📦 {trip.load_capacity_pct}% Capacity
+                          </span>
+                        )}
+                        {trip.cargo_type && (
+                          <span className="trk-spec-chip">
+                            {trip.cargo_type.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Assignees: Vehicle & Driver */}
+                    <div className="trk-shipment-assignees">
+                      <div className="trk-shipment-vehicle">
+                        <img
+                          src={vehiclePhoto}
+                          alt={vehicle?.name || 'Assigned vehicle'}
+                          className="trk-shipment-vehicle-thumb"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/images/freight/volvo-fh16.jpg';
+                          }}
+                        />
+                        <div className="trk-shipment-vehicle-info">
+                          <span className="trk-shipment-vehicle-name">
+                            {vehicle?.name || 'Unassigned vehicle'}
+                          </span>
+                          <span className="trk-shipment-vehicle-plate">
+                            {vehicle?.plate_number || 'No plate'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="trk-shipment-driver">
+                        <PersonAvatar
+                          userId={driver?.id || null}
+                          kind="drivers"
+                          name={driver?.name || 'Unassigned'}
+                          size={24}
+                          style={{ borderRadius: '50%' }}
+                        />
+                        <div className="trk-shipment-driver-info">
+                          <span className="trk-shipment-driver-name">
+                            {driver?.name || 'Unassigned'}
+                          </span>
+                          <span className="trk-shipment-driver-role">Driver</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Row */}
+                    <div className="trk-shipment-footer">
+                      <div className="trk-shipment-customer-tag">
+                        <Icon name="user" size={13} color="var(--ink3)" />
+                        <span>{customer?.name || 'Commercial Client'}</span>
+                      </div>
+                      <div className="trk-shipment-action-link">
+                        <span>Dispatch details</span>
+                        <Icon name="arrowRight" size={13} />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && filteredTrips.length > pageSize && (
+            <div style={{ marginTop: 20 }}>
+              <PaginationBar
+                page={currentPage}
+                pageSize={pageSize}
+                total={filteredTrips.length}
+                onPageChange={setPage}
+                onPageSizeChange={s => { setPageSize(s); setPage(1); }}
+                itemLabel="shipment"
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
-    {error && <Banner variant="error">{error}</Banner>}
-    <SectionCard>
-      {loading ? <SectionLoading label="Loading trips…" /> : error ? <p>Trip data could not be loaded. Retry using Refresh.</p> : <>
-        <ResponsiveTable className="freight-trips-table"><thead><tr>{['Trip / cargo','Status','Customer','Vehicle / driver','Route','Schedule / actual','Weight'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>
-          {filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(row => <tr key={row.id}>
-            <td><Link to={`/tracking/shipments/${row.id}`}>TRIP-{row.id.slice(0,8).toUpperCase()}</Link><div>{row.cargo_desc || 'Cargo not recorded'}</div>{row.shipment_ref && <small>ClearOS: {row.shipment_ref}</small>}</td>
-            <td><Badge variant={row.status === 'COMPLETED' ? 'success' : row.status === 'CANCELLED' ? 'error' : row.status === 'IN_PROGRESS' ? 'info' : 'gray'}>{statuses[row.status] || row.status}</Badge></td>
-            <td>{customer(row)}</td><td>{vehicle(row)}<div>{driver(row)}</div></td>
-            <td>{row.origin || 'Not recorded'} → {row.destination || 'Not recorded'}</td>
-            <td><div>Planned start: {date(row.scheduled_start)}</div><div>Planned end: {date(row.scheduled_end)}</div>{row.actual_start && <div>Departed: {date(row.actual_start)}</div>}{row.actual_end && <div>Finished: {date(row.actual_end)}</div>}</td>
-            <td>{row.cargo_weight_kg == null ? 'Not recorded' : `${Number(row.cargo_weight_kg).toLocaleString()} kg`}</td>
-          </tr>)}
-        </tbody></ResponsiveTable>
-        {!filtered.length && <p>{trips.length ? 'No trips match these filters.' : 'No trips yet. Create a trip to book a road movement.'}</p>}
-        {!!filtered.length && <PaginationBar page={currentPage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} itemLabel="trip" />}
-      </>}
-    </SectionCard>
-  </div>;
+  );
 };

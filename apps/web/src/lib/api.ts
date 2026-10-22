@@ -1,4 +1,5 @@
 import { clearIdleLockState } from './idleLockKeys.js';
+import { capturePageState } from './pageState.js';
 
 // Both dev and prod serve the API behind the same origin: in dev the Vite
 // proxy (vite.config.ts) rewrites /v1/* → http://localhost:3001/v1/* so the
@@ -50,6 +51,7 @@ function handleUnauthorized() {
   fetch(`${BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
   const path = window.location.pathname;
   if (!path.startsWith('/login') && !path.startsWith('/org')) {
+    capturePageState();
     const returnTo = path + window.location.search + window.location.hash;
     const params = new URLSearchParams({ expired: '1' });
     if (returnTo && returnTo !== '/') params.set('returnTo', returnTo);

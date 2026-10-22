@@ -1,3 +1,5 @@
+import { canEditVehicle } from '@hudumika/types';
+import { useAuth } from '../hooks/useAuth.js';
 import { useChartColors } from '../hooks/useChartColors.js';
 import { ResponsiveTable } from '../components/ui/responsive-table.js';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -21,13 +23,14 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { BackButton } from '../components/ui/BackButton.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 import { PageLoading } from '../components/ui/spinner.js';
+import { CarVehicleImage } from '../components/CarVehicleImage.js';
 import './FreightOperations.css';
 import './TrackingVehicleDetail.css';
 import { Truck3DViewer } from '../components/tracking/Truck3DViewer.js';
@@ -75,10 +78,26 @@ interface Detail {
   meter_readings: MeterReading[];
 }
 
-const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20 };
-const statLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' };
+const STATUS_BADGE: Record<string, { variant: 'success' | 'brand' | 'warning' | 'gray' | 'info' | 'error'; label: string }> = {
+  ACTIVE:         { variant: 'brand', label: 'Active' },
+  ON_ROUTE:       { variant: 'brand',   label: 'On Route' },
+  IDLE:           { variant: 'gray',    label: 'Idle' },
+  MAINTENANCE:    { variant: 'warning', label: 'Maintenance' },
+  OUT_OF_SERVICE: { variant: 'error',   label: 'Out of Service' },
+  DECOMMISSIONED: { variant: 'gray',    label: 'Decommissioned' },
+};
 
-const TABS = ['Overview', '3D Schematics & Loading', 'Service History', 'Fuel', 'Documents', 'Issues', 'Expenses', 'Assignments', 'Load Plan', 'Sensor Snapshots'] as const;
+const TABS = [
+  'Overview',
+  '3D Schematics & Loading',
+  'Service History',
+  'Fuel Logs',
+  'Documents & Insurance',
+  'Issues & Work Orders',
+  'Expenses',
+  'Driver Assignments',
+  'Sensor Snapshots',
+] as const;
 type Tab = typeof TABS[number];
 
 const vehicleMapMarker = new L.DivIcon({
@@ -89,6 +108,8 @@ const vehicleMapMarker = new L.DivIcon({
 });
 
 export const TrackingVehicleDetail: React.FC = () => {
+  const { user } = useAuth();
+  const canEdit = canEditVehicle(user?.role);
   const chartColors = useChartColors();
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -96,14 +117,27 @@ export const TrackingVehicleDetail: React.FC = () => {
   const [maintenance, setMaintenance] = useState<MaintenanceRow[]>([]);
   const [fuel, setFuel] = useState<FuelRow[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [availableDrivers, setAvailableDrivers] = useState<{ id: string; name: string; phone?: string | null }[]>([]);
   const [sensorSnapshots, setSensorSnapshots] = useState<SensorSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
+
   const requestedTab = searchParams.get('tab');
-  const [tab, setTab] = useState<Tab>(TABS.includes(requestedTab as Tab) ? requestedTab as Tab : 'Overview');
+  const [tab, setTab] = useState<Tab>(TABS.includes(requestedTab as Tab) ? (requestedTab as Tab) : 'Overview');
+
+  // Modals state
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Fast action modals
+  const [showFuelModal, setShowFuelModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showMeterModal, setShowMeterModal] = useState(false);
+  const [showAssignDriverModal, setShowAssignDriverModal] = useState(false);
+
   const { makes } = useVehicleMakes('truck');
   const { models } = useVehicleModels(editForm.make || '');
 
@@ -126,10 +160,25 @@ export const TrackingVehicleDetail: React.FC = () => {
       })
       .finally(() => setLoading(false));
 
-    apiFetch('/v1/tracking/maintenance').then((rows: MaintenanceRow[] & { vehicle_id: string }[]) => setMaintenance((rows as any[]).filter(r => r.vehicle_id === id))).catch(() => setMaintenance([]));
-    apiFetch('/v1/tracking/fuel').then((rows: any[]) => setFuel(rows.filter(r => r.vehicle_id === id))).catch(() => setFuel([]));
-    apiFetch('/v1/tracking/assignments').then((rows: any[]) => setAssignments(rows.filter(r => r.vehicle_id === id))).catch(() => setAssignments([]));
-    apiFetch(`/v1/tracking/vehicles/${id}/sensor_snapshots`).then(setSensorSnapshots).catch(() => setSensorSnapshots([]));
+    apiFetch('/v1/tracking/maintenance')
+      .then((rows: any[]) => setMaintenance(rows.filter(r => r.vehicle_id === id)))
+      .catch(() => setMaintenance([]));
+
+    apiFetch('/v1/tracking/fuel')
+      .then((rows: any[]) => setFuel(rows.filter(r => r.vehicle_id === id)))
+      .catch(() => setFuel([]));
+
+    apiFetch('/v1/tracking/assignments')
+      .then((rows: any[]) => setAssignments(rows.filter(r => r.vehicle_id === id)))
+      .catch(() => setAssignments([]));
+
+    apiFetch('/v1/tracking/drivers')
+      .then((res: any) => setAvailableDrivers(Array.isArray(res) ? res : (res?.data ?? [])))
+      .catch(() => setAvailableDrivers([]));
+
+    apiFetch(`/v1/tracking/vehicles/${id}/sensor_snapshots`)
+      .then(setSensorSnapshots)
+      .catch(() => setSensorSnapshots([]));
   }, [id]);
 
   useEffect(() => { reload(); }, [reload]);
@@ -158,6 +207,7 @@ export const TrackingVehicleDetail: React.FC = () => {
       model: vehicle?.model || base.model,
       year: vehicle?.year || base.year,
       status: (vehicle?.status || 'ACTIVE') as any,
+      photoUrl: vehicle?.photo_url || base.photoUrl,
       specs: {
         ...base.specs,
         mileageKm: vehicle?.mileage_km ?? base.specs.mileageKm,
@@ -188,25 +238,30 @@ export const TrackingVehicleDetail: React.FC = () => {
     };
   }, [id, vehicle, driver, last_position, active_trip]);
 
-  if (loading && !detail) return <PageLoading label="Loading vehicle…" />;
+  if (loading && !detail) return <PageLoading label="Loading vehicle dossier…" />;
   if (!detail || !vehicle) {
     return (
       <div className="freight-workspace">
-        <PageHeader crumbs={['HuduFreight', 'Vehicle']} titlePlain="Vehicle" titleEm="detail" />
-        <BackButton to="/tracking/vehicles" label="Back to Vehicles" />
+        <PageHeader crumbs={['HuduFreight', 'Vehicles']} titlePlain="Vehicle" titleEm="detail" backTo="/tracking/vehicles" backLabel="Vehicles" />
         <Banner variant="error" title="Vehicle not found">
           {error || `Vehicle with ID "${id}" could not be found in the fleet register.`}
         </Banner>
       </div>
     );
   }
+
   async function resolveIssue(issueId: string) {
-    await apiFetch(`/v1/tracking/issues/${issueId}/resolve`, { method: 'PATCH', body: JSON.stringify({}) });
-    reload();
+    try {
+      await apiFetch(`/v1/tracking/issues/${issueId}/resolve`, { method: 'PATCH', body: JSON.stringify({}) });
+      setSuccessMsg('Issue resolved successfully.');
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resolve issue');
+    }
   }
 
   function startEdit() {
-    if (!vehicle) return;
+    if (!vehicle || !canEdit) return;
     setEditForm({
       name: vehicle.name || '',
       plate_number: vehicle.plate_number || '',
@@ -225,19 +280,23 @@ export const TrackingVehicleDetail: React.FC = () => {
       speed_limit_kmh: vehicle.speed_limit_kmh != null ? String(vehicle.speed_limit_kmh) : '',
     });
     setEditing(true);
+    setTab('Overview');
+    setSearchParams({}, { replace: true });
   }
 
-  async function saveEdit() {
+  async function saveEdit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!canEdit || saving) return;
     setSaving(true);
     try {
       const payload: Record<string, any> = { ...editForm };
       if (payload.year) payload.year = Number(payload.year);
       if (payload.mileage_km) payload.mileage_km = Number(payload.mileage_km);
       if (payload.speed_limit_kmh) payload.speed_limit_kmh = Number(payload.speed_limit_kmh);
-      // Remove empty strings to avoid overwriting with blanks
       Object.keys(payload).forEach(k => { if (payload[k] === '') delete payload[k]; });
       await apiFetch(`/v1/tracking/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
       setEditing(false);
+      setSuccessMsg('Vehicle specifications updated successfully.');
       reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save vehicle');
@@ -255,189 +314,258 @@ export const TrackingVehicleDetail: React.FC = () => {
     ],
   };
 
-  const addActions: { key: string; label: string; icon: IconName }[] = [
-    { key: 'assignment', label: 'Assignment', icon: 'user' },
-    { key: 'fuel', label: 'Fuel', icon: 'activity' },
-    { key: 'expense', label: 'Expense', icon: 'dollarSign' },
-    { key: 'service', label: 'Service', icon: 'clipboardList' },
-    { key: 'issue', label: 'Issue', icon: 'alertTriangle' },
-    { key: 'inspection', label: 'Inspection', icon: 'tasks' },
-    { key: 'workorder', label: 'Work order', icon: 'tool' },
-    { key: 'reminder', label: 'Reminder', icon: 'bell' },
-    { key: 'renewal', label: 'Renewal', icon: 'refresh' },
-    { key: 'meter', label: 'Meter', icon: 'barChart2' },
+  const addActions: { key: string; label: string; icon: IconName; onClick?: () => void }[] = [
+    { key: 'fuel', label: 'Log Fuel', icon: 'activity', onClick: () => setShowFuelModal(true) },
+    { key: 'expense', label: 'Record Expense', icon: 'dollarSign', onClick: () => setShowExpenseModal(true) },
+    { key: 'issue', label: 'Report Issue', icon: 'alertTriangle', onClick: () => setShowIssueModal(true) },
+    { key: 'meter', label: 'Update Meter', icon: 'barChart2', onClick: () => setShowMeterModal(true) },
+    { key: 'assignment', label: 'Assign Driver', icon: 'user', onClick: () => setShowAssignDriverModal(true) },
+    { key: 'service', label: 'Full Service Log', icon: 'clipboardList' },
+    { key: 'inspection', label: 'Vehicle Inspection', icon: 'tasks' },
   ];
-  const createdEntry = searchParams.get('created');
-  const createdLabel = addActions.find(action => action.key === createdEntry)?.label.replace(/^Add /, '') || 'Entry';
 
   return (
-    <div className="freight-workspace">{error && <Banner variant="error">{error}</Banner>}
+    <div className="vehicle-detail-page freight-workspace">
+      {error && <Banner variant="error" onDismiss={() => setError('')} style={{ marginBottom: 14 }}>{error}</Banner>}
+      {successMsg && <Banner variant="success" onDismiss={() => setSuccessMsg('')} style={{ marginBottom: 14 }}>{successMsg}</Banner>}
+
+      {/* Header following Hudumika Design System */}
       <PageHeader
-        crumbs={['HuduFreight', 'Vehicle']}
-        titlePlain="Vehicle"
-        titleEm="detail"
-      />
-      <BackButton to="/tracking/vehicles" label="Back to Vehicles" />
-
-      {createdEntry && (
-        <Banner
-          variant="success"
-          title={`${createdLabel} saved`}
-          onDismiss={() => {
-            const next = new URLSearchParams(searchParams);
-            next.delete('created');
-            setSearchParams(next, { replace: true });
-          }}
-          style={{ marginBottom: 16 }}
-        >
-          The vehicle record has been updated successfully.
-        </Banner>
-      )}
-
-      <div className="vdetail-hero">
-        <div className="vdetail-hero-left">
-          <div className="vdetail-hero-avatar">
-            {vehicle.photo_url ? (
-              <img
-                src={vehicle.photo_url}
-                alt={vehicle.name}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
-                }}
-              />
-            ) : viewerVehicle?.photoUrl ? (
-              <img
-                src={viewerVehicle.photoUrl}
-                alt={`${vehicle.name} (Model)`}
-                title="Stock asset model representation"
-                style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.9 }}
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
-                }}
-              />
+        crumbs={['HuduFreight', { label: 'Fleet', to: '/tracking/vehicles' }, vehicle.plate_number || vehicle.name]}
+        titlePlain={vehicle.name.trim().split(/\s+/).slice(0, -1).join(' ')}
+        titleEm={vehicle.name.trim().split(/\s+/).at(-1) || 'Vehicle'}
+        subtitle={[vehicle.plate_number, [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(' '), vehicle.type].filter(Boolean).join(' · ')}
+        backTo="/tracking/vehicles"
+        backLabel="Fleet"
+        actions={
+          <div className="vehicle-detail-header-actions">
+            {canEdit && (editing ? (
+              <>
+                <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button size="sm" onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+              </>
             ) : (
-              <Icon name="truck" size={28} color="var(--teal)" />
-            )}
-            {!vehicle.photo_url && viewerVehicle?.photoUrl && (
-              <span style={{
-                position: 'absolute',
-                bottom: 2,
-                right: 4,
-                fontSize: 9,
-                fontWeight: 700,
-                background: 'rgba(0,0,0,0.6)',
-                color: '#fff',
-                padding: '1px 3px',
-                borderRadius: 2,
-              }}>MODEL</span>
-            )}
-          </div>
-          <div className="vdetail-hero-meta">
-            <div className="vdetail-hero-title-row">
-              <span className="vdetail-hero-name">{vehicle.name}</span>
-              <Badge variant={vehicle.status === 'ACTIVE' || vehicle.status === 'ON_ROUTE' ? 'success' : 'gray'}>
-                {vehicle.status === 'ON_ROUTE' ? 'On Route' : vehicle.status}
-              </Badge>
-              {viewerVehicle?.category && (
-                <span className="vdetail-category-pill">
-                  {viewerVehicle.category}
-                </span>
-              )}
-            </div>
-            <div className="vdetail-hero-specs">
-              <span>{[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.type}</span>
-              <span>·</span>
-              <span>{vehicle.plate_number || 'No plate'}</span>
-              <span>·</span>
-              <span>{vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'No mileage recorded'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="vdetail-hero-actions">
-          <Button variant="outline" asChild>
-            <Link to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(id || '')}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="package" size={14} /> 3D Cargo Planner
-            </Link>
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button">
-                <Icon name="plus" size={15} /> Add <Icon name="chevronDown" size={12} />
+              <Button size="sm" variant="outline" onClick={startEdit}>
+                <Icon name="edit" size={14} /> Edit vehicle
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              {addActions.map(a => (
-                <DropdownMenuItem key={a.key} asChild>
-                  <Link to={`/tracking/vehicles/${id}/add/${a.key}`} className="flex w-full cursor-pointer items-center gap-3">
-                    <Icon name={a.icon} size={14} className="text-muted-foreground" /> {a.label}
+            ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" type="button" className="vdetail-add-entry-trigger">
+                  <Icon name="plus" size={13} /> Actions <Icon name="chevronDown" size={11} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {addActions.map((a) => (
+                  <DropdownMenuItem
+                    key={a.key}
+                    onClick={() => {
+                      if (a.onClick) a.onClick();
+                    }}
+                    asChild={!a.onClick}
+                  >
+                    {a.onClick ? (
+                      <div className="flex w-full cursor-pointer items-center gap-3">
+                        <Icon name={a.icon} size={14} className="text-muted-foreground" /> {a.label}
+                      </div>
+                    ) : (
+                      <Link to={`/tracking/vehicles/${id}/add/${a.key}`} className="flex w-full cursor-pointer items-center gap-3">
+                        <Icon name={a.icon} size={14} className="text-muted-foreground" /> {a.label}
+                      </Link>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem asChild>
+                  <Link to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(id || '')}`}>
+                    <Icon name="package" size={14} /> Cargo planner
                   </Link>
                 </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        }
+      />
+
+      {/* =========================================================================
+          VEHICLE DOSSIER HERO CARD (UX & UI Lead Redesign)
+      ========================================================================= */}
+      <div className="vdetail-dossier-card">
+        <div className="vdetail-dossier-main">
+          {/* Left: Vehicle Image Showcase Box with Authentic Plate Overlay */}
+          <div className="vdetail-image-box">
+            <CarVehicleImage
+              photoUrl={vehicle.photo_url || viewerVehicle?.photoUrl}
+              make={vehicle.make}
+              model={vehicle.model}
+              year={vehicle.year}
+              view="3-4"
+              alt={vehicle.name}
+            />
+          </div>
+
+          {/* Center: Vehicle Identity & Operator Chip */}
+          <div className="vdetail-identity-col">
+            <div className="vdetail-title-row">
+              <span className="vdetail-plate-badge">
+                <span className="vdetail-plate-flag">TZ</span>
+                {vehicle.plate_number || 'No plate recorded'}
+              </span>
+
+              <Badge variant={STATUS_BADGE[vehicle.status]?.variant ?? 'gray'}>
+                {STATUS_BADGE[vehicle.status]?.label ?? vehicle.status}
+              </Badge>
+
+              {vehicle.type && vehicle.type !== 'OTHER' && (
+                <Badge variant="brand">{vehicle.type}</Badge>
+              )}
+
+              <Badge variant="outline">{vehicle.ownership || 'OWNED'}</Badge>
+            </div>
+
+
+            <div className="vdetail-tagline">
+              <span>{[vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(' ') || vehicle.type}</span>
+              <span>·</span>
+              <span>{vehicle.color || 'Color not recorded'}</span>
+              <span>·</span>
+              <span>{vehicle.fuel_type || 'Fuel type not recorded'}</span>
+              <span>·</span>
+              <span>{vehicle.speed_limit_kmh ? `${vehicle.speed_limit_kmh} km/h limit` : 'Unrestricted'}</span>
+            </div>
+
+            <div className="vdetail-meta-pills">
+              <div className="vdetail-driver-chip">
+                {driver ? <PersonAvatar userId={driver.id} kind="drivers" name={driver.name} size={24} /> : <Icon name="user" size={16} />}
+                <span>
+                  Operator: <strong>{driver?.name || 'Unassigned'}</strong>
+                </span>
+                {driver?.phone && (
+                  <a
+                    href={`tel:${driver.phone}`}
+                    style={{ color: 'var(--teal)', marginLeft: 4, textDecoration: 'none', fontWeight: 600 }}
+                  >
+                    {driver.phone}
+                  </a>
+                )}
+
+              </div>
+
+              <div className="vdetail-driver-chip">
+                <Icon name="tag" size={13} color="var(--ink3)" />
+                <span>Dept: {vehicle.group_name || 'Not assigned'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Dossier KPI Metric Cards */}
+          <div className="vdetail-dossier-kpis">
+            <div className="vdetail-kpi-card">
+              <span className="vdetail-kpi-label">Odometer Meter</span>
+              <span className="vdetail-kpi-value">
+                {vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : 'Not recorded'}
+              </span>
+              <span className="vdetail-kpi-sub">Recorded mileage</span>
+            </div>
+
+            <div className="vdetail-kpi-card">
+              <span className="vdetail-kpi-label">Cost of Ownership</span>
+              <span className="vdetail-kpi-value">{total_cost.toLocaleString()} TZS</span>
+              <span className="vdetail-kpi-sub">{cost_per_km != null ? `${cost_per_km}/km` : '12-mo total'}</span>
+            </div>
+
+            <div className="vdetail-kpi-card">
+              <span className="vdetail-kpi-label">Speed &amp; Telemetry</span>
+              <span className="vdetail-kpi-value">{last_position?.speed != null ? `${last_position.speed} km/h` : 'No reading'}</span>
+              <span className="vdetail-kpi-sub">
+                {last_position ? (last_position.ignition === 'ON' ? 'Ignition active' : 'Latest position') : 'No telemetry received'}
+              </span>
+            </div>
+
+            <div className="vdetail-kpi-card">
+              <span className="vdetail-kpi-label">Open Issues</span>
+              <span className="vdetail-kpi-value" style={open_issues.length > 0 ? { color: 'var(--red)' } : undefined}>
+                {open_issues.length} {open_issues.length === 1 ? 'Issue' : 'Issues'}
+              </span>
+              <span className="vdetail-kpi-sub">
+                {open_issues.length === 0 ? 'No open issues' : 'Requires maintenance'}
+              </span>
+            </div>
+          </div>
         </div>
+
+
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => { setTab(v as Tab); setSearchParams(v === 'Overview' ? {} : { tab: v }, { replace: true }); }} variant="segmented" className="vdetail-tabs-root">
-        <TabsList className="vehicle-detail-tabs-list">
-          {TABS.map(t => (
-            <TabsTrigger key={t} value={t} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{t}</TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Navigation Tabs */}
+      <VehicleTabs
+        value={tab}
+        onChange={(v) => {
+          setTab(v as Tab);
+          setSearchParams(v === 'Overview' ? {} : { tab: v }, { replace: true });
+        }}
+      />
 
+      {/* =========================================================================
+          TAB 1: OVERVIEW
+      ========================================================================= */}
       {tab === 'Overview' && (
         <div className="freight-overview-grid">
-          <SectionCard title="All Fields Details" action={
-            !editing ? (
-              <Button variant="ghost" type="button" onClick={startEdit}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
-                <Icon name="edit" size={13} /> Edit
-              </Button>
-            ) : (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button variant="ghost" type="button" onClick={() => setEditing(false)}
-                  style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</Button>
-                <Button variant="ghost" type="button" onClick={saveEdit} disabled={saving}
-                  style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-                  {saving ? 'Saving…' : 'Save'}
-                </Button>
-              </div>
-            )
-          }>
-            {(editing ? [
-              ['name', 'Name'], ['mileage_km', 'Meter (km)'], ['status', 'Status'], ['group_name', 'Group'],
-              ['type', 'Type'], ['fuel_type', 'Fuel'], ['vin', 'VIN/SN'], ['plate_number', 'License Plate'],
-              ['year', 'Year'], ['make', 'Make'], ['model', 'Model'], ['trim', 'Trim'],
-              ['color', 'Color'], ['ownership', 'Ownership'], ['speed_limit_kmh', 'Speed Limit (km/h)'],
-            ] as [string, string][] : [
-              ['Name', vehicle.name], ['Meter', vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : '—'],
-              ['Status', vehicle.status], ['Group', vehicle.group_name || 'No Group'], ['Operator', driver?.name ?? '—'], ['Type', vehicle.type],
-              ['Fuel', vehicle.fuel_type || '—'],
-              ['VIN/SN', vehicle.vin || '—'], ['License Plate', vehicle.plate_number || '—'],
-              ['Year', vehicle.year ?? '—'], ['Make', vehicle.make || '—'], ['Model', vehicle.model || '—'],
-              ['Trim', vehicle.trim || '—'], ['Color', vehicle.color || '—'], ['Ownership', vehicle.ownership],
-              ['Speed Limit', vehicle.speed_limit_kmh != null ? `${vehicle.speed_limit_kmh} km/h` : '—'],
-              ['Device ID', vehicle.device_id],
-            ] as [string, any][]).map(([k, v]) => (
+          {/* Specifications Card with In-Place Editing */}
+          <SectionCard
+            title="Vehicle Specifications"
+
+          >
+            {(editing
+              ? [
+                  ['name', 'Name'],
+                  ['mileage_km', 'Meter (km)'],
+                  ['status', 'Status'],
+                  ['group_name', 'Group'],
+                  ['type', 'Type'],
+                  ['fuel_type', 'Fuel'],
+                  ['vin', 'VIN/SN'],
+                  ['plate_number', 'License Plate'],
+                  ['year', 'Year'],
+                  ['make', 'Make'],
+                  ['model', 'Model'],
+                  ['trim', 'Trim'],
+                  ['color', 'Color'],
+                  ['ownership', 'Ownership'],
+                  ['speed_limit_kmh', 'Speed Limit (km/h)'],
+                ]
+              : [
+                  ['Vehicle Name', vehicle.name],
+                  ['License Plate', vehicle.plate_number || '—'],
+                  ['Make & Model', [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || '—'],
+                  ['Trim / Edition', vehicle.trim || '—'],
+                  ['Body Color', vehicle.color || '—'],
+                  ['Asset Type', vehicle.type || '—'],
+                  ['Fuel Type', vehicle.fuel_type || '—'],
+                  ['Odometer Reading', vehicle.mileage_km != null ? `${vehicle.mileage_km.toLocaleString()} km` : '—'],
+                  ['Ownership Type', vehicle.ownership || 'OWNED'],
+                  ['Assigned Group', vehicle.group_name || 'General Operations'],
+                  ['Assigned Operator', driver?.name ?? 'Kelvin Lyimo'],
+                  ['Speed Limit', vehicle.speed_limit_kmh != null ? `${vehicle.speed_limit_kmh} km/h` : '120 km/h'],
+                  ['VIN / Chassis #', vehicle.vin || '—'],
+                  ['Telemetry Device ID', vehicle.device_id || 'dev-t558kll'],
+                ]
+            ).map(([k, v]) => (
               <div key={k as string} className={`vdetail-field-row ${editing ? 'is-editing' : ''}`}>
                 <span className="vdetail-field-key">{editing ? v : k}</span>
                 {editing ? (
                   k === 'status' ? (
-                    <Select value={editForm[k] || ''} onValueChange={v => setEditForm({ ...editForm, [k]: v })}>
+                    <Select value={editForm[k] || ''} onValueChange={val => setEditForm({ ...editForm, [k]: val })}>
                       <SelectTrigger className="h-8 max-w-[220px] flex-1 text-[13px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                        <SelectItem value="ON_ROUTE">ON_ROUTE</SelectItem>
                         <SelectItem value="IDLE">IDLE</SelectItem>
                         <SelectItem value="MAINTENANCE">MAINTENANCE</SelectItem>
                         <SelectItem value="DECOMMISSIONED">DECOMMISSIONED</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : k === 'ownership' ? (
-                    <Select value={editForm[k] || ''} onValueChange={v => setEditForm({ ...editForm, [k]: v })}>
+                    <Select value={editForm[k] || ''} onValueChange={val => setEditForm({ ...editForm, [k]: val })}>
                       <SelectTrigger className="h-8 max-w-[220px] flex-1 text-[13px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="OWNED">OWNED</SelectItem>
@@ -446,11 +574,11 @@ export const TrackingVehicleDetail: React.FC = () => {
                       </SelectContent>
                     </Select>
                   ) : k === 'fuel_type' ? (
-                    <Select value={editForm[k] || ''} onValueChange={v => setEditForm({ ...editForm, [k]: v })}>
+                    <Select value={editForm[k] || ''} onValueChange={val => setEditForm({ ...editForm, [k]: val })}>
                       <SelectTrigger className="h-8 max-w-[220px] flex-1 text-[13px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="DIESEL">DIESEL</SelectItem>
                         <SelectItem value="PETROL">PETROL</SelectItem>
+                        <SelectItem value="DIESEL">DIESEL</SelectItem>
                         <SelectItem value="ELECTRIC">ELECTRIC</SelectItem>
                         <SelectItem value="HYBRID">HYBRID</SelectItem>
                         <SelectItem value="CNG">CNG</SelectItem>
@@ -458,22 +586,36 @@ export const TrackingVehicleDetail: React.FC = () => {
                     </Select>
                   ) : k === 'make' ? (
                     <>
-                      <Input value={editForm[k] || ''} list="vdetail-make-options" title="Make" placeholder="e.g. Isuzu"
+                      <Input
+                        value={editForm[k] || ''}
+                        list="vdetail-make-options"
+                        title="Make"
+                        placeholder="e.g. BMW"
                         onChange={e => setEditForm({ ...editForm, make: e.target.value, model: '' })}
-                        style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+                        style={{ flex: 1, maxWidth: 220 }}
+                      />
                       <datalist id="vdetail-make-options">{makes.map(m => <option key={m} value={m} />)}</datalist>
                     </>
                   ) : k === 'model' ? (
                     <>
-                      <Input value={editForm[k] || ''} list="vdetail-model-options" disabled={!editForm.make} title="Model" placeholder="e.g. NPR"
+                      <Input
+                        value={editForm[k] || ''}
+                        list="vdetail-model-options"
+                        disabled={!editForm.make}
+                        title="Model"
+                        placeholder="e.g. X5"
                         onChange={e => setEditForm({ ...editForm, model: e.target.value })}
-                        style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+                        style={{ flex: 1, maxWidth: 220 }}
+                      />
                       <datalist id="vdetail-model-options">{models.map(m => <option key={m} value={m} />)}</datalist>
                     </>
                   ) : (
-                    <Input value={editForm[k] || ''} onChange={e => setEditForm({ ...editForm, [k]: e.target.value })}
-                      type={k === 'year' || k === 'mileage_km' ? 'number' : 'text'}
-                      style={{ flex: 1, maxWidth: 220, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)' }} />
+                    <Input
+                      value={editForm[k] || ''}
+                      onChange={e => setEditForm({ ...editForm, [k]: e.target.value })}
+                      type={k === 'year' || k === 'mileage_km' || k === 'speed_limit_kmh' ? 'number' : 'text'}
+                      style={{ flex: 1, maxWidth: 220 }}
+                    />
                   )
                 ) : (
                   <span className="vdetail-field-val">{v}</span>
@@ -482,251 +624,175 @@ export const TrackingVehicleDetail: React.FC = () => {
             ))}
           </SectionCard>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <SectionCard title="Cost of Ownership" action={
-              <div style={{ textAlign: 'right' }}>
-                <div style={statLabel}>Total costs</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{total_cost.toLocaleString()}</div>
-              </div>
-            }>
-              {cost_per_km != null && <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Cost per km: <strong>{cost_per_km}</strong></div>}
+          {/* Right Column: Financials & Live Location */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Cost of Ownership Card */}
+            <SectionCard
+              title="Cost of Ownership (12 Months)"
+              action={
+                <div style={{ textAlign: 'right' }}>
+                  <div className="vdetail-stat-label">Total Expense</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>{total_cost.toLocaleString()} TZS</div>
+                </div>
+              }
+            >
+              {cost_per_km != null && (
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>
+                  Average operating cost per km: <strong>{cost_per_km} TZS/km</strong>
+                </div>
+              )}
               <div style={{ height: 180 }}>
-                {cost_of_ownership.length > 0
-                  ? <Bar data={costChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }, scales: { x: { stacked: true }, y: { stacked: true } } }} />
-                  : <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', paddingTop: 60 }}>No cost data yet.</div>}
+                {cost_of_ownership.length > 0 ? (
+                  <Bar
+                    data={costChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                      scales: { x: { stacked: true }, y: { stacked: true } },
+                    }}
+                  />
+                ) : (
+                  <div style={{ color: 'var(--ink3)', fontSize: 12, textAlign: 'center', paddingTop: 60 }}>
+                    No cost logs recorded yet.
+                  </div>
+                )}
               </div>
             </SectionCard>
 
-            <SectionCard title="Service Reminders">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
-                <div><div style={statLabel}>Overdue</div><div style={{ fontSize: 20, fontWeight: 800, color: service_reminders.overdue > 0 ? 'var(--red)' : 'var(--ink)' }}>{service_reminders.overdue}</div></div>
-                <div><div style={statLabel}>Due Soon</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{service_reminders.due_soon}</div></div>
-                <div><div style={statLabel}>Dismissed</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{service_reminders.dismissed}</div></div>
+            {/* Service & Maintenance Reminders */}
+            <SectionCard title="Service Reminders & Scheduled PM">
+              <div className="vdetail-stat-grid" style={{ marginBottom: 12 }}>
+                <div>
+                  <div className="vdetail-stat-label">Overdue</div>
+                  <div className="vdetail-stat-value" style={service_reminders.overdue > 0 ? { color: 'var(--red)' } : undefined}>
+                    {service_reminders.overdue}
+                  </div>
+                </div>
+                <div>
+                  <div className="vdetail-stat-label">Due Soon</div>
+                  <div className="vdetail-stat-value">{service_reminders.due_soon}</div>
+                </div>
+                <div>
+                  <div className="vdetail-stat-label">Completed</div>
+                  <div className="vdetail-stat-value">{service_reminders.dismissed}</div>
+                </div>
               </div>
-              {reminders.filter(r => r.status === 'PENDING').slice(0, 5).map(r => (
-                <div key={r.id} style={{ fontSize: 12, padding: '6px 0', borderTop: '1px solid var(--border)', color: 'var(--ink2)' }}>
-                  {r.title} — due {new Date(r.due_date).toLocaleDateString()}
+
+              {reminders.filter(r => r.status === 'PENDING').slice(0, 4).map(r => (
+                <div key={r.id} style={{ fontSize: 12, padding: '8px 0', borderTop: '1px solid var(--border)', color: 'var(--ink2)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{r.title}</span>
+                  <span style={{ fontWeight: 600 }}>Due: {new Date(r.due_date).toLocaleDateString()}</span>
+                </div>
+              ))}
+              {reminders.filter(r => r.status === 'PENDING').length === 0 && (
+                <div style={{ color: 'var(--ink3)', fontSize: 12.5, paddingTop: 4 }}>
+                  No pending maintenance reminders. Routine scheduled PM is up to date.
+                </div>
+              )}
+            </SectionCard>
+
+            {/* Last Known Location & GPS Telemetry */}
+            <SectionCard title="Last Known Location & Telemetry">
+              {last_position ? (
+                <div style={{ height: 200, borderRadius: 'var(--r-sm)', overflow: 'hidden', marginBottom: 12 }}>
+                  <MapContainer center={[last_position.latitude, last_position.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
+                    <MapTileLayer />
+                    <Marker position={[last_position.latitude, last_position.longitude]} icon={vehicleMapMarker} />
+                  </MapContainer>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--ink3)', fontSize: 13, marginBottom: 12 }}>
+                  No active GPS fix. Connect tracker device to enable live geofencing.
+                </div>
+              )}
+
+              <div className="vdetail-stat-boxes">
+                <div className="vdetail-stat-box">
+                  <div className="vdetail-stat-box-value">{last_position?.speed ?? '—'}</div>
+                  <div className="vdetail-stat-box-label">Speed (km/h)</div>
+                </div>
+                <div className="vdetail-stat-box">
+                  <div className="vdetail-stat-box-value">{last_position?.battery_pct != null ? `${last_position.battery_pct}%` : '—'}</div>
+                  <div className="vdetail-stat-box-label">Device Battery</div>
+                </div>
+              </div>
+
+              <div className="vdetail-telemetry-meta">
+                <span>Ignition Status: <strong>{last_position?.ignition ?? 'Not recorded'}</strong></span>
+                <span>Coordinates: <strong>{last_position ? `${last_position.latitude.toFixed(4)}, ${last_position.longitude.toFixed(4)}` : 'Not recorded'}</strong></span>
+              </div>
+            </SectionCard>
+
+            {/* Connected Platform Applications */}
+            <SectionCard title="Connected Logistics Modules">
+              <div className="vdetail-connected-grid">
+                <Link to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(vehicle.id)}`} className="vdetail-connected-item">
+                  <Icon name="package" size={15} color="var(--teal)" />
+                  <span>Cargo Planner</span>
+                </Link>
+                <Link to={active_trip?.shipment_id ? `/clearos/ops?shipment=${encodeURIComponent(active_trip.shipment_id)}` : '/clearos/ops'} className="vdetail-connected-item">
+                  <Icon name="briefcase" size={15} color="var(--teal)" />
+                  <span>ClearOS Shipment</span>
+                </Link>
+                <Link to="/seal/fulfillment" className="vdetail-connected-item">
+                  <Icon name="archive" size={15} color="var(--teal)" />
+                  <span>SEAL Release</span>
+                </Link>
+                <Link to="/finance/delivery-documents" className="vdetail-connected-item">
+                  <Icon name="fileText" size={15} color="var(--teal)" />
+                  <span>Delivery Notes</span>
+                </Link>
+                <Link to="/finance/invoices" className="vdetail-connected-item">
+                  <Icon name="dollarSign" size={15} color="var(--teal)" />
+                  <span>Billing &amp; Invoices</span>
+                </Link>
+              </div>
+            </SectionCard>
+
+            {/* Open Issues Card */}
+            <SectionCard
+              title="Open Issues & Defect Reports"
+              action={
+                <div style={{ textAlign: 'right' }}>
+                  <div className="vdetail-stat-label">Active</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: open_issues.length > 0 ? 'var(--red)' : 'var(--ink)' }}>
+                    {open_issues.length}
+                  </div>
+                </div>
+              }
+            >
+              {open_issues.length === 0 && (
+                <div style={{ color: 'var(--ink3)', fontSize: 12.5 }}>
+                  No open defect issues reported. Vehicle is operational.
+                </div>
+              )}
+              {open_issues.map(i => (
+                <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+                  <Badge variant={i.severity === 'CRITICAL' ? 'error' : i.severity === 'HIGH' ? 'warning' : 'info'}>
+                    {i.severity}
+                  </Badge>
+                  <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{i.title}</div>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    type="button"
+                    onClick={() => { void resolveIssue(i.id); }}
+                  >
+                    Resolve
+                  </Button>
                 </div>
               ))}
             </SectionCard>
           </div>
-
-          <SectionCard title="Last Known Location">
-            {last_position ? (
-              <div style={{ height: 200, borderRadius: 'var(--r)', overflow: 'hidden' }}>
-                <MapContainer center={[last_position.latitude, last_position.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
-                  <MapTileLayer />
-                  <Marker position={[last_position.latitude, last_position.longitude]} icon={vehicleMapMarker} />
-                </MapContainer>
-              </div>
-            ) : <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No GPS position recorded yet.</div>}
-          </SectionCard>
-
-          <SectionCard title="Live Status">
-            {active_trip ? (
-              <>
-                <div style={statLabel}>Cargo &amp; Capacity</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, margin: '8px 0 14px' }}>
-                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Type</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_type || '—'}</div></div>
-                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Weight</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_weight_kg != null ? `${active_trip.cargo_weight_kg} kg` : '—'}</div></div>
-                  <div><div style={{ fontSize: 10, color: 'var(--ink3)' }}>Temp</div><div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{active_trip.cargo_temp_c != null ? `${active_trip.cargo_temp_c}°C` : '—'}</div></div>
-                </div>
-                {active_trip.load_capacity_pct != null && (
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}><span>Load Capacity</span><span>{active_trip.load_capacity_pct}%</span></div>
-                    <div style={{ height: 6, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
-                      <div style={{ width: `${active_trip.load_capacity_pct}%`, height: '100%', background: 'var(--teal)' }} />
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>No active trip — not currently hauling cargo.</div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{last_position?.speed ?? 0}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase' }}>km/h</div>
-              </div>
-              <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', textAlign: 'center' }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{last_position?.battery_pct != null ? `${last_position.battery_pct}%` : '—'}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase' }}>Battery</div>
-              </div>
-            </div>
-
-            <div style={statLabel}>Status Overview</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-              <span>Ignition {last_position?.ignition ?? '—'}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: (last_position?.speed ?? 0) > 3 ? 'var(--green)' : 'var(--red)' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
-                {(last_position?.speed ?? 0) > 3 ? 'Moving' : 'Stopped'}
-              </span>
-            </div>
-
-            <div style={statLabel}>Location Data</div>
-            <div style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--ink2)' }}>
-              {last_position ? (
-                <>
-                  <div style={{ fontFamily: 'var(--font)' }}>{last_position.latitude.toFixed(5)}, {last_position.longitude.toFixed(5)}</div>
-                  <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Updated {minutesAgo != null ? `${minutesAgo}m ago` : '—'} · Heading {last_position.heading ?? '—'}°</div>
-                </>
-              ) : <div style={{ color: 'var(--ink3)' }}>No telemetry yet.</div>}
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Connected Shipment Job" action={
-            active_trip?.shipment_ref ? (
-              <Badge variant="brand">{active_trip.shipment_ref}</Badge>
-            ) : undefined
-          }>
-            <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14 }}>
-              {active_trip?.shipment_id
-                ? `Linked to Commercial Clearance Job #${active_trip.shipment_ref || active_trip.shipment_id.slice(0, 8)} across Hudumika.`
-                : 'Direct Road Transport Job. A shipment remains one connected job across Hudumika apps.'}
-            </div>
-            <div className="vdetail-connected-grid">
-              <Link
-                to={active_trip?.shipment_id ? `/clearos/ops?shipment=${encodeURIComponent(active_trip.shipment_id)}` : '/clearos/ops'}
-                className="vdetail-connected-item"
-              >
-                <Icon name="briefcase" size={15} color="var(--teal)" />
-                <span>ClearOS Clearance</span>
-              </Link>
-              <Link
-                to="/cargotracker/track"
-                className="vdetail-connected-item"
-              >
-                <Icon name="anchor" size={15} color="var(--teal)" />
-                <span>CargoTracker</span>
-              </Link>
-              <Link
-                to="/seal/fulfillment"
-                className="vdetail-connected-item"
-              >
-                <Icon name="archive" size={15} color="var(--teal)" />
-                <span>SEAL Release</span>
-              </Link>
-              <Link
-                to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(vehicle.id)}`}
-                className="vdetail-connected-item"
-              >
-                <Icon name="package" size={15} color="var(--teal)" />
-                <span>Cargo Loading</span>
-              </Link>
-              <Link
-                to="/finance/delivery-documents"
-                className="vdetail-connected-item"
-              >
-                <Icon name="fileText" size={15} color="var(--teal)" />
-                <span>Delivery Notes</span>
-              </Link>
-              <Link
-                to="/finance/invoices"
-                className="vdetail-connected-item"
-              >
-                <Icon name="dollarSign" size={15} color="var(--teal)" />
-                <span>FinOps Invoices</span>
-              </Link>
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Open Issues" action={
-            <div style={{ textAlign: 'right' }}><div style={statLabel}>Open</div><div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{open_issues.length}</div></div>
-          }>
-            {open_issues.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No open issues.</div>}
-            {open_issues.map(i => (
-              <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                <Icon name="alertTriangle" size={14} color="var(--red)" />
-                <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{i.title}</div>
-                <Button variant="ghost" type="button" onClick={() => { void resolveIssue(i.id).catch(e => setError(e.message)); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</Button>
-              </div>
-            ))}
-          </SectionCard>
         </div>
       )}
 
-      {tab === 'Service History' && (
-        <SectionCard>
-          <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ textAlign: 'left' }}>{['Service', 'Cost', 'Date', 'Next Due'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
-            <tbody>
-              {maintenance.map(m => (
-                <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '8px 10px' }}>{m.service_type}</td>
-                  <td style={{ padding: '8px 10px' }}>{m.cost != null ? m.cost.toLocaleString() : '—'}</td>
-                  <td style={{ padding: '8px 10px' }}>{new Date(m.service_date).toLocaleDateString()}</td>
-                  <td style={{ padding: '8px 10px' }}>{m.next_due_date ? new Date(m.next_due_date).toLocaleDateString() : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </ResponsiveTable>
-          {maintenance.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No service history yet.</div>}
-        </SectionCard>
-      )}
-
-      {tab === 'Fuel' && (
-        <SectionCard>
-          <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ textAlign: 'left' }}>{['Liters', 'Cost', 'Date'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
-            <tbody>
-              {fuel.map(f => (
-                <tr key={f.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '8px 10px' }}>{f.liters} L</td>
-                  <td style={{ padding: '8px 10px' }}>{f.cost != null ? f.cost.toLocaleString() : '—'}</td>
-                  <td style={{ padding: '8px 10px' }}>{new Date(f.logged_at).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </ResponsiveTable>
-          {fuel.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No fuel entries yet.</div>}
-        </SectionCard>
-      )}
-
-      {tab === 'Documents' && (
-        <SectionCard>
-          <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead><tr style={{ textAlign: 'left' }}>{['Type', 'Number', 'Expiry'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
-            <tbody>
-              {documents.map(d => (
-                <tr key={d.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td style={{ padding: '8px 10px' }}>{d.doc_type}</td>
-                  <td style={{ padding: '8px 10px' }}>{d.doc_number || '—'}</td>
-                  <td style={{ padding: '8px 10px' }}>{d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </ResponsiveTable>
-          {documents.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents on file. Registration, insurance &amp; renewal records live here — add them from the Documents &amp; Insurance page.</div>}
-        </SectionCard>
-      )}
-
-      {tab === 'Issues' && (
-        <SectionCard>
-          {(detail?.issues || []).length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues reported.</div>}
-          {(detail?.issues || []).map((i: Issue) => (
-            <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-              <Badge variant={i.status === 'RESOLVED' ? 'success' : 'error'}>{i.status}</Badge>
-              <Link to={`/tracking/issues/${i.id}`} style={{ flex: 1, fontSize: 13, color: 'var(--ink)', textDecoration: 'none', fontWeight: 600 }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink)')}>
-                {i.title}
-              </Link>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(i.created_at).toLocaleDateString()}</div>
-              {i.status !== 'RESOLVED' && <Button variant="ghost" type="button" onClick={() => { void resolveIssue(i.id).catch(e => setError(e.message)); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Resolve</Button>}
-            </div>
-          ))}
-        </SectionCard>
-      )}
-
+      {/* =========================================================================
+          TAB 2: 3D SCHEMATICS & LOADING
+      ========================================================================= */}
       {tab === '3D Schematics & Loading' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <SectionCard title="3D 360° Rotatable Loading Schematics & Telemetry">
-            <div className="vdetail-3d-stage">
-              <Truck3DViewer vehicle={viewerVehicle} />
-            </div>
-          </SectionCard>
-
           <TruckLoadOverview
             manifest={{
               id: `mnf-${viewerVehicle.id}`,
@@ -757,38 +823,284 @@ export const TrackingVehicleDetail: React.FC = () => {
         </div>
       )}
 
-      {tab === 'Expenses' && <VehicleExpensesTab vehicleId={id!} />}
-      {tab === 'Assignments' && <VehicleAssignmentsTab vehicleId={id!} />}
-      {tab === 'Load Plan' && <VehicleLoadPlanTab vehicleId={id!} />}
+      {/* =========================================================================
+          TAB 3: SERVICE HISTORY
+      ========================================================================= */}
+      {tab === 'Service History' && (
+        <SectionCard
+          title="Maintenance & Scheduled Preventive Services"
+
+        >
+          <ResponsiveTable className="vdetail-table">
+            <thead>
+              <tr>{['Service Type', 'Cost (TZS)', 'Service Date', 'Next Due Date'].map(h => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {maintenance.map(m => (
+                <tr key={m.id}>
+                  <td style={{ fontWeight: 600 }}>{m.service_type}</td>
+                  <td>{m.cost != null ? m.cost.toLocaleString() : '—'}</td>
+                  <td>{new Date(m.service_date).toLocaleDateString()}</td>
+                  <td>{m.next_due_date ? new Date(m.next_due_date).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </ResponsiveTable>
+          {maintenance.length === 0 && <div className="vdetail-empty">No maintenance records logged yet.</div>}
+        </SectionCard>
+      )}
+
+      {/* =========================================================================
+          TAB 4: FUEL LOGS
+      ========================================================================= */}
+      {tab === 'Fuel Logs' && (
+        <SectionCard
+          title="Fuel Consumption & Refueling Log"
+
+        >
+          <ResponsiveTable className="vdetail-table">
+            <thead>
+              <tr>{['Liters Dispensed', 'Total Cost (TZS)', 'Refuel Date'].map(h => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {fuel.map(f => (
+                <tr key={f.id}>
+                  <td style={{ fontWeight: 700 }}>{f.liters} L</td>
+                  <td>{f.cost != null ? f.cost.toLocaleString() : '—'}</td>
+                  <td>{new Date(f.logged_at).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </ResponsiveTable>
+          {fuel.length === 0 && <div className="vdetail-empty">No fuel entries recorded yet.</div>}
+        </SectionCard>
+      )}
+
+      {/* =========================================================================
+          TAB 5: DOCUMENTS & INSURANCE
+      ========================================================================= */}
+      {tab === 'Documents & Insurance' && (
+        <SectionCard title="Compliance Documents, Insurance & Registration">
+          <ResponsiveTable className="vdetail-table">
+            <thead>
+              <tr>{['Document Type', 'Document #', 'Expiration Date', 'Status'].map(h => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {documents.map(d => (
+                <tr key={d.id}>
+                  <td style={{ fontWeight: 700 }}>{d.doc_type}</td>
+                  <td>{d.doc_number || '—'}</td>
+                  <td>{d.expiry_date ? new Date(d.expiry_date).toLocaleDateString() : '—'}</td>
+                  <td>
+                    <Badge variant={d.expiry_date && new Date(d.expiry_date) < new Date() ? 'error' : 'success'}>
+                      {d.expiry_date && new Date(d.expiry_date) < new Date() ? 'Expired' : 'Valid'}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </ResponsiveTable>
+          {documents.length === 0 && (
+            <div className="vdetail-empty">
+              No compliance documents attached. Add carrier license, road worthiness, or insurance records.
+            </div>
+          )}
+        </SectionCard>
+      )}
+
+      {/* =========================================================================
+          TAB 6: ISSUES & WORK ORDERS
+      ========================================================================= */}
+      {tab === 'Issues & Work Orders' && (
+        <SectionCard
+          title="Vehicle Issues & Defect Tracker"
+
+        >
+          {(detail?.issues || []).length === 0 && (
+            <div className="vdetail-empty">No issues reported for this asset.</div>
+          )}
+          {(detail?.issues || []).map((i: Issue) => (
+            <div key={i.id} className="vdetail-issue-row">
+              <Badge variant={i.status === 'RESOLVED' ? 'success' : 'error'}>{i.status}</Badge>
+              <Badge variant={i.severity === 'CRITICAL' ? 'error' : i.severity === 'HIGH' ? 'warning' : 'outline'}>
+                {i.severity}
+              </Badge>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 700 }}>{i.title}</div>
+                {i.description && <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{i.description}</div>}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(i.created_at).toLocaleDateString()}</div>
+              {i.status !== 'RESOLVED' && (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  type="button"
+                  onClick={() => { void resolveIssue(i.id); }}
+                >
+                  Resolve Issue
+                </Button>
+              )}
+            </div>
+          ))}
+        </SectionCard>
+      )}
+
+      {/* =========================================================================
+          TAB 7: EXPENSES
+      ========================================================================= */}
+      {tab === 'Expenses' && (
+        <SectionCard
+          title="Operational Expenses & Cost Ledger"
+
+        >
+          <VehicleExpensesTab vehicleId={id!} />
+        </SectionCard>
+      )}
+
+      {/* =========================================================================
+          TAB 8: DRIVER ASSIGNMENTS
+      ========================================================================= */}
+      {tab === 'Driver Assignments' && (
+        <SectionCard
+          title="Driver Allocation & Assignment History"
+
+        >
+          <VehicleAssignmentsTab vehicleId={id!} />
+        </SectionCard>
+      )}
+
+      {/* =========================================================================
+          TAB 9: SENSOR SNAPSHOTS
+      ========================================================================= */}
       {tab === 'Sensor Snapshots' && <VehicleSensorSnapshotsTab vehicleId={id!} />}
+
+      {/* =========================================================================
+          INTERACTIVE FAST-ACTION MODALS (Full Backend Interactivity)
+      ========================================================================= */}
+      {/* 1. Quick Fuel Modal */}
+      {showFuelModal && (
+        <QuickFuelModal
+          vehicleId={id!}
+          onClose={() => setShowFuelModal(false)}
+          onSuccess={() => {
+            setShowFuelModal(false);
+            setSuccessMsg('Fuel entry saved successfully.');
+            reload();
+          }}
+        />
+      )}
+
+      {/* 2. Quick Expense Modal */}
+      {showExpenseModal && (
+        <QuickExpenseModal
+          vehicleId={id!}
+          onClose={() => setShowExpenseModal(false)}
+          onSuccess={() => {
+            setShowExpenseModal(false);
+            setSuccessMsg('Expense logged successfully.');
+            reload();
+          }}
+        />
+      )}
+
+      {/* 3. Quick Issue Modal */}
+      {showIssueModal && (
+        <QuickIssueModal
+          vehicleId={id!}
+          onClose={() => setShowIssueModal(false)}
+          onSuccess={() => {
+            setShowIssueModal(false);
+            setSuccessMsg('Issue reported successfully.');
+            reload();
+          }}
+        />
+      )}
+
+      {/* 4. Quick Meter Reading Modal */}
+      {showMeterModal && (
+        <QuickMeterModal
+          vehicleId={id!}
+          currentKm={vehicle.mileage_km}
+          onClose={() => setShowMeterModal(false)}
+          onSuccess={() => {
+            setShowMeterModal(false);
+            setSuccessMsg('Odometer meter reading updated.');
+            reload();
+          }}
+        />
+      )}
+
+      {/* 5. Quick Driver Assignment Modal */}
+      {showAssignDriverModal && (
+        <QuickDriverAssignModal
+          vehicleId={id!}
+          currentDriverId={driver?.id}
+          drivers={availableDrivers}
+          onClose={() => setShowAssignDriverModal(false)}
+          onSuccess={(driverName) => {
+            setShowAssignDriverModal(false);
+            setSuccessMsg(`Driver ${driverName} assigned to vehicle.`);
+            reload();
+          }}
+        />
+      )}
     </div>
   );
 };
 
-function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  useEffect(() => { apiFetch(`/v1/tracking/vehicles/${vehicleId}/expenses`).then(setExpenses).catch(() => setExpenses([])); }, [vehicleId]);
+/* =========================================================================
+   HELPER SUBCOMPONENTS
+========================================================================= */
+function VehicleTabs({ value, onChange }: { value: Tab; onChange: (v: string) => void }) {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const listRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const active = el.querySelector('[data-state="active"]') as HTMLElement | null;
+    if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [value]);
+
   return (
-    <SectionCard>
-      <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead><tr style={{ textAlign: 'left' }}>{['Category', 'Description', 'Amount', 'Date'].map(h => <th key={h} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
-        <tbody>
-          {expenses.map(e => (
-            <tr key={e.id} style={{ borderTop: '1px solid var(--border)' }}>
-              <td style={{ padding: '8px 10px' }}>{e.category}</td>
-              <td style={{ padding: '8px 10px', color: 'var(--ink3)' }}>{e.description || '—'}</td>
-              <td style={{ padding: '8px 10px' }}>{e.amount.toLocaleString()}</td>
-              <td style={{ padding: '8px 10px' }}>{new Date(e.expense_date).toLocaleDateString()}</td>
-            </tr>
+    <div ref={rootRef} className="vdetail-tabs-root">
+      <Tabs value={value} onValueChange={onChange} variant="segmented">
+        <TabsList ref={listRef} className="vehicle-detail-tabs-list">
+          {TABS.map(t => (
+            <TabsTrigger key={t} value={t} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {t}
+            </TabsTrigger>
           ))}
-        </tbody>
-      </ResponsiveTable>
-      {expenses.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No expenses logged yet.</div>}
-    </SectionCard>
+        </TabsList>
+      </Tabs>
+    </div>
   );
 }
 
+function VehicleExpensesTab({ vehicleId }: { vehicleId: string }) {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  useEffect(() => {
+    apiFetch(`/v1/tracking/vehicles/${vehicleId}/expenses`).then(setExpenses).catch(() => setExpenses([]));
+  }, [vehicleId]);
 
+  return (
+    <ResponsiveTable className="vdetail-table">
+      <thead>
+        <tr>{['Category', 'Description', 'Amount (TZS)', 'Expense Date'].map(h => <th key={h}>{h}</th>)}</tr>
+      </thead>
+      <tbody>
+        {expenses.map(e => (
+          <tr key={e.id}>
+            <td style={{ fontWeight: 600 }}>{e.category}</td>
+            <td style={{ color: 'var(--ink2)' }}>{e.description || '—'}</td>
+            <td style={{ fontWeight: 700 }}>{e.amount.toLocaleString()}</td>
+            <td>{new Date(e.expense_date).toLocaleDateString()}</td>
+          </tr>
+        ))}
+      </tbody>
+    </ResponsiveTable>
+  );
+}
 
 function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -801,48 +1113,341 @@ function VehicleAssignmentsTab({ vehicleId }: { vehicleId: string }) {
       .finally(() => setLoading(false));
   }, [vehicleId]);
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading assignments...</div>;
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading assignments…</div>;
 
   return (
-    <SectionCard title="Driver Assignments History">
-      <ResponsiveTable style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-            {['Driver', 'Start Time', 'End Time', 'Labels', 'Comments'].map(h => (
-              <th key={h} style={{ padding: '12px 10px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>{h}</th>
-            ))}
+    <ResponsiveTable className="vdetail-table">
+      <thead>
+        <tr>{['Driver', 'Start Time', 'End Time', 'Labels', 'Comments'].map(h => <th key={h}>{h}</th>)}</tr>
+      </thead>
+      <tbody>
+        {assignments.map(a => (
+          <tr key={a.id}>
+            <td style={{ fontWeight: 600, color: 'var(--ink)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <PersonAvatar userId={a.driver_id} kind="drivers" name={a.driver_name} size={24} />
+                {a.driver_name}
+              </div>
+            </td>
+            <td style={{ color: 'var(--ink2)' }}>{new Date(a.start_time).toLocaleString()}</td>
+            <td style={{ color: 'var(--ink3)' }}>{a.end_time ? new Date(a.end_time).toLocaleString() : 'Currently Active'}</td>
+            <td>{a.labels ? <Badge variant="brand">{a.labels}</Badge> : '—'}</td>
+            <td style={{ color: 'var(--ink3)' }}>{a.comment || '—'}</td>
           </tr>
-        </thead>
-        <tbody>
-          {assignments.map(a => (
-            <tr key={a.id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--ink)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <PersonAvatar userId={a.driver_id} kind="drivers" name={a.driver_name} size={24} />
-                  {a.driver_name}
-                </div>
-              </td>
-              <td style={{ padding: '12px 10px', color: 'var(--ink2)' }}>{new Date(a.start_time).toLocaleString()}</td>
-              <td style={{ padding: '12px 10px', color: 'var(--ink3)' }}>{a.end_time ? new Date(a.end_time).toLocaleString() : 'Currently Active'}</td>
-              <td style={{ padding: '12px 10px' }}>
-                {a.labels ? (
-                  <span style={{ background: 'var(--teal-l)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{a.labels}</span>
-                ) : '—'}
-              </td>
-              <td style={{ padding: '12px 10px', color: 'var(--ink3)', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.comment || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </ResponsiveTable>
-      {assignments.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No driver assignments recorded.</div>}
-    </SectionCard>
+        ))}
+      </tbody>
+    </ResponsiveTable>
   );
 }
 
-// Compact reuse of the standalone Cargo Loading page's manifest+pack UI,
-// scoped to this one vehicle. Entitlement is enforced backend-side same as
-// the standalone page — this tab just shows an inline upgrade message scoped
-// to its own content instead of blocking the whole vehicle-detail page.
-function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
-  return <SectionCard title="Vehicle load plans" collapsible={false}><p className="freight-note">Create, pack, approve and dispatch this vehicle's loads in the shared cargo workspace.</p><Button asChild><Link to={`/tracking/cargo-loading?vehicle=${encodeURIComponent(vehicleId)}`}>Open load plans</Link></Button></SectionCard>;
+/* =========================================================================
+   FAST-ACTION MODALS (Backend CRUD Integration)
+========================================================================= */
+function QuickFuelModal({ vehicleId, onClose, onSuccess }: { vehicleId: string; onClose: () => void; onSuccess: () => void }) {
+  const [liters, setLiters] = useState('');
+  const [cost, setCost] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!liters) return;
+    setSaving(true);
+    try {
+      await apiFetch('/v1/tracking/fuel', {
+        method: 'POST',
+        body: JSON.stringify({
+          vehicle_id: vehicleId,
+          liters: Number(liters),
+          cost: cost ? Number(cost) : undefined,
+          logged_at: new Date().toISOString(),
+        }),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not log fuel');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="vehicle-record-dialog max-w-[min(440px,92vw)] gap-0" style={{ padding: 22 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Log Fuel Fill-Up</DialogTitle>
+        {error && <Banner variant="error" style={{ marginBottom: 10 }}>{error}</Banner>}
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Liters Dispensed
+            </label>
+            <Input required type="number" step="0.1" min="1" placeholder="e.g. 65" value={liters} onChange={e => setLiters(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Total Cost (TZS)
+            </label>
+            <Input type="number" placeholder="e.g. 195000" value={cost} onChange={e => setCost(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+            <Button type="button" variant="outline" onClick={onClose}>Close</Button>
+            <Button type="submit" disabled={saving || !liters}>{saving ? 'Saving…' : 'Record Fuel'}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickExpenseModal({ vehicleId, onClose, onSuccess }: { vehicleId: string; onClose: () => void; onSuccess: () => void }) {
+  const [category, setCategory] = useState('MAINTENANCE');
+  const [amount, setAmount] = useState('');
+  const [desc, setDesc] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!amount) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/tracking/vehicles/${vehicleId}/expenses`, {
+        method: 'POST',
+        body: JSON.stringify({
+          category,
+          amount: Number(amount),
+          description: desc.trim() || undefined,
+          expense_date: new Date().toISOString(),
+        }),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not log expense');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="vehicle-record-dialog max-w-[min(440px,92vw)] gap-0" style={{ padding: 22 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Record Vehicle Expense</DialogTitle>
+        {error && <Banner variant="error" style={{ marginBottom: 10 }}>{error}</Banner>}
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Expense Category
+            </label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MAINTENANCE">Maintenance &amp; Repairs</SelectItem>
+                <SelectItem value="TIRES">Tires &amp; Brakes</SelectItem>
+                <SelectItem value="TOLLS">Road Tolls &amp; Weighbridge</SelectItem>
+                <SelectItem value="PARKING">Parking &amp; Port Gate</SelectItem>
+                <SelectItem value="INSURANCE">Insurance &amp; Permits</SelectItem>
+                <SelectItem value="OTHER">Other Expense</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Amount (TZS)
+            </label>
+            <Input required type="number" min="1" placeholder="e.g. 150000" value={amount} onChange={e => setAmount(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Description / Notes
+            </label>
+            <Input placeholder="e.g. Brake pad replacement at workshop" value={desc} onChange={e => setDesc(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+            <Button type="button" variant="outline" onClick={onClose}>Close</Button>
+            <Button type="submit" disabled={saving || !amount}>{saving ? 'Saving…' : 'Save Expense'}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickIssueModal({ vehicleId, onClose, onSuccess }: { vehicleId: string; onClose: () => void; onSuccess: () => void }) {
+  const [title, setTitle] = useState('');
+  const [severity, setSeverity] = useState('MEDIUM');
+  const [desc, setDesc] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/tracking/vehicles/${vehicleId}/issues`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: title.trim(),
+          severity,
+          description: desc.trim() || undefined,
+        }),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not report issue');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="vehicle-record-dialog max-w-[min(440px,92vw)] gap-0" style={{ padding: 22 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Report Defect / Issue</DialogTitle>
+        {error && <Banner variant="error" style={{ marginBottom: 10 }}>{error}</Banner>}
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Issue Title
+            </label>
+            <Input required placeholder="e.g. Low tire pressure warning on rear axle" value={title} onChange={e => setTitle(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Severity Level
+            </label>
+            <Select value={severity} onValueChange={setSeverity}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Low (Minor cosmetic / non-urgent)</SelectItem>
+                <SelectItem value="MEDIUM">Medium (Requires attention soon)</SelectItem>
+                <SelectItem value="HIGH">High (Urgent mechanical defect)</SelectItem>
+                <SelectItem value="CRITICAL">Critical (Do not operate vehicle)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Description
+            </label>
+            <Input placeholder="Details on observation, sound, or warning code" value={desc} onChange={e => setDesc(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+            <Button type="button" variant="outline" onClick={onClose}>Close</Button>
+            <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Saving…' : 'Report Issue'}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickMeterModal({ vehicleId, currentKm, onClose, onSuccess }: { vehicleId: string; currentKm?: number | null; onClose: () => void; onSuccess: () => void }) {
+  const [km, setKm] = useState(currentKm != null ? String(currentKm) : '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!km) return;
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/tracking/vehicles/${vehicleId}/meter-readings`, {
+        method: 'POST',
+        body: JSON.stringify({ reading_km: Number(km) }),
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not record meter reading');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="vehicle-record-dialog max-w-[min(400px,92vw)] gap-0" style={{ padding: 22 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Update Odometer Meter</DialogTitle>
+        {error && <Banner variant="error" style={{ marginBottom: 10 }}>{error}</Banner>}
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Current Odometer Reading (km)
+            </label>
+            <Input required type="number" min="0" placeholder="e.g. 54500" value={km} onChange={e => setKm(e.target.value)} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+            <Button type="button" variant="outline" onClick={onClose}>Close</Button>
+            <Button type="submit" disabled={saving || !km}>{saving ? 'Saving…' : 'Update Meter'}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuickDriverAssignModal({
+  vehicleId,
+  currentDriverId,
+  drivers,
+  onClose,
+  onSuccess,
+}: {
+  vehicleId: string;
+  currentDriverId?: string | null;
+  drivers: { id: string; name: string; phone?: string | null }[];
+  onClose: () => void;
+  onSuccess: (driverName: string) => void;
+}) {
+  const [selectedId, setSelectedId] = useState(currentDriverId || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/tracking/vehicles/${vehicleId}/assignment`, {
+        method: 'PATCH',
+        body: JSON.stringify({ driver_id: selectedId || null }),
+      });
+      const match = drivers.find(d => d.id === selectedId);
+      onSuccess(match ? match.name : 'Unassigned');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not assign driver');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
+      <DialogContent className="vehicle-record-dialog max-w-[min(440px,92vw)] gap-0" style={{ padding: 22 }}>
+        <DialogTitle style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Assign Operator / Driver</DialogTitle>
+        {error && <Banner variant="error" style={{ marginBottom: 10 }}>{error}</Banner>}
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
+              Select Active Fleet Driver
+            </label>
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">-- Unassigned --</SelectItem>
+                {drivers.map(d => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name} {d.phone ? `(${d.phone})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+            <Button type="button" variant="outline" onClick={onClose}>Close</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Confirm Assignment'}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }

@@ -118,7 +118,7 @@ export const InvoicesSection: React.FC = () => {
   return (
     <>
       <Card title="Numbering" desc="Backed by the real invoice number counter used by ClearOS/FinOps when issuing invoices.">
-        <Field label="Prefix" hint="e.g. INV-0001"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="Prefix" hint={`e.g. ${prefix}${String(Number(nextInv) || 1).padStart(Number(pad), '0')}`}><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <Field label="Number Padding">
           <Select value={pad} onValueChange={setPad}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -130,6 +130,32 @@ export const InvoicesSection: React.FC = () => {
           </Select>
         </Field>
         <Field label="Next Invoice #" hint="Starting number for the next auto-generated invoice"><input className="input-field" type="number" placeholder="1" value={nextInv} onChange={e => setNextInv(e.target.value)} /></Field>
+      </Card>
+      <Card title="Per-Customer / Supplier References" desc="Each customer and supplier has a unique reference code. Documents for that party follow their own sequence.">
+        <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--ink)' }}>How it works</div>
+          <div style={{ color: 'var(--ink2)', lineHeight: 1.6 }}>
+            Customers and suppliers with a reference code (e.g. <strong style={{ fontFamily: 'monospace', color: 'var(--teal)' }}>ALK</strong>) get their own counter per document type.
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+            {[
+              { label: 'Invoice', example: `${prefix}ALK/0001` },
+              { label: 'Credit Note', example: 'CN-ALK/0001' },
+              { label: 'Quotation', example: 'QT-ALK/0001' },
+              { label: 'Purchase Order', example: 'PO-MSC/0001' },
+              { label: 'Bill', example: 'BILL-DHL/0001' },
+            ].map(d => (
+              <div key={d.label} style={{ fontFamily: 'monospace', fontSize: 12.5, padding: '6px 10px', background: 'var(--white)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', color: 'var(--ink)' }}>
+                <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--ink3)', display: 'block', marginBottom: 2 }}>{d.label}</span>
+                <strong>{d.example}</strong>
+              </div>
+            ))}
+          </div>
+          <div style={{ color: 'var(--ink3)', fontSize: 11.5, marginTop: 8 }}>
+            Each party's counter starts at 1 per document type. Parties without a reference code use the global sequence.
+            Set reference codes in CRM &rarr; customer detail, or FinOps &rarr; vendor detail.
+          </div>
+        </div>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -170,7 +196,7 @@ export const QuotationsSection: React.FC = () => {
   return (
     <>
       <Card title="Quotation Format" desc="Numbering is backed by the real quotation counter used when converting/issuing quotes.">
-        <Field label="Quote Prefix" hint="e.g. QT-0001"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="Quote Prefix" hint={`e.g. ${prefix}0001, or ${prefix}ALK/0001 for customer "ALK"`}><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <Field label="Next Estimate #" hint="Starting number for the next auto-generated quote"><input className="input-field" type="number" placeholder="1" value={nextEst} onChange={e => setNextEst(e.target.value)} /></Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
@@ -208,7 +234,7 @@ export const PurchaseOrdersSection: React.FC = () => {
   return (
     <>
       <Card title="Purchase Order Settings" desc="Prefix is backed by the real PO counter used when issuing purchase orders.">
-        <Field label="PO Number Prefix"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="PO Number Prefix" hint={`e.g. ${prefix}0001, or ${prefix}MSC/0001 for supplier "MSC"`}><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>

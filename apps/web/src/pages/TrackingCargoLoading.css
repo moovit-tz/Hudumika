@@ -1,147 +1,865 @@
-/* TrackingCargoLoading.css - Responsive and Dark Mode Styles */
+/* TrackingCargoLoading.css - Complete High-Fidelity Warehouse Operations & Cargo Loading Platform */
 
 .cargo-loading-page {
-  padding-bottom: 32px;
+  padding: 0 0 24px;
+  min-height: calc(100vh - 60px);
+  color: var(--ink);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* =========================================================================
+   LIFECYCLE STEPPER HEADER
+========================================================================= */
+.cargo-lifecycle-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 8px;
+  margin-bottom: 20px;
+  box-shadow: var(--elev-sm);
+  min-width: 0;
+  gap: 12px;
+  scrollbar-width: thin;
+}
+
+.cargo-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink3);
+  white-space: normal;
+  justify-content: flex-start;
+  text-align: left;
+  min-width: 0;
+  padding-inline: 10px;
+  user-select: none;
+}
+
+.cargo-step-item.is-active {
+  color: var(--teal);
+  background: var(--teal-l);
+}
+
+.cargo-step-item.is-completed {
   color: var(--ink);
 }
 
-.cargo-loading-grid {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
+.cargo-step-badge {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--card-sunken);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.cargo-vehicle-sidebar {
+.cargo-step-item.is-active .cargo-step-badge {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.cargo-step-item.is-completed .cargo-step-badge {
+  background: var(--teal-l);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+.cargo-step-divider {
+  width: 24px;
+  height: 1.5px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   WAREHOUSE OPERATIONS TOP BAR (Marcus Lee, TRC-204, Dock #3, Donut Chart)
+   Reference Image 4 & 2
+========================================================================= */
+.cargo-ops-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1080px) {
+  .cargo-ops-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cargo-sidebar-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Truck & Driver Info Card (Reference Image 4) */
+.cargo-driver-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  box-shadow: var(--elev-sm);
+}
+
+.cargo-driver-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.cargo-driver-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+}
+
+.cargo-driver-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cargo-driver-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0891b2, #0284c7);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(8, 145, 178, 0.25);
+  flex-shrink: 0;
+}
+
+.cargo-driver-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.cargo-driver-id {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.cargo-driver-telemetry {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+.cargo-telemetry-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.cargo-telemetry-label {
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+.cargo-telemetry-value {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.cargo-driver-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Capacity Donut Card (Reference Image 4 & 2) */
+.cargo-donut-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  box-shadow: var(--elev-sm);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.cargo-donut-wrap {
+  width: 90px;
+  height: 90px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cargo-donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.cargo-donut-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.cargo-donut-pct {
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.cargo-donut-sub {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.cargo-donut-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.cargo-donut-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--ink2);
+}
+
+.cargo-donut-stat-row strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Loading Activity Log (Reference Image 4) */
+.cargo-activity-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  box-shadow: var(--elev-sm);
+}
+
+.cargo-activity-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  margin-bottom: 14px;
+}
+
+.cargo-activity-timeline {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.cargo-vehicle-list {
+.cargo-timeline-item {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 10px;
-  max-height: 860px;
-  overflow-y: auto;
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 
-.cargo-vehicle-card {
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r);
-  padding: 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: var(--elev-sm);
+.cargo-timeline-time {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  min-width: 58px;
+  flex-shrink: 0;
 }
 
-.cargo-vehicle-card:hover {
-  border-color: var(--teal);
-  box-shadow: var(--elev);
-}
-
-.cargo-vehicle-card.is-selected {
-  border-color: var(--orange, #f97316);
-  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.12);
-}
-
-[data-theme="dark"] .cargo-vehicle-card.is-selected {
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.22);
-}
-
-.cargo-kpi-ribbon {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.cargo-kpi-divider {
-  width: 1px;
-  height: 32px;
-  background: var(--border);
-}
-
-.cargo-loading-bottom-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 20px;
-}
-
-.cargo-driver-card-btn {
-  width: 40px;
-  height: 40px;
+.cargo-timeline-icon {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
+  background: var(--teal-l);
+  color: var(--teal);
   display: flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
-.cargo-driver-phone-btn {
-  background: #fff7ed;
-  color: #ea580c;
-  border: 1px solid #ffedd5;
-}
-
-[data-theme="dark"] .cargo-driver-phone-btn {
-  background: rgba(249, 115, 22, 0.14);
-  color: #f97316;
-  border-color: rgba(249, 115, 22, 0.25);
-}
-
-.cargo-driver-chat-btn {
-  background: var(--bg);
+.cargo-timeline-text {
   color: var(--ink);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   CENTER PANEL: REALISTIC 2D CUTAWAY TRUCK & BAY SLOTS (Reference Image 4)
+========================================================================= */
+.cargo-truck-showcase-panel {
+  background: var(--card-bg, #ffffff);
   border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  box-shadow: var(--elev-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cargo-truck-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.cargo-truck-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cargo-truck-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.cargo-truck-plate-badge {
+  padding: 2px 8px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.05em;
+}
+
+/* THE 2D CUTAWAY TRUCK CONTAINER */
+.cargo-cutaway-rig-wrapper {
+  position: relative;
+  width: 100%;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 16px 28px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.cargo-cutaway-truck-assembly {
+  display: flex;
+  align-items: flex-end;
+  min-width: 820px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* TRUCK CABIN (Left Side) */
+.cargo-truck-cabin {
+  width: 160px;
+  height: 240px;
+  position: relative;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 2px solid #94a3b8;
+  border-right: none;
+  border-radius: 28px 6px 4px 8px;
+  box-shadow: inset -2px 0 6px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+/* Cab Windshield & Roof Deflector */
+.cargo-cabin-windshield {
+  height: 60px;
+  width: 85%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 2px solid #0c4a6e;
+  border-radius: 16px 4px 4px 6px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.4);
+}
+
+.cargo-cabin-windshield::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: rgba(255,255,255,0.25);
+  transform: skewX(-20deg);
+}
+
+/* Cab Door & Mirror */
+.cargo-cabin-door {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.cargo-cabin-grille {
+  height: 38px;
+  background: #334155;
+  border-radius: 4px;
+  border: 1.5px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: 3px 8px;
+}
+
+.cargo-cabin-grille-bar {
+  height: 2.5px;
+  background: #94a3b8;
+  border-radius: 2px;
+}
+
+/* Cab Steer Wheel */
+.cargo-cabin-wheel {
+  position: absolute;
+  bottom: -22px;
+  left: 28px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 5px solid #0f172a;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cargo-wheel-rim {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f1f5f9 40%, #94a3b8 100%);
+  border: 2px solid #475569;
+}
+
+/* TRAILER CONTAINER (Right Side - Bay Slots Grid) */
+.cargo-truck-trailer {
+  flex: 1;
+  height: 240px;
+  background: #ffffff;
+  border: 2.5px solid #64748b;
+  border-radius: 6px 8px 8px 6px;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+/* Trailer Tandem Wheels Underneath */
+.cargo-trailer-wheels {
+  position: absolute;
+  bottom: -22px;
+  right: 48px;
+  display: flex;
+  gap: 14px;
+}
+
+.cargo-trailer-wheel {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 5px solid #0f172a;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Landing Gear Legs */
+.cargo-trailer-landing-gear {
+  position: absolute;
+  bottom: -18px;
+  left: 42px;
+  width: 14px;
+  height: 20px;
+  background: #475569;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+
+/* 3x6 BAY SLOTS GRID INSIDE TRAILER (Reference Image 4) */
+.cargo-bay-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 7px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Individual Slot Card */
+.cargo-bay-slot {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  user-select: none;
+  min-height: 62px;
 }
 
-[data-theme="dark"] .cargo-driver-chat-btn:hover {
-  background: var(--hover-bg);
+.cargo-bay-slot:hover {
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.15);
+  transform: translateY(-1px);
 }
 
-/* =========================================================
-   RESPONSIVE BREAKPOINTS
-========================================================= */
-@media (max-width: 1040px) {
-  .cargo-loading-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .cargo-vehicle-list {
-    flex-direction: row;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 8px;
-    max-height: none;
-  }
-
-  .cargo-vehicle-card {
-    min-width: 250px;
-    flex-shrink: 0;
-  }
+.cargo-bay-slot.is-selected {
+  border: 2.5px solid var(--teal) !important;
+  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.25), 0 4px 12px rgba(8, 145, 178, 0.2);
+  background: #f0fdfa;
 }
 
-@media (max-width: 860px) {
-  .cargo-loading-bottom-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+/* Empty Slot State */
+.cargo-bay-slot.is-empty {
+  border: 1.5px dashed #cbd5e1;
+  background: #fafafa;
+  align-items: center;
+  justify-content: center;
 }
 
-@media (max-width: 600px) {
-  .cargo-kpi-ribbon {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+.cargo-bay-slot.is-empty:hover {
+  border-color: var(--teal);
+  background: #f0fdfa;
+}
+
+.cargo-slot-id {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.cargo-bay-slot.is-selected .cargo-slot-id {
+  color: var(--teal);
+}
+
+.cargo-slot-plus {
+  font-size: 18px;
+  font-weight: 700;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.cargo-bay-slot.is-empty:hover .cargo-slot-plus {
+  color: var(--teal);
+  transform: scale(1.15);
+}
+
+/* Filled Slot State */
+.cargo-slot-loaded-code {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cargo-slot-loaded-weight {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #0891b2;
+}
+
+/* =========================================================================
+   BOTTOM PANEL: ASSIGN SHIPMENT TO [SLOT] (Reference Image 4)
+========================================================================= */
+.cargo-consignments-dock-section {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 20px;
+  box-shadow: var(--elev-sm);
+  margin-bottom: 22px;
+}
+
+.cargo-consignments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cargo-consignments-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cargo-consignments-title strong {
+  color: var(--teal);
+  background: var(--teal-l);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.cargo-consignments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.cargo-consignment-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.cargo-consignment-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.1);
+  transform: translateY(-1px);
+}
+
+.cargo-ccard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cargo-ccard-ref {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.cargo-ccard-desc {
+  font-size: 11.5px;
+  color: var(--ink2);
+  line-height: 1.3;
+}
+
+.cargo-ccard-specs {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ink3);
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.cargo-ccard-specs strong {
+  color: var(--ink);
+}
+
+.cargo-ccard-action-btn {
+  width: 100%;
+  height: 32px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* =========================================================================
+   CARGO LOAD LISTING TABLE (Reference Image 2 - DHL Layout)
+========================================================================= */
+.cargo-table-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--elev-sm);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.cargo-table-header {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.cargo-table-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* =========================================================================
+   OFFICIAL PRINTABLE CARRIER MANIFEST MODAL
+========================================================================= */
+.cargo-manifest-modal {
+  max-width: min(840px, 96vw) !important;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 0 !important;
+}
+
+.cargo-manifest-print-sheet {
+  padding: 32px;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.cargo-manifest-print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.cargo-manifest-carrier-brand {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.cargo-manifest-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.cargo-manifest-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  margin-bottom: 20px;
+}
+
+.cargo-manifest-table th {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+}
+
+.cargo-manifest-table td {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.cargo-manifest-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.cargo-manifest-sign-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.cargo-manifest-sign-line {
+  height: 48px;
+  border-bottom: 1.5px solid #0f172a;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .cargo-manifest-print-sheet,
+  .cargo-manifest-print-sheet * {
+    visibility: visible;
+  }
+  .cargo-manifest-print-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 100%;
+    padding: 0;
   }
-
-  .cargo-kpi-divider {
-    display: none;
+  .no-print {
+    display: none !important;
   }
 }

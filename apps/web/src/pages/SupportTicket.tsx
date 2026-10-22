@@ -1,5 +1,6 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSessionDraft, clearSessionDrafts } from '../hooks/useSessionDraft.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { Icon, type IconName } from '../components/Icon.js';
@@ -61,7 +62,7 @@ export const SupportTicket: React.FC = () => {
     el.style.setProperty('--teal-m', `rgba(${r},${g},${b},0.18)`);
   }, [branding.accentColor]);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useSessionDraft('support-ticket:form', {
     name:     user?.name  ?? '',
     email:    user?.email ?? '',
     company:  '',
@@ -108,6 +109,7 @@ export const SupportTicket: React.FC = () => {
           message: form.message, attachments,
         }),
       });
+      clearSessionDrafts('support-ticket:');
       setTicketRef(res.ref);
       setSubmitted(true);
     } catch (err: any) {

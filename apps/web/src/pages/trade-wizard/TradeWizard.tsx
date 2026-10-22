@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useSessionDraft } from '../../hooks/useSessionDraft.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Icon } from '../../components/Icon.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
@@ -27,8 +28,8 @@ const KINDS: { value: ProcedureKind; label: string; icon: any; desc: string }[] 
 export function TradeWizard() {
   const isMobile = useIsMobile();
   const [urlParams] = useSearchParams();
-  const [draft, setDraft] = useState<WizardDraft>(EMPTY_DRAFT);
-  const [step, setStep] = useState(1);
+  const [draft, setDraft] = useSessionDraft<WizardDraft>('trade-wizard:draft', EMPTY_DRAFT);
+  const [step, setStep] = useSessionDraft('trade-wizard:step', 1);
   const [usage, setUsage] = useState<{ used: number; limit: number | null } | null>(null);
   const [reopening, setReopening] = useState(() => !!urlParams.get('procedure'));
 

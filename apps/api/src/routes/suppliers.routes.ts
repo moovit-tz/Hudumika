@@ -2,7 +2,26 @@ import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+
+async function generateSupplierRefCode(trx: Transaction<Database>, tenantId: string, name: string): Promise<string> {
+  const alpha = name.replace(/[^A-Za-z]/g, '').toUpperCase();
+  const base = alpha.slice(0, 3) || 'SUP';
+  const existing = await trx.selectFrom('suppliers')
+    .select('ref_code')
+    .where('tenant_id', '=', tenantId)
+    .where('ref_code', 'like', `${base}%`)
+    .execute();
+  const taken = new Set(existing.map(r => r.ref_code));
+  if (!taken.has(base)) return base;
+  for (let i = 2; i <= 999; i++) {
+    const candidate = `${base}${i}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return `${base}${Date.now() % 10000}`;
+}
 
 // Real values from FinanceVendors.tsx's own CATEGORIES/STATUSES/TERMS arrays.
 const supplierSchema = z.object({
@@ -21,6 +40,7 @@ const supplierSchema = z.object({
   bank_name: z.string().max(200).optional(),
   bank_account: z.string().max(100).optional(),
   notes: z.string().max(5000).optional(),
+  ref_code: z.string().max(20).optional(),
 });
 
 export async function supplierRoutes(fastify: FastifyInstance) {
@@ -114,6 +134,8 @@ export async function supplierRoutes(fastify: FastifyInstance) {
       const body = supplierSchema.extend({ name: z.string().trim().min(1).max(300) }).parse(request.body);
 
       return withTenant(user.tenant_id, async (trx) => {
+        const refCode = body.ref_code?.trim().toUpperCase() || await generateSupplierRefCode(trx, user.tenant_id, body.name);
+
         const supplier = await trx
           .insertInto('suppliers')
           .values({
@@ -133,6 +155,7 @@ export async function supplierRoutes(fastify: FastifyInstance) {
             bank_name: body.bank_name || null,
             bank_account: body.bank_account || null,
             notes: body.notes || null,
+            ref_code: refCode,
             created_by: user.sub,
             created_at: new Date(),
             updated_at: new Date(),
@@ -157,14 +180,29 @@ export async function supplierRoutes(fastify: FastifyInstance) {
       const allowed = [
         'name', 'contact_name', 'email', 'phone', 'address', 'city', 'country',
         'tax_id', 'category', 'currency', 'payment_terms', 'status', 'bank_name',
-        'bank_account', 'notes',
+        'bank_account', 'notes', 'ref_code',
       ] as const;
       const patch: Record<string, any> = { updated_at: new Date() };
       for (const key of allowed) {
-        if (key in body) patch[key] = body[key];
+        if (key in body) {
+          if (key === 'ref_code' && body[key] != null) {
+            patch['ref_code'] = String(body[key]).trim().toUpperCase();
+          } else {
+            patch[key] = body[key];
+          }
+        }
       }
 
       return withTenant(user.tenant_id, async (trx) => {
+        if (patch.ref_code) {
+          const clash = await trx.selectFrom('suppliers').select('id')
+            .where('tenant_id', '=', user.tenant_id)
+            .where('ref_code', '=', patch.ref_code)
+            .where('id', '!=', id)
+            .executeTakeFirst();
+          if (clash) return reply.status(409).send({ error: `Reference code "${patch.ref_code}" is already in use by another supplier.` });
+        }
+
         const updated = await trx
           .updateTable('suppliers')
           .set(patch)

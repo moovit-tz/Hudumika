@@ -272,18 +272,18 @@ export class GLService {
    * deletes). Now delegates to voidEntry() per matching, not-yet-voided
    * entry — same reversal shape as every other undo path.
    */
-  static async reverseBySource(tenantId: string, sourceModule: string, sourceId: string, actorId: string | null, reason: string): Promise<void> {
-    const entries = await withTenant(tenantId, trx =>
+  static async reverseBySource(tenantId: string, sourceModule: string, sourceId: string, actorId: string | null, reason: string, transaction?: Transaction<Database>): Promise<void> {
+    const findEntries = async (trx: Transaction<Database>) =>
       trx.selectFrom('journal_entries').select('id')
         .where('tenant_id', '=', tenantId)
         .where('source_module', '=', sourceModule)
         .where('source_id', '=', sourceId)
         .where('voided_at', 'is', null)
         .where('reverses_entry_id', 'is', null)
-        .execute()
-    );
+        .execute();
+    const entries = transaction ? await findEntries(transaction) : await withTenant(tenantId, findEntries);
     for (const entry of entries) {
-      await this.voidEntry(tenantId, entry.id, actorId, reason);
+      await this.voidEntry(tenantId, entry.id, actorId, reason, transaction);
     }
   }
 
@@ -1106,39 +1106,44 @@ export class GLService {
     const toEntity = entities.find(e => e.id === data.toEntityId);
     if (!fromEntity || !toEntity) throw new Error('Both entities must belong to this tenant.');
 
+    // Account seeding is its own committed transaction (see ensureIntercompanyAccounts
+    // doc) — GLService.post needs the accounts visible on its own connection.
     await GLService.ensureIntercompanyAccounts(tenantId);
 
-    const arEntryId = await GLService.post(tenantId, {
-      entryDate, description: `Intercompany: ${data.description} (to ${toEntity.name})`,
-      sourceModule: 'MANUAL', entityId: data.fromEntityId, createdBy: userId,
-      lines: [
-        { accountCode: 'IC-AR', debit: data.amount, credit: 0, currency },
-        { accountCode: data.fromAccountCode, debit: 0, credit: data.amount, currency },
-      ],
-    });
+    // Both journal entries and the linking record must commit or roll back together.
+    return withTenant(tenantId, async (trx) => {
+      const arEntryId = await GLService.post(tenantId, {
+        entryDate, description: `Intercompany: ${data.description} (to ${toEntity.name})`,
+        sourceModule: 'MANUAL', entityId: data.fromEntityId, createdBy: userId,
+        lines: [
+          { accountCode: 'IC-AR', debit: data.amount, credit: 0, currency },
+          { accountCode: data.fromAccountCode, debit: 0, credit: data.amount, currency },
+        ],
+      }, trx);
 
-    const apEntryId = await GLService.post(tenantId, {
-      entryDate, description: `Intercompany: ${data.description} (from ${fromEntity.name})`,
-      sourceModule: 'MANUAL', entityId: data.toEntityId, createdBy: userId,
-      lines: [
-        { accountCode: data.toAccountCode, debit: data.amount, credit: 0, currency },
-        { accountCode: 'IC-AP', debit: 0, credit: data.amount, currency },
-      ],
-    });
+      const apEntryId = await GLService.post(tenantId, {
+        entryDate, description: `Intercompany: ${data.description} (from ${fromEntity.name})`,
+        sourceModule: 'MANUAL', entityId: data.toEntityId, createdBy: userId,
+        lines: [
+          { accountCode: data.toAccountCode, debit: data.amount, credit: 0, currency },
+          { accountCode: 'IC-AP', debit: 0, credit: data.amount, currency },
+        ],
+      }, trx);
 
-    return withTenant(tenantId, (trx) => trx.insertInto('intercompany_transactions').values({
-      tenant_id: tenantId,
-      from_entity_id: data.fromEntityId,
-      to_entity_id: data.toEntityId,
-      description: data.description,
-      amount: data.amount,
-      currency,
-      from_account_code: data.fromAccountCode,
-      to_account_code: data.toAccountCode,
-      ar_journal_entry_id: arEntryId,
-      ap_journal_entry_id: apEntryId,
-      created_by: userId,
-    }).returningAll().executeTakeFirstOrThrow());
+      return trx.insertInto('intercompany_transactions').values({
+        tenant_id: tenantId,
+        from_entity_id: data.fromEntityId,
+        to_entity_id: data.toEntityId,
+        description: data.description,
+        amount: data.amount,
+        currency,
+        from_account_code: data.fromAccountCode,
+        to_account_code: data.toAccountCode,
+        ar_journal_entry_id: arEntryId,
+        ap_journal_entry_id: apEntryId,
+        created_by: userId,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
   }
 
   static async listIntercompanyTransactions(tenantId: string) {

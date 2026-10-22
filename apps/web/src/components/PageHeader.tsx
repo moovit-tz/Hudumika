@@ -68,8 +68,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   return (
     <div className={`page-header${variant === 'create' ? ' page-header--create' : ''}`}>
-      {variant === 'create' && (backTo || onBack) && (
-        <BackButton to={backTo} onClick={onBack} label={backLabel} color="var(--ink2)" />
+      {(backTo || onBack) && (
+        <BackButton to={backTo} onClick={onBack} label={backLabel} color={variant === 'create' ? 'var(--ink2)' : undefined} />
       )}
       
       {/* DreamsCore breadcrumb — "Parent / Current page" */}

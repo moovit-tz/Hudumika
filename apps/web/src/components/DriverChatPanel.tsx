@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
+import { Button } from './ui/button.js';
+import { Input } from './ui/input.js';
+import './DriverChatPanel.css';
 
 interface Message { id: string; sender_type: 'OPS' | 'DRIVER'; message: string; created_at: string }
 
@@ -20,7 +23,7 @@ export function DriverChatPanel({ driverId, driverName, driverPhone }: { driverI
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   async function send() {
-    if (!input.trim()) return;
+    if (!input.trim() || sending) return;
     setSending(true);
     try {
       await apiFetch(`/v1/tracking/drivers/${driverId}/messages`, { method: 'POST', body: JSON.stringify({ message: input.trim() }) });
@@ -41,12 +44,12 @@ export function DriverChatPanel({ driverId, driverName, driverPhone }: { driverI
   }
 
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
+    <div className="driver-chat-panel">
       <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Message {driverName}</div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 200 }}>
+      <div className="driver-chat-messages">
         {messages.map(m => (
           <div key={m.id} style={{ alignSelf: m.sender_type === 'OPS' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-            <div style={{ background: m.sender_type === 'OPS' ? 'var(--teal)' : 'var(--bg)', color: m.sender_type === 'OPS' ? '#fff' : 'var(--ink)', borderRadius: 12, padding: '9px 13px', fontSize: 13 }}>
+            <div style={{ background: m.sender_type === 'OPS' ? 'hsl(var(--primary))' : 'var(--bg)', color: m.sender_type === 'OPS' ? 'hsl(var(--primary-foreground))' : 'var(--ink)', borderRadius: 'var(--r-sm)', padding: '9px 13px', fontSize: 13, overflowWrap: 'anywhere' }}>
               {m.message}
             </div>
             <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3, textAlign: m.sender_type === 'OPS' ? 'right' : 'left' }}>{new Date(m.created_at).toLocaleTimeString()}</div>
@@ -56,18 +59,17 @@ export function DriverChatPanel({ driverId, driverName, driverPhone }: { driverI
         <div ref={bottomRef} />
       </div>
       {waStatus && <div style={{ padding: '6px 18px', fontSize: 12, color: 'var(--ink3)' }}>{waStatus}</div>}
-      <div style={{ padding: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+      <div className="driver-chat-composer">
+        <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && send()}
+          aria-label={`Message ${driverName}`}
           placeholder="Type a message…"
-          style={{ flex: 1, padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }} />
-        <button type="button" onClick={send} disabled={sending || !input.trim()}
-          style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: input.trim() ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          />
+        <Button type="button" size="sm" onClick={send} disabled={sending || !input.trim()}>
           Send
-        </button>
-        <button type="button" onClick={notifyWhatsApp} disabled={waSending || !input.trim() || !driverPhone} title={driverPhone ? 'Send via WhatsApp' : 'No phone on file'}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: input.trim() && driverPhone ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={notifyWhatsApp} disabled={waSending || !input.trim() || !driverPhone} title={driverPhone ? 'Send via WhatsApp' : 'No phone on file'}>
           <Icon name="message" size={14} /> WhatsApp
-        </button>
+        </Button>
       </div>
     </div>
   );

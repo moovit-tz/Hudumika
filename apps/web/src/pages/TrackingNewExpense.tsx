@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSessionDraft, clearSessionDrafts } from '../hooks/useSessionDraft.js';
 import { apiFetch } from '../lib/api.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { CheckboxRow } from '../components/ui/list-item-row.js';
@@ -28,9 +29,9 @@ export const TrackingNewExpense: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [step, setStep] = useState(0);
-  const [furthest, setFurthest] = useState(0);
-  const [form, setForm] = useState({ vehicle_id:'',category:'',vendor_id:'',amount:'',date:toDateOnlyString(new Date()),notes:'',trip_id:'',billable:false });
+  const [step, setStep] = useSessionDraft('expense:step', 0);
+  const [furthest, setFurthest] = useSessionDraft('expense:furthest', 0);
+  const [form, setForm] = useSessionDraft('expense:form', { vehicle_id:'',category:'',vendor_id:'',amount:'',date:toDateOnlyString(new Date()),notes:'',trip_id:'',billable:false });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const savingRef = useRef(false);
@@ -64,7 +65,7 @@ export const TrackingNewExpense: React.FC = () => {
     for(let index=0;index<3;index++){const message=validate(index);if(message){setError(message);setStep(index);return;}}
     if(savingRef.current || loadError || loading) return;
     savingRef.current=true;setSaving(true);setError('');
-    try { await apiFetch(`/v1/tracking/vehicles/${form.vehicle_id}/expenses`,{method:'POST',body:JSON.stringify({category:form.category,amount:Number(form.amount),expense_date:form.date,vendor_id:form.vendor_id || undefined,description:form.notes.trim(),trip_id:form.trip_id || undefined,billable:form.billable})});navigate(`/tracking/vehicles/${form.vehicle_id}`); }
+    try { await apiFetch(`/v1/tracking/vehicles/${form.vehicle_id}/expenses`,{method:'POST',body:JSON.stringify({category:form.category,amount:Number(form.amount),expense_date:form.date,vendor_id:form.vendor_id || undefined,description:form.notes.trim(),trip_id:form.trip_id || undefined,billable:form.billable})});clearSessionDrafts('expense:');navigate(`/tracking/vehicles/${form.vehicle_id}`); }
     catch(e){setError(e instanceof Error ? e.message : 'Unable to save expense. Your entries are preserved.');}
     finally{savingRef.current=false;setSaving(false);}
   }
@@ -97,7 +98,7 @@ export const TrackingNewExpense: React.FC = () => {
         </>}
         {step===3 && <dl>{[['Vehicle',selectedVehicle?.name || 'Not selected'],['Category',categories.find(([value])=>value===form.category)?.[1] || form.category],['Amount',Number(form.amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})],['Date',form.date],['Vendor',vendors.find(v=>v.id===form.vendor_id)?.name || 'Not linked'],['Trip',selectedTrip?tripLabel(selectedTrip):'Not linked'],['Customer recovery',form.billable?'Marked billable; not yet invoiced':'Not billable'],['Notes',form.notes || 'Not provided']].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
       </fieldset>
-      <div className="expense-wizard-actions"><Button type="button" variant="ghost" asChild><Link to="/tracking/vehicles">Cancel</Link></Button><div>{step>0 && <Button type="button" variant="outline" disabled={saving} onClick={()=>moveTo(step-1)}>Back</Button>}<Button type="submit" disabled={saving || loading || !!loadError}>{saving?'Saving…':step===3?'Save expense':'Continue'}</Button></div></div>
+      <div className="expense-wizard-actions"><Button type="button" variant="ghost" asChild><Link to="/tracking/vehicles" onClick={() => clearSessionDrafts('expense:')}>Cancel</Link></Button><div>{step>0 && <Button type="button" variant="outline" disabled={saving} onClick={()=>moveTo(step-1)}>Back</Button>}<Button type="submit" disabled={saving || loading || !!loadError}>{saving?'Saving…':step===3?'Save expense':'Continue'}</Button></div></div>
     </form></SectionCard>
   </div>;
 };

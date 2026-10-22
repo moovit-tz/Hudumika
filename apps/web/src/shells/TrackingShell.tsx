@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -7,47 +7,51 @@ import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { useTenantPlan } from '../hooks/useTenantPlan.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
-import { TrackingDashboard } from '../pages/TrackingDashboard.js';
-import { TrackingLiveMap } from '../pages/TrackingLiveMap.js';
-import { TrackingVehicles } from '../pages/TrackingVehicles.js';
-import { TrackingNewVehicle } from '../pages/TrackingNewVehicle.js';
-import { TrackingAssignments } from '../pages/TrackingAssignments.js';
-import { TrackingVehicleDetail } from '../pages/TrackingVehicleDetail.js';
-import { TrackingVehicleAddEntry } from '../pages/TrackingVehicleAddEntry.js';
-import { TrackingDrivers } from '../pages/TrackingDrivers.js';
-import { TrackingDriverNew } from '../pages/TrackingDriverNew.js';
-import { TrackingDriverDetail } from '../pages/TrackingDriverDetail.js';
-import { TrackingShipments } from '../pages/TrackingShipments.js';
-import { TrackingRoutePlanner } from '../pages/TrackingRoutePlanner.js';
-import { TrackingHistory } from '../pages/TrackingHistory.js';
-import { TrackingMaintenance } from '../pages/TrackingMaintenance.js';
-import { TrackingMaintenanceNew } from '../pages/TrackingMaintenanceNew.js';
-import { TrackingFuel } from '../pages/TrackingFuel.js';
-import { TrackingFuelNew } from '../pages/TrackingFuelNew.js';
-import { TrackingPartsStock } from '../pages/TrackingPartsStock.js';
-import { TrackingVendors } from '../pages/TrackingVendors.js';
-import { TrackingVendorDetail } from '../pages/TrackingVendorDetail.js';
-import { TrackingDocuments } from '../pages/TrackingDocuments.js';
-import { TrackingReminders } from '../pages/TrackingReminders.js';
-import { TrackingGeofences } from '../pages/TrackingGeofences.js';
-import { TrackingAlerts } from '../pages/TrackingAlerts.js';
-import { TrackingDriverChat } from '../pages/TrackingDriverChat.js';
-import { TrackingReports } from '../pages/TrackingReports.js';
-import { TrackingAnalytics } from '../pages/TrackingAnalytics.js';
-import { TrackingWarehouse } from '../pages/TrackingWarehouse.js';
-import { TrackingCargoLoading } from '../pages/TrackingCargoLoading.js';
-import { TrackingShipmentNew } from '../pages/TrackingShipmentNew.js';
-import { TrackingIssues } from '../pages/TrackingIssues.js';
-import { TrackingIssueNew } from '../pages/TrackingIssueNew.js';
-import { TrackingIssueDetail } from '../pages/TrackingIssueDetail.js';
-import { TrackingNewExpense } from '../pages/TrackingNewExpense.js';
-import { TrackingDevices } from '../pages/TrackingDevices.js';
-import { DepotPage } from '../pages/DepotPage.js';
-import { TrackingTrailerNew } from '../pages/TrackingTrailerNew.js';
-import { TrackingTrailerDetail } from '../pages/TrackingTrailerDetail.js';
-import { TrackingTransporters } from '../pages/TrackingTransporters.js';
-import { TrackingTripDetail } from '../pages/TrackingTripDetail.js';
+const L = (load: () => Promise<{ [k: string]: React.ComponentType }>, name: string) =>
+  React.lazy(() => load().then(m => ({ default: (m as any)[name] })));
+
+const TrackingDashboard = L(() => import('../pages/TrackingDashboard.js'), 'TrackingDashboard');
+const TrackingLiveMap = L(() => import('../pages/TrackingLiveMap.js'), 'TrackingLiveMap');
+const TrackingVehicles = L(() => import('../pages/TrackingVehicles.js'), 'TrackingVehicles');
+const TrackingNewVehicle = L(() => import('../pages/TrackingNewVehicle.js'), 'TrackingNewVehicle');
+const TrackingAssignments = L(() => import('../pages/TrackingAssignments.js'), 'TrackingAssignments');
+const TrackingVehicleDetail = L(() => import('../pages/TrackingVehicleDetail.js'), 'TrackingVehicleDetail');
+const TrackingVehicleAddEntry = L(() => import('../pages/TrackingVehicleAddEntry.js'), 'TrackingVehicleAddEntry');
+const TrackingDrivers = L(() => import('../pages/TrackingDrivers.js'), 'TrackingDrivers');
+const TrackingDriverNew = L(() => import('../pages/TrackingDriverNew.js'), 'TrackingDriverNew');
+const TrackingDriverDetail = L(() => import('../pages/TrackingDriverDetail.js'), 'TrackingDriverDetail');
+const TrackingShipments = L(() => import('../pages/TrackingShipments.js'), 'TrackingShipments');
+const TrackingRoutePlanner = L(() => import('../pages/TrackingRoutePlanner.js'), 'TrackingRoutePlanner');
+const TrackingHistory = L(() => import('../pages/TrackingHistory.js'), 'TrackingHistory');
+const TrackingMaintenance = L(() => import('../pages/TrackingMaintenance.js'), 'TrackingMaintenance');
+const TrackingMaintenanceNew = L(() => import('../pages/TrackingMaintenanceNew.js'), 'TrackingMaintenanceNew');
+const TrackingFuel = L(() => import('../pages/TrackingFuel.js'), 'TrackingFuel');
+const TrackingFuelNew = L(() => import('../pages/TrackingFuelNew.js'), 'TrackingFuelNew');
+const TrackingPartsStock = L(() => import('../pages/TrackingPartsStock.js'), 'TrackingPartsStock');
+const TrackingVendors = L(() => import('../pages/TrackingVendors.js'), 'TrackingVendors');
+const TrackingVendorDetail = L(() => import('../pages/TrackingVendorDetail.js'), 'TrackingVendorDetail');
+const TrackingDocuments = L(() => import('../pages/TrackingDocuments.js'), 'TrackingDocuments');
+const TrackingReminders = L(() => import('../pages/TrackingReminders.js'), 'TrackingReminders');
+const TrackingGeofences = L(() => import('../pages/TrackingGeofences.js'), 'TrackingGeofences');
+const TrackingAlerts = L(() => import('../pages/TrackingAlerts.js'), 'TrackingAlerts');
+const TrackingDriverChat = L(() => import('../pages/TrackingDriverChat.js'), 'TrackingDriverChat');
+const TrackingReports = L(() => import('../pages/TrackingReports.js'), 'TrackingReports');
+const TrackingAnalytics = L(() => import('../pages/TrackingAnalytics.js'), 'TrackingAnalytics');
+const TrackingWarehouse = L(() => import('../pages/TrackingWarehouse.js'), 'TrackingWarehouse');
+const TrackingCargoLoading = L(() => import('../pages/TrackingCargoLoading.js'), 'TrackingCargoLoading');
+const TrackingShipmentNew = L(() => import('../pages/TrackingShipmentNew.js'), 'TrackingShipmentNew');
+const TrackingIssues = L(() => import('../pages/TrackingIssues.js'), 'TrackingIssues');
+const TrackingIssueNew = L(() => import('../pages/TrackingIssueNew.js'), 'TrackingIssueNew');
+const TrackingIssueDetail = L(() => import('../pages/TrackingIssueDetail.js'), 'TrackingIssueDetail');
+const TrackingNewExpense = L(() => import('../pages/TrackingNewExpense.js'), 'TrackingNewExpense');
+const TrackingDevices = L(() => import('../pages/TrackingDevices.js'), 'TrackingDevices');
+const DepotPage = L(() => import('../pages/DepotPage.js'), 'DepotPage');
+const TrackingTrailerNew = L(() => import('../pages/TrackingTrailerNew.js'), 'TrackingTrailerNew');
+const TrackingTrailerDetail = L(() => import('../pages/TrackingTrailerDetail.js'), 'TrackingTrailerDetail');
+const TrackingTransporters = L(() => import('../pages/TrackingTransporters.js'), 'TrackingTransporters');
+const TrackingTripDetail = L(() => import('../pages/TrackingTripDetail.js'), 'TrackingTripDetail');
 
 export function TrackingShell() {
   const { hasPlan } = useTenantPlan();
@@ -128,6 +132,7 @@ export function TrackingShell() {
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
+            <Suspense fallback={<SectionLoading />}>
             <Routes>
               {/* Live Map and Route Planner are full-bleed map tools (forced
                   100vh height, edge-to-edge against the sidebar) — like
@@ -182,6 +187,7 @@ export function TrackingShell() {
               </Route>
               <Route path="*" element={<Navigate to="/tracking" replace />} />
             </Routes>
+            </Suspense>
           </div>
         </div>
         <GoogleWorkspaceRightSidebar />

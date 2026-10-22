@@ -184,7 +184,7 @@ export const TrackingTripDetail: React.FC = () => {
       <Icon name="alertTriangle" size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
       <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink2)' }}>Trip not found</div>
       <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>This trip may have been deleted or doesn't exist.</div>
-      <Button variant="outline" onClick={() => navigate('/tracking/shipments')}>Back to Trips</Button>
+      <Button variant="outline" onClick={() => navigate('/tracking/shipments')}><Icon name="arrowLeft" size={14} /> Trips</Button>
     </div>
   );
 
@@ -199,17 +199,12 @@ export const TrackingTripDetail: React.FC = () => {
   return (
     <div style={{ paddingBottom: 40 }}>
       <PageHeader
-        crumbs={['Tracking', 'Trips']}
-        titlePlain={trip.shipment_ref ?? `Trip`}
-        titleEm={trip.shipment_ref ? 'detail' : trip.id.slice(0, 8).toUpperCase()}
+        crumbs={['HuduFreight', 'Trips', trip.shipment_ref ?? trip.id.slice(0, 8).toUpperCase()]}
+        titlePlain="Trip"
+        titleEm="detail"
         subtitle={[trip.origin, trip.destination].filter(Boolean).join(' → ') || 'No route specified'}
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/tracking/shipments')}>
-              <Icon name="arrowLeft" size={14} /> All Trips
-            </Button>
-          </div>
-        }
+        backTo="/tracking/shipments"
+        backLabel="Trips"
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginTop: 24 }}>

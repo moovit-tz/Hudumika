@@ -286,6 +286,7 @@ export function VendorProfilePage() {
         bankAccount: suppRes.bank_account || '',
         createdAt: suppRes.created_at ? String(suppRes.created_at).slice(0, 10) : '',
         notes: suppRes.notes || '',
+        refCode: suppRes.ref_code || '',
       };
 
       setVendor(mapped);
@@ -353,6 +354,7 @@ export function VendorProfilePage() {
       bank_name: editForm.bankName || null,
       bank_account: editForm.bankAccount || null,
       notes: editForm.notes || null,
+      ref_code: editForm.refCode || undefined,
     };
 
     try {
@@ -1027,6 +1029,10 @@ export function VendorProfilePage() {
               <div className="vendor-card-body" style={{ padding: '16px 20px' }}>
                 <div className="vendor-info-list">
                   <div className="vendor-info-row">
+                    <span className="vendor-info-label">Reference Code</span>
+                    <span className="vendor-info-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--teal)' }}>{v.refCode || '—'}</span>
+                  </div>
+                  <div className="vendor-info-row">
                     <span className="vendor-info-label">Tax ID / TIN</span>
                     <span className="vendor-info-value"><TinChip tin={v.taxId} /></span>
                   </div>
@@ -1529,15 +1535,29 @@ export function VendorProfilePage() {
                   </div>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
-                    Tax ID / TIN Number
-                  </label>
-                  <Input
-                    value={editForm.taxId || ''}
-                    onChange={e => setEditForm(f => ({ ...f, taxId: e.target.value }))}
-                    placeholder="TIN-000000000"
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
+                      Reference Code
+                    </label>
+                    <Input
+                      value={editForm.refCode || ''}
+                      onChange={e => setEditForm(f => ({ ...f, refCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
+                      placeholder="Auto"
+                      maxLength={20}
+                      style={{ fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 1 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
+                      Tax ID / TIN Number
+                    </label>
+                    <Input
+                      value={editForm.taxId || ''}
+                      onChange={e => setEditForm(f => ({ ...f, taxId: e.target.value }))}
+                      placeholder="TIN-000000000"
+                    />
+                  </div>
                 </div>
 
                 <div>

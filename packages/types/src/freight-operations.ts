@@ -31,3 +31,9 @@ export const FLEET_PARTNER_CATEGORIES = [
 ] as const;
 export type FleetPartnerCategory = typeof FLEET_PARTNER_CATEGORIES[number]['type'];
 export interface FleetPartnerServices { service_capabilities: FleetPartnerCategory[] }
+
+/** Existing fleet write policy, shared by the vehicle editor and API. */
+export const VEHICLE_EDIT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
+export function canEditVehicle(role: string | null | undefined): boolean {
+  return VEHICLE_EDIT_ROLES.some(allowed => allowed === role);
+}

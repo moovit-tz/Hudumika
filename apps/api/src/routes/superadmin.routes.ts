@@ -16,6 +16,7 @@ import { getPlatformAgentUsage } from '../lib/agent-usage.js';
 import { getFinanceCapabilities, getFinanceConfiguration } from '../services/finance-capability.service.js';
 import { AI_PROVIDERS, AI_PROVIDER_CONFIG } from '../lib/ai-providers.js';
 import { env } from '../config/env.js';
+import { CarImagesService } from '../services/carimages.service.js';
 import os from 'node:os';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
@@ -697,6 +698,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     // tenant without their own key uses (lib/platform-settings.ts's
     // resolveAiCredentials), but it never round-trips back to the browser.
     if (settings.ai) settings.ai = maskAiForClient(settings.ai);
+    if (settings.carimages?.secret) settings.carimages = { ...settings.carimages, secret: MASKED_VALUE };
     return { settings };
   });
 
@@ -748,6 +750,10 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     // Per-provider keys: masked = unchanged, typed = encrypted, empty = removed
     // (mergeAiForSave, lib/platform-settings.ts).
     if (body.ai && typeof body.ai === 'object') body.ai = mergeAiForSave(body.ai, existingSettings?.ai);
+    if (body.carimages && typeof body.carimages === 'object') {
+      if (body.carimages.secret === MASKED_VALUE) body.carimages = { ...body.carimages, secret: existingSettings?.carimages?.secret };
+      else if (body.carimages.secret) body.carimages = { ...body.carimages, secret: encryptSecret(body.carimages.secret) };
+    }
 
     if (existing) {
       // Shallow-merge into the existing JSONB blob so unrelated sections (branding, feature
@@ -773,6 +779,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : body;
     if (settings.smtp?.pass) settings.smtp = { ...settings.smtp, pass: MASKED_VALUE };
     if (settings.ai) settings.ai = maskAiForClient(settings.ai);
+    if (settings.carimages?.secret) settings.carimages = { ...settings.carimages, secret: MASKED_VALUE };
 
     await PlatformAdminService.recordActivity({
       ...actor(request), category: 'system',
@@ -846,6 +853,125 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       return { success: true, message: 'Gemini connection successful.' };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || 'Gemini connection failed' });
+    }
+  });
+
+  // 8c. POST /v1/superadmin/carimages/test — test CarImages API credentials
+  fastify.post('/carimages/test', async (request, reply) => {
+    const body = z.object({
+      apiKey: z.string().max(200).optional(),
+      secret: z.string().max(200).optional(),
+    }).parse(request.body || {});
+
+    try {
+      const res = await CarImagesService.testConnection(
+        body.apiKey !== MASKED_VALUE ? body.apiKey : undefined,
+        body.secret !== MASKED_VALUE ? body.secret : undefined,
+      );
+      return res;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'CarImages connection failed' });
+    }
+  });
+
+  // 8d. GET /v1/superadmin/carimages/makes — list all vehicle makes and logos
+  fastify.get('/carimages/makes', async (request, reply) => {
+    try {
+      return await CarImagesService.getMakes();
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Failed to fetch makes' });
+    }
+  });
+
+  // 8e. POST /v1/superadmin/carimages/signed-url — get signed studio image URL
+  fastify.post('/carimages/signed-url', async (request, reply) => {
+    const body = z.object({
+      make: z.string().min(1).max(100),
+      model: z.string().min(1).max(100),
+      year: z.union([z.number(), z.string()]).optional(),
+      view: z.string().optional(),
+      format: z.string().optional(),
+    }).parse(request.body);
+
+    try {
+      return await CarImagesService.getSignedUrl(body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Failed to generate signed URL' });
+    }
+  });
+
+  // 8f. POST /v1/superadmin/carimages/signed-model-url — get signed 3D model URL
+  fastify.post('/carimages/signed-model-url', async (request, reply) => {
+    const body = z.object({
+      make: z.string().min(1).max(100),
+      model: z.string().min(1).max(100),
+      year: z.union([z.number(), z.string()]).optional(),
+    }).parse(request.body);
+
+    try {
+      return await CarImagesService.getSignedModelUrl(body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Failed to generate signed 3D model URL' });
+    }
+  });
+
+  // 8g. POST /v1/superadmin/carimages/sync-fleet — pull and enrich live fleet vehicles
+  fastify.post('/carimages/sync-fleet', async (request, reply) => {
+    const body = z.object({
+      tenantId: z.string().uuid().optional(),
+    }).parse(request.body || {});
+
+    try {
+      const result = await CarImagesService.syncFleetAssets(body.tenantId);
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Enriched ${result.updatedCount} fleet vehicles with realistic CarImages studio photos`,
+        targetType: 'fleet', targetId: null, targetName: 'Fleet Assets Sync', tenantId: null,
+      });
+      return result;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Fleet sync failed' });
+    }
+  });
+
+  // 8h. POST /v1/superadmin/carimages/create-sample-assets — seed realistic vehicles
+  fastify.post('/carimages/create-sample-assets', async (request, reply) => {
+    const body = z.object({
+      tenantId: z.string().uuid().default('15b7d313-5ab9-47d1-b9b3-eaa90cd90bdf'),
+    }).parse(request.body || {});
+
+    try {
+      const result = await CarImagesService.createRealisticFleetAssets(body.tenantId);
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Created/updated ${result.createdCount} realistic commercial fleet assets with CarImages data`,
+        targetType: 'fleet', targetId: null, targetName: 'Realistic Fleet Assets', tenantId: null,
+      });
+      return result;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Failed to create sample assets' });
+    }
+  });
+
+  // 8i. POST /v1/superadmin/mapbox/test — verify Mapbox token
+  fastify.post('/mapbox/test', async (request, reply) => {
+    const body = z.object({
+      accessToken: z.string().min(1).max(300),
+    }).parse(request.body);
+
+    try {
+      const token = body.accessToken.trim();
+      const res = await fetch(`https://api.mapbox.com/tokens/v2?access_token=${encodeURIComponent(token)}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        const err = await res.text().catch(() => '');
+        return reply.status(400).send({ ok: false, error: `Mapbox API returned HTTP ${res.status}: ${err}` });
+      }
+      const data = await res.json().catch(() => ({}));
+      return { ok: true, code: data.code || 'TokenValid', token: token.substring(0, 10) + '••••' };
+    } catch (err: any) {
+      return reply.status(400).send({ ok: false, error: err.message || 'Failed to connect to Mapbox' });
     }
   });
 

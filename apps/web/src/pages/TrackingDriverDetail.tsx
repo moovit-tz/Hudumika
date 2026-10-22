@@ -5,6 +5,11 @@ import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from '../components/ui/dialog.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { DriverChatPanel } from '../components/DriverChatPanel.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -89,7 +94,7 @@ export const TrackingDriverDetail: React.FC = () => {
       email: detail.driver.email || '',
       license_number: detail.driver.license_number || '',
       license_expiry: detail.driver.license_expiry || '',
-      status: detail.driver.status || 'Available',
+      status: detail.driver.status === 'ACTIVE' ? 'Available' : detail.driver.status === 'INACTIVE' ? 'Off Duty' : detail.driver.status || 'Available',
       address: detail.driver.address || '',
       emergency_contact: detail.driver.emergency_contact || '',
     });
@@ -144,13 +149,14 @@ export const TrackingDriverDetail: React.FC = () => {
         <Icon name="user" size={32} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, marginTop: 10 }}>Driver profile not found</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>The requested driver record could not be loaded.</div>
-        <Link to="/tracking/drivers" className="dd-back-link" style={{ marginTop: 16 }}>← Back to Drivers Directory</Link>
+        <Link to="/tracking/drivers" style={{ marginTop: 16, fontSize: 13, color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>← Back to Drivers Directory</Link>
       </div>
     );
   }
 
   const { driver, vehicle, trips } = detail;
-  const statusClass = driver.status?.toLowerCase().replace(/\s+/g, '-') || 'available';
+  const nameParts = driver.name.trim().split(/\s+/);
+  const lastName = nameParts.pop() || 'Driver';
 
   // License Expiry calculation
   let expiryNotice = '';
@@ -172,31 +178,24 @@ export const TrackingDriverDetail: React.FC = () => {
 
   return (
     <div className="dd-layout">
-      {/* Back Navigation Bar */}
-      <div className="dd-top-bar">
-        <button type="button" className="dd-back-btn" onClick={() => navigate('/tracking/drivers')} data-ui-native-button="">
-          <Icon name="arrowLeft" size={16} /> Back to Drivers
-        </button>
-        <span style={{ fontSize: 13, color: 'var(--ink3)' }}>|</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)' }}>{driver.name} ({driver.custom_id})</span>
-      </div>
-
       <PageHeader
         crumbs={['HuduFreight', 'Drivers', driver.name]}
-        titlePlain="Driver profile &"
-        titleEm="lifecycle"
-        subtitle={`Full record for ${driver.name} — dispatch history, vehicle assignment, compliance & messaging.`}
+        titlePlain={nameParts.join(' ')}
+        titleEm={lastName}
+        backTo="/tracking/drivers"
+        backLabel="Drivers"
+        subtitle="Driver profile, vehicle assignment, delivery history and compliance."
         actions={
           <div className="dd-header-actions">
-            <button type="button" className="dd-action-btn" onClick={() => setActiveTab('Dispatch Messaging')} data-ui-native-button="">
+            <Button type="button" variant="outline" size="sm" onClick={() => setActiveTab('Dispatch Messaging')}>
               <Icon name="messageSquare" size={14} /> WhatsApp / Chat
-            </button>
-            <button type="button" className="dd-action-btn" onClick={startEditDriver} data-ui-native-button="">
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={startEditDriver}>
               <Icon name="edit" size={14} /> Edit Driver Details
-            </button>
-            <button type="button" className="dd-action-btn dark" onClick={() => window.print()} data-ui-native-button="">
+            </Button>
+            <Button type="button" size="sm" onClick={() => window.print()}>
               <Icon name="download" size={14} /> Download Report
-            </button>
+            </Button>
           </div>
         }
       />
@@ -215,7 +214,7 @@ export const TrackingDriverDetail: React.FC = () => {
           <div className="step-num">3</div>
           <div className="step-text">Vehicle Assigned</div>
         </div>
-        <div className={`dd-lifecycle-step ${driver.status === 'On Route' || driver.status === 'Available' ? 'active' : ''}`}>
+        <div className={`dd-lifecycle-step ${['ACTIVE', 'On Route', 'Available'].includes(driver.status) ? 'active' : ''}`}>
           <div className="step-num">4</div>
           <div className="step-text">Active Lifecycle</div>
         </div>
@@ -261,11 +260,10 @@ export const TrackingDriverDetail: React.FC = () => {
             <div>
               <div className="dd-courier-name">{driver.name}</div>
               <div className="dd-courier-badges">
-                <span className="dd-courier-badge">ID: {driver.custom_id}</span>
-                <span className={`drv-status drv-status--${statusClass}`}>
-                  <span className="drv-status-dot"></span>
+                <Badge variant="gray">ID: {driver.custom_id}</Badge>
+                <Badge variant={['ACTIVE', 'Available', 'On Route'].includes(driver.status) ? 'brand' : 'gray'}>
                   {driver.status || 'Available'}
-                </span>
+                </Badge>
                 {driver.joined_date && (
                   <span className="dd-courier-badge">Joined {new Date(driver.joined_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                 )}
@@ -279,7 +277,7 @@ export const TrackingDriverDetail: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="dd-info-value">{driver.phone || 'Not on file'}</span>
                 {driver.phone && (
-                  <a href={`https://wa.me/${driver.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)', textDecoration: 'none' }} title="Open WhatsApp Chat">
+                  <a href={`https://wa.me/${driver.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }} title="Open WhatsApp Chat">
                     <Icon name="messageSquare" size={14} />
                   </a>
                 )}
@@ -303,7 +301,7 @@ export const TrackingDriverDetail: React.FC = () => {
               </span>
             </div>
 
-            <div className="dd-info-item" style={{ gridColumn: 'span 2' }}>
+            <div className="dd-info-item dd-info-item--wide">
               <span className="dd-info-label">Residential Address</span>
               <span className="dd-info-value">{driver.address || 'Not recorded'}</span>
             </div>
@@ -331,7 +329,7 @@ export const TrackingDriverDetail: React.FC = () => {
                   <div className="dd-vh-sub">Plate Number: <strong>{vehicle.plate_number || 'N/A'}</strong> · Code: <strong>{vehicle.custom_code}</strong></div>
                 </div>
                 <div style={{ marginLeft: 'auto' }}>
-                  <span className="dd-condition-pill">{vehicle.condition || 'Good Condition'}</span>
+                  <Badge variant="brand">{vehicle.condition || 'Good Condition'}</Badge>
                 </div>
               </div>
 
@@ -353,7 +351,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 </div>
                 <div className="dd-info-item">
                   <span className="dd-info-label">Compliance Check</span>
-                  <span className="dd-info-value" style={{ color: 'var(--green)' }}>✓ Inspection Verified</span>
+                  <span className="dd-info-value" style={{ color: 'var(--teal)' }}>✓ Inspection Verified</span>
                 </div>
               </div>
             </>
@@ -417,10 +415,10 @@ export const TrackingDriverDetail: React.FC = () => {
                         <span>{t.distance_km != null ? `${t.distance_km} km` : 'Distance pending'}</span>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <span className={`dd-route-status ${t.status === 'COMPLETED' ? 'completed' : 'transit'}`}>
+                    <div className="dd-report-status">
+                      <Badge variant="brand" className="dd-status-badge">
                         {t.status === 'COMPLETED' ? '✓ Complete' : `Transit (${t.origin || 'En Route'})`}
-                      </span>
+                      </Badge>
                       <Icon name={expandedTrips[t.id] ? 'chevronUp' : 'chevronDown'} size={18} color="var(--ink3)" />
                     </div>
                   </div>
@@ -512,7 +510,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-doc-title">Driving License (Class A/B/C/E)</div>
                 <div className="dd-doc-sub">License Number: <strong>{driver.license_number || 'Not provided'}</strong></div>
               </div>
-              <span className="dd-doc-status verified">✓ Verified</span>
+              <Badge variant="brand" className="dd-doc-status">✓ Verified</Badge>
             </div>
 
             <div className="dd-doc-card">
@@ -521,7 +519,7 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-doc-title">Heavy Commercial Vehicle Endorsement</div>
                 <div className="dd-doc-sub">TRA & SUMATRA Fleet Endorsement</div>
               </div>
-              <span className="dd-doc-status verified">✓ Verified</span>
+              <Badge variant="brand" className="dd-doc-status">✓ Verified</Badge>
             </div>
 
             <div className="dd-doc-card">
@@ -530,65 +528,60 @@ export const TrackingDriverDetail: React.FC = () => {
                 <div className="dd-doc-title">Medical Fitness & Drug Screen</div>
                 <div className="dd-doc-sub">Annual Occupational Medical Clearance</div>
               </div>
-              <span className="dd-doc-status verified">✓ Verified</span>
+              <Badge variant="brand" className="dd-doc-status">✓ Verified</Badge>
             </div>
           </div>
         )}
       </div>
 
       {/* Edit Driver Modal */}
-      {editingDriver && (
-        <div className="dd-modal-backdrop" onClick={() => setEditingDriver(false)}>
-          <div className="dd-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="dd-modal-header">
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Edit Driver Profile & Lifecycle</div>
-              <button type="button" className="dd-sb-close-btn" onClick={() => setEditingDriver(false)} data-ui-native-button=""><Icon name="x" size={16} /></button>
-            </div>
+      <Dialog open={editingDriver} onOpenChange={setEditingDriver}>
+          <DialogContent size="md">
+            <DialogHeader>
+              <DialogTitle>Edit driver details</DialogTitle>
+              <DialogDescription>Update {driver.name}'s contact details, license and availability.</DialogDescription>
+            </DialogHeader>
 
-            <div className="dd-modal-body">
+            <DialogBody className="flex flex-col gap-4">
               <div className="dd-form-field">
-                <label className="dd-form-label">Driver Full Name</label>
-                <input
+                <Label htmlFor="driver-name">Driver Full Name</Label>
+                <Input id="driver-name"
                   type="text"
                   value={driverForm.name || ''}
                   onChange={e => setDriverForm({ ...driverForm, name: e.target.value })}
-                  className="dd-form-input"
                 />
               </div>
 
               <div className="dd-form-row">
                 <div className="dd-form-field">
-                  <label className="dd-form-label">Phone Contact</label>
-                  <input
-                    type="text"
+                  <Label htmlFor="driver-phone">Phone Contact</Label>
+                  <Input id="driver-phone"
+                    type="tel"
                     value={driverForm.phone || ''}
                     onChange={e => setDriverForm({ ...driverForm, phone: e.target.value })}
-                    className="dd-form-input"
                   />
                 </div>
                 <div className="dd-form-field">
-                  <label className="dd-form-label">Email Address</label>
-                  <input
+                  <Label htmlFor="driver-email">Email Address</Label>
+                  <Input id="driver-email"
                     type="email"
                     value={driverForm.email || ''}
                     onChange={e => setDriverForm({ ...driverForm, email: e.target.value })}
-                    className="dd-form-input"
                   />
                 </div>
               </div>
 
               <div className="dd-form-row">
                 <div className="dd-form-field">
-                  <label className="dd-form-label">License Number</label>
-                  <input
+                  <Label htmlFor="driver-license">License Number</Label>
+                  <Input id="driver-license"
                     type="text"
                     value={driverForm.license_number || ''}
                     onChange={e => setDriverForm({ ...driverForm, license_number: e.target.value })}
-                    className="dd-form-input"
                   />
                 </div>
-                <div className="dd-form-field">
-                  <label className="dd-form-label">License Expiry Date</label>
+                <div className="dd-form-field" role="group" aria-labelledby="driver-license-expiry-label">
+                  <span className="dd-form-label" id="driver-license-expiry-label">License Expiry Date</span>
                   <DatePicker
                     date={parseDateOnly(driverForm.license_expiry)}
                     onChange={d => setDriverForm({ ...driverForm, license_expiry: toDateOnlyString(d) })}
@@ -597,52 +590,50 @@ export const TrackingDriverDetail: React.FC = () => {
               </div>
 
               <div className="dd-form-field">
-                <label className="dd-form-label">Lifecycle Status</label>
+                <Label htmlFor="driver-status">Lifecycle Status</Label>
                 <Select
                   value={driverForm.status || 'Available'}
                   onValueChange={value => setDriverForm({ ...driverForm, status: value })}
                 >
-                  <SelectTrigger className="dd-form-select"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="driver-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Available">Available (Active & Ready)</SelectItem>
                     <SelectItem value="Off Duty">Off Duty (Inactive / Rest Shift)</SelectItem>
+                    {driverForm.status === 'On Route' && <SelectItem value="On Route">On Route (Currently dispatched)</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="dd-form-field">
-                <label className="dd-form-label">Residential Address</label>
-                <input
+                <Label htmlFor="driver-address">Residential Address</Label>
+                <Input id="driver-address"
                   type="text"
                   value={driverForm.address || ''}
                   onChange={e => setDriverForm({ ...driverForm, address: e.target.value })}
-                  className="dd-form-input"
                 />
               </div>
-            </div>
+            </DialogBody>
 
-            <div className="dd-modal-footer">
-              <button type="button" className="dd-action-btn" onClick={() => setEditingDriver(false)} data-ui-native-button="">Cancel</button>
-              <button type="button" className="dd-action-btn dark" onClick={saveDriver} disabled={savingDriver} data-ui-native-button="">
+            <DialogFooter className="flex-wrap">
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditingDriver(false)}>Cancel</Button>
+              <Button type="button" size="sm" onClick={saveDriver} disabled={savingDriver}>
                 {savingDriver ? 'Saving Details…' : 'Save Driver Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
 
       {/* Vehicle Reassignment Modal */}
-      {reassigningVehicle && (
-        <div className="dd-modal-backdrop" onClick={() => setReassigningVehicle(false)}>
-          <div className="dd-modal-content" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
-            <div className="dd-modal-header">
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Reassign Fleet Vehicle</div>
-              <button type="button" className="dd-sb-close-btn" onClick={() => setReassigningVehicle(false)} data-ui-native-button=""><Icon name="x" size={16} /></button>
-            </div>
+      <Dialog open={reassigningVehicle} onOpenChange={setReassigningVehicle}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reassign fleet vehicle</DialogTitle>
+              <DialogDescription>Choose a vehicle for {driver.name}, or remove the current assignment.</DialogDescription>
+            </DialogHeader>
 
-            <div className="dd-modal-body">
-              <div className="dd-form-field">
-                <label className="dd-form-label">Select Truck or Vehicle</label>
+            <DialogBody>
+              <div className="dd-form-field" role="group" aria-labelledby="driver-vehicle-label">
+                <span className="dd-form-label" id="driver-vehicle-label">Select Truck or Vehicle</span>
                 <Combobox
                   options={[
                     { value: '', label: '— Unassign Vehicle —' },
@@ -653,15 +644,14 @@ export const TrackingDriverDetail: React.FC = () => {
                   placeholder="Choose vehicle..."
                 />
               </div>
-            </div>
+            </DialogBody>
 
-            <div className="dd-modal-footer">
-              <button type="button" className="dd-action-btn" onClick={() => setReassigningVehicle(false)} data-ui-native-button="">Cancel</button>
-              <button type="button" className="dd-action-btn dark" onClick={handleVehicleReassign} data-ui-native-button="">Confirm Assignment</button>
-            </div>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setReassigningVehicle(false)}>Cancel</Button>
+              <Button type="button" size="sm" onClick={handleVehicleReassign}>Confirm Assignment</Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };

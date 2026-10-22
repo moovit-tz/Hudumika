@@ -308,7 +308,8 @@ function fromApiEvent(row: any): CalendarEvent {
   };
 }
 
-/** Loads this user's lists/tasks/events/settings/linked-tasks once per session. Call from AuthProvider. */
+/** Loads this user's lists/tasks/events/settings/linked-tasks once per session.
+ *  Called on demand by any consumer hook, or explicitly when refreshing after a mutation. */
 export async function hydrateTasksFromServer(): Promise<void> {
   if (hydrated) return;
   hydrated = true;
@@ -345,7 +346,7 @@ export function resetTasksCache(): void {
 }
 
 // ── Store APIs — Events ──
-export function useEvents() { return useSyncExternalStore(subscribe, () => events); }
+export function useEvents() { hydrateTasksFromServer(); return useSyncExternalStore(subscribe, () => events); }
 
 /** Re-fetches the full event list from the server, replacing local state.
  *  Needed after any change to a recurring event's own pattern (its
@@ -479,7 +480,7 @@ export async function importCalendarICS(file: File): Promise<{ imported: number;
 }
 
 // ── Store APIs — Lists ──
-export function useLists() { return useSyncExternalStore(subscribe, () => lists); }
+export function useLists() { hydrateTasksFromServer(); return useSyncExternalStore(subscribe, () => lists); }
 
 /** The permanent, undeletable first list — created server-side on first load. Compare against this instead of a fixed id, since it's a real per-user server-generated UUID. */
 export function inboxListId(): string | undefined { return lists[0]?.id; }
@@ -508,7 +509,7 @@ export function deleteList(id: string) {
 }
 
 // ── Store APIs — Todos ──
-export function useTodos() { return useSyncExternalStore(subscribe, () => todos); }
+export function useTodos() { hydrateTasksFromServer(); return useSyncExternalStore(subscribe, () => todos); }
 
 export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title: string }) {
   const listId = input.listId || lists[0]?.id || 'inbox';

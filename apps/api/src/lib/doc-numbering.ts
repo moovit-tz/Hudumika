@@ -2,7 +2,8 @@ import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
 export type DocType = 'invoice' | 'quotation' | 'purchase_order' | 'project' | 'contract'
-  | 'change_request' | 'payment_request' | 'project_po' | 'grn';
+  | 'change_request' | 'payment_request' | 'project_po' | 'grn'
+  | 'credit_note' | 'bill';
 
 const DEFAULTS: Record<DocType, { prefix: string; pad: number }> = {
   invoice: { prefix: 'INV-', pad: 4 },
@@ -14,6 +15,8 @@ const DEFAULTS: Record<DocType, { prefix: string; pad: number }> = {
   payment_request: { prefix: 'PR-', pad: 4 },
   project_po: { prefix: 'PPO-', pad: 4 },
   grn: { prefix: 'GRN-', pad: 4 },
+  credit_note: { prefix: 'CN-', pad: 4 },
+  bill: { prefix: 'BILL-', pad: 4 },
 };
 
 /**
@@ -40,6 +43,49 @@ export async function getNextDocNumber(trx: Transaction<Database>, tenantId: str
 
   const issued = row.next_number - 1;
   return `${row.prefix}${String(issued).padStart(row.pad_length, '0')}`;
+}
+
+/**
+ * Per-counterparty doc number: {prefix}{ref_code}/{seq}
+ * e.g. INV-ALK/0001, CN-ALK/0001, PO-MSC/0001, BILL-DHL/0001.
+ *
+ * Works for customers (invoices, credit notes, quotations) AND suppliers
+ * (purchase orders, bills).  Each counterparty × doc-type pair has its own
+ * independent counter starting at 1.  Returns null when the counterparty
+ * has no ref_code — caller falls back to the global sequence.
+ */
+export async function getNextCustomerDocNumber(
+  trx: Transaction<Database>,
+  tenantId: string,
+  counterpartyId: string,
+  docType: DocType = 'invoice',
+  counterpartyTable: 'customers' | 'suppliers' = 'customers',
+): Promise<string | null> {
+  const party = await trx.selectFrom(counterpartyTable).select('ref_code')
+    .where('id', '=', counterpartyId).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!party?.ref_code) return null;
+
+  const def = DEFAULTS[docType];
+  const seqRow = await trx.selectFrom('invoice_sequences').select(['prefix', 'pad_length'])
+    .where('tenant_id', '=', tenantId).where('doc_type', '=', docType).executeTakeFirst();
+  const prefix = seqRow?.prefix ?? def.prefix;
+  const padLength = seqRow?.pad_length ?? def.pad;
+
+  await trx.insertInto('customer_invoice_sequences')
+    .values({ tenant_id: tenantId, customer_id: counterpartyId, doc_type: docType, next_number: 1 })
+    .onConflict((oc) => oc.columns(['tenant_id', 'customer_id', 'doc_type']).doNothing())
+    .execute();
+
+  const row = await trx.updateTable('customer_invoice_sequences')
+    .set((eb) => ({ next_number: eb('next_number', '+', 1) }))
+    .where('tenant_id', '=', tenantId)
+    .where('customer_id', '=', counterpartyId)
+    .where('doc_type', '=', docType)
+    .returning(['next_number'])
+    .executeTakeFirstOrThrow();
+
+  const issued = row.next_number - 1;
+  return `${prefix}${party.ref_code}/${String(issued).padStart(padLength, '0')}`;
 }
 
 /** Reads the current numbering config (for the Settings ▸ Invoices/Quotations/Purchase Orders "Numbering" cards). */

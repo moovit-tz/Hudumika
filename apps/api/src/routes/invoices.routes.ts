@@ -109,7 +109,7 @@ import { GLService } from '../services/gl.service.js';
 import { enqueueAccountingSync } from '../services/accounting-outbox.service.js';
 import { generateDueInvoices } from '../services/recurring-documents.service.js';
 import { TRAService } from '../services/tra.service.js';
-import { getNextDocNumber } from '../lib/doc-numbering.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 import { toDateParam } from '../utils/dates.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
 import {
@@ -132,13 +132,21 @@ export { invoiceGrandTotal, invoiceNetAndTax } from '../services/invoice-totals.
  * no matter how much VAT had been charged. Found by running a return end to end
  * and reading the entry it produced.
  */
-function invoiceJournalLines(grandTotal: number, { net, tax }: { net: number; tax: number }, businessLineId?: string | null, workId?: string | null) {
+function invoiceJournalLines(
+  grandTotal: number,
+  { net, tax }: { net: number; tax: number },
+  businessLineId?: string | null,
+  workId?: string | null,
+  currency?: string,
+  exchangeRate?: number,
+) {
   const dimensions = { ...(businessLineId ? { business_line_id: businessLineId } : {}), ...(workId ? { work_id: workId } : {}) };
+  const fxMeta = currency ? { currency, exchangeRate: exchangeRate ?? 1 } : {};
   return [
-    { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable', dimensions },
-    { accountCode: workId ? '4500' : '4000', debit: 0, credit: net, description: workId ? 'Industry job revenue' : 'Freight Revenue', dimensions },
+    { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable', dimensions, ...fxMeta },
+    { accountCode: workId ? '4500' : '4000', debit: 0, credit: net, description: workId ? 'Industry job revenue' : 'Freight Revenue', dimensions, ...fxMeta },
     ...(tax > 0
-      ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax', dimensions }]
+      ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax', dimensions, ...fxMeta }]
       : []),
   ];
 }
@@ -265,19 +273,24 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const scopeToOwner = user.role === 'SALES';
     return withTenant(user.tenant_id, async (trx) => {
-      const result = await sql<{ status: string; currency: string; count: string; received: string; billed: string; outstanding: string; overdue: string }>`
+      const result = await sql<{ status: string; currency: string; count: string; received: string; billed: string; credited: string; outstanding: string; overdue: string }>`
         WITH totals AS (
           SELECT i.status, i.currency, coalesce(i.received, 0) received,
             coalesce((SELECT round(sum(CASE WHEN coalesce(l.currency, i.currency) = i.currency
               THEN round(l.qty*l.rate*(1+l.tax_pct/100), 2)
               ELSE round(round(l.qty*l.rate*(1+l.tax_pct/100), 2)*i.exchange_rate, 2) END),2)
-              FROM sales_invoice_lines l WHERE l.invoice_id=i.id),0) billed
+              FROM sales_invoice_lines l WHERE l.invoice_id=i.id),0) billed,
+            coalesce((SELECT round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2)
+              FROM credit_note_lines cl
+              JOIN credit_notes cn ON cn.id = cl.credit_note_id
+              WHERE cn.original_invoice_id = i.id AND cn.status != 'Void'), 0) credited
           FROM sales_invoices i WHERE i.tenant_id=${user.tenant_id}
             ${scopeToOwner ? sql`AND i.created_by = ${user.sub}` : sql``}
         )
         SELECT status, currency, count(*) count, sum(received) received, sum(billed) billed,
-          sum(greatest(0,billed-received)) outstanding,
-          sum(CASE WHEN status='Overdue' THEN greatest(0,billed-received) ELSE 0 END) overdue
+          sum(credited) credited,
+          sum(greatest(0,billed-received-credited)) outstanding,
+          sum(CASE WHEN status='Overdue' THEN greatest(0,billed-received-credited) ELSE 0 END) overdue
         FROM totals GROUP BY status,currency
       `.execute(trx);
       const status_counts: Record<string, number> = {};
@@ -592,6 +605,21 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           .where('sales_invoice_lines.invoice_id', 'in', reportIds).execute() : [];
         const groupedLines = new Map<string, typeof reportLines>();
         for (const line of reportLines) { const group = groupedLines.get(line.invoice_id) ?? []; group.push(line); groupedLines.set(line.invoice_id, group); }
+
+        // Fetch credit note totals per invoice so outstanding accounts for linked credits
+        const creditMap = new Map<string, number>();
+        if (reportIds.length > 0) {
+          const creditRows = await sql<{ original_invoice_id: string; credited: string }>`
+            SELECT cn.original_invoice_id, round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2) credited
+            FROM credit_note_lines cl
+            JOIN credit_notes cn ON cn.id = cl.credit_note_id
+            WHERE cn.original_invoice_id = ANY(${sql`ARRAY[${sql.join(reportIds.map(id => sql`${id}::uuid`), sql`, `)}]`})
+              AND cn.status != 'Void' AND cn.tenant_id = ${user.tenant_id}
+            GROUP BY cn.original_invoice_id
+          `.execute(trx);
+          for (const cr of creditRows.rows) creditMap.set(cr.original_invoice_id, Number(cr.credited) || 0);
+        }
+
         data = rows.map((r: any) => {
           const inv = invMap[r.invoice_number];
           let total_amount = 0;
@@ -600,6 +628,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             total_amount = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
           }
           const paid_amount = Number(r.paid_amount) || 0;
+          const credited_amount = inv ? (creditMap.get(inv.id) ?? 0) : 0;
           return {
             invoice_number: r.invoice_number,
             client_name: r.client_name,
@@ -607,7 +636,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             due_date: r.due_date,
             total_amount,
             paid_amount,
-            balance: total_amount - paid_amount,
+            credited_amount,
+            balance: Math.max(0, total_amount - paid_amount - credited_amount),
             status: r.status,
           };
         });
@@ -875,7 +905,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         if (!line) return reply.status(400).send({ error: 'The selected business line is invalid, archived, or belongs to another workspace.' });
       }
 
-      const invoiceNumber = body.invoice_number || await getNextDocNumber(trx, user.tenant_id, 'invoice');
+      const invoiceNumber = body.invoice_number
+        || (body.customer_id ? await getNextCustomerDocNumber(trx, user.tenant_id, body.customer_id) : null)
+        || await getNextDocNumber(trx, user.tenant_id, 'invoice');
 
       // Numbers are unique per workspace (migration 182). getNextDocNumber can
       // never collide, but a caller-supplied `invoice_number` can — and without
@@ -924,16 +956,22 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       let grandTotal = 0;
       let netAndTax = { net: 0, tax: 0 };
+      const fx = Number(inv.exchange_rate) || 1;
       if (Array.isArray(body.items) && body.items.length > 0) {
         const itemsToInsert = buildInvoiceLines(inv.id, body.items, resolved.codes, inv.currency);
         await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
 
-        const fx = Number(inv.exchange_rate) || 1;
         grandTotal = invoiceGrandTotal(itemsToInsert, inv.currency, fx);
         netAndTax = invoiceNetAndTax(itemsToInsert, inv.currency, fx);
       }
 
       if (inv.status !== 'Draft' && grandTotal > 0) {
+        const reportingCcy = defaultCurrency.toUpperCase();
+        const invCcy = inv.currency.toUpperCase();
+        const needsConversion = invCcy !== reportingCcy && fx > 1;
+        const glGrand = needsConversion ? Math.round(grandTotal * fx * 100) / 100 : grandTotal;
+        const glNet   = needsConversion ? Math.round(netAndTax.net * fx * 100) / 100 : netAndTax.net;
+        const glTax   = needsConversion ? Math.round(netAndTax.tax * fx * 100) / 100 : netAndTax.tax;
         await GLService.post(user.tenant_id, {
           entryDate: inv.bill_date ? new Date(inv.bill_date).toISOString() : new Date().toISOString(),
           description: `Sales invoice: ${inv.invoice_number}`,
@@ -941,7 +979,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           sourceModule: 'AR',
           sourceId: inv.id,
           createdBy: user.sub,
-          lines: invoiceJournalLines(grandTotal, netAndTax, inv.business_line_id),
+          lines: invoiceJournalLines(glGrand, { net: glNet, tax: glTax }, inv.business_line_id, null, inv.currency, fx),
         }, trx);
       }
 
@@ -1067,9 +1105,18 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           .executeTakeFirst();
 
         if (!alreadyPosted) {
-          const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
+          const patchFx = Number(inv.exchange_rate) || 1;
+          const grandTotal = invoiceGrandTotal(lines, inv.currency, patchFx);
+          const netAndTaxPatch = invoiceNetAndTax(lines, inv.currency, patchFx);
 
           if (grandTotal > 0) {
+            const ts2 = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+            const reportingCcy2 = ((ts2 ? (typeof ts2.settings === 'string' ? JSON.parse(ts2.settings) : ts2.settings) : {})?.company?.currency || 'TZS').toUpperCase();
+            const invCcy2 = inv.currency.toUpperCase();
+            const needsFx = invCcy2 !== reportingCcy2 && patchFx > 1;
+            const glGrand2 = needsFx ? Math.round(grandTotal * patchFx * 100) / 100 : grandTotal;
+            const glNet2   = needsFx ? Math.round(netAndTaxPatch.net * patchFx * 100) / 100 : netAndTaxPatch.net;
+            const glTax2   = needsFx ? Math.round(netAndTaxPatch.tax * patchFx * 100) / 100 : netAndTaxPatch.tax;
             await GLService.post(user.tenant_id, {
               entryDate: inv.bill_date ? new Date(inv.bill_date).toISOString() : new Date().toISOString(),
               description: `Sales invoice: ${inv.invoice_number}`,
@@ -1078,10 +1125,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               sourceId: inv.id,
               createdBy: user.sub,
               lines: invoiceJournalLines(
-                grandTotal,
-                invoiceNetAndTax(lines, inv.currency, Number(inv.exchange_rate) || 1),
+                glGrand2,
+                { net: glNet2, tax: glTax2 },
                 inv.business_line_id,
                 inv.industry_work_id,
+                inv.currency,
+                patchFx,
               ),
             }, trx);
           }
@@ -1241,18 +1290,40 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       // still outstanding before this payment; anything beyond that
       // becomes a real customer_credits row against 2150, not a phantom
       // reduction of AR that was never owed in the first place.
+      // Subtract linked credit notes from outstanding so credits reduce what can be cleared
+      const cnTotalPay = await sql<{ credited: string }>`
+        SELECT coalesce(round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2), 0) credited
+        FROM credit_note_lines cl JOIN credit_notes cn ON cn.id = cl.credit_note_id
+        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status != 'Void' AND cn.tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const creditedAmtPay = Number(cnTotalPay.rows[0]?.credited) || 0;
       const previouslyPaid = totalPaid - Number(amount);
-      const outstandingBefore = Math.max(0, grandTotal - previouslyPaid);
+      const outstandingBefore = Math.max(0, grandTotal - previouslyPaid - creditedAmtPay);
       const clearAmount = Math.min(Number(amount), outstandingBefore);
       const excessAmount = Math.round((Number(amount) - clearAmount) * 100) / 100;
 
       let newStatus: string;
-      if (totalPaid <= 0) newStatus = 'Unpaid';
-      else if (totalPaid >= grandTotal) newStatus = 'Paid';
+      const effectiveTotal = Math.max(0, grandTotal - creditedAmtPay);
+      if (totalPaid <= 0) newStatus = effectiveTotal <= 0 ? 'Credited' : 'Unpaid';
+      else if (totalPaid >= effectiveTotal) newStatus = 'Paid';
       else newStatus = 'Partial';
       await trx.updateTable('sales_invoices').set({ received: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
-      // Post payment to GL
+      // Post payment to GL — amounts arrive in the invoice's currency;
+      // convert to reporting currency for the ledger.
+      const payFx = Number(inv.exchange_rate) || 1;
+      const payFxMeta = { currency: inv.currency, exchangeRate: payFx };
+      const payDims = inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined;
+
+      const tsPay = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const sPay = tsPay ? (typeof tsPay.settings === 'string' ? JSON.parse(tsPay.settings) : tsPay.settings) : {};
+      const reportingCcyPay = (sPay?.company?.currency || 'TZS').toUpperCase();
+      const invCcyPay = inv.currency.toUpperCase();
+      const needsPayConversion = invCcyPay !== reportingCcyPay && payFx > 1;
+      const glPayAmount = needsPayConversion ? Math.round(Number(amount) * payFx * 100) / 100 : Number(amount);
+      const glClearAmt = needsPayConversion ? Math.round(clearAmount * payFx * 100) / 100 : clearAmount;
+      const glExcessAmt = needsPayConversion ? Math.round(excessAmount * payFx * 100) / 100 : excessAmount;
+
       const journalEntryId = await GLService.post(user.tenant_id, {
         entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
         description: `Payment received: ${inv.invoice_number}`,
@@ -1261,9 +1332,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         sourceId: inv.id,
         createdBy: user.sub,
         lines: [
-          { accountCode: '1010', debit: Number(amount), credit: 0, description: 'Cash received', dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined },
-          ...(clearAmount > 0.01 ? [{ accountCode: '1100', debit: 0, credit: clearAmount, description: `Clear AR: ${inv.invoice_number}`, dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined }] : []),
-          ...(excessAmount > 0.01 ? [{ accountCode: '2150', debit: 0, credit: excessAmount, description: `Overpayment credit: ${inv.invoice_number}`, dimensions: inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined }] : []),
+          { accountCode: '1010', debit: glPayAmount, credit: 0, description: 'Cash received', dimensions: payDims, ...payFxMeta },
+          ...(glClearAmt > 0.01 ? [{ accountCode: '1100', debit: 0, credit: glClearAmt, description: `Clear AR: ${inv.invoice_number}`, dimensions: payDims, ...payFxMeta }] : []),
+          ...(glExcessAmt > 0.01 ? [{ accountCode: '2150', debit: 0, credit: glExcessAmt, description: `Overpayment credit: ${inv.invoice_number}`, dimensions: payDims, ...payFxMeta }] : []),
         ],
       }, trx);
 
@@ -1635,7 +1706,13 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
       const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
-      const balance = Math.max(0, grandTotal - Number(inv.received || 0));
+      const cnTotal = await sql<{ credited: string }>`
+        SELECT coalesce(round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2), 0) credited
+        FROM credit_note_lines cl JOIN credit_notes cn ON cn.id = cl.credit_note_id
+        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status != 'Void' AND cn.tenant_id = ${user.tenant_id}
+      `.execute(trx);
+      const creditedAmt = Number(cnTotal.rows[0]?.credited) || 0;
+      const balance = Math.max(0, grandTotal - Number(inv.received || 0) - creditedAmt);
       if (balance <= 0) return reply.status(409).send({ error: 'This invoice has no outstanding balance.' });
 
       const txRef = `INV-${inv.invoice_number}-${Date.now()}`;

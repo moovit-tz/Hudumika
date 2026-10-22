@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSessionDraft, clearSessionDrafts } from '../hooks/useSessionDraft.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { apiFetch } from '../lib/api.js';
@@ -28,7 +29,7 @@ export function CreateFreightBookingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customersError, setCustomersError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useSessionDraft('freight-booking:form', {
     customer_id: '', mode: 'FCL_20', origin_port: '', destination_port: '',
     cargo_desc: '', quantity: '1', requested_ship_date: '',
   });
@@ -55,6 +56,7 @@ export function CreateFreightBookingPage() {
         method: 'POST',
         body: JSON.stringify({ ...form, quantity: parseInt(form.quantity, 10) || 1 }),
       });
+      clearSessionDrafts('freight-booking:');
       navigate('/cargotracker/bookings', { state: { newBookingId: booking.id } });
     } catch (err: any) {
       setError(err?.message || 'Failed to create booking request');
