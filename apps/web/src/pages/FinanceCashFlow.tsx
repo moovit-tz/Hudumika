@@ -16,9 +16,11 @@ const YEARS = ['2026', '2025', '2024'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function monthRangeInYear(year: number, monthIndex: number) {
-  const from = new Date(year, monthIndex, 1);
-  const to = new Date(year, monthIndex + 1, 0);
-  return { from: from.toISOString().split('T')[0], to: to.toISOString().split('T')[0] };
+  const mm = String(monthIndex + 1).padStart(2, '0');
+  const from = `${year}-${mm}-01`;
+  const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  const to = `${year}-${mm}-${String(lastDay).padStart(2, '0')}`;
+  return { from, to };
 }
 
 interface MonthRow { month: string; open: number; cashIn: number; cashOut: number; net: number; close: number }

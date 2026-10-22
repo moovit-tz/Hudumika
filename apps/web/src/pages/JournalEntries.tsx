@@ -44,6 +44,9 @@ export function JournalEntries() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [accounts, setAccounts] = useState<AccountNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jePage, setJePage] = useState(1);
+  const [jeTotal, setJeTotal] = useState(0);
+  const [jeTotalPages, setJeTotalPages] = useState(1);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showForm, setShowForm] = useState(false);
   const [posting, setPosting] = useState(false);
@@ -60,14 +63,17 @@ export function JournalEntries() {
   } | null>(null);
   const fetchStats = useCallback(() => { apiFetch('/v1/finance/journal-entries/stats').then(setJeServerStats).catch(() => {}); }, []);
 
-  const load = async () => {
+  const load = async (p = jePage) => {
     setLoading(true);
     try {
+      const params = new URLSearchParams({ page: String(p), page_size: '50' });
       const [entriesRes, accountsRes] = await Promise.all([
-        apiFetch('/v1/finance/journal-entries'),
+        apiFetch(`/v1/finance/journal-entries?${params}`),
         apiFetch('/v1/finance/chart-of-accounts'),
       ]);
-      setEntries(entriesRes.journal_entries || entriesRes || []);
+      setEntries(entriesRes.journal_entries || entriesRes.items || entriesRes || []);
+      if (entriesRes.total != null) setJeTotal(entriesRes.total);
+      if (entriesRes.total_pages != null) setJeTotalPages(entriesRes.total_pages);
       setAccounts(flattenAccounts(accountsRes.accounts || accountsRes || []));
     } catch (err) {
       console.error(err);
@@ -75,7 +81,7 @@ export function JournalEntries() {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); fetchStats(); }, [fetchStats]);
+  useEffect(() => { load(jePage); fetchStats(); }, [fetchStats, jePage]);
   useEffect(() => {
     if (readOnly) {
       setShowForm(false);
@@ -333,6 +339,13 @@ export function JournalEntries() {
             </tbody>
           </table>
         </div>
+        {jeTotalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 0', fontSize: 13 }}>
+            <button disabled={jePage <= 1} onClick={() => setJePage(p => Math.max(1, p - 1))} style={{ padding: '4px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: jePage <= 1 ? 'default' : 'pointer', opacity: jePage <= 1 ? 0.4 : 1 }}>Previous</button>
+            <span style={{ color: 'var(--ink2)' }}>Page {jePage} of {jeTotalPages} ({jeTotal} entries)</span>
+            <button disabled={jePage >= jeTotalPages} onClick={() => setJePage(p => Math.min(jeTotalPages, p + 1))} style={{ padding: '4px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: jePage >= jeTotalPages ? 'default' : 'pointer', opacity: jePage >= jeTotalPages ? 0.4 : 1 }}>Next</button>
+          </div>
+        )}
       </div>
     </div>
   );

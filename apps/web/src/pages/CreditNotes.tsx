@@ -141,7 +141,7 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
 }
 
 export function CreditNotes() {
-  const { fmt } = useCurrency();
+  const { fmt, convert } = useCurrency();
   const location = useLocation();
   const navigate = useNavigate();
   const isNew = location.pathname.endsWith('/new');
@@ -157,7 +157,7 @@ export function CreditNotes() {
   const [voiding, setVoiding] = useState(false);
   const [stats, setStats] = useState<{
     total: number; draftCount: number; postedCount: number; voidCount: number;
-    totalCredited: number; linkedCount: number; voidRate: number;
+    totalCredited: number; creditedByCurrency?: Record<string, number>; linkedCount: number; voidRate: number;
   } | null>(null);
   const fetchStats = useCallback(() => { apiFetch('/v1/credit-notes/stats').then(setStats).catch(() => {}); }, []);
   const loadIdRef = useRef(0);
@@ -317,7 +317,10 @@ export function CreditNotes() {
     );
   }
 
-  const cnStats = stats ?? { total, draftCount: 0, postedCount: 0, voidCount: 0, linkedCount: 0, totalCredited: 0, voidRate: 0 };
+  const cnStats = stats ?? { total, draftCount: 0, postedCount: 0, voidCount: 0, linkedCount: 0, totalCredited: 0, creditedByCurrency: undefined as Record<string, number> | undefined, voidRate: 0 };
+  const convertedCredited = cnStats.creditedByCurrency
+    ? Object.entries(cnStats.creditedByCurrency).reduce((sum, [ccy, amt]) => sum + convert(amt, ccy), 0)
+    : cnStats.totalCredited;
 
   if (selected) {
     return (
@@ -346,7 +349,7 @@ export function CreditNotes() {
           sub2Label: 'POSTED', sub2Value: String(cnStats.postedCount), barHighlight: 'var(--teal)', loading: !stats,
         },
         {
-          title: 'TOTAL CREDITED', value: fmt(cnStats.totalCredited),
+          title: 'TOTAL CREDITED', value: fmt(convertedCredited),
           invertTrend: true,
           sub1Label: 'POSTED', sub1Value: String(cnStats.postedCount),
           sub2Label: 'VOIDED', sub2Value: String(cnStats.voidCount), barHighlight: 'var(--red)', loading: !stats,

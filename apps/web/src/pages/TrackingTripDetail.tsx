@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -8,6 +8,13 @@ import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionLoading, PageLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
+import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
+import { Label } from '../components/ui/label.js';
+import { Banner } from '../components/ui/alert.js';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import './TrackingTripDetail.css';
 import { showAlert } from '../lib/alert.js';
 
 interface Trip {
@@ -47,24 +54,20 @@ interface BorderCrossing {
   status: string; arrival_at: string | null; cleared_at: string | null; customs_ref: string | null;
 }
 
-const STATUS_VARIANT: Record<string, 'gray' | 'success' | 'info' | 'error' | 'warning'> = {
-  PLANNED: 'gray', IN_PROGRESS: 'success', COMPLETED: 'info',
-  CANCELLED: 'error', DELAYED: 'warning',
+const STATUS_VARIANT: Record<string, 'gray' | 'brand' | 'error' | 'warning'> = {
+  PLANNED: 'brand', IN_PROGRESS: 'brand', COMPLETED: 'brand', CANCELLED: 'error', DELAYED: 'warning',
 };
-
-const CROSSING_STATUS_COLOR: Record<string, string> = {
-  PENDING: 'var(--ink3)', IN_PROGRESS: 'var(--gold)',
-  CLEARED: 'var(--green)', DELAYED: 'var(--red)', REJECTED: 'var(--red)',
+const STATUS_LABEL: Record<string, string> = {
+  PLANNED: 'Scheduled', IN_PROGRESS: 'In transit', COMPLETED: 'Delivered', CANCELLED: 'Cancelled', DELAYED: 'Delayed',
 };
 
 function fmtDate(v: string | null) {
-  if (!v) return '—';
+  if (!v || Number.isNaN(new Date(v).getTime())) return '—';
   return new Date(v).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export const TrackingTripDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -79,13 +82,18 @@ export const TrackingTripDetail: React.FC = () => {
   const [billError, setBillError] = useState('');
   const [addingCrossing, setAddingCrossing] = useState(false);
   const [crossingForm, setCrossingForm] = useState({ border_name: '', country_from: '', country_to: '' });
+  const [loadError, setLoadError] = useState('');
+  const [expenseError, setExpenseError] = useState('');
+  const [crossingError, setCrossingError] = useState('');
+  const [crossingSaving, setCrossingSaving] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
 
   const reloadTrip = useCallback(() => {
     if (!id) return;
+    setLoadError('');
     apiFetch<Trip>(`/v1/tracking/trips/${id}`)
       .then(setTrip)
-      .catch(() => setTrip(null))
+      .catch((err: Error) => setLoadError(err.message || 'Unable to load this trip.'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -93,10 +101,10 @@ export const TrackingTripDetail: React.FC = () => {
     reloadTrip();
     if (!id) return;
     apiFetch<TripExpense[]>(`/v1/tracking/trips/${id}/expenses`)
-      .then(setExpenses).catch(() => setExpenses([]))
+      .then(setExpenses).catch((err: Error) => setExpenseError(err.message || 'Unable to load expenses.'))
       .finally(() => setExpLoading(false));
     apiFetch<BorderCrossing[]>(`/v1/tracking/trips/${id}/border-crossings`)
-      .then(setCrossings).catch(() => setCrossings([]))
+      .then(setCrossings).catch((err: Error) => setCrossingError(err.message || 'Unable to load border crossings.'))
       .finally(() => setCrossLoading(false));
   }, [id, reloadTrip]);
 
@@ -154,7 +162,8 @@ export const TrackingTripDetail: React.FC = () => {
   }
 
   async function recordCrossing() {
-    if (!id || !crossingForm.border_name.trim()) return;
+    if (!id || !crossingForm.border_name.trim() || crossingSaving) return;
+    setCrossingSaving(true);
     try {
       const created: BorderCrossing = await apiFetch(`/v1/tracking/trips/${id}/border-crossings`, {
         method: 'POST', body: JSON.stringify(crossingForm),
@@ -164,6 +173,8 @@ export const TrackingTripDetail: React.FC = () => {
       setAddingCrossing(false);
     } catch (err: any) {
       showAlert(err.message || 'Could not record this border crossing.');
+    } finally {
+      setCrossingSaving(false);
     }
   }
 
@@ -180,312 +191,149 @@ export const TrackingTripDetail: React.FC = () => {
 
   if (loading) return <PageLoading />;
   if (!trip) return (
-    <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)' }}>
-      <Icon name="alertTriangle" size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
-      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink2)' }}>Trip not found</div>
-      <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>This trip may have been deleted or doesn't exist.</div>
-      <Button variant="outline" onClick={() => navigate('/tracking/shipments')}><Icon name="arrowLeft" size={14} /> Trips</Button>
+    <div className="trip-detail-page">
+      <PageHeader crumbs={['HuduFreight', 'Trips']} titlePlain="Trip" titleEm="unavailable" backTo="/tracking/shipments" backLabel="Trips" />
+      <Banner variant="error">{loadError || 'This trip could not be found.'}</Banner>
+      <Button variant="outline" onClick={reloadTrip}>Try again</Button>
     </div>
   );
 
-  const displayStatus = trip.status === 'IN_PROGRESS' ? 'In Progress' : trip.status === 'COMPLETED' ? 'Completed' :
-    trip.status === 'PLANNED' ? 'Planned' : trip.status === 'DELAYED' ? 'Delayed' :
-    trip.status === 'CANCELLED' ? 'Cancelled' : trip.status;
-
+  const reference = `TRIP-${trip.id.slice(0, 8).toUpperCase()}`;
   const unbilledExpenses = expenses.filter(e => e.billable && !e.invoice_id);
-  const billedCount = expenses.filter(e => e.invoice_id).length;
-  const totalUnbilled = unbilledExpenses.reduce((s, e) => s + e.amount, 0);
+  const totalUnbilled = unbilledExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
-    <div style={{ paddingBottom: 40 }}>
+    <div className="trip-detail-page">
       <PageHeader
-        crumbs={['HuduFreight', 'Trips', trip.shipment_ref ?? trip.id.slice(0, 8).toUpperCase()]}
+        crumbs={['HuduFreight', 'Trips', reference]}
         titlePlain="Trip"
-        titleEm="detail"
-        subtitle={[trip.origin, trip.destination].filter(Boolean).join(' → ') || 'No route specified'}
+        titleEm={trip.id.slice(0, 8).toUpperCase()}
+        subtitle="Route, cargo, assignments and delivery records for this road trip."
         backTo="/tracking/shipments"
         backLabel="Trips"
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="outline">Actions <Icon name="chevronDown" size={14} /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={reloadTrip}><Icon name="refresh" size={15} /> Refresh trip</DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/tracking/map"><Icon name="mapPin" size={15} /> Fleet map</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/tracking/cargo-loading"><Icon name="package" size={15} /> Cargo loading</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
       />
+      {loadError && <Banner variant="error">{loadError}</Banner>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginTop: 24 }}>
+      <SectionCard collapsible={false}>
+        <div className="trip-route-summary">
+          <div className="trip-route-location"><span className="trip-label">Origin</span><strong>{trip.origin || 'Not recorded'}</strong></div>
+          <div className="trip-route-distance"><Icon name="arrowRight" size={20} /><span>{trip.distance_km != null ? `${trip.distance_km.toLocaleString()} km` : 'Road trip'}</span></div>
+          <div className="trip-route-location"><span className="trip-label">Destination</span><strong>{trip.destination || 'Not recorded'}</strong></div>
+          <Badge variant={STATUS_VARIANT[trip.status] || 'gray'}>{STATUS_LABEL[trip.status] || trip.status}</Badge>
+        </div>
+      </SectionCard>
 
-        {/* ── Left column: main details ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="trip-detail-layout">
+        <div className="trip-detail-main">
+          <SectionCard title="Schedule & cargo" collapsible={false}>
+            <dl className="trip-detail-fields">
+              <Kv label="Scheduled departure" value={fmtDate(trip.scheduled_start)} />
+              <Kv label="Scheduled arrival" value={fmtDate(trip.scheduled_end)} />
+              <Kv label="Actual departure" value={fmtDate(trip.actual_start)} />
+              <Kv label="Actual arrival" value={fmtDate(trip.actual_end)} />
+              <Kv label="Job type" value={trip.job_type?.replace(/_/g, ' ')} />
+              <Kv label="ClearOS reference" value={trip.shipment_ref} />
+              <Kv label="Cargo description" value={trip.cargo_desc} />
+              <Kv label="Cargo type" value={trip.cargo_type?.replace(/_/g, ' ')} />
+              <Kv label="Cargo weight" value={trip.cargo_weight_kg != null ? `${trip.cargo_weight_kg.toLocaleString()} kg` : null} />
+              <Kv label="Load capacity" value={trip.load_capacity_pct != null ? `${trip.load_capacity_pct}%` : null} />
+              <Kv label="Cargo temperature" value={trip.cargo_temp_c != null ? `${trip.cargo_temp_c}°C` : null} />
+              <Kv label="Created" value={fmtDate(trip.created_at)} />
+              {trip.notes && <div className="trip-detail-wide"><Kv label="Notes" value={trip.notes} /></div>}
+            </dl>
+          </SectionCard>
 
-          {/* Trip Overview */}
-          <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5 }}>
-                <Icon name="package" size={15} /> Trip Details
+          <SectionCard title="Expenses" collapsible={false} action={<Button variant="ghost" size="sm" asChild><Link to="/tracking/expenses/new"><Icon name="plus" size={14} /> Add expense</Link></Button>}>
+            {expLoading ? <SectionLoading /> : expenseError ? <Banner variant="error">{expenseError}</Banner> : expenses.length === 0 ? (
+              <p className="trip-empty">No expenses recorded for this trip.</p>
+            ) : (
+              <Table>
+                <TableHeader><TableRow>{['Category', 'Description', 'Amount', 'Type', 'Status'].map(label => <TableHead key={label}>{label}</TableHead>)}</TableRow></TableHeader>
+                <TableBody>{expenses.map(e => (
+                  <TableRow key={e.id}>
+                    <TableCell>{e.category.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{e.description || '—'}</TableCell>
+                    <TableCell className="trip-expense-amount">{Number(e.amount).toLocaleString('en')}</TableCell>
+                    <TableCell><Badge variant={e.billable ? 'brand' : 'gray'}>{e.billable ? 'Billable' : 'Internal'}</Badge></TableCell>
+                    <TableCell><Badge variant={e.invoice_id ? 'brand' : 'warning'}>{e.invoice_id ? 'Invoiced' : 'Pending'}</Badge></TableCell>
+                  </TableRow>
+                ))}</TableBody>
+              </Table>
+            )}
+            {!expLoading && unbilledExpenses.length > 0 && (
+              <div className="trip-billing-summary">
+                <div><span className="trip-label">Unbilled expenses · {unbilledExpenses.length}</span><strong>TZS {totalUnbilled.toLocaleString('en')}</strong></div>
+                <Button size="sm" disabled={billing || (!trip.customer_id && !trip.shipment_ref)} onClick={billExpenses}>{billing ? 'Billing…' : 'Bill to customer'}</Button>
+                {!trip.customer_id && !trip.shipment_ref && <p className="trip-help">Assign a customer before billing expenses.</p>}
+                {billError && <Banner variant="error">{billError}</Banner>}
               </div>
-              <Badge variant={STATUS_VARIANT[trip.status] ?? 'gray'}>{displayStatus}</Badge>
-            </div>
-            <div style={{ padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 32px', fontSize: 13 }}>
-              <Kv label="Origin" value={trip.origin} />
-              <Kv label="Destination" value={trip.destination} />
-              <Kv label="Scheduled Start" value={fmtDate(trip.scheduled_start)} />
-              <Kv label="Scheduled End" value={fmtDate(trip.scheduled_end)} />
-              {trip.actual_start && <Kv label="Actual Start" value={fmtDate(trip.actual_start)} />}
-              {trip.actual_end && <Kv label="Actual End" value={fmtDate(trip.actual_end)} />}
-              <Kv label="Job Type" value={trip.job_type.replace(/_/g, ' ')} />
-              {trip.shipment_ref && <Kv label="Shipment Ref" value={trip.shipment_ref} />}
-              {trip.cargo_desc && <Kv label="Cargo Description" value={trip.cargo_desc} />}
-              {trip.cargo_type && <Kv label="Cargo Type" value={trip.cargo_type} />}
-              {trip.cargo_weight_kg != null && <Kv label="Cargo Weight" value={`${trip.cargo_weight_kg.toLocaleString()} kg`} />}
-              {trip.distance_km != null && <Kv label="Distance" value={`${trip.distance_km.toLocaleString()} km`} />}
-              {trip.load_capacity_pct != null && <Kv label="Load Capacity" value={`${trip.load_capacity_pct}%`} />}
-              {trip.cargo_temp_c != null && <Kv label="Cargo Temp" value={`${trip.cargo_temp_c}°C`} />}
-              {trip.notes && <div style={{ gridColumn: '1 / -1' }}><Kv label="Notes" value={trip.notes} /></div>}
-            </div>
-          </div>
+            )}
+          </SectionCard>
 
-          {/* Expenses */}
-          <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5 }}>
-                <Icon name="dollarSign" size={15} /> Expenses
-              </div>
-              <Link to="/tracking/expenses/new" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="plus" size={12} /> Add Expense
-              </Link>
-            </div>
-            <div style={{ padding: 20 }}>
-              {expLoading ? <SectionLoading /> : expenses.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '20px 0' }}>
-                  No expenses recorded for this trip.
+          <SectionCard title="Border crossings" collapsible={false} action={<Button variant="ghost" size="sm" onClick={() => setAddingCrossing(open => !open)} disabled={crossingSaving}><Icon name={addingCrossing ? 'x' : 'plus'} size={14} />{addingCrossing ? 'Cancel' : 'Record crossing'}</Button>}>
+            {addingCrossing && (
+              <form className="trip-crossing-form" onSubmit={event => { event.preventDefault(); void recordCrossing(); }}>
+                <div className="trip-detail-wide"><Label htmlFor="trip-border-name">Border name</Label><Input id="trip-border-name" required placeholder="e.g. Tunduma" value={crossingForm.border_name} onChange={event => setCrossingForm(form => ({ ...form, border_name: event.target.value }))} /></div>
+                <div><Label htmlFor="trip-country-from">From country</Label><Input id="trip-country-from" maxLength={3} placeholder="e.g. TZ" value={crossingForm.country_from} onChange={event => setCrossingForm(form => ({ ...form, country_from: event.target.value.toUpperCase() }))} /></div>
+                <div><Label htmlFor="trip-country-to">To country</Label><Input id="trip-country-to" maxLength={3} placeholder="e.g. ZM" value={crossingForm.country_to} onChange={event => setCrossingForm(form => ({ ...form, country_to: event.target.value.toUpperCase() }))} /></div>
+                <div className="trip-detail-wide"><Button type="submit" size="sm" disabled={crossingSaving || !crossingForm.border_name.trim()}>{crossingSaving ? 'Saving…' : 'Save crossing'}</Button></div>
+              </form>
+            )}
+            {crossLoading ? <SectionLoading /> : crossingError ? <Banner variant="error">{crossingError}</Banner> : crossings.length === 0 ? (
+              <p className="trip-empty">No border crossings recorded for this trip.</p>
+            ) : (
+              <div className="trip-crossing-list">{crossings.map(c => (
+                <div key={c.id} className="trip-crossing-row">
+                  <div><strong>{c.border_name}</strong><p className="trip-help">{c.country_from} → {c.country_to}{c.customs_ref ? ` · Ref: ${c.customs_ref}` : ''}</p></div>
+                  <div className="trip-crossing-actions"><Badge variant={c.status === 'CLEARED' ? 'brand' : c.status === 'REJECTED' ? 'error' : 'warning'}>{c.status.replace(/_/g, ' ')}</Badge>{c.status !== 'CLEARED' && <Button variant="outline" size="sm" onClick={() => { void clearCrossing(c.id); }}>Mark cleared</Button>}</div>
                 </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      {['Category', 'Description', 'Amount', 'Billable', 'Status'].map(h => (
-                        <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700, fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.map(e => (
-                      <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px' }}>{e.category}</td>
-                        <td style={{ padding: '8px', color: 'var(--ink3)' }}>{e.description || '—'}</td>
-                        <td style={{ padding: '8px', fontFamily: 'monospace', fontWeight: 600 }}>
-                          {e.amount.toLocaleString('en')}
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          {e.billable ? <Badge variant="brand">Billable</Badge> : <Badge variant="gray">Internal</Badge>}
-                        </td>
-                        <td style={{ padding: '8px' }}>
-                          {e.invoice_id
-                            ? <Badge variant="success">Invoiced</Badge>
-                            : <Badge variant="warning">Pending</Badge>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-              {!expLoading && unbilledExpenses.length > 0 && (
-                <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
-                    <strong>{unbilledExpenses.length}</strong> unbilled expense{unbilledExpenses.length > 1 ? 's' : ''} — TZS {totalUnbilled.toLocaleString('en')}
-                    {billedCount > 0 && <span style={{ color: 'var(--ink3)', marginLeft: 8 }}>{billedCount} already invoiced</span>}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    {billError && <div style={{ fontSize: 11.5, color: 'var(--red)' }}>{billError}</div>}
-                    <Button
-                      size="sm"
-                      disabled={billing || (!trip.customer_id && !trip.shipment_ref)}
-                      onClick={billExpenses}
-                      title={!trip.customer_id && !trip.shipment_ref ? 'This trip has no customer to bill' : undefined}
-                    >
-                      {billing ? 'Billing…' : 'Bill to customer'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Border Crossings */}
-          <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5 }}>
-                <Icon name="mapPin" size={15} /> Border Crossings
-              </div>
-              <button
-                type="button"
-                onClick={() => setAddingCrossing(a => !a)}
-                style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                data-ui-native-button=""
-              >
-                <Icon name={addingCrossing ? 'x' : 'plus'} size={12} />
-                {addingCrossing ? 'Cancel' : 'Record crossing'}
-              </button>
-            </div>
-            <div style={{ padding: 20 }}>
-              {addingCrossing && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                  <input
-                    placeholder="Border name (e.g. Tunduma)"
-                    value={crossingForm.border_name}
-                    onChange={e => setCrossingForm(f => ({ ...f, border_name: e.target.value }))}
-                    style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'var(--font)', flex: 1, minWidth: 140 }}
-                  />
-                  <input
-                    placeholder="From (e.g. TZ)"
-                    value={crossingForm.country_from}
-                    onChange={e => setCrossingForm(f => ({ ...f, country_from: e.target.value.toUpperCase() }))}
-                    maxLength={3}
-                    style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'var(--font)', width: 90 }}
-                  />
-                  <input
-                    placeholder="To (e.g. ZM)"
-                    value={crossingForm.country_to}
-                    onChange={e => setCrossingForm(f => ({ ...f, country_to: e.target.value.toUpperCase() }))}
-                    maxLength={3}
-                    style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'var(--font)', width: 90 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={recordCrossing}
-                    style={{ padding: '8px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)' }}
-                    data-ui-native-button=""
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
-              {crossLoading ? <SectionLoading /> : crossings.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '20px 0' }}>
-                  No border crossings recorded for this trip.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {crossings.map(c => (
-                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{c.border_name}</div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{c.country_from} → {c.country_to}{c.customs_ref ? ` · Ref: ${c.customs_ref}` : ''}</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ color: CROSSING_STATUS_COLOR[c.status] ?? 'var(--ink3)', fontWeight: 700, fontSize: 12.5 }}>{c.status}</span>
-                        {c.status !== 'CLEARED' && (
-                          <button
-                            type="button"
-                            onClick={() => clearCrossing(c.id)}
-                            style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}
-                            data-ui-native-button=""
-                          >
-                            Mark cleared
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+              ))}</div>
+            )}
+          </SectionCard>
         </div>
 
-        {/* ── Right column: driver, vehicle, status ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <aside className="trip-detail-sidebar" aria-label="Trip status and assignments">
+          <SectionCard title="Trip status" collapsible={false}>
+            <Label htmlFor="trip-status">Update status</Label>
+            <Select value={trip.status} onValueChange={updateStatus} disabled={statusSaving}>
+              <SelectTrigger id="trip-status"><SelectValue /></SelectTrigger>
+              <SelectContent>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+            </Select>
+            <p className="trip-help" role="status">{statusSaving ? 'Saving status…' : 'Changes are saved immediately.'}</p>
+          </SectionCard>
 
-          {/* Status management */}
-          <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="activity" size={15} /> Update Status
-            </div>
-            <div style={{ padding: 16 }}>
-              <Select value={trip.status} onValueChange={updateStatus} disabled={statusSaving}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PLANNED">Planned</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="DELAYED">Delayed</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              {statusSaving && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Saving…</div>}
-            </div>
-          </div>
-
-          {/* Assigned Driver */}
-          {(driver || trip.driver_id) && (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="user" size={15} /> Driver
+          <SectionCard title="Assignments" collapsible={false}>
+            <div className="trip-assignment-list">
+              <div className="trip-assignment">
+                <PersonAvatar userId={trip.driver_id} kind="drivers" name={driver?.name || 'Unassigned'} size={36} />
+                <div><span className="trip-label">Driver</span><strong>{driver?.name || (trip.driver_id ? 'Driver unavailable' : 'Not assigned')}</strong>{driver?.custom_id && <span className="trip-help">{driver.custom_id}</span>}{trip.driver_id && <Link to={`/tracking/drivers/${trip.driver_id}`}>View profile <Icon name="arrowRight" size={12} /></Link>}</div>
               </div>
-              <div style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <PersonAvatar userId={trip.driver_id ?? undefined} name={driver?.name ?? 'Driver'} size={42} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
-                    {driver?.name ?? 'Loading…'}
-                  </div>
-                  {driver?.custom_id && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>ID: {driver.custom_id}</div>
-                  )}
-                </div>
-                {trip.driver_id && (
-                  <Link
-                    to={`/tracking/drivers/${trip.driver_id}`}
-                    style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}
-                  >
-                    View profile
-                  </Link>
-                )}
+              <div className="trip-assignment">
+                <Icon name="truck" size={26} color="var(--teal)" />
+                <div><span className="trip-label">Vehicle</span><strong>{vehicle?.name || (trip.vehicle_id ? 'Vehicle unavailable' : 'Not assigned')}</strong>{vehicle?.plate_number && <span className="trip-help">{vehicle.plate_number}</span>}{trip.vehicle_id && <Link to={`/tracking/vehicles/${trip.vehicle_id}`}>View vehicle <Icon name="arrowRight" size={12} /></Link>}</div>
+              </div>
+              <div className="trip-assignment">
+                <PersonAvatar userId={trip.customer_id} kind="customers" name={customer?.name || 'Unassigned'} size={36} />
+                <div><span className="trip-label">Customer</span><strong>{customer?.name || (trip.customer_id ? 'Customer unavailable' : 'Not assigned')}</strong></div>
               </div>
             </div>
-          )}
-
-          {/* Assigned Vehicle */}
-          {(vehicle || trip.vehicle_id) && (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="truck" size={15} /> Vehicle
-              </div>
-              <div style={{ padding: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{vehicle?.name ?? 'Loading…'}</div>
-                {vehicle?.plate_number && (
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{vehicle.plate_number}</div>
-                )}
-                {trip.vehicle_id && (
-                  <Link
-                    to={`/tracking/vehicles/${trip.vehicle_id}`}
-                    style={{ display: 'inline-block', marginTop: 8, fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}
-                  >
-                    View vehicle →
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Customer */}
-          {(customer || trip.customer_id) && (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: 'var(--card-border)', borderRadius: 'var(--card-radius, var(--r))', boxShadow: 'var(--card-shadow, var(--elev-sm))', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--card-sunken, var(--bg))', fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="briefcase" size={15} /> Customer
-              </div>
-              <div style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <PersonAvatar userId={trip.customer_id ?? undefined} kind="customers" name={customer?.name ?? 'Customer'} size={36} />
-                <div style={{ fontWeight: 600, fontSize: 13.5 }}>{customer?.name ?? 'Loading…'}</div>
-              </div>
-            </div>
-          )}
-
-        </div>
+          </SectionCard>
+        </aside>
       </div>
     </div>
   );
 };
 
 function Kv({ label, value }: { label: string; value: string | number | null | undefined }) {
-  return (
-    <div>
-      <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{value ?? '—'}</div>
-    </div>
-  );
+  return <div className="trip-detail-field"><dt>{label}</dt><dd>{value ?? '—'}</dd></div>;
 }

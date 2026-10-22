@@ -232,6 +232,22 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
 
       const cur = await reportingCurrency(trx, user.tenant_id);
 
+      const approvedPrep = await trx.selectFrom('finance_tax_preparations')
+        .select(['id', 'source_hash'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('period_id', '=', id)
+        .where('status', '=', 'approved')
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+      if (!approvedPrep) {
+        return reply.status(409).send({ error: 'A tax preparation must be prepared and approved by a reviewer before this period can be closed.' });
+      }
+
+      const context = await taxPreparationContext(trx, user.tenant_id, id);
+      if (approvedPrep.source_hash !== context.hash) {
+        return reply.status(409).send({ error: 'Source data has changed since the preparation was approved. Prepare and approve a new version before closing.' });
+      }
+
       // Closing on unclassified data files a return with holes in it and then
       // freezes them. That takes an explicit acknowledgement rather than a
       // silent pass — it is the difference between a gap someone accepted and a

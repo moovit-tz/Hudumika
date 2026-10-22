@@ -7838,6 +7838,7 @@ export interface VehiclesTable {
   out_of_service_odometer: number | null;
   lifecycle_notes: string | null;
   speed_limit_kmh: number | null;
+  dimensions: string | null;
   transporter_id: string | null;
   device_secret: string | null;
   created_at: Generated<Date>;
@@ -8068,16 +8069,42 @@ export interface WarehouseDockAppointmentsTable {
   updated_at: Generated<Date>;
 }
 
+export type CargoManifestStage = 'JOB_SELECTION' | 'EQUIPMENT_ASSIGNMENT' | 'CARGO_CONFIRMATION' | 'LOAD_PLANNING' | 'LOAD_VERIFICATION' | 'DISPATCH';
+export type CargoManifestStatus = 'DRAFT' | 'PLANNED' | 'APPROVED' | 'LOADING' | 'LOADED' | 'DISPATCHED' | 'DELIVERED';
+
 export interface CargoManifestsTable {
-  status: Generated<'DRAFT' | 'APPROVED' | 'DISPATCHED'>;
-  shipment_id: string | null;
-  origin: string | null;
-  destination: string | null;
   id: Generated<string>;
   tenant_id: string;
-  vehicle_id: string | null;
-  trip_id: string | null;
   name: string;
+  status: Generated<CargoManifestStatus>;
+  stage: Generated<CargoManifestStage>;
+  job_type: string | null;
+  shipment_id: string | null;
+  booking_id: string | null;
+  release_doc_id: string | null;
+  vehicle_id: string | null;
+  trailer_id: string | null;
+  location_id: string | null;
+  loading_bay: string | null;
+  dock_number: string | null;
+  seal_number: string | null;
+  secondary_seal_number: string | null;
+  planner_name: string | null;
+  loader_name: string | null;
+  checker_name: string | null;
+  dispatcher_name: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  loading_started_at: Date | null;
+  loading_completed_at: Date | null;
+  dispatched_at: Date | null;
+  exceptions_acknowledged: Generated<boolean>;
+  discrepancy_notes: string | null;
+  damage_notes: string | null;
+  verification_checklist: Generated<Record<string, boolean>>;
+  trip_id: string | null;
+  origin: string | null;
+  destination: string | null;
   container_length_cm: number;
   container_width_cm: number;
   container_height_cm: number;
@@ -8092,11 +8119,19 @@ export interface CargoItemsTable {
   tenant_id: string;
   manifest_id: string;
   label: string;
+  unit_type: Generated<string>;
   length_cm: number;
   width_cm: number;
   height_cm: number;
   weight_kg: number;
   quantity: Generated<number>;
+  loaded_quantity: Generated<number>;
+  damaged_quantity: Generated<number>;
+  damage_description: string | null;
+  stacking_max: Generated<number>;
+  is_fragile: Generated<boolean>;
+  handling_instructions: string | null;
+  source_ref: string | null;
   color: string | null;
   placements: Generated<{ x: number; y: number; z: number }[]>;
   created_at: Generated<Date>;

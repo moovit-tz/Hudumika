@@ -15,11 +15,23 @@ import type { FinanceCapabilityKey, UserRole } from '@hudumika/types';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { FinanceCapabilityGate } from '../components/FinanceCapabilityGate.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { FinanceIndustries, FinanceIndustryWorkspace, FinanceIndustryNew, FinanceIndustryWorkDetail, FinanceIndustryProductionNew, FinanceIndustryAllocationNew } from '../pages/FinanceIndustries.js';
-import { FinanceWorkCosts } from '../pages/FinanceWorkCosts.js';
-import { FinanceCloseReview } from '../pages/FinanceCloseReview.js';
-import { FinanceTaxPreparation } from '../pages/FinanceTaxPreparation.js';
-import { FinanceExpenseReports, FinanceExpenseReportNew, FinanceExpenseReportDetail } from '../pages/FinanceExpenseReports.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+
+const L = (load: () => Promise<Record<string, any>>, name: string) =>
+  React.lazy(() => load().then(m => ({ default: m[name] })));
+
+const FinanceIndustries = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustries');
+const FinanceIndustryWorkspace = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryWorkspace');
+const FinanceIndustryNew = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryNew');
+const FinanceIndustryWorkDetail = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryWorkDetail');
+const FinanceIndustryProductionNew = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryProductionNew');
+const FinanceIndustryAllocationNew = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryAllocationNew');
+const FinanceWorkCosts = L(() => import('../pages/FinanceWorkCosts.js'), 'FinanceWorkCosts');
+const FinanceCloseReview = L(() => import('../pages/FinanceCloseReview.js'), 'FinanceCloseReview');
+const FinanceTaxPreparation = L(() => import('../pages/FinanceTaxPreparation.js'), 'FinanceTaxPreparation');
+const FinanceExpenseReports = L(() => import('../pages/FinanceExpenseReports.js'), 'FinanceExpenseReports');
+const FinanceExpenseReportNew = L(() => import('../pages/FinanceExpenseReports.js'), 'FinanceExpenseReportNew');
+const FinanceExpenseReportDetail = L(() => import('../pages/FinanceExpenseReports.js'), 'FinanceExpenseReportDetail');
 
 function buildNav(t: TFunction): SidebarSection[] {
   return [
@@ -165,54 +177,52 @@ function roleCanSeeFinancePath(role: UserRole | undefined, path: string): boolea
   return true;
 }
 
-import { FinanceDashboard }       from '../pages/FinanceDashboard.js';
-import { Billing }                from '../pages/Billing.js';
-import { Quotations }             from '../pages/Quotations.js';
-import { PurchaseOrders }         from '../pages/PurchaseOrders.js';
-import { Expenses }               from '../pages/Expenses.js';
-import { FinanceExpenseNew }      from '../pages/FinanceExpenseNew.js';
-import { FinanceExpenseCategories } from '../pages/FinanceExpenseCategories.js';
-import { Bills }                  from '../pages/Bills.js';
-import { FinanceVendors }         from '../pages/FinanceVendors.js';
-import { VendorProfilePage }       from '../pages/VendorProfilePage.js';
-// One catalog, surfaced in both apps: /finance/products and /clearos/products
-// render the same component over the same /v1/products table.
-import { ProductsServices }        from '../pages/ProductsServices.js';
-import { ProductCategoriesPage }   from '../pages/ProductCategoriesPage.js';
-import { ProductReviewsPage }      from '../pages/ProductReviewsPage.js';
-import { FinanceTaxCodes }        from '../pages/FinanceTaxCodes.js';
-import { FinanceTaxClassify }     from '../pages/FinanceTaxClassify.js';
-import { FinanceVatPeriods }      from '../pages/FinanceVatPeriods.js';
-import { FinancePayments }        from '../pages/FinancePayments.js';
-import { FinanceLedger }          from '../pages/FinanceLedger.js';
-import { FinanceTrialBalance }    from '../pages/FinanceTrialBalance.js';
-import { FinanceBalanceSheet }    from '../pages/FinanceBalanceSheet.js';
-import { FinanceProfitLoss }      from '../pages/FinanceProfitLoss.js';
-import { FinanceEquityStatement } from '../pages/FinanceEquityStatement.js';
-import { FinanceAgedReceivables } from '../pages/FinanceAgedReceivables.js';
-import { FinanceAgedPayables }    from '../pages/FinanceAgedPayables.js';
-import { MultiEntityAccounting }  from '../pages/MultiEntityAccounting.js';
-import { FinanceReportsHub } from '../pages/FinanceReportsHub.js';
-import { FinanceSalesReport }          from '../pages/FinanceSalesReport.js';
-import { FinanceExpensesReport }       from '../pages/FinanceExpensesReport.js';
-import { FinanceIncomeVsExpenses }     from '../pages/FinanceIncomeVsExpenses.js';
-import { FinanceTaxReport }            from '../pages/FinanceTaxReport.js';
-import { FinanceCashFlow }             from '../pages/FinanceCashFlow.js';
-import { AccountsQuery }               from '../pages/AccountsQuery.js';
-import { ChartOfAccounts }            from '../pages/ChartOfAccounts.js';
-import { JournalEntries }             from '../pages/JournalEntries.js';
-import { DeliveryDocumentsPage }       from '../pages/DeliveryDocumentsPage.js';
-import { AccountingIntegrations }      from '../pages/AccountingIntegrations.js';
-import { AccountingDeliveries } from '../pages/AccountingDeliveries.js';
-import { RecurringInvoices }           from '../pages/RecurringInvoices.js';
-import { CreditNotes }                 from '../pages/CreditNotes.js';
-import { FixedAssets }                 from '../pages/FixedAssets.js';
-import { Budgets }                     from '../pages/Budgets.js';
-import { BankReconciliation }          from '../pages/BankReconciliation.js';
-import { GlPeriods }                   from '../pages/GlPeriods.js';
-import { ApApprovalWorkflows }         from '../pages/ApApprovalWorkflows.js';
-import { FinancePos }                  from '../pages/FinancePos.js';
-import { FinanceFxRevaluation }        from '../pages/FinanceFxRevaluation.js';
+const FinanceDashboard       = L(() => import('../pages/FinanceDashboard.js'), 'FinanceDashboard');
+const Billing                = L(() => import('../pages/Billing.js'), 'Billing');
+const Quotations             = L(() => import('../pages/Quotations.js'), 'Quotations');
+const PurchaseOrders         = L(() => import('../pages/PurchaseOrders.js'), 'PurchaseOrders');
+const Expenses               = L(() => import('../pages/Expenses.js'), 'Expenses');
+const FinanceExpenseNew      = L(() => import('../pages/FinanceExpenseNew.js'), 'FinanceExpenseNew');
+const FinanceExpenseCategories = L(() => import('../pages/FinanceExpenseCategories.js'), 'FinanceExpenseCategories');
+const Bills                  = L(() => import('../pages/Bills.js'), 'Bills');
+const FinanceVendors         = L(() => import('../pages/FinanceVendors.js'), 'FinanceVendors');
+const VendorProfilePage      = L(() => import('../pages/VendorProfilePage.js'), 'VendorProfilePage');
+const ProductsServices       = L(() => import('../pages/ProductsServices.js'), 'ProductsServices');
+const ProductCategoriesPage  = L(() => import('../pages/ProductCategoriesPage.js'), 'ProductCategoriesPage');
+const ProductReviewsPage     = L(() => import('../pages/ProductReviewsPage.js'), 'ProductReviewsPage');
+const FinanceTaxCodes        = L(() => import('../pages/FinanceTaxCodes.js'), 'FinanceTaxCodes');
+const FinanceTaxClassify     = L(() => import('../pages/FinanceTaxClassify.js'), 'FinanceTaxClassify');
+const FinanceVatPeriods      = L(() => import('../pages/FinanceVatPeriods.js'), 'FinanceVatPeriods');
+const FinancePayments        = L(() => import('../pages/FinancePayments.js'), 'FinancePayments');
+const FinanceLedger          = L(() => import('../pages/FinanceLedger.js'), 'FinanceLedger');
+const FinanceTrialBalance    = L(() => import('../pages/FinanceTrialBalance.js'), 'FinanceTrialBalance');
+const FinanceBalanceSheet    = L(() => import('../pages/FinanceBalanceSheet.js'), 'FinanceBalanceSheet');
+const FinanceProfitLoss      = L(() => import('../pages/FinanceProfitLoss.js'), 'FinanceProfitLoss');
+const FinanceEquityStatement = L(() => import('../pages/FinanceEquityStatement.js'), 'FinanceEquityStatement');
+const FinanceAgedReceivables = L(() => import('../pages/FinanceAgedReceivables.js'), 'FinanceAgedReceivables');
+const FinanceAgedPayables    = L(() => import('../pages/FinanceAgedPayables.js'), 'FinanceAgedPayables');
+const MultiEntityAccounting  = L(() => import('../pages/MultiEntityAccounting.js'), 'MultiEntityAccounting');
+const FinanceReportsHub      = L(() => import('../pages/FinanceReportsHub.js'), 'FinanceReportsHub');
+const FinanceSalesReport     = L(() => import('../pages/FinanceSalesReport.js'), 'FinanceSalesReport');
+const FinanceExpensesReport  = L(() => import('../pages/FinanceExpensesReport.js'), 'FinanceExpensesReport');
+const FinanceIncomeVsExpenses = L(() => import('../pages/FinanceIncomeVsExpenses.js'), 'FinanceIncomeVsExpenses');
+const FinanceTaxReport       = L(() => import('../pages/FinanceTaxReport.js'), 'FinanceTaxReport');
+const FinanceCashFlow        = L(() => import('../pages/FinanceCashFlow.js'), 'FinanceCashFlow');
+const AccountsQuery          = L(() => import('../pages/AccountsQuery.js'), 'AccountsQuery');
+const ChartOfAccounts        = L(() => import('../pages/ChartOfAccounts.js'), 'ChartOfAccounts');
+const JournalEntries         = L(() => import('../pages/JournalEntries.js'), 'JournalEntries');
+const DeliveryDocumentsPage  = L(() => import('../pages/DeliveryDocumentsPage.js'), 'DeliveryDocumentsPage');
+const AccountingIntegrations = L(() => import('../pages/AccountingIntegrations.js'), 'AccountingIntegrations');
+const AccountingDeliveries   = L(() => import('../pages/AccountingDeliveries.js'), 'AccountingDeliveries');
+const RecurringInvoices      = L(() => import('../pages/RecurringInvoices.js'), 'RecurringInvoices');
+const CreditNotes            = L(() => import('../pages/CreditNotes.js'), 'CreditNotes');
+const FixedAssets            = L(() => import('../pages/FixedAssets.js'), 'FixedAssets');
+const Budgets                = L(() => import('../pages/Budgets.js'), 'Budgets');
+const BankReconciliation     = L(() => import('../pages/BankReconciliation.js'), 'BankReconciliation');
+const GlPeriods              = L(() => import('../pages/GlPeriods.js'), 'GlPeriods');
+const ApApprovalWorkflows    = L(() => import('../pages/ApApprovalWorkflows.js'), 'ApApprovalWorkflows');
+const FinancePos             = L(() => import('../pages/FinancePos.js'), 'FinancePos');
+const FinanceFxRevaluation   = L(() => import('../pages/FinanceFxRevaluation.js'), 'FinanceFxRevaluation');
 
 export function FinOpsShell() {
   const { t } = useLocale();

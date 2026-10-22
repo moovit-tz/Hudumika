@@ -201,13 +201,13 @@ export function TruckLoadOverview({
         <div className="truck-load-visual-toolbar">
           <TabsList wrap>
             <TabsTrigger value="3d">
-              <Icon name="maximize" size={14} style={{ marginRight: 6 }} /> 3D 360° Rotatable Schematic
+              <Icon name="maximize" size={14} style={{ marginRight: 6 }} /> 3D view
             </TabsTrigger>
             <TabsTrigger value="cargo">
-              <Icon name="truck" size={14} style={{ marginRight: 6 }} /> 2D Side Cutaway Plan
+              <Icon name="truck" size={14} style={{ marginRight: 6 }} /> 2D plan
             </TabsTrigger>
             <TabsTrigger value="capacity">
-              <Icon name="pieChart" size={14} style={{ marginRight: 6 }} /> Space Utilization ({spaceUsed.toFixed(0)}%)
+              <Icon name="pieChart" size={14} style={{ marginRight: 6 }} /> Capacity ({spaceUsed.toFixed(0)}%)
             </TabsTrigger>
           </TabsList>
 

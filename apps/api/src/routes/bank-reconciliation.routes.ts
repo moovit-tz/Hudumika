@@ -167,10 +167,11 @@ export async function bankReconciliationRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
       if (alreadyUsed) return reply.status(409).send({ error: 'That ledger entry is already matched to another statement line.' });
 
-      // Validate amount: the statement line amount must match the journal line's net amount
+      // Validate amount: signed statement amount must equal the journal line's net (debit − credit).
+      // Deposits are positive, withdrawals negative — sign matters.
       const jlNet = Math.round((Number(jl.debit) - Number(jl.credit)) * 100) / 100;
       const stmtAmt = Math.round(Number(stmtLine.amount) * 100) / 100;
-      if (Math.abs(stmtAmt - jlNet) > 0.01 && Math.abs(stmtAmt + jlNet) > 0.01) {
+      if (Math.abs(stmtAmt - jlNet) > 0.01) {
         return reply.status(400).send({ error: `Amount mismatch: statement line is ${stmtAmt} but ledger entry is ${jlNet}.` });
       }
 

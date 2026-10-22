@@ -111,6 +111,7 @@
 }
 
 .wh-horizontal-card:hover {
+  border-width: 1.5px;
   background:
     linear-gradient(
       color-mix(in srgb, var(--white) 94%, var(--card-color, var(--teal))),
@@ -639,6 +640,7 @@
 }
 
 .wh-grid-card:hover {
+  border-width: 1.5px;
   background:
     linear-gradient(
       color-mix(in srgb, var(--white) 94%, var(--card-color, var(--teal))),

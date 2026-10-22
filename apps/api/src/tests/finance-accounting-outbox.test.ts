@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, it, expect, vi } from 'vitest';
+import { beforeAll, afterAll, afterEach, it, expect, vi } from 'vitest';
 import { withTenant } from '../db/client.js';
 import { GLService } from '../services/gl.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
@@ -14,6 +14,7 @@ beforeAll(async()=>{
   await trx.insertInto('accounting_integrations').values({tenant_id:tenant.tenantId,provider:'QUICKBOOKS',provider_org_id:'test-org',status:'CONNECTED'}).execute();
  });
 },120000);
+afterEach(() => { vi.restoreAllMocks(); });
 afterAll(async()=>{vi.restoreAllMocks();if(tenant) await tenant.cleanup();},120000);
 async function source(){return withTenant(tenant.tenantId,async trx=>{
  const invoice=await trx.insertInto('sales_invoices').values({tenant_id:tenant.tenantId,invoice_number:crypto.randomUUID(),client_address:'[]',currency:'TZS',status:'Unpaid',created_by:tenant.userId}).returning('id').executeTakeFirstOrThrow();

@@ -813,16 +813,31 @@ export class GLService {
           .where('invoice_id', 'in', invoiceIds)
           .execute();
 
+        // Fetch POSTED credit totals per invoice
+        const creditTotals = new Map<string, number>();
+        const creditResult = await sql<{ original_invoice_id: string; credited: string }>`
+          SELECT cn.original_invoice_id, round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2) credited
+          FROM credit_note_lines cl
+          JOIN credit_notes cn ON cn.id = cl.credit_note_id
+          WHERE cn.original_invoice_id = ANY(${sql`ARRAY[${sql.join(invoiceIds.map(id => sql`${id}::uuid`), sql`, `)}]`})
+            AND cn.status = 'POSTED' AND cn.tenant_id = ${tenantId}
+          GROUP BY cn.original_invoice_id
+        `.execute(trx);
+        for (const cr of creditResult.rows) {
+          creditTotals.set(cr.original_invoice_id, Number(cr.credited) || 0);
+        }
+
         invoices.forEach(inv => {
           const invLines = allLines.filter(l => l.invoice_id === inv.id);
           const clearingLines = invLines.filter(l => l.line_group === 'clearing' || l.line_group === 'other');
           const shippingLines = invLines.filter(l => l.line_group === 'shipping');
           const exRate = Number(inv.exchange_rate) || 1;
-          
+
           const total_amount = clearingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
             + shippingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
 
-          const unpaid = total_amount - Number(inv.received || 0);
+          const creditedAmount = creditTotals.get(inv.id) ?? 0;
+          const unpaid = total_amount - Number(inv.received || 0) - creditedAmount;
           if (unpaid <= 0) return;
 
           const name = inv.client_name || 'Unknown Client';

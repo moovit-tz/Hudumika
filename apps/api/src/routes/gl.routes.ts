@@ -318,13 +318,31 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.get('/journal-entries', { preHandler: [requireRole(...ADVANCED_ACCOUNTING_ROLES), requireFinanceCapability('finance.accounting.advanced', { preserveReadAccess: true })] }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
+      const q = request.query as Record<string, string>;
+      const page = Math.max(1, parseInt(q.page || '1', 10) || 1);
+      const page_size = Math.min(200, Math.max(1, parseInt(q.page_size || '50', 10) || 50));
       const result = await withTenant(tenantId, async (trx) => {
-        const entries = await trx
+        let base = trx
           .selectFrom('journal_entries')
+          .where('tenant_id', '=', tenantId);
+        if (q.status) base = base.where('status', '=', q.status);
+        if (q.source_module) base = base.where('source_module', '=', q.source_module);
+        if (q.from) base = base.where('entry_date', '>=', q.from);
+        if (q.to) base = base.where('entry_date', '<=', q.to);
+        if (q.search) base = base.where(eb => eb.or([
+          eb('description', 'ilike', `%${q.search}%`),
+          eb('reference', 'ilike', `%${q.search}%`),
+        ]));
+
+        const countResult = await base.select(sql`count(*)::int`.as('cnt')).executeTakeFirst() as any;
+        const total = Number(countResult?.cnt ?? 0);
+
+        const entries = await base
           .select(['id', 'entry_number', 'entry_date', 'reference', 'description', 'status', 'source_module', 'source_id', 'created_by', 'posted_at', 'voided_at', 'void_reason'])
-          .where('tenant_id', '=', tenantId)
           .orderBy('entry_date', 'desc')
           .orderBy('entry_number', 'desc')
+          .limit(page_size)
+          .offset((page - 1) * page_size)
           .execute();
 
         const entryIds = entries.map(e => e.id);
@@ -351,18 +369,18 @@ export async function glRoutes(fastify: FastifyInstance) {
             .execute();
         }
 
-        return entries.map(e => ({
-          ...e,
-          // entry_date is a DATE — already 'YYYY-MM-DD' from the driver (see the
-          // type parser in db/client.ts). posted_at is a TIMESTAMPTZ and really
-          // is an instant, so it stays a Date and keeps toISOString().
-          entry_date: String(e.entry_date).slice(0, 10),
-          posted_at: e.posted_at ? e.posted_at.toISOString() : null,
-          lines: lines.filter(l => l.journal_entry_id === e.id)
-        }));
+        return {
+          total, page, page_size, total_pages: Math.ceil(total / page_size),
+          items: entries.map(e => ({
+            ...e,
+            entry_date: String(e.entry_date).slice(0, 10),
+            posted_at: e.posted_at ? e.posted_at.toISOString() : null,
+            lines: lines.filter(l => l.journal_entry_id === e.id)
+          })),
+        };
       });
 
-      return { journal_entries: result };
+      return { journal_entries: result.items, ...result };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

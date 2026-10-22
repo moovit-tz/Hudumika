@@ -283,7 +283,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             coalesce((SELECT round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2)
               FROM credit_note_lines cl
               JOIN credit_notes cn ON cn.id = cl.credit_note_id
-              WHERE cn.original_invoice_id = i.id AND cn.status != 'Void'), 0) credited
+              WHERE cn.original_invoice_id = i.id AND cn.status = 'POSTED'), 0) credited
           FROM sales_invoices i WHERE i.tenant_id=${user.tenant_id}
             ${scopeToOwner ? sql`AND i.created_by = ${user.sub}` : sql``}
         )
@@ -385,7 +385,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/recurring', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
     const user = request.user;
     const body = recurringInvoiceSchema.parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
+    const result = await withTenant(user.tenant_id, async (trx) => {
       let taxRate = body.tax_rate ?? 0;
       if (body.tax_code_id) {
         try {
@@ -421,8 +421,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         invoices_generated: 0,
         total_billed: 0,
       }).returningAll().executeTakeFirstOrThrow();
-      return reply.status(201).send(rec);
+      return rec;
     });
+    if (!reply.sent) return reply.status(201).send(result);
   });
 
   fastify.patch('/recurring/:id', { preHandler: [requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'), requireFinanceCapability('finance.core')] }, async (request, reply) => {
@@ -614,7 +615,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             FROM credit_note_lines cl
             JOIN credit_notes cn ON cn.id = cl.credit_note_id
             WHERE cn.original_invoice_id = ANY(${sql`ARRAY[${sql.join(reportIds.map(id => sql`${id}::uuid`), sql`, `)}]`})
-              AND cn.status != 'Void' AND cn.tenant_id = ${user.tenant_id}
+              AND cn.status = 'POSTED' AND cn.tenant_id = ${user.tenant_id}
             GROUP BY cn.original_invoice_id
           `.execute(trx);
           for (const cr of creditRows.rows) creditMap.set(cr.original_invoice_id, Number(cr.credited) || 0);
@@ -968,7 +969,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (inv.status !== 'Draft' && grandTotal > 0) {
         const reportingCcy = defaultCurrency.toUpperCase();
         const invCcy = inv.currency.toUpperCase();
-        const needsConversion = invCcy !== reportingCcy && fx > 1;
+        const needsConversion = invCcy !== reportingCcy && fx !== 1 && fx > 0;
         const glGrand = needsConversion ? Math.round(grandTotal * fx * 100) / 100 : grandTotal;
         const glNet   = needsConversion ? Math.round(netAndTax.net * fx * 100) / 100 : netAndTax.net;
         const glTax   = needsConversion ? Math.round(netAndTax.tax * fx * 100) / 100 : netAndTax.tax;
@@ -1113,7 +1114,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             const ts2 = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
             const reportingCcy2 = ((ts2 ? (typeof ts2.settings === 'string' ? JSON.parse(ts2.settings) : ts2.settings) : {})?.company?.currency || 'TZS').toUpperCase();
             const invCcy2 = inv.currency.toUpperCase();
-            const needsFx = invCcy2 !== reportingCcy2 && patchFx > 1;
+            const needsFx = invCcy2 !== reportingCcy2 && patchFx !== 1 && patchFx > 0;
             const glGrand2 = needsFx ? Math.round(grandTotal * patchFx * 100) / 100 : grandTotal;
             const glNet2   = needsFx ? Math.round(netAndTaxPatch.net * patchFx * 100) / 100 : netAndTaxPatch.net;
             const glTax2   = needsFx ? Math.round(netAndTaxPatch.tax * patchFx * 100) / 100 : netAndTaxPatch.tax;
@@ -1256,6 +1257,15 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           if (Number(prior.amount) !== amount || (prior.method || '') !== (method || '') || (prior.note || '') !== (note || '') || (prior.payment_date ? new Date(prior.payment_date as any).toISOString().slice(0, 10) : null) !== (payment_date || null)) return reply.status(409).send({ error: 'Payment request key was already used with different details.' });
           return { success: true, received: Number(inv.received), status: inv.status, replayed: true };
         }
+      } else {
+        const recentDup = await trx.selectFrom('invoice_payments')
+          .select('id')
+          .where('tenant_id', '=', user.tenant_id)
+          .where('invoice_id', '=', id)
+          .where('amount', '=', Number(amount))
+          .where('created_at', '>', sql<Date>`now() - interval '60 seconds'`)
+          .executeTakeFirst();
+        if (recentDup) return reply.status(409).send({ error: 'A payment with the same amount was recorded moments ago. Use an Idempotency-Key header to safely retry.' });
       }
       const payment = await trx.insertInto('invoice_payments').values({
         request_key: requestKey ?? null,
@@ -1294,7 +1304,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       const cnTotalPay = await sql<{ credited: string }>`
         SELECT coalesce(round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2), 0) credited
         FROM credit_note_lines cl JOIN credit_notes cn ON cn.id = cl.credit_note_id
-        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status != 'Void' AND cn.tenant_id = ${user.tenant_id}
+        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status = 'POSTED' AND cn.tenant_id = ${user.tenant_id}
       `.execute(trx);
       const creditedAmtPay = Number(cnTotalPay.rows[0]?.credited) || 0;
       const previouslyPaid = totalPaid - Number(amount);
@@ -1319,7 +1329,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       const sPay = tsPay ? (typeof tsPay.settings === 'string' ? JSON.parse(tsPay.settings) : tsPay.settings) : {};
       const reportingCcyPay = (sPay?.company?.currency || 'TZS').toUpperCase();
       const invCcyPay = inv.currency.toUpperCase();
-      const needsPayConversion = invCcyPay !== reportingCcyPay && payFx > 1;
+      const needsPayConversion = invCcyPay !== reportingCcyPay && payFx !== 1 && payFx > 0;
       const glPayAmount = needsPayConversion ? Math.round(Number(amount) * payFx * 100) / 100 : Number(amount);
       const glClearAmt = needsPayConversion ? Math.round(clearAmount * payFx * 100) / 100 : clearAmount;
       const glExcessAmt = needsPayConversion ? Math.round(excessAmount * payFx * 100) / 100 : excessAmount;
@@ -1632,7 +1642,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       require_otp: z.boolean().optional(),
     }).parse(request.body);
 
-    return withTenant(user.tenant_id, async (trx) => {
+    const result = await withTenant(user.tenant_id, async (trx) => {
       const inv = await trx.selectFrom('sales_invoices').selectAll()
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
@@ -1674,11 +1684,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         created_at: new Date(),
       }).execute();
 
-      return reply.status(201).send({
+      return {
         envelope_id: envelope.id,
         recipients: recipientRows.map(r => ({ id: r.id, name: r.name, email: r.email, status: r.status })),
-      });
+      };
     });
+    if (!reply.sent) return reply.status(201).send(result);
   });
 
   // ═══════════════════════════════════════════════════════════════
@@ -1709,7 +1720,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       const cnTotal = await sql<{ credited: string }>`
         SELECT coalesce(round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2), 0) credited
         FROM credit_note_lines cl JOIN credit_notes cn ON cn.id = cl.credit_note_id
-        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status != 'Void' AND cn.tenant_id = ${user.tenant_id}
+        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status = 'POSTED' AND cn.tenant_id = ${user.tenant_id}
       `.execute(trx);
       const creditedAmt = Number(cnTotal.rows[0]?.credited) || 0;
       const balance = Math.max(0, grandTotal - Number(inv.received || 0) - creditedAmt);

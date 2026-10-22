@@ -30,6 +30,36 @@ const createSchema = z.object({
   items: z.array(lineSchema).min(1),
 });
 
+async function recomputeInvoiceStatus(trx: any, tenantId: string, invoiceId: string) {
+  const inv = await trx.selectFrom('sales_invoices')
+    .select(['id', 'received', 'currency', 'exchange_rate'])
+    .where('id', '=', invoiceId).where('tenant_id', '=', tenantId)
+    .forUpdate().executeTakeFirst();
+  if (!inv) return;
+
+  const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', invoiceId).execute();
+  const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
+  const totalPaid = Number(inv.received) || 0;
+
+  const creditResult = await sql<{ credited: string }>`
+    SELECT coalesce(round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2), 0) credited
+    FROM credit_note_lines cl JOIN credit_notes cn ON cn.id = cl.credit_note_id
+    WHERE cn.original_invoice_id = ${invoiceId}::uuid AND cn.status = 'POSTED' AND cn.tenant_id = ${tenantId}
+  `.execute(trx);
+  const totalCredited = Number(creditResult.rows[0]?.credited) || 0;
+
+  const effectiveTotal = Math.max(0, grandTotal - totalCredited);
+  let newStatus: string;
+  if (effectiveTotal <= 0 && totalCredited > 0) newStatus = 'Credited';
+  else if (totalPaid <= 0) newStatus = 'Unpaid';
+  else if (totalPaid >= effectiveTotal) newStatus = 'Paid';
+  else newStatus = 'Partial';
+
+  await trx.updateTable('sales_invoices')
+    .set({ status: newStatus, updated_at: new Date() })
+    .where('id', '=', invoiceId).where('tenant_id', '=', tenantId).execute();
+}
+
 /**
  * Credit notes — a new document (credit_notes/credit_note_lines), not a
  * sign-flip on sales_invoices. invoices.routes.ts's own INVOICE_STATUS enum
@@ -170,7 +200,7 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = createSchema.parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
+    const result = await withTenant(user.tenant_id, async (trx) => {
       let sourceInvoice: { id: string; customer_id: string | null; currency: string; exchange_rate: unknown; status: string } | undefined;
       if (body.original_invoice_id) {
         sourceInvoice = await trx.selectFrom('sales_invoices')
@@ -211,7 +241,18 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       if (sourceInvoice && currency.toUpperCase() !== sourceInvoice.currency.toUpperCase())
         return reply.status(400).send({ error: `Credit note currency (${currency}) must match the source invoice currency (${sourceInvoice.currency}).` });
 
-      const exchangeRate = body.exchange_rate ?? (sourceInvoice ? Number(sourceInvoice.exchange_rate) || 1 : 1);
+      // Linked credits must use the source invoice's rate so the GL credit
+      // clears the exact reporting-currency AR the invoice debited.
+      let exchangeRate: number;
+      if (sourceInvoice) {
+        const sourceRate = Number(sourceInvoice.exchange_rate) || 1;
+        if (body.exchange_rate != null && Math.abs(body.exchange_rate - sourceRate) > 0.0001) {
+          return reply.status(400).send({ error: `Linked credit notes must use the source invoice's exchange rate (${sourceRate}). A different rate would leave an unreconciled AR residual.` });
+        }
+        exchangeRate = sourceRate;
+      } else {
+        exchangeRate = body.exchange_rate ?? 1;
+      }
       const lines = body.items.map((it, i) => ({
         name: it.name,
         unit: it.unit || 'PER BIL',
@@ -277,7 +318,7 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
         const tsCn = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         const sCn = tsCn ? (typeof tsCn.settings === 'string' ? JSON.parse(tsCn.settings) : tsCn.settings) : {};
         const reportingCcyCn = (sCn?.company?.currency || 'TZS').toUpperCase();
-        const needsCnConversion = currency.toUpperCase() !== reportingCcyCn && exchangeRate > 1;
+        const needsCnConversion = currency.toUpperCase() !== reportingCcyCn && exchangeRate !== 1 && exchangeRate > 0;
         const glCnGrand = needsCnConversion ? Math.round(grandTotal * exchangeRate * 100) / 100 : grandTotal;
         const glCnNet   = needsCnConversion ? Math.round(net * exchangeRate * 100) / 100 : net;
         const glCnTax   = needsCnConversion ? Math.round(tax * exchangeRate * 100) / 100 : tax;
@@ -302,17 +343,20 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
           tenant_id: user.tenant_id, invoice_id: body.original_invoice_id, actor_id: user.sub, actor_name: user.name || user.email,
           action: 'credit_note_issued', detail: `Credit note ${cn.credit_note_number} issued for ${grandTotal} ${currency}${body.reason ? `: ${body.reason}` : ''}`,
         }).execute();
+        // Recompute source invoice status after credit
+        await recomputeInvoiceStatus(trx, user.tenant_id, body.original_invoice_id);
       }
 
-      return reply.status(201).send(cn);
+      return cn;
     });
+    if (!reply.sent) return reply.status(201).send(result);
   });
 
   fastify.post('/:id/void', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
+    const result = await withTenant(user.tenant_id, async (trx) => {
       const cn = await trx.selectFrom('credit_notes').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!cn) return reply.status(404).send({ error: 'Credit note not found' });
       if (cn.status === 'VOID') return reply.status(409).send({ error: 'This credit note is already void.' });
@@ -320,7 +364,13 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
       await GLService.reverseBySource(user.tenant_id, 'AR', cn.id, user.sub, `Credit note voided: ${reason}`, trx);
       await trx.updateTable('credit_notes').set({ status: 'VOID', notes: `${cn.notes ? cn.notes + ' | ' : ''}Voided: ${reason}`, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
+      // Recompute source invoice status after void
+      if (cn.original_invoice_id) {
+        await recomputeInvoiceStatus(trx, user.tenant_id, cn.original_invoice_id);
+      }
+
       return { success: true };
     });
+    if (!reply.sent) return result;
   });
 }

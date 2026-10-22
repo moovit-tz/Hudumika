@@ -230,6 +230,47 @@ describe('P1 #1: bank reconciliation security', () => {
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toMatch(/amount mismatch/i);
   }, 120_000);
+
+  it('rejects matching a deposit against a withdrawal of the same magnitude', async () => {
+    // Journal: credit 100 on 1010 (withdrawal) → net = 0 - 100 = -100
+    const withdrawJeId = await GLService.post(tenant.tenantId, {
+      entryDate: '2026-01-13',
+      description: 'Withdrawal test',
+      sourceModule: 'MANUAL',
+      sourceId: randomUUID(),
+      createdBy: tenant.userId,
+      lines: [
+        { accountCode: '1010', debit: 0, credit: 100, description: 'Cash out' },
+        { accountCode: '5000', debit: 100, credit: 0, description: 'Expense' },
+      ],
+    });
+    const withdrawJl = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('journal_lines as jl')
+        .innerJoin('journal_entries as je', 'je.id', 'jl.journal_entry_id')
+        .innerJoin('chart_of_accounts as coa', 'coa.id', 'jl.account_id')
+        .select(['jl.id'])
+        .where('je.id', '=', withdrawJeId)
+        .where('coa.code', '=', '1010')
+        .execute()
+    );
+
+    // Statement line: +100 deposit — opposite sign to the -100 journal line
+    const depositLineId = await withTenant(tenant.tenantId, async (trx) => {
+      const row = await trx.insertInto('bank_statement_lines').values({
+        bank_statement_id: stmtId,
+        txn_date: '2026-01-13',
+        description: 'Deposit vs withdrawal',
+        amount: 100,
+      }).returningAll().executeTakeFirstOrThrow();
+      return row.id;
+    });
+
+    const res = await call('POST', `bank-reconciliation/statements/${stmtId}/lines/${depositLineId}/match`, {
+      journal_line_id: withdrawJl[0].id,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/amount mismatch/i);
+  }, 120_000);
 });
 
 // ---------------------------------------------------------------------------
@@ -465,5 +506,228 @@ describe('P1 #5: document numbering accepts credit_note and bill types', () => {
       expect(row).toBeTruthy();
       expect(row!.doc_type).toBe('bill');
     });
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// P1 #6: FX credit lifecycle — source rate enforcement + GL AR clearing
+// ---------------------------------------------------------------------------
+describe('P1 #6: FX credit lifecycle and invoice status recomputation', () => {
+  let fxInvoiceId: string;
+
+  it('creates a USD invoice at rate 2650 for credit lifecycle tests', async () => {
+    const res = await call('POST', 'invoices', {
+      customer_name: 'FX Credit Customer',
+      currency: 'USD',
+      exchange_rate: 2650,
+      status: 'Unpaid',
+      items: [{ name: 'FX Service', rate: 100, qty: 1, tax_pct: 0 }],
+    });
+    expect(res.statusCode, res.body).toBeLessThan(300);
+    fxInvoiceId = res.json().id;
+  }, 120_000);
+
+  it('rejects a linked credit with a different exchange rate', async () => {
+    const res = await call('POST', 'credit-notes', {
+      original_invoice_id: fxInvoiceId,
+      currency: 'USD',
+      exchange_rate: 1,
+      items: [{ name: 'Full refund', rate: 100, qty: 1, tax_pct: 0 }],
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/exchange rate/i);
+  }, 120_000);
+
+  it('a full credit at source rate clears GL AR to zero and marks invoice Credited', async () => {
+    const res = await call('POST', 'credit-notes', {
+      original_invoice_id: fxInvoiceId,
+      currency: 'USD',
+      items: [{ name: 'Full refund', rate: 100, qty: 1, tax_pct: 0 }],
+    });
+    expect(res.statusCode, res.body).toBe(201);
+    const cnId = res.json().id;
+
+    // GL: invoice AR debit should be fully offset by credit AR credit
+    const arLines = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('journal_entries as je')
+        .innerJoin('journal_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .innerJoin('chart_of_accounts as coa', 'coa.id', 'jl.account_id')
+        .select(['jl.debit', 'jl.credit', 'coa.code'])
+        .where('je.source_id', 'in', [fxInvoiceId, cnId])
+        .where('je.tenant_id', '=', tenant.tenantId)
+        .where('je.status', '!=', 'VOIDED')
+        .where('coa.code', '=', '1200')
+        .execute()
+    );
+    const arNet = arLines.reduce((s, l) => s + Number(l.debit) - Number(l.credit), 0);
+    expect(Math.abs(arNet)).toBeLessThanOrEqual(1);
+
+    // Invoice status should be Credited
+    const inv = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('sales_invoices').select('status').where('id', '=', fxInvoiceId).executeTakeFirst()
+    );
+    expect(inv?.status).toBe('Credited');
+  }, 120_000);
+
+  it('voiding the credit restores invoice to Unpaid', async () => {
+    // Find the credit note we just created
+    const cns = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('credit_notes').select(['id', 'status'])
+        .where('original_invoice_id', '=', fxInvoiceId)
+        .where('tenant_id', '=', tenant.tenantId)
+        .where('status', '=', 'POSTED')
+        .execute()
+    );
+    expect(cns.length).toBe(1);
+
+    const voidRes = await call('POST', `credit-notes/${cns[0].id}/void`, { reason: 'Test void' });
+    expect(voidRes.statusCode, voidRes.body).toBeLessThan(300);
+
+    const inv = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('sales_invoices').select('status').where('id', '=', fxInvoiceId).executeTakeFirst()
+    );
+    expect(inv?.status).toBe('Unpaid');
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// P1 #7: Local-currency credit/payment status lifecycle
+// ---------------------------------------------------------------------------
+describe('P1 #7: partial credit + payment status transitions', () => {
+  let localInvId: string;
+  let partialCnId: string;
+
+  it('creates a TZS 10000 invoice', async () => {
+    const res = await call('POST', 'invoices', {
+      customer_name: 'Status Lifecycle Customer',
+      currency: 'TZS',
+      exchange_rate: 1,
+      status: 'Unpaid',
+      items: [{ name: 'Status test', rate: 10000, qty: 1, tax_pct: 0 }],
+    });
+    expect(res.statusCode, res.body).toBeLessThan(300);
+    localInvId = res.json().id;
+  }, 120_000);
+
+  it('a 4000 credit leaves invoice Unpaid with 6000 outstanding', async () => {
+    const res = await call('POST', 'credit-notes', {
+      original_invoice_id: localInvId,
+      currency: 'TZS',
+      items: [{ name: 'Partial credit', rate: 4000, qty: 1, tax_pct: 0 }],
+    });
+    expect(res.statusCode, res.body).toBe(201);
+    partialCnId = res.json().id;
+
+    const inv = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('sales_invoices').select('status').where('id', '=', localInvId).executeTakeFirst()
+    );
+    expect(inv?.status).toBe('Unpaid');
+  }, 120_000);
+
+  it('a 6000 payment completes the invoice as Paid', async () => {
+    const res = await call('POST', `invoices/${localInvId}/payment`, {
+      amount: 6000, method: 'bank_transfer',
+    });
+    expect(res.statusCode, res.body).toBeLessThan(300);
+
+    const inv = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('sales_invoices').select('status').where('id', '=', localInvId).executeTakeFirst()
+    );
+    expect(inv?.status).toBe('Paid');
+  }, 120_000);
+
+  it('voiding the credit after payment sets invoice to Partial', async () => {
+    const voidRes = await call('POST', `credit-notes/${partialCnId}/void`, { reason: 'Test void partial' });
+    expect(voidRes.statusCode, voidRes.body).toBeLessThan(300);
+
+    const inv = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('sales_invoices').select('status').where('id', '=', localInvId).executeTakeFirst()
+    );
+    // 6000 paid out of 10000 total (no credit now) = Partial
+    expect(inv?.status).toBe('Partial');
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// P1 #8: POS retry concurrency — keyless duplicate guard
+// ---------------------------------------------------------------------------
+describe('P1 #8: POS keyless duplicate guard', () => {
+  let posInvId: string;
+
+  it('creates and issues a TZS invoice for POS retry testing', async () => {
+    const res = await call('POST', 'invoices', {
+      customer_name: 'POS Test Customer',
+      currency: 'TZS',
+      lines: [{ name: 'POS item', qty: 1, rate: 5000, tax_pct: 0 }],
+    });
+    expect(res.statusCode, res.body).toBeLessThan(300);
+    posInvId = JSON.parse(res.body).id;
+    expect(posInvId).toBeTruthy();
+
+    const patch = await call('PATCH', `invoices/${posInvId}`, { status: 'Unpaid' });
+    expect(patch.statusCode, patch.body).toBeLessThan(300);
+  }, 120_000);
+
+  it('concurrent keyless payments of the same amount — only one succeeds', async () => {
+    const pay = () => call('POST', `invoices/${posInvId}/payment`, {
+      amount: 2500, method: 'cash',
+    });
+    const [r1, r2, r3] = await Promise.all([pay(), pay(), pay()]);
+    const codes = [r1.statusCode, r2.statusCode, r3.statusCode].sort();
+    const successes = codes.filter(c => c < 300);
+    const conflicts = codes.filter(c => c === 409);
+    expect(successes.length).toBe(1);
+    expect(conflicts.length).toBeGreaterThanOrEqual(1);
+  }, 120_000);
+
+  it('keyed retry returns replayed result, not a duplicate payment', async () => {
+    const app = await getApp();
+    const key = `pos-retry-${randomUUID()}`;
+    const pay = () => app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${posInvId}/payment`,
+      headers: { ...authHeaders(tenant.token), 'idempotency-key': key },
+      payload: { amount: 500, method: 'cash' },
+    });
+    const [first, second] = await Promise.all([pay(), pay()]);
+    expect(first.statusCode, first.body).toBeLessThan(300);
+    expect(second.statusCode, second.body).toBeLessThan(300);
+
+    const payments = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('invoice_payments')
+        .select('id')
+        .where('tenant_id', '=', tenant.tenantId)
+        .where('invoice_id', '=', posInvId)
+        .where('request_key', '=', key)
+        .execute()
+    );
+    expect(payments).toHaveLength(1);
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// P1 #9: Journal entries pagination endpoint
+// ---------------------------------------------------------------------------
+describe('P1 #9: journal entries pagination', () => {
+  it('GET /journal-entries returns paginated results without 500', async () => {
+    const res = await call('GET', 'finance/journal-entries?page=1&page_size=10');
+    expect(res.statusCode, res.body).toBeLessThan(300);
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty('total');
+    expect(body).toHaveProperty('page', 1);
+    expect(body).toHaveProperty('page_size', 10);
+    expect(body).toHaveProperty('total_pages');
+    expect(body).toHaveProperty('journal_entries');
+    expect(Array.isArray(body.journal_entries)).toBe(true);
+    expect(body.journal_entries.length).toBeLessThanOrEqual(10);
+  }, 120_000);
+
+  it('filters by status and date range', async () => {
+    const res = await call('GET', 'finance/journal-entries?page=1&page_size=5&status=POSTED&from=2020-01-01&to=2099-12-31');
+    expect(res.statusCode, res.body).toBeLessThan(300);
+    const body = JSON.parse(res.body);
+    for (const entry of body.journal_entries) {
+      expect(entry.status).toBe('POSTED');
+    }
   }, 120_000);
 });

@@ -6,15 +6,15 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
-import { Input } from '../components/ui/input.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { PaginationBar } from '../components/PaginationBar.js';
-import { Tip } from '../components/ui/tooltip.js';
+
 import { getFleetVehiclePhoto } from './TrackingVehicles.js';
 import './TrackingShipments.css';
 
@@ -66,18 +66,19 @@ interface Customer {
   email?: string | null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'info' | 'gray' | 'warning' | 'error' | 'brand'; progress: number }> = {
-  IN_PROGRESS: { label: 'In Transit', variant: 'success', progress: 65 },
-  PLANNED:     { label: 'Scheduled', variant: 'info', progress: 20 },
-  COMPLETED:   { label: 'Delivered', variant: 'brand', progress: 100 },
-  DELAYED:     { label: 'Delayed', variant: 'warning', progress: 45 },
-  CANCELLED:   { label: 'Cancelled', variant: 'error', progress: 0 },
+const STATUS_CONFIG: Record<string, { label: string; variant: 'brand' | 'info' | 'gray' | 'warning' | 'error' | 'brand' }> = {
+  IN_PROGRESS: { label: 'In Transit', variant: 'brand' },
+  PLANNED:     { label: 'Scheduled', variant: 'brand' },
+  COMPLETED:   { label: 'Delivered', variant: 'brand' },
+  DELAYED:     { label: 'Delayed', variant: 'warning' },
+  CANCELLED:   { label: 'Cancelled', variant: 'error' },
 };
 
 function fmtDateTime(value: string | null | undefined): string {
   if (!value) return '—';
   try {
     const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   } catch {
     return String(value);
@@ -85,7 +86,7 @@ function fmtDateTime(value: string | null | undefined): string {
 }
 
 export const TrackingShipments: React.FC = () => {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -106,10 +107,10 @@ export const TrackingShipments: React.FC = () => {
     setError(null);
     try {
       const [tripsRes, vehiclesRes, driversRes, customersRes] = await Promise.all([
-        apiFetch('/v1/tracking/trips').catch(() => []),
-        apiFetch('/v1/tracking/vehicles').catch(() => []),
-        apiFetch('/v1/tracking/drivers').catch(() => []),
-        apiFetch('/v1/customers').catch(() => []),
+        apiFetch('/v1/tracking/trips'),
+        apiFetch('/v1/tracking/vehicles'),
+        apiFetch('/v1/tracking/drivers'),
+        apiFetch('/v1/customers'),
       ]);
 
       setTrips(Array.isArray(tripsRes) ? tripsRes : (tripsRes?.data ?? []));
@@ -330,69 +331,57 @@ export const TrackingShipments: React.FC = () => {
   return (
     <div className="trk-shipments-page">
       <PageHeader
-        crumbs={['HuduFreight', 'Shipments']}
-        titlePlain="Shipments &"
-        titleEm="dispatch"
-        subtitle="Manage road freight movements, real-time trip status, ClearOS linked consignments, and vehicle cargo allocations."
+        crumbs={['HuduFreight', 'Trips']}
+        titlePlain="Road"
+        titleEm="trips"
+        subtitle="Plan departures, follow delivery status and manage assigned drivers, vehicles and cargo."
         actions={
           <div className="trk-shipments-header-actions">
-            <Tip label="Refresh road movements">
-              <Button variant="outline" size="icon" aria-label="Refresh road movements" onClick={reload} disabled={loading}>
-                <Icon name="refresh" size={16} />
-              </Button>
-            </Tip>
-            <Button variant="outline" asChild>
-              <Link to="/tracking/cargo-loading">
-                <Icon name="package" size={15} /> 3D Cargo Planner
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/tracking/map">
-                <Icon name="mapPin" size={15} /> Fleet Radar
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Button variant="outline">Actions <Icon name="chevronDown" size={14} /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => { void reload(); }} disabled={loading}><Icon name="refresh" size={15} /> Refresh trips</DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/tracking/cargo-loading"><Icon name="package" size={15} /> Cargo loading</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to="/tracking/map"><Icon name="mapPin" size={15} /> Fleet map</Link></DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button asChild>
               <Link to="/tracking/shipments/new">
-                <Icon name="plus" size={15} /> New shipment
+                <Icon name="plus" size={15} /> New trip
               </Link>
             </Button>
           </div>
         }
       />
 
-      <div className="trk-section-header">
-        <div className="trk-section-title">Dispatch overview</div>
-        <div className="trk-section-subtitle">Real-time status across registered movements</div>
-      </div>
-
       <MetricsRow cards={[
         {
-          title: 'Active in transit',
+          title: 'In transit',
           value: String(stats.inProgress),
           icon: 'truck',
-          updatedLabel: 'Road movements en route right now',
+          updatedLabel: 'Trips on the road',
           loading,
           emphasis: 'primary',
         },
         {
-          title: 'Scheduled / Planned',
+          title: 'Scheduled',
           value: String(stats.planned),
           icon: 'clock',
-          updatedLabel: 'Ready for loading and departure',
+          updatedLabel: 'Planned departures',
           loading,
         },
         {
           title: 'Delivered',
           value: String(stats.completed),
           icon: 'checkCircle',
-          updatedLabel: 'Completed destination arrivals',
+          updatedLabel: 'Completed trips',
           loading,
         },
         {
-          title: 'Freight payload',
-          value: stats.totalWeight > 0 ? `${(stats.totalWeight / 1000).toFixed(1)}t` : String(stats.total),
+          title: 'Total trips',
+          value: String(stats.total),
           icon: 'box2',
-          updatedLabel: 'Aggregate freight weight',
+          updatedLabel: 'All registered trips',
           loading,
         },
       ]} />
@@ -403,53 +392,33 @@ export const TrackingShipments: React.FC = () => {
         </Banner>
       )}
 
-      <div className="trk-shipments-toolbar">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger aria-label="Trip status"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All trips ({stats.total})</SelectItem>
-            <SelectItem value="IN_PROGRESS">In transit ({stats.inProgress})</SelectItem>
-            <SelectItem value="PLANNED">Scheduled ({stats.planned})</SelectItem>
-            <SelectItem value="COMPLETED">Delivered ({stats.completed})</SelectItem>
-            <SelectItem value="DELAYED">Delayed ({stats.delayed})</SelectItem>
-            <SelectItem value="CANCELLED">Cancelled ({stats.cancelled})</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="trk-search-box">
-          <Input
-            aria-label="Search shipments"
-            placeholder="Search by trip, cargo, route, driver, or vehicle…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        {customers.length > 0 && (
-          <Select value={customerFilter} onValueChange={setCustomerFilter}>
-            <SelectTrigger aria-label="Filter by customer">
-              <SelectValue placeholder="All customers" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All customers</SelectItem>
-              {customers.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        <div className="trk-shipments-toolbar-right">
+      <SearchToolbar
+        className="trk-shipments-search"
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search trips, routes, drivers…"
+        quickFilters={[
+          { label: 'Status', value: statusFilter === 'ALL' ? null : statusFilter, onChange: value => setStatusFilter(value || 'ALL'), allLabel: 'All statuses', options: [
+            ...Object.entries(STATUS_CONFIG).map(([value, config]) => ({ value, label: config.label })),
+          ] },
+          { label: 'Customer', value: customerFilter === 'ALL' ? null : customerFilter, onChange: value => setCustomerFilter(value || 'ALL'), searchable: true, allLabel: 'All customers', options: [
+            ...customers.map(c => ({ value: c.id, label: c.name })),
+          ] },
+        ]}
+        actions={
           <Tabs value={viewMode} onValueChange={v => setViewMode(v as 'grid' | 'table')} variant="segmented">
-            <TabsList>
-              <TabsTrigger value="grid" aria-label="Cards view">
-                <Icon name="grid" size={14} />
-              </TabsTrigger>
-              <TabsTrigger value="table" aria-label="Table view">
-                <Icon name="list" size={14} />
-              </TabsTrigger>
+            <TabsList aria-label="Trip display">
+              <TabsTrigger value="grid" aria-label="Cards view"><Icon name="grid" size={14} /></TabsTrigger>
+              <TabsTrigger value="table" aria-label="Table view"><Icon name="list" size={14} /></TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
+        }
+      />
+      <div className="trk-shipments-results" role="status">
+        {loading ? 'Loading trips…' : `${filteredTrips.length} ${filteredTrips.length === 1 ? 'trip' : 'trips'}${filteredTrips.length !== trips.length ? ` of ${trips.length}` : ''}`}
+        {(search || statusFilter !== 'ALL' || customerFilter !== 'ALL') && (
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setStatusFilter('ALL'); setCustomerFilter('ALL'); }}>Clear filters</Button>
+        )}
       </div>
 
       {/* Main Content Area */}
@@ -484,6 +453,8 @@ export const TrackingShipments: React.FC = () => {
                 </div>
               ))}
             </div>
+          ) : error && trips.length === 0 ? (
+            <div className="trk-shipments-empty"><div className="trk-shipments-empty-title">Trips could not be loaded</div><Button variant="outline" onClick={() => { void reload(); }}>Try again</Button></div>
           ) : filteredTrips.length === 0 ? (
             <div className="trk-shipments-empty">
               <Icon name="package" size={40} color="var(--ink3)" />
@@ -501,16 +472,12 @@ export const TrackingShipments: React.FC = () => {
                     <Icon name="plus" size={15} /> Create your first shipment
                   </Link>
                 </Button>
-              ) : (
-                <Button variant="outline" onClick={() => { setSearch(''); setStatusFilter('ALL'); setCustomerFilter('ALL'); }}>
-                  Clear filters
-                </Button>
-              )}
+              ) : null}
             </div>
           ) : (
             <div className="trk-shipment-grid">
               {pagedTrips.map(trip => {
-                const conf = STATUS_CONFIG[trip.status] || { label: trip.status, variant: 'gray' as const, progress: 30 };
+                const conf = STATUS_CONFIG[trip.status] || { label: trip.status, variant: 'gray' as const };
                 const vehicle = getVehicle(trip.vehicle_id);
                 const driver = getDriver(trip.driver_id);
                 const customer = getCustomer(trip.customer_id);
@@ -556,28 +523,15 @@ export const TrackingShipments: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Progress Bar & Timing */}
-                    <div className="trk-shipment-progress">
-                      <div className="trk-shipment-progress-meta">
-                        <span>
-                          {trip.actual_start ? `Departed ${fmtDateTime(trip.actual_start)}` : `Sched. Start ${fmtDateTime(trip.scheduled_start)}`}
-                        </span>
-                        <span>
-                          {trip.status === 'COMPLETED' ? 'Delivered' : conf.label}
-                        </span>
-                      </div>
-                      <div className="trk-shipment-track">
-                        <div
-                          className={`trk-shipment-fill status-${trip.status.toLowerCase()}`}
-                          style={{ width: `${conf.progress}%` }}
-                        />
-                      </div>
+                    <div className="trk-shipment-timing">
+                      <div><span>{trip.actual_start ? 'Departed' : 'Scheduled departure'}</span><strong>{fmtDateTime(trip.actual_start || trip.scheduled_start)}</strong></div>
+                      <div><span>{trip.actual_end ? 'Arrived' : 'Scheduled arrival'}</span><strong>{fmtDateTime(trip.actual_end || trip.scheduled_end)}</strong></div>
                     </div>
 
                     {/* Cargo Specs */}
                     <div className="trk-shipment-cargo">
                       <div className="trk-cargo-desc">
-                        {trip.cargo_desc || 'Commercial Consignment Cargo'}
+                        {trip.cargo_desc || 'Cargo details not recorded'}
                       </div>
                       <div className="trk-shipment-specs">
                         {trip.cargo_weight_kg != null && (
@@ -645,11 +599,11 @@ export const TrackingShipments: React.FC = () => {
                     {/* Footer Row */}
                     <div className="trk-shipment-footer">
                       <div className="trk-shipment-customer-tag">
-                        <Icon name="user" size={13} color="var(--ink3)" />
-                        <span>{customer?.name || 'Commercial Client'}</span>
+                        <PersonAvatar userId={customer?.id || null} kind="customers" name={customer?.name || 'Unassigned'} size={22} />
+                        <span>{customer?.name || 'Customer not assigned'}</span>
                       </div>
                       <div className="trk-shipment-action-link">
-                        <span>Dispatch details</span>
+                        <span>View trip</span>
                         <Icon name="arrowRight" size={13} />
                       </div>
                     </div>
@@ -668,7 +622,7 @@ export const TrackingShipments: React.FC = () => {
                 total={filteredTrips.length}
                 onPageChange={setPage}
                 onPageSizeChange={s => { setPageSize(s); setPage(1); }}
-                itemLabel="shipment"
+                itemLabel="trip"
               />
             </div>
           )}

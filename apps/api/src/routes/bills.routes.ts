@@ -551,7 +551,7 @@ export async function billRoutes(fastify: FastifyInstance) {
     if (body.business_line_id && !(await tenantHasEnabledFinanceCapability(user.tenant_id, 'finance.accounting.advanced'))) {
       return reply.status(403).send({ error: 'Business-line tracking requires Advanced Accounting.' });
     }
-    return withTenant(user.tenant_id, async (trx) => {
+    const result = await withTenant(user.tenant_id, async (trx) => {
       if (!(await validateBusinessLine(trx, user.tenant_id, body.business_line_id))) {
         return reply.status(400).send({ error: 'Select an active business line from this workspace.' });
       }
@@ -668,8 +668,9 @@ export async function billRoutes(fastify: FastifyInstance) {
         action: 'created', detail: `Bill ${bill.bill_number} created as ${bill.status}`, created_at: new Date(),
       }).execute();
 
-      return reply.status(201).send(bill);
+      return bill;
     });
+    if (!reply.sent) return reply.status(201).send(result);
   });
 
   // GET /v1/bills/:id  (after /stats and /recurring to avoid route conflict)
@@ -1095,6 +1096,15 @@ export async function billRoutes(fastify: FastifyInstance) {
           if (Number(prior.amount) !== amount || (prior.method || '') !== (method || '') || (prior.reference || '') !== (reference || '') || (prior.note || '') !== (note || '') || (prior.payment_date ? new Date(prior.payment_date as any).toISOString().slice(0, 10) : null) !== (payment_date || null)) return reply.status(409).send({ error: 'Payment request key was already used with different details.' });
           return { success: true, paid_amount: Number(bill.paid_amount), status: bill.status, replayed: true };
         }
+      } else {
+        const recentDup = await trx.selectFrom('bill_payments')
+          .select('id')
+          .where('tenant_id', '=', user.tenant_id)
+          .where('bill_id', '=', id)
+          .where('amount', '=', Number(amount))
+          .where('created_at', '>', sql<Date>`now() - interval '60 seconds'`)
+          .executeTakeFirst();
+        if (recentDup) return reply.status(409).send({ error: 'A payment with the same amount was recorded moments ago. Use an Idempotency-Key header to safely retry.' });
       }
 
       if (amount > Number(bill.total) - Number(bill.paid_amount) + 1e-8) return reply.status(409).send({ error: 'Payment exceeds the bill balance. Record supplier advances separately.' });
@@ -1160,7 +1170,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       const sBillPay = tsBillPay ? (typeof tsBillPay.settings === 'string' ? JSON.parse(tsBillPay.settings) : tsBillPay.settings) : {};
       const reportingCcyBillPay = (sBillPay?.company?.currency || 'TZS').toUpperCase();
       const billCcyPay = bill.currency.toUpperCase();
-      const needsBillPayConversion = billCcyPay !== reportingCcyBillPay && billPayFxRate > 1;
+      const needsBillPayConversion = billCcyPay !== reportingCcyBillPay && billPayFxRate !== 1 && billPayFxRate > 0;
       const glBillPayAmt = needsBillPayConversion ? Math.round(Number(amount) * billPayFxRate * 100) / 100 : Number(amount);
       const glBillWht = needsBillPayConversion ? Math.round(whtAmount * billPayFxRate * 100) / 100 : whtAmount;
 
