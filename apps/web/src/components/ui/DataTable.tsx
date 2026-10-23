@@ -1,5 +1,6 @@
 import React from 'react';
 import './DataTable.css';
+import { PaginationBar } from '../PaginationBar.js';
 import { Icon } from '../Icon.js';
 import type { IconName } from '../Icon.js';
 import {
@@ -21,6 +22,8 @@ export interface TableColumn<T> {
   /** Override the cell renderer completely. */
   render?: (row: T, index: number) => React.ReactNode;
   sortable?: boolean;
+  /** Sort a formatted or multi-line cell by its underlying value. */
+  sortValue?: (row: T) => string | number | null | undefined;
   /** CSS width for the <col> element, e.g. "120px" or "10%". */
   width?: number | string;
   /** Class applied to every <td> in this column. */
@@ -83,6 +86,8 @@ export interface DataTableProps<T extends object> {
 
   // ── Pagination (uncontrolled, client-side) ──
   pageSize?: number;
+  /** Server owns row paging; avoids slicing an already paged response again. */
+  serverPagination?: {page:number;pageSize:number;total:number;onPageChange:(page:number)=>void;onPageSizeChange:(size:number)=>void};
 
   // ── Appearance ──
   /** Tighter row height for data-dense contexts. */
@@ -172,7 +177,8 @@ export function DataTable<T extends object>({
   selectedIds,
   onSelectionChange,
   rowActions,
-  pageSize = 10,
+  pageSize: initialPageSize = 10,
+  serverPagination,
   compact = false,
   freezeFirstColumn = true,
   onRowClick,
@@ -181,6 +187,8 @@ export function DataTable<T extends object>({
   const [sortKey, setSortKey] = React.useState<string | null>(defaultSortKey ?? null);
   const [sortDir, setSortDir] = React.useState<'asc' | 'desc'>(defaultSortDir);
   const [page, setPage] = React.useState(0);
+  const [pageSize, setPageSize] = React.useState(initialPageSize);
+  React.useEffect(() => { setPageSize(initialPageSize); setPage(0); }, [initialPageSize]);
 
   const handleSort = React.useCallback((key: string) => {
     setSortKey(prev => {
@@ -195,16 +203,18 @@ export function DataTable<T extends object>({
     if (!sortKey) return rows;
     const col = columns.find(c => c.key === sortKey);
     const field = col?.accessor;
-    if (!field) return rows;
+    if (!field && !col?.sortValue) return rows;
     return [...rows].sort((a, b) => {
-      const av = a[field], bv = b[field];
-      const cmp = av === bv ? 0 : av! < bv! ? -1 : 1;
+      const av = col?.sortValue ? col.sortValue(a) : a[field!];
+      const bv = col?.sortValue ? col.sortValue(b) : b[field!];
+      if (av == null || bv == null) return av == null && bv == null ? 0 : av == null ? 1 : -1;
+      const cmp = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' });
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }, [rows, sortKey, sortDir, columns]);
 
   const totalPages = Math.ceil(sorted.length / pageSize);
-  const pageRows = sorted.slice(page * pageSize, (page + 1) * pageSize);
+  const pageRows = serverPagination ? rows : sorted.slice(page * pageSize, (page + 1) * pageSize);
 
   // Reset to page 0 when rows change (e.g. filter applied).
   const prevRowLen = React.useRef(rows.length);
@@ -312,12 +322,10 @@ export function DataTable<T extends object>({
                   className={colClass || undefined}
                   style={col.align && col.align !== 'left' ? { textAlign: col.align } : undefined}
                   aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
-                  onClick={col.sortable ? () => handleSort(col.key) : undefined}
                 >
-                  <span className="dt-th-inner">
-                    {col.header}
-                    {col.sortable && <SortIcon active={isSorted} dir={sortDir} />}
-                  </span>
+                  {col.sortable ? <button type="button" className="dt-sort-button" onClick={() => handleSort(col.key)}>
+                    {col.header}<SortIcon active={isSorted} dir={sortDir} />
+                  </button> : <span className="dt-th-inner">{col.header}</span>}
                 </th>
               );
             })}
@@ -338,6 +346,8 @@ export function DataTable<T extends object>({
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 style={onRowClick ? { cursor: 'pointer' } : undefined}
                 aria-selected={isSelected || undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={onRowClick ? event => { if (event.target === event.currentTarget && event.key === 'Enter') { event.preventDefault(); onRowClick(row); } } : undefined}
               >
                 {hasSelection && (
                   <td style={{ paddingLeft: 14 }}>
@@ -386,7 +396,7 @@ export function DataTable<T extends object>({
                               <React.Fragment key={i}>
                                 {a.separator && i > 0 && <DropdownMenuSeparator />}
                                 <DropdownMenuItem
-                                  onClick={() => a.onClick(row)}
+                                  onClick={event => { event.stopPropagation(); a.onClick(row); }}
                                   disabled={isDisabled}
                                   className={a.variant === 'danger' ? 'text-destructive focus:text-destructive' : undefined}
                                 >
@@ -407,51 +417,10 @@ export function DataTable<T extends object>({
         </tbody>
       </table>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="dt-pagination">
-          <span className="dt-pagination-info">
-            {page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)} of {sorted.length}
-          </span>
-          <div className="dt-pagination-controls">
-            <button
-              type="button"
-              className="dt-pg-btn"
-              disabled={page === 0}
-              onClick={() => setPage(p => Math.max(p - 1, 0))}
-              aria-label="Previous page"
-            >
-              <Icon name="chevronLeft" size={14} strokeWidth={2.5} duotone={false} />
-            </button>
-            {getPageNums(page + 1, totalPages).map((n, i) =>
-              n === '…' ? (
-                <span key={`ellipsis-${i}`} className="dt-pg-ellipsis">…</span>
-              ) : (
-                <button
-                  key={n}
-                  type="button"
-                  className="dt-pg-btn"
-                  data-active={n === page + 1 || undefined}
-                  onClick={() => setPage(Number(n) - 1)}
-                  aria-label={`Page ${n}`}
-                  aria-current={n === page + 1 ? 'page' : undefined}
-                >
-                  {n}
-                </button>
-              )
-            )}
-            <button
-              type="button"
-              className="dt-pg-btn"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(p => Math.min(p + 1, totalPages - 1))}
-              aria-label="Next page"
-            >
-              <Icon name="chevronRight" size={14} strokeWidth={2.5} duotone={false} />
-            </button>
-          </div>
-        </div>
-      )}
+      <PaginationBar page={serverPagination?.page ?? page + 1} pageSize={serverPagination?.pageSize ?? pageSize} total={serverPagination?.total ?? sorted.length}
+        onPageChange={value => serverPagination ? serverPagination.onPageChange(value) : setPage(value - 1)}
+        onPageSizeChange={value => { if(serverPagination) serverPagination.onPageSizeChange(value); else {setPageSize(value); setPage(0);} }}
+        pageSizeOptions={Array.from(new Set([initialPageSize, 10, 25, 50, 100])).sort((a, b) => a - b)} />
     </div>
   );
 }

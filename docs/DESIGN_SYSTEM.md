@@ -193,7 +193,8 @@ For a feature kill-switch row with an icon (e.g. SuperAdmin app toggles), use `F
 | Accessible filled action | `hsl(var(--primary))`, `hsl(var(--primary-foreground))` |
 | Shape | `--radius`, `--r-sm`, `--r`, `--r-lg`, `--badge-radius` |
 | Control density | `--ctl-h-xs`, `--ctl-h-sm`, `--ctl-h`, `--ctl-h-lg`; `--ds-btn-py-*`; `--ds-input-py` |
-| Data density | `--ds-cell-py`, `--badge-*` |
+| Data density | `--ds-cell-py`, `--ds-cell-px`, `--ds-th-py`, `--ds-th-fs`, `--badge-*` |
+| Detail layout | `--detail-sidebar-w`, `--detail-gap` |
 | Elevation | `--elev-sm`, `--elev`, `--elev-lg` |
 | Tabs | `data-tabs` on the root; `--tab-radius`, `--tab-height`, `--tab-size` |
 | Spacing | `--space-xs` through `--space-xl`, `--content-gap`, `--page-pad-x` |
@@ -313,6 +314,69 @@ the live primitive or at minimum replace fixed shape/density/elevation values
 with the token contract above. This keeps the migration incremental without
 introducing a competing component system.
 
+## Detail-page layout
+
+Record-detail pages (PO detail, Bill detail, Invoice detail) share a
+two-column grid: main content on the left, a sticky sidebar (Totals,
+Timeline, Notes) on the right. Use these utility classes from `index.css`:
+
+```html
+<div class="detail-layout">
+  <div class="detail-main">
+    <!-- info-field card, metrics row, line-items table -->
+  </div>
+  <div class="detail-sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-card-title">Totals</div>
+      <div class="sidebar-card-body">
+        <div class="sidebar-total-row is-primary">…</div>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+Related classes: `.detail-fields` + `.detail-field-label` / `-value` / `-sub`
+for the horizontal info bar (SUPPLIER, SOURCE, SHIP TO), `.detail-timeline`
+for the vertical dot-line history, `.sidebar-total-row` (with `.is-primary` /
+`.is-balance` modifiers) for the summary panel. At ≤960px the sidebar stacks
+below the main content.
+
+## Settings / preferences table
+
+Configuration pages (Printer Settings, Tax Rates, Payment Methods) use
+`.settings-table` — a simple `<table>` that reads the same `--ds-cell-*` /
+`--ds-th-*` tokens as `DataTable`. Use `.settings-name` / `.settings-desc`
+inside a `<td>` for name + subtitle rows.
+
+## Empty state
+
+Every list or table page that can be empty uses `.ds-empty-state`:
+
+```html
+<div class="ds-empty-state">
+  <div class="ds-empty-state-icon"><Icon name="package" size={24} /></div>
+  <h3>No products yet</h3>
+  <p>Add your first product to start tracking inventory.</p>
+  <Button>Add product</Button>
+</div>
+```
+
+Do not hand-roll `<div>No data</div>` or a bespoke empty illustration.
+
+## Date preset pills
+
+Invoice, Bill and PO list pages share a `.date-preset-bar` with
+`.date-preset-pill` buttons ("All | Today | 7 days | 30 days | This month").
+The active pill uses `hsl(var(--primary))` / `hsl(var(--primary-foreground))`
+via `.is-active`. These sit inside or alongside `SearchToolbar`.
+
+## Stock activity / ledger table
+
+Dense read-only logs (Stock Activity, GL journal entries) use `.ledger-table`
+with sticky headers, alternating row backgrounds, and `.ledger-qty-in` /
+`.ledger-qty-out` color classes for signed quantities.
+
 ## Loading states
 
 Never hand-roll a `<div>Loading…</div>` or a bespoke `border-top-color:
@@ -413,3 +477,10 @@ Card Border Width in Shape settings controls `--card-border-width` (1px default)
 Border Default controls the theme-aware colour, and Large Radius controls corners.
 Input/button border width is independent; local card overrides cannot make card
 perimeters heavier or change their colour/radius.
+
+
+## Register and till patterns — 23 October 2026
+
+FinOps registers use `SearchToolbar layout="register"`: search first, structured filters beside it, and optional `dateFilter` presets (All, Today, 7 days, 30 days, This month) plus accessible From/To pickers. This opt-in pattern supersedes the older filters-left/search-right arrangement for registers; other pages retain their default. Controls wrap into full-width rows on phones. Use `PaginationBar` for result ranges, page size and page navigation, including zero results. `DataTable` supports keyboard sorting, numeric `sortValue`, multi-line record cells and row action menus. Keep identifiers and secondary contact details beneath the record name, and right-align monetary values.
+
+POS is a full-viewport tool: its own till toolbar replaces the back-office header/sidebar. Back office and F1 enter the till; Back office exits it. Category rail becomes a horizontal strip on mobile; catalogue and sale are separate mobile panes. Maintain the configured Hudumika typography and semantic branding tokens. Printer preferences are per browser, tenant and account, with 58mm/80mm/A4, auto print, customer visibility and footer. Browser printing does not claim direct printer discovery or cash-drawer integration.

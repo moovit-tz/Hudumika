@@ -1,3 +1,6 @@
+import { sql } from 'kysely';
+import { PayrollSalaryError, salaryForPeriod } from '../services/payroll-salary.service.js';
+import { z } from 'zod';
 /**
  * Payroll: statutory settings, runs, payslips.
  *
@@ -88,6 +91,25 @@ export async function payrollRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
   requireUuidParams(fastify);
+
+  fastify.get('/policy', { preHandler: requireRole(...PAYROLL_ROLES) }, async req => withTenant(req.user.tenant_id, async trx => {
+    const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', req.user.tenant_id).executeTakeFirst();
+    const settings = typeof row?.settings === 'string' ? JSON.parse(row.settings) : row?.settings || {};
+    return { salary_basis: settings['payroll-policy']?.salary_basis || 'calendar_days', separate_approver_required: true, currency: 'TZS', supported_pay_frequencies: ['MONTHLY','ANNUAL'] };
+  }));
+  fastify.patch('/policy', { preHandler: requireRole('SUPER_ADMIN','ADMIN','TENANT_ADMIN') }, async (req, reply) => {
+    const body = z.object({ salary_basis: z.enum(['calendar_days','period_end']) }).strict().parse(req.body);
+    return withTenant(req.user.tenant_id, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`tenant-settings:${req.user.tenant_id}`}, 0))`.execute(trx);
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', req.user.tenant_id).forUpdate().executeTakeFirst();
+      const settings = typeof row?.settings === 'string' ? JSON.parse(row.settings) : row?.settings || {};
+      const policy = { ...body, separate_approver_required: true };
+      await trx.insertInto('tenant_settings').values({ tenant_id: req.user.tenant_id, settings: JSON.stringify({...settings, 'payroll-policy':policy}) })
+        .onConflict(oc => oc.column('tenant_id').doUpdateSet({settings: JSON.stringify({...settings,'payroll-policy':policy})})).execute();
+      await trx.insertInto('hr_activity_log').values({tenant_id:req.user.tenant_id,user_id:req.user.sub,module:'Payroll',action:`Changed payroll salary basis to ${body.salary_basis}`}).execute();
+      return reply.send(policy);
+    });
+  });
 
   // ── Statutory settings ──────────────────────────────────────────────────
 
@@ -283,7 +305,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const run = await trx.selectFrom('payroll_runs').select(['id', 'status'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
       if (run.status !== 'DRAFT') {
         return reply.status(409).send({ error: `Only a draft run can be deleted — this one is ${String(run.status).toLowerCase()}.` });
@@ -306,8 +328,9 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
 
     return withTenant(user.tenant_id, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`payroll-calculate:${user.tenant_id}`}, 0))`.execute(trx);
       const run = await trx.selectFrom('payroll_runs').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
       if (run.status === 'APPROVED' || run.status === 'PAID') {
         return reply.status(409).send({
@@ -330,13 +353,27 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const staff = await trx.selectFrom('users')
-        .select(['id', 'name', 'email', 'basic_salary', 'tax_residency'])
-        .where('tenant_id', '=', user.tenant_id).where('active', '=', true)
-        .orderBy('name').execute();
+      if (!schemes.length) throw new PayrollSalaryError('No contribution schemes are configured for this payroll period. Configure and verify payroll settings first.');
 
-      const payable = staff.filter(s => s.basic_salary !== null && num(s.basic_salary) > 0);
-      const skipped = staff.filter(s => s.basic_salary === null || num(s.basic_salary) <= 0)
+      const staff = await trx.selectFrom('users')
+        .select(['id', 'name', 'email', 'basic_salary', 'pay_currency', 'tax_residency'])
+        .where('tenant_id', '=', user.tenant_id).where('active', '=', true).where('role', '!=', 'CUSTOMER')
+        .orderBy('name').forUpdate().execute();
+
+      const histories = staff.length ? await trx.selectFrom('hr_compensations').selectAll()
+        .where('tenant_id', '=', user.tenant_id).where('user_id', 'in', staff.map(person => person.id)).execute() : [];
+      const settings = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const config = typeof settings?.settings === 'string' ? JSON.parse(settings.settings) : settings?.settings || {};
+      const basis = config['payroll-policy']?.salary_basis === 'period_end' ? 'period_end' : 'calendar_days';
+      const resolvedSalary = new Map<string, number>();
+      // Validate all histories before releasing overtime claims or replacing payslips.
+      for (const person of staff) {
+        if (person.tax_residency === 'NON_RESIDENT' && !bandsNonResident.length) throw new PayrollSalaryError('Non-resident tax bands are missing for this period.');
+        resolvedSalary.set(person.id, salaryForPeriod(histories.filter(record => record.user_id === person.id),
+          { salary: person.basic_salary, currency: person.pay_currency }, isoDate(run.period_start), onDate, basis));
+      }
+      const payable = staff.filter(s => (resolvedSalary.get(s.id) ?? 0) > 0);
+      const skipped = staff.filter(s => (resolvedSalary.get(s.id) ?? 0) <= 0)
         .map(s => ({ user_id: s.id, name: s.name, reason: 'No basic salary recorded' }));
 
       if (payable.length === 0) {
@@ -396,7 +433,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         const theirs = overtime.filter(o => o.user_id === person.id);
         const byKind = new Map<string, { hours: number; multiplier: number; amount: number }>();
         for (const o of theirs) {
-          const { amount } = overtimeAmount(num(person.basic_salary), num(o.hours),
+          const { amount } = overtimeAmount(resolvedSalary.get(person.id)!, num(o.hours),
             num(o.rate_multiplier), WORKING_DAYS_PER_MONTH, WORKING_HOURS_PER_DAY);
           const k = String(o.kind);
           const acc = byKind.get(k) ?? { hours: 0, multiplier: num(o.rate_multiplier), amount: 0 };
@@ -416,7 +453,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         }));
 
         const slip = computePayslip({
-          basicPay: num(person.basic_salary),
+          basicPay: resolvedSalary.get(person.id)!,
           earnings: [...mine.filter(c => c.direction === 'EARNING')
             .map(c => ({ code: c.code, name: c.name, amount: num(c.amount), taxable: c.taxable })),
             ...overtimeEarnings],
@@ -429,6 +466,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
           // levy thresholds are measured against.
           employeeCount: payable.length,
         });
+        if (![slip.basicPay,slip.grossPay,slip.netPay,slip.incomeTax,slip.totalDeductions].every(value => Number.isFinite(value) && value >= 0)) throw new PayrollSalaryError('Payroll produced an invalid or negative payment. Correct deductions and compensation before calculation.');
         results.push(slip);
 
         await trx.insertInto('payroll_payslips').values({
@@ -460,7 +498,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         total_employee_deductions: String(totals.totalEmployeeDeductions),
         total_employer_cost: String(totals.totalEmployerCost),
         total_remitted: String(totals.totalRemitted),
-        calculated_at: new Date(), updated_at: new Date(),
+        calculated_at: new Date(), calculation_policy: JSON.stringify({salary_basis:basis,currency:'TZS',bands:{resident:bandsResident,non_resident:bandsNonResident},schemes}), calculated_by: user.sub, approved_by: null, approved_at: null, updated_at: new Date(),
       } as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
 
@@ -478,7 +516,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const run = await trx.selectFrom('payroll_runs').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
 
       const payslips = await trx.selectFrom('payroll_payslips as p')
@@ -511,7 +549,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const run = await trx.selectFrom('payroll_runs').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
       if (run.status === 'APPROVED' || run.status === 'PAID') {
         return reply.status(409).send({ error: 'This run is already approved' });
@@ -520,6 +558,8 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       if (run.status !== 'CALCULATED' && run.status !== 'PENDING_APPROVAL') {
         return reply.status(409).send({ error: `A ${run.status.toLowerCase()} run has no figures to approve — calculate it first` });
       }
+      if (!run.calculated_by) return reply.status(409).send({error:'Recalculate this older run to record its calculator before approval.'});
+      if (run.created_by === user.sub || run.calculated_by === user.sub) return reply.status(403).send({ error: 'A different authorised approver must approve this run.', code: 'PAYROLL_SEPARATE_APPROVER_REQUIRED' });
       const count = await trx.selectFrom('payroll_payslips').select(trx.fn.countAll().as('n'))
         .where('run_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (Number(count?.n ?? 0) === 0) {
@@ -548,7 +588,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const run = await trx.selectFrom('payroll_runs').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
       if (run.status === 'PAID') return reply.status(409).send({ error: 'This run is already marked paid' });
       if (run.status !== 'APPROVED') {
@@ -584,7 +624,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         sourceId: run.id,
         createdBy: user.sub,
         lines,
-      });
+      }, trx);
 
       return trx.updateTable('payroll_runs').set({
         status: 'PAID', updated_at: new Date(),
@@ -602,7 +642,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const run = await trx.selectFrom('payroll_runs').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
       if (!['APPROVED', 'PAID'].includes(String(run.status))) {
         return reply.status(409).send({ error: 'Only an approved run’s payslips can be sent to employees.' });
@@ -661,7 +701,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const run = await trx.selectFrom('payroll_runs').select(['status', 'period_year', 'period_month'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
       if (!['APPROVED', 'PAID'].includes(String(run.status))) {
         return reply.status(409).send({ error: 'Only an approved run can produce a bank file.' });

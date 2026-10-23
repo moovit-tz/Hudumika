@@ -1,4 +1,4 @@
-import type { Transaction } from 'kysely';
+import type { Kysely } from 'kysely';
 import type { Database } from '../db/client.js';
 import { resolveDriveAccess, type DriveAccess } from './cloud-drive-access.js';
 
@@ -18,7 +18,7 @@ import { resolveDriveAccess, type DriveAccess } from './cloud-drive-access.js';
  *   ok:false status 403  — they can see it but not do THIS (e.g. Viewer trying to upload a version)
  */
 export type FileNeed = 'read' | 'comment' | 'write' | 'manage';
-type Trx = Transaction<Database>;
+type Trx = Kysely<Database>;
 
 export type FileGate =
   | { ok: true; file: any; access: DriveAccess | null; via: 'drive' | 'share'; can: { read: boolean; comment: boolean; write: boolean; manage: boolean } }
@@ -37,6 +37,8 @@ export async function gateStaffFile(
   if (access) {
     can = { read: access.canRead, comment: access.canComment, write: access.canWrite, manage: access.canManage };
   } else {
+    const drive=await trx.selectFrom('cloud_drives').select('managed_purpose').where('id','=',file.drive_id).where('tenant_id','=',user.tenant_id).executeTakeFirst();
+    if (drive?.managed_purpose === 'nexushr') return {ok:false,status:404};
     const share = await trx.selectFrom('cloud_file_shares').select('role')
       .where('tenant_id', '=', user.tenant_id).where('file_id', '=', fileId)
       .where('principal_type', '=', 'user').where('principal_id', '=', user.sub).executeTakeFirst();
@@ -55,6 +57,6 @@ export async function gateStaffFile(
  * A user who only reached the file through a share can never re-share it.
  */
 export function canShareFile(gate: Extract<FileGate, { ok: true }>, userId: string): boolean {
-  if (gate.via === 'share') return false;
+  if (gate.via === 'share' || gate.access?.hrConfidential) return false;
   return gate.can.manage || (gate.can.write && gate.file.owner_id === userId);
 }

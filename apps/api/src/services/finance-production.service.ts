@@ -3,6 +3,7 @@ import { withTenant, type Database } from '../db/client.js';
 import { getIndustryWork, IndustryWorkError } from './finance-industry-work.service.js';
 import { InventoryService } from './inventory.service.js';
 import { GLService } from './gl.service.js';
+import { initStagesFromRecipe, type StageTemplate } from './manufacturing-quality.service.js';
 import type { IndustryProductionRecipeInput } from '@hudumika/types';
 
 export type ProductionInput = IndustryProductionRecipeInput;
@@ -22,23 +23,28 @@ async function validateReferences(trx: Transaction<Database>, tenantId: string, 
     await InventoryService.toBaseQty(trx, tenantId, item.id, item.base_uom, line.quantity, line.unit);
   }
 }
-export async function createProduction(tenantId: string, actorId: string, workId: string, input: ProductionInput) {
+export async function createProduction(tenantId: string, actorId: string, workId: string, input: ProductionInput, recipeId?: string) {
   return withTenant(tenantId, async trx => {
     const work = await getIndustryWork(trx, tenantId, workId, true);
-    if (!['manufacturing', 'printing'].includes(work.industry) || !['draft', 'active'].includes(work.status)) throw new IndustryWorkError('Production requires an open manufacturing or printing job.');
+    if (!['manufacturing', 'food_beverage', 'printing', 'pharmaceutical'].includes(work.industry) || !['draft', 'active'].includes(work.status)) throw new IndustryWorkError('Production requires an open manufacturing, food/bev, pharma or printing job.');
     await validateReferences(trx, tenantId, input);
     const { materials, ...order } = input;
     const production = await trx.insertInto('finance_production_orders').values({ ...order, tenant_id: tenantId, work_id: workId, created_by: actorId, actual_quantity: null, released_at: null, completed_at: null }).returningAll().executeTakeFirstOrThrow();
     await trx.insertInto('finance_production_materials').values(materials.map(line => ({ ...line, tenant_id: tenantId, production_id: production.id }))).execute();
+    if (recipeId) {
+      const recipe = await trx.selectFrom('finance_production_recipes').select('stages').where('tenant_id', '=', tenantId).where('id', '=', recipeId).executeTakeFirst();
+      const stages = Array.isArray(recipe?.stages) ? recipe.stages as StageTemplate[] : [];
+      if (stages.length) await initStagesFromRecipe(trx, tenantId, production.id, stages);
+    }
     return production;
   });
 }
-export async function saveProductionRecipe(tenantId: string, actorId: string, name: string, input: ProductionInput) {
+export async function saveProductionRecipe(tenantId: string, actorId: string, name: string, input: ProductionInput, stages: StageTemplate[] = []) {
   return withTenant(tenantId, async trx => {
     await validateReferences(trx, tenantId, input);
     await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`recipe:${tenantId}:${name}`}, 0))`.execute(trx);
     const latest = await trx.selectFrom('finance_production_recipes').select('version').where('tenant_id', '=', tenantId).where('name', '=', name).orderBy('version', 'desc').executeTakeFirst();
-    return trx.insertInto('finance_production_recipes').values({ tenant_id: tenantId, name, version: (latest?.version ?? 0) + 1, recipe: JSON.stringify(input), created_by: actorId }).returningAll().executeTakeFirstOrThrow();
+    return trx.insertInto('finance_production_recipes').values({ tenant_id: tenantId, name, version: (latest?.version ?? 0) + 1, recipe: JSON.stringify(input), stages: JSON.stringify(stages), created_by: actorId }).returningAll().executeTakeFirstOrThrow();
   });
 }
 export async function progressProduction(tenantId: string, actorId: string, workId: string, productionId: string, operation: 'release' | 'complete', actualQuantity?: number) {
@@ -71,6 +77,16 @@ export async function progressProduction(tenantId: string, actorId: string, work
     const output = await trx.selectFrom('inventory_items').select('base_uom').where('tenant_id', '=', tenantId).where('id', '=', production.output_item_id).executeTakeFirstOrThrow();
     await InventoryService.recordMovement(trx, tenantId, { actorId, movementType: 'receipt', itemId: production.output_item_id, toLocationId: production.target_location_id,
       enteredQty: actualQuantity, enteredUom: output.base_uom, batchNo: production.output_batch, unitCost: (Number(production.material_cost) + Number(production.conversion_cost)) / actualQuantity, reference: work.reference, productionId, workId });
+    for (const line of materials) {
+      if (line.batch || production.output_batch) {
+        await trx.insertInto('finance_production_traceability').values({
+          tenant_id: tenantId, production_id: productionId,
+          input_item_id: line.item_id, input_batch_no: line.batch || '',
+          input_quantity: Number(line.quantity),
+          output_item_id: production.output_item_id, output_batch_no: production.output_batch || '',
+        }).execute();
+      }
+    }
     return trx.updateTable('finance_production_orders').set({ status: 'completed', actual_quantity: actualQuantity, completed_at: new Date() }).where('tenant_id', '=', tenantId).where('id', '=', productionId).returningAll().executeTakeFirstOrThrow();
   });
 }

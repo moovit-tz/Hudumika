@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -425,7 +426,8 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
         .innerJoin('projects', 'projects.id', 'cloud_files.entity_id')
         .where('cloud_files.tenant_id', '=', user.tenant_id)
         .where('cloud_files.entity_type', '=', 'project')
-        .where('cloud_files.is_trash', '=', false);
+        .where('cloud_files.is_trash', '=', false)
+        .where(sql<boolean>`cloud_files.drive_id not in (select id from cloud_drives where tenant_id=${user.tenant_id} and managed_purpose='nexushr')`);
       if (acl) q = q.where('cloud_files.entity_id', 'in', acl);
       return await q
         .select([

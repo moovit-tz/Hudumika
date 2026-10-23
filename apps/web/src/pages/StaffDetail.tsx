@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -283,17 +283,19 @@ export const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
+  const canManageDocuments = ['SUPER_ADMIN','ADMIN','TENANT_ADMIN'].includes(authUser?.role ?? '') || !!authUser?.org_permissions?.includes('hr.documents.manage');
   const canSetPay = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(authUser?.role ?? '');
   const isMobile = useIsMobile();
 
   const [staff, setStaff] = useState<StaffData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('Profile');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') === 'Documents' ? 'Documents' : 'Profile');
 
   // Modals state inspired by DreamScore Tailwind Employee Details
-  const [documentsModalOpen, setDocumentsModalOpen] = useState(false);
-  const [assetsModalOpen, setAssetsModalOpen] = useState(false);
-  const [salaryModalOpen, setSalaryModalOpen] = useState(false);
+
+
+
 
   // Edit Modal State
   const [isEditing, setIsEditing] = useState(false);
@@ -387,7 +389,7 @@ export const StaffDetail: React.FC = () => {
           dept: data.department_name || data.profile?.department || '',
           designation: data.designation_title || data.profile?.job_title || '',
           reports_to: data.profile?.reports_to || '',
-          employment_type: data.profile?.employment_type || 'Full-time',
+          employment_type: data.profile?.employment_type || 'Not recorded',
           member_since: formatDate(data.created_at)
         });
         return;
@@ -584,9 +586,10 @@ export const StaffDetail: React.FC = () => {
   const fromSelect = (v: string) => (v === NONE ? null : v);
 
   // Computed metrics for DreamScore KPI strip
-  const tenureStr = useMemo(() => calculateTenure(staff?.hireDate || staff?.created_at), [staff?.hireDate, staff?.created_at]);
+  const tenureStr = useMemo(() => staff?.hire_date && !staff.hire_date_is_estimated ? calculateTenure(staff.hire_date) : 'Not recorded', [staff?.hire_date, staff?.hire_date_is_estimated]);
   const formattedSalary = useMemo(() => {
-    if (!staff?.basic_salary) return 'Confidential';
+    if (staff?.basic_salary === undefined) return 'Restricted';
+    if (staff.basic_salary === null) return 'Not recorded';
     if (!canSetPay && staff?.record_access === 'directory') return 'Restricted';
     return `${staff.pay_currency || 'TZS'} ${Number(staff.basic_salary).toLocaleString()}`;
   }, [staff?.basic_salary, staff?.pay_currency, staff?.record_access, canSetPay]);
@@ -666,11 +669,11 @@ export const StaffDetail: React.FC = () => {
               </div>
 
               <div className="staff-hero-designation">
-                <strong style={{ color: 'var(--ink)' }}>{staff.designation || 'Specialist'}</strong>
+                <strong style={{ color: 'var(--ink)' }}>{staff.designation || 'Not recorded'}</strong>
                 <span>&middot;</span>
-                <span>{staff.dept || 'Operations'}</span>
+                <span>{staff.dept || 'Not recorded'}</span>
                 <span>&middot;</span>
-                <span style={{ color: 'var(--ink3)' }}>{staff.employment_type || 'Full-time'}</span>
+                <span style={{ color: 'var(--ink3)' }}>{staff.employment_type || 'Not recorded'}</span>
               </div>
 
               <div className="staff-hero-meta-bar">
@@ -691,7 +694,7 @@ export const StaffDetail: React.FC = () => {
                 ) : null}
                 <span className="staff-hero-meta-item">
                   <Icon name="mapPin" size={13} color="var(--ink3)" />
-                  <span>{staff.profile?.city ? `${staff.profile.city}, ${staff.profile?.country || 'Tanzania'}` : 'Dar es Salaam HQ'}</span>
+                  <span>{staff.profile?.city ? `${staff.profile.city}, ${staff.profile?.country || 'Country not recorded'}` : 'Not recorded'}</span>
                 </span>
                 <span className="staff-hero-meta-item">
                   <Icon name="mail" size={13} color="var(--ink3)" />
@@ -707,7 +710,7 @@ export const StaffDetail: React.FC = () => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setDocumentsModalOpen(true)}
+              onClick={() => setTab('Documents')}
             >
               <Icon name="fileText" size={14} />
               <span>Documents</span>
@@ -716,7 +719,8 @@ export const StaffDetail: React.FC = () => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setAssetsModalOpen(true)}
+              onClick={() => navigate('/nexushr/assets')}
+              disabled={!['SUPER_ADMIN','ADMIN','TENANT_ADMIN','MANAGER'].includes(authUser?.role ?? '')}
             >
               <Icon name="monitor" size={14} />
               <span>Assets</span>
@@ -725,7 +729,7 @@ export const StaffDetail: React.FC = () => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setSalaryModalOpen(true)}
+              onClick={() => setTab('Compensation')}
             >
               <Icon name="wallet" size={14} />
               <span>Salary</span>
@@ -750,17 +754,17 @@ export const StaffDetail: React.FC = () => {
           </div>
 
           <div className="staff-metric-box staff-metric-box--green">
-            <span className="staff-metric-num staff-metric-num--green">4.7 / 5.0</span>
+            <span className="staff-metric-num staff-metric-num--green">See reviews</span>
             <span className="staff-metric-sublabel">Performance</span>
           </div>
 
           <div className="staff-metric-box staff-metric-box--blue">
-            <span className="staff-metric-num staff-metric-num--blue">14 Days</span>
+            <span className="staff-metric-num staff-metric-num--blue">See records</span>
             <span className="staff-metric-sublabel">Leave Balance</span>
           </div>
 
           <div className="staff-metric-box staff-metric-box--gold">
-            <span className="staff-metric-num staff-metric-num--gold">98.2%</span>
+            <span className="staff-metric-num staff-metric-num--gold">See records</span>
             <span className="staff-metric-sublabel">Attendance</span>
           </div>
 
@@ -810,26 +814,26 @@ export const StaffDetail: React.FC = () => {
                     <div className="staff-field-matrix">
                       <div className="staff-field-unit">
                         <span className="staff-field-label">Department</span>
-                        <span className="staff-field-value">{staff.dept || 'Engineering'}</span>
+                        <span className="staff-field-value">{staff.dept || 'Not recorded'}</span>
                       </div>
                       <div className="staff-field-unit">
                         <span className="staff-field-label">Direct Manager</span>
                         <span className="staff-field-value">
-                          {staff.org_chart_manager?.name || staff.reports_to || 'Alex Turner'}
+                          {staff.org_chart_manager?.name || staff.reports_to || 'Not recorded'}
                         </span>
                       </div>
                       <div className="staff-field-unit">
                         <span className="staff-field-label">Date of Joining</span>
-                        <span className="staff-field-value">{formatDate(staff.hireDate || staff.created_at)}</span>
+                        <span className="staff-field-value">{staff.hire_date && !staff.hire_date_is_estimated ? formatDate(staff.hire_date) : 'Not recorded'}</span>
                       </div>
                       <div className="staff-field-unit">
                         <span className="staff-field-label">Employment Type</span>
-                        <span className="staff-field-value">{staff.employment_type || 'Full-time Permanent'}</span>
+                        <span className="staff-field-value">{staff.employment_type || 'Not recorded'}</span>
                       </div>
                       <div className="staff-field-unit">
                         <span className="staff-field-label">Location / Hub</span>
                         <span className="staff-field-value">
-                          {staff.profile?.city ? `${staff.profile.city}, ${staff.profile.country || 'Tanzania'}` : 'Dar es Salaam HQ'}
+                          {staff.profile?.city ? `${staff.profile.city}, ${staff.profile.country || 'Country not recorded'}` : 'Not recorded'}
                         </span>
                       </div>
                       <div className="staff-field-unit">
@@ -843,153 +847,14 @@ export const StaffDetail: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Reporting Line / Org Hierarchy Visual Trail */}
-              <div className="staff-card">
-                <div className="staff-card-header">
-                  <h2 className="staff-card-title">
-                    <FeaturedIcon variant="info" size="sm">
-                      <Icon name="users" size={14} />
-                    </FeaturedIcon>
-                    <span>Reporting Line &amp; Team Structure</span>
-                  </h2>
-                  <Link to="/nexushr/org-chart" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
-                    View Full Org Chart &rarr;
-                  </Link>
+              <SectionCard title="Reporting line and development">
+                <div style={{display:'flex',flexDirection:'column',gap:12,padding:16}}>
+                  <span>Manager: {staff.org_chart_manager?.name || staff.reports_to || 'Not recorded'}</span>
+                  <Link to="/nexushr/org-chart">View organisation chart</Link>
+                  <Button variant="outline" onClick={()=>setTab('Performance')}>View recorded performance reviews</Button>
+                  <Button variant="outline" onClick={()=>setTab('Learning & Dev')}>View learning records</Button>
                 </div>
-
-                <div className="staff-card-body">
-                  <div className="staff-org-trail">
-                    {/* Manager Node */}
-                    <div className="staff-org-node">
-                      <PersonAvatar name={staff.org_chart_manager?.name || staff.reports_to || 'Alex Turner'} size={32} />
-                      <div className="staff-org-node-info">
-                        <span className="staff-org-name">{staff.org_chart_manager?.name || staff.reports_to || 'Alex Turner'}</span>
-                        <span className="staff-org-role">Direct Manager</span>
-                      </div>
-                    </div>
-
-                    <Icon name="chevronRight" size={14} className="staff-org-arrow" />
-
-                    {/* This Employee (Highlighted Active Node) */}
-                    <div className="staff-org-node is-active">
-                      <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={32} />
-                      <div className="staff-org-node-info">
-                        <span className="staff-org-name" style={{ color: 'var(--teal)' }}>{staff.name}</span>
-                        <span className="staff-org-role">Staff Profile</span>
-                      </div>
-                    </div>
-
-                    <Icon name="chevronRight" size={14} className="staff-org-arrow" />
-
-                    {/* Peers / Direct Reports Stack */}
-                    <div className="staff-org-node">
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%', background: 'var(--teal-l)',
-                        color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 800
-                      }}>
-                        +4
-                      </div>
-                      <div className="staff-org-node-info">
-                        <span className="staff-org-name">Operations Peers</span>
-                        <span className="staff-org-role">Cross-Functional Team</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Performance Reviews & Key Objectives */}
-              <div className="staff-card">
-                <div className="staff-card-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <h2 className="staff-card-title">
-                      <FeaturedIcon variant="success" size="sm">
-                        <Icon name="star" size={14} />
-                      </FeaturedIcon>
-                      <span>Performance Reviews &amp; Key Objectives</span>
-                    </h2>
-                  </div>
-                  <Badge variant="success">4.7 / 5.0 Avg. Rating</Badge>
-                </div>
-
-                <div className="staff-card-body">
-                  <div className="staff-review-card">
-                    <div className="staff-review-top">
-                      <span className="staff-review-title">H1 2026 Appraisal &middot; Alex Turner</span>
-                      <span className="staff-review-score"><Icon name="star" size={12} /> 4.8 / 5</span>
-                    </div>
-                    <div className="staff-review-body">
-                      "Consistently delivers exceptional technical performance and operational excellence. Drives team SLA improvements and demonstrates outstanding collaboration."
-                    </div>
-                  </div>
-
-                  <div className="staff-review-card">
-                    <div className="staff-review-top">
-                      <span className="staff-review-title">H2 2025 Review &middot; Management Evaluation</span>
-                      <span className="staff-review-score"><Icon name="star" size={12} /> 4.6 / 5</span>
-                    </div>
-                    <div className="staff-review-body">
-                      "Solid contributor across high-impact milestones. Proactive in identifying process bottlenecks and standardizing best practices."
-                    </div>
-                  </div>
-
-                  <div className="staff-goals-list" style={{ marginTop: 4 }}>
-                    <div className="staff-goal-item">
-                      <div className="staff-goal-header">
-                        <span className="staff-goal-title">Operations Hub Dispatch SLA (&gt; 98%)</span>
-                        <span className="staff-goal-percent" style={{ color: 'var(--green)' }}>99.1%</span>
-                      </div>
-                      <div className="staff-progress-track">
-                        <div className="staff-progress-bar" style={{ width: '99.1%', background: 'var(--green)' }} />
-                      </div>
-                    </div>
-
-                    <div className="staff-goal-item">
-                      <div className="staff-goal-header">
-                        <span className="staff-goal-title">Dar Port Hub Automation Phase 2</span>
-                        <span className="staff-goal-percent" style={{ color: 'var(--teal)' }}>65.0%</span>
-                      </div>
-                      <div className="staff-progress-track">
-                        <div className="staff-progress-bar" style={{ width: '65%', background: 'var(--teal)' }} />
-                      </div>
-                    </div>
-
-                    <div className="staff-goal-item">
-                      <div className="staff-goal-header">
-                        <span className="staff-goal-title">SOP Compliance &amp; Safety Audit</span>
-                        <span className="staff-goal-percent" style={{ color: 'var(--green)' }}>100.0%</span>
-                      </div>
-                      <div className="staff-progress-track">
-                        <div className="staff-progress-bar" style={{ width: '100%', background: 'var(--green)' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Skills & Competencies */}
-              <div className="staff-card">
-                <div className="staff-card-header">
-                  <h2 className="staff-card-title">
-                    <FeaturedIcon variant="brand" size="sm">
-                      <Icon name="award" size={14} />
-                    </FeaturedIcon>
-                    <span>Skills &amp; Professional Competencies</span>
-                  </h2>
-                  <Button variant="ghost" size="xs" onClick={startEdit}>+ Add Skill</Button>
-                </div>
-                <div className="staff-card-body">
-                  <div className="staff-skills-wrap">
-                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Hub Logistics &middot; Expert</span>
-                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Customs Clearance &middot; Advanced</span>
-                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Inventory Auditing &middot; Expert</span>
-                    <span className="staff-skill-pill"><Icon name="check" size={12} /> ClearOS Workflow &middot; Certified</span>
-                    <span className="staff-skill-pill"><Icon name="check" size={12} /> Port Freight Operations &middot; Proficient</span>
-                    <span className="staff-skill-pill"><Icon name="check" size={12} /> NSSF / TRA Statutory Compliance &middot; Verified</span>
-                  </div>
-                </div>
-              </div>
+              </SectionCard>
 
               {/* 5. Statutory Identity & Compliance */}
               <div className="staff-card">
@@ -1014,27 +879,27 @@ export const StaffDetail: React.FC = () => {
                       <div className="staff-field-matrix">
                         <div className="staff-field-unit">
                           <span className="staff-field-label">NIDA National ID</span>
-                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.national_id || '19920814-11103-00002-18'}</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.national_id || 'Not recorded'}</span>
                         </div>
                         <div className="staff-field-unit">
                           <span className="staff-field-label">Tax ID (TIN)</span>
-                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.tax_id || '142-890-411'}</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.tax_id || 'Not recorded'}</span>
                         </div>
                         <div className="staff-field-unit">
                           <span className="staff-field-label">Social Security (NSSF/PSSSF)</span>
-                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.social_security_no || 'SF-8840192'}</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.social_security_no || 'Not recorded'}</span>
                         </div>
                         <div className="staff-field-unit">
                           <span className="staff-field-label">Pension Fund</span>
-                          <span className="staff-field-value">{staff.pension_fund || 'NSSF'}</span>
+                          <span className="staff-field-value">{staff.pension_fund || 'Not recorded'}</span>
                         </div>
                         <div className="staff-field-unit">
                           <span className="staff-field-label">NHIF Health Insurance</span>
-                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.health_insurance_no || 'NHIF-0042910'}</span>
+                          <span className="staff-field-value" style={{ fontFamily: 'monospace' }}>{staff.health_insurance_no || 'Not recorded'}</span>
                         </div>
                         <div className="staff-field-unit">
                           <span className="staff-field-label">Tax Residency</span>
-                          <span className="staff-field-value">{staff.tax_residency === 'NON_RESIDENT' ? 'Non-Resident (Flat 15%)' : 'Resident (Standard PAYE)'}</span>
+                          <span className="staff-field-value">{staff.tax_residency === 'NON_RESIDENT' ? 'Non-Resident' : 'Resident (Standard PAYE)'}</span>
                         </div>
                       </div>
                     </div>
@@ -1066,8 +931,8 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label"><Icon name="phone" size={14} /> Phone</span>
-                    <a href={`tel:${staff.phone || '+255755123456'}`} className="staff-info-value" style={{ color: 'var(--ink)', textDecoration: 'none' }}>
-                      {staff.phone || '+255 755 123 456'}
+                    <a href={staff.phone ? `tel:${staff.phone}` : undefined} className="staff-info-value" style={{ color: 'var(--ink)', textDecoration: 'none' }}>
+                      {staff.phone || 'Not recorded'}
                     </a>
                   </div>
                   <div className="staff-info-row">
@@ -1077,81 +942,12 @@ export const StaffDetail: React.FC = () => {
                 </div>
               </div>
 
-              {/* 2. Monthly Attendance Snapshot */}
-              <div className="staff-card">
-                <div className="staff-card-header">
-                  <h2 className="staff-card-title">
-                    <FeaturedIcon variant="success" size="sm">
-                      <Icon name="calendar" size={14} />
-                    </FeaturedIcon>
-                    <span>Attendance Snapshot</span>
-                  </h2>
-                  <Button variant="ghost" size="xs" onClick={() => setTab('Attendance')}>View Log</Button>
+              <SectionCard title="Attendance and leave">
+                <div style={{display:'flex',gap:12,padding:16,flexWrap:'wrap'}}>
+                  <Button variant="outline" onClick={()=>setTab('Attendance')}>View attendance records</Button>
+                  <Button variant="outline" onClick={()=>setTab('Leaves')}>View leave records</Button>
                 </div>
-                <div className="staff-card-body">
-                  <div className="staff-info-row">
-                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} /> Present Days</span>
-                    <span className="staff-info-value" style={{ color: 'var(--green)' }}>198 Days</span>
-                  </div>
-                  <div className="staff-info-row">
-                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }} /> Late Arrivals</span>
-                    <span className="staff-info-value" style={{ color: 'var(--gold)' }}>4 Days</span>
-                  </div>
-                  <div className="staff-info-row">
-                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} /> Remote Days</span>
-                    <span className="staff-info-value" style={{ color: 'var(--blue)' }}>2 Days</span>
-                  </div>
-                  <div className="staff-info-row">
-                    <span className="staff-info-label"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} /> Absences</span>
-                    <span className="staff-info-value" style={{ color: 'var(--ink3)' }}>0 Days</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Leave Balances with Visual Meters */}
-              <div className="staff-card">
-                <div className="staff-card-header">
-                  <h2 className="staff-card-title">
-                    <FeaturedIcon variant="info" size="sm">
-                      <Icon name="clock" size={14} />
-                    </FeaturedIcon>
-                    <span>Leave Balances</span>
-                  </h2>
-                  <Button variant="ghost" size="xs" onClick={() => setTab('Leaves')}>Request</Button>
-                </div>
-
-                <div className="staff-card-body">
-                  <div className="staff-goal-item">
-                    <div className="staff-goal-header">
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Annual Leave (PTO)</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--teal)' }}>14 / 28 Days</span>
-                    </div>
-                    <div className="staff-progress-track">
-                      <div className="staff-progress-bar" style={{ width: '50%', background: 'var(--teal)' }} />
-                    </div>
-                  </div>
-
-                  <div className="staff-goal-item">
-                    <div className="staff-goal-header">
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Sick Leave</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--gold)' }}>12 / 14 Days</span>
-                    </div>
-                    <div className="staff-progress-track">
-                      <div className="staff-progress-bar" style={{ width: '85.7%', background: 'var(--gold)' }} />
-                    </div>
-                  </div>
-
-                  <div className="staff-goal-item">
-                    <div className="staff-goal-header">
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>Casual / Compassionate</span>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)' }}>4 / 6 Days</span>
-                    </div>
-                    <div className="staff-progress-track">
-                      <div className="staff-progress-bar" style={{ width: '66.6%', background: 'var(--green)' }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </SectionCard>
 
               {/* 4. Compensation Summary Card */}
               <div className="staff-card">
@@ -1162,7 +958,7 @@ export const StaffDetail: React.FC = () => {
                     </FeaturedIcon>
                     <span>Compensation &amp; Remittance</span>
                   </h2>
-                  <Button variant="ghost" size="xs" onClick={() => setSalaryModalOpen(true)}>Full Ledger</Button>
+                  <Button variant="ghost" size="xs" onClick={() => setTab('Compensation')}>Full Ledger</Button>
                 </div>
                 <div className="staff-card-body">
                   <div className="staff-info-row">
@@ -1171,23 +967,23 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label">Payment Method</span>
-                    <span className="staff-info-value">{PAY_METHOD_LABEL[staff.pay_method ?? 'BANK'] || 'Bank Transfer'}</span>
+                    <span className="staff-info-value">{staff.pay_method ? PAY_METHOD_LABEL[staff.pay_method] : 'Not recorded'}</span>
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label">Disbursement Bank</span>
-                    <span className="staff-info-value">{staff.bank_name || 'CRDB Bank'} ({staff.bank_branch || 'Oysterbay'})</span>
+                    <span className="staff-info-value">{staff.bank_name || 'Not recorded'} ({staff.bank_branch || 'Not recorded'})</span>
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label">Disbursement Account</span>
                     <span className="staff-info-value" style={{ fontFamily: 'monospace' }}>
-                      {staff.bank_account_no ? `•••• ${staff.bank_account_no.slice(-4)}` : '•••• 1200'}
+                      {staff.bank_account_no ? `•••• ${staff.bank_account_no.slice(-4)}` : 'Not recorded'}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* 5. Emergency Contact & Staff Contracts Components */}
-              {id && <StaffContracts userId={id} canEdit={canSetPay} />}
+              {id && <StaffContracts userId={id} canEdit={canManageDocuments} />}
               {id && <StaffEmergencyContacts userId={id} canEdit={canSetPay} />}
 
               {/* 6. Account & Access Security */}
@@ -1207,11 +1003,11 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label">Last Sign In</span>
-                    <span className="staff-info-value">{staff.last_login_at ? formatDate(staff.last_login_at) : 'Active Today'}</span>
+                    <span className="staff-info-value">{staff.last_login_at ? formatDate(staff.last_login_at) : 'Not recorded'}</span>
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label">Member Since</span>
-                    <span className="staff-info-value">{staff.member_since || 'Feb 2023'}</span>
+                    <span className="staff-info-value">{staff.member_since || 'Not recorded'}</span>
                   </div>
                 </div>
               </div>
@@ -1405,7 +1201,7 @@ export const StaffDetail: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={openEmployeeDrive}
-                disabled={resolvingFolder}
+                disabled={resolvingFolder || !canManageDocuments}
               >
                 {resolvingFolder ? 'Opening…' : 'Open Cloud Drive'}
               </Button>
@@ -1414,13 +1210,13 @@ export const StaffDetail: React.FC = () => {
                 variant="default"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
+                disabled={uploading || !canManageDocuments}
               >
                 {uploading ? 'Uploading…' : '+ Upload Document'}
               </Button>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: -6, marginBottom: 12 }}>
-              Uploaded documents are automatically indexed and mirrored into this employee's dedicated Cloud Drive folder.
+              Documents are indexed in the restricted Personnel Records drive. Cloud access and uploads require HR document permission; employees can download their own files here.
             </div>
             <TabTable
               loading={tabLoading}
@@ -1657,217 +1453,6 @@ export const StaffDetail: React.FC = () => {
         style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) uploadDocument(f); }}
       />
-
-      {/* ── MODAL 1: DOCUMENTS QUICKVIEW DIALOG (DreamScore Inspiration) ── */}
-      {documentsModalOpen && (
-        <Dialog open onOpenChange={o => { if (!o) setDocumentsModalOpen(false); }}>
-          <DialogContent hideClose steady className="w-full max-w-160 max-h-[85vh] flex flex-col p-0 gap-0">
-            <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Employee Documents Vault</DialogTitle>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; Indexed compliance documents</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Button variant="default" size="xs" onClick={() => fileInputRef.current?.click()}>
-                  <Icon name="upload" size={12} /> Upload
-                </Button>
-                <button type="button" onClick={() => setDocumentsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
-                  <Icon name="close" size={18} />
-                </button>
-              </div>
-            </DialogHeader>
-
-            <DialogBody style={{ padding: 20 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { name: 'Employment_Contract_Signed.pdf', cat: 'Contract', date: formatDate(staff.hireDate || staff.created_at), size: '420 KB', tone: 'brand' as const },
-                  { name: 'NIDA_National_ID_Scan.pdf', cat: 'Identity', date: formatDate(staff.created_at), size: '1.2 MB', tone: 'success' as const },
-                  { name: 'Academic_Degree_Certificate.pdf', cat: 'Education', date: formatDate(staff.created_at), size: '2.4 MB', tone: 'info' as const },
-                  { name: 'Signed_Confidentiality_NDA.pdf', cat: 'Legal', date: formatDate(staff.created_at), size: '180 KB', tone: 'brand' as const },
-                  { name: 'Tax_Exemption_TIN_Letter.pdf', cat: 'Tax / TRA', date: formatDate(staff.created_at), size: '640 KB', tone: 'warning' as const },
-                ].map((doc, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name="fileText" size={16} />
-                      </span>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{doc.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{doc.date} &middot; {doc.size}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Badge variant={doc.tone}>{doc.cat}</Badge>
-                      <Button variant="outline" size="xs" onClick={() => showAlert('Opening document preview...', { variant: 'info' })}>
-                        <Icon name="download" size={12} /> Download
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </DialogBody>
-
-            <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', background: 'var(--bg)', justifyContent: 'space-between' }}>
-              <Button variant="outline" size="sm" onClick={openEmployeeDrive}>
-                <Icon name="folder" size={14} /> Open in Cloud Drive
-              </Button>
-              <Button variant="default" size="sm" onClick={() => setDocumentsModalOpen(false)}>
-                Done
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* ── MODAL 2: ASSIGNED ASSETS & EQUIPMENT (DreamScore Inspiration) ── */}
-      {assetsModalOpen && (
-        <Dialog open onOpenChange={o => { if (!o) setAssetsModalOpen(false); }}>
-          <DialogContent hideClose steady className="w-full max-w-160 max-h-[85vh] flex flex-col p-0 gap-0">
-            <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Assigned Assets &amp; Equipment</DialogTitle>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; 3 hardware &amp; security assets</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Button variant="default" size="xs" onClick={() => showAlert('Asset assignment workflow opened', { variant: 'info' })}>
-                  <Icon name="plus" size={12} /> Assign Asset
-                </Button>
-                <button type="button" onClick={() => setAssetsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
-                  <Icon name="close" size={18} />
-                </button>
-              </div>
-            </DialogHeader>
-
-            <DialogBody style={{ padding: 20 }}>
-              <div className="staff-asset-grid">
-                <div className="staff-asset-card">
-                  <div className="staff-asset-card-top">
-                    <span className="staff-asset-icon"><Icon name="monitor" size={18} /></span>
-                    <Badge variant="success">Assigned</Badge>
-                  </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>MacBook Pro 16" M3 Max</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Serial: FVFXC2Q8HV2Q &middot; Assigned Feb 2023</div>
-                </div>
-
-                <div className="staff-asset-card">
-                  <div className="staff-asset-card-top">
-                    <span className="staff-asset-icon" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}><Icon name="phone" size={18} /></span>
-                    <Badge variant="success">Assigned</Badge>
-                  </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>iPhone 15 Pro Enterprise</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>IMEI: 3548901294819 &middot; MDM Enrolled</div>
-                </div>
-
-                <div className="staff-asset-card">
-                  <div className="staff-asset-card-top">
-                    <span className="staff-asset-icon" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}><Icon name="shield" size={18} /></span>
-                    <Badge variant="info">Access Card</Badge>
-                  </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>Smart Access Keycard</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>ID: BADGE-8841 &middot; Dar Port Hub Clearance</div>
-                </div>
-              </div>
-            </DialogBody>
-
-            <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
-              <Button variant="default" size="sm" onClick={() => setAssetsModalOpen(false)} style={{ width: '100%' }}>
-                Close Asset Register
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* ── MODAL 3: SALARY & COMPENSATION BREAKDOWN (DreamScore Inspiration) ── */}
-      {salaryModalOpen && (
-        <Dialog open onOpenChange={o => { if (!o) setSalaryModalOpen(false); }}>
-          <DialogContent hideClose steady className="w-full max-w-170 max-h-[85vh] flex flex-col p-0 gap-0">
-            <DialogHeader style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <DialogTitle style={{ fontSize: 17, fontWeight: 800 }}>Salary &amp; Compensation Structure</DialogTitle>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{staff.name} &middot; Confidential Remuneration Ledger</div>
-              </div>
-              <button type="button" onClick={() => setSalaryModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
-                <Icon name="close" size={18} />
-              </button>
-            </DialogHeader>
-
-            <DialogBody style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* Metric Matrix */}
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Monthly Compensation</span>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, marginTop: 8 }}>
-                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r-md)' }}>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 600 }}>Base Salary</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>{formattedSalary}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r-md)' }}>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 600 }}>Pay Frequency</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--teal)', marginTop: 3 }}>Monthly</div>
-                  </div>
-                  <div style={{ background: 'var(--bg)', padding: '12px 14px', borderRadius: 'var(--r-md)' }}>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 600 }}>Annual Bonus</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', marginTop: 3 }}>10% Target</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Salary History Table */}
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Remuneration Revisions History</span>
-                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginTop: 8 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', fontSize: 10.5, color: 'var(--ink3)' }}>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Effective Date</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Base Salary</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Adjustment</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>Feb 2025</td>
-                        <td style={{ padding: '8px 12px' }}>{formattedSalary}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--green)', fontWeight: 700 }}>+8.4% Merit</td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: '8px 12px', fontWeight: 600 }}>Feb 2024</td>
-                        <td style={{ padding: '8px 12px' }}>TZS 2,500,000</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink3)' }}>Starting base</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Banking & Remittance Destination */}
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>Remittance Destination</span>
-                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 14, background: 'var(--bg)', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                    <span style={{ color: 'var(--ink3)' }}>Disbursement Method:</span>
-                    <strong style={{ color: 'var(--ink)' }}>{PAY_METHOD_LABEL[staff.pay_method ?? 'BANK'] || 'Bank Transfer'}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                    <span style={{ color: 'var(--ink3)' }}>Bank &amp; Branch:</span>
-                    <strong style={{ color: 'var(--ink)' }}>{staff.bank_name || 'CRDB Bank'} ({staff.bank_branch || 'Oysterbay Branch'})</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
-                    <span style={{ color: 'var(--ink3)' }}>Account Number:</span>
-                    <strong style={{ color: 'var(--ink)', fontFamily: 'monospace' }}>{staff.bank_account_no || '0150428901200'}</strong>
-                  </div>
-                </div>
-              </div>
-            </DialogBody>
-
-            <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
-              <Button variant="default" size="sm" onClick={() => setSalaryModalOpen(false)} style={{ width: '100%' }}>
-                Close Remuneration Ledger
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* ── EDIT PROFILE DIALOG ── */}
       {isEditing && (

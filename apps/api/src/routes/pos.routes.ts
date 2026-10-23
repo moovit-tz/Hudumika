@@ -2,7 +2,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { sql } from 'kysely';
-import { withTenant } from '../db/client.js';
+import { withTenant, type Database } from '../db/client.js';
+import type { Transaction } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -54,7 +55,7 @@ async function requirePosTransactionAllowance(request:FastifyRequest, reply:Fast
   });
 }
 
-async function postSaleJournal(tenantId:string, actorId:string, sale:{ id:string; sale_number:string; grand_total:number; tax_total:number; change_due:number; currency:string }, payments:Array<{ method:keyof typeof tenderAccounts; amount:number }>) {
+async function postSaleJournal(tenantId:string, actorId:string, sale:{ id:string; sale_number:string; grand_total:number; tax_total:number; change_due:number; currency:string }, payments:Array<{ method:keyof typeof tenderAccounts; amount:number }>, transaction?: Transaction<Database>) {
   let remainingChange = Number(sale.change_due);
   const tenderTotals = new Map<keyof typeof tenderAccounts, number>();
   for (const payment of payments) {
@@ -74,7 +75,7 @@ async function postSaleJournal(tenantId:string, actorId:string, sale:{ id:string
       { accountCode:'4500', debit:0, credit:Number(sale.grand_total)-Number(sale.tax_total), description:'POS revenue', currency:sale.currency },
       ...(Number(sale.tax_total)>0?[{ accountCode:'2200', debit:0, credit:Number(sale.tax_total), description:'Output tax', currency:sale.currency }]:[]),
     ],
-  });
+  }, transaction);
 }
 
 export async function posRoutes(fastify: FastifyInstance) {
@@ -510,19 +511,18 @@ export async function posRoutes(fastify: FastifyInstance) {
     const user = request.user;
     if (!POS_MANAGER_ROLES.has(user.role)) return reply.status(403).send({ error:'Manager or Finance access is required to retry accounting.' });
     const { id } = z.object({ id:z.string().uuid() }).parse(request.params);
-    const snapshot = await withTenant(user.tenant_id, async trx => {
-      const sale = await trx.selectFrom('pos_sales').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', id).executeTakeFirst();
-      if (!sale) throw Object.assign(new Error('POS sale not found.'), { statusCode:404 });
-      if (sale.status !== 'POSTING_FAILED') throw Object.assign(new Error('Only a sale with failed accounting can be retried.'), { statusCode:409 });
-      const payments = await trx.selectFrom('pos_payments').select(['method','amount']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
-      const existing = await trx.selectFrom('journal_entries').select('id').where('tenant_id', '=', user.tenant_id)
-        .where('source_module', '=', 'AR').where('source_id', '=', id).where('status', '=', 'POSTED').executeTakeFirst();
-      return { sale, payments:payments.map(payment=>({ ...payment, amount:Number(payment.amount) })), existingJournalId:existing?.id??null };
-    });
     try {
-      const journalId = snapshot.existingJournalId ?? await postSaleJournal(user.tenant_id, user.sub, snapshot.sale, snapshot.payments);
-      const updated = await withTenant(user.tenant_id, trx => trx.updateTable('pos_sales').set({ status:'COMPLETED', journal_entry_id:journalId, posting_error:null,
-        posting_attempts:sql`posting_attempts + 1`, last_posting_attempt_at:new Date() }).where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('status', '=', 'POSTING_FAILED').returningAll().executeTakeFirstOrThrow());
+      const updated = await withTenant(user.tenant_id, async trx => {
+        const sale = await trx.selectFrom('pos_sales').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', id).forUpdate().executeTakeFirst();
+        if (!sale) throw Object.assign(new Error('POS sale not found.'), { statusCode:404 });
+        if (sale.status !== 'POSTING_FAILED') throw Object.assign(new Error('Only a sale with failed accounting can be retried.'), { statusCode:409 });
+        const payments = await trx.selectFrom('pos_payments').select(['method','amount']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
+        const existing = await trx.selectFrom('journal_entries').select('id').where('tenant_id', '=', user.tenant_id)
+          .where('source_module', '=', 'AR').where('source_id', '=', id).where('status', '=', 'POSTED').executeTakeFirst();
+        const journalId = existing?.id ?? await postSaleJournal(user.tenant_id, user.sub, sale, payments.map(p => ({ ...p, amount: Number(p.amount) })), trx);
+        return trx.updateTable('pos_sales').set({ status:'COMPLETED', journal_entry_id:journalId, posting_error:null,
+          posting_attempts:sql`posting_attempts + 1`, last_posting_attempt_at:new Date() }).where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      });
       await emitDomainEventStandalone(user.tenant_id, {
         type:'pos.sale_completed', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
         payload:{ saleNumber:updated.sale_number, customerId:updated.customer_id, total:Number(updated.grand_total),
@@ -530,6 +530,7 @@ export async function posRoutes(fastify: FastifyInstance) {
       });
       return { ...updated, subtotal:Number(updated.subtotal), discount_total:Number(updated.discount_total), tax_total:Number(updated.tax_total), grand_total:Number(updated.grand_total), amount_paid:Number(updated.amount_paid), change_due:Number(updated.change_due), sold_at:iso(updated.sold_at) };
     } catch (error:any) {
+      if (error.statusCode === 404 || error.statusCode === 409) return reply.status(error.statusCode).send({ error: error.message });
       const message = error?.message || 'Accounting journal could not be posted.';
       await withTenant(user.tenant_id, trx => trx.updateTable('pos_sales').set({ posting_error:message, posting_attempts:sql`posting_attempts + 1`, last_posting_attempt_at:new Date() })
         .where('tenant_id', '=', user.tenant_id).where('id', '=', id).execute());

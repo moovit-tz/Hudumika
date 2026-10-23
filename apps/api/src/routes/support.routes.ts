@@ -1,3 +1,6 @@
+import { canManageHrDocuments } from '../lib/hr-pay-access.js';
+import { gateStaffFile } from '../lib/cloud-file-access.js';
+import { canCustomerAccessFile } from './files.routes.js';
 import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
 import { sql } from 'kysely';
@@ -277,6 +280,21 @@ export default async function supportRoutes(fastify: FastifyInstance) {
   // entitlement; this file and chat.routes.ts didn't, so a tenant whose plan
   // excludes Bliss could still read/write tickets purely by being logged in.
   fastify.addHook('preHandler', requireEntitlement('bliss'));
+  fastify.addHook('preHandler',async(request,reply)=>{
+    const ids=(request.body as {attachment_file_ids?:unknown}|null)?.attachment_file_ids;
+    if(ids === undefined) return;
+    const parsed=z.array(z.string().uuid()).max(50).safeParse(ids);
+    if(!parsed.success) return reply.status(400).send({error:'Invalid attachments'});
+    await withTenant(request.user.tenant_id,async trx=>{
+      for(const id of parsed.data) {
+        if(request.user.role==='CUSTOMER') {
+          const file=await trx.selectFrom('cloud_files').select(['id','entity_type','entity_id']).where('id','=',id).where('tenant_id','=',request.user.tenant_id).executeTakeFirst();
+          const cid=await resolveCustomerId(request.user);
+          if(!file || !await canCustomerAccessFile(trx,request.user.tenant_id,cid,file)) return reply.status(403).send({error:'Attachment not available'});
+        } else if(!(await gateStaffFile(trx,request.user,id,'read')).ok) return reply.status(403).send({error:'Attachment not available'});
+      }
+    });
+  });
   fastify.addHook('preHandler', async (request, reply) => {
     if (request.user.role !== 'CUSTOMER') return;
     const url = request.routeOptions?.url;
@@ -436,7 +454,8 @@ export default async function supportRoutes(fastify: FastifyInstance) {
             .innerJoin('cloud_files as cf', 'cf.id', 'sma.file_id')
             .select(['sma.message_id', 'cf.id', 'cf.name', 'cf.size', 'cf.mime_type'])
             .where('sma.message_id', 'in', messageIds)
-            .where('sma.tenant_id', '=', user.tenant_id)
+            .where('sma.tenant_id', '=', user.tenant_id).where('cf.tenant_id','=',user.tenant_id)
+            .where(sql<boolean>`${await canManageHrDocuments(user,trx)} or cf.drive_id not in (select id from cloud_drives where tenant_id=${user.tenant_id} and managed_purpose='nexushr')`)
             .execute()
         : [];
       const attachmentsByMessage = new Map<string, typeof attachments>();

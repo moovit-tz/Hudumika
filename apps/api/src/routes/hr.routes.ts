@@ -1,3 +1,5 @@
+import { canReadStaffPay } from '../lib/hr-pay-access.js';
+import { hasOrgPermission, requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireUuidParams } from '../middleware/uuid-params.js';
 import type { FastifyInstance } from 'fastify';
@@ -4004,7 +4006,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
   ) {
     fastify.get(`/staff/:id${path}`, async (req: any, reply) => {
       const { id } = req.params as { id: string };
-      if (!(await mayViewStaffRecord(req, id))) {
+      if (path === '/compensation' && !canReadStaffPay(req.user,id)) return reply.status(403).send({error:'Compensation requires payroll access.'});
+      const confidential = ['/documents','/contracts','/signature'].includes(path);
+      const documentDelegate = ['/documents','/contracts'].includes(path) && await hasOrgPermission(req.user.tenant_id, req.user.sub, ORG_PERMISSIONS.HR_DOCUMENTS_MANAGE);
+      if (confidential && req.user.sub !== id && !HR_ADMIN_ROLES.includes(req.user.role) && !documentDelegate) return reply.status(403).send({ error: 'Confidential personnel records require explicit HR access.' });
+      if (!documentDelegate && path !== '/compensation' && !(await mayViewStaffRecord(req, id))) {
         return reply.status(403).send({ error: 'You can only open your own record, or your reports’ if you are their manager.' });
       }
       return withTenant(req.user.tenant_id, async (trx) => {
@@ -4014,6 +4020,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           .where('id', '=', id).where('tenant_id', '=', req.user.tenant_id)
           .executeTakeFirst();
         if (!exists) return reply.status(404).send({ error: 'Staff not found' });
+        if (path === '/compensation') logPiiAccess({...fromRequest(req),tenantId:req.user.tenant_id,accessorId:req.user.sub,subjectId:id,subjectTable:'users',subjectRecordId:id,fieldsAccessed:['basic_salary'],domain:'PAYROLL',sensitivity:'HIGH',route:req.routeOptions.url});
         return handler(trx, req, id);
       });
     });
@@ -4188,7 +4195,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       .execute());
 
   fastify.post<{ Params: { id: string } }>('/staff/:id/contracts',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.HR_DOCUMENTS_MANAGE,'SUPER_ADMIN','ADMIN','TENANT_ADMIN') },
     async (req, reply) => {
       const user = req.user;
       const { id } = req.params;
@@ -4236,7 +4243,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
 
   fastify.post<{ Params: { id: string } }>('/staff/:id/emergency-contacts',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.HR_DOCUMENTS_MANAGE,'SUPER_ADMIN','ADMIN','TENANT_ADMIN') },
     async (req, reply) => {
       const user = req.user;
       const { id } = req.params;

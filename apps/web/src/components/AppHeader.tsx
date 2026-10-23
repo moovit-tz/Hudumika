@@ -77,6 +77,7 @@ const SEARCH_CATEGORIES: Record<string, { label: string; icon: IconName }> = {
 // ── Main component ─────────────────────────────────────────────
 
 export function AppHeader({
+  appActions,
   hubSearch,
   onHubSearchChange,
   appSearch,
@@ -84,6 +85,7 @@ export function AppHeader({
   appSearchPlaceholder,
   filterControl,
 }: {
+  appActions?: React.ReactNode;
   hubSearch?: string;
   onHubSearchChange?: (q: string) => void;
   appSearch?: string;
@@ -687,6 +689,7 @@ export function AppHeader({
 
           {/* Right actions */}
           <div className="app-header-actions">
+            {appActions}
 
             <div className="app-header-secondary-actions">
             {/* Clock in / out.

@@ -367,7 +367,7 @@ export function CreditNotes() {
       ]} />
 
       <div className="py-4">
-        <SearchToolbar
+        <SearchToolbar layout="register"
           search={search}
           onSearch={handleSearchChange}
           placeholder="Search credit note numbers, customers, or reasons…"

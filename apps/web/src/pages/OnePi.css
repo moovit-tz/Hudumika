@@ -155,3 +155,14 @@
     font-size: 16px;
   }
 }
+
+/* Keep self-service actions reachable without several screens of summary cards. */
+@media(max-width:640px) {
+ [data-onepi] .mc-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ [data-onepi] .mc-card { padding:12px; min-height:0; }
+ [data-onepi] .mc-title { white-space:normal; font-size:10px; }
+ [data-onepi] .mc-value { font-size:22px; }
+ [data-onepi] .mc-sub-value { white-space:normal; overflow-wrap:anywhere; font-size:11px; }
+ [data-onepi] .mc-head-left { gap:6px; }
+ [data-onepi] .mc-head-left > :first-child:not(.mc-title) { display:none; }
+}

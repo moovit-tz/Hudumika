@@ -269,9 +269,10 @@ export default function ComponentShowcase() {
         {/* Search toolbar */}
         <section className={SECTION}>
           <div className={SECTION_TITLE}>Search toolbar</div>
-          <div className={SECTION_DESC}>Search input + Filters button with active-count badge + optional action slots. Use at the top of list/table pages.</div>
+          <div className={SECTION_DESC}>Use the register layout for search-first lists with wrapping filters and shared pagination. Default layout remains available for existing pages. Use at the top of list/table pages.</div>
           <div className="flex flex-col gap-3">
             <SearchToolbar
+              layout="register"
               search={searchQ}
               onSearch={setSearchQ}
               placeholder="Search products, SKU, or category..."

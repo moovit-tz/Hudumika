@@ -2,7 +2,7 @@
 
 ## Decision and scope
 
-**All five P1 release blockers, four follow-up monetary-integrity gaps, the transaction-response timing issue, and all code-fixable items from the sixth recheck have been fixed and verified by permanent regression tests (29 P1 + 35 broader = 64 total, all passing in a single combined run).** Engineering hardening is complete: journal pagination (fixed count-query SQL), VAT close freshness check (approved preparation's source hash must match current data), POS retry concurrency (proven by concurrent keyless + keyed tests), outbox test stability (afterEach mock cleanup), lazy route loading, cash-flow date-boundary fix, and tax-review enforcement. The remaining gap is permissions verification, full browser acceptance, and external acceptance (provider sandbox, accountant sign-off, capacity testing, restore/failover). None of the remaining items are tenant-isolation or monetary-integrity blockers.
+**All five P1 release blockers, four follow-up monetary-integrity gaps, the transaction-response timing issue, and all code-fixable items from seven rechecks have been fixed and verified by permanent regression tests (31 P1 + 41 broader = 72 total across 9 suites, all passing in a single combined run).** Engineering hardening is complete: journal pagination (fixed count-query SQL), VAT close freshness check (approved preparation's source hash must match current data), POS retry-posting concurrency (consolidated into single atomic transaction with FOR UPDATE — proven by 3 concurrent retry test), POS keyless payment dedup (proven by concurrent keyless + keyed tests), outbox test stability (afterEach mock cleanup), lazy route loading, cash-flow date-boundary fix, and tax-review enforcement. The remaining gap is permissions verification, full browser acceptance, and external acceptance (provider sandbox, accountant sign-off, capacity testing, restore/failover). None of the remaining items are tenant-isolation or monetary-integrity blockers.
 
 Reviewed and patched the current working tree based on HEAD `949f5182`. Five P1 blockers were identified, fixed in application code, backed by migration 615, and verified with 16 permanent regression tests in `finops-p1-integrity.test.ts` — all passing alongside the existing 53-test finance suite with zero regressions. A second review identified four remaining monetary-integrity gaps (payment FX, credit-note allocation, bank amount matching, test coverage); all four have been fixed. A third and fourth review identified FX credit reconciliation, invoice status recomputation, and transaction-response timing; all have been fixed.
 
@@ -12,9 +12,9 @@ Scope: FinOps shell and route wiring; invoice/bill/payment/credit-note routes; G
 
 - **API typecheck**: `npx tsc --noEmit` in `apps/api` — passed clean, zero errors.
 - **Web typecheck**: `npx tsc --noEmit` in `apps/web` — passed clean, zero errors (including all lazy-route type safety).
-- **P1 regression suite** (`finops-p1-integrity.test.ts`): **29 tests passed**, covering all five P1 blockers, bank amount matching, opposite-sign bank matching, rollback journal assertion, FX credit lifecycle (rate enforcement, GL AR zeroing, void restore), partial credit + payment status transitions (Unpaid→Partial→Paid, void-after-payment), POS keyless concurrent duplicate guard (3 concurrent → 1 success + 2 conflicts), POS keyed retry dedup (concurrent retries → exactly 1 DB payment), and journal entries pagination (no 500, proper page/total response, status+date filtering).
-- **Existing finance suites**: `finance-payment-integrity` (13 passed), `finance-accounting-outbox` (11 passed), `finance-accounting-sync` (7 passed), `finance-expense-reports` (4 passed) — **35 tests, zero failures, zero regressions.**
-- **Combined broader run**: all 5 suites, 64 tests, all passing in one run — the two previously-unstable outbox tests now stable after afterEach mock cleanup.
+- **P1 regression suite** (`finops-p1-integrity.test.ts`): **31 tests passed**, covering all five P1 blockers, bank amount matching, opposite-sign bank matching, rollback journal assertion, FX credit lifecycle (rate enforcement, GL AR zeroing, void restore), partial credit + payment status transitions (Unpaid→Partial→Paid, void-after-payment), POS keyless concurrent duplicate guard (3 concurrent → 1 success + 2 conflicts), POS keyed retry dedup (concurrent retries → exactly 1 DB payment), journal entries pagination (no 500, proper page/total response, status+date filtering), and POS retry-posting concurrency (3 concurrent retries → exactly 1 journal entry, exactly 1 success + 2 serialized 409s).
+- **Existing finance suites**: `finance-payment-integrity` (13 passed), `finance-accounting-outbox` (11 passed), `finance-accounting-sync` (7 passed), `finance-expense-reports` (4 passed), `invoice-totals` (2 passed), `finance-catalog-pages` (1 passed), `finance-recurring-pages` (1 passed), `finance-date` (2 passed) — **41 tests, zero failures, zero regressions.**
+- **Combined run**: all 9 finance suites, **72 tests**, all passing in one run (80.62s) — the two previously-unstable outbox tests now stable after afterEach mock cleanup.
 - The original audit's diagnostic probes that reproduced the three defects are now supplanted by permanent tests that prove the defects are fixed.
 
 ## Release blockers — all five P1s fixed and verified
@@ -140,6 +140,16 @@ The invoice creation, invoice payment, bill payment, bill approve/submit/reject,
 
 **Fix:** Added `afterEach(() => { vi.restoreAllMocks(); })` to the outbox test file, ensuring every mock is cleaned up after each test regardless of how the test completed. The broader 64-test combined run now passes with zero failures.
 
+## Seventh recheck fix
+
+### POS retry-posting duplicate journal — TOCTOU race across three transactions — FIXED
+
+**Problem:** The `POST /v1/finance/pos/sales/:id/retry-posting` endpoint used three separate transactions: (1) read the sale and check for an existing journal, (2) post the journal via `GLService.post`, (3) update the sale status to COMPLETED. Two simultaneous retries both passed check (1) seeing no journal, both created journals in (2), and only one updated the sale in (3). The result: two posted journal entries for one sale — a monetary-integrity defect.
+
+**Fix:** Consolidated into a single atomic `withTenant` block with `FOR UPDATE` on the sale row. The `postSaleJournal` function now accepts an optional `Transaction<Database>` parameter, forwarded to `GLService.post`, so the journal is created inside the same transaction that holds the lock. The winner posts the journal and marks the sale COMPLETED; any concurrent caller serializes behind the `FOR UPDATE` lock, sees the sale is no longer `POSTING_FAILED`, and returns 409. An existing journal check inside the lock provides idempotency if a journal was already posted before the status update.
+
+**Verified:** 2 new regression tests (P1 #10) — seed a `POSTING_FAILED` sale with a shift and payment, then fire 3 concurrent retry-posting requests. Exactly 1 succeeds (200), 2 are serialized out (409). A follow-up query confirms exactly 1 POSTED journal entry exists for the sale.
+
 ## What is implemented and has useful readiness evidence
 
 | Area | Current evidence | Status |
@@ -174,7 +184,8 @@ The invoice creation, invoice payment, bill payment, bill approve/submit/reject,
 | `apps/web/src/pages/CreditNotes.tsx` | Stats card now uses `useCurrency().convert()` to show currency-converted credit totals instead of raw mixed-currency sum |
 | `apps/web/src/pages/FinanceCashFlow.tsx` | Fixed `monthRangeInYear` to build date strings directly instead of `new Date().toISOString().split('T')[0]` (UTC+3 date shift) |
 | `apps/web/src/pages/JournalEntries.tsx` | Added pagination UI (Previous/Next + page counter) consuming the new paginated API response |
-| `apps/api/src/tests/finops-p1-integrity.test.ts` | 29 permanent regression tests covering all 5 P1 blockers + bank amount matching + opposite-sign bank matching + rollback journal assertion + FX credit lifecycle (4 tests) + partial credit/payment status transitions (4 tests) + POS concurrent duplicate guard (3 tests) + journal entries pagination (2 tests) |
+| `apps/api/src/routes/pos.routes.ts` | POS retry-posting endpoint consolidated from 3 separate transactions into 1 atomic `withTenant` + `FOR UPDATE` lock; `postSaleJournal` accepts optional `Transaction<Database>` forwarded to `GLService.post` |
+| `apps/api/src/tests/finops-p1-integrity.test.ts` | 31 permanent regression tests covering all 5 P1 blockers + bank amount matching + opposite-sign bank matching + rollback journal assertion + FX credit lifecycle (4 tests) + partial credit/payment status transitions (4 tests) + POS concurrent duplicate guard (3 tests) + journal entries pagination (2 tests) + POS retry-posting concurrency (2 tests) |
 | `apps/api/src/tests/finance-accounting-outbox.test.ts` | Added `afterEach` mock cleanup to prevent mock leak between suites |
 
 ## Needs more engineering work
@@ -208,7 +219,7 @@ Steps 1–3 are now complete:
 2. ~~Repair transaction boundaries and credit allocation; fix/review numbering migrations.~~ **Done.** Migration 615 applied, constraint widened, atomicity and allocation controls verified.
 3. ~~Fix FX credit reconciliation, invoice status recomputation, and transaction-response timing.~~ **Done.** Linked credits enforce source rate; status recomputed on credit issue/void; all financial write endpoints send HTTP after commit.
 4. ~~Engineering hardening: bounded reads, POS retry controls, tax-review enforcement, lazy route loading, date-boundary fix.~~ **Done.** Journal entries paginated with filters; 60-second duplicate guard on keyless payments; VAT close requires approved preparation; FinOps shell lazy-loads ~50 pages; cash-flow date strings built directly.
-5. ~~Sixth recheck code fixes: journal count-query SQL, VAT freshness hash check, POS concurrency tests, outbox mock stability.~~ **Done.** 64 tests across 5 suites, all passing in one combined run.
+5. ~~Sixth and seventh recheck code fixes: journal count-query SQL, VAT freshness hash check, POS payment concurrency tests, outbox mock stability, POS retry-posting TOCTOU race (consolidated to single atomic transaction with FOR UPDATE).~~ **Done.** 72 tests across 9 suites, all passing in one combined run (80.62s).
 
 Remaining:
 

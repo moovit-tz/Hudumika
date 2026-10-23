@@ -1,4 +1,5 @@
-import type { Transaction } from 'kysely';
+import { canManageHrDocuments } from './hr-pay-access.js';
+import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
@@ -14,6 +15,7 @@ const WRITE_ROLES = new Set<EffectiveDriveRole>(['owner', 'manager', 'content_ma
 const MANAGE_ROLES = new Set<EffectiveDriveRole>(['owner', 'manager']);
 
 export interface DriveAccess {
+  hrConfidential?: boolean;
   driveType: 'personal' | 'shared' | 'business';
   role: EffectiveDriveRole;
   /** May list/download/open files in this drive. */
@@ -53,11 +55,15 @@ export interface DriveAccess {
  * own pair before this.
  */
 export async function resolveDriveAccess(
-  trx: Transaction<Database>, tenantId: string, userId: string, userRole: string, driveId: string,
+  trx: Kysely<Database>, tenantId: string, userId: string, userRole: string, driveId: string,
 ): Promise<DriveAccess | null> {
-  const drive = await trx.selectFrom('cloud_drives').select(['id', 'type', 'owner_id'])
+  const drive = await trx.selectFrom('cloud_drives').select(['id', 'type', 'owner_id', 'managed_purpose'])
     .where('id', '=', driveId).where('tenant_id', '=', tenantId).executeTakeFirst();
   if (!drive) return null;
+  if (drive.managed_purpose === 'nexushr') {
+    if (!await canManageHrDocuments({tenant_id:tenantId,sub:userId,role:userRole},trx)) return null;
+    return {driveType:'shared',role:'manager',canRead:true,canComment:true,canWrite:true,canManage:true,hrConfidential:true};
+  }
   const driveType = drive.type as 'personal' | 'shared' | 'business';
 
   if (driveType === 'personal') {
@@ -73,7 +79,7 @@ export async function resolveDriveAccess(
   // shared
   if (drive.owner_id === userId) return { driveType, role: 'owner', canRead: true, canComment: true, canWrite: true, canManage: true };
   const member = await trx.selectFrom('cloud_drive_members').select(['role'])
-    .where('drive_id', '=', driveId).where('principal_type', '=', 'user').where('principal_id', '=', userId)
+    .where('tenant_id','=',tenantId).where('drive_id', '=', driveId).where('principal_type', '=', 'user').where('principal_id', '=', userId)
     .executeTakeFirst();
   if (!member) return null;
   const role = member.role as DriveMemberRole;
@@ -97,4 +103,10 @@ export async function requireDriveAdminOverride(
     payload: { reason: reason.slice(0, 500) }, actorId: actingUserId,
   });
   return true;
+}
+
+export async function isHrCloudFile(trx:Kysely<Database>,tenantId:string,fileId:string):Promise<boolean> {
+  const drive=await trx.selectFrom('cloud_files as f').innerJoin('cloud_drives as d','d.id','f.drive_id')
+    .select('d.managed_purpose').where('f.id','=',fileId).where('f.tenant_id','=',tenantId).where('d.tenant_id','=',tenantId).executeTakeFirst();
+  return drive?.managed_purpose === 'nexushr';
 }

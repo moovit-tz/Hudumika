@@ -1,3 +1,7 @@
+import { salaryForPeriod } from './payroll-salary.service.js';
+import { canReadStaffPay } from '../lib/hr-pay-access.js';
+import { z } from 'zod';
+import { sql } from 'kysely';
 import { db, withTenant } from '../db/client.js';
 import { toDateParam } from '../utils/dates.js';
 
@@ -30,8 +34,14 @@ export class NexusHRService {
    * records that have no login yet — an unlinked row on either side is a real
    * state worth seeing, not an error to hide.
    */
-  static async getRoster(tenantId: string) {
+  static async getRoster(tenantId: string, actor?: { sub: string; role: string }, page = 1, pageSize = 50) {
     return withTenant(tenantId, async (trx) => {
+      const totals = await trx.selectFrom('users as u').select([
+        sql<number>`count(*)::int`.as('logins'),
+        sql<number>`count(*) filter(where exists(select 1 from hr_contracts c where c.tenant_id=${tenantId} and c.user_id=u.id))::int`.as('withContract'),
+        sql<number>`count(*) filter(where coalesce((select c.base_salary from hr_compensations c where c.tenant_id=${tenantId} and c.user_id=u.id and c.effective_date<=current_date and (c.end_date is null or c.end_date>=current_date) order by c.effective_date desc limit 1),u.basic_salary) is not null)::int`.as('withPay'),
+        sql<number>`count(*) filter(where not exists(select 1 from hr_contracts c where c.tenant_id=${tenantId} and c.user_id=u.id) and coalesce((select c.base_salary from hr_compensations c where c.tenant_id=${tenantId} and c.user_id=u.id and c.effective_date<=current_date and (c.end_date is null or c.end_date>=current_date) order by c.effective_date desc limit 1),u.basic_salary) is null)::int`.as('withNeither'),
+      ]).where('u.tenant_id','=',tenantId).where('u.role','!=','CUSTOMER').executeTakeFirstOrThrow();
       const users = await trx
         .selectFrom('users')
         .select(['id as user_id', 'name', 'email', 'role', 'active', 'hire_date',
@@ -43,7 +53,7 @@ export class NexusHRService {
         // file", which is meaningless for an account that was never
         // employment-eligible in the first place.
         .where('role', '!=', 'CUSTOMER')
-        .orderBy('name', 'asc')
+        .orderBy('name', 'asc').orderBy('id','asc').limit(pageSize).offset((page-1)*pageSize)
         .execute();
 
       // The employment record is the contract. hr_employments never held a row
@@ -53,7 +63,7 @@ export class NexusHRService {
       const contracts = users.length
         ? await trx.selectFrom('hr_contracts')
             .select(['id', 'user_id', 'contract_type', 'start_date', 'end_date'])
-            .where('tenant_id', '=', tenantId)
+            .where('tenant_id', '=', tenantId).where('user_id','in',users.map(u=>u.user_id))
             .orderBy('start_date', 'desc')
             .execute()
         : [];
@@ -69,7 +79,7 @@ export class NexusHRService {
       const comps = users.length
         ? await trx.selectFrom('hr_compensations')
             .select(['user_id', 'base_salary', 'currency', 'pay_frequency', 'effective_date', 'end_date'])
-            .where('tenant_id', '=', tenantId)
+            .where('tenant_id', '=', tenantId).where('user_id','in',users.map(u=>u.user_id))
             .orderBy('effective_date', 'asc')
             .execute()
         : [];
@@ -82,6 +92,7 @@ export class NexusHRService {
       for (const c of contracts) if (!contractByUser.has(c.user_id)) contractByUser.set(c.user_id, c);
 
       const roster = users.map(u => {
+        const mayReadPay = !!actor && canReadStaffPay(actor, u.user_id);
         const list = compsByUser.get(u.user_id) ?? [];
         const current = list.find(c => c.effective_date <= today && (c.end_date === null || c.end_date >= today));
         const upcoming = list.find(c => c.effective_date > today);
@@ -102,13 +113,13 @@ export class NexusHRService {
             employment_type: contract?.contract_type ?? null,
             start_date: contract?.start_date ?? u.hire_date ?? null,
             end_date: contract?.end_date ?? null,
-            base_salary: base != null ? String(base) : null,
+            ...(mayReadPay ? { base_salary: base != null ? String(base) : null,
             currency: current?.currency ?? u.pay_currency ?? null,
             pay_frequency: current?.pay_frequency ?? (base != null ? 'MONTHLY' : null),
             upcoming: upcoming
               ? { base_salary: String(upcoming.base_salary), currency: upcoming.currency,
                   pay_frequency: upcoming.pay_frequency, effective_date: upcoming.effective_date }
-              : null,
+              : null } : {}),
           } : null,
         };
       });
@@ -117,11 +128,11 @@ export class NexusHRService {
         roster,
         // Named plainly so the UI can say what is missing rather than imply
         // everyone is fully set up.
+        page, page_size:pageSize, total:totals.logins,
         summary: {
-          logins: users.length,
-          withContract: roster.filter(r => r.employment?.employment_id).length,
-          withPay: roster.filter(r => r.employment?.base_salary).length,
-          withNeither: roster.filter(r => !r.employment).length,
+          logins:totals.logins, withContract:totals.withContract,
+          withPay:actor && ['SUPER_ADMIN','ADMIN','TENANT_ADMIN','FINANCE'].includes(actor.role) ? totals.withPay : 0,
+          withNeither:totals.withNeither,
         },
       };
     });
@@ -147,32 +158,42 @@ export class NexusHRService {
    * claims about what someone earns.
    */
   static async addCompensation(tenantId: string, userId: string, data: any) {
-    if (data?.base_salary === undefined || data.base_salary === null || data.base_salary === '') {
-      throw new Error('base_salary is required');
-    }
-    if (!data?.effective_date) throw new Error('effective_date is required');
+    const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
+      const date = new Date(`${value}T00:00:00Z`);
+      return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    }, 'Enter a valid calendar date');
+    const parsed = z.object({
+      base_salary: z.number().finite().min(0).max(999999999999.99).refine(value => Math.abs(value * 100 - Math.round(value * 100)) < 0.001, 'Use at most two decimal places'),
+      effective_date: day,
+      currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).default('TZS'),
+      pay_frequency: z.enum(['MONTHLY', 'ANNUAL', 'BIWEEKLY', 'HOURLY']).default('MONTHLY'),
+    }).safeParse(data);
+    if (!parsed.success) throw new Error(parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; '));
+    data = parsed.data;
 
     return withTenant(tenantId, async (trx) => {
       const person = await trx.selectFrom('users').select('id')
-        .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
+        .where('id', '=', userId).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
       if (!person) throw new Error('Staff member not found');
 
       const effective = String(data.effective_date).slice(0, 10);
-      const dayBefore = new Date(effective + 'T00:00:00Z');
-      dayBefore.setUTCDate(dayBefore.getUTCDate() - 1);
-      const prevEnd = dayBefore.toISOString().slice(0, 10);
-
-      await trx.updateTable('hr_compensations')
-        .set({ end_date: prevEnd as any })
+      const existing = await trx.selectFrom('hr_compensations').select(['id', 'effective_date'])
+        .where('tenant_id', '=', tenantId).where('user_id', '=', userId).orderBy('effective_date').forUpdate().execute();
+      if (existing.some(record => toDateParam(record.effective_date) === effective)) throw new Error('Compensation already exists for this effective date.');
+      const next = existing.find(record => toDateParam(record.effective_date) > effective);
+      const previousDay = (value: string) => {
+        const date = new Date(`${value}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - 1); return date.toISOString().slice(0, 10);
+      };
+      await trx.updateTable('hr_compensations').set({ end_date: previousDay(effective) as any })
         .where('user_id', '=', userId).where('tenant_id', '=', tenantId)
-        .where('end_date', 'is', null)
         .where('effective_date', '<', effective as any)
-        .execute();
+        .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', effective as any)])).execute();
 
       const row = await trx.insertInto('hr_compensations').values({
         tenant_id: tenantId,
         user_id: userId,
         effective_date: effective as any,
+        end_date: next ? previousDay(toDateParam(next.effective_date)) : null,
         base_salary: Number(data.base_salary),
         currency: data.currency || 'TZS',
         pay_frequency: data.pay_frequency || 'MONTHLY',
@@ -183,12 +204,12 @@ export class NexusHRService {
       // force today may move it — agreeing a raise for next month must not
       // change what this month pays.
       const today = toDateParam(new Date());
-      if (effective <= today) {
-        await trx.updateTable('users')
-          .set({ basic_salary: String(Number(data.base_salary)),
-                 pay_currency: data.currency || 'TZS', updated_at: new Date() })
-          .where('id', '=', userId).where('tenant_id', '=', tenantId).execute();
-      }
+      const current = await trx.selectFrom('hr_compensations').select(['base_salary', 'currency'])
+        .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('effective_date', '<=', today as any)
+        .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', today as any)]))
+        .orderBy('effective_date', 'desc').executeTakeFirst();
+      if (current) await trx.updateTable('users').set({ basic_salary: String(Number(current.base_salary)), pay_currency: current.currency, updated_at: new Date() })
+        .where('id', '=', userId).where('tenant_id', '=', tenantId).execute();
       return row;
     });
   }
@@ -221,7 +242,7 @@ export class NexusHRService {
         .innerJoin('payroll_runs as r', 'r.id', 'p.run_id')
         .innerJoin('users as u', 'u.id', 'p.user_id')
         .select(['p.id as payroll_id', 'p.user_id', 'p.basic_pay',
-                 'r.status', 'u.name', 'u.email'])
+                 'r.status', 'r.calculation_policy', 'u.name', 'u.email'])
         .where('p.tenant_id', '=', tenantId)
         .where('r.period_month', '=', month)
         .where('r.period_year', '=', year)
@@ -248,45 +269,20 @@ export class NexusHRService {
         if (list) list.push(c); else contractsByUser.set(c.user_id as string, [c]);
       }
 
-      const MONTHLY_DIVISOR: Record<string, number> = { MONTHLY: 1, ANNUAL: 12, YEARLY: 12 };
-
       const rows = payroll.map(p => {
         const covering = contractsByUser.get(p.user_id) ?? [];
-        const contract = covering[0];
         const paid = Number(p.basic_pay);
-
-        if (!contract) {
-          return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
-                   contracted: null, variance: null, note: 'No contract salary on file to compare against.' };
+        if (!covering.length) return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
+          contracted: null, variance: null, note: 'No contract salary on file to compare against.' };
+        try {
+          const policy = p.calculation_policy as { salary_basis?: string } | null;
+          if (!policy?.salary_basis && covering.length > 1) throw new Error('This older run has no saved proration policy; review its original calculation before comparing a mid-period change.');
+          const basis = policy?.salary_basis === 'period_end' ? 'period_end' : 'calendar_days';
+          const expected = salaryForPeriod(covering, {salary:null,currency:null},periodStart,periodEnd,basis);
+          return { userId:p.user_id,name:p.name,email:p.email,paid,status:p.status,contracted:expected,currency:'TZS',variance:Math.round((paid-expected)*100)/100,note:null as string|null };
+        } catch (err) {
+          return {userId:p.user_id,name:p.name,email:p.email,paid,status:p.status,contracted:null,variance:null,note:err instanceof Error ? err.message : 'Compensation cannot be compared.'};
         }
-
-        if (covering.length > 1) {
-          const amounts = covering
-            .map(c => `${c.currency} ${Number(c.base_salary).toLocaleString()} from ${String(c.effective_date).slice(0, 10)}`)
-            .join(', ');
-          return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
-                   contracted: null, variance: null,
-                   note: `Pay changed during this period (${amounts}) — there is no single contracted figure to compare one payslip against.` };
-        }
-
-        const divisor = MONTHLY_DIVISOR[String(contract.pay_frequency).toUpperCase()];
-        if (!divisor) {
-          return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
-                   contracted: null, variance: null,
-                   note: `Contract is paid ${contract.pay_frequency}; this comparison only converts MONTHLY and ANNUAL.` };
-        }
-
-        const expected = Number(contract.base_salary) / divisor;
-        return {
-          userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
-          // hr_payroll records no currency, so the figures are compared as
-          // like for like and labelled with the contract's currency. There is
-          // no field to detect a mismatch against and no FX rate here to
-          // convert with, so neither is claimed.
-          contracted: expected, currency: contract.currency,
-          variance: Math.round((paid - expected) * 100) / 100,
-          note: null as string | null,
-        };
       });
 
       // Contracts with nobody paid this period — the other half of the picture.

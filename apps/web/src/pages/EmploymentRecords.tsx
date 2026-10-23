@@ -1,3 +1,5 @@
+import { PaginationBar } from '../components/PaginationBar.js';
+import { useAuth } from '../hooks/useAuth.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
@@ -83,6 +85,11 @@ const label: React.CSSProperties = {
 };
 
 export function EmploymentRecords() {
+  const { user } = useAuth();
+  const canReadPay = (id: string) => user?.id === id || ['SUPER_ADMIN','ADMIN','TENANT_ADMIN','FINANCE'].includes(user?.role || '');
+  const [page,setPage] = useState(1);
+  const [pageSize,setPageSize] = useState(25);
+  const [total,setTotal] = useState(0);
   const [roster, setRoster] = useState<RosterRow[]>([]);
   const [unlinked, setUnlinked] = useState<UnlinkedPerson[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -96,14 +103,15 @@ export function EmploymentRecords() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const [r, e] = await Promise.all([apiFetch('/v1/hr/roster'), apiFetch('/v1/hr/legal-entities')]);
+      const [r, e] = await Promise.all([apiFetch(`/v1/hr/roster?page=${page}&page_size=${pageSize}`), apiFetch('/v1/hr/legal-entities')]);
       setRoster(r?.roster ?? []);
       setSummary(r?.summary ?? null);
+      setTotal(r?.total ?? 0);
       setEntities(Array.isArray(e) ? e : []);
     } catch (err: any) {
       setError(err?.message ?? 'Could not load employment records.');
     } finally { setLoading(false); }
-  }, []);
+  }, [page,pageSize]);
   useEffect(() => { load(); }, [load]);
 
   // "No contract on file" is the one gap left worth naming. The old pair of
@@ -137,7 +145,7 @@ export function EmploymentRecords() {
       <MetricsRow cards={[
         { title: 'People', value: String(summary?.logins ?? 0), icon: 'users', emphasis: 'primary' },
         { title: 'With a contract', value: String(summary?.withContract ?? 0), icon: 'fileText', barHighlight: 'var(--green)' },
-        { title: 'With pay on file', value: String(summary?.withPay ?? 0), icon: 'wallet', barHighlight: 'var(--blue)' },
+        { title: 'With pay on file', value: canReadPay('') ? String(summary?.withPay ?? 0) : 'Restricted', icon: 'wallet', barHighlight: 'var(--blue)' },
         { title: 'Nothing on file', value: String(summary?.withNeither ?? 0), icon: 'alertTriangle', barHighlight: (summary?.withNeither ?? 0) > 0 ? 'var(--gold)' : 'var(--green)' },
       ]} />
 
@@ -194,7 +202,7 @@ export function EmploymentRecords() {
       {noContract.length > 0 && (
         <div style={{ ...card, marginBottom: 16 }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ ...label, color: 'var(--ink)' }}>{noContract.length} {noContract.length === 1 ? 'person has' : 'people have'} no contract on file</span>
+            <span style={{ ...label, color: 'var(--ink)' }}>{noContract.length} {noContract.length === 1 ? 'person has' : 'people have'} no contract on file on this page</span>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
               They can sign in and be assigned work. Nothing records what they were engaged to do, or until when.
             </div>
@@ -265,7 +273,7 @@ export function EmploymentRecords() {
                     <td style={{ padding: '9px 14px' }}>
                       {/* Absent, not zero. A contract with no salary agreed yet
                           shows "not agreed" rather than a figure nobody set. */}
-                      {r.employment?.base_salary != null
+                      {!canReadPay(r.userId) ? <span style={{color:'var(--ink3)'}}>Restricted</span> : r.employment?.base_salary != null
                         ? <span style={{ color: 'var(--ink)', fontWeight: 650 }}>
                             {r.employment.currency} {Number(r.employment.base_salary).toLocaleString()}
                             <span style={{ color: 'var(--ink3)', fontWeight: 400 }}> /{(r.employment.pay_frequency ?? '').toLowerCase()}</span>
@@ -287,14 +295,14 @@ export function EmploymentRecords() {
                       {/* Pay history hangs off the person, not the contract, so
                           everyone has one — including the people who have a
                           salary on file and no contract yet. */}
-                      <Button type="button" size="sm" variant="ghost"
+                      <Button type="button" size="sm" variant="ghost" disabled={!canReadPay(r.userId)}
                         onClick={() => setOpenComp(openComp === r.userId ? null : r.userId)}>
                         <Icon name={openComp === r.userId ? 'chevronUp' : 'chevronDown'} size={13} />
                         Pay history
                       </Button>
                     </td>
                   </tr>
-                  {openComp === r.userId && (
+                  {openComp === r.userId && canReadPay(r.userId) && (
                     <tr>
                       <td colSpan={7} style={{ padding: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
                         <CompensationPanel
@@ -315,7 +323,8 @@ export function EmploymentRecords() {
         )}
       </div>
 
-      <PayrollVsContractPanel roster={roster} />
+      <PaginationBar page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}} itemLabel="employee" />
+      {canReadPay('') && <PayrollVsContractPanel roster={roster} />}
     </div>
   );
 }

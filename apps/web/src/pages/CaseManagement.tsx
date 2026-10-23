@@ -18,7 +18,7 @@ import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 /**
  * Disciplinary / case management — confirmed entirely absent in the
  * platform-wide audit (no HR case tracking, PIPs, or grievance workflow
- * anywhere). MGMT_ROLES-only, matching the backend gate: this is HR/manager
+ * anywhere). Explicit HR permission required, matching the backend gate: this is confidential
  * working data about a person, not something the person themself browses.
  */
 
@@ -38,6 +38,9 @@ interface CaseRow {
 interface Staff { id: string; name: string; email: string }
 
 export function CaseManagement() {
+  const [page,setPage] = useState(1);
+  const [pageSize,setPageSize] = useState(25);
+  const [total,setTotal] = useState(0);
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,28 +52,29 @@ export function CaseManagement() {
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(null);
-    const qs = statusFilter ? `?status=${statusFilter}` : '';
+    const qs = `?page=${page}&page_size=${pageSize}${statusFilter ? `&status=${statusFilter}` : ''}`;
     Promise.all([
       apiFetch(`/v1/hr/cases${qs}`),
       apiFetch('/v1/hr/staff'),
     ]).then(([c, s]) => {
-      setCases(Array.isArray(c) ? c : []);
+      setCases(c?.data ?? []);
+      setTotal(c?.total ?? 0);
       setStaff(Array.isArray(s) ? s : (s?.data ?? []));
     }).catch(() => {
       setCases([]);
       setStaff([]);
       setLoadError('Could not load HR cases.');
     }).finally(() => setLoading(false));
-  }, [statusFilter]);
+  }, [statusFilter,page,pageSize]);
   useEffect(() => { load(); }, [load]);
 
   const columns: TableColumn<CaseRow>[] = [
-    { key: 'employee', header: 'Employee', sortable: true, render: row => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><PersonAvatar userId={row.employee_id} name={row.employee_name} size={26} />{row.employee_name}</span> },
-    { key: 'type', header: 'Type', sortable: true, render: row => CASE_TYPE_LABEL[row.case_type] ?? row.case_type },
-    { key: 'title', header: 'Title', accessor: 'title', sortable: true },
-    { key: 'severity', header: 'Severity', sortable: true, render: row => <Badge variant={SEVERITY_VARIANT[row.severity]}>{row.severity}</Badge> },
-    { key: 'status', header: 'Status', sortable: true, render: row => <Badge variant={STATUS_VARIANT[row.status]}>{row.status.replace('_', ' ')}</Badge> },
-    { key: 'opened', header: 'Opened', sortable: true, render: row => new Date(row.created_at).toLocaleDateString() },
+    { key: 'employee', header: 'Employee', sortable: false, render: row => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><PersonAvatar userId={row.employee_id} name={row.employee_name} size={26} />{row.employee_name}</span> },
+    { key: 'type', header: 'Type', sortable: false, render: row => CASE_TYPE_LABEL[row.case_type] ?? row.case_type },
+    { key: 'title', header: 'Title', accessor: 'title', sortable: false },
+    { key: 'severity', header: 'Severity', sortable: false, render: row => <Badge variant={SEVERITY_VARIANT[row.severity]}>{row.severity}</Badge> },
+    { key: 'status', header: 'Status', sortable: false, render: row => <Badge variant={STATUS_VARIANT[row.status]}>{row.status.replace('_', ' ')}</Badge> },
+    { key: 'opened', header: 'Opened', sortable: false, render: row => new Date(row.created_at).toLocaleDateString() },
   ];
 
   return (
@@ -79,7 +83,7 @@ export function CaseManagement() {
         crumbs={['NexusHR', 'Cases']}
         titlePlain="Case"
         titleEm="management"
-        subtitle="Warnings, PIPs, suspensions and grievances — visible to management only."
+        subtitle="Warnings, PIPs, suspensions and grievances — restricted to authorised HR staff."
         actions={<Button onClick={() => setShowNew(true)}><Icon name="plus" size={15} /> New case</Button>}
       />
 
@@ -87,7 +91,7 @@ export function CaseManagement() {
         <SingleSelectFilter
           label="Status"
           value={statusFilter}
-          onChange={setStatusFilter}
+          onChange={value=>{setStatusFilter(value);setPage(1);}}
           options={[
             { value: 'open', label: 'Open' },
             { value: 'in_progress', label: 'In progress' },
@@ -110,6 +114,7 @@ export function CaseManagement() {
         filteredEmpty={!loading && !loadError && !!statusFilter && cases.length === 0}
         filteredEmptyMessage="No cases match this status."
         onRowClick={row => setOpenCaseId(row.id)}
+        serverPagination={{page,pageSize,total,onPageChange:setPage,onPageSizeChange:size=>{setPageSize(size);setPage(1);}}}
         defaultSortKey="opened"
         defaultSortDir="desc"
       />

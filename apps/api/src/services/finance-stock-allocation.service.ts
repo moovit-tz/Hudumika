@@ -6,7 +6,7 @@ import { InventoryService } from './inventory.service.js';
 export async function allocateStock(tenantId: string, actorId: string, workId: string, input: { item_id: string; location_id: string; batch: string; quantity: number }) {
   return withTenant(tenantId, async trx => {
     const work = await getIndustryWork(trx, tenantId, workId, true);
-    if (!['retail', 'wholesale', 'warehousing', 'manufacturing', 'printing'].includes(work.industry) || work.status !== 'active') throw new IndustryWorkError('Allocation requires an active goods or warehouse job.');
+    if (!['retail', 'wholesale', 'ecommerce', 'warehousing', 'manufacturing', 'food_beverage', 'printing', 'pharmaceutical', 'automotive', 'restaurant', 'agriculture', 'construction', 'hospitality', 'healthcare', 'mining', 'logistics'].includes(work.industry) || work.status !== 'active') throw new IndustryWorkError('Allocation requires an active industry job with stock operations.');
     const item = await trx.selectFrom('inventory_items').select(['id', 'active', 'is_batch_tracked']).where('tenant_id', '=', tenantId).where('id', '=', input.item_id).forUpdate().executeTakeFirst();
     const location = await trx.selectFrom('inventory_locations').select('id').where('tenant_id', '=', tenantId).where('id', '=', input.location_id).executeTakeFirst();
     if (!item?.active || !location) throw new IndustryWorkError('Choose an active item and location in this workspace.', 400);
@@ -24,6 +24,7 @@ export async function dispatchAllocation(tenantId: string, actorId: string, work
     if (work.status !== 'active') throw new IndustryWorkError('Dispatch requires active work.');
     const allocation = await trx.selectFrom('finance_stock_allocations').selectAll().where('tenant_id', '=', tenantId).where('work_id', '=', workId).where('id', '=', allocationId).forUpdate().executeTakeFirst();
     if (!allocation || allocation.released) throw new IndustryWorkError('Allocation not found.', 404);
+    if (allocation.quality_hold) throw new IndustryWorkError('This allocation is on quality hold and cannot be dispatched until released.', 409);
     if (!Number.isFinite(quantity) || quantity <= 0 || quantity > Number(allocation.quantity) - Number(allocation.dispatched_quantity)) throw new IndustryWorkError('Dispatch must fit the remaining allocated quantity.', 400);
     const item = await trx.selectFrom('inventory_items').select('base_uom').where('tenant_id', '=', tenantId).where('id', '=', allocation.item_id).forUpdate().executeTakeFirstOrThrow();
     const updated = await trx.updateTable('finance_stock_allocations').set({ dispatched_quantity: Number(allocation.dispatched_quantity) + quantity })

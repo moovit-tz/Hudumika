@@ -41,6 +41,8 @@ const PERMISSION_LABEL: Record<string, string> = {
   'compliance.review': 'View the compliance posture dashboard',
   'policies.manage': 'Configure org security policies',
   'assets.manage': 'View company assets (NexusHR)',
+  'hr.cases.manage': 'Manage confidential HR cases (NexusHR)',
+  'hr.documents.manage': 'Manage confidential employee documents (NexusHR)',
   'integrations.manage': 'Manage third-party app event access',
   'visitors.manage': 'Log and manage front-desk visitors',
   'groups.manage': 'Create and manage org groups',

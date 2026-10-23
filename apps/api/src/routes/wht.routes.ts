@@ -250,7 +250,7 @@ export async function whtRoutes(fastify: FastifyInstance) {
           { accountCode: '2300', debit: total, credit: 0, description: 'Withholding tax remitted' },
           { accountCode: account_code || '1010', debit: 0, credit: total, description: 'Cash paid to TRA' },
         ],
-      });
+      }, trx);
 
       return trx.updateTable('wht_remittances').set({
         status: 'PAID', paid_at: paid_at ? new Date(paid_at) : new Date(),

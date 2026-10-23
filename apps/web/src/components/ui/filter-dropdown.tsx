@@ -5,6 +5,7 @@ import { Check, ChevronDown, Maximize2, Search, SlidersHorizontal, X } from "luc
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Checkbox } from "./checkbox"
 import { Input } from "./input"
+import { DateFilterRow } from "./date-filter-row"
 import { cn } from "@/lib/utils"
 
 export interface FilterOption {
@@ -195,6 +196,10 @@ export interface QuickFilterConfig {
  * CSS lives in index.css under "SEARCH TOOLBAR (.stb-*)".
  */
 export interface SearchToolbarProps {
+  /** Register layout: one search/filter row, with an optional date row. */
+  layout?: "default" | "register"
+  dateFilter?: { from: string; to: string; onChange: (from: string, to: string) => void }
+
   search?: string
   onSearch?: (value: string) => void
   placeholder?: string
@@ -342,6 +347,8 @@ function FiltersButton({
 }
 
 export function SearchToolbar({
+  layout = 'default',
+  dateFilter,
   search = '',
   onSearch,
   placeholder = 'Search…',
@@ -367,7 +374,7 @@ export function SearchToolbar({
   const filterActive = filtersOpen || activeFilterCount > 0
 
   return (
-    <div className={cn('stb', className)} style={style}>
+    <div className={cn('stb', layout === 'register' && 'stb-register', className)} style={style}>
       <div className="stb-search">
         <Search className="stb-search-icon" size={15} strokeWidth={2} aria-hidden />
         <input
@@ -391,6 +398,13 @@ export function SearchToolbar({
           </button>
         )}
       </div>
+
+      {dateFilter && (
+        <>
+          <div className="stb-sep" aria-hidden />
+          <DateFilterRow {...dateFilter} />
+        </>
+      )}
 
       {allQuickFilters.map((qf, i) => (
         <React.Fragment key={i}>

@@ -1,23 +1,12 @@
-/**
- * Disciplinary / case management.
- *
- * MGMT_ROLES-only throughout, deliberately — this is HR/manager working
- * data about a person (a warning, a PIP, a grievance), not a personal
- * record the subject browses the way they do their own payslips or leave
- * balance. That's a real scope decision, not an oversight: an employee's
- * own view of cases raised against them is a separate, harder question
- * (does it show before or after resolution? redacted how?) this pass
- * doesn't answer.
- */
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
+/** Confidential case access requires an administrator or an explicit HR delegation. */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireUuidParams } from '../middleware/uuid-params.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 
-const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
 const CASE_TYPES = ['verbal_warning', 'written_warning', 'pip', 'suspension', 'termination', 'grievance', 'other'] as const;
 const caseCreateSchema = z.object({
@@ -38,10 +27,15 @@ export async function hrCasesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
   requireUuidParams(fastify);
-  fastify.addHook('preHandler', requireRole(...MGMT));
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.user.role === 'CUSTOMER') return reply.status(403).send({error:'Not available for this account type.'});
+  });
+  fastify.addHook('preHandler', requireRoleOrOrgPermission(ORG_PERMISSIONS.HR_CASES_MANAGE, 'SUPER_ADMIN','ADMIN','TENANT_ADMIN'));
 
   // GET /?employee_id=&status= — list, most recent first
-  fastify.get<{ Querystring: { employee_id?: string; status?: string } }>('/', async (request) => {
+  fastify.get<{ Querystring: { employee_id?: string; status?: string; page?:string;page_size?:string } }>('/', async (request,reply) => {
+    const paging=z.object({page:z.coerce.number().int().min(1).max(100000).default(1),page_size:z.coerce.number().int().min(1).max(100).default(25)}).safeParse(request.query);
+    if(!paging.success) return reply.status(400).send({error:'Invalid case pagination'});
     const user = request.user;
     const { employee_id, status } = request.query;
     return withTenant(user.tenant_id, async (trx) => {
@@ -57,7 +51,9 @@ export async function hrCasesRoutes(fastify: FastifyInstance) {
         .orderBy('c.created_at', 'desc');
       if (employee_id) q = q.where('c.employee_id', '=', employee_id);
       if (status) q = q.where('c.status', '=', status as 'open' | 'in_progress' | 'resolved' | 'closed');
-      return q.execute();
+      const total=await q.clearSelect().clearOrderBy().select(eb=>eb.fn.countAll<number>().as('count')).executeTakeFirstOrThrow();
+      const data=await q.orderBy('c.id','desc').limit(paging.data.page_size).offset((paging.data.page-1)*paging.data.page_size).execute();
+      return request.query.page !== undefined ? {data,total:Number(total.count),page:paging.data.page,page_size:paging.data.page_size} : data;
     });
   });
 

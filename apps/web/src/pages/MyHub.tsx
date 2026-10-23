@@ -1,6 +1,7 @@
+import { Banner } from '../components/ui/alert.js';
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
@@ -68,17 +69,24 @@ export function MyHubPage() {
   const [slipCount, setSlipCount] = useState(0);
   const [myDocs, setMyDocs] = useState<MyDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [holidays, setHolidays] = useState<{date:string;name:string}[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [act, wk, lve, ps, docs] = await Promise.all([
-        apiFetch('/v1/hr/clock-in/active').catch(() => ({ active: false })),
-        apiFetch('/v1/hr/clock-in/weekly').catch(() => ({ workedMinutesTotal: 0 })),
-        apiFetch('/v1/hr/leave-balances').catch(() => ({ balances: [], configured: false })),
-        apiFetch('/v1/payroll/me/payslips').catch(() => []),
-        apiFetch('/v1/hr/documents').catch(() => []),
+      const failures: string[] = [];
+      const unavailable = (section:string, fallback:any) => () => { failures.push(section); return fallback; };
+      const [act, wk, lve, ps, docs, holidayRows] = await Promise.all([
+        apiFetch('/v1/hr/clock-in/active').catch(unavailable('attendance', {active:false})),
+        apiFetch('/v1/hr/clock-in/weekly').catch(unavailable('hours', {workedMinutesTotal:0})),
+        apiFetch('/v1/hr/leave-balances').catch(unavailable('leave', {balances:[],configured:false})),
+        apiFetch('/v1/payroll/me/payslips').catch(unavailable('payslips', [])),
+        apiFetch(`/v1/hr/staff/${user?.id}/documents`).catch(unavailable('documents', [])),
+        apiFetch('/v1/hr/holidays').catch(unavailable('holidays', [])),
       ]);
 
+      setLoadError(failures.length ? `Could not load: ${failures.join(', ')}. Values in those sections are unavailable; retry before relying on them.` : '');
+      setHolidays((Array.isArray(holidayRows) ? holidayRows : []).filter((h:any) => String(h.date).slice(0,10) >= new Date().toISOString().slice(0,10)).sort((a:any,b:any) => String(a.date).localeCompare(String(b.date))).slice(0,3));
       const session = act?.active ? act.session : null;
       setActiveClockIn(session);
       setWeekMins(wk?.workedMinutesTotal || 0);
@@ -90,7 +98,7 @@ export function MyHubPage() {
       setLatestSlip(slips[0] || null);
 
       if (Array.isArray(docs)) {
-        setMyDocs(docs.filter((d: any) => d.user_id === user?.id).slice(0, 5));
+        setMyDocs(docs);
       }
     } catch (err) {
       console.error('[MyHub] Load error:', err);
@@ -119,8 +127,8 @@ export function MyHubPage() {
     {
       title: 'Weekly Hours Tracked',
       value: hm(weekMins),
-      sub1Label: 'Target 40h',
-      sub1Value: `${Math.min(100, Math.round((weekMins / 2400) * 100))}% completed`,
+      sub1Label: 'Recorded time',
+      sub1Value: 'This week',
       barColor: activeClockIn ? 'var(--green)' : 'var(--teal)',
       icon: 'clock',
     },
@@ -134,17 +142,17 @@ export function MyHubPage() {
     },
     {
       title: 'Net Salary (Take-Home)',
-      value: latestSlip ? money(latestSlip.net_pay) : 'TZS 0',
+      value: latestSlip ? money(latestSlip.net_pay) : 'No payslip',
       sub1Label: 'Period',
       sub1Value: slipPeriod,
       barColor: 'var(--teal)',
       icon: 'dollarSign',
     },
     {
-      title: 'Verified Personnel Records',
+      title: 'Personnel Documents',
       value: String(myDocs.length),
-      sub1Label: 'Compliance Rating',
-      sub1Value: '100% Compliant',
+      sub1Label: 'Review status',
+      sub1Value: 'See document reviews',
       barColor: 'var(--purple)',
       icon: 'shield',
     },
@@ -154,6 +162,7 @@ export function MyHubPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
+      {loadError && <Banner variant="error">{loadError}<Button variant="outline" onClick={loadData}>Retry</Button></Banner>}
       <PageHeader
         crumbs={['NexusHR', 'My hub']}
         titlePlain="My employee"
@@ -167,37 +176,10 @@ export function MyHubPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20, marginTop: 24 }}>
         {/* Left Primary Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Card 1: Today's Shift & Attendance Timeline */}
           <div style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
-                  <Icon name="clock" size={17} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Today's Shift Timeline</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Standard Shift: 08:00 AM – 05:00 PM (1h Break)</div>
-                </div>
-              </div>
-              <Link to="/nexushr/clock-in" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
-                Full Roster ➔
-              </Link>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              {[
-                { title: 'Expected In', time: '08:00 AM', status: 'Done', color: 'var(--green)' },
-                { title: 'Clocked In', time: activeClockIn ? new Date(activeClockIn.clock_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--', status: activeClockIn ? 'Active' : 'Pending', color: activeClockIn ? 'var(--green)' : 'var(--ink3)' },
-                { title: 'Lunch Break', time: '01:00 PM', status: '1 Hour', color: 'var(--teal)' },
-                { title: 'Expected Out', time: '05:00 PM', status: 'Scheduled', color: 'hsl(var(--primary))' },
-              ].map((s, idx) => (
-                <div key={idx} style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--border)' }}>
-                  <div style={labelStyle}>{s.title}</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: s.color, marginTop: 4, fontFamily: 'var(--font)' }}>{s.time}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{s.status}</div>
-                </div>
-              ))}
-            </div>
+            <strong>Current attendance</strong>
+            <span>{activeClockIn ? `Clocked in at ${new Date(activeClockIn.clock_in_at).toLocaleTimeString()}` : 'No active clock-in session.'}</span>
+            <Link to="/nexushr/clock-in">View attendance and clock-in</Link>
           </div>
 
           {/* Card 2: Leave Balances & Visual Progress */}
@@ -309,7 +291,7 @@ export function MyHubPage() {
                 { to: '/nexushr/my-payslips', icon: 'fileText', label: 'Payslips' },
                 { to: `/nexushr/staff/${user?.id}`, icon: 'user', label: 'My Profile' },
                 { to: '/nexushr/leaves', icon: 'calendar', label: 'Leave' },
-                { to: '/nexushr/documents', icon: 'file', label: 'Documents' },
+                { to: `/nexushr/staff/${user?.id}?tab=Documents`, icon: 'file', label: 'Documents' },
                 { to: '/nexushr/holidays', icon: 'sun', label: 'Holidays' },
                 { to: '/nexushr/calls', icon: 'camera', label: 'Calls' },
                 { to: '/nexushr/shifts', icon: 'timer', label: 'Roster' },
@@ -342,7 +324,7 @@ export function MyHubPage() {
           <div style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>My Personnel Files</span>
-              <Link to="/nexushr/documents" style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+              <Link to={`/nexushr/staff/${user?.id}?tab=Documents`} style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
                 View All
               </Link>
             </div>
@@ -353,7 +335,7 @@ export function MyHubPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {myDocs.map(doc => (
+                {myDocs.slice(0,5).map(doc => (
                   <div
                     key={doc.id}
                     style={{
@@ -374,7 +356,7 @@ export function MyHubPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => window.open(`http://localhost:3001/v1/documents/download?key=${encodeURIComponent(doc.storage_key)}&filename=${encodeURIComponent(doc.name)}`, '_blank')}
+                      onClick={() => apiDownload(`/v1/hr/documents/${doc.id}/download`,doc.name).catch((err:Error) => setLoadError(err.message))}
                       style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                      data-ui-native-button="">
                       PDF
@@ -391,8 +373,7 @@ export function MyHubPage() {
               <Icon name="sun" size={16} /> Upcoming Public Holidays
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.4 }}>
-              <strong>Nane Nane Day (Farmers' Day)</strong><br />
-              August 8, 2026 • Official National Holiday
+              {holidays.length ? holidays.map(h => <div key={`${h.date}-${h.name}`}><strong>{h.name}</strong><br />{String(h.date).slice(0,10)}</div>) : 'No upcoming holidays are configured.'}
             </div>
           </div>
         </div>

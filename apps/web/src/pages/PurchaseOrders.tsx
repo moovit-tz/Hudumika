@@ -738,11 +738,11 @@ export const PurchaseOrders: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 
                 {/* Search field */}
-                <SearchToolbar
+                <SearchToolbar layout="register"
                   search={searchQuery}
                   onSearch={value => { setSearchQuery(value); setAppliedSearch(value); setCurrentPage(1); }}
                   placeholder="Search by purchase order number"
-                  style={{ flex: '1 1 320px', minWidth: 260 }}
+                  style={{ flex: '1 1 320px', minWidth: 0 }}
                 />
 
                 {/* View toggles and filters */}
@@ -755,8 +755,8 @@ export const PurchaseOrders: React.FC = () => {
                       style={{
                         padding: 6,
                         border: 'none',
-                        background: !isCardView ? 'var(--teal)' : 'transparent',
-                        color: !isCardView ? '#fff' : 'var(--ink3)',
+                        background: !isCardView ? 'hsl(var(--primary))' : 'transparent',
+                        color: !isCardView ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
                         borderRadius: 'var(--r)',
                         cursor: 'pointer',
                         display: 'flex',
@@ -772,8 +772,8 @@ export const PurchaseOrders: React.FC = () => {
                       style={{
                         padding: 6,
                         border: 'none',
-                        background: isCardView ? 'var(--teal)' : 'transparent',
-                        color: isCardView ? '#fff' : 'var(--ink3)',
+                        background: isCardView ? 'hsl(var(--primary))' : 'transparent',
+                        color: isCardView ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
                         borderRadius: 'var(--r)',
                         cursor: 'pointer',
                         display: 'flex',
@@ -1366,8 +1366,8 @@ export const PurchaseOrders: React.FC = () => {
                       height: 32,
                       borderRadius: 'var(--r)',
                       border: 'none',
-                      background: currentPage === pageNum ? 'var(--teal)' : 'transparent',
-                      color: currentPage === pageNum ? '#fff' : 'var(--ink2)',
+                      background: currentPage === pageNum ? 'hsl(var(--primary))' : 'transparent',
+                      color: currentPage === pageNum ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer'

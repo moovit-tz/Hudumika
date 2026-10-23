@@ -23,6 +23,15 @@ export function LockScreen() {
   const [capsLock, setCapsLock] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // If autoFocus already focused the input on mount, sync focus state immediately
+    if (inputRef.current && document.activeElement === inputRef.current) {
+      setIsFocused(true);
+    }
+  }, []);
 
   const [dotKeys, setDotKeys] = useState<string[]>([]);
   const prevLenRef = useRef(0);
@@ -111,34 +120,42 @@ export function LockScreen() {
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate className="ls-form">
           {/* Password field */}
-          <div className="ls-field">
+          <div className="ls-field" onClick={() => inputRef.current?.focus()}>
             <div className="ls-field-icon">
               <Icon name="key" size={16} />
             </div>
             <Input
+              ref={inputRef}
               type={showPass ? 'text' : 'password'}
               placeholder={showPass ? 'Password' : ''}
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={handleKeyActivity}
               onKeyUp={handleKeyActivity}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               autoComplete="current-password"
               autoFocus
               style={{
                 color: showPass ? undefined : 'transparent',
-                caretColor: showPass ? undefined : 'transparent',
+                caretColor: showPass ? 'var(--teal, #3b82f6)' : 'transparent',
               }}
             />
             {!showPass && (
               <div className="ls-dots">
                 {dotKeys.length === 0 ? (
-                  <span className="ls-dots-placeholder">Password</span>
+                  <>
+                    {isFocused && <span className="ls-cursor ls-cursor--empty" />}
+                    <span className={`ls-dots-placeholder${isFocused ? ' ls-dots-placeholder--focused' : ''}`}>
+                      Password
+                    </span>
+                  </>
                 ) : (
                   <>
                     {dotKeys.map((k, i) => (
                       <span key={k} className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`} />
                     ))}
-                    <span className="ls-cursor" />
+                    {isFocused && <span className="ls-cursor" />}
                   </>
                 )}
               </div>
@@ -146,7 +163,11 @@ export function LockScreen() {
             <button
               type="button"
               className="ls-eye"
-              onClick={() => setShowPass(p => !p)}
+              onClick={() => {
+                setShowPass(p => !p);
+                setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+              onMouseDown={e => e.preventDefault()}
               title={showPass ? 'Hide password' : 'Show password'}
               data-ui-native-button=""
             >
@@ -176,6 +197,7 @@ export function LockScreen() {
                 onChange={e => setTotp(e.target.value)}
                 autoComplete="one-time-code"
                 autoFocus
+                style={{ caretColor: 'var(--teal, #3b82f6)' }}
               />
             </div>
           )}

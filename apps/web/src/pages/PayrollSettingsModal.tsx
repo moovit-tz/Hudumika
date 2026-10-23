@@ -1,3 +1,4 @@
+import { useAuth } from '../hooks/useAuth.js';
 import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
@@ -40,6 +41,10 @@ const EDITABLE_KEYS = ['employee_pct', 'employer_pct', 'calc_base', 'reduces_tax
 type EditableKey = typeof EDITABLE_KEYS[number];
 
 export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
+  const { user } = useAuth();
+  const [salaryBasis, setSalaryBasis] = useState('calendar_days');
+  const [policyError, setPolicyError] = useState('');
+  const canConfigure = ['SUPER_ADMIN','ADMIN','TENANT_ADMIN'].includes(user?.role || '');
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
   const [jurisdiction, setJurisdiction] = useState('TZ');
@@ -53,11 +58,13 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
     (async () => {
       setLoading(true);
       try {
-        const [settings, schemeRows] = await Promise.all([
+        const [settings, schemeRows, policy] = await Promise.all([
           apiFetch('/v1/payroll/settings'),
           apiFetch('/v1/payroll/settings/schemes'),
+          apiFetch('/v1/payroll/policy'),
         ]);
         if (!alive) return;
+        setSalaryBasis(policy.salary_basis);
         setConfigured(!!settings?.configured);
         setJurisdiction(settings?.jurisdiction ?? 'TZ');
         setBands({
@@ -128,6 +135,15 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+        {!loading && <section style={{marginTop:16,display:'grid',gap:8}}>
+          <label htmlFor="payroll-salary-basis">Salary calculation basis</label>
+          <Select value={salaryBasis} disabled={!canConfigure} onValueChange={async value => {
+            setPolicyError(''); try { const saved = await apiFetch('/v1/payroll/policy',{method:'PATCH',body:JSON.stringify({salary_basis:value})}); setSalaryBasis(saved.salary_basis); }
+            catch(error) {setPolicyError(error instanceof Error ? error.message : 'Could not save payroll policy');}
+          }}><SelectTrigger id="payroll-salary-basis"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="calendar_days">Prorate changes by calendar days</SelectItem><SelectItem value="period_end">Salary in force at period end</SelectItem></SelectContent></Select>
+          <p style={{fontSize:12,color:'var(--ink3)'}}>Approval requires a different authorised approver from the run creator and calculator. This payroll supports TZS monthly or annual compensation; unsupported currencies and pay cycles are blocked before calculation.</p>
+          {policyError && <Banner variant="error">{policyError}</Banner>}
+        </section>}
         {loading ? (
           <div style={{ padding: '32px 0' }}><SectionLoading /></div>
         ) : !configured ? (

@@ -111,6 +111,11 @@ describe('NexusHR — staff record access tiers (manager = a real reporting line
 
   it("sub-resources need a real relationship: the direct manager may open them, an unrelated manager may not", async () => {
     const app = await getApp();
+    expect((await app.inject({method:'GET',url:`/v1/hr/staff/${employee.userId}/compensation`,headers:authHeaders(directManager.token)})).statusCode).toBe(403);
+    expect((await app.inject({method:'GET',url:`/v1/hr/staff/${employee.userId}/contracts`,headers:authHeaders(directManager.token)})).statusCode).toBe(403);
+    expect((await app.inject({method:'GET',url:`/v1/hr/staff/${employee.userId}/contracts`,headers:authHeaders(employee.token)})).statusCode).toBe(200);
+    expect((await app.inject({method:'GET',url:`/v1/hr/staff/${employee.userId}/compensation`,headers:authHeaders(employee.token)})).statusCode).toBe(200);
+
     const ok = await app.inject({ method: 'GET', url: `/v1/hr/staff/${employee.userId}/activity`, headers: authHeaders(directManager.token) });
     expect(ok.statusCode).toBe(200);
     const denied = await app.inject({ method: 'GET', url: `/v1/hr/staff/${employee.userId}/activity`, headers: authHeaders(unrelatedManager.token) });

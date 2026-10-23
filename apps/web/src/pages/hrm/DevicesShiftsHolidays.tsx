@@ -1,3 +1,4 @@
+import { Banner } from '../../components/ui/alert.js';
 ﻿import React, { useState, useCallback, useEffect } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { Icon } from '../../components/Icon.js';
@@ -59,6 +60,7 @@ function relTime(iso: string | null): string {
 }
 
 export function DevicesPage() {
+  const [loadError, setLoadError] = useState('');
   const [devices, setDevices] = useState<AttDevice[]>([]);
   const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
   const [showRegister, setShowRegister] = useState(false);
@@ -68,7 +70,7 @@ export function DevicesPage() {
   const [manageDevice, setManageDevice] = useState<AttDevice | null>(null);
 
   const loadDevices = useCallback(async () => {
-    try { const res = await apiFetch('/v1/hr/attendance-devices'); if (Array.isArray(res)) setDevices(res); } catch { /* empty */ }
+    try { const res = await apiFetch('/v1/hr/attendance-devices'); if (Array.isArray(res)) setDevices(res); setLoadError(''); } catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not load attendance devices'); }
   }, []);
   const loadStaff = useCallback(async () => {
     try {
@@ -93,6 +95,13 @@ export function DevicesPage() {
     }
   }
 
+  async function rotateToken(device: AttDevice) {
+    if (!(await showConfirm('Replace this device credential? The old credential stops working immediately. Update the physical terminal with the new token.', {confirmLabel:'Rotate credential'}))) return;
+    try {const result = await apiFetch(`/v1/hr/attendance-devices/${device.id}/rotate-token`,{method:'POST'});
+      setJustRegistered({...result,name:device.name}); setShowRegister(true);
+    } catch(error) {showAlert(error instanceof Error ? error.message : 'Could not rotate credential');}
+  }
+
   async function removeDevice(d: AttDevice) {
     if (!(await showConfirm(`Remove "${d.name}"? Its enrollments and punch history will be deleted.`, { variant: 'danger', confirmLabel: 'Remove' }))) return;
     try {
@@ -110,6 +119,7 @@ export function DevicesPage() {
         <PrimaryBtn label="Register Device" icon="plus" onClick={() => { setJustRegistered(null); setShowRegister(true); }} />
       </PageHeader>
 
+      {loadError && <Banner variant="error" action={<Button variant="outline" onClick={loadDevices}>Retry</Button>}>{loadError}</Banner>}
       <Wrap>
         <thead>
           <tr>
@@ -133,6 +143,7 @@ export function DevicesPage() {
               <TD right>
                 <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                   <Button size="xs" variant="outline" onClick={() => setManageDevice(d)}>Manage</Button>
+                  <Button size="xs" variant="outline" onClick={() => rotateToken(d)}>Rotate credential</Button>
                   <Button size="xs" variant="outline" onClick={() => removeDevice(d)} style={{ color: 'var(--red)' }}>Remove</Button>
                 </div>
               </TD>

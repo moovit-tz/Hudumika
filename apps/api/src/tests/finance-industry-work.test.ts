@@ -12,7 +12,7 @@ describe('Industry accounting workflows', () => {
     await dbPlatform.insertInto('tenant_settings').values({ tenant_id: tenant.tenantId, settings: JSON.stringify({ 'enabled-apps': { finops: true, 'finance.inventory': true, 'finance.accounting.advanced': true } }) as any }).execute();
     await withTenant(tenant.tenantId, async trx => {
       await GLService.seedChartOfAccounts(trx, tenant.tenantId);
-      await trx.insertInto('tenant_finance_capabilities').values(['finance.inventory', 'finance.accounting.advanced'].map(capability_key => ({ tenant_id: tenant.tenantId, capability_key, enabled: true }))).execute();
+      await trx.insertInto('tenant_finance_capabilities').values(['finance.manufacturing', 'finance.inventory', 'finance.accounting.advanced'].map(capability_key => ({ tenant_id: tenant.tenantId, capability_key, enabled: true }))).execute();
       customerId = (await trx.insertInto('customers').values({ tenant_id: tenant.tenantId, name: 'Industry Customer' }).returning('id').executeTakeFirstOrThrow()).id;
       const warehouse = await trx.insertInto('inventory_warehouses').values({ tenant_id: tenant.tenantId, name: 'Factory', code: 'FACTORY', address: null }).returning('id').executeTakeFirstOrThrow();
       location = (await trx.insertInto('inventory_locations').values({ tenant_id: tenant.tenantId, warehouse_id: warehouse.id, code: 'BIN', name: 'Bin' }).returning('id').executeTakeFirstOrThrow()).id;
@@ -26,7 +26,7 @@ describe('Industry accounting workflows', () => {
     for (const current of [tenant, other].filter(Boolean)) {
       await withTenant(current.tenantId, async trx => {
         await trx.updateTable('sales_invoices').set({ industry_work_id: null }).where('tenant_id', '=', current.tenantId).execute();
-        for (const table of ['finance_work_cost_allocations', 'finance_production_recipes', 'finance_stock_allocations', 'finance_production_materials', 'finance_production_orders', 'finance_industry_work_lines', 'finance_industry_work'] as const) await trx.deleteFrom(table).where('tenant_id', '=', current.tenantId).execute();
+        for (const table of ['finance_production_traceability', 'finance_production_waste', 'finance_quality_inspections', 'finance_production_stages', 'finance_work_cost_allocations', 'finance_production_recipes', 'finance_stock_allocations', 'finance_production_materials', 'finance_production_orders', 'finance_industry_work_lines', 'finance_industry_work'] as const) await trx.deleteFrom(table).where('tenant_id', '=', current.tenantId).execute();
       });
       await current.cleanup();
     }

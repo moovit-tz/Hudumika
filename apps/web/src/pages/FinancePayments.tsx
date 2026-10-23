@@ -408,7 +408,7 @@ export const FinancePayments: React.FC = () => {
                 </TabsList>
               </Tabs>
 
-              <SearchToolbar
+              <SearchToolbar layout="register"
                 search={search}
                 onSearch={v => { setSearch(v); setPage(1); }}
                 placeholder="Search payments…"

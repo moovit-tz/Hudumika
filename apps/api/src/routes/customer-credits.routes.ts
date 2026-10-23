@@ -92,7 +92,7 @@ export async function customerCreditRoutes(fastify: FastifyInstance) {
           { accountCode: '2150', debit: amount, credit: 0, description: 'Customer credit applied' },
           { accountCode: '1100', debit: 0, credit: amount, description: `Clear AR: ${invoice.invoice_number}` },
         ],
-      });
+      }, trx);
 
       await trx.insertInto('customer_credit_applications').values({
         tenant_id: user.tenant_id, credit_id: id, invoice_id, amount: String(amount),

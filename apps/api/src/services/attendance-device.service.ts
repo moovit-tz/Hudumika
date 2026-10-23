@@ -36,6 +36,8 @@ export async function recordDevicePunches(
   if (punches.length === 0) return { received: 0, matched: 0 };
 
   return withTenant(tenantId, async (trx) => {
+    const device = await trx.selectFrom('attendance_devices').select('id').where('tenant_id', '=', tenantId).where('id', '=', deviceId).forUpdate().executeTakeFirst();
+    if (!device) throw new Error('Attendance device no longer registered.');
     const enrollments = await trx.selectFrom('attendance_device_enrollments')
       .select(['external_pin', 'user_id'])
       .where('tenant_id', '=', tenantId).where('device_id', '=', deviceId)
@@ -48,7 +50,9 @@ export async function recordDevicePunches(
     for (const punch of punches) {
       const userId = pinToUser.get(punch.externalPin) ?? null;
       if (userId) matched++;
-      await trx.insertInto('attendance_device_events').values({
+      const duplicate = await trx.selectFrom('attendance_device_events').select('id').where('tenant_id', '=', tenantId).where('device_id', '=', deviceId)
+        .where('external_pin', '=', punch.externalPin).where('punched_at', '=', punch.punchedAt).where('raw_status', '=', punch.rawStatus).executeTakeFirst();
+      if (!duplicate) await trx.insertInto('attendance_device_events').values({
         tenant_id: tenantId, device_id: deviceId, external_pin: punch.externalPin,
         user_id: userId, punched_at: punch.punchedAt, raw_status: punch.rawStatus,
         processed: false,
@@ -58,7 +62,7 @@ export async function recordDevicePunches(
 
     await trx.updateTable('attendance_devices')
       .set({ last_heartbeat_at: new Date(), last_sync_at: new Date(), status: 'online', updated_at: new Date() })
-      .where('id', '=', deviceId).execute();
+      .where('id', '=', deviceId).where('tenant_id', '=', tenantId).execute();
 
     for (const { userId, date } of affected.values()) {
       await reconcileDevicePunchesForUserDate(trx, tenantId, deviceId, userId, date);
@@ -88,7 +92,9 @@ export async function reconcileDevicePunchesForUserDate(
     .select(['id', 'punched_at', 'raw_status'])
     .where('tenant_id', '=', tenantId).where('device_id', '=', deviceId).where('user_id', '=', userId)
     .execute();
-  const dayEvents = events
+  type PunchEvent = { id: string; punched_at: Date | string; raw_status: string };
+  const uniqueEvents = [...new Map<string, PunchEvent>(events.map((event: PunchEvent) => [`${new Date(event.punched_at).toISOString()}|${event.raw_status}`, event])).values()];
+  const dayEvents = uniqueEvents
     .filter((e: any) => dateKey(new Date(e.punched_at)) === dateStr)
     .sort((a: any, b: any) => new Date(a.punched_at).getTime() - new Date(b.punched_at).getTime());
   if (dayEvents.length === 0) return;

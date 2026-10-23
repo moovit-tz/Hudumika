@@ -1,3 +1,4 @@
+import { gateStaffFile } from '../lib/cloud-file-access.js';
 // ─── eSign — AI assistance (Phase S8) ───────────────────────────────────────
 // Prefix: /v1/sign. Its own file for the same reason sign-matters.routes.ts/
 // sign-jurisdiction.routes.ts already are — self-contained, out of
@@ -44,16 +45,11 @@ export async function signAiAssistRoutes(fastify: FastifyInstance) {
           .select(['id', 'storage_key', 'mime_type', 'entity_type', 'entity_id'])
           .where('id', '=', body.file_id!).where('tenant_id', '=', tid).executeTakeFirst();
         if (!row) return null;
-        // Drive itself draws no staff-vs-staff line — any tenant member with
-        // 'cloud' entitlement can already read any tenant file (see GET /:id/
-        // download in files.routes.ts). The one real boundary is CUSTOMER
-        // accounts, who Drive narrowly scopes to their own linked files —
-        // this used to skip that check entirely, so a CUSTOMER JWT with
-        // 'sign' entitlement could point this at any staff-only file by id.
         if (user.role === 'CUSTOMER') {
           const cid = await resolveCustomerId(user);
           if (!(await canCustomerAccessFile(trx, tid, cid, row))) return undefined;
         }
+        if (user.role !== 'CUSTOMER' && !(await gateStaffFile(trx,user,row.id,'read')).ok) return undefined;
         return row;
       });
       if (!file?.storage_key) return reply.status(404).send({ error: 'File not found' });

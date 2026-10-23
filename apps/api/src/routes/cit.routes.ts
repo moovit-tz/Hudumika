@@ -269,7 +269,7 @@ export async function citRoutes(fastify: FastifyInstance) {
           { accountCode: '2400', debit: amount, credit: 0, description: 'Income tax paid (provisional)' },
           { accountCode: account_code || '1010', debit: 0, credit: amount, description: 'Cash paid' },
         ],
-      });
+      }, trx);
 
       return trx.updateTable('cit_installments').set({
         status: 'PAID', paid_at: paid_at ? new Date(paid_at) : new Date(), reference: reference || null, journal_entry_id: journalEntryId,

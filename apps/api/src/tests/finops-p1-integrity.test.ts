@@ -19,6 +19,7 @@ const ENABLED_APPS: Record<string, boolean> = {
   'finance.accounting.advanced': true,
   'finance.fixed_assets': true,
   'finance.multi_currency': true,
+  'finance.pos': true,
 };
 
 async function seedTenant(t: TestTenant) {
@@ -29,7 +30,7 @@ async function seedTenant(t: TestTenant) {
       settings: settingsJson,
     }).onConflict(c => c.column('tenant_id').doUpdateSet({ settings: settingsJson as any })).execute();
     await GLService.seedChartOfAccounts(trx, t.tenantId);
-    for (const key of ['finance.core', 'finance.accounting.advanced', 'finance.fixed_assets', 'finance.multi_currency']) {
+    for (const key of ['finance.core', 'finance.accounting.advanced', 'finance.fixed_assets', 'finance.multi_currency', 'finance.pos']) {
       await trx.insertInto('tenant_finance_capabilities' as any).values({
         tenant_id: t.tenantId,
         capability_key: key,
@@ -56,6 +57,10 @@ afterAll(async () => {
         dbPlatform.selectFrom('credit_notes').select('id').where('tenant_id', '=', t.tenantId)
       ).execute().catch(() => {});
     await dbPlatform.deleteFrom('credit_notes').where('tenant_id', '=', t.tenantId).execute().catch(() => {});
+    await dbPlatform.deleteFrom('pos_payments' as any).where('tenant_id', '=', t.tenantId).execute().catch(() => {});
+    await dbPlatform.deleteFrom('pos_sale_lines' as any).where('tenant_id', '=', t.tenantId).execute().catch(() => {});
+    await dbPlatform.deleteFrom('pos_sales' as any).where('tenant_id', '=', t.tenantId).execute().catch(() => {});
+    await dbPlatform.deleteFrom('pos_shifts' as any).where('tenant_id', '=', t.tenantId).execute().catch(() => {});
     await t.cleanup();
   }
 }, 120_000);
@@ -729,5 +734,67 @@ describe('P1 #9: journal entries pagination', () => {
     for (const entry of body.journal_entries) {
       expect(entry.status).toBe('POSTED');
     }
+  }, 120_000);
+});
+
+// ---------------------------------------------------------------------------
+// P1 #10: POS retry-posting concurrency — one journal per sale
+// ---------------------------------------------------------------------------
+describe('P1 #10: POS retry-posting creates exactly one journal under concurrency', () => {
+  let posSaleId: string;
+
+  it('seeds a POSTING_FAILED POS sale with payments', async () => {
+    posSaleId = await withTenant(tenant.tenantId, async (trx) => {
+      const shift = await trx.insertInto('pos_shifts' as any).values({
+        tenant_id: tenant.tenantId,
+        opened_by: tenant.userId,
+        status: 'OPEN',
+        opening_float: 0,
+      }).returning('id').executeTakeFirstOrThrow();
+      const sale = await trx.insertInto('pos_sales' as any).values({
+        tenant_id: tenant.tenantId,
+        shift_id: shift.id,
+        sale_number: `POS-TEST-${randomUUID().slice(0, 8)}`,
+        currency: 'TZS',
+        subtotal: 1000,
+        discount_total: 0,
+        tax_total: 0,
+        grand_total: 1000,
+        amount_paid: 1000,
+        change_due: 0,
+        status: 'POSTING_FAILED',
+        posting_error: 'Simulated failure for concurrency test',
+        posting_attempts: 1,
+        last_posting_attempt_at: new Date(),
+        sold_by: tenant.userId,
+      }).returning('id').executeTakeFirstOrThrow();
+      await trx.insertInto('pos_payments' as any).values({
+        tenant_id: tenant.tenantId,
+        sale_id: sale.id,
+        method: 'CASH',
+        amount: 1000,
+      }).execute();
+      return sale.id;
+    });
+    expect(posSaleId).toBeTruthy();
+  }, 120_000);
+
+  it('concurrent retry-posting creates exactly one journal entry', async () => {
+    const retry = () => call('POST', `finance/pos/sales/${posSaleId}/retry-posting`);
+    const [r1, r2, r3] = await Promise.all([retry(), retry(), retry()]);
+    const statuses = [r1.statusCode, r2.statusCode, r3.statusCode];
+    const successes = statuses.filter(c => c < 300);
+    expect(successes.length).toBe(1);
+
+    const journals = await withTenant(tenant.tenantId, (trx) =>
+      trx.selectFrom('journal_entries')
+        .select('id')
+        .where('tenant_id', '=', tenant.tenantId)
+        .where('source_module', '=', 'AR')
+        .where('source_id', '=', posSaleId)
+        .where('status', '=', 'POSTED')
+        .execute()
+    );
+    expect(journals).toHaveLength(1);
   }, 120_000);
 });

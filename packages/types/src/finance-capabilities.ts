@@ -14,6 +14,11 @@ export const FINANCE_CAPABILITY_KEYS = [
   'finance.professional_services',
   'finance.project_accounting',
   'finance.consolidation',
+  'finance.property',
+  'finance.hospitality',
+  'finance.education',
+  'finance.insurance',
+  'finance.lending',
 ] as const;
 
 export type FinanceCapabilityKey = (typeof FINANCE_CAPABILITY_KEYS)[number];
@@ -50,6 +55,11 @@ export const FINANCE_CAPABILITIES: readonly FinanceCapabilityDefinition[] = [
   { key: 'finance.professional_services', name: 'Professional services', description: 'Service delivery, time and project profitability.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'planned' },
   { key: 'finance.project_accounting', name: 'Project accounting', description: 'Project costs, revenue, budgets and profitability.', category: 'reporting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'planned' },
   { key: 'finance.consolidation', name: 'Consolidation', description: 'Multi-entity consolidation and segment reporting.', category: 'reporting', edition: 'advanced', configurable: true, dependencies: ['finance.accounting.advanced'], status: 'available' },
+  { key: 'finance.property', name: 'Property management', description: 'Lease management, tenant billing, units and charge generation.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.hospitality', name: 'Hospitality', description: 'Room inventory, reservations, check-in/out and guest folios.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.education', name: 'Education', description: 'Student management, fee structures and enrollment billing.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.insurance', name: 'Insurance', description: 'Policy underwriting, premium tracking and claims adjudication.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.lending', name: 'Lending & Microfinance', description: 'Loan origination, amortisation, repayment allocation and arrears.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core', 'finance.accounting.advanced'], status: 'available' },
 ] as const;
 
 export interface FinanceCapabilitySummary {
@@ -61,12 +71,28 @@ export interface FinanceCapabilitySummary {
 export const FINANCE_INDUSTRY_KEYS = [
   'retail',
   'wholesale',
+  'ecommerce',
   'manufacturing',
+  'food_beverage',
+  'printing',
   'warehousing',
   'professional_services',
   'consulting',
-  'printing',
   'construction',
+  'property',
+  'automotive',
+  'hospitality',
+  'restaurant',
+  'agriculture',
+  'education',
+  'healthcare',
+  'pharmaceutical',
+  'mining',
+  'energy',
+  'telecom',
+  'insurance',
+  'lending',
+  'logistics',
 ] as const;
 
 export type FinanceIndustryKey = (typeof FINANCE_INDUSTRY_KEYS)[number];
@@ -87,6 +113,22 @@ export const FINANCE_INDUSTRIES: readonly FinanceIndustryDefinition[] = [
   { key: 'consulting', name: 'Consulting', description: 'Client engagements, expenses and project profitability.', recommendedCapabilities: ['finance.professional_services', 'finance.project_accounting'] },
   { key: 'printing', name: 'Printing', description: 'Stock, purchasing and production workflows.', recommendedCapabilities: ['finance.inventory', 'finance.procurement', 'finance.manufacturing'] },
   { key: 'construction', name: 'Construction', description: 'Projects, estimates, materials, subcontracted work and progress billing.', recommendedCapabilities: ['finance.inventory', 'finance.procurement', 'finance.project_accounting'] },
+  { key: 'ecommerce', name: 'E-commerce', description: 'Online storefronts, order fulfilment and multi-channel sales.', recommendedCapabilities: ['finance.inventory', 'finance.pos', 'finance.procurement'] },
+  { key: 'food_beverage', name: 'Food & Beverage', description: 'Recipe-driven batch production, allergens, shelf life and traceability.', recommendedCapabilities: ['finance.inventory', 'finance.manufacturing', 'finance.procurement'] },
+  { key: 'property', name: 'Property & Rentals', description: 'Lease management, tenant billing and maintenance.', recommendedCapabilities: ['finance.property'] },
+  { key: 'automotive', name: 'Automotive & Workshop', description: 'Vehicle service jobs, parts and labour billing.', recommendedCapabilities: ['finance.inventory', 'finance.procurement'] },
+  { key: 'hospitality', name: 'Hospitality', description: 'Reservations, guest folios and front-desk operations.', recommendedCapabilities: ['finance.hospitality', 'finance.pos'] },
+  { key: 'restaurant', name: 'Restaurant & Food Service', description: 'Table orders, kitchen tickets, menu costing and revenue.', recommendedCapabilities: ['finance.inventory', 'finance.pos'] },
+  { key: 'agriculture', name: 'Agriculture & Livestock', description: 'Planting seasons, harvest yields, input costs and crop-to-market.', recommendedCapabilities: ['finance.inventory', 'finance.procurement'] },
+  { key: 'education', name: 'Education', description: 'Student enrolment, fee structures, term billing.', recommendedCapabilities: ['finance.education'] },
+  { key: 'healthcare', name: 'Healthcare', description: 'Patient encounters, procedure billing and insurance claims.', recommendedCapabilities: ['finance.inventory'] },
+  { key: 'pharmaceutical', name: 'Pharmaceutical', description: 'GMP batch manufacturing, stability testing and regulatory holds.', recommendedCapabilities: ['finance.inventory', 'finance.manufacturing', 'finance.procurement'] },
+  { key: 'mining', name: 'Mining & Extraction', description: 'Extraction operations, ore processing and royalty billing.', recommendedCapabilities: ['finance.inventory', 'finance.procurement'] },
+  { key: 'energy', name: 'Energy & Utilities', description: 'Meter readings, consumption billing and tariff structures.', recommendedCapabilities: [] },
+  { key: 'telecom', name: 'Telecom & Subscriptions', description: 'Subscriber plans, usage metering and recurring billing.', recommendedCapabilities: [] },
+  { key: 'insurance', name: 'Insurance', description: 'Policy underwriting, premium collection and claims processing.', recommendedCapabilities: ['finance.insurance'] },
+  { key: 'lending', name: 'Lending & Microfinance', description: 'Loan origination, disbursement and repayment collection.', recommendedCapabilities: ['finance.lending'] },
+  { key: 'logistics', name: 'Logistics & Import/Export', description: 'Freight forwarding, customs clearance and shipment costing.', recommendedCapabilities: ['finance.procurement'] },
 ] as const;
 
 export interface FinanceBusinessLine {

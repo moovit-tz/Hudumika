@@ -522,7 +522,7 @@ export async function signRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(tid, async (trx) => {
-      const referenceError=await validateSignEditorReferences(trx,tid,parsed.data);
+      const referenceError=await validateSignEditorReferences(trx,tid,parsed.data,req.user);
       if(referenceError) return reply.status(404).send({error:referenceError});
       const assignmentError=validateFieldAssignments(body.fields,body.recipients.length);
       if(assignmentError) return reply.status(400).send({error:assignmentError});
@@ -690,7 +690,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       if (!assertCanActOnEnvelope(req, reply, envelope)) return;
       if (envelope.status !== 'draft') return reply.status(409).send({ error: 'Only draft envelopes can be edited' });
 
-      const referenceError=await validateSignEditorReferences(trx,tid,parsed.data);
+      const referenceError=await validateSignEditorReferences(trx,tid,parsed.data,req.user);
       if(referenceError) return reply.status(404).send({error:referenceError});
       const currentRecipients=await trx.selectFrom('sign_recipients').select('id').where('envelope_id','=',req.params.id).where('tenant_id','=',tid).execute();
       const assignmentError=validateFieldAssignments(body.fields,body.recipients?.length ?? currentRecipients.length);
@@ -1314,7 +1314,7 @@ export async function signRoutes(fastify: FastifyInstance) {
     if (!parsed.success) return reply.status(400).send({error:parsed.error.issues[0].message});
     const body=parsed.data;
     return withTenant(tid, async (trx) => {
-      const referenceError=await validateSignEditorReferences(trx,tid,{file_id:body.file_id,recipients:body.recipients});
+      const referenceError=await validateSignEditorReferences(trx,tid,{file_id:body.file_id,recipients:body.recipients},req.user);
       if(referenceError)return reply.status(404).send({error:referenceError});
       const assignmentError=validateFieldAssignments(body.fields,body.recipients.length);
       if(assignmentError)return reply.status(400).send({error:assignmentError});

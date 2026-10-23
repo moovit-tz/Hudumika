@@ -147,6 +147,214 @@ const experiences: Record<
       { label: 'Project Budgets', path: '/finance/accounts/budgets', description: 'Monitor committed and actual costs against budget.' },
       { label: 'Progress Billing', path: '/finance/invoices', description: 'Raise approved milestone and progress invoices.' }
     ]
+  },
+  ecommerce: {
+    title: 'E-commerce & Omnichannel',
+    noun: 'Online Order',
+    description: 'Manage online storefronts, multi-channel order fulfilment, shipping logistics, and return handling.',
+    sections: ['Order Queue', 'Channel Desk'],
+    kinds: ['material', 'service', 'expense'],
+    fields: ['Channel', 'Shipping Method', 'Tracking Number'],
+    tools: [
+      { label: 'Product Catalogue', path: '/finance/products', description: 'SKUs, pricing & channel sync.' },
+      { label: 'Order Invoices', path: '/finance/invoices', description: 'Fulfilment invoicing & returns.' },
+      { label: 'Shipping & Delivery', path: '/finance/delivery-documents', description: 'Dispatch notes & tracking.' }
+    ]
+  },
+  food_beverage: {
+    title: 'Food & Beverage Manufacturing',
+    noun: 'Production Batch',
+    description: 'Recipe-driven batch production with allergen tracking, shelf life, quality holds, and full ingredient-to-customer traceability.',
+    sections: ['Batch Register', 'Quality & Compliance'],
+    kinds: ['material', 'time', 'expense', 'service'],
+    fields: ['Batch / Lot', 'Best Before', 'Allergens', 'Storage Temperature'],
+    tools: [
+      { label: 'Ingredient Catalogue', path: '/finance/products', description: 'Raw ingredients and finished goods.' },
+      { label: 'Procurement', path: '/finance/purchase-orders', description: 'Order ingredients and packaging.' },
+      { label: 'Quality Inspections', path: '/finance/industries', description: 'Incoming and final QC.' }
+    ]
+  },
+  property: {
+    title: 'Property & Rentals',
+    noun: 'Lease',
+    description: 'Manage rental properties, lease terms, tenant billing cycles, maintenance, and occupancy tracking.',
+    sections: ['Property Portfolio', 'Lease Desk'],
+    kinds: ['service', 'time', 'expense'],
+    fields: ['Property Unit', 'Lease Period', 'Rent Amount', 'Deposit'],
+    tools: [
+      { label: 'Tenant Invoices', path: '/finance/invoices', description: 'Recurring rent and utility billing.' },
+      { label: 'Expense Tracking', path: '/finance/expenses', description: 'Maintenance and repairs.' },
+      { label: 'Payment Collection', path: '/finance/payments', description: 'Rent receipts and deposits.' }
+    ]
+  },
+  automotive: {
+    title: 'Automotive & Workshop',
+    noun: 'Job Card',
+    description: 'Track vehicle service jobs, parts requisition, labour hours, and repair billing.',
+    sections: ['Job Cards', 'Workshop Desk'],
+    kinds: ['material', 'time', 'service', 'expense'],
+    fields: ['Vehicle Registration', 'Mileage', 'Reported Fault', 'Bay Number'],
+    tools: [
+      { label: 'Parts Catalogue', path: '/finance/products', description: 'Spare parts and consumables.' },
+      { label: 'Parts Procurement', path: '/finance/purchase-orders', description: 'Order from suppliers.' },
+      { label: 'Job Invoices', path: '/finance/invoices', description: 'Labour and parts billing.' }
+    ]
+  },
+  hospitality: {
+    title: 'Hospitality & Accommodation',
+    noun: 'Reservation',
+    description: 'Manage room reservations, guest folios, housekeeping, and front-desk operations.',
+    sections: ['Reservations', 'Front Desk'],
+    kinds: ['service', 'time', 'expense'],
+    fields: ['Room / Unit', 'Check-in', 'Check-out', 'Guest Count'],
+    tools: [
+      { label: 'Guest Invoices', path: '/finance/invoices', description: 'Folio charges and settlements.' },
+      { label: 'Procurement', path: '/finance/purchase-orders', description: 'Supplies and amenities.' },
+      { label: 'Revenue Tracking', path: '/finance/payments', description: 'Collections and payment methods.' }
+    ]
+  },
+  restaurant: {
+    title: 'Restaurant & Food Service',
+    noun: 'Service Order',
+    description: 'Manage table orders, kitchen tickets, menu costing, and daily revenue reconciliation.',
+    sections: ['Service Orders', 'Kitchen Desk'],
+    kinds: ['material', 'service', 'expense'],
+    fields: ['Table / Delivery', 'Covers', 'Kitchen Notes'],
+    tools: [
+      { label: 'POS & Till', path: '/finance/pos', description: 'Counter orders and payments.' },
+      { label: 'Menu & Recipes', path: '/finance/products', description: 'Menu items and cost recipes.' },
+      { label: 'Supplier Orders', path: '/finance/purchase-orders', description: 'Fresh produce and supplies.' }
+    ]
+  },
+  agriculture: {
+    title: 'Agriculture & Livestock',
+    noun: 'Season / Cycle',
+    description: 'Track planting seasons, harvest yields, livestock cycles, input costs, and crop-to-market billing.',
+    sections: ['Season Register', 'Farm Desk'],
+    kinds: ['material', 'time', 'expense', 'service'],
+    fields: ['Crop / Breed', 'Plot / Pen', 'Season', 'Expected Yield'],
+    tools: [
+      { label: 'Input Catalogue', path: '/finance/products', description: 'Seeds, feeds, chemicals and equipment.' },
+      { label: 'Input Procurement', path: '/finance/purchase-orders', description: 'Bulk supplier orders.' },
+      { label: 'Harvest Invoices', path: '/finance/invoices', description: 'Produce sales and deliveries.' }
+    ]
+  },
+  education: {
+    title: 'Education',
+    noun: 'Academic Term',
+    description: 'Manage student enrolment, fee structures, term billing, and institutional expense tracking.',
+    sections: ['Student Register', 'Bursary Desk'],
+    kinds: ['service', 'expense'],
+    fields: ['Programme', 'Academic Year', 'Fee Structure'],
+    tools: [
+      { label: 'Fee Invoices', path: '/finance/invoices', description: 'Term and instalment billing.' },
+      { label: 'Fee Collection', path: '/finance/payments', description: 'Receipts and balances.' },
+      { label: 'Institutional Expenses', path: '/finance/expenses', description: 'Staff and facility costs.' }
+    ]
+  },
+  healthcare: {
+    title: 'Healthcare',
+    noun: 'Patient Episode',
+    description: 'Track patient encounters, procedure billing, insurance claims, and pharmacy dispensing.',
+    sections: ['Patient Episodes', 'Billing Desk'],
+    kinds: ['service', 'material', 'expense'],
+    fields: ['Patient ID', 'Diagnosis Code', 'Insurance Scheme'],
+    tools: [
+      { label: 'Services & Procedures', path: '/finance/products', description: 'Tariff items and procedures.' },
+      { label: 'Patient Invoices', path: '/finance/invoices', description: 'Encounter and claim billing.' },
+      { label: 'Pharmacy Stock', path: '/finance/products', description: 'Medicines and consumables.' }
+    ]
+  },
+  pharmaceutical: {
+    title: 'Pharmaceutical',
+    noun: 'Production Batch',
+    description: 'GMP-compliant batch manufacturing with stability testing, regulatory holds, and controlled substance tracking.',
+    sections: ['Batch Register', 'Regulatory Desk'],
+    kinds: ['material', 'time', 'expense', 'service'],
+    fields: ['Batch / Lot', 'Expiry Date', 'Stability Protocol', 'Regulatory Approval'],
+    tools: [
+      { label: 'API & Excipient Catalogue', path: '/finance/products', description: 'Active ingredients and excipients.' },
+      { label: 'Procurement', path: '/finance/purchase-orders', description: 'Certified supplier orders.' },
+      { label: 'Quality & Compliance', path: '/finance/industries', description: 'Batch release inspections.' }
+    ]
+  },
+  mining: {
+    title: 'Mining & Extraction',
+    noun: 'Extraction Campaign',
+    description: 'Track extraction operations, ore grades, processing costs, equipment usage, and royalty calculations.',
+    sections: ['Campaign Register', 'Operations Desk'],
+    kinds: ['material', 'time', 'expense', 'service'],
+    fields: ['Mine Site', 'Ore Type / Grade', 'Volume Extracted'],
+    tools: [
+      { label: 'Equipment & Spares', path: '/finance/products', description: 'Heavy equipment and consumables.' },
+      { label: 'Procurement', path: '/finance/purchase-orders', description: 'Explosives, fuel and parts.' },
+      { label: 'Royalty Billing', path: '/finance/invoices', description: 'Production royalty invoices.' }
+    ]
+  },
+  energy: {
+    title: 'Energy & Utilities',
+    noun: 'Service Period',
+    description: 'Manage meter readings, consumption billing, tariff structures, and infrastructure maintenance.',
+    sections: ['Service Periods', 'Utility Desk'],
+    kinds: ['service', 'expense'],
+    fields: ['Meter ID', 'Consumption Period', 'Tariff Band'],
+    tools: [
+      { label: 'Customer Billing', path: '/finance/invoices', description: 'Usage-based invoicing.' },
+      { label: 'Collections', path: '/finance/payments', description: 'Payment and arrears tracking.' },
+      { label: 'Infrastructure Costs', path: '/finance/expenses', description: 'Maintenance and capex.' }
+    ]
+  },
+  telecom: {
+    title: 'Telecom & Subscriptions',
+    noun: 'Subscription',
+    description: 'Manage subscriber plans, usage metering, recurring billing cycles, and churn tracking.',
+    sections: ['Subscriber Register', 'Revenue Desk'],
+    kinds: ['service', 'expense'],
+    fields: ['Plan / Package', 'Billing Cycle', 'SIM / Account ID'],
+    tools: [
+      { label: 'Subscriber Invoices', path: '/finance/invoices', description: 'Recurring and metered billing.' },
+      { label: 'Revenue Collection', path: '/finance/payments', description: 'Payment channels and reconciliation.' },
+      { label: 'Network Expenses', path: '/finance/expenses', description: 'Infrastructure and interconnect costs.' }
+    ]
+  },
+  insurance: {
+    title: 'Insurance',
+    noun: 'Policy',
+    description: 'Manage policy underwriting, premium collection, claims processing, and reserves.',
+    sections: ['Policy Register', 'Claims Desk'],
+    kinds: ['service', 'expense'],
+    fields: ['Policy Type', 'Coverage Period', 'Sum Insured', 'Premium'],
+    tools: [
+      { label: 'Premium Invoices', path: '/finance/invoices', description: 'Premium notices and renewals.' },
+      { label: 'Premium Collection', path: '/finance/payments', description: 'Payment tracking and arrears.' },
+      { label: 'Claims Expenses', path: '/finance/expenses', description: 'Claims settlement and reserves.' }
+    ]
+  },
+  lending: {
+    title: 'Lending & Microfinance',
+    noun: 'Loan',
+    description: 'Track loan origination, disbursement schedules, repayment collection, and portfolio risk.',
+    sections: ['Loan Portfolio', 'Collections Desk'],
+    kinds: ['service', 'expense'],
+    fields: ['Loan Product', 'Principal', 'Interest Rate', 'Term (months)'],
+    tools: [
+      { label: 'Disbursement Invoices', path: '/finance/invoices', description: 'Disbursement and fee billing.' },
+      { label: 'Repayment Collection', path: '/finance/payments', description: 'Instalments and arrears.' },
+      { label: 'Portfolio Expenses', path: '/finance/expenses', description: 'Provisioning and write-offs.' }
+    ]
+  },
+  logistics: {
+    title: 'Logistics & Import/Export',
+    noun: 'Shipment Job',
+    description: 'Manage freight forwarding, customs clearance, carrier procurement, and shipment costing.',
+    sections: ['Shipment Register', 'Operations Desk'],
+    kinds: ['service', 'material', 'expense', 'time'],
+    fields: ['Origin', 'Destination', 'Mode of Transport', 'Incoterm'],
+    tools: [
+      { label: 'Freight Quotes', path: '/finance/quotations', description: 'Rate comparison and booking.' },
+      { label: 'Vendor Bills', path: '/finance/bills', description: 'Carrier, port, and agent charges.' },
+      { label: 'Client Invoices', path: '/finance/invoices', description: 'Consolidated job billing.' }
+    ]
   }
 };
 
@@ -264,12 +472,28 @@ export function FinanceIndustries() {
   const industryIcons: Record<FinanceIndustryKey, IconName> = {
     retail: 'shoppingCart',
     wholesale: 'truck',
+    ecommerce: 'globe',
     manufacturing: 'settings',
+    food_beverage: 'package',
+    printing: 'printer',
     warehousing: 'warehouse',
     professional_services: 'briefcase',
     consulting: 'building',
-    printing: 'printer',
-    construction: 'tool'
+    construction: 'tool',
+    property: 'home',
+    automotive: 'tool',
+    hospitality: 'building',
+    restaurant: 'receipt',
+    agriculture: 'leaf',
+    education: 'bookOpen',
+    healthcare: 'activity',
+    pharmaceutical: 'shield',
+    mining: 'layers',
+    energy: 'zap',
+    telecom: 'phone',
+    insurance: 'shield',
+    lending: 'bankNote',
+    logistics: 'ship',
   };
 
   async function toggleIndustry(key: FinanceIndustryKey, checked: boolean) {
@@ -1188,7 +1412,7 @@ export function FinanceIndustryWorkDetail() {
   const { user } = useAuth();
   const canWrite = writers.includes(user?.role ?? '');
   const { data: access } = useFinanceCapabilities();
-  const productionEnabled = ['finance.inventory', 'finance.accounting.advanced'].every(key =>
+  const productionEnabled = ['finance.manufacturing', 'finance.inventory', 'finance.accounting.advanced'].every(key =>
     access?.capabilities.some(item => item.key === key && item.enabled)
   );
   const inventoryEnabled = access?.capabilities.some(item => item.key === 'finance.inventory' && item.enabled);
@@ -1504,6 +1728,7 @@ export function FinanceIndustryWorkDetail() {
                       )}
                     </div>
                   )}
+                  {order.status !== 'draft' && <ProductionSubPanels workId={id!} prodId={order.id} canWrite={canWrite && productionEnabled} />}
                 </div>
               ))}
             </div>
@@ -1512,6 +1737,10 @@ export function FinanceIndustryWorkDetail() {
       )}
 
       {/* Work & Billing Lines */}
+      {['construction', 'automotive', 'insurance', 'lending'].includes(industry) && (
+        <DomainSubPanels workId={id!} industry={industry} />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>
@@ -2045,4 +2274,179 @@ export function FinanceIndustryAllocationNew() {
       </Card>
     </div>
   );
+}
+
+function ProductionSubPanels({ workId, prodId, canWrite }: { workId: string; prodId: string; canWrite: boolean }) {
+  const [stages, setStages] = useState<any[]>([]);
+  const [inspections, setInspections] = useState<any[]>([]);
+  const [waste, setWaste] = useState<any[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    apiFetch<any[]>(`/v1/finance/industries/${workId}/production/${prodId}/stages`).then(setStages).catch(() => {});
+    apiFetch<any[]>(`/v1/finance/industries/${workId}/production/${prodId}/inspections`).then(setInspections).catch(() => {});
+    apiFetch<any[]>(`/v1/finance/industries/${workId}/production/${prodId}/waste`).then(setWaste).catch(() => {});
+  }, [workId, prodId]);
+
+  async function stageAction(stageId: string, op: 'start' | 'complete' | 'skip') {
+    setBusy(true);
+    try {
+      await apiFetch(`/v1/finance/industries/${workId}/stages/${stageId}/${op}`, { method: 'POST', body: JSON.stringify({}) });
+      setStages(await apiFetch<any[]>(`/v1/finance/industries/${workId}/production/${prodId}/stages`));
+    } catch { /* toast or ignore */ }
+    setBusy(false);
+  }
+
+  return (
+    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {stages.length > 0 && (
+        <details className="industry-sub-panel">
+          <summary><Badge variant="gray">Stages ({stages.length})</Badge></summary>
+          <div className="ds-status-row" style={{ marginTop: 8 }}>
+            {stages.sort((a, b) => a.stage_order - b.stage_order).map(s => (
+              <div key={s.id} className={`ds-status-step${s.status === 'completed' ? ' is-done' : s.status === 'in_progress' ? ' is-current' : ''}`}>
+                <span>{s.stage_name}</span>
+                <small>{s.status}</small>
+                {canWrite && s.status === 'pending' && (
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => stageAction(s.id, 'start')}>Start</Button>
+                )}
+                {canWrite && s.status === 'in_progress' && (
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => stageAction(s.id, 'complete')}>Complete</Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      {inspections.length > 0 && (
+        <details className="industry-sub-panel">
+          <summary><Badge variant="gray">Quality ({inspections.length})</Badge></summary>
+          <div className="industry-records" style={{ marginTop: 8 }}>
+            {inspections.map(i => (
+              <div className="industry-record" key={i.id}>
+                <div>
+                  <Badge variant={i.status === 'passed' || i.status === 'released' ? 'success' : i.status === 'on_hold' || i.status === 'failed' ? 'error' : 'gray'}>{i.status}</Badge>
+                  <small>{i.inspection_type} · {i.quantity_inspected} inspected · {i.quantity_passed} passed · {i.quantity_failed} failed</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      {waste.length > 0 && (
+        <details className="industry-sub-panel">
+          <summary><Badge variant="warning">Waste ({waste.length})</Badge></summary>
+          <div className="industry-records" style={{ marginTop: 8 }}>
+            {waste.map(w => (
+              <div className="industry-record" key={w.id}>
+                <div>
+                  <Badge variant={w.waste_type === 'normal_loss' ? 'gray' : 'error'}>{w.waste_type.replace(/_/g, ' ')}</Badge>
+                  <small>{w.quantity} {w.unit} — {w.reason}</small>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function DomainSubPanels({ workId, industry }: { workId: string; industry: string }) {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    let live = true;
+    async function load() {
+      try {
+        const work = await apiFetch<any>(`/v1/finance/industries/${workId}`);
+        if (!live) return;
+        setData(work);
+      } catch { /* ignore */ }
+    }
+    load();
+    return () => { live = false; };
+  }, [workId]);
+
+  if (!data) return null;
+
+  if (industry === 'construction' && data.boq_items?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">BOQ Items ({data.boq_items.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.boq_items.map((item: any) => (
+            <div className="industry-record" key={item.id}>
+              <span style={{ fontWeight: 600 }}>{item.item_no}</span>
+              <span>{item.description}</span>
+              <small>{item.quantity} {item.unit} × {money(item.rate, data.currency)} = {money(item.amount, data.currency)}</small>
+              <Badge variant={Number(item.certified_qty) > 0 ? 'success' : 'gray'}>
+                {Number(item.certified_qty)}/{item.quantity} certified
+              </Badge>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  if (industry === 'automotive' && data.job_cards?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">Job Cards ({data.job_cards.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.job_cards.map((card: any) => (
+            <div className="industry-record" key={card.id}>
+              <Badge variant={card.status === 'delivered' ? 'success' : card.status === 'ready' ? 'info' : 'gray'}>
+                {card.status.replace(/_/g, ' ')}
+              </Badge>
+              <span>{card.reported_fault}</span>
+              {card.bay_number && <small>Bay: {card.bay_number}</small>}
+              {card.estimated_hours && <small>Est: {card.estimated_hours}h</small>}
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  if (industry === 'insurance' && data.policies?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">Policies ({data.policies.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.policies.map((p: any) => (
+            <div className="industry-record" key={p.id}>
+              <Badge variant={p.status === 'active' ? 'success' : p.status === 'lapsed' ? 'warning' : 'gray'}>
+                {p.status}
+              </Badge>
+              <span>{p.policy_number} — {p.policy_type}</span>
+              <small>Sum insured: {money(p.sum_insured, p.currency)} · Premium: {money(p.premium_amount, p.currency)}</small>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  if (industry === 'lending' && data.loans?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">Loans ({data.loans.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.loans.map((ln: any) => (
+            <div className="industry-record" key={ln.id}>
+              <Badge variant={ln.status === 'closed' ? 'success' : ln.status === 'arrears' ? 'error' : ln.status === 'active' ? 'info' : 'gray'}>
+                {ln.status}
+              </Badge>
+              <span>{ln.loan_number} — {ln.product_name}</span>
+              <small>Principal: {money(ln.principal, ln.currency)} · {ln.interest_rate}% {ln.interest_method} · {ln.term_months}mo</small>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  return null;
 }

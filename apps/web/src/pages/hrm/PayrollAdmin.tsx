@@ -115,7 +115,7 @@ export function DesignationsPage() {
   );
 }
 
-type PayRun = { id: string; name: string; period_month: number; period_year: number; status: string; employee_count?: any; total_gross?: any; total_employee_deductions?: any; total_employer_cost?: any; total_remitted?: any; total_net?: any };
+type PayRun = { created_by?: string | null; calculated_by?: string | null; id: string; name: string; period_month: number; period_year: number; status: string; employee_count?: any; total_gross?: any; total_employee_deductions?: any; total_employer_cost?: any; total_remitted?: any; total_net?: any };
 type Payslip = { id: string; user_id: string; name: string; email?: string; basic_pay: any; gross_pay: any; taxable_pay: any; income_tax: any; employee_contributions: any; other_deductions: any; total_deductions: any; employer_contributions: any; net_pay: any; lines?: any };
 
 const RUN_STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -391,7 +391,7 @@ export function PayrollPage() {
                   <Button variant="secondary" style={{ ...btn, color: 'var(--red)' }} disabled={!!busy} onClick={() => runAction('delete')}>Delete draft</Button>
                 </>}
                 {(st === 'CALCULATED' || st === 'PENDING_APPROVAL') && <>
-                  <Button style={btn} disabled={!!busy} onClick={() => runAction('approve')}>{busy === 'approve' ? 'Approving…' : 'Approve'}</Button>
+                  <Button style={btn} disabled={!!busy || run.created_by === user?.id || run.calculated_by === user?.id} title={run.created_by === user?.id || run.calculated_by === user?.id ? 'A different payroll administrator must approve this run' : undefined} onClick={() => runAction('approve')}>{busy === 'approve' ? 'Approving…' : 'Approve'}</Button>
                   <Button variant="secondary" style={btn} disabled={!!busy} onClick={() => runAction('calc')}>{busy === 'calc' ? 'Calculating…' : 'Recalculate'}</Button>
                 </>}
                 {st === 'APPROVED' && (

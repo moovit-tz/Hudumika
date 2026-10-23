@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'crypto';
@@ -84,7 +85,7 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     reply.status(201);
     // pushToken/serverUrl returned once, for the tenant to punch into the
     // physical unit's own "Server URL" menu — not retrievable again after this.
-    return { ...device, serverUrl: `${req.protocol}://${req.hostname}/iclock` };
+    return { ...device, serverUrl: `${env.API_BASE_URL.replace(/\/$/, '')}/iclock` };
   });
 
   fastify.patch<{ Params: { id: string } }>('/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
@@ -118,9 +119,20 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     });
   });
 
+  fastify.post<{ Params: { id: string } }>('/:id/rotate-token', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
+    const token = crypto.randomBytes(24).toString('hex');
+    return withTenant(req.user.tenant_id, async trx => {
+      const device = await trx.updateTable('attendance_devices').set({push_token:token,updated_at:new Date()})
+        .where('tenant_id','=',req.user.tenant_id).where('id','=',req.params.id).returning(['id','serial_number']).executeTakeFirst();
+      if(!device) return reply.status(404).send({error:'Device not found'});
+      await logDeviceActivity(trx,req.user.tenant_id,req.user.sub,'Rotated attendance device credential');
+      return {...device,push_token:token,serverUrl:`${env.API_BASE_URL.replace(/\/$/, '')}/iclock`};
+    });
+  });
+
   // ── Enrollments ───────────────────────────────────────────────
 
-  fastify.get<{ Params: { id: string } }>('/:id/enrollments', async (req) => {
+  fastify.get<{ Params: { id: string } }>('/:id/enrollments', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, (trx) =>
       trx.selectFrom('attendance_device_enrollments as e')
@@ -163,7 +175,7 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
 
   // ── Events (raw punch log — includes unmatched/orphan punches) ──
 
-  fastify.get<{ Params: { id: string } }>('/:id/events', async (req) => {
+  fastify.get<{ Params: { id: string } }>('/:id/events', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, (trx) =>
       trx.selectFrom('attendance_device_events as e')
@@ -214,7 +226,7 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
 
   // ── Sync logs ─────────────────────────────────────────────────
 
-  fastify.get<{ Params: { id: string } }>('/:id/sync-logs', async (req) => {
+  fastify.get<{ Params: { id: string } }>('/:id/sync-logs', { preHandler: requireRole(...MGMT) }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, (trx) =>
       trx.selectFrom('attendance_device_sync_logs').selectAll()

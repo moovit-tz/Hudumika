@@ -1,3 +1,4 @@
+import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -743,7 +744,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
             {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="dollarSign" size={13} /> Pay</button>}
             <button type="button" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="edit" size={13} /> Edit</button>
@@ -1338,48 +1339,17 @@ export const Bills: React.FC = () => {
             { title:'OVERDUE · TZS', value:String(billSummary?.currency_totals?.TZS?.overdue_count ?? 0), sub1Label:'OVERDUE AMOUNT', sub1Value:formatAmount(billSummary?.currency_totals?.TZS?.overdue_amount ?? 0, 'TZS'), sub2Label:'CURRENCY', sub2Value:'TZS', barHighlight:'var(--red)' },
           ]} />
 
-          {/* Toolbar — tabs + filters on the left, search + New Bill on the right,
-              one row per CLAUDE.md's toolbar convention (was 3 stacked rows). */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', marginBottom: 18 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-              <Tabs value={tab} onValueChange={v => setTab(v as MainTab)} variant="segmented">
-                <TabsList>
-                  {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurringTotal})`}] as {k:MainTab;l:string}[]).map(t => (
-                    <TabsTrigger key={t.k} value={t.k} title={t.l}>{t.l}</TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              {tab === 'bills' && (
-                <>
-                  <SingleSelectFilter
-                    label="Status"
-                    options={(['DRAFT','PENDING_APPROVAL','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => ({ value: s, label: STATUS_CFG[s]?.label ?? s }))}
-                    value={statusFilter === 'ALL' ? null : statusFilter}
-                    onChange={v => setStatusFilter((v as BillStatus) ?? 'ALL')}
-                  />
-                  <Combobox
-                    options={[{ value: 'ALL', label: 'All Suppliers' }, ...uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id }))]}
-                    value={supFilter} onChange={setSupFilter} triggerClassName="w-44"
-                  />
-                </>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
-              {tab === 'bills' && <div style={{ position: 'relative', flex: isMobile ? 1 : '0 0 220px' }}>
-                <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="search"
-                  placeholder="Search bill # or supplier…"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>}
-              <Button onClick={() => { if(tab==='recurring'){setFormRecur(null);setShowRecurForm(true);}else{setFormBill(null);setShowBillForm(true);} }}>
-                <Icon name="plus" size={14} /> {tab==='recurring'?'New recurring bill':'New Bill'}
-              </Button>
-            </div>
+          <div className="mb-4">
+            <Tabs value={tab} onValueChange={v => setTab(v as MainTab)} variant="underline">
+              <TabsList><TabsTrigger value="bills">Bills</TabsTrigger><TabsTrigger value="recurring">Recurring ({recurringTotal})</TabsTrigger></TabsList>
+            </Tabs>
+            <SearchToolbar layout="register"
+              {...(tab === 'bills' ? {search, onSearch: setSearch, placeholder: 'Search bill # or supplier…', quickFilters: [
+                { value: statusFilter === 'ALL' ? null : statusFilter, onChange: (value: string | null) => setStatusFilter((value as BillStatus) ?? 'ALL'), allLabel: 'All statuses', options: (['DRAFT','PENDING_APPROVAL','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(value => ({value,label: STATUS_CFG[value]?.label ?? value})) },
+                { value: supFilter === 'ALL' ? null : supFilter, onChange: (value: string | null) => setSupFilter(value ?? 'ALL'), allLabel: 'All suppliers', searchable: true, options: uniqueSups.map(id => ({value:id,label:supplierMap[id]?.name ?? id})) },
+              ]} : {})}
+              actions={<Button onClick={() => { if(tab==='recurring'){setFormRecur(null);setShowRecurForm(true);}else{setFormBill(null);setShowBillForm(true);} }}><Icon name="plus" size={14} />{tab === 'recurring' ? 'New recurring bill' : 'New Bill'}</Button>}
+            />
           </div>
 
           {tab === 'recurring' ? (

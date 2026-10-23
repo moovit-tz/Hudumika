@@ -2902,6 +2902,8 @@ export interface PayrollRunsTable {
   /** Everything forwarded to the authorities, whoever it was withheld from. */
   total_remitted: Generated<string>;
   calculated_at: Date | null;
+  calculated_by: Generated<string | null>;
+  calculation_policy: Generated<unknown>;
   approved_by: string | null;
   approved_at: Date | null;
   created_by: string | null;
@@ -5477,11 +5479,13 @@ export interface Database {
   finance_production_recipes: {
     id: Generated<string>; tenant_id: string; name: string; version: number;
     recipe: ColumnType<import('@hudumika/types').IndustryProductionRecipeInput, string, string>;
+    stages: Generated<unknown>;
     created_by: string; created_at: Generated<Date>;
   };
   finance_stock_allocations: {
     id: Generated<string>; tenant_id: string; work_id: string; item_id: string; location_id: string;
     batch: string; quantity: number; dispatched_quantity: Generated<number>; released: Generated<boolean>;
+    quality_hold: Generated<boolean>;
     created_by: string; created_at: Generated<Date>;
   };
   finance_production_orders: {
@@ -5494,6 +5498,187 @@ export interface Database {
   finance_production_materials: {
     id: Generated<string>; tenant_id: string; production_id: string; item_id: string;
     quantity: number; unit: string; batch: string;
+  };
+  finance_production_stages: {
+    id: Generated<string>; tenant_id: string; production_id: string; stage_name: string;
+    stage_order: Generated<number>; status: Generated<'pending' | 'in_progress' | 'completed' | 'skipped'>;
+    operator_id: string | null; started_at: Date | null; completed_at: Date | null;
+    input_quantity: number | null; output_quantity: number | null; notes: string | null;
+    created_at: Generated<Date>;
+  };
+  finance_quality_inspections: {
+    id: Generated<string>; tenant_id: string; inspection_type: 'incoming' | 'in_process' | 'final';
+    production_id: string | null; item_id: string; location_id: string; batch_no: Generated<string>;
+    quantity_inspected: number; quantity_passed: Generated<number>; quantity_failed: Generated<number>;
+    status: Generated<'pending' | 'passed' | 'failed' | 'on_hold' | 'released'>;
+    disposition: string | null; inspector_id: string | null; inspected_at: Date | null;
+    released_by: string | null; released_at: Date | null; hold_reason: string | null; release_notes: string | null;
+    created_by: string; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_production_waste: {
+    id: Generated<string>; tenant_id: string; production_id: string; stage_id: string | null;
+    item_id: string; waste_type: 'normal_loss' | 'abnormal_loss' | 'rework' | 'scrap';
+    quantity: number; unit: string; reason: string; is_recoverable: Generated<boolean>;
+    disposition: string | null; cost_amount: Generated<number>; recorded_by: string; recorded_at: Generated<Date>;
+  };
+  finance_production_traceability: {
+    id: Generated<string>; tenant_id: string; production_id: string;
+    input_item_id: string; input_batch_no: Generated<string>; input_quantity: number;
+    output_item_id: string; output_batch_no: Generated<string>; created_at: Generated<Date>;
+  };
+  finance_property_units: {
+    id: Generated<string>; tenant_id: string; name: string;
+    unit_type: 'residential' | 'commercial' | 'industrial' | 'land' | 'parking' | 'storage';
+    address: string | null; area_sqm: Generated<number | null>; bedrooms: number | null;
+    status: Generated<'vacant' | 'occupied' | 'maintenance' | 'reserved'>;
+    notes: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_leases: {
+    id: Generated<string>; tenant_id: string; work_id: string; unit_id: string;
+    tenant_name: string; lease_start: string; lease_end: string | null;
+    rent_amount: number; rent_currency: Generated<string>; billing_cycle: Generated<'weekly' | 'monthly' | 'quarterly' | 'annually'>;
+    deposit_amount: Generated<number>; escalation_pct: Generated<number>; escalation_freq: 'annually' | 'biannually' | null;
+    status: Generated<'draft' | 'active' | 'expired' | 'terminated'>;
+    terminated_at: Date | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_lease_charges: {
+    id: Generated<string>; tenant_id: string; lease_id: string;
+    charge_type: 'rent' | 'utility' | 'service_charge' | 'parking' | 'deposit' | 'penalty' | 'other';
+    description: string; amount: number; period_start: string; period_end: string; due_date: string;
+    invoice_id: string | null; status: Generated<'pending' | 'invoiced' | 'paid' | 'waived'>;
+    created_at: Generated<Date>;
+  };
+  finance_boq_items: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    item_no: string; description: string; unit: Generated<string>;
+    quantity: number; rate: number; amount: Generated<number>;
+    certified_qty: Generated<number>; retention_pct: Generated<number>;
+    sort_order: Generated<number>; created_at: Generated<Date>;
+  };
+  finance_progress_certificates: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    certificate_no: number; period_start: string; period_end: string;
+    gross_amount: Generated<number>; retention: Generated<number>;
+    previous_certs: Generated<number>; net_amount: Generated<number>;
+    status: Generated<'draft' | 'submitted' | 'approved' | 'invoiced' | 'paid'>;
+    approved_by: string | null; approved_at: Date | null; invoice_id: string | null;
+    notes: string | null; created_at: Generated<Date>;
+  };
+  finance_progress_measurements: {
+    id: Generated<string>; tenant_id: string; certificate_id: string; boq_item_id: string;
+    qty_this_period: number; qty_cumulative: number; amount: Generated<number>;
+    created_at: Generated<Date>;
+  };
+  finance_vehicle_records: {
+    id: Generated<string>; tenant_id: string; customer_id: string | null;
+    registration: string; make: string | null; model: string | null;
+    year: number | null; vin: string | null; mileage: number | null;
+    color: string | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_job_cards: {
+    id: Generated<string>; tenant_id: string; work_id: string; vehicle_id: string;
+    mileage_in: number | null; reported_fault: string; diagnosis: string | null;
+    bay_number: string | null; technician_id: string | null;
+    estimated_hours: number | null; actual_hours: number | null;
+    status: Generated<'received' | 'diagnosing' | 'awaiting_parts' | 'in_progress' | 'quality_check' | 'ready' | 'delivered'>;
+    received_at: Generated<Date>; completed_at: Date | null; delivered_at: Date | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_insurance_policies: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    policy_number: string; policy_type: 'life' | 'health' | 'motor' | 'property' | 'liability' | 'marine' | 'travel' | 'other';
+    holder_name: string; holder_contact: string | null;
+    coverage_start: string; coverage_end: string;
+    sum_insured: number; premium_amount: number;
+    premium_frequency: Generated<'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'single'>;
+    currency: Generated<string>; deductible: Generated<number>;
+    status: Generated<'draft' | 'active' | 'lapsed' | 'cancelled' | 'expired' | 'claimed'>;
+    underwriter_notes: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_insurance_claims: {
+    id: Generated<string>; tenant_id: string; policy_id: string;
+    claim_number: string; incident_date: string; reported_date: Generated<string>;
+    description: string; claim_amount: number;
+    approved_amount: number | null; reserve_amount: Generated<number>;
+    status: Generated<'reported' | 'investigating' | 'approved' | 'denied' | 'settled' | 'closed'>;
+    adjuster_id: string | null; settlement_date: string | null; denial_reason: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_loans: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    loan_number: string; product_name: string; borrower_name: string;
+    principal: number; interest_rate: number;
+    interest_method: Generated<'flat' | 'reducing_balance' | 'compound'>;
+    term_months: number; currency: Generated<string>;
+    disbursed_amount: number | null; disbursed_at: Date | null; maturity_date: string | null;
+    status: Generated<'pending' | 'approved' | 'disbursed' | 'active' | 'arrears' | 'restructured' | 'closed' | 'written_off'>;
+    approved_by: string | null; approved_at: Date | null;
+    collateral_desc: string | null; guarantor_name: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_loan_schedule: {
+    id: Generated<string>; tenant_id: string; loan_id: string;
+    instalment_no: number; due_date: string;
+    principal_due: Generated<number>; interest_due: Generated<number>; total_due: Generated<number>;
+    principal_paid: Generated<number>; interest_paid: Generated<number>;
+    status: Generated<'pending' | 'partial' | 'paid' | 'overdue' | 'waived'>;
+    paid_at: Date | null; created_at: Generated<Date>;
+  };
+  finance_loan_repayments: {
+    id: Generated<string>; tenant_id: string; loan_id: string;
+    amount: number; principal_part: Generated<number>; interest_part: Generated<number>;
+    penalty_part: Generated<number>; payment_date: Generated<string>; payment_method: string | null;
+    reference: string | null; received_by: string | null; created_at: Generated<Date>;
+  };
+  finance_room_inventory: {
+    id: Generated<string>; tenant_id: string; room_number: string;
+    room_type: 'single' | 'double' | 'twin' | 'suite' | 'deluxe' | 'family' | 'dormitory' | 'conference';
+    floor: string | null; capacity: Generated<number>; rate_per_night: number;
+    currency: Generated<string>; amenities: string[] | null;
+    status: Generated<'available' | 'occupied' | 'maintenance' | 'blocked' | 'cleaning'>;
+    notes: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_reservations: {
+    id: Generated<string>; tenant_id: string; work_id: string; room_id: string;
+    guest_name: string; guest_contact: string | null; guest_count: Generated<number>;
+    check_in: string; check_out: string; nights: Generated<number>;
+    rate_per_night: number; deposit_amount: Generated<number>;
+    status: Generated<'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'>;
+    checked_in_at: Date | null; checked_out_at: Date | null; folio_notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_folio_charges: {
+    id: Generated<string>; tenant_id: string; reservation_id: string;
+    charge_type: 'room' | 'minibar' | 'restaurant' | 'laundry' | 'spa' | 'parking' | 'telephone' | 'other';
+    description: string; amount: number; charge_date: string;
+    invoice_id: string | null; created_at: Generated<Date>;
+  };
+  finance_students: {
+    id: Generated<string>; tenant_id: string; student_number: string;
+    first_name: string; last_name: string; date_of_birth: string | null;
+    gender: 'male' | 'female' | 'other' | null;
+    guardian_name: string | null; guardian_phone: string | null; guardian_email: string | null;
+    customer_id: string | null; enrollment_date: string | null;
+    status: Generated<'applicant' | 'active' | 'graduated' | 'suspended' | 'withdrawn' | 'alumni'>;
+    notes: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  finance_fee_structures: {
+    id: Generated<string>; tenant_id: string; name: string;
+    programme: string; academic_year: string; term: string;
+    tuition: Generated<number>; boarding: Generated<number>;
+    transport: Generated<number>; other_fees: Generated<number>;
+    total: Generated<number>; currency: Generated<string>;
+    due_date: string | null; active: Generated<boolean>;
+    created_at: Generated<Date>;
+  };
+  finance_student_enrollments: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    student_id: string; fee_structure_id: string;
+    scholarship_pct: Generated<number>; amount_due: number;
+    amount_paid: Generated<number>; balance: Generated<number>;
+    status: Generated<'enrolled' | 'completed' | 'withdrawn' | 'deferred'>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
   };
   finance_industry_work: FinanceIndustryWorkTable;
   finance_tax_preparations: {
@@ -9733,7 +9918,7 @@ export interface PartiesTable {
 }
 export interface PartyPeopleTable { party_id: string; tenant_id: string; first_name: string; middle_name: string | null; last_name: string | null; preferred_name: string | null; title: string | null; birthday: DateOnlyNull; avatar_url: string | null }
 export interface PartyOrganizationsTable { party_id: string; tenant_id: string; legal_name: string; trading_name: string | null; registration_number: string | null; tax_identifier: string | null; website: string | null; industry: string | null }
-export interface PartyChannelsTable { id: Generated<string>; tenant_id: string; party_id: string; channel_type: string; value: string; normalized_value: string; label: Generated<string>; context: Generated<string>; is_primary: Generated<boolean>; is_verified: Generated<boolean>; status: Generated<string>; visibility: Generated<string>; created_at: Generated<Date>; updated_at: Generated<Date> }
+export interface PartyChannelsTable { id: Generated<string>; tenant_id: string; party_id: string; channel_type: string; value: string; normalized_value: string; label: Generated<string>; context: Generated<string>; is_primary: Generated<boolean>; is_verified: Generated<boolean>; status: Generated<string>; visibility: Generated<string>; source_entity: string | null; source_field: string | null; created_at: Generated<Date>; updated_at: Generated<Date> }
 export interface PartyAffiliationsTable { id: Generated<string>; tenant_id: string; person_party_id: string; organization_party_id: string; relationship_type: Generated<string>; job_title: string | null; department: string | null; start_date: DateOnlyNull; end_date: DateOnlyNull; is_primary: Generated<boolean>; status: Generated<string>; created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date> }
 export interface PartyRelationshipsTable { id: Generated<string>; tenant_id: string; from_party_id: string; to_party_id: string; relationship_type: string; context_type: string | null; context_id: string | null; metadata: Generated<unknown>; status: Generated<string>; created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date> }
 export interface PartyExternalRefsTable { id: Generated<string>; tenant_id: string; party_id: string; source_system: string; external_id: string; metadata: Generated<unknown>; created_at: Generated<Date> }
@@ -10524,6 +10709,7 @@ export interface CloudDrivesTable {
   owner_name: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  managed_purpose: Generated<string | null>;
 }
 
 export interface CloudDriveMembersTable {

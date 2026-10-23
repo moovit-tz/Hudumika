@@ -367,10 +367,11 @@ export const Billing: React.FC = () => {
         <div className="inv-list-panel">
 
           <div className="inv-list-toolbar">
-          <SearchToolbar
+          <SearchToolbar layout="register"
+            dateFilter={{ from: filterDateFrom, to: filterDateTo, onChange: (from, to) => { setFilterDateFrom(from); setFilterDateTo(to); } }}
             search={search}
             onSearch={setSearch}
-            placeholder="Search invoices or customers…"
+            placeholder="Search…"
             {...(!isSplit ? {
               quickFilter: {
                 label: 'Status',
@@ -397,16 +398,6 @@ export const Billing: React.FC = () => {
                       <SelectItem value="ROAD">ROAD</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="inv-filters-row">
-                  <div className="inv-filters-field">
-                    <label>From</label>
-                    <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
-                  </div>
-                  <div className="inv-filters-field">
-                    <label>To</label>
-                    <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
-                  </div>
                 </div>
                 <div className="inv-filters-foot">
                   <Button variant="secondary" size="sm" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</Button>
@@ -437,17 +428,17 @@ export const Billing: React.FC = () => {
                 </Button>
                 {!isSplit && (
                   <div className="inv-view-toggle" role="group" aria-label="Invoice view">
-                    <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} data-ui-native-button="">
-                      <Icon name="layoutGrid" size={14} /> Grid
+                    <button type="button" className={viewMode === 'grid' ? 'is-active' : ''} onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} title="Grid view" aria-label="Grid view" data-ui-native-button="">
+                      <Icon name="layoutGrid" size={14} />
                     </button>
-                    <button type="button" className={viewMode === 'row' ? 'is-active' : ''} onClick={() => setViewMode('row')} aria-pressed={viewMode === 'row'} data-ui-native-button="">
-                      <Icon name="list" size={14} /> Row
+                    <button type="button" className={viewMode === 'row' ? 'is-active' : ''} onClick={() => setViewMode('row')} aria-pressed={viewMode === 'row'} title="Row view" aria-label="Row view" data-ui-native-button="">
+                      <Icon name="list" size={14} />
                     </button>
                   </div>
                 )}
               </>
             }
-            style={{ flex: 1 }}
+            style={{ flex: '1 1 auto', minWidth: 0 }}
           />
           <Button onClick={() => { setSelectedId(null); setMode('create'); }} className="inv-toolbar-cta shrink-0">
             <Icon name="plus" size={13} /> Create Invoice

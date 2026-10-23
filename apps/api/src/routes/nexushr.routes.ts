@@ -1,3 +1,7 @@
+import { z } from 'zod';
+import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
+import { canReadStaffPay, PAYROLL_READ_ROLES } from '../lib/hr-pay-access.js';
+import { logPiiAccess, fromRequest } from '../lib/pii-access-logger.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireUuidParams } from '../middleware/uuid-params.js';
 import { isDriverError } from '../utils/db-errors.js';
@@ -22,6 +26,12 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
+  const documentAdmin = requireRoleOrOrgPermission(ORG_PERMISSIONS.HR_DOCUMENTS_MANAGE, 'SUPER_ADMIN','ADMIN','TENANT_ADMIN');
+  fastify.addHook('preHandler', async (request, reply) => {
+    const path = request.routeOptions.url;
+    if ((path?.includes('/documents') || path?.includes('/document-requirements')) && !path.endsWith('/:id/download')) return documentAdmin(request, reply);
+  });
+
   // ─── CORE HR ───────────────────────────────────────────────────────────────
 
   // A person separate from a login was a model nobody ever populated, while
@@ -43,7 +53,13 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/roster', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
-      return await NexusHRService.getRoster(request.user.tenant_id);
+      const paging = z.object({page:z.coerce.number().int().min(1).max(100000).default(1),page_size:z.coerce.number().int().min(1).max(100).default(50)}).safeParse(request.query);
+      if (!paging.success) return reply.status(400).send({error:'Invalid roster pagination'});
+      const roster = await NexusHRService.getRoster(request.user.tenant_id, request.user,paging.data.page,paging.data.page_size);
+      for (const person of roster.roster) {
+        if (person.employment?.base_salary != null) logPiiAccess({ ...fromRequest(request), tenantId: request.user.tenant_id, accessorId: request.user.sub, subjectId: person.userId, subjectTable: 'users', subjectRecordId: person.userId, fieldsAccessed: ['basic_salary'], domain: 'PAYROLL', sensitivity: 'HIGH', route: request.routeOptions.url });
+      }
+      return roster;
     } catch (err: any) {
       if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
@@ -73,8 +89,10 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   /** Effective-dated pay history for one employment. */
-  fastify.get('/employments/:id/compensation', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/employments/:id/compensation', async (request: any, reply) => {
     try {
+      if (!canReadStaffPay(request.user, request.params.id)) return reply.status(403).send({ error: 'You cannot read this employee’s compensation.' });
+      logPiiAccess({ ...fromRequest(request), tenantId: request.user.tenant_id, accessorId: request.user.sub, subjectId: request.params.id, subjectTable: 'hr_compensations', subjectRecordId: request.params.id, fieldsAccessed: ['base_salary','currency','pay_frequency'], domain: 'PAYROLL', sensitivity: 'HIGH' });
       return await NexusHRService.getCompensationHistory(request.user.tenant_id, request.params.id);
     } catch (err: any) {
       if (isDriverError(err)) throw err;
@@ -84,7 +102,9 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   fastify.post('/employments/:id/compensation', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
     try {
-      return await NexusHRService.addCompensation(request.user.tenant_id, request.params.id, request.body);
+      const compensation = await NexusHRService.addCompensation(request.user.tenant_id, request.params.id, request.body);
+      logPiiAccess({ ...fromRequest(request), tenantId: request.user.tenant_id, accessorId: request.user.sub, subjectId: request.params.id, subjectTable: 'users', subjectRecordId: request.params.id, fieldsAccessed: ['basic_salary'], domain: 'PAYROLL', sensitivity: 'HIGH', purpose: 'Compensation update', route: request.routeOptions.url });
+      return compensation;
     } catch (err: any) {
       if (isDriverError(err)) throw err;
       return reply.status(400).send({ error: err.message });
@@ -98,13 +118,15 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
    * and compensation on employments, so this comparison was impossible before
    * migration 172 bridged them.
    */
-  fastify.get('/payroll-vs-contract', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+  fastify.get('/payroll-vs-contract', { preHandler: requireRole(...PAYROLL_READ_ROLES) }, async (request: any, reply) => {
     const now = new Date();
     const month = Number(request.query?.month) || now.getMonth() + 1;
     const year = Number(request.query?.year) || now.getFullYear();
     if (month < 1 || month > 12) return reply.status(400).send({ error: 'month must be 1-12' });
     try {
-      return await NexusHRService.payrollVsContract(request.user.tenant_id, month, year);
+      const report = await NexusHRService.payrollVsContract(request.user.tenant_id, month, year);
+      for (const person of report.rows) logPiiAccess({ ...fromRequest(request), tenantId: request.user.tenant_id, accessorId: request.user.sub, subjectId: person.userId, subjectTable: 'users', subjectRecordId: person.userId, fieldsAccessed: ['basic_salary','basic_pay'], domain: 'PAYROLL', sensitivity: 'HIGH', route: request.routeOptions.url });
+      return report;
     } catch (err: any) {
       if (isDriverError(err)) throw err;
       return reply.status(500).send({ error: err.message });
@@ -140,7 +162,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // ─── DOCUMENTS ─────────────────────────────────────────────────────────────
 
-  fastify.get('/documents/stats', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any) => {
+  fastify.get('/documents/stats', { preHandler: documentAdmin }, async (request: any) => {
     const tenantId = request.user.tenant_id;
     return withTenant(tenantId, async (trx) => {
       const row = await sql<{
@@ -169,7 +191,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/documents', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/documents', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getDocuments(tenantId);
@@ -190,7 +212,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
    * disk cannot leave a row claiming a file that was never saved.
    */
   fastify.post('/documents/upload',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: documentAdmin },
     async (request: any, reply) => {
       const user = request.user;
       const data = await request.file();
@@ -251,7 +273,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   // up by document id (tenant-scoped) rather than taking a raw storage key
   // as a query param, so a caller can't request an arbitrary storage key —
   // same shape as seal-documents.routes.ts's own /documents/:id/download.
-  fastify.get('/documents/:id/download', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/documents/:id/download', async (request: any, reply) => {
     try {
       const doc = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('hr_documents').selectAll()
@@ -259,6 +281,8 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
           .executeTakeFirst()
       );
       if (!doc) return reply.status(404).send({ error: 'Document not found' });
+      if (doc.user_id !== request.user.sub) { await documentAdmin(request, reply); if (reply.sent) return; }
+      logPiiAccess({ ...fromRequest(request), tenantId: request.user.tenant_id, accessorId: request.user.sub, subjectId: doc.user_id, subjectTable: 'hr_documents', subjectRecordId: doc.id, fieldsAccessed: ['file'], domain: 'IDENTITY', sensitivity: 'HIGH' });
 
       const fileBuffer = await MinioIntegration.readFile(doc.storage_key);
       if (!fileBuffer) return reply.status(404).send({ error: 'File missing from storage' });
@@ -273,7 +297,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/documents/:id/review',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: documentAdmin },
     async (request: any, reply) => {
       try {
         const { id } = request.params;
@@ -290,7 +314,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       }
     });
 
-  fastify.get('/documents/expiry-radar', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/documents/expiry-radar', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       return await NexusHRService.getExpiryRadar(request.user.tenant_id);
     } catch (err: any) {
@@ -305,7 +329,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   // preHandler at all, so any authenticated non-CUSTOMER role could read it
   // directly — a frontend-only gate, not a real boundary. Matched to the
   // rest of the file.
-  fastify.get('/document-requirements', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/document-requirements', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       return await NexusHRService.getDocumentRequirements(request.user.tenant_id);
     } catch (err: any) {
@@ -315,7 +339,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/documents/generate-letter',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    { preHandler: documentAdmin },
     async (request: any, reply) => {
       try {
         const { template_id, user_id, variables } = request.body || {};
@@ -387,7 +411,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // Same gap as /document-requirements above — its only caller is the
   // MGMT-gated HrDocuments.tsx page, but this had no backend preHandler.
-  fastify.get('/documents/templates', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/documents/templates', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getDocumentTemplates(tenantId);
@@ -397,7 +421,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/assets/stats', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any) => {
+  fastify.get('/assets/stats', { preHandler: documentAdmin }, async (request: any) => {
     const tenantId = request.user.tenant_id;
     return withTenant(tenantId, async (trx) => {
       const row = await sql<{ total: string; assigned: string }>`
@@ -413,7 +437,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/assets', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+  fastify.get('/assets', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       return await NexusHRService.getAssets(tenantId);
@@ -423,7 +447,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/assets', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+  fastify.post('/assets', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       return await NexusHRService.createAsset(request.user.tenant_id, request.body);
     } catch (err: any) {
@@ -433,7 +457,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
   });
 
   /** Hand an asset over, or take it back with `user_id: null`. */
-  fastify.patch('/assets/:id/assignment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+  fastify.patch('/assets/:id/assignment', { preHandler: documentAdmin }, async (request: any, reply) => {
     try {
       // employment_id still accepted so an older client keeps working, but a
       // user id is what it now means.

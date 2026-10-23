@@ -59,7 +59,7 @@ const PLATFORM_PATHS = new Set([
 // includes MANAGER) most other routes in this shell use.
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
-function buildNav(isSuperAdmin: boolean): SidebarSection[] {
+function buildNav(isSuperAdmin: boolean, canCases: boolean, canDocuments: boolean): SidebarSection[] {
   const sections: SidebarSection[] = [
   {
     items: [
@@ -108,7 +108,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
   {
     items: [{
       label: 'Records', icon: 'fileText', path: '/nexushr/documents', children: [
-      { label: 'Documents', icon: 'fileText', path: '/nexushr/documents' },
+      ...(canDocuments ? [{ label: 'Documents', icon: 'fileText' as const, path: '/nexushr/documents' }] : []),
       { label: 'Assets',    icon: 'package',  path: '/nexushr/assets'    },
       { label: 'Visitors',  icon: 'userPlus', path: '/nexushr/visitors'  },
       ],
@@ -149,7 +149,7 @@ function buildNav(isSuperAdmin: boolean): SidebarSection[] {
       // Confirmed entirely absent in the platform-wide audit — warnings,
       // PIPs, suspensions, grievances. MGMT-only, same as the routes
       // themselves gate.
-      { label: 'Cases',                icon: 'alertTriangle', path: '/nexushr/cases'         },
+      ...(canCases ? [{ label: 'Cases', icon: 'alertTriangle' as const, path: '/nexushr/cases' }] : []),
       // Confirmed absent in the audit — just an invite email and a
       // deactivation queue, no real "day-1 tasks" workflow. Real
       // checklists generate automatically on join/deactivate (see
@@ -202,7 +202,7 @@ export function NexusHRShell() {
   return (
     <WorkspaceApp appId="nexushr">
       <div className="app-shell" data-onepi="true">
-        <AppSidebar appId="nexushr" sections={buildNav(isSuperAdmin)} />
+        <AppSidebar appId="nexushr" sections={buildNav(isSuperAdmin, ADMIN_ROLES.includes(user?.role as any) || !!user?.org_permissions?.includes('hr.cases.manage'), ADMIN_ROLES.includes(user?.role as any) || !!user?.org_permissions?.includes('hr.documents.manage'))} />
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
@@ -217,7 +217,7 @@ export function NexusHRShell() {
                   is the one place this now lives. */}
               <Route path="roles"             element={<Navigate to="/ondi/roles" replace />} />
               <Route path="delete-requests"   element={<RequireRoles roles={MGMT_ROLES}><DeleteRequestsPage /></RequireRoles>} />
-              <Route path="cases"             element={<RequireRoles roles={MGMT_ROLES}><CaseManagement /></RequireRoles>} />
+              <Route path="cases"             element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['hr.cases.manage']}><CaseManagement /></RequireRoles>} />
               <Route path="checklists"        element={<RequireRoles roles={MGMT_ROLES}><HrChecklists /></RequireRoles>} />
               <Route path="benefits"          element={<HrBenefits />} />
               <Route path="departments"       element={<RequireRoles roles={MGMT_ROLES}><DepartmentsPage /></RequireRoles>} />
@@ -267,7 +267,7 @@ export function NexusHRShell() {
                   (same precedent as Benefits); course management is gated
                   inside the page itself. */}
               <Route path="training"          element={<Training />} />
-              <Route path="documents"         element={<RequireRoles roles={MGMT_ROLES}><HrDocuments /></RequireRoles>} />
+              <Route path="documents"         element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['hr.documents.manage']}><HrDocuments /></RequireRoles>} />
               <Route path="visitors"          element={<RequireRoles roles={MGMT_ROLES}><HrVisitors /></RequireRoles>} />
               <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />
               {/* Permission Matrix merged into the Roles & Permissions page itself (a view toggle there now). */}

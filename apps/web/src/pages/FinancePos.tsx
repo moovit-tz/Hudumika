@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { PosAnalytics, PosCashMovementDirection, PosHeldCart, PosPaymentMethod, PosSale, PosShift } from '@hudumika/types';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { Icon } from '../components/Icon.js';
@@ -20,6 +20,9 @@ import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion.js';
+import { useCompany } from '../data/companyStore.js';
+import { loadPosPrintSettings, posPrintKey, printPosReceipt } from '../lib/pos-print.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import './FinancePos.css';
 
 interface Product { id:string; code:string; name:string; category:string|null; unit:string; type:string; sale_price:number; currency:string; tax_rate:number }
@@ -42,6 +45,12 @@ const fmtDenom = (n:number) => n >= 1000 ? `${Math.round(n / 1000)}K` : String(n
 
 export function FinancePos() {
   const { user } = useAuth();
+  const company = useCompany();
+  const navigate = useNavigate();
+  const [exitOpen, setExitOpen] = useState(false);
+  const [exitTarget, setExitTarget] = useState('/finance');
+  const [productView, setProductView] = useState<'grid' | 'list'>('grid');
+  const [loadError, setLoadError] = useState('');
   const readOnly = useFinanceReadOnly();
   const [data, setData] = useState<Bootstrap|null>(null);
   const [sales, setSales] = useState<PosSale[]>([]);
@@ -106,7 +115,7 @@ export function FinancePos() {
     setSales(result.items); setReceiptTotal(result.total);
   }, [receiptPage, receiptPageSize, receiptSearch, receiptStatus]);
 
-  useEffect(() => { load().catch((e:any) => showAlert(e.message)); }, [load]);
+  useEffect(() => { load().catch((e:any) => setLoadError(e.message)); }, [load]);
   useEffect(() => { const t = setTimeout(() => loadSales().catch((e:any) => showAlert(e.message)), 250); return () => clearTimeout(t); }, [loadSales]);
   useEffect(() => {
     if (!locationId) { setAvailability({}); return; }
@@ -299,6 +308,8 @@ export function FinancePos() {
       const full = await apiFetch(`/v1/finance/pos/sales/${sale.id}`) as PosSale;
       setUsage(cur => cur ? { ...cur, used:cur.used + 1 } : cur);
       setReceipt(full);
+      const printSettings = loadPosPrintSettings(posPrintKey(user?.tenant_id, user?.id));
+      if (printSettings.autoPrint) printPosReceipt(full, printSettings, company.name);
       clearCart();
       setPayments([{ id:'primary', method:'CASH', amount:'', reference:'' }]);
       await Promise.all([load(), loadSales()]);
@@ -349,15 +360,17 @@ export function FinancePos() {
     return () => window.removeEventListener('keydown', onTerminalKey);
   }, [invalidChange, paymentBalance, payments, saving, totals.total]);
 
-  if (!data) return <SectionLoading label="Loading Point of Sale…" />;
+  if (!data) return <div className="pos-load-state"><Button variant="outline" asChild><Link to="/finance">Back office</Link></Button>{loadError ? <><p role="alert">{loadError}</p><Button onClick={() => { setLoadError(''); void load().catch((error: Error) => setLoadError(error.message)); }}>Try again</Button></> : <SectionLoading label="Loading Point of Sale…" />}</div>;
 
   const sel = data;
 
   return (
     <div className="pos-terminal" data-pane={mobilePane}>
 
+      <Dialog open={exitOpen} onOpenChange={setExitOpen}><DialogContent><DialogHeader><DialogTitle>Leave the current sale?</DialogTitle></DialogHeader><DialogBody><p>This sale has not been saved. Hold it before leaving if you want to resume it later.</p></DialogBody><DialogFooter><Button variant="outline" onClick={() => setExitOpen(false)}>Keep selling</Button><Button variant="destructive" onClick={() => navigate(exitTarget)}>Leave without saving</Button></DialogFooter></DialogContent></Dialog>
       {/* ═══ Top Toolbar ═══ */}
       <div className="pos-toolbar">
+        <Button variant="ghost" size="sm" onClick={() => { setExitTarget('/finance'); cart.length ? setExitOpen(true) : navigate('/finance'); }}><Icon name="arrowLeft" size={16} /><span>Back office</span></Button>
         <div className="pos-toolbar-brand">
           <FeaturedIcon size="sm" variant="brand"><Icon name="shoppingCart" size={18} /></FeaturedIcon>
           <div><strong>Point of sale</strong><small>Counter sales &amp; checkout</small></div>
@@ -389,18 +402,20 @@ export function FinancePos() {
         </div>
 
         <div className="pos-toolbar-actions">
+          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm" aria-label="Product display"><Icon name={productView === 'grid' ? 'grid' : 'list'} size={15} />View</Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem onSelect={() => setProductView('grid')}>Product grid</DropdownMenuItem><DropdownMenuItem onSelect={() => setProductView('list')}>Product list</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
           <Button variant="outline" size="sm" aria-label="Receipt history" onClick={() => setHistoryOpen(true)}><Icon name="receipt" size={16}/>Receipts</Button>
-          <Tip label="Register history"><Button variant="ghost" size="icon" aria-label="Register history" onClick={() => setShiftHistoryOpen(true)}><Icon name="clock" size={16}/></Button></Tip>
-          {!readOnly && <>
-            {holds.length > 0 && (
-              <Tip label={`${holds.length} held cart${holds.length > 1 ? 's' : ''}`}><Button variant="ghost" size="icon" aria-label="Held carts" onClick={() => setHoldDialog('list')}><Icon name="pause" size={16}/><Badge variant="brand" style={{position:'absolute',top:-4,right:-4,minWidth:16,height:16,padding:'0 4px',fontSize:9}}>{holds.length}</Badge></Button></Tip>
-            )}
-            {sel.shift && <Tip label="Cash movement"><Button variant="ghost" size="icon" aria-label="Cash movement" onClick={() => setCashMovementOpen(true)}><Icon name="coins" size={16}/></Button></Tip>}
-            <span className="pos-toolbar-sep" />
-            {sel.shift
-              ? <Button variant="outline" size="sm" onClick={() => setShiftDialog('close')}><Icon name="lock" size={14}/>Close register</Button>
-              : <Button size="sm" onClick={() => setShiftDialog('open')}><Icon name="unlock" size={14}/>Open register</Button>}
-          </>}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" aria-label="Till actions"><Icon name="moreHorizontal" size={16}/>More</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => { setExitTarget('/finance/pos/settings'); cart.length ? setExitOpen(true) : navigate('/finance/pos/settings'); }}><Icon name="printer" size={15}/>Printer settings</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setShiftHistoryOpen(true)}><Icon name="clock" size={15}/>Register history</DropdownMenuItem>
+              {!readOnly && <>
+                {holds.length > 0 && <DropdownMenuItem onSelect={() => setHoldDialog('list')}><Icon name="pause" size={15}/>Held carts ({holds.length})</DropdownMenuItem>}
+                {sel.shift && <DropdownMenuItem onSelect={() => setCashMovementOpen(true)}><Icon name="coins" size={15}/>Cash movement</DropdownMenuItem>}
+                <DropdownMenuItem onSelect={() => setShiftDialog(sel.shift ? 'close' : 'open')}><Icon name={sel.shift ? 'lock' : 'unlock'} size={15}/>{sel.shift ? 'Close register' : 'Open register'}</DropdownMenuItem>
+              </>}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -422,6 +437,10 @@ export function FinancePos() {
       {/* ═══ Main Body: Catalogue + Cart ═══ */}
       {!readOnly && (
         <div className="pos-body">
+          <nav className="pos-category-nav" aria-label="Product categories">
+            <h2>Categories</h2>
+            {[{ name: '', label: 'All items', count: data.products.length }, ...categories.map(name => ({ name, label: name, count: data.products.filter(product => product.category === name).length }))].map(category => <Button key={category.name} className="px-3" variant={selectedCategory === category.name ? 'secondary' : 'ghost'} size="sm" aria-pressed={selectedCategory === category.name} onClick={() => { setSelectedCategory(category.name); setProductPage(1); }}><span>{category.label}</span><small>{category.count}</small></Button>)}
+          </nav>
 
           {/* ── LEFT: Catalogue ── */}
           <div className="pos-catalogue">
@@ -438,15 +457,12 @@ export function FinancePos() {
                   placeholder="Search or scan barcode…"
                 />
               </div>
-              {categories.length > 0 && <label className="pos-category-filter"><span>Category</span><Combobox
-                options={[{value:'',label:'All categories'}, ...categories.map(category => ({value:category,label:category}))]}
-                value={selectedCategory} onChange={setSelectedCategory} placeholder="All categories" searchPlaceholder="Search categories…" />
-              </label>}
+
             </div>
 
             {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="warning" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
 
-            <div className="pos-grid" ref={productGridRef}>
+            <div className="pos-grid" data-view={productView} ref={productGridRef}>
               {pageProducts.map(product => {
                 const available = availability[product.id];
                 const unavailable = !!locationId && available !== undefined && available <= 0;
@@ -712,11 +728,11 @@ export function FinancePos() {
             {!shifts.length && <div className="pos-history-empty">No register sessions recorded.</div>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-            <Link to="/finance/products" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="package" size={14}/>Products &amp; stock</Link>
-            <Link to="/customers" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="users" size={14}/>Customers</Link>
-            <Link to="/finance/payments" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="creditCard" size={14}/>Payments</Link>
-            <Link to="/finance/reports/sales" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="barChart2" size={14}/>Sales report</Link>
-            <Link to="/finance/accounts/profit-loss" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--teal)', textDecoration: 'none' }}><Icon name="trendingUp" size={14}/>Profit &amp; loss</Link>
+            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/products"><Icon name="package" size={14}/>Products &amp; stock</Link></Button>
+            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/customers"><Icon name="users" size={14}/>Customers</Link></Button>
+            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/payments"><Icon name="creditCard" size={14}/>Payments</Link></Button>
+            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/reports/sales"><Icon name="barChart2" size={14}/>Sales report</Link></Button>
+            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/accounts/profit-loss"><Icon name="trendingUp" size={14}/>Profit &amp; loss</Link></Button>
           </div>
         </DialogBody>
         <DialogFooter><Button onClick={() => setShiftHistoryOpen(false)}>Done</Button></DialogFooter>
@@ -848,7 +864,7 @@ export function FinancePos() {
         <DialogFooter>
           {!readOnly && canRefund && receipt?.status === 'POSTING_FAILED' && <Button disabled={saving} onClick={retryPosting}><Icon name="refresh" size={14}/>{saving ? 'Retrying…' : 'Retry accounting'}</Button>}
           {!readOnly && canRefund && receipt?.status === 'COMPLETED' && <Button variant="destructive" onClick={() => { setRefundTarget(receipt); setReceipt(null); }}><Icon name="refresh" size={14}/>Refund</Button>}
-          <Button variant="outline" onClick={() => window.print()}><Icon name="fileText" size={14}/>Print</Button>
+          <Button variant="outline" onClick={() => receipt && printPosReceipt(receipt, loadPosPrintSettings(posPrintKey(user?.tenant_id, user?.id)), company.name)}><Icon name="fileText" size={14}/>Print</Button>
           <Button onClick={() => setReceipt(null)}>Done</Button>
         </DialogFooter>
         </DialogContent>

@@ -1,3 +1,4 @@
+import { canManageHrDocuments } from '../lib/hr-pay-access.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
@@ -29,6 +30,7 @@ export async function drivesRoutes(fastify: FastifyInstance) {
   // asked for by name; it is never the default view for an admin.
   fastify.get('/', async (req, reply) => {
     const user = req.user;
+    const canHr=await canManageHrDocuments(user);
     const wantsAdminView = (req.query as any)?.admin === '1' || (req.query as any)?.admin === 'true';
     try {
       return await withTenant(user.tenant_id, async (trx) => {
@@ -71,6 +73,7 @@ export async function drivesRoutes(fastify: FastifyInstance) {
           .where(eb => eb.or([
             eb.and([eb('type', '=', 'personal'), eb('owner_id', '=', user.sub)]),
             eb('type', '=', 'business'),
+            ...(canHr ? [eb('managed_purpose','=','nexushr')] : []),
             eb.and([eb('type', '=', 'shared'), eb('owner_id', '=', user.sub)]),
             ...(memberDriveIds.length > 0 ? [eb.and([eb('type', '=', 'shared'), eb('id', 'in', memberDriveIds)])] : []),
           ]))
@@ -144,10 +147,10 @@ export async function drivesRoutes(fastify: FastifyInstance) {
     const { id } = req.params as { id: string };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
-        const drive = await trx.selectFrom('cloud_drives').select(['id', 'type'])
+        const drive = await trx.selectFrom('cloud_drives').select(['id', 'type', 'managed_purpose'])
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!drive) return reply.status(404).send({ error: 'Drive not found' });
-        if (drive.type !== 'shared') return reply.status(400).send({ error: 'Personal and Business Records drives cannot be deleted' });
+        if (drive.type !== 'shared' || drive.managed_purpose) return reply.status(400).send({ error: 'Personal and Business Records drives cannot be deleted' });
 
         const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, id);
         if (!access?.canManage) return reply.status(403).send({ error: 'You cannot delete this drive' });
@@ -217,6 +220,7 @@ export async function drivesRoutes(fastify: FastifyInstance) {
         const access = await resolveDriveAccess(trx, user.tenant_id, user.sub, user.role, id);
         if (!access?.canManage) return reply.status(access ? 403 : 404).send({ error: access ? 'You cannot manage members of this drive' : 'Drive not found' });
 
+        if(access.hrConfidential) return reply.status(403).send({error:'Assign personnel access through the HR document permission in Ondi.'});
         const candidate = await trx.selectFrom('users').select(['id', 'name'])
           .where('id', '=', principal_id).where('tenant_id', '=', user.tenant_id).where('role', '!=', 'CUSTOMER')
           .executeTakeFirst();

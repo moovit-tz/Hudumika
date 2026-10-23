@@ -1,3 +1,5 @@
+import { sql } from 'kysely';
+import { isHrCloudFile } from '../lib/cloud-drive-access.js';
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { dbPlatform, withTenant } from '../db/client.js';
@@ -235,6 +237,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
         const sealIds = await sealEntityIds(trx, link.tenant_id, link.customer_id);
         const rows = await trx.selectFrom('cloud_files').selectAll()
           .where('tenant_id', '=', link.tenant_id)
+          .where(sql<boolean>`drive_id not in (select id from cloud_drives where tenant_id=${link.tenant_id} and managed_purpose='nexushr')`)
           .where('is_trash', '=', false)
           .where(eb => eb.or([
             eb.and([eb('entity_type', '=', 'customer'), eb('entity_id', '=', link.customer_id)]),
@@ -290,6 +293,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', tenant_id).executeTakeFirst();
       if (!file) return reply.status(404).send({ error: 'Not found' });
 
+      if(file && await isHrCloudFile(trx,tenant_id,file.id)) return reply.status(404).send({error:'Not found'});
       const isEditor = await trx.selectFrom('cloud_file_shares').select('id')
         .where('file_id', '=', id).where('principal_type', '=', 'organization').where('principal_id', '=', user.org_id)
         .where('role', '=', 'Editor').executeTakeFirst();
@@ -329,6 +333,7 @@ export async function orgRoutes(fastify: FastifyInstance) {
     return withTenant(tenant_id, async trx => {
       const file = await trx.selectFrom('cloud_files').selectAll()
         .where('id', '=', id).where('tenant_id', '=', tenant_id).executeTakeFirst();
+      if(file && await isHrCloudFile(trx,tenant_id,file.id)) return reply.status(404).send({error:'File content not available'});
       const isOwnFile = file?.entity_type === 'customer' && file.entity_id === link.customer_id;
       const isOwnShipmentDoc = file?.entity_type === 'shipment' && await trx.selectFrom('shipment_cases').select('id')
         .where('id', '=', file.entity_id!).where('tenant_id', '=', tenant_id).where('customer_id', '=', link.customer_id).executeTakeFirst();

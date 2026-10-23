@@ -77,9 +77,12 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
       if (addr.length) doc.font('Document-Regular').fontSize(9).fillColor(MUTED).text(addr.join(', '), M, doc.y + 2, { width: leftW });
 
       const metaX = M + leftW + 16;
+      const lineCurrencies = [...new Set(lines.map(l => l.currency).filter(Boolean))];
+      const hasForeignLines = lineCurrencies.length > 0 && lineCurrencies.some(c => c !== currency);
       const metaRows: [string, string][] = [
         ['Bill Date', dateFmt(inv.bill_date)], ['Due Date', dateFmt(inv.due_date)],
         ['Status', String(inv.status || '').toUpperCase()],
+        ...(hasForeignLines && exchangeRate !== 1 ? [['Exchange Rate', `1 ${lineCurrencies[0]} = ${money(exchangeRate)} ${currency}`] as [string, string]] : []),
         ...(inv.shipment_ref ? [['Shipment Ref', inv.shipment_ref] as [string, string]] : []),
         ...(inv.bl_number ? [['BL Number', inv.bl_number] as [string, string]] : []),
       ];
@@ -148,6 +151,14 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
         y += rowH;
       }
       y += 12;
+
+      // Exchange-rate conversion note
+      if (hasForeignLines && exchangeRate !== 1) {
+        if (y + 14 > 780) { doc.addPage(); y = M; }
+        doc.font('Document-Regular').fontSize(7.5).fillColor(MUTED)
+          .text(`Converted at 1 ${lineCurrencies[0]} = ${money(exchangeRate)} ${currency}`, M + W * 0.4, y, { width: W * 0.6, align: 'right' });
+        y += 14;
+      }
 
       // Totals
       if (y + 110 > 780) { doc.addPage(); y = M; }

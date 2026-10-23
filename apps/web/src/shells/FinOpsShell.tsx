@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import '../pages/FinOps.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -15,6 +15,8 @@ import type { FinanceCapabilityKey, UserRole } from '@hudumika/types';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { FinanceCapabilityGate } from '../components/FinanceCapabilityGate.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { Button } from '../components/ui/button.js';
+import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 
 const L = (load: () => Promise<Record<string, any>>, name: string) =>
@@ -63,7 +65,8 @@ function buildNav(t: TFunction): SidebarSection[] {
       title: t('finance.nav.accounts'),
       items: [
         { label: t('finance.nav.products'),   icon: 'package',      path: '/finance/products' },
-        { label: 'POS',                        icon: 'shoppingCart', path: '/finance/pos'      },
+        { label: 'POS', icon: 'shoppingCart', path: '/finance/pos' },
+        { label: 'Printer settings', icon: 'printer', path: '/finance/pos/settings' },
         { label: t('finance.nav.taxCodes'),   icon: 'percent',      path: '/finance/tax-codes'},
         {
           label: 'General Ledger', icon: 'bookOpen', path: '/finance/accounts/chart-of-accounts',
@@ -147,6 +150,7 @@ function buildNav(t: TFunction): SidebarSection[] {
 const CAPABILITY_BY_PATH: Partial<Record<string, FinanceCapabilityKey>> = {
   // Payables
   '/finance/purchase-orders':                'finance.procurement',
+  '/finance/pos/settings': 'finance.pos',
   '/finance/pos':                            'finance.pos',
   // Accounts — advanced accounting
   '/finance/accounts/journal-entries':       'finance.accounting.advanced',
@@ -221,10 +225,13 @@ const Budgets                = L(() => import('../pages/Budgets.js'), 'Budgets')
 const BankReconciliation     = L(() => import('../pages/BankReconciliation.js'), 'BankReconciliation');
 const GlPeriods              = L(() => import('../pages/GlPeriods.js'), 'GlPeriods');
 const ApApprovalWorkflows    = L(() => import('../pages/ApApprovalWorkflows.js'), 'ApApprovalWorkflows');
+const FinancePosSettings = L(() => import('../pages/FinancePosSettings.js'), 'FinancePosSettings');
 const FinancePos             = L(() => import('../pages/FinancePos.js'), 'FinancePos');
 const FinanceFxRevaluation   = L(() => import('../pages/FinanceFxRevaluation.js'), 'FinanceFxRevaluation');
 
 export function FinOpsShell() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useLocale();
   const { user } = useAuth();
   const { data: financeAccess } = useFinanceCapabilities();
@@ -242,13 +249,24 @@ export function FinOpsShell() {
     // entitlement request or after a package change refresh.
     items: visibleItems(section.items),
   })).filter(section => section.items.length > 0);
+  React.useEffect(() => {
+    function openTill(event: KeyboardEvent) {
+      if (event.key !== 'F1' || !enabled.has('finance.pos') || !roleCanSeeFinancePath(user?.role, '/finance/pos') || document.querySelector('[role="dialog"]')) return;
+      event.preventDefault(); navigate('/finance/pos');
+    }
+    window.addEventListener('keydown', openTill);
+    return () => window.removeEventListener('keydown', openTill);
+  }, [financeAccess, navigate]);
   const gated = (capability: FinanceCapabilityKey, page: React.ReactNode) => <FinanceCapabilityGate capability={capability}><RequireRoles roles={FIN_ROLES}>{page}</RequireRoles></FinanceCapabilityGate>;
+  if (location.pathname.replace(/\/$/, '') === '/finance/pos') {
+    return <WorkspaceApp appId="finops"><div className="fin-pos-workspace" data-finops="true">{gated('finance.pos', <FinancePos />)}</div></WorkspaceApp>;
+  }
   return (
     <WorkspaceApp appId="finops">
       <div className="app-shell" data-finops="true">
         <AppSidebar appId="finops" sections={NAV} />
         <div className="app-main">
-          <AppHeader />
+          <AppHeader appActions={enabled.has('finance.pos') && roleCanSeeFinancePath(user?.role, '/finance/pos') ? <Button asChild size="sm" variant="secondary"><Link to="/finance/pos"><Icon name="shoppingCart" size={15} />POS <kbd>F1</kbd></Link></Button> : undefined} />
           <div className="app-shell-content">
       <Routes>
         <Route path="overview" element={<Navigate to="/finance" replace />} />
@@ -289,6 +307,7 @@ export function FinOpsShell() {
           <Route path="products"             element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
           <Route path="products/categories" element={<RequireRoles roles={FIN_ROLES}><ProductCategoriesPage /></RequireRoles>} />
           <Route path="products/reviews"    element={<RequireRoles roles={FIN_ROLES}><ProductReviewsPage /></RequireRoles>} />
+          <Route path="pos/settings" element={gated('finance.pos', <FinancePosSettings />)} />
           <Route path="pos"       element={gated('finance.pos', <FinancePos />)} />
           <Route path="tax-codes" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxCodes /></RequireRoles>} />
           <Route path="tax-codes/classify" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxClassify /></RequireRoles>} />

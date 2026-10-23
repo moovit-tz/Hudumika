@@ -14,10 +14,15 @@ import {
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { DataTable } from '../components/ui/DataTable.js';
+import { Badge } from '../components/ui/badge.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Tip } from '../components/ui/tooltip.js';
 
 function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; totalPaid: number }>): Vendor {
@@ -79,8 +84,6 @@ function VendorForm({ vendor, onSave, onClose }: {
       {children}
     </div>
   );
-  const inp: React.CSSProperties = { padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', outline: 'none', width: '100%', boxSizing: 'border-box' };
-  const sel: React.CSSProperties = { ...inp, cursor: 'pointer' };
 
   return (
     <FormPage
@@ -89,21 +92,21 @@ function VendorForm({ vendor, onSave, onClose }: {
       onCancel={onClose}
       actions={
         <>
-          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary" data-ui-native-button="">
-            <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : vendor ? 'Save Changes' : 'Add Vendor'}
-          </button>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || !form.name.trim()}>
+            <Icon name="check" size={14} /> {saving ? 'Saving…' : vendor ? 'Save Changes' : 'Add Vendor'}
+          </Button>
         </>
       }
     >
       <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={{ gridColumn: '1 / -1' }}>
             <F label="Vendor Name *">
-              <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Tanzania Ports Authority" />
+              <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Tanzania Ports Authority" />
             </F>
           </div>
           <F label="Ref Code">
-            <input style={{ ...inp, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 1 }} value={form.refCode} onChange={e => set('refCode', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="Auto" maxLength={20} />
+            <Input style={{ fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 1 }} value={form.refCode} onChange={e => set('refCode', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="Auto" maxLength={20} />
             <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Leave blank to auto-generate from name</span>
           </F>
           <F label="Category *">
@@ -123,13 +126,13 @@ function VendorForm({ vendor, onSave, onClose }: {
             </Select>
           </F>
           <F label="Contact Person">
-            <input style={inp} value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder="Full name" />
+            <Input value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder="Full name" />
           </F>
           <F label="Email">
-            <input style={inp} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="billing@vendor.com" />
+            <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="billing@vendor.com" />
           </F>
           <F label="Phone">
-            <input style={inp} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+255 700 000 000" />
+            <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+255 700 000 000" />
           </F>
           <F label="Payment Terms *">
             <Select value={form.paymentTerms} onValueChange={v => set('paymentTerms', v as PaymentTerms)}>
@@ -140,16 +143,16 @@ function VendorForm({ vendor, onSave, onClose }: {
             </Select>
           </F>
           <F label="Address">
-            <input style={inp} value={form.address} onChange={e => set('address', e.target.value)} placeholder="Street address" />
+            <Input value={form.address} onChange={e => set('address', e.target.value)} placeholder="Street address" />
           </F>
           <F label="City">
-            <input style={inp} value={form.city} onChange={e => set('city', e.target.value)} placeholder="Dar es Salaam" />
+            <Input value={form.city} onChange={e => set('city', e.target.value)} placeholder="Dar es Salaam" />
           </F>
           <F label="Country">
-            <input style={inp} value={form.country} onChange={e => set('country', e.target.value)} placeholder="Tanzania" />
+            <Input value={form.country} onChange={e => set('country', e.target.value)} placeholder="Tanzania" />
           </F>
           <F label="Tax ID / TIN">
-            <input style={inp} value={form.taxId} onChange={e => set('taxId', e.target.value)} placeholder="TIN-300000000" />
+            <Input value={form.taxId} onChange={e => set('taxId', e.target.value)} placeholder="TIN-300000000" />
           </F>
           <F label="Currency">
             <Select value={form.currency} onValueChange={v => set('currency', v)}>
@@ -160,14 +163,14 @@ function VendorForm({ vendor, onSave, onClose }: {
             </Select>
           </F>
           <F label="Bank Name">
-            <input style={inp} value={form.bankName} onChange={e => set('bankName', e.target.value)} placeholder="CRDB Bank" />
+            <Input value={form.bankName} onChange={e => set('bankName', e.target.value)} placeholder="CRDB Bank" />
           </F>
           <F label="Account Number">
-            <input style={inp} value={form.bankAccount} onChange={e => set('bankAccount', e.target.value)} placeholder="0150xxxxxxxxx" />
+            <Input value={form.bankAccount} onChange={e => set('bankAccount', e.target.value)} placeholder="0150xxxxxxxxx" />
           </F>
           <div style={{ gridColumn: '1 / -1' }}>
             <F label="Notes">
-              <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Additional notes…" />
+              <Textarea style={{ minHeight: 72 }} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Additional notes…" />
             </F>
           </div>
         </div>
@@ -367,7 +370,7 @@ export function FinanceVendors() {
 
       {/* Search + filter toolbar */}
       <div style={{ padding: '16px 0 8px' }}>
-        <SearchToolbar
+        <SearchToolbar layout="register"
           search={search}
           onSearch={setSearch}
           placeholder="Search vendors…"
@@ -398,66 +401,24 @@ export function FinanceVendors() {
       {/* Vendors Table */}
       <div style={{ margin: '0 0 20px' }}>
         <SectionCard padded={false}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
-                {['Vendor', 'Category', 'Contact', 'Phone', 'Outstanding', 'Status', ''].map(h => (
-                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)', fontSize: 13 }}>No vendors found</td></tr>
-              )}
-              {filtered.map(v => {
-                const sc = VENDOR_STATUS_COLOR[v.status];
-                return (
-                  <tr key={v.id}
-                    onClick={() => navigate(`/finance/vendors/${v.id}`)}
-                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .1s' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--hover-bg)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
-                  >
-                    <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {v.name}
-                        {v.refCode && <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)' }}>{v.refCode}</span>}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--font)' }}>{v.id}</div>
-                    </td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{VENDOR_CATEGORY_LABEL[v.category]}</td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)' }}>{v.contactPerson || '—'}</td>
-                    <td style={{ padding: '12px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12 }}>{v.phone || '—'}</td>
-                    <td style={{ padding: '12px 14px', fontWeight: 700, color: v.balance > 0 ? 'var(--red)' : 'var(--ink3)', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>{fmt(v.balance)}</td>
-                    <td style={{ padding: '12px 14px' }}>
-                      <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', fontWeight: 700, ...sc }}>{v.status.toUpperCase()}</span>
-                    </td>
-                    <td style={{ padding: '12px 10px', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                      <Tip label="View Profile"><button type="button" aria-label={`View ${v.name} profile`} onClick={e => { e.stopPropagation(); navigate(`/finance/vendors/${v.id}`); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--teal)', borderRadius: 'var(--r)', marginRight: 4 }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
-                        <Icon name="externalLink" size={14} />
-                      </button></Tip>
-                      <Tip label="Edit"><button type="button" aria-label={`Edit ${v.name}`} onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)', marginRight: 4 }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
-                        <Icon name="edit" size={14} />
-                      </button></Tip>
-                      <Tip label="Delete"><button type="button" aria-label={`Delete ${v.name}`} onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')} data-ui-native-button="">
-                        <Icon name="trash2" size={14} />
-                      </button></Tip>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable<Vendor>
+            rows={filtered} pageSize={25} defaultSortKey="name" compact
+            filteredEmpty={filtered.length === 0 && vendors.length > 0}
+            emptyTitle="No vendors yet" emptyMessage="Add a supplier to manage its profile and payables."
+            onRowClick={vendor => navigate(`/finance/vendors/${vendor.id}`)}
+            columns={[
+              { key: 'name', header: 'Vendor', accessor: 'name', sortable: true, render: vendor => <div className="ds-record-cell"><PersonAvatar kind="suppliers" userId={vendor.id} name={vendor.name} size={32} /><div><strong>{vendor.name}</strong><small>{vendor.refCode || vendor.email || 'No reference'}</small></div></div> },
+              { key: 'category', header: 'Category', accessor: 'category', sortable: true, render: vendor => VENDOR_CATEGORY_LABEL[vendor.category] },
+              { key: 'contact', header: 'Contact', accessor: 'contactPerson', sortable: true, render: vendor => <div className="ds-record-cell"><div><strong>{vendor.contactPerson || '—'}</strong><small>{vendor.phone || 'No phone recorded'}</small></div></div> },
+              { key: 'balance', header: 'Outstanding', accessor: 'balance', sortable: true, align: 'right', render: vendor => fmt(vendor.balance, vendor.currency) },
+              { key: 'status', header: 'Status', accessor: 'status', sortable: true, render: vendor => <Badge variant={vendor.status === 'blocked' ? 'error' : vendor.status === 'active' ? 'brand' : 'gray'}>{vendor.status}</Badge> },
+            ]}
+            rowActions={vendor => [
+              { label: 'View profile', icon: 'user', onClick: () => navigate(`/finance/vendors/${vendor.id}`) },
+              { label: 'Edit vendor', icon: 'edit', onClick: () => { setEditVendor(vendor); setShowForm(true); } },
+                { label: 'Delete vendor', icon: 'trash', variant: 'danger', separator: true, onClick: () => handleDelete(vendor.id) },
+            ]}
+          />
         </SectionCard>
       </div>
 

@@ -1,3 +1,6 @@
+import { gateStaffFile } from '../lib/cloud-file-access.js';
+import { isHrCloudFile } from '../lib/cloud-drive-access.js';
+import { canManageHrDocuments } from '../lib/hr-pay-access.js';
 import { z } from 'zod';
 import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
@@ -24,8 +27,10 @@ export const signEditorPayloadSchema=z.object({
 }).passthrough();
 
 /** Foreign IDs are checked before writes so an invalid replacement leaves the saved draft intact. */
-export async function validateSignEditorReferences(db: Kysely<Database>|Transaction<Database>,tenantId:string,body:z.infer<typeof signEditorPayloadSchema>) {
+export async function validateSignEditorReferences(db: Kysely<Database>|Transaction<Database>,tenantId:string,body:z.infer<typeof signEditorPayloadSchema>,actor?:{tenant_id:string;sub:string;role:string}) {
   if(body.file_id && !await db.selectFrom('cloud_files').select('id').where('id','=',body.file_id).where('tenant_id','=',tenantId).executeTakeFirst()) return 'Document file not found';
+  if(body.file_id && await isHrCloudFile(db,tenantId,body.file_id) && (!actor || !await canManageHrDocuments(actor,db))) return 'Document file not found';
+  if(body.file_id && actor && actor.role !== 'CUSTOMER' && !(await gateStaffFile(db,actor,body.file_id,'read')).ok) return 'Document file not found';
   if(body.client_id && !await db.selectFrom('customers').select('id').where('id','=',body.client_id).where('tenant_id','=',tenantId).executeTakeFirst()) return 'Customer not found';
   if(body.bliss_meeting_id && !await db.selectFrom('bliss_meetings').select('id').where('id','=',body.bliss_meeting_id).where('tenant_id','=',tenantId).executeTakeFirst()) return 'Meeting not found';
   const users=[...new Set(body.recipients?.flatMap(r=>r.user_id?[r.user_id]:[]) || [])];

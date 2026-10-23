@@ -2,6 +2,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { apiFetch } from '../../lib/api.js';
+import { PaginationBar } from '../../components/PaginationBar.js';
+import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
@@ -15,6 +17,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { showAlert } from '../../lib/alert.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem,
+  DropdownMenuItem, DropdownMenuSeparator,
 } from '../../components/ui/dropdown-menu.js';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter,
@@ -22,14 +25,12 @@ import {
 import { showConfirm } from '../../lib/confirm.js';
 import { SkeletonPage } from '../../components/ui/skeleton.js';
 import type { Customer } from './customer-types.js';
-import { fmtDate, maskTin, STATUS_VARIANT, PAGE_SIZE, getPageNums } from './customer-types.js';
+import { fmtDate, maskTin, STATUS_VARIANT, PAGE_SIZE } from './customer-types.js';
 
-function Th({ children, width, align, className }: { children?: React.ReactNode; width?: number; align?: 'right'; className?: string }) {
-  return (
-    <th className={className} style={{ width, textAlign: align }}>
-      {children}
-    </th>
-  );
+function Th({ children, width, align, className, onSort, direction }: { children?: React.ReactNode; width?: number; align?: 'right'; className?: string; onSort?: () => void; direction?: 'asc' | 'desc' }) {
+  return <th className={className} style={{ width, textAlign: align }} aria-sort={onSort ? direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none' : undefined}>
+    {onSort ? <Button variant="ghost" size="xs" onClick={onSort}>{children}<span aria-hidden="true">{direction === 'desc' ? '↓' : '↑'}</span></Button> : children}
+  </th>;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -70,11 +71,11 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <button type="button" className="dd-item" onClick={onView} data-ui-native-button=""><Icon name="user" size={13} /> View Profile</button>
-        <button type="button" className="dd-item" onClick={onEdit} data-ui-native-button=""><Icon name="edit" size={13} /> Edit</button>
-        <button type="button" className="dd-item" onClick={onSuspend} data-ui-native-button=""><Icon name="pause" size={13} /> Toggle Status</button>
-        <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-        <button type="button" className="dd-item dd-item-danger" onClick={onDelete} data-ui-native-button=""><Icon name="trash" size={13} /> Delete</button>
+        <DropdownMenuItem onSelect={onView}><Icon name="user" size={13} /> View Profile</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onEdit}><Icon name="edit" size={13} /> Edit</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onSuspend}><Icon name="pause" size={13} /> Toggle Status</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onDelete} className="text-destructive"><Icon name="trash" size={13} /> Delete</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -88,15 +89,6 @@ function Avatar({ name }: { name: string }) {
       shape="square"
       style={{ borderRadius: 'var(--r)', boxShadow: 'var(--elev-sm)', border: '1px solid var(--border)' }}
     />
-  );
-}
-
-function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
-  return (
-    <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'hsl(var(--primary))' : disabled ? 'var(--bg)' : 'var(--card-bg, var(--white))', color: active ? 'hsl(var(--primary-foreground))' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
-      {label}
-    </button>
   );
 }
 
@@ -129,6 +121,9 @@ export const CustomerDirectoryPage: React.FC = () => {
   const [createSaving, setCreateSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [sort, setSort] = useState<{key: 'name' | 'shipments' | 'joined' | 'status'; direction: 'asc' | 'desc'}>({key: 'name', direction: 'asc'});
+  const sortProps = (key: typeof sort.key) => ({ direction: sort.key === key ? sort.direction : undefined, onSort: () => { setSort(current => ({key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'})); setPage(1); } });
   const [bulkAction, setBulkAction] = useState('');
   const [clientTypeFilter, setClientTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -187,8 +182,12 @@ export const CustomerDirectoryPage: React.FC = () => {
       const matchClientType = clientTypeFilter === 'all' || clientType === clientTypeFilter;
 
       return matchSearch && matchStatus && matchClientType;
+    }).sort((a, b) => {
+      const value = (c: Customer) => sort.key === 'shipments' ? c.shipment_count ?? 0 : sort.key === 'joined' ? c.created_at || '' : sort.key === 'status' ? c.account_status || 'Active' : c.name;
+      const av = value(a), bv = value(b);
+      return (typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: 'base' })) * (sort.direction === 'asc' ? 1 : -1);
     });
-  }, [customers, search, statusFilter, clientTypeFilter]);
+  }, [customers, search, statusFilter, clientTypeFilter, sort]);
 
   function exportCSV(rows: Customer[]) {
     const hdr = ['Name', 'Ref Code', 'Client Type', 'Email', 'Phone', 'Contact Person', 'TIN Number', 'City', 'Preferred Port', 'Shipments', 'Status', 'Joined'].join(',');
@@ -253,9 +252,9 @@ export const CustomerDirectoryPage: React.FC = () => {
 
   if (loading) return <SkeletonPage variant="table" />;
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
   const allChecked = paginated.length > 0 && paginated.every(c => selectedIds.includes(c.id));
   const someChecked = paginated.some(c => selectedIds.includes(c.id));
 
@@ -300,7 +299,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             { label: 'Trade Shipments',    main: totalShipments,     sub: `Across ${withShipmentsCount} active trading clients`,                                                                 icon: 'ship'      as IconName, variant: 'info'    as const },
             { label: 'Tax Compliance Rate',main: `${tinRate}%`,      sub: <><span style={{ color: 'var(--teal)', fontWeight: 600 }}>{verifiedTinCount}</span> verified TIN records</>,          icon: 'shield'    as IconName, variant: 'warning' as const },
           ].map(kpi => (
-            <div key={kpi.label} style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div key={kpi.label} style={{ background: 'hsl(var(--card))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>{kpi.label}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginTop: 4, lineHeight: 1.1 }}>{kpi.main}</div>
@@ -312,7 +311,7 @@ export const CustomerDirectoryPage: React.FC = () => {
         </div>
 
         {/* Main card */}
-        <div className="crm-card" style={{ borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
+        <div className="crm-card" style={{ borderRadius: 'var(--r)', background: 'hsl(var(--card))', border: '1px solid var(--border)', boxShadow: 'var(--elev-sm)' }}>
 
           {/* Toolbar */}
           <div className="crm-toolbar" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
@@ -337,7 +336,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             {selectedIds.length > 0 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
                 <span>{selectedIds.length} selected</span>
-                <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, lineHeight: 1, fontSize: 14 }} data-ui-native-button="">×</button>
+                <Button variant="ghost" size="xs" onClick={() => setSelectedIds([])} style={{ padding: 0, minHeight: 'auto', color: 'var(--teal)', fontSize: 14, lineHeight: 1 }}>×</Button>
               </div>
             )}
 
@@ -364,30 +363,16 @@ export const CustomerDirectoryPage: React.FC = () => {
 
             <div style={{ flex: 1 }} />
 
-            <div style={{ position: 'relative', minWidth: 240 }}>
-              <Icon name="search" size={14} strokeWidth={1.75} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }} />
-              <input
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search customer, contact, TIN, port…"
-                style={{ padding: '7px 28px 7px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm, 6px)', fontSize: 13, fontFamily: 'var(--font)', outline: 'none', width: '100%', color: 'var(--ink)', background: 'var(--card-bg, var(--white))' }}
-              />
-              {search && (
-                <button type="button" onClick={() => { setSearch(''); setPage(1); }}
-                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 14, padding: 0 }} data-ui-native-button="">
-                  ×
-                </button>
-              )}
-            </div>
+            <SearchToolbar layout="register" search={search} onSearch={value => { setSearch(value); setPage(1); }} placeholder="Search customer, contact, TIN, port…" style={{ flex: '1 1 240px', order: -1 }} />
 
             {/* View mode toggle */}
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm, 6px)', overflow: 'hidden', background: 'var(--bg)' }}>
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--bg)' }}>
               {[{ mode: 'table', icon: 'list' }, { mode: 'grid', icon: 'grid' }].map(v => (
                 <Tip key={v.mode} label={`${v.mode.charAt(0).toUpperCase() + v.mode.slice(1)} View`} side="bottom">
-                  <button type="button" onClick={() => setViewMode(v.mode as 'table' | 'grid')}
-                    style={{ padding: '6px 10px', border: 'none', background: viewMode === v.mode ? 'var(--card-bg, var(--white))' : 'transparent', color: viewMode === v.mode ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', boxShadow: viewMode === v.mode ? 'var(--elev-sm)' : 'none', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
+                  <Button variant="ghost" size="xs" onClick={() => setViewMode(v.mode as 'table' | 'grid')}
+                    style={{ borderRadius: 0, background: viewMode === v.mode ? 'hsl(var(--card))' : 'transparent', color: viewMode === v.mode ? 'var(--teal)' : 'var(--ink3)', boxShadow: viewMode === v.mode ? 'var(--elev-sm)' : 'none' }}>
                     <Icon name={v.icon as IconName} size={15} />
-                  </button>
+                  </Button>
                 </Tip>
               ))}
             </div>
@@ -431,14 +416,14 @@ export const CustomerDirectoryPage: React.FC = () => {
                 <thead>
                   <tr>
                     <Th width={42}><Checkbox checked={allChecked ? true : someChecked ? 'indeterminate' : false} onCheckedChange={toggleAll} /></Th>
-                    <Th className="crm-col-company" width={360}>Customer / Company</Th>
+                    <Th className="crm-col-company" width={360} {...sortProps('name')}>Customer / Company</Th>
                     {visibleCols.contact && <Th className="crm-col-contact">Primary Contact</Th>}
                     {visibleCols.email   && <Th className="crm-col-email">Email Address</Th>}
                     {visibleCols.phone   && <Th className="crm-col-phone">Phone / WhatsApp</Th>}
                     {visibleCols.tin     && <Th className="crm-col-tin">TIN & Compliance</Th>}
-                    {visibleCols.trade   && <Th className="crm-col-trade">Trade Volume</Th>}
-                    {visibleCols.joined  && <Th className="crm-col-joined">Joined</Th>}
-                    <Th>Status</Th>
+                    {visibleCols.trade   && <Th className="crm-col-trade" {...sortProps('shipments')}>Trade Volume</Th>}
+                    {visibleCols.joined  && <Th className="crm-col-joined" {...sortProps('joined')}>Joined</Th>}
+                    <Th {...sortProps('status')}>Status</Th>
                     <Th className="crm-col-actions" align="right" width={80}>Actions</Th>
                   </tr>
                 </thead>
@@ -468,7 +453,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                       const clientTag = c.client_type || (isCorporate ? 'Corporate' : 'SME');
                       return (
                         <tr key={c.id}
-                          style={{ background: isChecked ? 'var(--teal-l, var(--bg))' : 'var(--card-bg, var(--white))', cursor: 'pointer', transition: 'background 0.1s ease' }}
+                          style={{ background: isChecked ? 'var(--teal-l, var(--bg))' : 'hsl(var(--card))', cursor: 'pointer', transition: 'background 0.1s ease' }}
                           onClick={() => navigate(`/crm/customers/${c.id}`)}>
                           <td style={{ width: 42 }} onClick={e => e.stopPropagation()}>
                             <Checkbox aria-label={`Select ${c.name}`} checked={isChecked} onCheckedChange={() => toggleRow(c.id)} />
@@ -575,7 +560,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                 const isChecked = selectedIds.includes(c.id);
                 return (
                   <div key={c.id} onClick={() => navigate(`/crm/customers/${c.id}`)}
-                    style={{ background: isChecked ? 'var(--teal-l)' : 'var(--card-bg, var(--white))', border: `1px solid ${isChecked ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14, cursor: 'pointer', boxShadow: 'var(--elev-sm)' }}
+                    style={{ background: isChecked ? 'var(--teal-l)' : 'hsl(var(--card))', border: `1px solid ${isChecked ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14, cursor: 'pointer', boxShadow: 'var(--elev-sm)' }}
                     className="hover:shadow-md hover:border-primary/40">
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -609,14 +594,14 @@ export const CustomerDirectoryPage: React.FC = () => {
                       <div style={{ display: 'flex', gap: 6 }}>
                         {c.email && (
                           <Tip label={`Email — ${c.email}`} side="top">
-                            <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()} style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}>
+                            <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()} style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'hsl(var(--card))' }}>
                               <Icon name="mail" size={13} />
                             </a>
                           </Tip>
                         )}
                         {c.phone_wa && (
                           <Tip label={`WhatsApp — ${c.phone_wa}`} side="top">
-                            <a href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'var(--card-bg, var(--white))' }}>
+                            <a href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'hsl(var(--card))' }}>
                               <Icon name="phone" size={13} />
                             </a>
                           </Tip>
@@ -632,29 +617,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             </div>
           )}
 
-          {/* Pagination */}
-          {filtered.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
-                Showing <strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, (safePage - 1) * PAGE_SIZE + 1)}</strong>–<strong style={{ color: 'var(--ink)' }}>{Math.min(filtered.length, safePage * PAGE_SIZE)}</strong> of <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> customers
-              </div>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <PagBtn label="Prev" disabled={safePage === 1} onClick={() => setPage(p => p - 1)} />
-                {getPageNums(safePage, totalPages).map((p, i) =>
-                  p === '…'
-                    ? <span key={`e-${i}`} style={{ padding: '0 4px', color: 'var(--ink3)', fontSize: 13 }}>···</span>
-                    : <PagBtn key={p} label={String(p)} active={p === safePage} onClick={() => setPage(p as number)} />
-                )}
-                <PagBtn label="Next" disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink3)' }}>
-                <span style={{ fontWeight: 600, letterSpacing: '0.04em' }}>PAGE</span>
-                <input type="number" value={safePage} min={1} max={totalPages} onChange={e => { const v = parseInt(e.target.value); if (v >= 1 && v <= totalPages) setPage(v); }}
-                  style={{ width: 44, padding: '3px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, textAlign: 'center', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--card-bg, var(--white))' }} />
-                <span>OF {totalPages}</span>
-              </div>
-            </div>
-          )}
+          <PaginationBar page={safePage} pageSize={pageSize} total={filtered.length} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1); }} pageSizeOptions={[10,25,50,100]} itemLabel="customer" />
         </div>
       </div>
 
@@ -672,11 +635,11 @@ export const CustomerDirectoryPage: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                 <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Company / Legal Name *</label>
-                  <input type="text" required value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Acme Industrial Supplies Ltd" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="text" required value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Acme Industrial Supplies Ltd" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Reference Code</label>
-                  <input type="text" value={(createForm as any).ref_code || ''} onChange={e => setCreateForm(p => ({ ...p, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))} placeholder="e.g. ALK (auto-generated if blank)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)', textTransform: 'uppercase', fontFamily: 'monospace' }} />
+                  <input type="text" value={(createForm as any).ref_code || ''} onChange={e => setCreateForm(p => ({ ...p, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))} placeholder="e.g. ALK (auto-generated if blank)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)', textTransform: 'uppercase', fontFamily: 'monospace' }} />
                   <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, display: 'block' }}>Used in invoice numbers. Auto-generated from company name if left blank.</span>
                 </div>
                 <div>
@@ -693,23 +656,23 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Primary Contact Person</label>
-                  <input type="text" value={createForm.contact_name} onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))} placeholder="e.g. John Doe (Director)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="text" value={createForm.contact_name} onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))} placeholder="e.g. John Doe (Director)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Official Email Address</label>
-                  <input type="email" value={createForm.email} onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))} placeholder="accounts@company.co.tz" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="email" value={createForm.email} onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))} placeholder="accounts@company.co.tz" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>WhatsApp / Phone Number</label>
-                  <input type="text" value={createForm.phone_wa} onChange={e => setCreateForm(p => ({ ...p, phone_wa: e.target.value }))} placeholder="+255 712 345 678" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="text" value={createForm.phone_wa} onChange={e => setCreateForm(p => ({ ...p, phone_wa: e.target.value }))} placeholder="+255 712 345 678" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Taxpayer ID (TIN Number)</label>
-                  <input type="text" value={createForm.tax_id} onChange={e => setCreateForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="e.g. 123-456-789" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="text" value={createForm.tax_id} onChange={e => setCreateForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="e.g. 123-456-789" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>VAT Registration Number</label>
-                  <input type="text" value={createForm.vat_number} onChange={e => setCreateForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="e.g. 40-001234-V" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="text" value={createForm.vat_number} onChange={e => setCreateForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="e.g. 40-001234-V" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Preferred Port / ICD</label>
@@ -740,7 +703,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </div>
                 <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Physical Address & Location</label>
-                  <input type="text" value={createForm.address} onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))} placeholder="e.g. Plot 45, Nyerere Road, Industrial Area, Dar es Salaam" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg, var(--white))', color: 'var(--ink)' }} />
+                  <input type="text" value={createForm.address} onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))} placeholder="e.g. Plot 45, Nyerere Road, Industrial Area, Dar es Salaam" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
               </div>
             </DialogBody>

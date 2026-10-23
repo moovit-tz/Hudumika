@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { wouldExceedStorageQuota } from '../lib/storage-quota.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -44,6 +45,14 @@ export async function ensureDrive(trx: any, tenantId: string): Promise<string> {
   return row.id;
 }
 
+export async function ensureHrDrive(trx:any,tenantId:string):Promise<string> {
+  await sql`select pg_advisory_xact_lock(hashtextextended(${`hr-drive:${tenantId}`},0))`.execute(trx);
+  const existing=await trx.selectFrom('cloud_drives').select('id').where('tenant_id','=',tenantId).where('managed_purpose','=','nexushr').executeTakeFirst();
+  if(existing) return existing.id;
+  const drive=await trx.insertInto('cloud_drives').values({tenant_id:tenantId,name:'Personnel Records',type:'shared',owner_name:'NexusHR',managed_purpose:'nexushr'}).returning('id').executeTakeFirstOrThrow();
+  return drive.id;
+}
+
 /** Find a folder by (name, parent) in the drive, or create it. When `entity`
  *  is given, prefer an entity-tagged match first; if only a name-matched
  *  (untagged, pre-existing) row is found, tag it in place — this doubles as
@@ -63,11 +72,12 @@ export async function ensureFolder(
     .where('tenant_id', '=', tenantId).where('drive_id', '=', driveId)
     .where('type', '=', 'folder').where('name', '=', name);
   q = parentId === null ? q.where('parent_id', 'is', null) : q.where('parent_id', '=', parentId);
+  if(entity) q=q.where((eb:any)=>eb.or([eb.and([eb('entity_type','is',null),eb('entity_id','is',null)]),eb.and([eb('entity_type','=',entity.type),eb('entity_id','=',entity.id)])]));
   const existing = await q.executeTakeFirst();
   if (existing) {
     if (entity) {
       await trx.updateTable('cloud_files').set({ entity_type: entity.type, entity_id: entity.id, updated_at: new Date() })
-        .where('id', '=', existing.id).execute();
+        .where('id', '=', existing.id).where('tenant_id','=',tenantId).execute();
     }
     return existing.id;
   }
@@ -210,7 +220,7 @@ export const CloudSync = {
     const clean = (name ?? '').trim();
     if (!clean) return;
     await withTenant(tenantId, async (trx) => {
-      const driveId = await ensureDrive(trx, tenantId);
+      const driveId = await ensureHrDrive(trx, tenantId);
       const root = await ensureFolder(trx, tenantId, driveId, 'Employees', null);
       await ensureFolder(trx, tenantId, driveId, clean, root, { type: 'employee', id: userId });
     });
@@ -227,7 +237,7 @@ export const CloudSync = {
     if (!(await mirrorFitsQuota(tenantId, args.buffer.length, 'Employee document'))) return;
     await withTenant(tenantId, async (trx) => {
       const name = await employeeName(trx, tenantId, userId);
-      const driveId = await ensureDrive(trx, tenantId);
+      const driveId = await ensureHrDrive(trx, tenantId);
       const root = await ensureFolder(trx, tenantId, driveId, 'Employees', null);
       const empFolder = await ensureFolder(trx, tenantId, driveId, name, root, { type: 'employee', id: userId });
 
@@ -242,7 +252,7 @@ export const CloudSync = {
       const { storageKey } = await MinioIntegration.uploadCloudFile(tenantId, fileId, args.filename, args.buffer);
       await trx.updateTable('cloud_files')
         .set({ storage_key: storageKey, size: args.buffer.length, updated_at: new Date(), entity_type: 'employee', entity_id: userId })
-        .where('id', '=', fileId).execute();
+        .where('id', '=', fileId).where('tenant_id','=',tenantId).execute();
 
       await bumpCloudFolderCount(trx, empFolder, tenantId, dup ? 0 : 1, args.buffer.length - Number(dup?.size ?? 0));
     });
@@ -260,7 +270,7 @@ export const CloudSync = {
       const clean = (user.name ?? '').trim();
       if (!clean) return;
 
-      const driveId = await ensureDrive(trx, tenantId);
+      const driveId = await ensureHrDrive(trx, tenantId);
       const root = await ensureFolder(trx, tenantId, driveId, 'Employees', null);
       const empFolder = await ensureFolder(trx, tenantId, driveId, clean, root, { type: 'employee', id: user.id });
       await trx.updateTable('cloud_files')

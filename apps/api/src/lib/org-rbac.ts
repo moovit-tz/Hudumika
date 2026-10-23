@@ -1,5 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { UserRole } from '@hudumika/types';
+import type { Kysely } from 'kysely';
+import type { Database } from '../db/client.js';
 import { withTenant } from '../db/client.js';
 
 /**
@@ -48,15 +50,17 @@ export const ORG_PERMISSIONS = {
   TEAM_MANAGE: 'team.manage',
   BILLING_MANAGE: 'billing.manage',
   REPORTS_MANAGE: 'reports.manage',
+  HR_CASES_MANAGE: 'hr.cases.manage',
+  HR_DOCUMENTS_MANAGE: 'hr.documents.manage',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 
-export async function hasOrgPermission(tenantId: string, userId: string, permission: OrgPermission): Promise<boolean> {
-  return withTenant(tenantId, async (trx) => {
+export async function hasOrgPermission(tenantId: string, userId: string, permission: OrgPermission, transaction?:Kysely<Database>): Promise<boolean> {
+  const check=async (trx:Kysely<Database>) => {
     const rows = await trx.selectFrom('ondi_org_role_members as m')
       .innerJoin('ondi_org_roles as r', 'r.id', 'm.role_id')
       .select('r.permissions')
-      .where('m.user_id', '=', userId)
+      .where('m.user_id', '=', userId).where('m.tenant_id', '=', tenantId).where('r.tenant_id', '=', tenantId)
       // A time-bound grant (migration 364) stops counting once past its
       // expiry — no cleanup job needed, this check is the enforcement.
       .where(eb => eb.or([eb('m.expires_at', 'is', null), eb('m.expires_at', '>', new Date())]))
@@ -65,7 +69,8 @@ export async function hasOrgPermission(tenantId: string, userId: string, permiss
       const perms = Array.isArray(row.permissions) ? row.permissions : (() => { try { return JSON.parse(row.permissions ?? '[]'); } catch { return []; } })();
       return perms.includes(permission);
     });
-  });
+  };
+  return transaction ? check(transaction) : withTenant(tenantId,check);
 }
 
 export async function getUserOrgPermissions(tenantId: string, userId: string): Promise<string[]> {
@@ -73,7 +78,7 @@ export async function getUserOrgPermissions(tenantId: string, userId: string): P
     const rows = await trx.selectFrom('ondi_org_role_members as m')
       .innerJoin('ondi_org_roles as r', 'r.id', 'm.role_id')
       .select('r.permissions')
-      .where('m.user_id', '=', userId)
+      .where('m.user_id', '=', userId).where('m.tenant_id', '=', tenantId).where('r.tenant_id', '=', tenantId)
       .where(eb => eb.or([eb('m.expires_at', 'is', null), eb('m.expires_at', '>', new Date())]))
       .execute();
     const allPerms = new Set<string>();

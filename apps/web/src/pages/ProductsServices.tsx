@@ -1160,7 +1160,7 @@ export const ProductsServices: React.FC = () => {
         {/* Filters Toolbar Card */}
         <div className="products-filter-card">
         <SectionCard>
-          <SearchToolbar
+          <SearchToolbar layout="register"
             search={search}
             onSearch={value => { setSearch(value); setPage(1); }}
             placeholder="Search products, services, codes, or categories"

@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { dbPlatform } from '../db/client.js';
@@ -47,7 +48,8 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
   // Handshake / config request.
   fastify.get('/cdata', async (request, reply) => {
     const q = request.query as Record<string, string>;
-    const device = await resolveDevice(q.SN, q.token);
+    if (env.APP_ENV === 'production' && request.protocol !== 'https') return reply.status(403).send('HTTPS required');
+    const device = await resolveDevice(q.SN, q.token || request.headers['x-device-token'] as string);
     if (!device) return reply.status(403).send('unregistered device');
     const provider = getDeviceProvider(device.provider);
     if (!provider) return reply.status(500).send('unsupported provider');
@@ -63,7 +65,8 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
   // Command poll — always empty (no remote-command queue this phase).
   fastify.get('/getrequest', async (request, reply) => {
     const q = request.query as Record<string, string>;
-    const device = await resolveDevice(q.SN, q.token);
+    if (env.APP_ENV === 'production' && request.protocol !== 'https') return reply.status(403).send('HTTPS required');
+    const device = await resolveDevice(q.SN, q.token || request.headers['x-device-token'] as string);
     if (!device) return reply.status(403).send('unregistered device');
     const provider = getDeviceProvider(device.provider);
     reply.type('text/plain');
@@ -73,7 +76,8 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
   // The actual attendance push.
   fastify.post('/cdata', async (request, reply) => {
     const q = request.query as Record<string, string>;
-    const device = await resolveDevice(q.SN, q.token);
+    if (env.APP_ENV === 'production' && request.protocol !== 'https') return reply.status(403).send('HTTPS required');
+    const device = await resolveDevice(q.SN, q.token || request.headers['x-device-token'] as string);
     if (!device) return reply.status(403).send('unregistered device');
     if ((q.table || '').toUpperCase() !== 'ATTLOG') {
       // OPERLOG/other tables — handshake advertises we don't want them
@@ -87,6 +91,7 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
     const startedAt = new Date();
     const body = typeof request.body === 'string' ? request.body : '';
     const punches = provider.parsePunchBatch(body);
+    if (punches.length > 5000) return reply.status(413).send('attendance batch too large');
 
     const log = await dbPlatform.insertInto('attendance_device_sync_logs').values({
       tenant_id: device.tenant_id, device_id: device.id, started_at: startedAt,
@@ -102,8 +107,8 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
       await dbPlatform.updateTable('attendance_device_sync_logs')
         .set({ finished_at: new Date(), status: 'error', error: String(err?.message ?? err) })
         .where('id', '=', log.id).execute();
-      // Still ack OK — a device that gets an error response will keep
-      // retrying the same failed batch forever instead of moving on.
+      // The punch transaction rolled back. Do not acknowledge data we did not persist.
+      return reply.header('Retry-After', '30').status(503).send('retry attendance batch');
     }
 
     reply.type('text/plain');
