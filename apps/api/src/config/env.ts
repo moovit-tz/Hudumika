@@ -106,6 +106,7 @@ const envSchema = z.object({
   
   APP_ENV: z.enum(['development', 'production', 'test']).default('development'),
   APP_PORT: z.coerce.number().default(3001),
+  TRUST_PROXY: z.enum(['loopback', '1']).default('loopback'),
   // Platform-wide default meeting duration cap (minutes) — the same "Teams
   // free/basic tier" reference the auto-termination job (meeting-duration-
   // limit.job.ts) is built on. A host can raise/lower it per meeting within

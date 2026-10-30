@@ -9,7 +9,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { documentDefinitionSchema, documentStarters, renderDocument, buildDocumentPdf } from '../services/sign-document.service.js';
 
 const idSchema = z.string().uuid();
-const answersSchema = z.record(z.string().max(10000)).refine(value => Object.keys(value).length <= 100, 'Too many answers');
+const answersSchema = z.record(z.string(), z.string().max(10000)).refine(value => Object.keys(value).length <= 100, 'Too many answers');
 const documentSchema = z.object({
   title: z.string().trim().min(1).max(250),
   jurisdiction: z.string().trim().min(1).max(120),

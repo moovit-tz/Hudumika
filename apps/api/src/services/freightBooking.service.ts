@@ -1,14 +1,18 @@
+import { trackerPage, type TrackerPage } from './tracker-pagination.js';
+import { sql } from 'kysely';
+import { randomUUID } from 'node:crypto';
+import { validateTrackerReferences } from './tracker-integrity.js';
 import { withTenant } from '../db/client.js';
 import { pick } from '../lib/pick.js';
 import { getCarrierAdapter } from './carrier-adapter.js';
 
 export const freightBookingService = {
   // ── Carriers ─────────────────────────────────────────────────────────────
-  async listCarriers(tenantId: string, activeOnly = false) {
+  async listCarriers(tenantId: string, activeOnly = false, page?: TrackerPage) {
     return withTenant(tenantId, async (trx) => {
       let query = trx.selectFrom('carriers').where('tenant_id', '=', tenantId).selectAll();
       if (activeOnly) query = query.where('active', '=', true);
-      return query.orderBy('name', 'asc').execute();
+      return trackerPage(trx,tenantId,query,'carriers','name','asc',page);
     });
   },
 
@@ -41,7 +45,7 @@ export const freightBookingService = {
   },
 
   // ── Rate cards ───────────────────────────────────────────────────────────
-  async listRateCards(tenantId: string, filters?: { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string }) {
+  async listRateCards(tenantId: string, filters?: { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string }, page?: TrackerPage) {
     return withTenant(tenantId, async (trx) => {
       let query = trx
         .selectFrom('freight_rate_cards')
@@ -59,7 +63,7 @@ export const freightBookingService = {
       if (filters?.mode) query = query.where('freight_rate_cards.mode', '=', filters.mode);
       if (filters?.origin_port) query = query.where('freight_rate_cards.origin_port', '=', filters.origin_port);
       if (filters?.destination_port) query = query.where('freight_rate_cards.destination_port', '=', filters.destination_port);
-      return query.orderBy('freight_rate_cards.created_at', 'desc').execute();
+      return trackerPage(trx,tenantId,query,'freight_rate_cards','created_at','desc',page);
     });
   },
 
@@ -68,6 +72,7 @@ export const freightBookingService = {
     cost_rate: number; sell_rate: number; currency?: string; valid_from?: string; valid_to?: string; notes?: string;
   }) {
     return withTenant(tenantId, async (trx) => {
+      await validateTrackerReferences(trx, tenantId, data);
       return trx.insertInto('freight_rate_cards').values({
         tenant_id: tenantId,
         carrier_id: data.carrier_id,
@@ -105,7 +110,7 @@ export const freightBookingService = {
   },
 
   // ── Carrier rate contracts (buy-side only, M7) ──────────────────────────
-  async listRateContracts(tenantId: string, filters?: { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string }) {
+  async listRateContracts(tenantId: string, filters?: { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string }, page?: TrackerPage) {
     return withTenant(tenantId, async (trx) => {
       let query = trx
         .selectFrom('carrier_rate_contracts')
@@ -123,7 +128,7 @@ export const freightBookingService = {
       if (filters?.mode) query = query.where('carrier_rate_contracts.mode', '=', filters.mode);
       if (filters?.origin_port) query = query.where('carrier_rate_contracts.origin_port', '=', filters.origin_port);
       if (filters?.destination_port) query = query.where('carrier_rate_contracts.destination_port', '=', filters.destination_port);
-      return query.orderBy('carrier_rate_contracts.created_at', 'desc').execute();
+      return trackerPage(trx,tenantId,query,'carrier_rate_contracts','created_at','desc',page);
     });
   },
 
@@ -132,6 +137,7 @@ export const freightBookingService = {
     buy_rate: number; currency?: string; transit_days?: number; valid_from?: string; valid_to?: string; notes?: string;
   }) {
     return withTenant(tenantId, async (trx) => {
+      await validateTrackerReferences(trx, tenantId, data);
       return trx.insertInto('carrier_rate_contracts').values({
         tenant_id: tenantId,
         carrier_id: data.carrier_id,
@@ -199,13 +205,13 @@ export const freightBookingService = {
           'carrier_rate_contracts.valid_to',
           'carriers.name as carrier_name', 'carriers.scac_or_iata',
         ])
-        .orderBy('carrier_rate_contracts.buy_rate', 'asc')
+        .orderBy('carrier_rate_contracts.currency', 'asc').orderBy('carrier_rate_contracts.buy_rate', 'asc')
         .execute();
     });
   },
 
   // ── Bookings ─────────────────────────────────────────────────────────────
-  async listBookings(tenantId: string, filters?: { status?: string; customer_id?: string }) {
+  async listBookings(tenantId: string, filters?: { status?: string; customer_id?: string }, page?: TrackerPage) {
     return withTenant(tenantId, async (trx) => {
       let query = trx
         .selectFrom('freight_bookings')
@@ -225,14 +231,14 @@ export const freightBookingService = {
         ]);
       if (filters?.status) query = query.where('freight_bookings.status', '=', filters.status);
       if (filters?.customer_id) query = query.where('freight_bookings.customer_id', '=', filters.customer_id);
-      return query.orderBy('freight_bookings.created_at', 'desc').execute();
+      return trackerPage(trx,tenantId,query,'freight_bookings','created_at','desc',page);
     });
   },
 
   async getBooking(tenantId: string, bookingId: string) {
     return withTenant(tenantId, async (trx) => {
       return trx.selectFrom('freight_bookings')
-        .where('id', '=', bookingId)
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId)
         .where('tenant_id', '=', tenantId)
         .selectAll()
         .executeTakeFirstOrThrow();
@@ -254,13 +260,16 @@ export const freightBookingService = {
     cargo_desc?: string; quantity?: number; requested_ship_date?: string;
   }) {
     return withTenant(tenantId, async (trx) => {
-      const count = await trx
-        .selectFrom('freight_bookings')
-        .where('tenant_id', '=', tenantId)
-        .select(trx.fn.countAll().as('count'))
-        .executeTakeFirstOrThrow();
-      const nextNum = Number(count.count) + 1;
-      const bookingNumber = `FB-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
+      await validateTrackerReferences(trx, tenantId, data);
+      // A durable tenant/year counter is seeded from existing numbers under the same lock.
+      const year = new Date().getUTCFullYear();
+      await sql`select pg_advisory_xact_lock(hashtextextended(${`freight-number:${tenantId}:${year}`},0))`.execute(trx);
+      const existing = await trx.selectFrom('freight_bookings').select('booking_number').where('tenant_id','=',tenantId).where('booking_number','like',`FB-${year}-%`).execute();
+      const highest = existing.reduce((n,r) => Math.max(n, Number(r.booking_number.split('-').pop()) || 0),0);
+      const counter = await trx.insertInto('freight_booking_sequences').values({ tenant_id: tenantId, year, last_number: highest + 1 })
+        .onConflict(oc => oc.columns(['tenant_id','year']).doUpdateSet({ last_number: sql<number>`greatest(freight_booking_sequences.last_number, ${highest}) + 1` }))
+        .returning('last_number').executeTakeFirstOrThrow();
+      const bookingNumber = `FB-${year}-${String(counter.last_number).padStart(4,'0')}`;
 
       return trx.insertInto('freight_bookings').values({
         tenant_id: tenantId,
@@ -281,21 +290,26 @@ export const freightBookingService = {
 
   async quoteBooking(tenantId: string, bookingId: string, data: { rate_card_id?: string; carrier_id?: string; quoted_cost: number; quoted_sell: number; currency?: string }) {
     return withTenant(tenantId, async (trx) => {
+      await validateTrackerReferences(trx, tenantId, data);
       const booking = await trx.selectFrom('freight_bookings')
-        .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().executeTakeFirstOrThrow();
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().forUpdate().executeTakeFirstOrThrow();
       if (booking.status !== 'REQUESTED') throw new Error('Only requested bookings can be quoted');
+      const card = data.rate_card_id ? await trx.selectFrom('freight_rate_cards').selectAll().where('tenant_id','=',tenantId).where('id','=',data.rate_card_id).executeTakeFirstOrThrow() : null;
+      if (card && data.carrier_id && card.carrier_id !== data.carrier_id) throw Object.assign(new Error('Rate card does not belong to the selected carrier'), { statusCode: 400 });
+      if (card && (card.mode !== booking.mode || card.origin_port !== booking.origin_port || card.destination_port !== booking.destination_port)) throw Object.assign(new Error('Rate card does not match the booking lane and mode'), { statusCode: 400 });
+
 
       return trx.updateTable('freight_bookings')
         .set({
           rate_card_id: data.rate_card_id || null,
-          carrier_id: data.carrier_id || null,
+          carrier_id: data.carrier_id || card?.carrier_id || null,
           quoted_cost: data.quoted_cost,
           quoted_sell: data.quoted_sell,
-          currency: data.currency || booking.currency || 'USD',
+          currency: data.currency || card?.currency || booking.currency || 'USD',
           status: 'RATE_QUOTED',
           updated_at: new Date(),
         })
-        .where('id', '=', bookingId)
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
     });
@@ -304,12 +318,12 @@ export const freightBookingService = {
   async cancelBooking(tenantId: string, bookingId: string) {
     return withTenant(tenantId, async (trx) => {
       const booking = await trx.selectFrom('freight_bookings')
-        .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().executeTakeFirstOrThrow();
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().forUpdate().executeTakeFirstOrThrow();
       if (booking.status === 'CONFIRMED') throw new Error('Confirmed bookings cannot be cancelled — cancel the resulting shipment instead');
 
       return trx.updateTable('freight_bookings')
         .set({ status: 'CANCELLED', updated_at: new Date() })
-        .where('id', '=', bookingId)
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
     });
@@ -328,7 +342,12 @@ export const freightBookingService = {
   }) {
     return withTenant(tenantId, async (trx) => {
       const booking = await trx.selectFrom('freight_bookings')
-        .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().executeTakeFirstOrThrow();
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId).selectAll().forUpdate().executeTakeFirstOrThrow();
+      if (booking.status === 'CONFIRMED' && booking.converted_shipment_id) {
+        if (booking.vessel_name !== data.vessel_name || (data.carrier_booking_ref && booking.carrier_booking_ref !== data.carrier_booking_ref) || (data.bl_number && booking.bl_number !== data.bl_number)) throw Object.assign(new Error('Booking already confirmed with different details'), {statusCode:409});
+        const shipment = await trx.selectFrom('shipment_cases').selectAll().where('id','=',booking.converted_shipment_id).where('tenant_id','=',tenantId).executeTakeFirstOrThrow();
+        return { booking, shipment };
+      }
       if (booking.status !== 'RATE_QUOTED') throw new Error('Only rate-quoted bookings can be confirmed');
 
       // Routed through the CarrierAdapter seam (M7) so a real carrier
@@ -338,19 +357,13 @@ export const freightBookingService = {
       let carrierBookingRef: string | null = data.carrier_booking_ref || null;
       if (data.carrier_booking_ref) {
         const carrier = booking.carrier_id
-          ? await trx.selectFrom('carriers').select(['name', 'scac_or_iata']).where('id', '=', booking.carrier_id).executeTakeFirst()
+          ? await trx.selectFrom('carriers').select(['name', 'scac_or_iata']).where('id', '=', booking.carrier_id).where('tenant_id','=',tenantId).executeTakeFirst()
           : null;
         const confirmation = await getCarrierAdapter(carrier?.scac_or_iata, carrier?.name).confirmBooking({ humanProvidedRef: data.carrier_booking_ref });
         carrierBookingRef = confirmation.carrierBookingRef;
       }
 
-      const count = await trx
-        .selectFrom('shipment_cases')
-        .where('tenant_id', '=', tenantId)
-        .select(trx.fn.countAll().as('count'))
-        .executeTakeFirstOrThrow();
-      const nextNum = Number(count.count) + 1;
-      const refNumber = `CLR-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
+      const refNumber = `CLR-${new Date().getUTCFullYear()}-${randomUUID()}`;
 
       const shipmentType =
         booking.mode === 'LCL' ? 'SEA_LCL'
@@ -388,7 +401,7 @@ export const freightBookingService = {
           converted_shipment_id: shipment.id,
           updated_at: new Date(),
         })
-        .where('id', '=', bookingId)
+        .where('id', '=', bookingId).where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
 

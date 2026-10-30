@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "Entity totals, dependent branch options, jurisdiction intersection, currency separation, unknown costs, scoped drilldowns and three responsive viewports"
+  ],
+  "errors": [],
+  "viewports": [
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "brief": 111.484375
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "brief": 132.28125
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "brief": 153.890625
+    }
+  ],
+  "cleaned": true
+}

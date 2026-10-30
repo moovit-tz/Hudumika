@@ -71,9 +71,9 @@ export function HrmDashboard() {
 
   const kpis = [
     { label:'Total Staff',       value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, color:'var(--teal)',  bg:'var(--teal-l)', path:'/nexushr/employees' },
-    { label:'Present Today',     value: hr.today_present,     sub: `${attRate}% rate`,          icon:'check' as IconName, color:'var(--green)', bg:'var(--green-l)',  path:'/nexushr/attendance' },
+    { label:'Present Today',     value: hr.today_present,     sub: `${attRate}% of active staff`,          icon:'check' as IconName, color:'var(--green)', bg:'var(--green-l)',  path:'/nexushr/attendance' },
     { label:'On Leave',          value: hr.on_leave,          sub: `${hr.pending_leaves} pending`, icon:'calendar' as IconName, color:'var(--gold)', bg:'var(--gold-l)', path:'/nexushr/leaves' },
-    { label:'Pending Approvals', value: hr.pending_leaves,    sub: 'Action required',           icon:'clock' as IconName, color:'var(--red)',   bg:'var(--red-l)',  path:'/nexushr/leaves' },
+    { label:'Leave Approvals', value: hr.pending_leaves,    sub: 'Action required',           icon:'clock' as IconName, color:'var(--red)',   bg:'var(--red-l)',  path:'/nexushr/leaves' },
     { label:'Latest Payroll',    value: `TZS ${latestRunNet}M`, sub: latestRun?.name || 'No run yet', icon:'dollarSign' as IconName, color:'var(--purple)', bg:'var(--purple-l)', path:'/nexushr/payroll' },
   ];
 

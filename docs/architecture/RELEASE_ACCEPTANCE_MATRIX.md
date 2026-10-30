@@ -13,7 +13,7 @@ Version: 0.1.0-draft | Date: 2026-10-23 | Revision: initial
 | C — Manufacturing lifecycle | DONE | Mig 618: stages, quality inspections, waste/rework, traceability. Service + routes + UI sub-panels. |
 | D — UI and access configuration | DONE | 24 industries: type keys, DB constraint (mig 619), capability seeds, frontend definitions, production sub-panels. |
 | E — Security and production config | DONE | `finance.manufacturing` capability gate added to production routes + frontend. Quality hold blocks dispatch. |
-| F — Verification and release gates | IMPLEMENTING | manufacturing-quality.test.ts 14/14 ✓. industry-domain-tables.test.ts 25/25 ✓. Web typecheck 0 errors. All 30+ domain API routes returning 401 (registered, auth-gated). finance-industry-work.test.ts blocked by pre-existing opentimestamps dep (not this work). |
+| F — Verification and release gates | IMPLEMENTING | manufacturing-quality.test.ts 14/14 ✓. industry-domain-tables.test.ts 25/25 ✓. party-channel-sync.test.ts 11/11 ✓. finance-industry-work.test.ts 10/10 ✓. industry-domains.test.ts 7/7 ✓. Full monorepo typecheck 0 errors. All 30+ domain API routes returning 401 (registered, auth-gated). |
 
 ## GL atomicity audit results
 
@@ -161,7 +161,8 @@ Remaining 7 industries (restaurant, agriculture, healthcare, pharma, mining, ene
 
 1. ~~Apply mig 617-622 and run tests~~ DONE — all migrations applied, tests green
 2. ~~Verify web typecheck passes~~ DONE — zero errors
-3. Fix pre-existing `opentimestamps` package entry (broken `main` in package.json — `open-timestamps.js` declared, `index.js` exists)
+3. ~~Fix pre-existing `opentimestamps` package entry~~ DONE — added open-timestamps.js wrapper + index.js main, unblocking finance-industry-work.test.ts (10/10 passed)
 4. Build browser verification journeys for domain industries
-5. Add industry-specific tests for domain service logic
+5. ~~Add industry-specific tests for domain service logic~~ DONE — added industry-domains.test.ts covering all 7 domains (7/7 passed)
 6. Connect domain industries to existing apps (e.g., healthcare → NexusHR, logistics → ClearOS)
+

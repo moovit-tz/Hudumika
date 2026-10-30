@@ -14,7 +14,8 @@ import { Icon } from './Icon.js';
  * Extracted from ShipmentDetail so the same card is reusable across ClearOS
  * (and, later, every app) rather than re-implemented per page.
  */
-export function SectionCard({ title, action, padded = true, collapsible = true, defaultOpen = true, children }: {
+export function SectionCard({ title, action, padded = true, collapsible = true, defaultOpen = true, children, className }: {
+  className?: string;
   title?: string;
   action?: React.ReactNode;
   padded?: boolean;
@@ -25,7 +26,7 @@ export function SectionCard({ title, action, padded = true, collapsible = true, 
   const [open, setOpen] = useState(defaultOpen);
   const showBody = !collapsible || open;
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div className={className} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow, none)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {title && (
         <div
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: showBody ? '1px solid var(--border)' : 'none', gap: 8, cursor: collapsible ? 'pointer' : 'default', userSelect: collapsible ? 'none' : undefined, background: 'var(--white)' }}

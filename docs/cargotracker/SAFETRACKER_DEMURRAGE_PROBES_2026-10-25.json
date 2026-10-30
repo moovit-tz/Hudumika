@@ -1,0 +1,31 @@
+[
+  {
+    "probe": "Create future-dated tariff",
+    "status": 201
+  },
+  {
+    "probe": "Tariff effective date in calculator",
+    "status": 200,
+    "result": {
+      "total_days": 10,
+      "free_days": 0,
+      "demurrage_days": 10,
+      "demurrage_cost": 100,
+      "currency": "EUR",
+      "tariff_found": true
+    }
+  },
+  {
+    "probe": "Zero free days, currency and unverified shipment",
+    "status": 201,
+    "free_days": 7,
+    "currency": "USD",
+    "cost": "180.00"
+  },
+  {
+    "probe": "Return before discharge",
+    "status": 200,
+    "return_date": "2026-09-01",
+    "discharge_date": "2026-10-01"
+  }
+]

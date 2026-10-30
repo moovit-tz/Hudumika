@@ -1,0 +1,13 @@
+.sa-analytics { display:flex; flex-direction:column; gap:24px; }
+.sa-stat-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:16px; }
+.sa-stat-card { padding:20px !important; display:flex; flex-direction:column; gap:8px; }
+.sa-stat-label { font-size:13px; color:var(--ink3); font-weight:500; }
+.sa-stat-value { font-size:24px; font-weight:700; color:var(--ink); }
+.sa-analytics-section { padding:24px !important; }
+.sa-analytics-section h3 { font-size:16px; font-weight:600; margin:0 0 16px; }
+.sa-analytics-table { width:100%; border-collapse:collapse; font-size:13px; }
+.sa-analytics-table th { text-align:left; padding:10px 12px; border-bottom:2px solid var(--border); color:var(--ink3); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.04em; }
+.sa-analytics-table td { padding:10px 12px; border-bottom:1px solid var(--border); }
+.sa-analytics-table tbody tr:hover { background:var(--surface2, rgba(0,0,0,0.02)); }
+@media(max-width:768px) { .sa-stat-grid { grid-template-columns:repeat(2, 1fr); } }
+@media(max-width:480px) { .sa-stat-grid { grid-template-columns:1fr; } }

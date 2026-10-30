@@ -1,0 +1,266 @@
+{
+  "reviewed": "2026-10-29",
+  "scope": "Local real database/API and isolated browser; disposable tenants only; no authority calls, payments or notification jobs",
+  "api": {
+    "emptyDashboard": {
+      "status": 200,
+      "data": {
+        "active_certs": 0,
+        "expiring_soon": 0,
+        "pending_apps": 0,
+        "overdue": 0,
+        "health_score": 100,
+        "pending_renewals": 0,
+        "upcoming_deadlines": [],
+        "recent_syncs": []
+      }
+    },
+    "juniorAccess": {
+      "status": 403,
+      "data": {
+        "error": "Forbidden: requires one of [SUPER_ADMIN, ADMIN, TENANT_ADMIN, MANAGER] or the \"comply.manage\" permission."
+      }
+    },
+    "certificateCreate": {
+      "status": 201,
+      "hasId": true
+    },
+    "foreignCertificateRead": {
+      "status": 200,
+      "data": []
+    },
+    "concurrentRenewalStarts": [
+      {
+        "status": 201,
+        "renewalStatus": "pending_review"
+      },
+      {
+        "status": 400,
+        "error": "A renewal workflow is already active for this certificate."
+      }
+    ],
+    "renewalsAfterConcurrentStart": [
+      {
+        "id": "ddf3c6b2-7d38-434e-bb37-0debfddeaff6",
+        "cert_id": "3238d4c8-25ed-4587-a9f1-c4ba7f477c3a",
+        "cert_name": "Review warehouse operating permit",
+        "agency_code": "BRELA",
+        "status": "pending_review",
+        "trigger": "manual",
+        "triggered_at": "2026-10-29T04:01:22.891Z",
+        "approved_by": null,
+        "approved_by_name": null,
+        "approved_at": null,
+        "submitted_at": null,
+        "completed_at": null,
+        "notes": null
+      }
+    ],
+    "sameExpiryPatch": {
+      "status": 200,
+      "data": {
+        "ok": true
+      }
+    },
+    "renewalsAfterSameExpiryPatch": [
+      {
+        "id": "ddf3c6b2-7d38-434e-bb37-0debfddeaff6",
+        "cert_id": "3238d4c8-25ed-4587-a9f1-c4ba7f477c3a",
+        "cert_name": "Review warehouse operating permit",
+        "agency_code": "BRELA",
+        "status": "issued",
+        "trigger": "manual",
+        "triggered_at": "2026-10-29T04:01:22.891Z",
+        "approved_by": null,
+        "approved_by_name": null,
+        "approved_at": null,
+        "submitted_at": null,
+        "completed_at": "2026-10-29T04:01:23.202Z",
+        "notes": null
+      }
+    ],
+    "unknownRenewalApproval": {
+      "status": 200,
+      "data": {
+        "ok": true
+      }
+    },
+    "crossTenantCustomerPatch": {
+      "status": 200,
+      "data": {
+        "ok": true
+      }
+    },
+    "foreignReferencePersisted": true,
+    "kenyaScan": {
+      "status": 201,
+      "data": {
+        "profile": {
+          "sector": "manufacturing",
+          "sub_sector": null,
+          "ownership_structure": "local",
+          "employee_band": "0",
+          "jurisdiction": "TZ"
+        },
+        "obligations_created": 12,
+        "obligations_matched": 12
+      }
+    },
+    "profileAfterKenyaScan": {
+      "status": 200,
+      "data": {
+        "tenant_id": "c6247bb8-848e-4334-8616-eca893f78995",
+        "sector": "manufacturing",
+        "sub_sector": null,
+        "ownership_structure": "local",
+        "employee_band": "0",
+        "jurisdiction": "TZ",
+        "created_at": "2026-10-29T04:01:23.840Z",
+        "updated_at": "2026-10-29T04:01:23.840Z"
+      }
+    },
+    "catalogue": {
+      "status": 200,
+      "count": 284,
+      "fields": [
+        "id",
+        "code",
+        "sn",
+        "category",
+        "description",
+        "tier",
+        "principal_fee",
+        "principal_currency",
+        "subsidiary_fee",
+        "subsidiary_currency",
+        "notes",
+        "requirements"
+      ],
+      "sample": [
+        {
+          "id": "25cf0225-a517-4aa9-920b-32dd5ca4ec3c",
+          "code": "01-01",
+          "sn": 1,
+          "category": "Agency Business",
+          "description": "Commission Agent",
+          "tier": null,
+          "principal_fee": 300000,
+          "principal_currency": "TZS",
+          "subsidiary_fee": 200000,
+          "subsidiary_currency": "TZS",
+          "notes": null,
+          "requirements": [
+            "Certificate of Incorporation / Business Registration (BRELA)",
+            "TIN Certificate",
+            "Proof of business premises (lease agreement or title deed)",
+            "2 passport-size photographs of the applicant/director",
+            "Completed licence application form",
+            "Previous licence (for renewals)"
+          ]
+        }
+      ]
+    },
+    "manualSubmission": {
+      "status": 200,
+      "data": {
+        "ok": true
+      }
+    },
+    "applicationsAfterManualSubmission": [
+      {
+        "id": "73679e5e-eb17-4047-b065-2eeef869ae7e",
+        "app_number": "APP-2026-001",
+        "cert_type": "Review permit",
+        "agency_code": "BRELA",
+        "status": "submitted",
+        "submitted_at": "2026-10-29T04:01:24.373Z",
+        "created_at": "2026-10-29T04:01:24.229Z",
+        "updated_at": "2026-10-29T04:01:24.373Z",
+        "created_by": "b4df1967-2b9c-4d1c-821a-66ddd1678d1f",
+        "agency_ref": "BRELA-MANUAL-1793246484377",
+        "notes": null,
+        "linked_cert_id": null,
+        "metadata": {},
+        "customer_id": null,
+        "customer_name": null,
+        "license_catalog_id": null,
+        "sign_envelope_id": null,
+        "envelope_status": null
+      }
+    ]
+  },
+  "browser": [
+    {
+      "route": "/complyos",
+      "width": 1440,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nCompliance Overview\nCompliance overview.\nAI Obligation Scan\nBRELA Search\nNew Application\n\nLive data · Tanzania · East Africa\n\n1\nACTIVE CERTIFICATES\n0\nEXPIRING IN 30 DAYS\n1\nPENDING APPLICATIONS\n0\nOVERDUE / LAPSED\nCompliance Health Score\nHealthy\n100\n%\n100% Compliant\n1 of 1 required certifications active.\nView all obligations\nUpcoming Deadlines\nCalendar\nNo deadlines in the next 90 days.\nRecent Applications\nView all\nID\tCERTIFICATION\tAGENCY\tSTATUS\tDATE\nAPP-2026-001\t\nReview permit\n\tBRELA\tSubmitted\t29 Oct\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos",
+      "width": 390,
+      "viewport": 390,
+      "documentWidth": 390,
+      "text": "TT\nComplyOS\n/\nCompliance Overview\nCompliance overview.\nAI Obligation Scan\nBRELA Search\nNew Application\n\nLive data · Tanzania · East Africa\n\n1\nACTIVE CERTIFICATES\n0\nEXPIRING IN 30 DAYS\n1\nPENDING APPLICATIONS\n0\nOVERDUE / LAPSED\nCompliance Health Score\nHealthy\n100\n%\n100% Compliant\n1 of 1 required certifications active.\nView all obligations\nUpcoming Deadlines\nCalendar\nNo deadlines in the next 90 days.\nRecent Applications\nView all\nID\tCERTIFICATION\tAGENCY\tSTATUS\tDATE\nAPP-2026-001\t\nReview permit\n\tBRELA\tSubmitted\t29 Oct\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/vault",
+      "width": 1440,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nCertificate Vault\nCertificate vault.\nExport All\nAdd Certificate\n\n1 active · 0 expiring · 0 expired\n\nAll\nActive\n1\nExpiring\n0\nExpired\n0\nBRELA\nActive\nReview warehouse operating permit\nREVIEW-4c28074c\nISSUED\n—\nVALIDITY\n31 Dec 2030\nView\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/vault",
+      "width": 390,
+      "viewport": 390,
+      "documentWidth": 390,
+      "text": "TT\nComplyOS\n/\nCertificate Vault\nCertificate vault.\nExport All\nAdd Certificate\n\n1 active · 0 expiring · 0 expired\n\nAll\nActive\n1\nExpiring\n0\nExpired\n0\nBRELA\nActive\nReview warehouse operating permit\nREVIEW-4c28074c\nISSUED\n—\nVALIDITY\n31 Dec 2030\nView\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/workflows",
+      "width": 1440,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nAutomation\nWorkflows\nLicense Automation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nRenewal Workflows\nRenewal workflows.\nRefresh\n\nCertificate renewal automation — review, approve and track submissions.\n\n1\nTOTAL WORKFLOWS\n0\nAWAITING APPROVAL\n0\nAUTO-TRIGGERED\n1\nISSUED\nActive\nAwaiting Approval\nApproved\nSubmitted\nCompleted\nFailed\nNo workflows here\nNo active renewal workflows. Renewals start automatically when certificates are near expiry.\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/workflows",
+      "width": 390,
+      "viewport": 390,
+      "documentWidth": 390,
+      "text": "TT\nComplyOS\n/\nRenewal Workflows\nRenewal workflows.\nRefresh\n\nCertificate renewal automation — review, approve and track submissions.\n\n1\nTOTAL WORKFLOWS\n0\nAWAITING APPROVAL\n0\nAUTO-TRIGGERED\n1\nISSUED\nActive\nAwaiting Approval\nApproved\nSubmitted\nCompleted\nFailed\nNo workflows here\nNo active renewal workflows. Renewals start automatically when certificates are near expiry.\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/license-catalog",
+      "width": 1440,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nLicence catalogue\nLicence catalogue.\n\nTanzania Business Licensing Act fee schedule — 284 licence options across 37 categories\n\nFilters\nCATEGORY\tLICENCE\tTIER\tPRINCIPAL FEE\tSUB-LICENCE FEE\t\n1. Agency Business\tCommission Agent\t—\tTZS 300,000/=\tTZS 200,000/=\tApply\n1. Agency Business\tTravel agent\t—\tTZS 200,000/=\tTZS 200,000/=\tApply\n1. Agency Business\tAir Charter Agent\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n1. Agency Business\tAir Charter Agent\tLocal\tTZS 300,000/=\tTZS 200,000/=\tApply\n1. Agency Business\tShipping agent\tForeign owned\tUSD 10,000\tUSD 6,000\tApply\n1. Agency Business\tShipping agent\tLocal\tTZS 1,000,000/=\tTZS 400,000/=\tApply\n1. Agency Business\tAny other agent\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n1. Agency Business\tAny other agent\tLocal\tTZS 200,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tInsurance Broker\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n2. Broker Business\tInsurance Broker\tLocal\tTZS 200,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tStock exchange broker\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n2. Broker Business\tStock exchange broker\tLocal\t—\t—\tApply\n2. Broker Business\tShipping broker\tForeign owned\tUSD 5,000\tUSD 3,000\tApply\n2. Broker Business\tShipping broker\tLocal\tTZS 1,000,000/=\tTZS 600,000/=\tApply\n2. Broker Business\tTrade broker\t—\tTZS 400,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tCourt broker\tAny other place\tTZS 200,000/=\tTZS 100,000/=\tApply\n2. Broker Business\tCourt broker\tMunicipality\tTZS 400,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tCourt broker\tTown/District\tTZS 300,000/=\tTZS 100,000/=\tApply\n3. Banking\tBanking Service\tForeign owned\tUSD 5,000\tUSD 3,200\tApply\n3. Banking\tBanking Service\tLocally owned\tTZS 1,000,000/=\tTZS 600,000/=\tApply\n3. Banking\tBureau De Change\tCo-operative banks\tTZS 200,000/=\tTZS 100,000/=\tApply\n3. Banking\tBureau De Change\tForeign owned\tUSD 3,000\tUSD 1,000\tApply\n3. Banking\tBureau De Change\tLocal owned\tTZS 600,000/=\tTZS 400,000/=\tApply\n4. Financial Institutions & Capital Markets\tCapital Markets & Stock Exchange\t—\tTZS 500,000/=\tTZS 300,000/=\tApply\n4. Financial Institutions & Capital Markets\tSocial security provider\t—\tTZS 1,000,000/=\tTZS 600,000/=\tApply\n4. Financial Institutions & Capital Markets\tMortgage & Hire Purchase (other than micro enterprise schemes/programmes)\t—\tTZS 600,000/=\tTZS 400,000/=\tApply\n4. Financial Institutions & Capital Markets\tMortgage & hire purchase for micro enterprise scheme/programme\t—\tTZS 100,000/=\tTZS 50,000/=\tApply\n4. Financial Institutions & Capital Markets\tCredit Card Management\t—\tTZS 400,000/=\tTZS 300,000/=\tApply\n4. Financial Institutions & Capital Markets\tMicro financing investments\tLocal\tTZS 600,000/=\tTZS 400,000/=\tApply\n5. Clearing & Forwarding\tClearing & forwarding local\t—\tTZS 400,000/=\tTZS 200,000/=\tApply\n5. Clearing & Forwarding\tFreight forwarding\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n5. Clearing & Forwarding\tFreight forwarding\tLocal\tTZS 300,000/=\tTZS 200,000/=\tApply\n5. Clearing & Forwarding\tWarehousing\t—\tTZS 300,000/=\tTZS 150,000/=\tApply\n6. Cargo Valuation and Superintendence\tPre-shipment inspection\tForeign owned\tUSD 3,000\tUSD 2,000\tApply\n6. Cargo Valuation and Superintendence\tPre-shipment inspection\tLocal\tTZS 300,000/=\tTZS 200,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo valuation or cargo survey\tForeign owned\tUSD 3,000\tUSD 15,000\tApply\n6. Cargo Valuation and Superintendence\tCargo valuation or cargo survey\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo sourcing local\t—\tTZS 300,000/=\tTZS 200,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo superintendence\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n6. Cargo Valuation and Superintendence\tCargo superintendence\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo handling\tForeign owned\tUSD 5,000\tUSD 3,000\tApply\n6. Cargo Valuation and Superintendence\tCargo handling\tLocal\tTZS 1,000,000/=\tTZS 800,000/=\tApply\n7. Shipping Business\tHarbours/airport management\tForeign owned\tUSD 4,000\tUSD 2,000\tApply\n7. Shipping Business\tHarbours/airport management\tLocal\tTZS 1,000,000/=\tTZS 800,000/=\tApply\n7. Shipping Business\tMiscellaneous port services\t—\tTZS 200,000/=\tTZS 150,000/=\tApply\n7. Shipping Business\tShip Chandelling\t—\tTZS 200,000/=\tTZS 100,000/=\tApply\n7. Shipping Business\tMaritime transportation\t—\tTZS 600,000/=\tTZS 300,000/=\tApply\n7. Shipping Business\tShipping protective or ship charter\t—\tTZS 800,000/=\tTZS 600,000/=\tApply\n7. Shipping Business\tStevedoring, lighterage & bagging services\tDar es Salaam Port\tTZS 300,000/=\tTZS 200,000/=\tApply\n7. Shipping Business\tStevedoring, lighterage & bagging services\tTanga, Mtwara, Lindi, Mafia, Lake Victoria\tTZS 200,000/=\tTZS 100,000/=\tApply\n8. Insurance\tGeneral insurance and assurance\tForeign owned\tUSD 10,000\tUSD 4,000\tApply\n8. Insurance\tGeneral insurance and assurance\tLocal\tTZS 1,000,000/=\tTZS 800,000/=\tApply\n8. Insurance\tUnderwriting and loss assessment\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n8. Insurance\tUnderwriting and loss assessment\tLocal\tTZS 600,000/=\tTZS 300,000/=\tApply\n8. Insurance\tRe-Assurance & endowment\tForeign owned\tTZS 10,000/=\tTZS 400/=\tApply\n8. Insurance\tRe-Assurance & endowment\tLocal\tTZS 800,000/=\tTZS 400,000/=\tApply\n9. Manufactures Representative\tRepresentative franchise holder\t—\tTZS 500,000/=\tTZS 200,000/=\tApply\n9. Manufactures Representative\tSole Distributor or supplier\t—\tTZS 400,000/=\tTZS 200,000/=\tApply\n10. Estate\tReal estate\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n10. Estate\tReal estate\tLocal\tTZS 600,000/=\tTZS 400,000/=\tApply\n10. Estate\tProperty management\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n10. Estate\tProperty management\tLocal\tTZS 500,000/=\tTZS 300,000/=\tApply\n10. Estate\tEstate Agent\tForeign owned\tUSD 1,000\tUSD 1,000\tApply\n10. Estate\tEstate Agent\tLocal\tTZS 400,000/=\tTZS 300,000/=\tApply\n10. Estate\tProperty development\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n10. Estate\tProperty development\tLocal\tTZS 400,000/=\tTZS 200,000/=\tApply\n11. Commercial Traveler\tCommercial Traveler licence\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n12. Postal Services\tPostal Services\tH/Quarters\t—\t—\tApply\n12. Postal Services\tPostal Services\tHead quarters\tTZS 300,000/=\tTZS 200,000/=\tApply\n12. Postal Services\tPostal Services\tMunicipal/HQS\tTZS 2,000,000/=\tTZS 100,000/=\tApply\n12. Postal Services\tPostal Services\tRural\t—\t—\tApply\n12. Postal Services\tPostal Services\tTown/District\tTZS 100,000/=\tTZS 50,000/=\tApply\n12. Postal Services\tCourier services or mailing agent\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n12. Postal Services\tCourier services or mailing agent\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n12. Postal Services\tExpedited mail service\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n12. Postal Services\tExpedited mail service\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n13. Electricity, Power and Energy Supply\tUrban Water Supply\tLocal\tTZS 200,000/=\tTZS 200,000/=\tA"
+    },
+    {
+      "route": "/complyos/license-catalog",
+      "width": 390,
+      "viewport": 390,
+      "documentWidth": 390,
+      "text": "TT\nComplyOS\n/\nLicence catalogue\nLicence catalogue.\n\nTanzania Business Licensing Act fee schedule — 284 licence options across 37 categories\n\nFilters\nCATEGORY\tLICENCE\tTIER\tPRINCIPAL FEE\tSUB-LICENCE FEE\t\n1. Agency Business\tCommission Agent\t—\tTZS 300,000/=\tTZS 200,000/=\tApply\n1. Agency Business\tTravel agent\t—\tTZS 200,000/=\tTZS 200,000/=\tApply\n1. Agency Business\tAir Charter Agent\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n1. Agency Business\tAir Charter Agent\tLocal\tTZS 300,000/=\tTZS 200,000/=\tApply\n1. Agency Business\tShipping agent\tForeign owned\tUSD 10,000\tUSD 6,000\tApply\n1. Agency Business\tShipping agent\tLocal\tTZS 1,000,000/=\tTZS 400,000/=\tApply\n1. Agency Business\tAny other agent\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n1. Agency Business\tAny other agent\tLocal\tTZS 200,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tInsurance Broker\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n2. Broker Business\tInsurance Broker\tLocal\tTZS 200,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tStock exchange broker\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n2. Broker Business\tStock exchange broker\tLocal\t—\t—\tApply\n2. Broker Business\tShipping broker\tForeign owned\tUSD 5,000\tUSD 3,000\tApply\n2. Broker Business\tShipping broker\tLocal\tTZS 1,000,000/=\tTZS 600,000/=\tApply\n2. Broker Business\tTrade broker\t—\tTZS 400,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tCourt broker\tAny other place\tTZS 200,000/=\tTZS 100,000/=\tApply\n2. Broker Business\tCourt broker\tMunicipality\tTZS 400,000/=\tTZS 200,000/=\tApply\n2. Broker Business\tCourt broker\tTown/District\tTZS 300,000/=\tTZS 100,000/=\tApply\n3. Banking\tBanking Service\tForeign owned\tUSD 5,000\tUSD 3,200\tApply\n3. Banking\tBanking Service\tLocally owned\tTZS 1,000,000/=\tTZS 600,000/=\tApply\n3. Banking\tBureau De Change\tCo-operative banks\tTZS 200,000/=\tTZS 100,000/=\tApply\n3. Banking\tBureau De Change\tForeign owned\tUSD 3,000\tUSD 1,000\tApply\n3. Banking\tBureau De Change\tLocal owned\tTZS 600,000/=\tTZS 400,000/=\tApply\n4. Financial Institutions & Capital Markets\tCapital Markets & Stock Exchange\t—\tTZS 500,000/=\tTZS 300,000/=\tApply\n4. Financial Institutions & Capital Markets\tSocial security provider\t—\tTZS 1,000,000/=\tTZS 600,000/=\tApply\n4. Financial Institutions & Capital Markets\tMortgage & Hire Purchase (other than micro enterprise schemes/programmes)\t—\tTZS 600,000/=\tTZS 400,000/=\tApply\n4. Financial Institutions & Capital Markets\tMortgage & hire purchase for micro enterprise scheme/programme\t—\tTZS 100,000/=\tTZS 50,000/=\tApply\n4. Financial Institutions & Capital Markets\tCredit Card Management\t—\tTZS 400,000/=\tTZS 300,000/=\tApply\n4. Financial Institutions & Capital Markets\tMicro financing investments\tLocal\tTZS 600,000/=\tTZS 400,000/=\tApply\n5. Clearing & Forwarding\tClearing & forwarding local\t—\tTZS 400,000/=\tTZS 200,000/=\tApply\n5. Clearing & Forwarding\tFreight forwarding\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n5. Clearing & Forwarding\tFreight forwarding\tLocal\tTZS 300,000/=\tTZS 200,000/=\tApply\n5. Clearing & Forwarding\tWarehousing\t—\tTZS 300,000/=\tTZS 150,000/=\tApply\n6. Cargo Valuation and Superintendence\tPre-shipment inspection\tForeign owned\tUSD 3,000\tUSD 2,000\tApply\n6. Cargo Valuation and Superintendence\tPre-shipment inspection\tLocal\tTZS 300,000/=\tTZS 200,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo valuation or cargo survey\tForeign owned\tUSD 3,000\tUSD 15,000\tApply\n6. Cargo Valuation and Superintendence\tCargo valuation or cargo survey\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo sourcing local\t—\tTZS 300,000/=\tTZS 200,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo superintendence\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n6. Cargo Valuation and Superintendence\tCargo superintendence\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n6. Cargo Valuation and Superintendence\tCargo handling\tForeign owned\tUSD 5,000\tUSD 3,000\tApply\n6. Cargo Valuation and Superintendence\tCargo handling\tLocal\tTZS 1,000,000/=\tTZS 800,000/=\tApply\n7. Shipping Business\tHarbours/airport management\tForeign owned\tUSD 4,000\tUSD 2,000\tApply\n7. Shipping Business\tHarbours/airport management\tLocal\tTZS 1,000,000/=\tTZS 800,000/=\tApply\n7. Shipping Business\tMiscellaneous port services\t—\tTZS 200,000/=\tTZS 150,000/=\tApply\n7. Shipping Business\tShip Chandelling\t—\tTZS 200,000/=\tTZS 100,000/=\tApply\n7. Shipping Business\tMaritime transportation\t—\tTZS 600,000/=\tTZS 300,000/=\tApply\n7. Shipping Business\tShipping protective or ship charter\t—\tTZS 800,000/=\tTZS 600,000/=\tApply\n7. Shipping Business\tStevedoring, lighterage & bagging services\tDar es Salaam Port\tTZS 300,000/=\tTZS 200,000/=\tApply\n7. Shipping Business\tStevedoring, lighterage & bagging services\tTanga, Mtwara, Lindi, Mafia, Lake Victoria\tTZS 200,000/=\tTZS 100,000/=\tApply\n8. Insurance\tGeneral insurance and assurance\tForeign owned\tUSD 10,000\tUSD 4,000\tApply\n8. Insurance\tGeneral insurance and assurance\tLocal\tTZS 1,000,000/=\tTZS 800,000/=\tApply\n8. Insurance\tUnderwriting and loss assessment\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n8. Insurance\tUnderwriting and loss assessment\tLocal\tTZS 600,000/=\tTZS 300,000/=\tApply\n8. Insurance\tRe-Assurance & endowment\tForeign owned\tTZS 10,000/=\tTZS 400/=\tApply\n8. Insurance\tRe-Assurance & endowment\tLocal\tTZS 800,000/=\tTZS 400,000/=\tApply\n9. Manufactures Representative\tRepresentative franchise holder\t—\tTZS 500,000/=\tTZS 200,000/=\tApply\n9. Manufactures Representative\tSole Distributor or supplier\t—\tTZS 400,000/=\tTZS 200,000/=\tApply\n10. Estate\tReal estate\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n10. Estate\tReal estate\tLocal\tTZS 600,000/=\tTZS 400,000/=\tApply\n10. Estate\tProperty management\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n10. Estate\tProperty management\tLocal\tTZS 500,000/=\tTZS 300,000/=\tApply\n10. Estate\tEstate Agent\tForeign owned\tUSD 1,000\tUSD 1,000\tApply\n10. Estate\tEstate Agent\tLocal\tTZS 400,000/=\tTZS 300,000/=\tApply\n10. Estate\tProperty development\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n10. Estate\tProperty development\tLocal\tTZS 400,000/=\tTZS 200,000/=\tApply\n11. Commercial Traveler\tCommercial Traveler licence\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n12. Postal Services\tPostal Services\tH/Quarters\t—\t—\tApply\n12. Postal Services\tPostal Services\tHead quarters\tTZS 300,000/=\tTZS 200,000/=\tApply\n12. Postal Services\tPostal Services\tMunicipal/HQS\tTZS 2,000,000/=\tTZS 100,000/=\tApply\n12. Postal Services\tPostal Services\tRural\t—\t—\tApply\n12. Postal Services\tPostal Services\tTown/District\tTZS 100,000/=\tTZS 50,000/=\tApply\n12. Postal Services\tCourier services or mailing agent\tForeign owned\tUSD 3,000\tUSD 1,500\tApply\n12. Postal Services\tCourier services or mailing agent\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n12. Postal Services\tExpedited mail service\tForeign owned\tUSD 2,000\tUSD 1,000\tApply\n12. Postal Services\tExpedited mail service\tLocal\tTZS 400,000/=\tTZS 400,000/=\tApply\n13. Electricity, Power and Energy Supply\tUrban Water Supply\tLocal\tTZS 200,000/=\tTZS 200,000/=\tApply\n13. Electricity, Power and Energy Supply\tElectricity production and or distribution\tForeign owned\tUSD 5,000\tUSD 2,000\tApply\n13. Electricity, Power and Energy Supply\tElectricity production a"
+    },
+    {
+      "route": "/complyos/obligation-scan",
+      "width": 1440,
+      "viewport": 1440,
+      "documentWidth": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nBack\nComplyOS\n/\nWizard\nAI Obligation scan.\n\nTell us about your business and we'll map the certifications you need.\n\n1\nSector\n2\nBusiness Details\n3\nResults\nSector\nGeneral Trade / Retail\nSub-sector (optional)\nCancel\nNext\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/obligation-scan",
+      "width": 390,
+      "viewport": 390,
+      "documentWidth": 390,
+      "text": "TT\nBack\nComplyOS\n/\nWizard\nAI Obligation scan.\n\nTell us about your business and we'll map the certifications you need.\n\n1\n2\n3\nSector\nGeneral Trade / Retail\nSub-sector (optional)\nCancel\nNext\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    }
+  ],
+  "browserErrors": [],
+  "disposableTenantsCleaned": true
+}

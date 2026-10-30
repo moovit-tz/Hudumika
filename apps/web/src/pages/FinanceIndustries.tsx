@@ -1214,6 +1214,13 @@ export function FinanceIndustryWorkspace() {
                   label: value === 'all' ? 'All statuses' : value.charAt(0).toUpperCase() + value.slice(1)
                 }))}
               />
+              {canWrite && (
+                <Button asChild size="sm">
+                  <Link to={`/finance/industries/${industry}/new`}>
+                    <Icon name="plus" size={15} /> New {config.noun}
+                  </Link>
+                </Button>
+              )}
             </div>
             {error ? (
               <Banner variant="error">{error}</Banner>
@@ -1245,24 +1252,19 @@ export function FinanceIndustryWorkspace() {
                 </FeaturedIcon>
                 <h3>No {config.noun.toLowerCase()}s recorded yet</h3>
                 <p>Create customer work orders, capture materials and service lines, and approve charges for billing.</p>
-                {canWrite && (
-                  <Button asChild style={{ marginTop: 10 }}>
-                    <Link to={`/finance/industries/${industry}/new`}>
-                      <Icon name="plus" size={15} /> Create {config.noun}
-                    </Link>
-                  </Button>
-                )}
               </div>
             )}
-            <div className="industry-pagination">
-              <span>Page {page} of {Math.max(1, Math.ceil(data.total / 20))}</span>
-              <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage(page - 1)}>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" disabled={page * 20 >= data.total || loading} onClick={() => setPage(page + 1)}>
-                Next
-              </Button>
-            </div>
+            {data.total > 20 && (
+              <div className="industry-pagination">
+                <span>Page {page} of {Math.ceil(data.total / 20)}</span>
+                <Button variant="outline" size="icon" disabled={page <= 1 || loading} onClick={() => setPage(page - 1)} aria-label="Previous page">
+                  <Icon name="chevronLeft" size={16} />
+                </Button>
+                <Button variant="outline" size="icon" disabled={page * 20 >= data.total || loading} onClick={() => setPage(page + 1)} aria-label="Next page">
+                  <Icon name="chevronRight" size={16} />
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
         <aside>
@@ -2448,5 +2450,63 @@ function DomainSubPanels({ workId, industry }: { workId: string; industry: strin
     );
   }
 
+  if (industry === 'property' && data.leases?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">Leases ({data.leases.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.leases.map((l: any) => (
+            <div className="industry-record" key={l.id}>
+              <Badge variant={l.status === 'active' ? 'success' : l.status === 'expired' ? 'gray' : 'warning'}>
+                {l.status}
+              </Badge>
+              <span>{l.tenant_name}</span>
+              <small>Rent: {money(l.rent_amount, l.rent_currency)} · {l.billing_cycle} · {l.lease_start} to {l.lease_end || 'ongoing'}</small>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  if (industry === 'hospitality' && data.reservations?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">Reservations ({data.reservations.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.reservations.map((r: any) => (
+            <div className="industry-record" key={r.id}>
+              <Badge variant={r.status === 'checked_in' ? 'success' : r.status === 'checked_out' ? 'gray' : 'info'}>
+                {r.status.replace(/_/g, ' ')}
+              </Badge>
+              <span>{r.guest_name}</span>
+              <small>{r.check_in} → {r.check_out} · {money(r.rate_per_night, data.currency)}/night</small>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  if (industry === 'education' && data.enrollments?.length) {
+    return (
+      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
+        <summary><Badge variant="gray">Enrollments ({data.enrollments.length})</Badge></summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {data.enrollments.map((e: any) => (
+            <div className="industry-record" key={e.id}>
+              <Badge variant={e.status === 'enrolled' ? 'success' : 'gray'}>
+                {e.status}
+              </Badge>
+              <span>Enrollment #{e.id.slice(0, 8).toUpperCase()}</span>
+              <small>Amount Due: {money(e.amount_due, data.currency)}{Number(e.scholarship_pct) > 0 ? ` (${e.scholarship_pct}% scholarship)` : ''}</small>
+            </div>
+          ))}
+        </div>
+      </details>
+    );
+  }
+
   return null;
 }
+

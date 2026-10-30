@@ -1,10 +1,17 @@
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { Link } from 'react-router-dom';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
+import { csvText } from '../lib/financeDocuments.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
-import { apiFetch, apiViewBlob } from '../lib/api.js';
+import { apiFetch } from '../lib/api.js';
 import { getCompany, useCompany } from '../data/companyStore.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -109,7 +116,7 @@ const DEFAULT_TERMS = `1. This quotation is valid for the period stated above.\n
 
 function fmt(amount: number, currency = 'USD') {
   try {
-    return new Intl.NumberFormat('en-US', { style:'currency', currency, minimumFractionDigits:0, maximumFractionDigits:0 }).format(amount||0);
+    return new Intl.NumberFormat('en-US', { style:'currency', currency, minimumFractionDigits:2, maximumFractionDigits:2 }).format(amount||0);
   } catch { return `${currency} ${(amount||0).toLocaleString()}`; }
 }
 
@@ -187,40 +194,11 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
   );
 }
 
-function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:string,msg:string)=>void; onCancel:()=>void }) {
-  const [email, setEmail] = useState(quote.customer_email??'');
-  const [msg, setMsg] = useState(`Dear ${quote.customer_name},\n\nPlease find attached our quotation ${quote.quote_number} for your review. We look forward to your confirmation.\n\nBest regards,\n${getCompany().name}`);
-  return (
-    <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
-      <DialogContent hideClose className="max-w-120 gap-0">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-          <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</DialogTitle>
-          <Tip label="Close">
-            <button type="button" aria-label="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={18}/></button>
-          </Tip>
-        </div>
-        <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Recipient Email</label>
-        <input type="email" title="Recipient email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="customer@example.com"
-          style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, marginBottom:14, boxSizing:'border-box' as const, outline:'none' }}/>
-        <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 }}>Message</label>
-        <textarea title="Email message" value={msg} onChange={e=>setMsg(e.target.value)} rows={6}
-          style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', marginBottom:16, outline:'none' }}/>
-        <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-          <button type="button" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            <Icon name="send" size={13}/> Send Quote
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // -- PDF Print -----------------------------------------------------------------
 
 function printQuote(q: Quote) {
-  void apiViewBlob(`/v1/quotations/${q.id}/pdf`).catch(error => showAlert(error instanceof Error ? error.message : 'Could not open the quotation PDF.', {variant: 'error'}));
+  const tab=window.open(`/finance/documents/quotation/${q.id}/preview?print=1`,'_blank');
+  if(tab)tab.opener=null;else showAlert('Your browser blocked the preview tab. Open the quotation and select Preview PDF.');
 }
 
 // -- Service Catalog Picker ----------------------------------------------------
@@ -249,7 +227,7 @@ function ServicePicker({ onSelect, currency = 'USD' }: {
         unit_price: Number(p.sale_price) || 0,
         tax_rate: Number(p.tax_rate) || 0,
         unit: p.unit || 'unit',
-        description: p.description || p.code || '',
+        description: p.billing_description || p.description || p.code || '',
       })));
     } finally { if (version === searchRef.current) setLoading(false); }
   }, []);
@@ -312,7 +290,7 @@ function ServicePicker({ onSelect, currency = 'USD' }: {
 function LineItemsEditor({ lines, currency, onChange }: {
   lines: LineForm[]; currency: string; onChange: (lines: LineForm[]) => void;
 }) {
-  const { fmt } = useCurrency();
+
   const [pickerKey, setPickerKey] = useState<string|null>(null);
   const [showCatalog, setShowCatalog] = useState(false);
 
@@ -322,11 +300,11 @@ function LineItemsEditor({ lines, currency, onChange }: {
   function remove(key:string){ onChange(lines.filter(l=>l._key!==key)); }
   function addBlank(){ onChange([...lines,newLine()]); }
   function addService(s:ServiceItem){
-    onChange([...lines,{ _key:Math.random().toString(36).slice(2), description:s.name, category:s.category, quantity:1, unit_price:s.unit_price, tax_rate:s.tax_rate }]);
+    onChange([...lines,{ _key:Math.random().toString(36).slice(2), description:[s.name,s.description].filter(Boolean).join('\n'), category:s.category, quantity:1, unit_price:s.unit_price, tax_rate:s.tax_rate }]);
     setShowCatalog(false);
   }
   function insertService(s:ServiceItem, key:string){
-    onChange(lines.map(l=>l._key===key?{...l, description:s.name, category:s.category, unit_price:s.unit_price, tax_rate:s.tax_rate}:l));
+    onChange(lines.map(l=>l._key===key?{...l, description:[s.name,s.description].filter(Boolean).join('\n'), category:s.category, unit_price:s.unit_price, tax_rate:s.tax_rate}:l));
     setPickerKey(null);
   }
 
@@ -444,7 +422,7 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
   mode:'create'|'edit'; initial?:Quote;
   onSave:(data:QuoteFormData,asDraft:boolean)=>Promise<void>; onCancel:()=>void; isMobile?:boolean;
 }) {
-  const { fmt } = useCurrency();
+
   const [saving, setSaving] = useState(false);
   const co = useCompany();
   const isDark = useIsDarkMode();
@@ -476,6 +454,8 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
     }));
   }
 
+  const industryConfiguration = useFinanceConfiguration();
+  const showLogistics = industryConfiguration.data?.industries.includes('logistics') || !!initial?.origin_port || !!initial?.destination_port;
   const [catalogItems, setCatalogItems] = useState<ServiceItem[]>([]);
   useEffect(() => {
     apiFetch('/v1/products?status=active').then((res: any) => {
@@ -483,12 +463,12 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
       setCatalogItems(list.slice(0, 10).map(p => ({
         id: p.id, name: p.name, category: (p.category || 'OTHER').toUpperCase(),
         unit_price: Number(p.sale_price) || 0, tax_rate: Number(p.tax_rate) || 0,
-        unit: p.unit || 'unit', description: p.description || '',
+        unit: p.unit || 'unit', description: p.billing_description || p.description || '',
       })));
     }).catch(() => {});
   }, []);
 
-  const [f, setF] = useState<QuoteFormData>(()=>({
+  const [f, setF] = useFinanceDraft<QuoteFormData>('f',()=>({
     title:            initial?.title            ?? '',
     customer_id:      initial?.customer_id      ?? '',
     customer_name:    initial?.customer_name    ?? '',
@@ -525,7 +505,7 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
 
   return (
     <FormPage
-      title={mode==='create'?'New Quotation':`Edit ${initial?.quote_number}`}
+      title={mode==='create'?'New quotation':`Edit ${initial?.quote_number}`}
       subtitle="Fill in the details below to build the proposal."
       onCancel={onCancel}
       actions={
@@ -575,14 +555,14 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
 
           {/* Shipment & Quote Info */}
           <div style={card}>
-            <SHdr title="Shipment &amp; Quote Details"/>
+            <SHdr title="Quotation details"/>
             <div style={{ padding:20, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
               <div style={{ gridColumn:'1/-1' }}>
                 <label style={lbl}>Quotation Subject / Title *</label>
-                <input type="text" title="Title" placeholder="e.g. Sea Freight – Dar es Salaam to Hamburg – 1x20ft FCL" value={f.title}
+                <input type="text" title="Title" placeholder="Scope, supply or service quotation" value={f.title}
                   onChange={e=>set('title',e.target.value)} style={inp}/>
               </div>
-              <div>
+              {showLogistics && <div>
                 <label style={lbl}>Shipment Mode</label>
                 <Select value={f.shipment_type} onValueChange={v=>set('shipment_type',v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -590,7 +570,7 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
                     {SHIP_TYPES.map(t=><SelectItem key={t} value={t}>{SHIP_TYPE_LABEL[t]}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              </div>}
               <div>
                 <label style={lbl}>Currency</label>
                 <Select value={f.currency} onValueChange={v=>set('currency',v)}>
@@ -600,14 +580,14 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              {showLogistics && <><div>
                 <label style={lbl}>Origin Port / City</label>
                 <input type="text" title="Origin" placeholder="e.g. Dar es Salaam" value={f.origin_port} onChange={e=>set('origin_port',e.target.value)} style={inp}/>
               </div>
               <div>
                 <label style={lbl}>Destination Port / City</label>
                 <input type="text" title="Destination" placeholder="e.g. Hamburg" value={f.destination_port} onChange={e=>set('destination_port',e.target.value)} style={inp}/>
-              </div>
+              </div></>}
               <div>
                 <label style={lbl}>Valid Until</label>
                 <DatePicker date={parseDateOnly(f.valid_until)} onChange={d=>set('valid_until', toDateOnlyString(d))} />
@@ -704,7 +684,7 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
             <div style={{ padding:'8px 0', maxHeight:220, overflowY:'auto' }}>
               {catalogItems.map(s=>(
                 <div key={s.id}
-                  onClick={()=>setF(p=>({...p,lines:[...p.lines,{_key:Math.random().toString(36).slice(2),description:s.name,category:s.category,quantity:1,unit_price:s.unit_price,tax_rate:s.tax_rate}]}))}
+                  onClick={()=>setF(p=>({...p,lines:[...p.lines,{_key:Math.random().toString(36).slice(2),description:[s.name,s.description].filter(Boolean).join('\n'),category:s.category,quantity:1,unit_price:s.unit_price,tax_rate:s.tax_rate}]}))}
                   style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'7px 16px', cursor:'pointer', fontSize:12.5 }}
                   onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')}
                   onMouseLeave={e=>(e.currentTarget.style.background='')}>
@@ -732,9 +712,9 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
   onConvert:()=>Promise<void>; onSend:(email:string,msg:string)=>Promise<void>;
   onDelete:()=>Promise<void>; onDuplicate:()=>Promise<void>; isMobile?:boolean;
 }) {
-  const { fmt } = useCurrency();
+
+  const industryConfiguration = useFinanceConfiguration();
   const [showReject, setShowReject] = useState(false);
-  const [showSend,   setShowSend]   = useState(false);
   const [busy, setBusy]             = useState<string|null>(null);
 
   async function act(key:string, fn:()=>Promise<void>){
@@ -746,8 +726,6 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
 
   const actionGroups: DocumentAction[][] = [
     [
-      { key:'print', label:'Print / PDF', icon:'printer', onClick:()=>printQuote(quote) },
-      { key:'send',  label:'Send to Customer', icon:'mail', onClick:()=>setShowSend(true) },
     ],
     [
       { key:'edit', label:'Edit Quotation', icon:'edit', onClick:onEdit, hidden: !['DRAFT','PENDING'].includes(quote.status) },
@@ -762,7 +740,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
         style:{ background:'var(--green)', color:'hsl(var(--green-foreground))', border:'none' } },
       { key:'reject', label:'Reject', icon:'xCircle', variant:'destructive', hidden: quote.status!=='PENDING', onClick:()=>setShowReject(true) },
       { key:'convert', label:'Convert to Shipment', icon:'ship', loading: busy==='convert', loadingLabel:'Converting…',
-        hidden: quote.status!=='APPROVED', onClick:()=>act('convert',onConvert),
+        hidden: quote.status!=='APPROVED' || !industryConfiguration.data?.industries.includes('logistics'), onClick:()=>act('convert',onConvert),
         style:{ background:'hsl(var(--primary))', color:'hsl(var(--primary-foreground))', border:'none' } },
     ],
     [
@@ -773,10 +751,10 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
   return (
     <>
       {showReject&&<RejectModal onConfirm={r=>{setShowReject(false);act('reject',()=>onStatusChange('REJECTED',r));}} onCancel={()=>setShowReject(false)}/>}
-      {showSend&&<SendModal quote={quote} onSend={(e,m)=>{setShowSend(false);act('send',()=>onSend(e,m));}} onCancel={()=>setShowSend(false)}/>}
 
       <DocumentDetailShell backLabel="Quotations" onBack={onBack} docNumber={quote.quote_number} isMobile={isMobile}>
         <DocumentDetailMain>
+        <FinanceDocumentActions kind="quotation" id={quote.id} label={quote.quote_number}/>
           <DocumentHeaderCard
             number={quote.quote_number}
             title={quote.title}
@@ -869,8 +847,9 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
 // -- Quotations (main) ---------------------------------------------------------
 
 export const Quotations: React.FC = () => {
+  const documentRoute=useFinanceDocumentRoute("quotations");
   const isMobile = useIsMobile();
-  const { fmt } = useCurrency();
+
   const [view,      setView]      = useState<View>('list');
   const [quotes,    setQuotes]    = useState<Quote[]>([]);
   const [totalQuotes, setTotalQuotes] = useState(0);
@@ -917,8 +896,8 @@ export const Quotations: React.FC = () => {
     }
   }, [filter, qPage, qPageSize, search]);
 
-  const fetchDetail = async (id:string) => {
-    try { const data = await apiFetch(`/v1/quotations/${id}`); setSelected(data); setView('detail'); }
+  const fetchDetail = async (id:string, edit=false, syncRoute=true) => {
+    try { const data = await apiFetch(`/v1/quotations/${id}`); setSelected(data); setView(edit?'edit':'detail'); if(syncRoute)documentRoute.open(edit?'edit':'detail',id); }
     catch(e:any){ showAlert(e.message); }
   };
 
@@ -928,11 +907,13 @@ export const Quotations: React.FC = () => {
   },[fetchQuotes, fetchStats]);
   useEffect(() => {
     function handler(e: Event) {
-      if ((e as CustomEvent).detail?.section === 'quotations') setView('create');
+      if ((e as CustomEvent).detail?.section === 'quotations') documentRoute.open('new');
     }
     window.addEventListener('fin:new-doc', handler);
     return () => window.removeEventListener('fin:new-doc', handler);
   }, []);
+
+  useEffect(()=>{ if(documentRoute.mode==='new'){setSelected(null);setView('create');} else if(documentRoute.id){void fetchDetail(documentRoute.id,documentRoute.mode==='edit',false);}else{setSelected(null);setView('list');} },[documentRoute.path]);
 
   function handleFilterChange(f: StatusFilter) { setFilter(f); setQPage(1); }
   function handleSearchChange(s: string) { setSearch(s); setQPage(1); }
@@ -961,7 +942,7 @@ export const Quotations: React.FC = () => {
   async function handleDelete(id:string){
     if(!(await showConfirm('Delete this quotation? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/quotations/${id}`,{method:'DELETE'});
-    setView('list'); setSelected(null); await fetchQuotes(); fetchStats();
+    setView('list'); setSelected(null); documentRoute.open('list'); await fetchQuotes(); fetchStats();
   }
   async function handleDuplicate(id:string){
     try{ const r=await apiFetch(`/v1/quotations/${id}/duplicate`,{method:'POST'}); await fetchQuotes(); fetchStats(); if(r?.id) await fetchDetail(r.id); else showAlert('Quotation duplicated.', { variant: 'success' }); }
@@ -978,10 +959,10 @@ export const Quotations: React.FC = () => {
     };
     if(id){
       const res=await apiFetch(`/v1/quotations/${id}`,{method:'PATCH',body:JSON.stringify(body)});
-      await fetchQuotes(); fetchStats(); setSelected(res); setView('detail');
+      clearFinanceDrafts();await fetchQuotes(); fetchStats(); setSelected(res); setView('detail');documentRoute.open('detail',id);
     } else {
       const res=await apiFetch('/v1/quotations',{method:'POST',body:JSON.stringify(body)});
-      await fetchQuotes(); fetchStats(); if(res?.id) await fetchDetail(res.id); else setView('list');
+      clearFinanceDrafts();await fetchQuotes(); fetchStats(); if(res?.id) await fetchDetail(res.id); else setView('list');
     }
   }
 
@@ -992,7 +973,7 @@ export const Quotations: React.FC = () => {
       ['Quote No.', 'Title', 'Customer', 'Email', 'Status', 'Origin', 'Destination', 'Currency', 'Total Amount', 'Valid Until'],
       ...quotes.map(q => [q.quote_number, q.title, q.customer_name, q.customer_email ?? '', q.status, q.origin_port ?? '', q.destination_port ?? '', q.currency ?? '', q.total_amount ?? 0, q.valid_until ?? '']),
     ];
-    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = csvText(rows);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1002,12 +983,13 @@ export const Quotations: React.FC = () => {
     URL.revokeObjectURL(url);
   }
 
-  if(view==='create') return <QuoteFormView mode="create" onSave={(d,draft)=>handleSave(null,d,draft)} onCancel={()=>setView('list')} isMobile={isMobile}/>;
+  if(view==='create') return <QuoteFormView mode="create" onSave={(d,draft)=>handleSave(null,d,draft)} onCancel={()=>documentRoute.open('list')} isMobile={isMobile}/>;
   if(view==='edit'&&selected) return <QuoteFormView mode="edit" initial={selected} onSave={(d,draft)=>handleSave(selected.id,d,draft)} onCancel={()=>setView('detail')} isMobile={isMobile}/>;
-  if(view==='detail'&&selected) return <QuoteDetailView quote={selected} onBack={()=>{setView('list');setSelected(null);}} onEdit={()=>setView('edit')} onStatusChange={(s,r)=>handleStatusChange(selected.id,s,r)} onConvert={()=>handleConvert(selected.id)} onSend={(e,m)=>handleSend(selected.id,e,m)} onDelete={()=>handleDelete(selected.id)} onDuplicate={()=>handleDuplicate(selected.id)} isMobile={isMobile}/>;
+  if(view==='detail'&&selected) return <QuoteDetailView quote={selected} onBack={()=>documentRoute.open('list')} onEdit={()=>documentRoute.open('edit',selected.id)} onStatusChange={(s,r)=>handleStatusChange(selected.id,s,r)} onConvert={()=>handleConvert(selected.id)} onSend={(e,m)=>handleSend(selected.id,e,m)} onDelete={()=>handleDelete(selected.id)} onDuplicate={()=>handleDuplicate(selected.id)} isMobile={isMobile}/>;
 
   return (
     <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
+      <FinanceDocumentListExport kind="quotation"/>
       <PageHeader
         crumbs={['FINANCE', 'QUOTATIONS']}
         titlePlain="Sales "
@@ -1038,10 +1020,10 @@ export const Quotations: React.FC = () => {
               style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
           <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            <Icon name="download" size={13}/> Export CSV
+            <Icon name="download" size={13}/> Export page CSV
           </button>
-          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            <Icon name="plus" size={13}/> New Quotation
+          <button type="button" onClick={()=>documentRoute.open('new')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+            <Icon name="plus" size={13}/> New quotation
           </button>
         </div>
       </div>
@@ -1054,7 +1036,7 @@ export const Quotations: React.FC = () => {
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:6 }}>No quotations found</div>
                 <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{search?'Try a different search term.':'Get started by creating your first quotation.'}</div>
-                {!search&&<button type="button" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13}/>New Quotation</button>}
+                {!search&&<button type="button" onClick={()=>documentRoute.open('new')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13}/>New quotation</button>}
               </div>
             : <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
                 <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>
@@ -1067,7 +1049,7 @@ export const Quotations: React.FC = () => {
                     {displayed.map(q=>(
                       <tr key={q.id} onClick={()=>fetchDetail(q.id)} style={{ borderBottom:'1px solid var(--border)', cursor:'pointer', transition:'background 0.1s' }}
                         onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='')}>
-                        <td style={{ padding:'11px 14px', fontWeight:700, fontFamily:'monospace', color:'var(--teal)', whiteSpace:'nowrap' }}>{q.quote_number}</td>
+                        <td style={{ padding:'11px 14px', fontWeight:700, fontFamily:'monospace', color:'var(--teal)', whiteSpace:'nowrap' }}><Link to={`/finance/quotations/${q.id}`} onClick={e=>e.stopPropagation()}>{q.quote_number}</Link></td>
                         <td style={{ padding:'11px 14px', fontWeight:600, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.title}</td>
                         <td style={{ padding:'11px 14px' }}><div style={{ display:'flex', alignItems:'center', gap:7 }}><Av name={q.customer_name} customerId={q.customer_id} size={24}/>{q.customer_name}</div></td>
                         <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap' }}>{q.origin_port && q.destination_port ? `${q.origin_port} → ${q.destination_port}` : (q.origin_port || q.destination_port || '—')}</td>
@@ -1077,7 +1059,7 @@ export const Quotations: React.FC = () => {
                         <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink3)', whiteSpace:'nowrap' }}>{fmtDate(q.created_at)}</td>
                         <td style={{ padding:'11px 10px' }} onClick={e=>e.stopPropagation()}>
                           <div style={{ display:'flex', gap:2 }}>
-                            {[{ title:'View',icon:'eye' as const,fn:()=>fetchDetail(q.id) },{ title:'Print',icon:'printer' as const,fn:()=>printQuote(q) },...(['DRAFT','PENDING'].includes(q.status)?[{ title:'Edit',icon:'edit' as const,fn:async()=>{await fetchDetail(q.id);setView('edit');} }]:[])].map(a=>(
+                            {[{ title:'View',icon:'eye' as const,fn:()=>fetchDetail(q.id) },{ title:'Print',icon:'printer' as const,fn:()=>printQuote(q) },...(['DRAFT','PENDING'].includes(q.status)?[{ title:'Edit',icon:'edit' as const,fn:async()=>{await fetchDetail(q.id,true);} }]:[])].map(a=>(
                               <Tip key={a.title} label={a.title}>
                                 <button type="button" aria-label={a.title} onClick={a.fn}
                                   style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}

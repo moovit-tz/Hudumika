@@ -192,7 +192,12 @@ export type TenantPlan =
   // The landing spot for a former agency-managed client once its
   // agency_managed_tenants relationship ends (AgencyHost M3/M4), and the
   // direct answer for a signup that wants hosting alone.
-  | 'onsite-standalone';
+  | 'onsite-standalone'
+  // Migration 635 — Tanzania-first TZS commercial plans (Phase 1).
+  // Coexist with USD plans during transition; new TZ signups get these.
+  | 'starter-tzs'
+  | 'business-tzs'
+  | 'scale-tzs';
 
 export const PLAN_LEVELS: Record<TenantPlan, number> = {
   free:         0,
@@ -205,6 +210,9 @@ export const PLAN_LEVELS: Record<TenantPlan, number> = {
   finance:      3, // legacy alias
   scale:        3,
   enterprise:   4,
+  'starter-tzs': 1,
+  'business-tzs': 2,
+  'scale-tzs':   3,
 };
 
 /** Returns true when the tenant's current plan includes the required tier. */
@@ -227,6 +235,9 @@ export const PLAN_ROLES: Record<TenantPlan, UserRole[]> = {
   finance:      ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
   scale:        ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
   enterprise:   ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'CUSTOMER'],
+  'starter-tzs': ['ADMIN', 'SALES', 'CUSTOMER'],
+  'business-tzs': ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
+  'scale-tzs':   ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
 };
 
 export interface Tenant {

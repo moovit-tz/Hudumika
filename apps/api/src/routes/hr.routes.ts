@@ -3,6 +3,7 @@ import { hasOrgPermission, requireRoleOrOrgPermission, ORG_PERMISSIONS } from '.
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireUuidParams } from '../middleware/uuid-params.js';
 import type { FastifyInstance } from 'fastify';
+import { csvCell, type HrTimeReconciliation } from '@hudumika/types';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { withTenant } from '../db/client.js';
@@ -14,11 +15,15 @@ import { HolidaysService } from '../services/holidays.service.js';
 import { workingDaysBetween } from '../services/holiday-calendar.service.js';
 import { checkRequest as checkLeaveRequest, checkRequestInTx, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
 import { env } from '../config/env.js';
-import { settleEntry, MIN_SHIFT_MINUTES } from '../services/time-entry.service.js';
+import { settleEntry, MIN_SHIFT_MINUTES, MAX_SHIFT_MINUTES } from '../services/time-entry.service.js';
 import { callAI } from './ai.routes.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { logPiiAccess, fromRequest } from '../lib/pii-access-logger.js';
-import { computeAttendance, type Shift } from '../services/attendance.service.js';
+import { computeAttendance } from '../services/attendance.service.js';
+import { syncAttendanceFromSessions } from '../services/attendance-recording.service.js';
+import { workforceMetrics } from '../services/workforce-metrics.service.js';
+import { dateOnly, timesheetRange, plannedTime, lockEmployeeTime, canReviewTime } from '../services/timesheet-integrity.service.js';
+export { syncAttendanceFromSessions } from '../services/attendance-recording.service.js';
 import { createEvent, updateEvent, deleteEvent, type Guest } from '../services/calendar-events.service.js';
 import { renderOfferLetterPdf } from '../services/offer-letter-pdf.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -101,10 +106,7 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.g
 // employee may always act on their own; anything targeting someone else needs
 // one of these.
 const TS_MANAGER_ROLES = ['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'];
-const csvCell = (v: unknown) => {
-  const s = v == null ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+
 
 /**
  * Attendance ⇄ header check-in link (M1).
@@ -179,7 +181,7 @@ async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: 
   }
 
   const grossMs = now.getTime() - new Date(session.clock_in_at).getTime();
-  const workedMins = Math.max(0, Math.round(grossMs / 60000) - totalBreak);
+  const workedMins = grossMs > MAX_SHIFT_MINUTES * 60000 ? null : Math.max(0, Math.round(grossMs / 60000) - totalBreak);
 
   await trx.updateTable('hr_clock_sessions').set({
     status: 'COMPLETED', clock_out_at: now, total_break_minutes: totalBreak,
@@ -214,8 +216,8 @@ async function closeOpenTimeEntries(trx: any, tenantId: string, userId: string, 
     .where('date', '=', isoDate(now)).where('ended_at', 'is', null)
     .execute();
   for (const e of open) {
-    const dur = Math.max(0, Math.round((now.getTime() - new Date(e.started_at as any).getTime()) / 60000));
-    await trx.updateTable('hr_time_entries').set({ ended_at: now, duration_minutes: dur, updated_at: now }).where('id', '=', e.id).execute();
+    const settled = settleEntry(e.started_at, now, null);
+    await trx.updateTable('hr_time_entries').set({ ...settled, updated_at: now }).where('id', '=', e.id).where('tenant_id', '=', tenantId).execute();
   }
 }
 
@@ -237,101 +239,6 @@ async function bestEffortInTransaction<T>(trx: any, savepoint: string, work: () 
   }
 }
 
-/** The day's shift for LATE detection: an explicit hr_shift_assignments row
- *  for that user/date, else the tenant's one `is_default` hr_shifts row,
- *  else a bare fallback for a tenant that hasn't configured shifts at all. */
-async function resolveShiftFor(trx: any, tenantId: string, userId: string, dateStr: string): Promise<Shift> {
-  const assigned = await trx.selectFrom('hr_shift_assignments as a')
-    .innerJoin('hr_shifts as s', 's.id', 'a.shift_id')
-    .select(['s.start_time', 's.end_time', 's.break_minutes', 's.grace_minutes'])
-    .where('a.tenant_id', '=', tenantId).where('a.user_id', '=', userId).where('a.date', '=', dateStr)
-    .executeTakeFirst();
-  const row = assigned ?? await trx.selectFrom('hr_shifts')
-    .select(['start_time', 'end_time', 'break_minutes', 'grace_minutes'])
-    .where('tenant_id', '=', tenantId).where('is_default', '=', true)
-    .executeTakeFirst();
-  if (!row) return { startTime: '08:00', endTime: '17:00', breakMinutes: 0, graceMinutes: 10 };
-  return { startTime: row.start_time, endTime: row.end_time, breakMinutes: row.break_minutes, graceMinutes: row.grace_minutes };
-}
-
-/**
- * Recomputes an hr_attendance row's clock_in/clock_out/worked_minutes from
- * every hr_clock_sessions row that date, instead of whichever single
- * session most recently wrote to it. A day genuinely can hold more than one
- * session — a real clock session plus a manual backfill, a missed
- * clock-out fixed by clocking in again, lunch taken outside the in-session
- * break button, or now a biometric device punch pair (source='DEVICE',
- * 379_attendance_devices.sql) — and hr_attendance is one row per day, so
- * without this the admin Attendance dashboard's number is whichever session
- * happened to write last, not the employee's real total. Called after every
- * write to hr_clock_sessions for that user/date (start, stop, manual, device).
- *
- * Status is now genuinely derived via computeAttendance() (attendance.
- * service.ts) against the day's real shift, instead of the caller always
- * passing 'PRESENT' — that made every previous call site's LATE detection
- * dead code: clock-in forced 'PRESENT' immediately, and clock-out passed no
- * override at all, so nothing ever revisited it. An explicit statusOverride
- * (a manual HR mark: ON_LEAVE, ABSENT, ...) still always wins.
- */
-export async function syncAttendanceFromSessions(trx: any, tenantId: string, userId: string, dateStr: string, actorId: string, statusOverride?: string) {
-  const sessions = await trx.selectFrom('hr_clock_sessions')
-    .select(['clock_in_at', 'clock_out_at', 'worked_minutes', 'status', 'source'])
-    .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('date', '=', dateStr)
-    .execute();
-  if (sessions.length === 0) return;
-
-  const fmt = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  let earliestIn: Date | null = null;
-  let latestOut: Date | null = null;
-  let totalWorked = 0;
-  let hasDevice = false;
-  let hasWeb = false;
-  for (const s of sessions) {
-    const inAt = new Date(s.clock_in_at as any);
-    if (!earliestIn || inAt < earliestIn) earliestIn = inAt;
-    if (s.source === 'DEVICE') hasDevice = true;
-    else if (s.source !== 'MANUAL') hasWeb = true; // WEB, or the pre-migration default
-    if (s.status === 'COMPLETED') {
-      totalWorked += (s.worked_minutes as number) || 0;
-      if (s.clock_out_at) {
-        const outAt = new Date(s.clock_out_at as any);
-        if (!latestOut || outAt > latestOut) latestOut = outAt;
-      }
-    }
-  }
-
-  // computeAttendance requires both times to classify PRESENT/LATE — pass
-  // earliestIn for both when nobody has clocked out yet. lateBy/status don't
-  // depend on outM once inM is non-null, so this is safe; it just means the
-  // worked/overtime figures it also returns aren't meaningful mid-shift,
-  // which is fine since totalWorked (summed from real sessions) is used
-  // instead of computeAttendance's own gap-based total.
-  const shift = await resolveShiftFor(trx, tenantId, userId, dateStr);
-  const computed = computeAttendance(fmt(earliestIn as Date), fmt(latestOut ?? (earliestIn as Date)), shift);
-
-  const existing = await trx.selectFrom('hr_attendance').select('id')
-    .where('tenant_id', '=', tenantId).where('user_id', '=', userId).where('date', '=', dateStr)
-    .executeTakeFirst();
-
-  const patch: Record<string, unknown> = {
-    clock_in: earliestIn ? fmt(earliestIn) : null,
-    clock_out: latestOut ? fmt(latestOut) : null,
-    worked_minutes: totalWorked,
-    status: statusOverride ?? computed.status,
-    // A day mixing sources (rare) counts as BIOMETRIC/WEB over MANUAL — the
-    // more automated source is the more trustworthy record of what happened.
-    method: hasDevice ? 'BIOMETRIC' : hasWeb ? 'WEB' : 'MANUAL',
-    recorded_by: actorId,
-    updated_at: new Date(),
-  };
-  if (existing) {
-    await trx.updateTable('hr_attendance').set(patch).where('id', '=', existing.id).execute();
-  } else {
-    await trx.insertInto('hr_attendance').values({
-      tenant_id: tenantId, user_id: userId, date: dateStr, ...patch,
-    }).execute();
-  }
-}
 
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -681,8 +588,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       clock_out: z.string().optional().nullable(),
       notes: z.string().max(2000).optional().nullable(),
     }).parse(req.body);
-    const dateStr: string = body.date;
+    const dateStr = dateOnly(body.date);
     return withTenant(user.tenant_id, async (trx) => {
+      await assertOwnedRef(trx, 'users', body.user_id, user.tenant_id, 'Employee');
+      if (body.user_id !== user.sub && !await canReviewTime(trx, user, body.user_id)) throw Object.assign(new Error('You may only manage attendance for your reporting line.'), { statusCode: 403 });
+      await lockEmployeeTime(trx, user.tenant_id, body.user_id);
       const existing = await trx.selectFrom('hr_attendance')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -697,7 +607,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           notes: body.notes ?? existing.notes,
           recorded_by: user.sub,
           updated_at: new Date(),
-        }).where('id', '=', existing.id)
+        }).where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id)
           .returningAll().executeTakeFirstOrThrow();
       }
       return trx.insertInto('hr_attendance').values({
@@ -716,7 +626,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.post('/attendance/bulk', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
     const body = z.object({
-      user_ids: z.array(z.string().uuid()).min(1),
+      user_ids: z.array(z.string().uuid()).min(1).max(200),
       from_date: z.string(),
       to_date: z.string(),
       status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE']).optional(),
@@ -725,11 +635,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
     }).parse(req.body);
     const status = body.status ?? 'PRESENT';
     return withTenant(user.tenant_id, async (trx) => {
-      const userIds: string[] = body.user_ids;
-      const from = new Date(body.from_date);
-      const to   = new Date(body.to_date);
+      const userIds = [...new Set(body.user_ids)].sort();
+      const range = timesheetRange(body.from_date, body.to_date);
+      if (range.days * userIds.length > 2000) throw Object.assign(new Error('Bulk attendance is limited to 2000 employee-days per request.'), { statusCode: 400 });
+      for (const uid of userIds) {
+        await assertOwnedRef(trx, 'users', uid, user.tenant_id, 'Employee');
+        if (uid !== user.sub && !await canReviewTime(trx, user, uid)) throw Object.assign(new Error('You may only manage attendance for your reporting line.'), { statusCode: 403 });
+      }
+      const from = new Date(body.from_date + 'T00:00:00Z');
+      const to = new Date(body.to_date + 'T00:00:00Z');
       let count = 0;
       for (const uid of userIds) {
+        await lockEmployeeTime(trx, user.tenant_id, uid);
         const d = new Date(from);
         while (d <= to) {
           const dateStr = d.toISOString().split('T')[0];
@@ -741,7 +658,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
             await trx.updateTable('hr_attendance').set({
               status, clock_in: body.clock_in || null,
               clock_out: body.clock_out || null, recorded_by: user.sub, updated_at: new Date(),
-            }).where('id', '=', existing.id).execute();
+            }).where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id).execute();
           } else {
             await trx.insertInto('hr_attendance').values({
               tenant_id: user.tenant_id, user_id: uid, date: dateStr,
@@ -750,7 +667,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
             }).execute();
           }
           count++;
-          d.setDate(d.getDate() + 1);
+          d.setUTCDate(d.getUTCDate() + 1);
         }
       }
       return { ok: true, count };
@@ -892,6 +809,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.post('/clock-in/break', async (req, reply) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
+      await lockEmployeeTime(trx, user.tenant_id, user.sub);
       const session = await trx.selectFrom('hr_clock_sessions')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -998,6 +916,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.post('/clock-in/stop', async (req, reply) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
+      await lockEmployeeTime(trx, user.tenant_id, user.sub);
       const session = await trx.selectFrom('hr_clock_sessions')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -1034,7 +953,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
       const startMs = new Date(session.clock_in_at).getTime();
       const grossMs = now.getTime() - startMs;
-      const workedMins = Math.max(0, Math.round(grossMs / 60000) - totalBreak);
+      const workedMins = grossMs > MAX_SHIFT_MINUTES * 60000 ? null : Math.max(0, Math.round(grossMs / 60000) - totalBreak);
 
       const completed = await trx.updateTable('hr_clock_sessions').set({
         status: 'COMPLETED',
@@ -1056,7 +975,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // moment a day had more than one session. syncAttendanceFromSessions
       // recomputes clock_in (earliest)/clock_out (latest)/worked_minutes
       // (sum) from every session that date, `completed` above included.
-      const syncWarnings: string[] = [];
+      const syncWarnings: string[] = workedMins === null ? ['unknown worked hours; HR correction required'] : [];
       const attendanceSynced = await bestEffortInTransaction(trx, 'clockout_attendance', () =>
         syncAttendanceFromSessions(trx, user.tenant_id, user.sub, dateStr, user.sub));
       if (!attendanceSynced.ok) {
@@ -1110,7 +1029,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
           // Flagged, never blocked or altered — a stray double-click is the
           // person's own record and their own call to fix (a real 90-second
           // errand exists too), so this is a note for the UI, not a rule.
-          is_short_shift: workedMins < MIN_SHIFT_MINUTES,
+          is_short_shift: workedMins !== null && workedMins < MIN_SHIFT_MINUTES,
+          needs_review: workedMins === null,
         },
       };
     });
@@ -1128,13 +1048,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
         !['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'].includes(user.role)) {
       return reply.status(403).send({ error: 'You can only view your own timesheet' });
     }
-    const toDate = q.to ? new Date(q.to) : new Date();
-    const fromDate = q.from ? new Date(q.from) : new Date(toDate.getTime() - 6 * 86400000);
-
-    const fromIso = isoDate(fromDate);
-    const toIso = isoDate(toDate);
+    const toIso = dateOnly(q.to || isoDate(new Date()));
+    const fromIso = dateOnly(q.from || isoDate(new Date(new Date(toIso + 'T12:00:00').getTime() - 6 * 86400000)));
+    timesheetRange(fromIso, toIso);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (targetUserId !== user.sub && !await canReviewTime(trx, user, targetUserId)) return reply.status(403).send({ error: 'You may only access your reporting line or act as an HR administrator.' });
       const userObj = await trx.selectFrom('users')
         .select(['id', 'name', 'email', 'role', 'avatar_url'])
         .where('id', '=', targetUserId)
@@ -1170,15 +1089,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
       let workedMinutesTotal = 0;
       sessions.forEach(s => {
-        workedMinutesTotal += (s.worked_minutes || 0);
+        if (s.status === 'COMPLETED') workedMinutesTotal += (s.worked_minutes ?? 0);
       });
 
       return {
         user: userObj || { id: targetUserId, name: user.name || 'Employee' },
         fromDate: fromIso,
         toDate: toIso,
-        plannedHours: 40,
-        plannedDays: 5,
+        ...await plannedTime(trx, user.tenant_id, targetUserId, fromIso, toIso),
+        unknownSessionCount: sessions.filter(s => s.status === 'COMPLETED' && s.worked_minutes == null).length,
         workedMinutesTotal,
         sessions,
         breaks,
@@ -1191,11 +1110,13 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const body = z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
-      clock_in: z.string().regex(/^\d{1,2}:\d{2}$/, 'clock_in must be HH:MM'),
-      clock_out: z.string().regex(/^\d{1,2}:\d{2}$/, 'clock_out must be HH:MM'),
+      clock_in: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'clock_in must be HH:MM'),
+      clock_out: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'clock_out must be HH:MM'),
       user_id: z.string().uuid().optional(),
-      break_minutes: z.number().min(0).optional(),
+      break_minutes: z.number().int().min(0).max(MAX_SHIFT_MINUTES).optional(),
       project_name: z.string().max(200).optional(),
+      session_id: z.string().uuid().optional(),
+      correction_reason: z.string().trim().min(10).max(2000).optional(),
       status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE']).optional(),
     }).parse(req.body);
 
@@ -1209,11 +1130,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (targetUserId !== user.sub && !await canReviewTime(trx, user, targetUserId)) return reply.status(403).send({ error: 'You may only act for your reporting line or as an HR administrator.' });
       if (targetUserId !== user.sub) {
         const target = await trx.selectFrom('users').select('id').where('id', '=', targetUserId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!target) return reply.status(404).send({ error: 'Employee not found' });
       }
-      const dateStr = body.date;
+      await lockEmployeeTime(trx, user.tenant_id, targetUserId);
+      const dateStr = dateOnly(body.date);
+      if (dateStr > isoDate(new Date())) return reply.status(400).send({ error: 'Completed work cannot be recorded in the future.' });
+      if (body.status && !ADMIN_LIKE_ROLES.includes(user.role)) return reply.status(403).send({ error: 'Only HR administrators may override attendance status.' });
 
       const inParts = body.clock_in.split(':');
       const outParts = body.clock_out.split(':');
@@ -1227,11 +1152,22 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const clockInAt = new Date(`${dateStr}T${inParts[0].padStart(2, '0')}:${inParts[1].padStart(2, '0')}:00`);
       const clockOutAt = new Date(`${dateStr}T${outParts[0].padStart(2, '0')}:${outParts[1].padStart(2, '0')}:00`);
 
-      const grossMins = Math.max(0, Math.round((clockOutAt.getTime() - clockInAt.getTime()) / 60000));
-      const breakMins = Number(body.break_minutes) || 0;
-      const workedMins = Math.max(0, grossMins - breakMins);
+      if (clockOutAt < clockInAt) clockOutAt.setDate(clockOutAt.getDate() + 1);
+      const grossMins = Math.round((clockOutAt.getTime() - clockInAt.getTime()) / 60000);
+      const breakMins = body.break_minutes ?? 0;
+      if (grossMins <= 0 || grossMins > MAX_SHIFT_MINUTES || breakMins >= grossMins || clockOutAt > new Date()) {
+        return reply.status(400).send({ error: 'Enter completed work of at most 12 hours with a break shorter than the session.' });
+      }
+      const workedMins = computeAttendance(body.clock_in, body.clock_out, { startTime: body.clock_in, endTime: body.clock_out, breakMinutes: breakMins, graceMinutes: 0 }).workedMinutes;
 
-      const session = await trx.insertInto('hr_clock_sessions').values({
+      const previous = body.session_id ? await trx.selectFrom('hr_clock_sessions').selectAll().where('tenant_id', '=', user.tenant_id).where('user_id', '=', targetUserId).where('id', '=', body.session_id).executeTakeFirst() : null;
+      if (body.session_id && (!previous || isoDate(previous.date) !== dateStr)) return reply.status(404).send({ error: 'Session not found on this date.' });
+      if (previous && (!body.correction_reason || previous.status !== 'COMPLETED' || (!ADMIN_LIKE_ROLES.includes(user.role) && previous.source !== 'MANUAL'))) return reply.status(403).send({ error: 'A completed manual session and correction reason are required; device/web corrections require HR administration.' });
+      const sessionValues = {
+        clock_in_at: clockInAt, clock_out_at: clockOutAt, project_name: body.project_name || 'Manual Entry',
+        status: 'COMPLETED', total_break_minutes: breakMins, worked_minutes: workedMins, source: 'MANUAL', device_id: null, updated_at: new Date(),
+      };
+      const session = previous ? await trx.updateTable('hr_clock_sessions').set(sessionValues).where('tenant_id', '=', user.tenant_id).where('id', '=', previous.id).returningAll().executeTakeFirstOrThrow() : await trx.insertInto('hr_clock_sessions').values({
         tenant_id: user.tenant_id,
         user_id: targetUserId,
         date: dateStr,
@@ -1250,13 +1186,56 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // clock_in earliest, clock_out latest, worked_minutes summed — not
       // just overwritten with this one entry's own values, or adding a
       // second entry silently erases the first one from the admin's view.
-      await syncAttendanceFromSessions(trx, user.tenant_id, targetUserId, dateStr, user.sub, body.status || 'PRESENT');
+      await syncAttendanceFromSessions(trx, user.tenant_id, targetUserId, dateStr, user.sub, body.status);
+      if (previous) await trx.insertInto('hr_activity_log').values({ tenant_id: user.tenant_id, user_id: user.sub, action: 'attendance.corrected', module: 'HR', metadata: { reason: body.correction_reason, previous, corrected: session } }).execute();
 
       return { ok: true, session };
     });
   });
 
   // ── Timesheet submission & manager approval ───────────────────
+
+  fastify.get('/clock-in/reconciliation', async (req) => {
+    const user = req.user;
+    const q = z.object({ from: z.string(), to: z.string() }).parse(req.query);
+    const { from, to } = timesheetRange(q.from, q.to);
+    return withTenant(user.tenant_id, async trx => {
+      const [attendance, header, tasks, shipments, unlinked] = await Promise.all([
+        trx.selectFrom('hr_clock_sessions').select(['worked_minutes']).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('date', '>=', from).where('date', '<=', to).where('status', '=', 'COMPLETED').execute(),
+        trx.selectFrom('hr_time_entries').select([sql<number>`coalesce(sum(duration_minutes), 0)`.as('minutes'), sql<number>`count(*) filter (where duration_minutes is null)`.as('unknown')]).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('date', '>=', from).where('date', '<=', to).where('ended_at', 'is not', null).executeTakeFirstOrThrow(),
+        trx.selectFrom('task_time_entries').select([sql<number>`coalesce(sum(duration_minutes), 0)`.as('minutes'), sql<number>`count(*) filter (where duration_minutes is null)`.as('unknown')]).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('started_at', '>=', new Date(from + 'T00:00:00')).where('started_at', '<', new Date(new Date(to + 'T00:00:00').getTime() + 86400000)).where('ended_at', 'is not', null).executeTakeFirstOrThrow(),
+        trx.selectFrom('shipment_time_entries').select(sql<number>`coalesce(sum(hours) * 60, 0)`.as('minutes')).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('log_date', '>=', from).where('log_date', '<=', to).executeTakeFirstOrThrow(),
+        trx.selectFrom('shipment_time_entries').select(sql<number>`count(*)`.as('count')).where('tenant_id', '=', user.tenant_id).where('user_id', 'is', null).where('log_date', '>=', from).where('log_date', '<=', to).executeTakeFirstOrThrow(),
+      ]);
+      const attendanceMinutes = attendance.reduce((n, s) => n + (s.worked_minutes ?? 0), 0);
+      const result: HrTimeReconciliation = {
+        from, to, attendance_minutes: attendanceMinutes,
+        unknown_attendance_sessions: attendance.filter(s => s.worked_minutes == null).length,
+        header_minutes: Number(header.minutes), unknown_header_entries: Number(header.unknown), task_minutes: Number(tasks.minutes), unknown_task_entries: Number(tasks.unknown), shipment_minutes: Number(shipments.minutes),
+        unlinked_shipment_entries: Number(unlinked.count),
+        allocation_exceeds_attendance: Math.max(Number(header.minutes), Number(tasks.minutes), Number(shipments.minutes)) > attendanceMinutes,
+      };
+      return result;
+    });
+  });
+
+  fastify.post('/clock-in/timesheet/approvals/:id/reopen',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+      const user = req.user;
+      const { id } = req.params as { id: string };
+      const { reason } = z.object({ reason: z.string().trim().min(10).max(2000) }).parse(req.body);
+      return withTenant(user.tenant_id, async trx => {
+        const row = await trx.selectFrom('hr_timesheet_approvals').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', id).executeTakeFirst();
+        if (!row) return reply.status(404).send({ error: 'Submission not found' });
+        if (row.user_id === user.sub) return reply.status(403).send({ error: 'You cannot reopen your own approved timesheet.' });
+        await lockEmployeeTime(trx, user.tenant_id, row.user_id);
+        const updated = await trx.updateTable('hr_timesheet_approvals').set({ status: 'REJECTED', note: `Reopened for correction: ${reason}`, reviewed_by: user.sub, reviewed_at: new Date(), updated_at: new Date() })
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('status', '=', 'APPROVED').returningAll().executeTakeFirst();
+        if (!updated) return reply.status(409).send({ error: 'Only approved timesheets may be reopened.' });
+        await trx.insertInto('hr_activity_log').values({ tenant_id: user.tenant_id, user_id: user.sub, action: 'timesheet.reopened', module: 'HR', metadata: { reason, previous: row } }).execute();
+        return { ok: true, approval: updated };
+      });
+    });
 
   // An employee submits a week (or any date range) for review. Worked minutes
   // are snapshotted now so a later session edit can't change what was approved.
@@ -1271,10 +1250,25 @@ export async function hrRoutes(fastify: FastifyInstance) {
     if (targetUserId !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
       return reply.status(403).send({ error: 'You can only submit your own timesheet' });
     }
-    const periodStart = isoDate(body.period_start);
-    const periodEnd = isoDate(body.period_end);
+    const periodStart = dateOnly(body.period_start);
+    const periodEnd = dateOnly(body.period_end);
+    timesheetRange(periodStart, periodEnd);
+    if (periodEnd > isoDate(new Date())) return reply.status(400).send({ error: 'Only completed periods may be submitted.' });
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (targetUserId !== user.sub && !await canReviewTime(trx, user, targetUserId)) return reply.status(403).send({ error: 'You may only act for your reporting line or as an HR administrator.' });
+      await lockEmployeeTime(trx, user.tenant_id, targetUserId);
+      await assertOwnedRef(trx, 'users', targetUserId, user.tenant_id, 'Employee');
+      const unresolved = await trx.selectFrom('hr_clock_sessions').select('id')
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', targetUserId)
+        .where('date', '>=', periodStart).where('date', '<=', periodEnd)
+        .where(eb => eb.or([eb('status', 'in', ['ACTIVE', 'ON_BREAK']), eb.and([eb('status', '=', 'COMPLETED'), eb('worked_minutes', 'is', null)])])).executeTakeFirst();
+      if (unresolved) return reply.status(409).send({ error: 'Resolve running or unknown sessions before submitting this period.' });
+      const overlapping = await trx.selectFrom('hr_timesheet_approvals').select('id')
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', targetUserId)
+        .where('period_start', '<=', periodEnd).where('period_end', '>=', periodStart)
+        .where('period_start', '!=', periodStart).where('status', 'in', ['SUBMITTED', 'APPROVED']).executeTakeFirst();
+      if (overlapping) return reply.status(409).send({ error: 'This overlaps an existing submitted or approved period.' });
       const sessions = await trx.selectFrom('hr_clock_sessions')
         .select(['worked_minutes'])
         .where('tenant_id', '=', user.tenant_id)
@@ -1292,6 +1286,25 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('period_start', '=', periodStart)
         .executeTakeFirst();
 
+      const notifySubmission = async (approvalId: string) => {
+      // Notify the direct line manager so the submission appears in their
+      // queue immediately, without waiting for them to check the list.
+      const tsManager = await resolveDirectManager(trx, user.tenant_id, targetUserId);
+      if (tsManager?.user_id) {
+        const submitterName = await trx.selectFrom('users').select('name')
+          .where('id', '=', targetUserId).where('tenant_id', '=', user.tenant_id).executeTakeFirst().then(u => u?.name ?? 'A team member');
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: tsManager.user_id,
+          app: 'nexushr', type: 'task',
+          title: 'Timesheet submitted for review',
+          message: `${submitterName} submitted their timesheet for ${periodStart} – ${periodEnd}`,
+          link: `/nexushr/clock-in?pending=1`,
+          entityType: 'timesheet_approval', entityId: approvalId,
+        });
+      }
+
+      };
+
       if (existing && existing.status === 'APPROVED') {
         return reply.status(409).send({ error: 'This period is already approved and cannot be resubmitted.' });
       }
@@ -1307,7 +1320,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
           reviewed_at: null,
           note: null,
           updated_at: new Date(),
-        }).where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
+        }).where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+        await notifySubmission(updated.id);
         return { ok: true, approval: updated };
       }
 
@@ -1321,21 +1335,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         session_count: sessions.length,
       }).returningAll().executeTakeFirstOrThrow();
 
-      // Notify the direct line manager so the submission appears in their
-      // queue immediately, without waiting for them to check the list.
-      const tsManager = await resolveDirectManager(trx, user.tenant_id, targetUserId);
-      if (tsManager?.user_id) {
-        const submitterName = await trx.selectFrom('users').select('name')
-          .where('id', '=', targetUserId).executeTakeFirst().then(u => u?.name ?? 'A team member');
-        await NotificationService.createNotificationInTrx(trx, {
-          tenantId: user.tenant_id, userId: tsManager.user_id,
-          app: 'nexushr', type: 'task',
-          title: 'Timesheet submitted for review',
-          message: `${submitterName} submitted their timesheet for ${periodStart} – ${periodEnd}`,
-          link: `/hr/timesheets?pending=1`,
-          entityType: 'timesheet_approval', entityId: created.id,
-        });
-      }
+      await notifySubmission(created.id);
 
       return { ok: true, approval: created };
     });
@@ -1350,6 +1350,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'You can only view your own timesheet status' });
     }
     return withTenant(user.tenant_id, async (trx) => {
+      if (targetUserId !== user.sub && !await canReviewTime(trx, user, targetUserId)) return reply.status(403).send({ error: 'You may only access your reporting line or act as an HR administrator.' });
       let query = trx.selectFrom('hr_timesheet_approvals')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -1371,7 +1372,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       return withTenant(user.tenant_id, async (trx) => {
         const { resolveDirectReports } = await import('../services/org-chart.service.js');
         let reportUserIds: string[] | null = null;
-        if (q.my_reports_only === 'true' || q.my_reports_only === '1') {
+        if (!ADMIN_LIKE_ROLES.includes(user.role) || q.my_reports_only === 'true' || q.my_reports_only === '1') {
           reportUserIds = await resolveDirectReports(trx, user.tenant_id, user.sub);
           if (reportUserIds.length === 0) return [];
         }
@@ -1415,6 +1416,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
           return reply.status(403).send({ error: 'You cannot review your own timesheet.' });
         }
 
+        if (!await canReviewTime(trx, user, row.user_id)) return reply.status(403).send({ error: 'You may only review your reporting line or act as an HR administrator.' });
+        await lockEmployeeTime(trx, user.tenant_id, row.user_id);
+        const current = await trx.selectFrom('hr_timesheet_approvals').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', id).forUpdate().executeTakeFirstOrThrow();
+        if (current.status !== 'SUBMITTED') return reply.status(409).send({ error: 'Only submitted timesheets can be reviewed.' });
+        if (action === 'approve') {
+          const sessions = await trx.selectFrom('hr_clock_sessions').select(['status', 'worked_minutes'])
+            .where('tenant_id', '=', user.tenant_id).where('user_id', '=', row.user_id)
+            .where('date', '>=', isoDate(current.period_start)).where('date', '<=', isoDate(current.period_end)).where('status', '!=', 'CANCELLED').execute();
+          if (sessions.some(s => s.status !== 'COMPLETED' || s.worked_minutes == null) || sessions.length !== current.session_count || sessions.reduce((n, s) => n + (s.worked_minutes ?? 0), 0) !== current.total_worked_minutes) {
+            return reply.status(409).send({ error: 'Recorded time changed or needs correction. Reject this submission and ask the employee to resubmit.' });
+          }
+        }
         const updated = await trx.updateTable('hr_timesheet_approvals').set({
           status: action === 'approve' ? 'APPROVED' : 'REJECTED',
           reviewed_by: user.sub,
@@ -1435,12 +1448,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     if (targetUserId !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
       return reply.status(403).send({ error: 'You can only export your own timesheet' });
     }
-    const toDate = q.to ? new Date(q.to) : new Date();
-    const fromDate = q.from ? new Date(q.from) : new Date(toDate.getTime() - 6 * 86400000);
-    const fromIso = isoDate(fromDate);
-    const toIso = isoDate(toDate);
+    const toIso = dateOnly(q.to || isoDate(new Date()));
+    const fromIso = dateOnly(q.from || isoDate(new Date(new Date(toIso + 'T12:00:00').getTime() - 6 * 86400000)));
+    timesheetRange(fromIso, toIso);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (targetUserId !== user.sub && !await canReviewTime(trx, user, targetUserId)) return reply.status(403).send({ error: 'You may only access your reporting line or act as an HR administrator.' });
       const sessions = await trx.selectFrom('hr_clock_sessions')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -1465,7 +1478,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           s.status,
         ].map(csvCell).join(','));
       }
-      const totalWorked = sessions.reduce((sum, s) => sum + (s.worked_minutes || 0), 0);
+      const totalWorked = sessions.reduce((sum, s) => sum + (s.worked_minutes ?? 0), 0);
       lines.push(['Total', '', '', '', totalWorked, (totalWorked / 60).toFixed(2), '', ''].map(csvCell).join(','));
 
       reply
@@ -3241,7 +3254,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/time/today', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = isoDate(new Date());
       return trx.selectFrom('hr_time_entries')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -3256,7 +3269,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const q = req.query as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const date = q.date || new Date().toISOString().split('T')[0];
+      const date = q.date || isoDate(new Date());
       const entries = await trx.selectFrom('hr_time_entries')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
@@ -3291,7 +3304,25 @@ export async function hrRoutes(fastify: FastifyInstance) {
       project_ref: z.string().max(100).optional(),
     }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const today = new Date().toISOString().split('T')[0];
+      await lockEmployeeTime(trx, user.tenant_id, user.sub);
+      if (body.task_id) {
+        const task = await trx.selectFrom('hr_tasks').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.task_id).where('active', '=', true).executeTakeFirst();
+        if (!task) throw Object.assign(new Error('Task not found in this workspace.'), { statusCode: 400 });
+      }
+      if (body.project_id) {
+        // The header labels ClearOS shipments as projects; task projects are
+        // also supported. Either reference must belong to this workspace.
+        const shipment = await trx.selectFrom('shipment_cases').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.project_id).where('deleted_at', 'is', null).executeTakeFirst();
+        const project = shipment ? null : await trx.selectFrom('projects').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.project_id).executeTakeFirst();
+        if (!shipment && !project) throw Object.assign(new Error('Project or shipment not found in this workspace.'), { statusCode: 400 });
+      }
+      const today = isoDate(new Date());
+      // Settle previous entries under the employee lock before switching tasks.
+      const openEntries = await trx.selectFrom('hr_time_entries').selectAll().where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('ended_at', 'is', null).execute();
+      for (const entry of openEntries) {
+        await trx.updateTable('hr_time_entries').set({ ...settleEntry(entry.started_at, new Date(), entry.notes), updated_at: new Date() })
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', entry.id).execute();
+      }
       // Close any open entries first
       await trx.updateTable('hr_time_entries')
         .set({
@@ -3343,6 +3374,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (entry.user_id !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
         throw Object.assign(new Error('You can only stop your own time entry'), { statusCode: 403 });
       }
+
+      if (entry.user_id !== user.sub && !await canReviewTime(trx, user, entry.user_id)) throw Object.assign(new Error('You may only stop timers for your reporting line.'), { statusCode: 403 });
+      await lockEmployeeTime(trx, user.tenant_id, entry.user_id);
+      const latest = await trx.selectFrom('hr_time_entries').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', id).executeTakeFirstOrThrow();
+      if (latest.ended_at) return latest;
 
       // A shift that ran past the statutory maximum working day was not ended
       // by anyone — recording `now - started_at` would have written 650 hours
@@ -3437,7 +3473,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.get('/staff/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req) => {
     const user = req.user;
-    const today = new Date().toISOString().split('T')[0];
+    const today = isoDate(new Date());
     const thisMonth = today.slice(0, 7);
     return withTenant(user.tenant_id, async (trx) => {
       const row = await sql<{ total: string; active: string; inactive: string }>`
@@ -3485,7 +3521,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     // the param keep getting the full tenant list unchanged.
     const { search } = req.query as { search?: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = isoDate(new Date());
       const [users, onLeaveRows] = await Promise.all([
         trx.selectFrom('users')
           // avatar_url was not selected, which is why every staff row fell back
@@ -3606,7 +3642,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         return null;
       })();
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = isoDate(new Date());
       const [leaveSummary, attendanceSummary, recentLeaves, onLeaveNow] = await Promise.all([
         trx.selectFrom('hr_leaves').select((eb) => eb.fn.count<number>('id').as('c'))
           .where('tenant_id', '=', user.tenant_id).where('user_id', '=', id)
@@ -4355,7 +4391,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         ])
         .where('shipment_cases.tenant_id', '=', user.tenant_id)
         .where('shipment_cases.assigned_to', '=', user.sub)
-        .where('shipment_cases.stage', '!=', 'completed' as any)
+        .where(sql<boolean>`upper(shipment_cases.stage) not in ('COMPLETED', 'CANCELLED', 'CLOSED')`).where('shipment_cases.deleted_at', 'is', null)
         .orderBy('shipment_cases.created_at', 'desc')
         .limit(20)
         .execute();
@@ -4368,10 +4404,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/ops-summary', async (req) => {
     const user = req.user as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = isoDate(new Date());
       const [checkedIn, activeShipments, pendingTasks] = await Promise.all([
         trx.selectFrom('hr_time_entries')
-          .select((eb) => eb.fn.countAll<number>().as('count'))
+          .select(sql<number>`count(distinct user_id)`.as('count'))
           .where('tenant_id', '=', user.tenant_id)
           .where('date', '=', today)
           .where('ended_at', 'is', null)
@@ -4379,8 +4415,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         trx.selectFrom('shipment_cases')
           .select((eb) => eb.fn.countAll<number>().as('count'))
           .where('tenant_id', '=', user.tenant_id)
-          .where('stage', '!=', 'completed' as any)
-          .where('stage', '!=', 'cancelled' as any)
+          .where(sql<boolean>`upper(stage) not in ('COMPLETED', 'CANCELLED', 'CLOSED')`).where('deleted_at', 'is', null)
           .executeTakeFirst(),
         trx.selectFrom('shipment_tasks')
           .select((eb) => eb.fn.countAll<number>().as('count'))
@@ -4400,71 +4435,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.get('/tools-overview', async (req) => {
     const user = req.user;
-    return withTenant(user.tenant_id, async (trx) => {
-      const today = new Date().toISOString().split('T')[0];
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-
-      const [totalStaff, activeStaff, onLeave, pendingLeaves, todayPresent, todayAbsent] = await Promise.all([
-        trx.selectFrom('users').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
-        trx.selectFrom('users').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('active', '=', true).executeTakeFirst(),
-        trx.selectFrom('hr_leaves').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('status', '=', 'APPROVED')
-          .where('from_date', '<=', today).where('to_date', '>=', today).executeTakeFirst(),
-        trx.selectFrom('hr_leaves').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING').executeTakeFirst(),
-        trx.selectFrom('hr_attendance').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('date', '=', today).where('status', '=', 'PRESENT').executeTakeFirst(),
-        trx.selectFrom('hr_attendance').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('date', '=', today).where('status', '=', 'ABSENT').executeTakeFirst(),
-      ]);
-
-      const [totalDocs, docsThisMonth] = await Promise.all([
-        trx.selectFrom('case_documents').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
-        trx.selectFrom('case_documents').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('created_at', '>=', monthStart).executeTakeFirst(),
-      ]);
-
-      const [totalMessages, messagesThisMonth] = await Promise.all([
-        trx.selectFrom('case_messages').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
-        trx.selectFrom('case_messages').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('created_at', '>=', monthStart).executeTakeFirst(),
-      ]);
-
-      const [totalNotifs, unreadNotifs] = await Promise.all([
-        trx.selectFrom('notifications').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
-        trx.selectFrom('notifications').select((eb) => eb.fn.count<number>('id').as('c'))
-          .where('tenant_id', '=', user.tenant_id).where('read', '=', false).executeTakeFirst(),
-      ]);
-
-      return {
-        hr: {
-          total_staff:    Number(totalStaff?.c ?? 0),
-          active_staff:   Number(activeStaff?.c ?? 0),
-          on_leave:       Number(onLeave?.c ?? 0),
-          pending_leaves: Number(pendingLeaves?.c ?? 0),
-          today_present:  Number(todayPresent?.c ?? 0),
-          today_absent:   Number(todayAbsent?.c ?? 0),
-        },
-        files: {
-          total:      Number(totalDocs?.c ?? 0),
-          this_month: Number(docsThisMonth?.c ?? 0),
-        },
-        chat: {
-          total_messages: Number(totalMessages?.c ?? 0),
-          this_month:     Number(messagesThisMonth?.c ?? 0),
-        },
-        support: {
-          total_notifications: Number(totalNotifs?.c ?? 0),
-          unread:              Number(unreadNotifs?.c ?? 0),
-        },
-        fetched_at: new Date().toISOString(),
-      };
-    });
+    const now = new Date();
+    return withTenant(user.tenant_id, trx => workforceMetrics(trx, user.tenant_id, isoDate(now), new Date(now.getFullYear(), now.getMonth(), 1)));
   });
 
   // ── Teams ─────────────────────────────────────────────────────
@@ -4598,6 +4570,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     }).parse(req.body);
     if (body.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return reply.status(403).send({ error: 'Only a SUPER_ADMIN can invite a SUPER_ADMIN' });
+    }
+    // Seat-limit enforcement (migration 635) — portal users don't count against seats
+    if ((body.role as string) !== 'CUSTOMER') {
+      const { checkSeatLimit } = await import('../lib/plan-limits.js');
+      const check = await checkSeatLimit(user.tenant_id);
+      if (!check.allowed) return reply.status(403).send({ error: check.message });
     }
     return withTenant(user.tenant_id, async (trx) => {
       const token = crypto.randomBytes(24).toString('hex');

@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+import { canReviewTime } from '../services/timesheet-integrity.service.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { ShipmentService } from '../services/shipment.service.js';
 import { loadResolvedWorkflow, evaluateEntryConditions } from '../services/workflow-resolver.service.js';
@@ -163,6 +164,7 @@ const checklistItemPatchSchema = z.object({
   due_date: z.string().nullable().optional(),
 });
 const timeEntrySchema = z.object({
+  user_id: z.string().uuid().optional(),
   member: z.string().max(200).optional(),
   task_ref: z.string().max(200).optional(),
   hours: z.number().positive(),
@@ -405,8 +407,11 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (query.checked_in === 'true') filters.checked_in = true;
     if (query.pending === 'true') filters.pending = true;
 
-    const groupedData = await ShipmentService.listGroupedByCustomer(user.tenant_id, filters);
-    return { data: groupedData };
+    if (query.limit) filters.limit = Math.max(1, Math.min(Number(query.limit) || 500, 1000));
+    if (query.offset) filters.offset = Math.max(0, Number(query.offset) || 0);
+
+    const result = await ShipmentService.listGroupedByCustomer(user.tenant_id, filters);
+    return { data: result.groups, pagination: result.pagination };
   });
 
   /**
@@ -1157,7 +1162,16 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { title, priority, assigned_to, due_date, note, product_id } = taskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const shipment = await trx.selectFrom('shipment_cases').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+      if (assigned_to) {
+        const assignee = await trx.selectFrom('users').select('id')
+          .where('id', '=', assigned_to).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!assignee) return reply.status(400).send({ error: 'Assignee not found in this workspace' });
+      }
       const snapshot = await snapshotProduct(trx, user.tenant_id, product_id);
+      if (product_id && !snapshot.product_id) return reply.status(400).send({ error: 'Service not found in this workspace' });
       const task = await trx.insertInto('shipment_tasks').values({
         tenant_id: user.tenant_id, shipment_id: id,
         title, status: 'open', priority: priority || 'medium',
@@ -1265,9 +1279,9 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   /**
    * PATCH /v1/shipments/:id/tasks/:taskId
    */
-  fastify.patch('/:id/tasks/:taskId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+  fastify.patch('/:id/tasks/:taskId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
-    const { taskId } = request.params as { id: string; taskId: string };
+    const { id, taskId } = request.params as { id: string; taskId: string };
     const body = taskPatchSchema.parse(request.body) as Record<string, any>;
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const k of ['title', 'status', 'priority', 'assigned_to', 'due_date', 'note', 'description', 'labels', 'cover_color']) {
@@ -1276,11 +1290,15 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       // A closed task is locked: it must be reopened (dedicated route, with the
       // same assignee-or-team-lead permission) before any field can change.
-      const existing = await trx.selectFrom('shipment_tasks').select(['closed_at']).where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('shipment_tasks').select(['closed_at', 'assigned_to']).where('id', '=', taskId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Task not found' });
+      const isLead = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR'].includes(user.role);
+      if ('status' in body && !isLead && existing.assigned_to !== user.sub) {
+        return reply.status(403).send({ error: 'Only the assignee or a team lead can change this task status.' });
+      }
       if (existing.closed_at) return reply.status(409).send({ error: 'This task is closed. Reopen it before editing.' });
       if ('product_id' in body) Object.assign(patch, await snapshotProduct(trx, user.tenant_id, body.product_id));
-      const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+      const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       if (!t) return reply.status(404).send({ error: 'Task not found' });
       return t;
     });
@@ -1293,10 +1311,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/:id/tasks/:taskId/close', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
-    const { taskId } = request.params as { id: string; taskId: string };
+    const { id, taskId } = request.params as { id: string; taskId: string };
     const SENIOR_TASK_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR']);
     return withTenant(user.tenant_id, async (trx) => {
-      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!task) return reply.status(404).send({ error: 'Task not found' });
       const isAssignee = !!task.assigned_to && task.assigned_to === user.sub;
       if (!isAssignee && !SENIOR_TASK_ROLES.has(user.role)) {
@@ -1306,7 +1324,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const now = new Date();
       const t = await trx.updateTable('shipment_tasks')
         .set({ status: 'complete', closed_by: user.sub, closed_at: now, updated_at: now })
-        .where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+        .where('id', '=', taskId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       return t;
     });
   });
@@ -1317,10 +1335,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/:id/tasks/:taskId/reopen', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
-    const { taskId } = request.params as { id: string; taskId: string };
+    const { id, taskId } = request.params as { id: string; taskId: string };
     const SENIOR_TASK_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR']);
     return withTenant(user.tenant_id, async (trx) => {
-      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!task) return reply.status(404).send({ error: 'Task not found' });
       const isAssignee = !!task.assigned_to && task.assigned_to === user.sub;
       if (!isAssignee && !SENIOR_TASK_ROLES.has(user.role)) {
@@ -1330,7 +1348,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const now = new Date();
       const t = await trx.updateTable('shipment_tasks')
         .set({ status: 'in_progress', closed_by: null, closed_at: null, updated_at: now })
-        .where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+        .where('id', '=', taskId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       return t;
     });
   });
@@ -1604,15 +1622,21 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   /**
    * POST /v1/shipments/:id/time-entries
    */
-  fastify.post('/:id/time-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+  fastify.post('/:id/time-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { member, task_ref, hours, note, log_date, product_id } = timeEntrySchema.parse(request.body);
+    const { user_id, member, task_ref, hours, note, log_date, product_id } = timeEntrySchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const shipment = await trx.selectFrom('shipment_cases').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('deleted_at', 'is', null).executeTakeFirst();
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+      const workerId = user_id || (!member || member.trim().toLowerCase() === user.name?.trim().toLowerCase() ? user.sub : null);
+      const worker = workerId ? await trx.selectFrom('users').select(['id', 'name']).where('tenant_id', '=', user.tenant_id).where('id', '=', workerId).where('role', 'not in', ['CUSTOMER', 'ORG', 'GUEST']).executeTakeFirst() : null;
+      if (workerId && !worker) return reply.status(400).send({ error: 'Employee not found in this workspace.' });
+      if (workerId && workerId !== user.sub && !await canReviewTime(trx, user, workerId)) return reply.status(403).send({ error: 'You may only log time for yourself or your reporting line.' });
       const snapshot = await snapshotProduct(trx, user.tenant_id, product_id);
       const entry = await trx.insertInto('shipment_time_entries').values({
-        tenant_id: user.tenant_id, shipment_id: id,
-        member: member || user.name || 'Officer',
+        tenant_id: user.tenant_id, shipment_id: id, user_id: worker?.id ?? null,
+        member: worker?.name || member || user.name || 'Officer',
         task_ref: task_ref || null,
         hours: Number(hours),
         note: note || null,

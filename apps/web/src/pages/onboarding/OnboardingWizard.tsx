@@ -9,7 +9,7 @@ import { useLocale } from '../../hooks/useLocale.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../components/ui/dropdown-menu.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { EMPTY_DRAFT, STEP_LABELS } from './types.js';
-import type { OnboardingDraft } from './types.js';
+import type { OnboardingDraft, OnboardingJourney } from './types.js';
 import { StepAccount } from './StepAccount.js';
 import { StepCompany } from './StepCompany.js';
 import { StepPackage } from './StepPackage.js';
@@ -32,6 +32,7 @@ const LOGIN_BG_MAP: Record<string, string> = {
 function toCompleteInput(draft: OnboardingDraft, referralCode: string | null, locale: string): OnboardingCompleteInput {
   return {
     referral_code: referralCode || undefined,
+    onboarding_journey: draft.onboarding_journey || undefined,
     account: { name: draft.name, email: draft.email, password: draft.password },
     company: { name: draft.companyName, industry: draft.industry || undefined, country: draft.country || undefined },
     package_code: draft.package_code,
@@ -74,6 +75,7 @@ export const OnboardingWizard: React.FC = () => {
   const [step, setStep]     = useState(1);
   const [draft, setDraft]   = useState<OnboardingDraft>(EMPTY_DRAFT);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [journeys, setJourneys] = useState<OnboardingJourney[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState<OnboardingCompleteResponse | null>(null);
@@ -139,6 +141,7 @@ export const OnboardingWizard: React.FC = () => {
 
   useEffect(() => {
     apiFetch('/v1/packages').then(res => setPackages(res.data)).catch(() => {});
+    apiFetch('/v1/onboarding/journeys').then(res => setJourneys(Array.isArray(res) ? res : [])).catch(() => {});
     apiFetch('/v1/privacy-policy/current')
       .then((policy: any) => setDraft(prev => ({ ...prev, privacy_policy_version_id: policy.id })))
       .catch(() => setSubmitError('The Privacy Policy is temporarily unavailable. Please try again shortly.'));
@@ -200,7 +203,7 @@ export const OnboardingWizard: React.FC = () => {
   };
 
   const stepProps = {
-    draft, update, onNext: handleNext, onBack: handleBack, packages, submitting, submitError,
+    draft, update, onNext: handleNext, onBack: handleBack, packages, journeys, submitting, submitError,
     onRequestJoin: handleRequestJoin, joinRequestSubmitting, joinRequestError,
   };
 

@@ -428,14 +428,17 @@ export function useComplyObligationScan() {
 export function useComplyProfile() {
   const [profile, setProfile] = useState<CompProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const result = await apiFetch('/v1/comply/profile');
       setProfile(result);
-    } catch {
+      setError(null);
+    } catch (e) {
       setProfile(null);
+      setError(e instanceof Error ? e.message : 'Unable to load business profile');
     } finally {
       setLoading(false);
     }
@@ -443,5 +446,5 @@ export function useComplyProfile() {
 
   useEffect(() => { load(); }, [load]);
 
-  return { profile, loading, refresh: load };
+  return { profile, loading, error, refresh: load };
 }

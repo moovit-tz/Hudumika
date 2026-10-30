@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { sql } from 'kysely';
-import { withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { safeFetch } from '../lib/ssrf-guard.js';
@@ -84,17 +84,92 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
 }
 
 /** Dispatch an event after its owning transaction commits. */
+let dispatchColumnAvailable: boolean | null = null;
+
 export function dispatchDomainEvent(tenantId: string, event: DomainEvent): void {
   const handlers = subscribers.get(event.type) ?? [];
-  for (const handler of handlers) {
-    handler(tenantId, event).catch(err =>
-      console.error(`[DomainEvents] subscriber for "${event.type}" failed:`, err.message),
-    );
-  }
+  const subscriberResults = handlers.map(handler =>
+    handler(tenantId, event)
+      .then(() => true as const)
+      .catch(err => {
+        console.error(`[DomainEvents] subscriber for "${event.type}" failed:`, err.message);
+        return false as const;
+      }),
+  );
+
+  Promise.all(subscriberResults).then(async (results) => {
+    const allSucceeded = results.every(r => r === true);
+    if (!allSucceeded) {
+      console.warn(`[DomainEvents] event ${event.id ?? '?'} ("${event.type}") — one or more subscribers failed; NOT marking dispatched so recovery can retry.`);
+      return;
+    }
+    if (event.id) {
+      if (dispatchColumnAvailable === false) return;
+      try {
+        await withTenant(tenantId, trx =>
+          trx.updateTable('domain_events')
+            .set({ subscribers_dispatched: true } as any)
+            .where('id', '=', event.id!)
+            .where('tenant_id', '=', tenantId)
+            .execute(),
+        );
+        if (dispatchColumnAvailable === null) dispatchColumnAvailable = true;
+      } catch (err: any) {
+        if (dispatchColumnAvailable === null && /subscribers_dispatched/.test(err.message)) {
+          dispatchColumnAvailable = false;
+          console.warn('[DomainEvents] subscribers_dispatched column not yet migrated — dispatch tracking disabled until restart.');
+        } else {
+          console.error(`[DomainEvents] failed to mark event ${event.id} as dispatched:`, err.message);
+        }
+      }
+    }
+  });
 
   dispatchToMarketplaceWebhooks(tenantId, event).catch(err =>
     console.error(`[DomainEvents] marketplace webhook dispatch failed for "${event.type}":`, err.message),
   );
+}
+
+/**
+ * Replays undelivered domain events for a single tenant — picks up events
+ * that were persisted but whose subscribers never ran (process crash between
+ * commit and dispatch). Scoped to one tenant because domain_events has RLS.
+ */
+export async function replayUndeliveredEvents(tenantId: string): Promise<number> {
+  const cutoff = new Date(Date.now() - 86_400_000);
+  let total = 0;
+  const MAX_BATCHES = 20;
+
+  for (let batch = 0; batch < MAX_BATCHES; batch++) {
+    const rows = await withTenant(tenantId, async trx => {
+      return sql<{ id: string; event_type: string; source_app: string; entity_type: string; entity_id: string; payload: string; actor_id: string | null }>`
+        SELECT id, event_type, source_app, entity_type, entity_id, payload, actor_id
+        FROM domain_events
+        WHERE subscribers_dispatched = FALSE
+          AND created_at > ${cutoff.toISOString()}
+          AND tenant_id = ${tenantId}
+        ORDER BY created_at ASC
+        LIMIT 100
+      `.execute(trx);
+    });
+
+    if (rows.rows.length === 0) break;
+
+    for (const row of rows.rows) {
+      const event: DomainEvent = {
+        type: row.event_type, sourceApp: row.source_app, entityType: row.entity_type,
+        entityId: row.entity_id, payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload,
+        actorId: row.actor_id, id: row.id,
+      };
+      dispatchDomainEvent(tenantId, event);
+      total++;
+    }
+
+    if (rows.rows.length < 100) break;
+  }
+
+  if (total > 0) console.log(`[DomainEvents] replayed ${total} undelivered event(s) for tenant ${tenantId}`);
+  return total;
 }
 
 /**
@@ -144,6 +219,41 @@ async function dispatchToMarketplaceWebhooks(tenantId: string, event: DomainEven
       },
       body,
     }).catch(err => console.error(`[DomainEvents] webhook to "${app.name}" failed:`, err.message));
+  }
+}
+
+/**
+ * Replays undelivered events across all tenants on server startup.
+ * Uses the platform connection (dbPlatform) which bypasses RLS, since
+ * the restricted app role cannot see other tenants' rows through the
+ * tenant-scoped connection.
+ */
+export async function replayAllUndeliveredEvents(): Promise<void> {
+  try {
+    const colCheck = await sql<{ exists: boolean }>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'domain_events' AND column_name = 'subscribers_dispatched'
+      ) AS exists
+    `.execute(dbPlatform);
+    if (!colCheck.rows[0]?.exists) {
+      console.log('[DomainEvents] startup recovery skipped — subscribers_dispatched column not yet migrated.');
+      return;
+    }
+
+    const cutoff = new Date(Date.now() - 86_400_000);
+    const tenantRows = await sql<{ tenant_id: string }>`
+      SELECT DISTINCT tenant_id FROM domain_events
+      WHERE subscribers_dispatched = FALSE AND created_at > ${cutoff.toISOString()}
+    `.execute(dbPlatform);
+
+    let total = 0;
+    for (const { tenant_id } of tenantRows.rows) {
+      total += await replayUndeliveredEvents(tenant_id);
+    }
+    if (total > 0) console.log(`[DomainEvents] startup recovery: replayed ${total} event(s) across ${tenantRows.rows.length} tenant(s)`);
+  } catch (err: any) {
+    console.error('[DomainEvents] startup recovery failed:', err.message);
   }
 }
 

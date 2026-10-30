@@ -1,5 +1,13 @@
 import type { PaymentMethod, Package } from '@hudumika/types';
 
+export interface OnboardingJourney {
+  industry_key: string;
+  label: string;
+  description: string | null;
+  featured_apps: string[];
+  checkpoint_keys: string[];
+}
+
 export interface OnboardingDraft {
   // Step 1 — Account
   name: string;
@@ -10,6 +18,7 @@ export interface OnboardingDraft {
   companyName: string;
   industry: string;
   country: string;
+  onboarding_journey: string;
   // Step 3 — Package
   package_code: string;
   billing_cycle: 'monthly' | 'annual';
@@ -36,7 +45,7 @@ export interface OnboardingDraft {
 
 export const EMPTY_DRAFT: OnboardingDraft = {
   name: '', email: '', password: '', confirm: '',
-  companyName: '', industry: '', country: 'Tanzania',
+  companyName: '', industry: '', country: 'Tanzania', onboarding_journey: '',
   package_code: '', billing_cycle: 'monthly',
   subdomain: '',
   payment: { method: 'card', card_number: '', card_holder: '', card_expiry: '', card_cvc: '', mobile_number: '', mobile_provider: 'M-Pesa' },
@@ -50,6 +59,7 @@ export interface StepProps {
   onNext: () => void;
   onBack: () => void;
   packages: Package[];
+  journeys?: OnboardingJourney[];
   submitting?: boolean;
   submitError?: string | null;
   // Auto-join-by-domain (step 1 / StepAccount only) — an alternative to

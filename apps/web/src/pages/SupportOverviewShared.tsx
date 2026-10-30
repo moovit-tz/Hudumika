@@ -16,8 +16,9 @@ export type StatusKey   = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 export type PriorityKey = 'LOW'  | 'MEDIUM'      | 'HIGH'      | 'URGENT';
 
 export interface Ticket {
-  id: string; ref: string; customer: string; category: string | null;
+  id: string; ref: string; customer: string; subject?: string | null; category: string | null;
   status: StatusKey; priority: PriorityKey; assigned_to: string | null;
+  assignee_name?: string | null;
   created_at: string; updated_at?: string;
 }
 
@@ -40,10 +41,12 @@ export function useSupportMetrics() {
       id: s.id,
       ref: s.ref || s.ref_number || s.id,
       customer: s.customer ?? s.customer_name ?? 'Unknown',
+      subject: s.subject || s.title || null,
       category: s.category || null,
       status: s.status as StatusKey,
       priority: s.priority as PriorityKey,
       assigned_to: s.assigned_to || null,
+      assignee_name: s.assignee_name || s.agent_name || null,
       created_at: s.created_at,
       updated_at: s.updated_at || s.created_at,
     })), []);
@@ -70,14 +73,14 @@ export function useSupportMetrics() {
 
 export function PeriodSwitcher({ period, setPeriod }: { period: '7d' | '30d' | '90d'; setPeriod: (p: '7d' | '30d' | '90d') => void }) {
   return (
-    <>
+    <div className="sov-period-group" role="group" aria-label="Reporting period">
       {(['7d', '30d', '90d'] as const).map(p => (
         <button key={p} type="button" onClick={() => setPeriod(p)}
           className={`sov-period-btn${period === p ? ' sov-period-btn--active' : ''}`} data-ui-native-button="">
           {p}
         </button>
       ))}
-    </>
+    </div>
   );
 }
 

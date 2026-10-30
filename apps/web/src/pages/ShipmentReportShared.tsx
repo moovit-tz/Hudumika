@@ -62,5 +62,5 @@ export const ShipmentReportShared: React.FC = () => {
     );
   }
 
-  return <iframe title="Shipment Report" srcDoc={html} style={{ width: '100%', height: '100vh', border: 'none', display: 'block' }} />;
+  return <iframe title="Shipment Report" srcDoc={html} sandbox="allow-same-origin" style={{ width: '100%', height: '100vh', border: 'none', display: 'block' }} />;
 };

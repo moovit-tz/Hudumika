@@ -1,3 +1,9 @@
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { financeCatalogOptions } from '@hudumika/types';
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { FormPage } from '../components/FormPage.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { FinanceExpenseReport, FinanceExpenseReportItem } from '@hudumika/types';
@@ -107,6 +113,7 @@ export function FinanceExpenseReports() {
 
   return (
     <div className="expense-reports-page">
+      <FinanceDocumentListExport kind="expense_report"/>
       <PageHeader
         crumbs={['Finance', 'Expenses']}
         titlePlain="Expense"
@@ -421,7 +428,7 @@ export function FinanceExpenseReports() {
 
 /* ── 2. New Report View ── */
 export function FinanceExpenseReportNew() {
-  const [name, setName] = useState('');
+  const [name, setName] = useFinanceDraft('name','');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -436,7 +443,7 @@ export function FinanceExpenseReportNew() {
         method: 'POST',
         body: JSON.stringify({ name: name.trim() }),
       });
-      navigate(`/finance/expense-reports/${report.id}`);
+      clearFinanceDrafts();navigate(`/finance/expense-reports/${report.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create report.');
     } finally {
@@ -445,16 +452,7 @@ export function FinanceExpenseReportNew() {
   }
 
   return (
-    <div className="expense-reports-page max-w-xl mx-auto py-4">
-      <BackButton to="/finance/expense-reports" label="Expense Reports" />
-
-      <PageHeader
-        crumbs={[{ label: 'Finance', to: '/finance' }, { label: 'Expense reports', to: '/finance/expense-reports' }, 'New']}
-        titlePlain="New expense"
-        titleEm="report"
-        subtitle="Start a report, then attach receipt-backed line claims for approval."
-      />
-
+    <FormPage title="New expense report" subtitle="Start a report, then add receipt-backed claims for approval." onCancel={()=>navigate('/finance/expense-reports')} actions={<><Button variant="outline" disabled={busy} onClick={()=>navigate('/finance/expense-reports')}>Cancel</Button><Button form="finance-report-form" type="submit" disabled={busy||!name.trim()}>{busy?'Saving…':'Create report'}</Button></>}>
       {error && (
         <div className="flex items-center gap-2 p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm font-medium">
           <Icon name="alertTriangle" size={16} />
@@ -473,7 +471,7 @@ export function FinanceExpenseReportNew() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form id="finance-report-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <Label htmlFor="report-name" className="text-xs font-bold uppercase tracking-wider text-[var(--ink3)]">
               Report Name <span className="text-destructive">*</span>
@@ -500,22 +498,16 @@ export function FinanceExpenseReportNew() {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button asChild variant="outline" type="button" disabled={busy}>
-              <Link to="/finance/expense-reports">Cancel</Link>
-            </Button>
-            <Button type="submit" disabled={busy || !name.trim()} className="min-w-[130px]">
-              {busy ? <ButtonSpinner /> : 'Create Report'}
-            </Button>
-          </div>
         </form>
       </div>
-    </div>
+    </FormPage>
   );
 }
 
 /* ── 3. Report Detail View ── */
 export function FinanceExpenseReportDetail() {
+  const industryConfiguration = useFinanceConfiguration();
+  const industryCategories = financeCatalogOptions(industryConfiguration.data?.industries ?? []).expenses;
   const { id } = useParams();
   const { user } = useAuth();
   const { currency, fmt } = useCurrency();
@@ -526,9 +518,9 @@ export function FinanceExpenseReportDetail() {
   const [busy, setBusy] = useState(false);
 
   // Claim entry state
-  const [name, setName] = useState('');
+  const [name, setName] = useFinanceDraft('name','');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('PORT_CHARGES');
+  const [category, setCategory] = useState('MISCELLANEOUS');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [receipt, setReceipt] = useState('');
   const [receiptFileName, setReceiptFileName] = useState('');
@@ -625,6 +617,7 @@ export function FinanceExpenseReportDetail() {
     <div className="expense-reports-page">
       <BackButton to="/finance/expense-reports" label="Expense Reports" />
 
+      {report && <FinanceDocumentActions kind="expense_report" id={report.id} label={report.name}/>}
       <PageHeader
         crumbs={[{ label: 'Finance', to: '/finance' }, { label: 'Expense reports', to: '/finance/expense-reports' }, report?.name || 'Report']}
         titlePlain="Expense"
@@ -904,7 +897,7 @@ export function FinanceExpenseReportDetail() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {CAT_OPTIONS.map(opt => (
+                        {[...new Set([...industryCategories,category])].map(opt => (
                           <SelectItem key={opt} value={opt}>
                             {CAT_LABELS[opt] || opt}
                           </SelectItem>

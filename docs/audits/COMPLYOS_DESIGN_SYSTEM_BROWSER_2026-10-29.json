@@ -1,0 +1,1022 @@
+{
+  "pages": [
+    {
+      "route": "",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 3,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "applications",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "applications/new",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "obligations",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "obligations/new",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "obligation-scan",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "vault",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "vault/new",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "calendar",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "calendar/new-reminder",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "legal",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 6,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "agencies",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "workflows",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nWorkflows\nLicense Automation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced ",
+      "overflow": []
+    },
+    {
+      "route": "brela-search",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "brela-search/history",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "companies",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "license-catalog",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "tra-extract",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 2,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "license-automation",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nWorkflows\nLicense Automation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced ",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/cost-line",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/budget",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/allocation",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "license-catalog/apply/25cf0225-a517-4aa9-920b-32dd5ca4ec3c",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "legal/engage/24ec3009-21c1-4674-b474-72eaf01ab193",
+      "width": 1440,
+      "document": 1440,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 3,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "applications",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "applications/new",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "obligations",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "obligations/new",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "obligation-scan",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "vault",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "vault/new",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "calendar",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "calendar/new-reminder",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nApplications\nObligations\nVault\nCalendar\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "legal",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 6,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 145.90625,
+          "right": 875.453125
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 160.90625,
+          "right": 1042.359375
+        }
+      ]
+    },
+    {
+      "route": "agencies",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "workflows",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nWorkflows\nLicense Automation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced ",
+      "overflow": []
+    },
+    {
+      "route": "brela-search",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "brela-search/history",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "companies",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nBRELA Search\nCompany Directory\nAgencies\nRegulatory\nHud",
+      "overflow": []
+    },
+    {
+      "route": "license-catalog",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "tra-extract",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 2,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "license-automation",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nWorkflows\nLicense Automation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced ",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/cost-line",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/budget",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/allocation",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS",
+      "overflow": []
+    },
+    {
+      "route": "license-catalog/apply/25cf0225-a517-4aa9-920b-32dd5ca4ec3c",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "legal/engage/24ec3009-21c1-4674-b474-72eaf01ab193",
+      "width": 768,
+      "document": 768,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nLegal\nLicence Catalogue\nTIN Portal Agent\nHu",
+      "overflow": []
+    },
+    {
+      "route": "",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 3,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nOverview\nCompliance overview.\nAI Obligation Scan\nBRELA Search\nNew Application\n\nLive statutory obligations, permits, regulatory filings and agency tracking across East",
+      "overflow": []
+    },
+    {
+      "route": "applications",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nApplications\nLicense applications.\nNew Application\n\nTrack submissions across all government agencies\n\n1\nDRAFT\n0\nSUBMITTED\n0\nAGENCY REVIEW\n0\nDECISION\n0\nISSUED\nAll\nDraf",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 78.9375,
+          "right": 472.234375
+        }
+      ]
+    },
+    {
+      "route": "applications/new",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nNew Compliance application.\nBack to list\n1\nDocument\n2\nDetails\n3\nReview\nScan a Document (optional)\nUpload certificate to auto-fill\n\nOptional — scanning a certif",
+      "overflow": []
+    },
+    {
+      "route": "obligations",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nCompliance Obligations\nCompliance obligations.\nAdd Obligation\nNew Application\n\n1 mandatory · 0 optional across 1 agencies\n\nACTIVE & CURRENT\n0\nPENDING RENEWAL\n1\nLAPSED",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 121.640625,
+          "right": 495.03125
+        },
+        {
+          "tag": "SPAN",
+          "cls": "",
+          "width": 18.75,
+          "right": 483.03125
+        }
+      ]
+    },
+    {
+      "route": "obligations/new",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nAdd obligation.\nBack to list\n1\nObligation\n2\nSchedule\nObligation Name\nAgency\nBOT — Bank of Tanzania\nCancel\nNext\nHudumika Workspace © 2026 Moovit Mobility Limite",
+      "overflow": []
+    },
+    {
+      "route": "obligation-scan",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nAI Obligation scan.\nBack to list\n\nTell us about your business and we'll map the certifications you need.\n\n1\nSector\n2\nBusiness Details\n3\nResults\nSector\nGeneral ",
+      "overflow": []
+    },
+    {
+      "route": "vault",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nCertificate Vault\nCertificate vault.\nExport All\nAdd Certificate\n\n1 active · 0 expiring · 0 expired\n\nAll\nActive\n1\nExpiring\n0\nExpired\n0\nBRELA\nActive\nDesign review permi",
+      "overflow": []
+    },
+    {
+      "route": "vault/new",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nAdd certificate.\nBack to list\n1\nDetails\n2\nDates\n3\nClient\nCertificate / Reference Number\nCertificate Name\nAgency\nBRELA — Business Registration & Licensing Agenc",
+      "overflow": []
+    },
+    {
+      "route": "calendar",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nCompliance Calendar\nCompliance calendar.\nToday\nAdd Reminder\n\nRenewal windows, filing deadlines, and penalty dates\n\nOctober 2026\nSUN\nMON\nTUE\nWED\nTHU\nFRI\nSAT\n27\n28\n29\n3",
+      "overflow": []
+    },
+    {
+      "route": "calendar/new-reminder",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nAdd reminder.\nBack to list\n1\nWhat\n2\nWhen\nTitle\nAgency (optional)\nNone\nCancel\nNext\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms",
+      "overflow": []
+    },
+    {
+      "route": "legal",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 6,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nLegal firms\nLegal firms.\n\nEngage vetted legal firms to handle your compliance applications\n\nBrowse Firms\nMy Engagements\nAll\nCorporate Registration\nTax Compliance\nEmpl",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 131.359375,
+          "right": 505.578125
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 113.96875,
+          "right": 625.546875
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 139.90625,
+          "right": 771.453125
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 154.90625,
+          "right": 932.359375
+        }
+      ]
+    },
+    {
+      "route": "agencies",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nGovernment Agencies\nGovernment agencies.\n\nAll regulatory bodies relevant to business compliance in Tanzania\n\nAll\nCorporate\nTax\nSocial Security\nRegulatory\nFinancial\nBO",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 92.359375,
+          "right": 433.921875
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 80.265625,
+          "right": 520.1875
+        }
+      ]
+    },
+    {
+      "route": "workflows",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nRenewal Workflows\nRenewal workflows.\nRefresh\n\nCertificate renewal automation — review, approve and track submissions.\n\nTOTAL WORKFLOWS\n1\nAWAITING APPROVAL\n1\nAUTO-TRIG",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 88.40625,
+          "right": 443.375
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 92.671875,
+          "right": 542.046875
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 61.46875,
+          "right": 609.515625
+        }
+      ]
+    },
+    {
+      "route": "brela-search",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nBRELA Search\nBRELA search.\nHistory\nOpen BRELA ORS Portal\n\nSearch Tanzania's BRELA business registry and capture verified company records into ComplyOS.\n\nSTEP 1\nWhat a",
+      "overflow": []
+    },
+    {
+      "route": "brela-search/history",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nBRELA history\nBRELA history.\nNew Search\n\nEvery BRELA search run by your team, with what it found.\n\nNo BRELA searches yet — searches you run from BRELA Search will sho",
+      "overflow": []
+    },
+    {
+      "route": "companies",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nCompany Directory\nCompany directory.\nBRELA Search\n\nCompanies captured from BRELA Search. Drafts are a holding layer only you can see here — review and mark a profile ",
+      "overflow": []
+    },
+    {
+      "route": "license-catalog",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nLicence catalogue\nLicence catalogue.\n\nTanzania Business Licensing Act fee schedule — 284 licence options across 37 categories\n\nFilters\n1. Agency Business\nCommission A",
+      "overflow": []
+    },
+    {
+      "route": "tra-extract",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 2,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nTRA Portal\nTRA portal.\n\nTRA has no public API — this previews the shape of a taxpayer compliance profile by TIN. It never asks for your portal password and does not l",
+      "overflow": []
+    },
+    {
+      "route": "license-automation",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nLicence automation\nLicence automation.\n\nSign in to Tausi (TAMISEMI) directly inside the in-app browser below or upload your statement to extract, verify, and track al",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nFinance\nRenewal finance.\nTZS\n\nTrack spending, budgets, commitments and forecasts across all permit renewals.\n\nNET PAID YTD\nTSh 0\nFUNDING NEXT 30 DAYS\nTSh 0\nFUNDING NE",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nFinance\n/\nCycle Detail\nCosts & payments.\nBack to register\n\nLine-item budget, authority assessments, invoices, payments and receipts for this renewal cycle.\n\nTZS\nAdd c",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/cost-line",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nRenewal Finance\nAdd cost line.\nCancel\n\nRecord one charge in its original currency. Estimates do not count as payments.\n\nCurrency\nTZS\nTZS\nUSD\nKES\nEUR\nGBP\nCategory\nauth",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/budget",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nRenewal Finance\nRequest budget.\nCancel\n\nA different administrator must approve this request. Your existing approved budget stays active until a replacement is approve",
+      "overflow": []
+    },
+    {
+      "route": "renewal-finance/19c196a3-9f14-41bf-a1fa-0391fa13c1b4/allocation",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 0,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nRenewal Finance\nLink Finance record.\nCancel\n\nLink an existing posted supplier bill or recorded payment. This does not send money.\n\nCurrency\nTZS\nTZS\nUSD\nKES\nEUR\nGBP\nCo",
+      "overflow": []
+    },
+    {
+      "route": "license-catalog/apply/25cf0225-a517-4aa9-920b-32dd5ca4ec3c",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nApply for a Business licence.\nBack to list\n\nAgency Business — Commission Agent\n\n1\nLicence\n2\nRequirements\n3\nReview\nCATEGORY\n1. Agency Business\nLICENCE\nCommissio",
+      "overflow": []
+    },
+    {
+      "route": "legal/engage/24ec3009-21c1-4674-b474-72eaf01ab193",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nWizard\nEngage Mkono & Co advocates.\nBack to list\n\nBrief the firm on what you need help with\n\n1\nEngagement\n2\nClient & Brief\n3\nReview\nType of Engagement\nOne-time Applic",
+      "overflow": []
+    }
+  ],
+  "errors": [],
+  "failures": [],
+  "interactions": [
+    {
+      "route": "applications",
+      "drawer": true
+    },
+    {
+      "route": "applications",
+      "escapeCloses": true
+    },
+    {
+      "route": "vault",
+      "drawer": true
+    },
+    {
+      "route": "vault",
+      "escapeCloses": true
+    },
+    {
+      "route": "legal",
+      "drawer": true
+    },
+    {
+      "route": "legal",
+      "escapeCloses": true
+    },
+    {
+      "route": "agencies",
+      "drawer": true
+    },
+    {
+      "route": "agencies",
+      "escapeCloses": true
+    },
+    {
+      "route": "workflows",
+      "drawer": true
+    },
+    {
+      "route": "workflows",
+      "escapeCloses": true
+    },
+    {
+      "route": "license-catalog",
+      "drawer": true
+    },
+    {
+      "route": "license-catalog",
+      "escapeCloses": true
+    },
+    {
+      "wizardBackNextPreservesInput": true
+    },
+    {
+      "sharedRadiusSetting": true
+    },
+    {
+      "liveComponentCatalogChecked": true
+    }
+  ],
+  "apiFailures": [],
+  "dark": {
+    "background": "rgb(19, 24, 22)",
+    "color": "rgb(248, 250, 252)"
+  },
+  "shapeTokens": {
+    "radius": "0px"
+  },
+  "cleaned": true
+}

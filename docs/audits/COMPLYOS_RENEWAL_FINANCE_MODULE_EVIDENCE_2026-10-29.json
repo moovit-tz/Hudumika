@@ -1,0 +1,207 @@
+{
+  "date": "2026-10-29",
+  "scope": "Disposable fixtures; fictitious Finance IDs deliberately test validation; no real payments",
+  "api": {
+    "overview": {
+      "status": 403,
+      "data": {
+        "error": "Your current plan does not include this feature.",
+        "code": "PLAN_UPGRADE_REQUIRED"
+      }
+    },
+    "nonexistentBillAccepted": {
+      "id": "32dbd2bb-612c-4102-9ea4-71c8c61309e8",
+      "reconciled": false
+    },
+    "unpaidRegister": [
+      {
+        "cycle_id": "233bb038-ac20-4a73-89ea-bcf2824f09d4",
+        "cert_id": "d1f45b10-c4b3-486b-89fc-2293c18c37a0",
+        "cert_name": "Renewal finance module review",
+        "cert_number": "FINANCE-MODULE-REVIEW",
+        "agency_code": null,
+        "entity_name": null,
+        "site_name": null,
+        "jurisdiction": "TZ",
+        "cycle_status": "draft",
+        "expiry_date": "2030-12-31",
+        "currency": "TZS",
+        "estimated_cost": 100000,
+        "approved_budget": 0,
+        "committed": 100000,
+        "net_paid": 0,
+        "remaining_forecast": 0,
+        "variance": -100000,
+        "payee": null,
+        "has_evidence": true
+      }
+    ],
+    "nonexistentPaymentAccepted": {
+      "id": "0cf46bf0-3d74-46f7-9543-a142a6c1e5ca",
+      "reconciled": false
+    },
+    "afterFakePaymentOverview": {
+      "net_paid_ytd": 100000,
+      "approved_budget": 0,
+      "open_commitments": 100000,
+      "due_payables": 100000,
+      "overdue_payables": 100000,
+      "forecast_30d": 0,
+      "forecast_90d": 0,
+      "forecast_365d": 0,
+      "budget_variance": -100000,
+      "unpriced_count": 0,
+      "currency": "TZS"
+    },
+    "afterFakePaymentRegister": [
+      {
+        "cycle_id": "233bb038-ac20-4a73-89ea-bcf2824f09d4",
+        "cert_id": "d1f45b10-c4b3-486b-89fc-2293c18c37a0",
+        "cert_name": "Renewal finance module review",
+        "cert_number": "FINANCE-MODULE-REVIEW",
+        "agency_code": null,
+        "entity_name": null,
+        "site_name": null,
+        "jurisdiction": "TZ",
+        "cycle_status": "draft",
+        "expiry_date": "2030-12-31",
+        "currency": "TZS",
+        "estimated_cost": 100000,
+        "approved_budget": 0,
+        "committed": 100000,
+        "net_paid": 100000,
+        "remaining_forecast": 0,
+        "variance": -100000,
+        "payee": null,
+        "has_evidence": true
+      }
+    ],
+    "foreignCycleAccepted": true
+  },
+  "browser": [
+    {
+      "route": "/complyos/renewal-finance",
+      "width": 1440,
+      "document": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nFinance\nRenewal finance.\nTZS\n\nTrack spending, budgets, commitments and forecasts across all permit renewals.\n\nPERMIT\tENTITY / SITE\tSTATUS\tEXPIRY\tESTIMATED\tBUDGET\tCOMMITTED\tNET PAID\tREMAINING\tVARIANCE\t\nNo renewal cycles found. Create a lifecycle cycle first.\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/renewal-finance",
+      "width": 390,
+      "document": 390,
+      "text": "TT\nComplyOS\n/\nFinance\nRenewal finance.\nTZS\n\nTrack spending, budgets, commitments and forecasts across all permit renewals.\n\nPERMIT\tENTITY / SITE\tSTATUS\tEXPIRY\tESTIMATED\tBUDGET\tCOMMITTED\tNET PAID\tREMAINING\tVARIANCE\t\nNo renewal cycles found. Create a lifecycle cycle first.\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/renewal-finance/233bb038-ac20-4a73-89ea-bcf2824f09d4",
+      "width": 1440,
+      "document": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nFinance\n/\nCycle Detail\nCosts & payments.\nBack to register\n\nLine-item budget, authority assessments, invoices, payments and receipts for this renewal cycle.\n\nESTIMATED COST\nUnknown\nAPPROVED BUDGET\n—\nNET PAID\n—\nREMAINING\n—\nCost Lines\n\nNo cost lines recorded. Add one to begin tracking estimated and actual costs.\n\nBudget Versions\n\nNo budget created for this cycle.\n\nFinance Allocations\n\nNo finance records allocated to this cycle. Link bills, expenses or payments to track actual spend.\n\nAudit Trail\n\nNo audit entries yet.\n\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "route": "/complyos/renewal-finance/233bb038-ac20-4a73-89ea-bcf2824f09d4",
+      "width": 390,
+      "document": 390,
+      "text": "TT\nComplyOS\n/\nFinance\n/\nCycle Detail\nCosts & payments.\nBack to register\n\nLine-item budget, authority assessments, invoices, payments and receipts for this renewal cycle.\n\nESTIMATED COST\nUnknown\nAPPROVED BUDGET\n—\nNET PAID\n—\nREMAINING\n—\nCost Lines\n\nNo cost lines recorded. Add one to begin tracking estimated and actual costs.\n\nBudget Versions\n\nNo budget created for this cycle.\n\nFinance Allocations\n\nNo finance records allocated to this cycle. Link bills, expenses or payments to track actual spend.\n\nAudit Trail\n\nNo audit entries yet.\n\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    }
+  ],
+  "browserErrors": [],
+  "financeResponses": [
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/cost-lines",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/audit",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/budgets",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/allocations",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/cost-lines",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/audit",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/budgets",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/allocations",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/budgets",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/audit",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/cost-lines",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/allocations",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/budgets",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/cost-lines",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/audit",
+      "status": 403
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/233bb038-ac20-4a73-89ea-bcf2824f09d4/allocations",
+      "status": 403
+    }
+  ],
+  "cleaned": true
+}

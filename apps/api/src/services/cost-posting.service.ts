@@ -1,3 +1,5 @@
+import { demurrageService } from './demurrage.service.js';
+import { getLatestFxRate } from './fx-rate.service.js';
 import { withTenant } from '../db/client.js';
 import { GLService } from './gl.service.js';
 
@@ -64,6 +66,7 @@ export class CostPostingService {
     userId: string | null,
     dryRun = false,
   ): Promise<CostPostingResult> {
+    if (!dryRun) await demurrageService.refreshCharges(tenantId);
     return withTenant(tenantId, async (trx) => {
       // Explicit tenant filter, not RLS alone — see CLAUDE.md.
       const containers = await trx
@@ -71,10 +74,10 @@ export class CostPostingService {
         .select([
           'id', 'container_number', 'demurrage_cost', 'demurrage_days',
           'status', 'shipment_id', 'return_date', 'gate_out_date',
-          'liable_party', 'liability_reason',
+          'liable_party', 'liability_reason', 'demurrage_currency', 'tariff_snapshot',
         ])
         .where('tenant_id', '=', tenantId)
-        .execute();
+        .forUpdate().execute();
 
       // One query for what is already posted, rather than one per container.
       const existing = await trx
@@ -94,6 +97,7 @@ export class CostPostingService {
           result.skipped.push({ containerId: c.id, reason: 'already posted' });
           continue;
         }
+        if (c.status === 'ACTIVE' && c.demurrage_days > 0 && !c.tariff_snapshot) throw Object.assign(new Error('Unpriced active charge: configure an applicable tariff before posting'), {statusCode:409});
         if (amount <= 0) {
           result.skipped.push({ containerId: c.id, reason: 'no demurrage charge' });
           continue;
@@ -112,7 +116,14 @@ export class CostPostingService {
 
         // Dated when the charge crystallised, falling back to today rather
         // than to a null the ledger would reject.
-        const entryDate = String(c.return_date ?? c.gate_out_date ?? new Date().toISOString()).slice(0, 10);
+        const entryDate = new Date(c.return_date ?? c.gate_out_date ?? new Date()).toISOString().slice(0, 10);
+        let fx = await getLatestFxRate(c.demurrage_currency, 'TZS', entryDate);
+        if (!fx && c.demurrage_currency !== 'USD') {
+          const [usd, base] = await Promise.all([getLatestFxRate(c.demurrage_currency,'USD',entryDate),getLatestFxRate('USD','TZS',entryDate)]);
+          if (usd && base) fx = { rate: usd.rate * base.rate, date: entryDate };
+        }
+        if (!fx || !Number.isFinite(fx.rate) || fx.rate <= 0) throw Object.assign(new Error(`No published ${c.demurrage_currency}/TZS exchange rate for ${entryDate}; charge not posted`), { statusCode: 409 });
+        const ledgerAmount = Math.round(amount * fx.rate * 100) / 100;
 
         // The debit follows fault. Credit is always the payable — we owe the
         // line whether or not the delay was ours.
@@ -129,14 +140,14 @@ export class CostPostingService {
           sourceId: c.id,
           createdBy: userId ?? undefined,
           lines: [
-            { accountCode: debitAccount, debit: amount, credit: 0,
+            { accountCode: debitAccount, debit: ledgerAmount, credit: 0, currency: c.demurrage_currency, exchangeRate: fx.rate,
               description: absorbed
                 ? `Demurrage ${c.container_number}${c.liability_reason ? ` — ${c.liability_reason}` : ''}`
                 : `Demurrage recharged ${c.container_number}` },
-            { accountCode: ACCOUNTS_PAYABLE_ACCOUNT, debit: 0, credit: amount,
+            { accountCode: ACCOUNTS_PAYABLE_ACCOUNT, debit: 0, credit: ledgerAmount, currency: c.demurrage_currency, exchangeRate: fx.rate,
               description: `Demurrage payable — ${c.container_number}` },
           ],
-        } as any);
+        }, trx);
 
         result.posted.push({
           containerId: c.id, containerNumber: c.container_number, amount, entryId,

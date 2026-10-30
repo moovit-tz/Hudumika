@@ -64,6 +64,8 @@ export interface TenantsTable {
    *  means a real work domain, or a tenant created before this column
    *  existed — never a confirmation either way for older rows. */
   founder_personal_email_domain: string | null;
+  billing_cycle: Generated<'monthly' | 'annual'>;
+  onboarding_journey: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1659,6 +1661,7 @@ export interface CaseDocumentsTable {
 }
 
 export interface ExpensesTable {
+  source_event_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
   shipment_id: string;
@@ -1716,6 +1719,8 @@ export interface ShipmentJobChargesTable {
 }
 
 export interface FinanceExpensesTable {
+  industry_key: Generated<import('@hudumika/types').FinanceIndustryKey | null>;
+  industry_work_id: Generated<string | null>;
   report_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
@@ -2033,6 +2038,7 @@ export interface DemurrageTariffsTable {
 }
 
 export interface ContainerTrackingTable {
+  tariff_snapshot: Generated<Record<string, unknown> | null>;
   id: Generated<string>;
   tenant_id: string;
   shipment_id: string;
@@ -2340,6 +2346,7 @@ export interface TaskChecklistItemsTable {
 }
 
 export interface ShipmentTimeEntriesTable {
+  user_id: string | null;
   id: Generated<string>;
   tenant_id: string;
   shipment_id: string;
@@ -2686,6 +2693,7 @@ export interface HrDevicesTable {
 }
 
 export interface HrActivityLogTable {
+  metadata: Generated<Record<string, unknown> | null>;
   id: Generated<string>;
   tenant_id: string;
   user_id: string | null;
@@ -2704,6 +2712,7 @@ export interface PasswordResetTokensTable {
 }
 
 export interface SalesInvoicesTable {
+  source_event_id: Generated<string | null>;
   industry_work_id: Generated<string | null>;
   id: Generated<string>;
   tenant_id: string;
@@ -2759,6 +2768,7 @@ export interface SalesInvoicesTable {
 }
 
 export interface SalesInvoiceLinesTable {
+  description: Generated<string | null>;
   id: Generated<string>;
   invoice_id: string;
   name: string;
@@ -3209,6 +3219,7 @@ export interface CreditNotesTable {
 }
 
 export interface CreditNoteLinesTable {
+  description: Generated<string | null>;
   id: Generated<string>;
   credit_note_id: string;
   name: string;
@@ -3326,6 +3337,8 @@ export interface GlPeriodsTable {
 }
 
 export interface ProductsTable {
+  industry_key: Generated<import('@hudumika/types').FinanceIndustryKey | null>;
+  industry_attributes: Generated<Record<string, string>>;
   id: string;
   tenant_id: string;
   code: string;
@@ -3945,6 +3958,14 @@ export interface PackagesTable {
   // this tier) and whether this tier may override with its own key at all.
   monthly_ai_credits: Generated<number>;
   byok_ai_allowed: Generated<boolean>;
+  // Migration 635 — commercial plan Phase 1
+  currency: Generated<string>;
+  included_seats: number | null;
+  max_locations: number | null;
+  price_flat_monthly: number | null;
+  price_flat_annual: number | null;
+  // Migration 637 — Phase 3 ESB metering default
+  esb_metered_default: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3979,6 +4000,209 @@ export interface TenantAddonsTable {
   quantity: Generated<number>; // migration 504
   started_at: Generated<Date>;
   cancelled_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantPlanChangesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  from_plan: string;
+  to_plan: string;
+  from_cycle: string | null;
+  to_cycle: string | null;
+  effective_at: Generated<Date>;
+  reason: string | null;
+  initiated_by: string | null;
+  proration_amount: number | null;
+  proration_currency: string | null;
+  created_at: Generated<Date>;
+}
+
+// External Services Balance (ESB) — Phase 2 commercial plan
+export interface EsbWalletsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  currency: Generated<string>;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export type EsbPostingType = 'top_up' | 'reserve' | 'capture' | 'release' | 'refund';
+
+export type EsbCheckoutStatus = 'pending' | 'completed' | 'expired' | 'failed';
+
+export interface EsbCheckoutRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  wallet_id: string;
+  tx_ref: string;
+  amount: number;
+  currency: Generated<string>;
+  status: Generated<EsbCheckoutStatus>;
+  initiated_by: string | null;
+  created_at: Generated<Date>;
+  completed_at: Date | null;
+}
+
+export interface EsbPostingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  wallet_id: string;
+  posting_type: EsbPostingType;
+  amount: number;
+  currency: Generated<string>;
+  reservation_id: string | null;
+  service_kind: string | null;
+  service_ref: string | null;
+  supplier_amount: number | null;
+  supplier_currency: string | null;
+  gateway_provider: string | null;
+  gateway_tx_ref: string | null;
+  gateway_tx_id: string | null;
+  refund_operation_id: string | null;
+  description: string | null;
+  initiated_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export type EsbOperationStatus = 'quote' | 'reserved' | 'dispatched' | 'captured' | 'released' | 'failed' | 'reconciling';
+
+export interface EsbOperationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  wallet_id: string;
+  service_kind: string;
+  status: Generated<EsbOperationStatus>;
+  quoted_amount: number;
+  actual_amount: number | null;
+  supplier_amount: number | null;
+  supplier_currency: string | null;
+  provider_detail: Generated<Record<string, unknown>>;
+  reserve_posting_id: string | null;
+  capture_posting_id: string | null;
+  release_posting_id: string | null;
+  initiated_by: string | null;
+  source_app: string | null;
+  source_ref: string | null;
+  created_at: Generated<Date>;
+  settled_at: Date | null;
+}
+
+// Phase 3: Provider ownership and metering
+export interface TenantServiceConfigTable {
+  id: Generated<string>;
+  tenant_id: string;
+  service_kind: string;
+  credential_owner: 'tenant' | 'platform' | 'hybrid';
+  esb_metered: Generated<boolean>;
+  rate_override: number | null;
+  is_enabled: Generated<boolean>;
+  notes: string | null;
+  updated_at: Generated<Date>;
+  created_at: Generated<Date>;
+}
+
+export interface ProviderRatesTable {
+  id: Generated<string>;
+  service_kind: string;
+  provider: string;
+  unit_label: string;
+  rate_tzs: number;
+  supplier_rate: number | null;
+  supplier_currency: string | null;
+  is_active: Generated<boolean>;
+  is_published: Generated<boolean>;
+  effective_from: Generated<Date>;
+  effective_until: Date | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface OnboardingJourneysTable {
+  id: Generated<string>;
+  industry_key: string;
+  label: string;
+  description: string | null;
+  featured_apps: Generated<string[]>;
+  seed_workflows: Generated<any[]>;
+  checkpoint_keys: Generated<string[]>;
+  import_templates: Generated<any[]>;
+  sort_order: Generated<number>;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantActivationCheckpointsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  checkpoint_key: string;
+  completed_at: Generated<Date>;
+  completed_by: string | null;
+  context: Record<string, any> | null;
+  created_at: Generated<Date>;
+}
+
+export interface ImplementationEngagementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  engagement_type: Generated<string>;
+  status: Generated<string>;
+  scope_summary: string | null;
+  scope_details: Generated<Record<string, any>>;
+  deal_id: string | null;
+  project_id: string | null;
+  quoted_hours: number | null;
+  quoted_amount: number | null;
+  actual_hours: Generated<number>;
+  currency: Generated<string>;
+  consent_at: Date | null;
+  consent_by: string | null;
+  started_at: Date | null;
+  completed_at: Date | null;
+  delivered_by: string | null;
+  invoice_id: string | null;
+  notes: string | null;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SupportTimeEntriesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  category: Generated<string>;
+  duration_minutes: number;
+  summary: string;
+  agent_user_id: string | null;
+  agent_name: string | null;
+  loaded_cost_per_hour: number | null;
+  ticket_ref: string | null;
+  engagement_id: string | null;
+  recorded_at: Generated<Date>;
+  created_at: Generated<Date>;
+}
+
+export interface SupportCostConfigTable {
+  id: Generated<string>;
+  category: string;
+  loaded_cost_per_hour: number;
+  currency: Generated<string>;
+  description: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantFeatureFlagsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  flag_key: string;
+  enabled: Generated<boolean>;
+  config: Generated<Record<string, any>>;
+  set_by: string | null;
+  reason: string | null;
+  expires_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4020,6 +4244,7 @@ export interface FinanceBusinessLinesTable {
   code: string;
   description: string | null;
   active: Generated<boolean>;
+  entity_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -4644,6 +4869,7 @@ export interface AppStatusTable {
   status: Generated<string>;
   message: string | null;
   is_beta: Generated<boolean>;
+  commercially_available: Generated<boolean>;
   updated_by: string | null;
   updated_at: Generated<Date>;
 }
@@ -4699,6 +4925,11 @@ export interface PlatformDomainsTable {
 }
 
 export interface TrackingSnapshotsTable {
+  source: Generated<string>;
+  provider: Generated<string | null>;
+  fetched_at: Generated<Date | null>;
+  share_expires_at: Generated<Date | null>;
+  share_revoked: Generated<boolean>;
   id: Generated<string>;
   tenant_id: string;
   shipment_id: string | null;
@@ -6010,6 +6241,19 @@ export interface Database {
   packages: PackagesTable;
   package_addons: PackageAddonsTable;
   tenant_addons: TenantAddonsTable;
+  tenant_plan_changes: TenantPlanChangesTable;
+  esb_wallets: EsbWalletsTable;
+  esb_checkout_requests: EsbCheckoutRequestsTable;
+  esb_postings: EsbPostingsTable;
+  esb_operations: EsbOperationsTable;
+  tenant_service_config: TenantServiceConfigTable;
+  provider_rates: ProviderRatesTable;
+  onboarding_journeys: OnboardingJourneysTable;
+  tenant_activation_checkpoints: TenantActivationCheckpointsTable;
+  implementation_engagements: ImplementationEngagementsTable;
+  support_time_entries: SupportTimeEntriesTable;
+  support_cost_config: SupportCostConfigTable;
+  tenant_feature_flags: TenantFeatureFlagsTable;
   tenant_usage_counters: TenantUsageCountersTable;
   package_app_quotas: PackageAppQuotasTable;
   tenant_app_usage_counters: TenantAppUsageCountersTable;
@@ -6053,6 +6297,7 @@ export interface Database {
   sms_inbound_messages: SmsInboundMessagesTable;
   user_app_settings: UserAppSettingsTable;
   // AWB / BL Tracking
+  freight_booking_sequences: { tenant_id: string; year: number; last_number: number };
   tracking_snapshots: TrackingSnapshotsTable;
   // General Ledger
   chart_of_accounts: ChartOfAccountsTable;
@@ -6236,6 +6481,42 @@ export interface Database {
   comply_legal_messages:    ComplyLegalMessagesTable;
   comply_brela_search_history: ComplyBrelaSearchHistoryTable;
   comply_license_catalog: ComplyLicenseCatalogTable;
+  // Phase F — canonical permit engine (migration 644)
+  comply_requirement_definitions: ComplyRequirementDefinitionsTable;
+  comply_fee_definitions: ComplyFeeDefinitionsTable;
+  comply_lifecycle_cycles: ComplyLifecycleCyclesTable;
+  comply_lifecycle_evidence: ComplyLifecycleEvidenceTable;
+  comply_jurisdiction_packs: ComplyJurisdictionPacksTable;
+  // Phase G — permit capture + cross-app checks (migration 645)
+  comply_permit_candidates: ComplyPermitCandidatesTable;
+  comply_permit_checks: ComplyPermitChecksTable;
+  comply_app_coverage: ComplyAppCoverageTable;
+  // Phase H — industry workflows (migration 646)
+  industry_workflow_definitions: IndustryWorkflowDefinitionsTable;
+  industry_app_matrix: IndustryAppMatrixTable;
+  tenant_workflow_instances: TenantWorkflowInstancesTable;
+  workflow_transactions: WorkflowTransactionsTable;
+  launch_cases: LaunchCasesTable;
+  launch_case_sites: LaunchCaseSitesTable;
+  launch_case_products: LaunchCaseProductsTable;
+  launch_plan_items: LaunchPlanItemsTable;
+  launch_plan_snapshots: LaunchPlanSnapshotsTable;
+  provider_client_portfolios: ProviderClientPortfoliosTable;
+  delegation_mandates: DelegationMandatesTable;
+  mandate_staff_assignments: MandateStaffAssignmentsTable;
+  delegation_audit_log: DelegationAuditLogTable;
+  provider_engagements: ProviderEngagementsTable;
+  marketplace_provider_listings: MarketplaceProviderListingsTable;
+  marketplace_enquiries: MarketplaceEnquiriesTable;
+  marketplace_quotations: MarketplaceQuotationsTable;
+  marketplace_assignments: MarketplaceAssignmentsTable;
+  marketplace_milestones: MarketplaceMilestonesTable;
+  marketplace_disputes: MarketplaceDisputesTable;
+  platform_metric_snapshots: PlatformMetricSnapshotsTable;
+  tenant_metric_snapshots: TenantMetricSnapshotsTable;
+  tenant_resource_limits: TenantResourceLimitsTable;
+  durable_jobs: DurableJobsTable;
+  bulk_operations: BulkOperationsTable;
   // CMS (platform pages + OneSite tenant pages)
   cms_sites: CmsSitesTable;
   cms_site_settings: CmsSiteSettingsTable;
@@ -6459,6 +6740,110 @@ export interface Database {
   travel_itinerary_items: TravelItineraryItemsTable;
   travel_bookings: TravelBookingsTable;
   travel_expenses: TravelExpensesTable;
+  // ─── Shared Org Model (Migration 641) ────────────────────────
+  tenant_entities: TenantEntitiesTable;
+  tenant_sites: TenantSitesTable;
+  entity_industries: EntityIndustriesTable;
+  site_activities: SiteActivitiesTable;
+  tenant_industries: TenantIndustriesTable;
+  // ─── Industry Registry (Migration 642) ───────────────────────
+  industry_registry: IndustryRegistryTable;
+  industry_app_capabilities: IndustryAppCapabilitiesTable;
+  platform_operator_audit: PlatformOperatorAuditTable;
+  user_org_assignments: UserOrgAssignmentsTable;
+  // ─── Renewal Finance (Migration 651) ──────────────────────────
+  comply_renewal_cost_lines: ComplyRenewalCostLinesTable;
+  comply_renewal_budgets: ComplyRenewalBudgetsTable;
+  comply_renewal_allocations: ComplyRenewalAllocationsTable;
+  comply_renewal_forecasts: ComplyRenewalForecastsTable;
+  comply_renewal_audit: ComplyRenewalAuditTable;
+}
+
+// ─── Shared Org Model Tables (Migration 641) ─────────────────────────────────
+
+export interface TenantEntitiesTable {
+  id: Generated<string>; tenant_id: string; legal_name: string; short_name: string | null;
+  registration_no: string | null; tax_id: string | null; country_code: Generated<string>;
+  currency: Generated<string>; entity_type: Generated<'parent' | 'subsidiary' | 'branch' | 'division' | 'joint_venture' | 'other'>;
+  parent_entity_id: string | null; status: Generated<'active' | 'dormant' | 'dissolved' | 'pending_registration'>;
+  registered_address: string | null; primary_industry: string | null;
+  metadata: Generated<Record<string, unknown>>; created_by: string | null;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface TenantSitesTable {
+  id: Generated<string>; tenant_id: string; entity_id: string | null; name: string;
+  code: string | null; site_type: Generated<'office' | 'factory' | 'warehouse' | 'retail' | 'clinic' | 'mine' | 'farm' | 'port' | 'other'>;
+  address: string | null; city: string | null; region: string | null;
+  country_code: Generated<string>; timezone: Generated<string>;
+  latitude: number | null; longitude: number | null;
+  status: Generated<'active' | 'inactive' | 'under_construction' | 'closed'>;
+  metadata: Generated<Record<string, unknown>>; created_by: string | null;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface EntityIndustriesTable {
+  id: Generated<string>; tenant_id: string; entity_id: string; industry_key: string;
+  is_primary: Generated<boolean>; effective_from: Generated<string>;
+  effective_to: string | null; status: Generated<'active' | 'inactive' | 'pending'>;
+  created_at: Generated<Date>;
+}
+
+export interface SiteActivitiesTable {
+  id: Generated<string>; tenant_id: string; site_id: string; industry_key: string;
+  activity_name: string; status: Generated<'active' | 'inactive' | 'pending_approval'>;
+  license_ref: string | null; created_at: Generated<Date>;
+}
+
+export interface TenantIndustriesTable {
+  id: Generated<string>; tenant_id: string; industry_key: string;
+  is_primary: Generated<boolean>; activated_at: Generated<Date>;
+  activated_by: string | null; deactivated_at: Date | null;
+}
+
+// ─── Industry Registry Tables (Migration 642) ────────────────────────────────
+
+export interface IndustryRegistryTable {
+  id: Generated<string>; key: string; parent_key: string | null; name: string;
+  description: string | null; aliases: Generated<string[]>;
+  isic_code: string | null; naics_code: string | null;
+  status: Generated<'proposed' | 'pilot' | 'accepted' | 'unavailable' | 'retired'>;
+  app_capabilities: Generated<Record<string, unknown>>;
+  recommended_finance_caps: Generated<string[]>; jurisdiction_coverage: Generated<string[]>;
+  config_version: Generated<number>; sort_order: Generated<number>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface IndustryAppCapabilitiesTable {
+  id: Generated<string>; industry_key: string; app_id: string;
+  capability_key: string; capability_name: string;
+  status: Generated<'proposed' | 'pilot' | 'accepted' | 'unavailable' | 'retired'>;
+  description: string | null; config_schema: unknown;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface PlatformOperatorAuditTable {
+  id: Generated<string>;
+  operator_id: string;
+  affected_tenant_id: string;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  reason: string;
+  metadata: Generated<Record<string, unknown>>;
+  ip_address: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface UserOrgAssignmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  entity_id: string | null;
+  site_id: string | null;
+  is_primary: Generated<boolean>;
+  assigned_by: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface DeveloperAccountsTable {
@@ -8850,6 +9235,8 @@ export interface OndiOrgRoleMembersTable {
   // exists because of that group's membership, and disappears if the
   // person leaves the group or the group is deleted.
   granted_via_group_id: string | null;
+  scope_entity_id: string | null;
+  scope_site_id: string | null;
 }
 
 export interface OndiOrgGroupsTable {
@@ -9273,6 +9660,9 @@ export interface SubscriptionInvoicesTable {
   last_dunning_at: Date | null;
   attempt_count: Generated<number>;
   last_attempt_at: Date | null;
+  // migration 635
+  billing_cycle: Generated<string>;
+  price_snapshot: unknown | null;
   last_attempt_error: string | null;
   updated_at: Generated<Date>;
 }
@@ -9563,6 +9953,7 @@ export interface HrLegalEntitiesTable {
   country_code: string;
   currency: Generated<string>;
   registered_address: string | null;
+  shared_entity_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -10028,6 +10419,17 @@ export interface ComplyCertificatesTable {
   reminder_90d_sent_at: Date | null;
   reminder_30d_sent_at: Date | null;
   non_renewal_risk:     string | null;
+  // Phase F (migration 644) — canonical permit engine scope columns
+  entity_id:      string | null;
+  site_id:        string | null;
+  holder_name:    string | null;
+  holder_type:    string | null;
+  jurisdiction:   Generated<string>;
+  authority:      string | null;
+  assurance:      Generated<string>;
+  verified_at:    Date | null;
+  verified_by:    string | null;
+  industry_key:   string | null;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
 }
@@ -10602,6 +11004,685 @@ export interface ComplyBrelaSearchHistoryTable {
   // JSON.stringify() on insert and JSON.parse() on read.
   results:       Generated<string>;
   created_at:    Generated<Date>;
+}
+
+// ── Phase F: Canonical Permit Engine (Migration 644) ─────────────────────────
+
+export interface ComplyRequirementDefinitionsTable {
+  id: Generated<string>;
+  code: string;
+  jurisdiction: Generated<string>;
+  name: string;
+  description: string | null;
+  legal_instrument: string | null;
+  source_url: string | null;
+  industry_key: string | null;
+  activity_type: string | null;
+  holder_type: string | null;
+  agency_code: string | null;
+  frequency: Generated<string>;
+  mandatory: Generated<boolean>;
+  required_evidence: Generated<string>;
+  applicability: Generated<string>;
+  dependencies: Generated<string[]>;
+  exemptions: Generated<string>;
+  version: Generated<number>;
+  effective_from: Generated<string>;
+  effective_to: string | null;
+  review_state: Generated<string>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  review_notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ComplyFeeDefinitionsTable {
+  id: Generated<string>;
+  requirement_def_id: string;
+  fee_type: string;
+  name: string;
+  currency: Generated<string>;
+  amount: string | null;
+  formula: string | null;
+  formula_inputs: Generated<string>;
+  grace_days: number | null;
+  cap_amount: string | null;
+  effective_from: Generated<string>;
+  effective_to: string | null;
+  source_reference: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ComplyLifecycleCyclesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cert_id: string | null;
+  requirement_def_id: string | null;
+  cycle_type: string;
+  status: Generated<string>;
+  owner_id: string | null;
+  delegate_id: string | null;
+  entity_id: string | null;
+  site_id: string | null;
+  jurisdiction: Generated<string>;
+  agency_code: string | null;
+  prerequisites: Generated<string>;
+  deadline: string | null;
+  budget_estimate: string | null;
+  budget_currency: string | null;
+  actual_cost: string | null;
+  submission_ref: string | null;
+  submission_date: string | null;
+  authority_ref: string | null;
+  outcome_date: string | null;
+  outcome_notes: string | null;
+  metadata: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ComplyLifecycleEvidenceTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cycle_id: string;
+  file_id: string | null;
+  file_name: string;
+  file_url: string | null;
+  evidence_type: Generated<string>;
+  description: string | null;
+  uploaded_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ComplyJurisdictionPacksTable {
+  id: Generated<string>;
+  jurisdiction: string;
+  name: string;
+  country_code: string;
+  subnational_code: string | null;
+  coverage_level: Generated<string>;
+  last_reviewed: string | null;
+  reviewed_by: string | null;
+  source_notes: string | null;
+  requirement_count: Generated<number>;
+  missing_areas: Generated<string[]>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+// ── Phase G: Permit Capture + Cross-App Checks (Migration 645) ───────────
+
+export interface ComplyPermitCandidatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  source_app: string;
+  source_record_type: string | null;
+  source_record_id: string | null;
+  source_attachment_id: string | null;
+  source_file_name: string;
+  source_file_url: string | null;
+  source_version: Generated<number>;
+  classification: Generated<string>;
+  confidence: string | null;
+  classifier_type: string | null;
+  holder_claim: string | null;
+  issuer_claim: string | null;
+  jurisdiction_claim: string | null;
+  permit_number_claim: string | null;
+  expiry_claim: string | null;
+  issued_claim: string | null;
+  captured_by: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  review_notes: string | null;
+  status: Generated<string>;
+  linked_cert_id: string | null;
+  linked_cycle_id: string | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ComplyPermitChecksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  requesting_app: string;
+  requesting_record_type: string | null;
+  requesting_record_id: string | null;
+  check_type: Generated<string>;
+  entity_id: string | null;
+  site_id: string | null;
+  jurisdiction: Generated<string>;
+  requirement_code: string | null;
+  cert_id: string | null;
+  result: Generated<string>;
+  reasons: Generated<string[]>;
+  assurance_level: Generated<string>;
+  rules_version: number | null;
+  freshness: Generated<string>;
+  impact_action: Generated<string>;
+  impact_notes: string | null;
+  checked_at: Generated<Date>;
+  checked_by: string | null;
+  expires_at: Date | null;
+}
+
+export interface ComplyAppCoverageTable {
+  id: Generated<string>;
+  app_id: string;
+  intake_path: Generated<string>;
+  check_path: Generated<string>;
+  coverage_status: Generated<string>;
+  evidence_notes: string | null;
+  last_verified: string | null;
+  verified_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+// ── Phase H: Industry Workflows (Migration 646) ─────────────────────────
+
+export interface IndustryWorkflowDefinitionsTable {
+  id: Generated<string>;
+  industry_key: string;
+  app_id: string;
+  workflow_code: string;
+  name: string;
+  description: string | null;
+  category: Generated<string>;
+  steps: Generated<string>;
+  required_apps: Generated<string[]>;
+  required_permits: Generated<string[]>;
+  config_schema: Generated<string>;
+  status: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface IndustryAppMatrixTable {
+  id: Generated<string>;
+  industry_key: string;
+  app_id: string;
+  status: Generated<string>;
+  workflow_count: Generated<number>;
+  evidence_notes: string | null;
+  last_verified: string | null;
+  verified_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantWorkflowInstancesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  workflow_def_id: string | null;
+  industry_key: string;
+  app_id: string;
+  workflow_code: string;
+  name: string;
+  status: Generated<string>;
+  config: Generated<string>;
+  entity_id: string | null;
+  site_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface WorkflowTransactionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  workflow_instance_id: string;
+  step_code: string;
+  step_name: string;
+  source_app: string;
+  target_app: string | null;
+  status: Generated<string>;
+  input_data: Generated<string>;
+  output_data: Generated<string>;
+  source_record_type: string | null;
+  source_record_id: string | null;
+  target_record_type: string | null;
+  target_record_id: string | null;
+  started_at: Date | null;
+  completed_at: Date | null;
+  executed_by: string | null;
+  error_message: string | null;
+  created_at: Generated<Date>;
+}
+
+// ── Phase I: Launch Planner ───────────────────────────────────────────────
+
+export interface LaunchCasesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  entity_id: string | null;
+  title: string;
+  description: string | null;
+  status: Generated<string>;
+  industries: Generated<string[]>;
+  jurisdictions: Generated<string[]>;
+  target_date: Date | null;
+  actual_launch_date: Date | null;
+  overall_readiness: Generated<number>;
+  created_by: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LaunchCaseSitesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  launch_case_id: string;
+  site_id: string | null;
+  site_name: string;
+  site_type: Generated<string>;
+  jurisdiction: Generated<string>;
+  address: string | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface LaunchCaseProductsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  launch_case_id: string;
+  product_name: string;
+  product_type: Generated<string>;
+  hs_code: string | null;
+  industry_key: string | null;
+  jurisdiction: Generated<string>;
+  requires_permits: Generated<boolean>;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface LaunchPlanItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  launch_case_id: string;
+  requirement_def_id: string | null;
+  title: string;
+  description: string | null;
+  category: Generated<string>;
+  status: Generated<string>;
+  priority: Generated<number>;
+  jurisdiction: Generated<string>;
+  authority: string | null;
+  legal_basis: string | null;
+  estimated_cost: number | null;
+  actual_cost: number | null;
+  currency: Generated<string>;
+  estimated_days: number | null;
+  deadline: Date | null;
+  started_at: Date | null;
+  completed_at: Date | null;
+  owner_user_id: string | null;
+  linked_cert_id: string | null;
+  linked_cycle_id: string | null;
+  linked_task_id: string | null;
+  dependency_ids: Generated<string[]>;
+  evidence_notes: string | null;
+  exemption_reason: string | null;
+  exemption_approved_by: string | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LaunchPlanSnapshotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  launch_case_id: string;
+  snapshot_type: Generated<string>;
+  label: string | null;
+  readiness_score: number | null;
+  item_count: Generated<number>;
+  completed_count: Generated<number>;
+  blocked_count: Generated<number>;
+  snapshot_data: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+// ── Phase J: Consultant delegation ───────────────────────────────────────────
+
+export interface ProviderClientPortfoliosTable {
+  id: Generated<string>;
+  provider_tenant_id: string;
+  client_tenant_id: string | null;
+  client_name: string;
+  client_type: Generated<string>;
+  status: Generated<string>;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  industry_key: string | null;
+  jurisdictions: Generated<string[]>;
+  onboarded_at: Date | null;
+  terminated_at: Date | null;
+  termination_reason: string | null;
+  metadata: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DelegationMandatesTable {
+  id: Generated<string>;
+  owner_tenant_id: string;
+  provider_tenant_id: string;
+  portfolio_id: string | null;
+  mandate_code: string;
+  title: string;
+  purpose: string | null;
+  status: Generated<string>;
+  scope_entities: Generated<string[]>;
+  scope_permits: Generated<string[]>;
+  scope_apps: Generated<string[]>;
+  allowed_actions: Generated<string[]>;
+  document_scope: Generated<string>;
+  history_scope: Generated<string>;
+  effective_from: Generated<string>;
+  effective_to: string | null;
+  auto_renew: Generated<boolean>;
+  authorized_by: string | null;
+  authorized_at: Date | null;
+  revoked_by: string | null;
+  revoked_at: Date | null;
+  revocation_reason: string | null;
+  metadata: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MandateStaffAssignmentsTable {
+  id: Generated<string>;
+  mandate_id: string;
+  provider_tenant_id: string;
+  user_id: string;
+  role_in_mandate: Generated<string>;
+  granted_actions: Generated<string[]>;
+  status: Generated<string>;
+  granted_by: string | null;
+  granted_at: Generated<Date>;
+  removed_at: Date | null;
+  removed_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface DelegationAuditLogTable {
+  id: Generated<string>;
+  mandate_id: string;
+  owner_tenant_id: string;
+  provider_tenant_id: string;
+  actor_user_id: string;
+  on_behalf_of_tenant: string;
+  action_type: string;
+  action_detail: string | null;
+  target_record_type: string | null;
+  target_record_id: string | null;
+  app_id: string | null;
+  ip_address: string | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface ProviderEngagementsTable {
+  id: Generated<string>;
+  provider_tenant_id: string;
+  portfolio_id: string;
+  mandate_id: string | null;
+  title: string;
+  engagement_type: Generated<string>;
+  status: Generated<string>;
+  fee_amount: number | null;
+  fee_currency: Generated<string>;
+  billing_type: Generated<string>;
+  started_at: Date | null;
+  completed_at: Date | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+// ── Phase K: Marketplace ─────────────────────────────────────────────────────
+
+export interface MarketplaceProviderListingsTable {
+  id: Generated<string>;
+  provider_tenant_id: string;
+  display_name: string;
+  tagline: string | null;
+  description: string | null;
+  services: Generated<string[]>;
+  jurisdictions: Generated<string[]>;
+  industries: Generated<string[]>;
+  status: Generated<string>;
+  verification_status: Generated<string>;
+  verification_evidence: Generated<string>;
+  verified_at: Date | null;
+  verified_by: string | null;
+  avg_rating: number | null;
+  review_count: Generated<number>;
+  min_fee: number | null;
+  max_fee: number | null;
+  fee_currency: Generated<string>;
+  contact_email: string | null;
+  contact_phone: string | null;
+  website_url: string | null;
+  metadata: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MarketplaceEnquiriesTable {
+  id: Generated<string>;
+  client_tenant_id: string;
+  provider_tenant_id: string;
+  listing_id: string | null;
+  subject: string;
+  brief: string | null;
+  services_requested: Generated<string[]>;
+  jurisdictions: Generated<string[]>;
+  urgency: Generated<string>;
+  status: Generated<string>;
+  budget_min: number | null;
+  budget_max: number | null;
+  budget_currency: Generated<string>;
+  responded_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MarketplaceQuotationsTable {
+  id: Generated<string>;
+  enquiry_id: string | null;
+  provider_tenant_id: string;
+  client_tenant_id: string;
+  quote_number: string;
+  scope_description: string;
+  line_items: Generated<string>;
+  authority_fees: Generated<number>;
+  professional_fees: Generated<number>;
+  platform_charges: Generated<number>;
+  variable_services: Generated<number>;
+  total_amount: Generated<number>;
+  currency: Generated<string>;
+  valid_until: string | null;
+  status: Generated<string>;
+  accepted_at: Date | null;
+  accepted_by: string | null;
+  rejection_reason: string | null;
+  metadata: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MarketplaceAssignmentsTable {
+  id: Generated<string>;
+  provider_tenant_id: string;
+  client_tenant_id: string;
+  engagement_id: string | null;
+  mandate_id: string | null;
+  quotation_id: string | null;
+  title: string;
+  description: string | null;
+  assigned_to: string | null;
+  status: Generated<string>;
+  priority: Generated<string>;
+  started_at: Date | null;
+  due_date: string | null;
+  completed_at: Date | null;
+  reassigned_from: string | null;
+  reassigned_at: Date | null;
+  cancellation_reason: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MarketplaceMilestonesTable {
+  id: Generated<string>;
+  assignment_id: string;
+  provider_tenant_id: string;
+  title: string;
+  description: string | null;
+  evidence_type: Generated<string>;
+  evidence_url: string | null;
+  evidence_file_id: string | null;
+  status: Generated<string>;
+  submitted_at: Date | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  review_notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface MarketplaceDisputesTable {
+  id: Generated<string>;
+  assignment_id: string;
+  raised_by_tenant: string;
+  against_tenant: string;
+  reason: string;
+  details: string | null;
+  status: Generated<string>;
+  resolution: string | null;
+  resolved_by: string | null;
+  resolved_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+// ── Phase L: Enterprise metrics ─────────────────────────────────────────────
+
+export interface PlatformMetricSnapshotsTable {
+  id: Generated<string>;
+  snapshot_date: Generated<string>;
+  metric_type: string;
+  total_tenants: Generated<number>;
+  active_tenants: Generated<number>;
+  total_users: Generated<number>;
+  active_users_7d: Generated<number>;
+  total_permits: Generated<number>;
+  permits_expiring_30d: Generated<number>;
+  total_subscriptions: Generated<number>;
+  paid_subscriptions: Generated<number>;
+  mrr_amount: Generated<number>;
+  mrr_currency: Generated<string>;
+  provider_count: Generated<number>;
+  marketplace_engagements: Generated<number>;
+  support_tickets_open: Generated<number>;
+  queue_depth: Generated<number>;
+  infrastructure: Generated<string>;
+  computed_at: Generated<Date>;
+}
+
+export interface TenantMetricSnapshotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  snapshot_date: Generated<string>;
+  metric_type: Generated<string>;
+  entity_count: Generated<number>;
+  site_count: Generated<number>;
+  user_count: Generated<number>;
+  permit_count: Generated<number>;
+  permits_active: Generated<number>;
+  permits_expiring: Generated<number>;
+  permits_expired: Generated<number>;
+  compliance_score: number | null;
+  total_cost_ytd: Generated<number>;
+  cost_currency: Generated<string>;
+  renewal_work_pending: Generated<number>;
+  blockers: Generated<number>;
+  app_usage: Generated<string>;
+  computed_at: Generated<Date>;
+}
+
+export interface TenantResourceLimitsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  resource_type: string;
+  max_allowed: number;
+  current_usage: Generated<number>;
+  enforcement: Generated<string>;
+  overage_action: Generated<string>;
+  last_checked_at: Date | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DurableJobsTable {
+  id: Generated<string>;
+  tenant_id: string | null;
+  job_type: string;
+  job_key: string | null;
+  status: Generated<string>;
+  payload: Generated<string>;
+  result: string | null;
+  priority: Generated<number>;
+  max_retries: Generated<number>;
+  retry_count: Generated<number>;
+  error_message: string | null;
+  scheduled_at: Generated<Date>;
+  started_at: Date | null;
+  completed_at: Date | null;
+  expires_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface BulkOperationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  operation_type: string;
+  source_type: string | null;
+  target_type: string | null;
+  status: Generated<string>;
+  total_records: Generated<number>;
+  processed_records: Generated<number>;
+  failed_records: Generated<number>;
+  error_summary: string | null;
+  file_url: string | null;
+  result_url: string | null;
+  started_at: Date | null;
+  completed_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 // ── Cloud / Drive File Manager ──────────────────────────────────────────────
@@ -12251,4 +13332,104 @@ export interface TravelExpensesTable {
   expense_date: Generated<string>; receipt_file_id: string | null;
   reimbursable: Generated<boolean>;
   created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+// ── Renewal Finance Tables (Migration 651) ─────────────────────────────────
+
+export interface ComplyRenewalCostLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cycle_id: string;
+  cert_id: string | null;
+  entity_id: string | null;
+  site_id: string | null;
+  category: string;
+  description: string;
+  payee_type: string | null;
+  payee_name: string | null;
+  currency: Generated<string>;
+  quantity: Generated<string>;
+  unit_price: Generated<string>;
+  tax_amount: Generated<string>;
+  total_amount: Generated<string>;
+  due_date: string | null;
+  source_type: string | null;
+  source_ref: string | null;
+  assessment_date: string | null;
+  assessment_version: Generated<number>;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ComplyRenewalBudgetsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cycle_id: string;
+  version: Generated<number>;
+  currency: Generated<string>;
+  approved_amount: string;
+  allocated_lines: Generated<string>;
+  reason: string | null;
+  status: Generated<string>;
+  requested_by: string | null;
+  requested_at: Generated<Date>;
+  approved_by: string | null;
+  approved_at: Date | null;
+  rejection_reason: string | null;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface ComplyRenewalAllocationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cost_line_id: string;
+  cycle_id: string;
+  allocation_type: string;
+  finance_record_type: string;
+  finance_record_id: string;
+  currency: Generated<string>;
+  amount: string;
+  allocation_date: Generated<string>;
+  reconciled: Generated<boolean>;
+  reconciled_by: string | null;
+  reconciled_at: Date | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ComplyRenewalForecastsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  snapshot_date: Generated<string>;
+  currency: Generated<string>;
+  forecast_30d: Generated<string>;
+  forecast_90d: Generated<string>;
+  forecast_365d: Generated<string>;
+  net_paid_ytd: Generated<string>;
+  open_commitments: Generated<string>;
+  approved_budget: Generated<string>;
+  unpriced_count: Generated<number>;
+  coverage_pct: string | null;
+  rule_version: string | null;
+  computed_by: Generated<string>;
+  metadata: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface ComplyRenewalAuditTable {
+  id: Generated<string>;
+  tenant_id: string;
+  cycle_id: string | null;
+  actor_id: string | null;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  previous_value: string | null;
+  new_value: string | null;
+  reason: string | null;
+  created_at: Generated<Date>;
 }

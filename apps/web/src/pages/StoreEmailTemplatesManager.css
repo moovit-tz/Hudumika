@@ -294,7 +294,7 @@
   border-color: var(--teal-m);
   box-shadow: var(--elev);
 }
-.setm-list-item:focus-visible { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal-l), var(--elev); }
+.setm-list-item:focus-visible { border-color: var(--ink3); box-shadow: var(--elev); }
 
 .setm-list-item.is-imported {
   background: var(--teal-l);

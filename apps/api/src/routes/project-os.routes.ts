@@ -15,6 +15,7 @@ import { emitDomainEvent } from '../services/domain-events.service.js';
 import { extractProjectDocument, parseProjectAnalysis, projectAnalysisPrompt, type ExtractedProjectDocument } from '../services/project-document.service.js';
 import { resolveAiCredentials } from '../lib/platform-settings.js';
 import { describeAiUnavailable } from '../lib/ai-credits.js';
+import { settleAiCall } from '../lib/esb-ai-settle.js';
 import { callAI } from './ai.routes.js';
 import { getGeminiApiKey } from './ocr.routes.js';
 import { GoogleGenAI } from '@google/genai';
@@ -97,8 +98,10 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     try {
       const result = await callAI(credentials.apiKey, credentials.model, credentials.provider,
         [{ role: 'user', content: projectAnalysisPrompt(documents) }], 12000, 0.1, AbortSignal.timeout(120_000));
+      await settleAiCall(user.tenant_id, credentials.esbOperationId, true);
       return parseProjectAnalysis(result, documents);
     } catch (error) {
+      await settleAiCall(user.tenant_id, credentials.esbOperationId, false, error instanceof Error ? error.message : 'Provider unavailable');
       request.log.warn({ err: error }, 'Project document analysis failed');
       return reply.code(502).send({ error: 'We could not complete the document review. Try again or enter the project details yourself.' });
     }
@@ -172,7 +175,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       allocated_budget: z.number().min(0).optional(),
       currency: z.string().regex(/^[A-Z]{3}$/).optional(),
       status: z.enum(['active', 'planning', 'on_hold', 'completed', 'archived']).optional(),
-      strategic_alignment: z.record(z.any()).optional(),
+      strategic_alignment: z.record(z.string(), z.any()).optional(),
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
@@ -463,7 +466,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       end_date: z.string().optional().nullable(),
       gate_review_date: z.string().optional().nullable(),
       gate_approver_role: z.string().optional().nullable(),
-      gate_criteria: z.record(z.any()).optional(),
+      gate_criteria: z.record(z.string(), z.any()).optional(),
       notes: z.string().optional().nullable(),
     }).parse(request.body);
 
@@ -1070,7 +1073,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const body = z.object({
       industry: z.string(),
       data_type: z.string().trim().min(1).max(50),
-      record_data: z.record(z.any()),
+      record_data: z.record(z.string(), z.any()),
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
@@ -1091,7 +1094,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const params = z.object({ id: uuidSchema }).parse(request.params);
     const body = z.object({
-      record_data: z.record(z.any()),
+      record_data: z.record(z.string(), z.any()),
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {

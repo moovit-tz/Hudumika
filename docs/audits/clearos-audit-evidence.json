@@ -1,0 +1,1884 @@
+{
+  "measuredAt": "2026-10-29T12:22:07.502Z",
+  "calculations": [
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "tariff",
+      "total": 45672142.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 29.854100000000017
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "zero",
+      "total": 31035350,
+      "duty": 0,
+      "excise": 0,
+      "ms": 5.002799999999752
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "override",
+      "total": 40585605,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 3.977899999999863
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "tariff",
+      "total": 44413392.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 3.2437999999997373
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "zero",
+      "total": 29776600,
+      "duty": 0,
+      "excise": 0,
+      "ms": 3.29320000000007
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "override",
+      "total": 39326855,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 3.998700000000099
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "air",
+      "tax": "tariff",
+      "total": 42665509.68,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 4.238699999999881
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "air",
+      "tax": "zero",
+      "total": 28659009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 3.643499999999676
+    },
+    {
+      "engine": "main",
+      "hs_code": "10063000",
+      "found": true,
+      "mode": "air",
+      "tax": "override",
+      "total": 37798009.68,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 3.5911999999998443
+    },
+    {
+      "engine": "sea_lcl_advanced",
+      "hs_code": "10063000",
+      "total": 44359874.99999999,
+      "warnings": []
+    },
+    {
+      "engine": "air_advanced",
+      "hs_code": "10063000",
+      "total": 43044942.72,
+      "warnings": []
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "tariff",
+      "total": 37194580,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.7282000000000153
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "zero",
+      "total": 31035350,
+      "duty": 0,
+      "excise": 0,
+      "ms": 3.261500000000069
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "override",
+      "total": 40585605,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 3.5088000000000648
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "tariff",
+      "total": 35935830,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.7049000000001797
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "zero",
+      "total": 29776600,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.4971999999997934
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "override",
+      "total": 39326855,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.3519000000001142
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "air",
+      "tax": "tariff",
+      "total": 34553009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.6035000000001673
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "air",
+      "tax": "zero",
+      "total": 28659009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.451000000000022
+    },
+    {
+      "engine": "main",
+      "hs_code": "30049000",
+      "found": true,
+      "mode": "air",
+      "tax": "override",
+      "total": 37798009.68,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 3.0023000000001048
+    },
+    {
+      "engine": "sea_lcl_advanced",
+      "hs_code": "30049000",
+      "total": 35938000,
+      "warnings": []
+    },
+    {
+      "engine": "air_advanced",
+      "hs_code": "30049000",
+      "total": 34932442.72,
+      "warnings": []
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "tariff",
+      "total": 37194580,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.682300000000396
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "zero",
+      "total": 31035350,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.748699999999644
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "override",
+      "total": 40585605,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 3.1364000000003216
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "tariff",
+      "total": 35935830,
+      "duty": 0,
+      "excise": 0,
+      "ms": 3.0920000000000982
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "zero",
+      "total": 29776600,
+      "duty": 0,
+      "excise": 0,
+      "ms": 3.0273000000001957
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "override",
+      "total": 39326855,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.8115999999999985
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "air",
+      "tax": "tariff",
+      "total": 34553009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.7714999999998327
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "air",
+      "tax": "zero",
+      "total": 28659009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.361499999999978
+    },
+    {
+      "engine": "main",
+      "hs_code": "84713000",
+      "found": true,
+      "mode": "air",
+      "tax": "override",
+      "total": 37798009.68,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.2575000000001637
+    },
+    {
+      "engine": "sea_lcl_advanced",
+      "hs_code": "84713000",
+      "total": 35938000,
+      "warnings": []
+    },
+    {
+      "engine": "air_advanced",
+      "hs_code": "84713000",
+      "total": 34932442.72,
+      "warnings": []
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "tariff",
+      "total": 45672142.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 2.1125999999999294
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "zero",
+      "total": 31035350,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.790599999999813
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "override",
+      "total": 40585605,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 6.712399999999889
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "tariff",
+      "total": 44413392.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 5.563500000000204
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "zero",
+      "total": 29776600,
+      "duty": 0,
+      "excise": 0,
+      "ms": 6.69419999999991
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "override",
+      "total": 39326855,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 5.588400000000092
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "air",
+      "tax": "tariff",
+      "total": 42665509.68,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 3.7581999999997606
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "air",
+      "tax": "zero",
+      "total": 28659009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.9832000000001244
+    },
+    {
+      "engine": "main",
+      "hs_code": "87032390",
+      "found": true,
+      "mode": "air",
+      "tax": "override",
+      "total": 37798009.68,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.7453999999997905
+    },
+    {
+      "engine": "sea_lcl_advanced",
+      "hs_code": "87032390",
+      "total": 44359874.99999999,
+      "warnings": []
+    },
+    {
+      "engine": "air_advanced",
+      "hs_code": "87032390",
+      "total": 43044942.72,
+      "warnings": []
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "tariff",
+      "total": 45672142.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 3.0765000000001237
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "zero",
+      "total": 31035350,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.6552999999998974
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "sea_fcl",
+      "tax": "override",
+      "total": 40585605,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.223399999999856
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "tariff",
+      "total": 44413392.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 2.2661000000002787
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "zero",
+      "total": 29776600,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.5654999999997017
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "sea_lcl",
+      "tax": "override",
+      "total": 39326855,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.522100000000137
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "air",
+      "tax": "tariff",
+      "total": 42665509.68,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 3.0703999999996086
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "air",
+      "tax": "zero",
+      "total": 28659009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 2.1392000000000735
+    },
+    {
+      "engine": "main",
+      "hs_code": "64029900",
+      "found": true,
+      "mode": "air",
+      "tax": "override",
+      "total": 37798009.68,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 2.3454999999999018
+    },
+    {
+      "engine": "sea_lcl_advanced",
+      "hs_code": "64029900",
+      "total": 44359874.99999999,
+      "warnings": []
+    },
+    {
+      "engine": "air_advanced",
+      "hs_code": "64029900",
+      "total": 43044942.72,
+      "warnings": []
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "sea_fcl",
+      "tax": "tariff",
+      "total": 45672142.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 2.427599999999984
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "sea_fcl",
+      "tax": "zero",
+      "total": 31035350,
+      "duty": 0,
+      "excise": 0,
+      "ms": 1.9810999999999694
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "sea_fcl",
+      "tax": "override",
+      "total": 40585605,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 1.8461999999999534
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "sea_lcl",
+      "tax": "tariff",
+      "total": 44413392.5,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 1.7889000000000124
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "sea_lcl",
+      "tax": "zero",
+      "total": 29776600,
+      "duty": 0,
+      "excise": 0,
+      "ms": 1.8901999999998225
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "sea_lcl",
+      "tax": "override",
+      "total": 39326855,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 1.8278999999997723
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "air",
+      "tax": "tariff",
+      "total": 42665509.68,
+      "duty": 6875000,
+      "excise": 0,
+      "ms": 1.6502999999997883
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "air",
+      "tax": "zero",
+      "total": 28659009.68,
+      "duty": 0,
+      "excise": 0,
+      "ms": 1.449200000000019
+    },
+    {
+      "engine": "main",
+      "hs_code": "UNKNOWN-AUDIT",
+      "found": false,
+      "mode": "air",
+      "tax": "override",
+      "total": 37798009.68,
+      "duty": 2750000,
+      "excise": 0,
+      "ms": 1.5381999999999607
+    },
+    {
+      "engine": "sea_lcl_advanced",
+      "hs_code": "UNKNOWN-AUDIT",
+      "total": 44359874.99999999,
+      "warnings": [
+        "HS code UNKNOWN-AUDIT was not found in our tariff database — rates shown use generic fallback values."
+      ]
+    },
+    {
+      "engine": "air_advanced",
+      "hs_code": "UNKNOWN-AUDIT",
+      "total": 43044942.72,
+      "warnings": [
+        "HS code UNKNOWN-AUDIT was not found in our tariff database — rates shown use generic fallback values."
+      ]
+    },
+    {
+      "engine": "transit",
+      "destination": "Zambia",
+      "container_size": "20ft",
+      "total": 40075000,
+      "warnings": []
+    },
+    {
+      "engine": "transit",
+      "destination": "Rwanda",
+      "container_size": "20ft",
+      "total": 48737500,
+      "warnings": []
+    },
+    {
+      "engine": "transit",
+      "destination": "UNKNOWN-AUDIT",
+      "container_size": "20ft",
+      "total": 25800000,
+      "warnings": [
+        "No route reference data on file for \"UNKNOWN-AUDIT\" — distance/weighbridge/transport figures default to 0 unless you supplied overrides. Add this route under the Transit Calculator's route table."
+      ]
+    },
+    {
+      "engine": "transit",
+      "destination": "Zambia",
+      "container_size": "40ft",
+      "total": 47075000,
+      "warnings": []
+    },
+    {
+      "engine": "transit",
+      "destination": "Rwanda",
+      "container_size": "40ft",
+      "total": 58737500,
+      "warnings": []
+    },
+    {
+      "engine": "transit",
+      "destination": "UNKNOWN-AUDIT",
+      "container_size": "40ft",
+      "total": 25800000,
+      "warnings": [
+        "No route reference data on file for \"UNKNOWN-AUDIT\" — distance/weighbridge/transport figures default to 0 unless you supplied overrides. Add this route under the Transit Calculator's route table."
+      ]
+    },
+    {
+      "engine": "multi",
+      "mode": "sea_fcl",
+      "result": {
+        "fx_rate": 2500,
+        "fx_source": "manual override",
+        "mode": "sea_fcl",
+        "destination_charge_label": "ICD / Port Charges (1× 20ft)",
+        "chargeable_weight_kg": null,
+        "items": [
+          {
+            "line_no": 1,
+            "description": "10063000",
+            "hs_code": "10063000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 25,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 796875,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 733162.5,
+            "allocated_destination_tzs": 112500,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 183026,
+            "statutory_total": 1618787.5,
+            "landed_total": 5152813.5,
+            "landed_total_ex_vat": 4419651,
+            "pvoc_required": true,
+            "di_required": false,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 2,
+            "description": "30049000",
+            "hs_code": "30049000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 0,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 0,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 589725,
+            "allocated_destination_tzs": 112500,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 183026,
+            "statutory_total": 678475,
+            "landed_total": 4212501,
+            "landed_total_ex_vat": 3622776,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 3,
+            "description": "84713000",
+            "hs_code": "84713000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 0,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 0,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 589725,
+            "allocated_destination_tzs": 112500,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 183026,
+            "statutory_total": 678475,
+            "landed_total": 4212501,
+            "landed_total_ex_vat": 3622776,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 4,
+            "description": "87032390",
+            "hs_code": "87032390",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 25,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 796875,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 733162.5,
+            "allocated_destination_tzs": 112500,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 183026,
+            "statutory_total": 1618787.5,
+            "landed_total": 5152813.5,
+            "landed_total_ex_vat": 4419651,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          }
+        ],
+        "totals": {
+          "fob_usd": 4000,
+          "fob_tzs": 10000000,
+          "freight_tzs": 2500000,
+          "insurance_tzs": 250000,
+          "cif_tzs": 12750000,
+          "duty": 1593750,
+          "excise": 0,
+          "rdl": 255000,
+          "cpf": 100000,
+          "vat": 2645775,
+          "destination": 450000,
+          "wharfage": 204000,
+          "statutory_total": 4594525,
+          "pid": 206753.625,
+          "green_port_initiative": 125000,
+          "green_port_label": "Green Port Initiatives (1× 20ft containerized)",
+          "tbs_charge": 180000,
+          "shipping_do_fee": 95350,
+          "shipping_handling_fee": 125000,
+          "shipping_line_charge": 220350,
+          "total": 18730629,
+          "total_ex_vat": 16084854,
+          "effective_statutory_rate_pct": 36.03549019607843,
+          "landed_multiplier": 1.4690689411764706
+        },
+        "warnings": [
+          "Line 1 (10063000): PVoC/CoC certificate required.",
+          "Line 1 (10063000): Weights and Measures Act — Net weight/measure + prescribed pack quantity (s.26(1)(a),(b),(c)) (Rice, derived mapping — verify with WMA/TBS).",
+          "Line 2 (30049000): PVoC/CoC certificate required.",
+          "Line 2 (30049000): Destination Inspection required.",
+          "Line 3 (84713000): PVoC/CoC certificate required.",
+          "Line 3 (84713000): Destination Inspection required.",
+          "Line 4 (87032390): PVoC/CoC certificate required.",
+          "Line 4 (87032390): Destination Inspection required."
+        ],
+        "assumptions": [
+          "Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET tariff database, governed by rule set TZ-2026-FA (Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates, effective 2026-07-01), per line item — verify current rates with TRA before final declaration.",
+          "Freight, insurance and destination charges are apportioned across line items by FOB value share (largest-remainder rounding), the standard WTO valuation basis.",
+          "ICD/port charges are a default per-container estimate; confirm your actual container handling agreement.",
+          "CPF fallback is 1% per Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates — verify with TRA if your declaration uses a different schedule."
+        ],
+        "tax_rules_id": "TZ-2026-FA",
+        "tax_rules_source": "Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates",
+        "tax_rules_effective_date": "2026-07-01"
+      }
+    },
+    {
+      "engine": "multi",
+      "mode": "sea_lcl",
+      "result": {
+        "fx_rate": 2500,
+        "fx_source": "manual override",
+        "mode": "sea_lcl",
+        "destination_charge_label": "LCL Handling (20 CBM)",
+        "chargeable_weight_kg": null,
+        "items": [
+          {
+            "line_no": 1,
+            "description": "10063000",
+            "hs_code": "10063000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 25,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 796875,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 733162.5,
+            "allocated_destination_tzs": 650000,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 120995,
+            "statutory_total": 1618787.5,
+            "landed_total": 5628282.5,
+            "landed_total_ex_vat": 4895120,
+            "pvoc_required": true,
+            "di_required": false,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 2,
+            "description": "30049000",
+            "hs_code": "30049000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 0,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 0,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 589725,
+            "allocated_destination_tzs": 650000,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 120995,
+            "statutory_total": 678475,
+            "landed_total": 4687970,
+            "landed_total_ex_vat": 4098245,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 3,
+            "description": "84713000",
+            "hs_code": "84713000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 0,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 0,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 589725,
+            "allocated_destination_tzs": 650000,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 120995,
+            "statutory_total": 678475,
+            "landed_total": 4687970,
+            "landed_total_ex_vat": 4098245,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 4,
+            "description": "87032390",
+            "hs_code": "87032390",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 25,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 796875,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 733162.5,
+            "allocated_destination_tzs": 650000,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 120994,
+            "statutory_total": 1618787.5,
+            "landed_total": 5628281.5,
+            "landed_total_ex_vat": 4895119,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          }
+        ],
+        "totals": {
+          "fob_usd": 4000,
+          "fob_tzs": 10000000,
+          "freight_tzs": 2500000,
+          "insurance_tzs": 250000,
+          "cif_tzs": 12750000,
+          "duty": 1593750,
+          "excise": 0,
+          "rdl": 255000,
+          "cpf": 100000,
+          "vat": 2645775,
+          "destination": 2600000,
+          "wharfage": 204000,
+          "statutory_total": 4594525,
+          "pid": 206753.625,
+          "green_port_initiative": 1875,
+          "green_port_label": "Green Port Initiatives (3.00 MT general cargo)",
+          "tbs_charge": 180000,
+          "shipping_do_fee": 95350,
+          "shipping_handling_fee": 0,
+          "shipping_line_charge": 95350,
+          "total": 20632504,
+          "total_ex_vat": 17986729,
+          "effective_statutory_rate_pct": 36.03549019607843,
+          "landed_multiplier": 1.6182356078431372
+        },
+        "warnings": [
+          "Line 1 (10063000): PVoC/CoC certificate required.",
+          "Line 1 (10063000): Weights and Measures Act — Net weight/measure + prescribed pack quantity (s.26(1)(a),(b),(c)) (Rice, derived mapping — verify with WMA/TBS).",
+          "Line 2 (30049000): PVoC/CoC certificate required.",
+          "Line 2 (30049000): Destination Inspection required.",
+          "Line 3 (84713000): PVoC/CoC certificate required.",
+          "Line 3 (84713000): Destination Inspection required.",
+          "Line 4 (87032390): PVoC/CoC certificate required.",
+          "Line 4 (87032390): Destination Inspection required."
+        ],
+        "assumptions": [
+          "Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET tariff database, governed by rule set TZ-2026-FA (Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates, effective 2026-07-01), per line item — verify current rates with TRA before final declaration.",
+          "Freight, insurance and destination charges are apportioned across line items by FOB value share (largest-remainder rounding), the standard WTO valuation basis.",
+          "LCL handling is estimated at TZS 130,000/CBM — confirm against your consolidator's actual rate.",
+          "CPF fallback is 1% per Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates — verify with TRA if your declaration uses a different schedule."
+        ],
+        "tax_rules_id": "TZ-2026-FA",
+        "tax_rules_source": "Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates",
+        "tax_rules_effective_date": "2026-07-01"
+      }
+    },
+    {
+      "engine": "multi",
+      "mode": "air",
+      "result": {
+        "fx_rate": 2500,
+        "fx_source": "manual override",
+        "mode": "air",
+        "destination_charge_label": "Air Handling (3333 kg chargeable)",
+        "chargeable_weight_kg": 3333.3999999999996,
+        "items": [
+          {
+            "line_no": 1,
+            "description": "10063000",
+            "hs_code": "10063000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 25,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 796875,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 733162.5,
+            "allocated_destination_tzs": 215421,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 45000,
+            "statutory_total": 1618787.5,
+            "landed_total": 5117708.5,
+            "landed_total_ex_vat": 4384546,
+            "pvoc_required": true,
+            "di_required": false,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 2,
+            "description": "30049000",
+            "hs_code": "30049000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 0,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 0,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 589725,
+            "allocated_destination_tzs": 215421,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 45000,
+            "statutory_total": 678475,
+            "landed_total": 4177396,
+            "landed_total_ex_vat": 3587671,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 3,
+            "description": "84713000",
+            "hs_code": "84713000",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 0,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 0,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 589725,
+            "allocated_destination_tzs": 215421,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 45000,
+            "statutory_total": 678475,
+            "landed_total": 4177396,
+            "landed_total_ex_vat": 3587671,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          },
+          {
+            "line_no": 4,
+            "description": "87032390",
+            "hs_code": "87032390",
+            "qty": 10,
+            "unit_price_usd": 100,
+            "fob_usd": 1000,
+            "fob_tzs": 2500000,
+            "allocated_freight_tzs": 625000,
+            "allocated_insurance_tzs": 62500,
+            "cif_tzs": 3187500,
+            "duty_rate": 25,
+            "vat_rate": 18,
+            "excise_rate": 0,
+            "rdl_rate": 2,
+            "cpf_rate": 1,
+            "duty": 796875,
+            "excise": 0,
+            "rdl": 63750,
+            "cpf": 25000,
+            "vat": 733162.5,
+            "allocated_destination_tzs": 215420,
+            "wharfage": 51000,
+            "allocated_consignment_tzs": 45000,
+            "statutory_total": 1618787.5,
+            "landed_total": 5117707.5,
+            "landed_total_ex_vat": 4384545,
+            "pvoc_required": true,
+            "di_required": true,
+            "permits": [],
+            "hs_found": true,
+            "overridden_fields": []
+          }
+        ],
+        "totals": {
+          "fob_usd": 4000,
+          "fob_tzs": 10000000,
+          "freight_tzs": 2500000,
+          "insurance_tzs": 250000,
+          "cif_tzs": 12750000,
+          "duty": 1593750,
+          "excise": 0,
+          "rdl": 255000,
+          "cpf": 100000,
+          "vat": 2645775,
+          "destination": 861682.7999999999,
+          "wharfage": 204000,
+          "statutory_total": 4594525,
+          "pid": 0,
+          "green_port_initiative": 0,
+          "green_port_label": "Green Port Initiatives",
+          "tbs_charge": 180000,
+          "shipping_do_fee": 0,
+          "shipping_handling_fee": 0,
+          "shipping_line_charge": 0,
+          "total": 18590208,
+          "total_ex_vat": 15944433,
+          "effective_statutory_rate_pct": 36.03549019607843,
+          "landed_multiplier": 1.4580555294117648
+        },
+        "warnings": [
+          "Line 1 (10063000): PVoC/CoC certificate required.",
+          "Line 1 (10063000): Weights and Measures Act — Net weight/measure + prescribed pack quantity (s.26(1)(a),(b),(c)) (Rice, derived mapping — verify with WMA/TBS).",
+          "Line 2 (30049000): PVoC/CoC certificate required.",
+          "Line 2 (30049000): Destination Inspection required.",
+          "Line 3 (84713000): PVoC/CoC certificate required.",
+          "Line 3 (84713000): Destination Inspection required.",
+          "Line 4 (87032390): PVoC/CoC certificate required.",
+          "Line 4 (87032390): Destination Inspection required."
+        ],
+        "assumptions": [
+          "Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET tariff database, governed by rule set TZ-2026-FA (Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates, effective 2026-07-01), per line item — verify current rates with TRA before final declaration.",
+          "Freight, insurance and destination charges are apportioned across line items by FOB value share (largest-remainder rounding), the standard WTO valuation basis.",
+          "Air handling is estimated at TZS 55,000 documentation + TZS 242/kg chargeable weight — confirm against your airline/agent's actual tariff.",
+          "CPF fallback is 1% per Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates — verify with TRA if your declaration uses a different schedule."
+        ],
+        "tax_rules_id": "TZ-2026-FA",
+        "tax_rules_source": "Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates",
+        "tax_rules_effective_date": "2026-07-01"
+      }
+    }
+  ],
+  "probes": {
+    "negative_fx": {
+      "status": 400,
+      "body": {
+        "error": "Validation failed",
+        "details": [
+          {
+            "field": "fx_rate_override",
+            "message": "Too small: expected number to be >0"
+          }
+        ]
+      }
+    },
+    "zero_qty": {
+      "status": 400,
+      "body": {
+        "error": "Validation failed",
+        "details": [
+          {
+            "field": "qty",
+            "message": "Too small: expected number to be >0"
+          }
+        ]
+      }
+    },
+    "invalid_mode": {
+      "status": 400,
+      "body": {
+        "error": "Validation failed",
+        "details": [
+          {
+            "field": "mode",
+            "message": "Invalid option: expected one of \"sea_fcl\"|\"sea_lcl\"|\"air\""
+          }
+        ]
+      }
+    },
+    "negative_fob": {
+      "status": 400,
+      "body": {
+        "error": "Validation failed",
+        "details": [
+          {
+            "field": "fob_usd",
+            "message": "Too small: expected number to be >=0"
+          }
+        ]
+      }
+    },
+    "malformed_weight": {
+      "status": 400,
+      "body": {
+        "error": "Validation failed",
+        "details": [
+          {
+            "field": "weight_kg",
+            "message": "Invalid input: expected number, received string"
+          }
+        ]
+      }
+    },
+    "air_storage_delta_tzs": 0,
+    "penalty_under_declaration": {
+      "violation_type": "under_declaration",
+      "duty_shortfall_tzs": 6250000,
+      "under_declaration_penalty": 18750000,
+      "misclassification_fine": 0,
+      "late_interest": 0,
+      "no_pvoc_fine": 0,
+      "no_di_fine": 0,
+      "total_penalty_tzs": 18750000,
+      "breakdown": [
+        {
+          "label": "Duty on declared value (TZS)",
+          "amount": 0,
+          "basis": "25% of CIF"
+        },
+        {
+          "label": "Duty on actual value (TZS)",
+          "amount": 6250000,
+          "basis": "25% of CIF"
+        },
+        {
+          "label": "Duty shortfall (TZS)",
+          "amount": 6250000,
+          "basis": "Actual − Declared"
+        },
+        {
+          "label": "Penalty: 3× shortfall (CEMA s.133)",
+          "amount": 18750000,
+          "basis": "3× duty shortfall"
+        },
+        {
+          "label": "TOTAL PENALTIES (TZS)",
+          "amount": 18750000,
+          "basis": "Sum of all applicable penalties"
+        }
+      ],
+      "legal_references": [
+        "CEMA CAP 403 s.133 — Under-declaration: 3× the duty shortfall"
+      ]
+    },
+    "penalty_misclassification": {
+      "violation_type": "misclassification",
+      "duty_shortfall_tzs": 0,
+      "under_declaration_penalty": 0,
+      "misclassification_fine": 0,
+      "late_interest": 0,
+      "no_pvoc_fine": 0,
+      "no_di_fine": 0,
+      "total_penalty_tzs": 0,
+      "breakdown": [
+        {
+          "label": "Duty rate (declared HS UNKNOWN-A)",
+          "amount": 0,
+          "basis": "10%"
+        },
+        {
+          "label": "Duty rate (correct HS UNKNOWN-B)",
+          "amount": 0,
+          "basis": "25%"
+        },
+        {
+          "label": "Duty shortfall",
+          "amount": 0,
+          "basis": "Rate difference × value"
+        },
+        {
+          "label": "Penalty: 50% surcharge + shortfall (CEMA s.128)",
+          "amount": 0,
+          "basis": "Shortfall + 50%"
+        }
+      ],
+      "legal_references": [
+        "CEMA CAP 403 s.128 — Mis-classification: duty shortfall + 50% surcharge"
+      ]
+    },
+    "penalty_late_payment": {
+      "violation_type": "late_payment",
+      "duty_shortfall_tzs": 0,
+      "under_declaration_penalty": 0,
+      "misclassification_fine": 0,
+      "late_interest": 0,
+      "no_pvoc_fine": 0,
+      "no_di_fine": 0,
+      "total_penalty_tzs": 0,
+      "breakdown": [
+        {
+          "label": "Base duty owed (TZS)",
+          "amount": 0,
+          "basis": "25% CET"
+        },
+        {
+          "label": "Late interest (2%/month × 3 months)",
+          "amount": 0,
+          "basis": "2% per month"
+        }
+      ],
+      "legal_references": [
+        "CEMA CAP 403 s.77 — Late duty: 2% per month interest on outstanding amount"
+      ]
+    },
+    "penalty_no_pvoc": {
+      "violation_type": "no_pvoc",
+      "duty_shortfall_tzs": 0,
+      "under_declaration_penalty": 0,
+      "misclassification_fine": 0,
+      "late_interest": 0,
+      "no_pvoc_fine": 1500000,
+      "no_di_fine": 0,
+      "total_penalty_tzs": 1500000,
+      "breakdown": [
+        {
+          "label": "No PVoC/CoC Fine (min TZS 1.5M)",
+          "amount": 1500000,
+          "basis": "3× duty or TZS 1,500,000 minimum"
+        },
+        {
+          "label": "TOTAL PENALTIES (TZS)",
+          "amount": 1500000,
+          "basis": "Sum of all applicable penalties"
+        }
+      ],
+      "legal_references": [
+        "TBS Act CAP 130 — Importing without Certificate of Conformity: fine of 3× duty value"
+      ]
+    },
+    "penalty_no_di": {
+      "violation_type": "no_di",
+      "duty_shortfall_tzs": 0,
+      "under_declaration_penalty": 0,
+      "misclassification_fine": 0,
+      "late_interest": 0,
+      "no_pvoc_fine": 0,
+      "no_di_fine": 2000000,
+      "total_penalty_tzs": 2000000,
+      "breakdown": [
+        {
+          "label": "No Destination Inspection Fine (min TZS 2M)",
+          "amount": 2000000,
+          "basis": "TZS 2,000,000 minimum per consignment"
+        },
+        {
+          "label": "TOTAL PENALTIES (TZS)",
+          "amount": 2000000,
+          "basis": "Sum of all applicable penalties"
+        }
+      ],
+      "legal_references": [
+        "TRA Destination Inspection Guidelines — Penalty for skipping DI: TZS 2,000,000 or 10% of CIF"
+      ]
+    },
+    "penalty_prohibited_goods": {
+      "violation_type": "prohibited_goods",
+      "duty_shortfall_tzs": 0,
+      "under_declaration_penalty": 0,
+      "misclassification_fine": 0,
+      "late_interest": 0,
+      "no_pvoc_fine": 0,
+      "no_di_fine": 0,
+      "total_penalty_tzs": 10000000,
+      "breakdown": [
+        {
+          "label": "Prohibited goods penalty — ESTIMATE, requires assessment (min TZS 10M)",
+          "amount": 10000000,
+          "basis": "5× CIF value or TZS 10,000,000 minimum — cited as CEMA s.200; exact penalty subject to TRA assessment"
+        },
+        {
+          "label": "TOTAL PENALTIES (TZS)",
+          "amount": 10000000,
+          "basis": "Sum of all applicable penalties"
+        }
+      ],
+      "legal_references": [
+        "CEMA CAP 403 s.200 — Importation of prohibited goods: fine of 5× value or TZS 10,000,000 (requires independent TRA assessment — this is an estimate only)"
+      ]
+    },
+    "sales_can_edit_transit_rates": {
+      "status": 403
+    },
+    "customer_/v1/shipments/grouped": {
+      "status": 200
+    },
+    "customer_/v1/customs/transit-routes": {
+      "status": 403
+    },
+    "customer_/v1/customs/landed-cost/history": {
+      "status": 403
+    },
+    "anonymous_grouped": 401
+  },
+  "load": [
+    {
+      "shipments": 500,
+      "concurrency": 1,
+      "samples": [
+        {
+          "ms": 239.6190999999999,
+          "bytes": 733699
+        },
+        {
+          "ms": 257.4470000000001,
+          "bytes": 733699
+        },
+        {
+          "ms": 216.95229999999992,
+          "bytes": 733699
+        },
+        {
+          "ms": 180.0675000000001,
+          "bytes": 733699
+        },
+        {
+          "ms": 289.3819999999996,
+          "bytes": 733699
+        }
+      ],
+      "before": {
+        "rss": 574066688,
+        "heapTotal": 420417536,
+        "heapUsed": 266552472,
+        "external": 67310373,
+        "arrayBuffers": 39351257
+      },
+      "after": {
+        "rss": 579325952,
+        "heapTotal": 417357824,
+        "heapUsed": 267782392,
+        "external": 75845462,
+        "arrayBuffers": 47888483
+      },
+      "caveat": "In-process Fastify injection; local DB; no network/TLS, browser DOM, attachments, or concurrent users. Not a production capacity certification."
+    },
+    {
+      "shipments": 2000,
+      "concurrency": 1,
+      "samples": [
+        {
+          "ms": 183.17550000000028,
+          "bytes": 733700
+        },
+        {
+          "ms": 238.92689999999948,
+          "bytes": 733700
+        },
+        {
+          "ms": 243.79479999999967,
+          "bytes": 733700
+        },
+        {
+          "ms": 235.22779999999966,
+          "bytes": 733700
+        },
+        {
+          "ms": 238.65669999999955,
+          "bytes": 733700
+        }
+      ],
+      "before": {
+        "rss": 580902912,
+        "heapTotal": 417357824,
+        "heapUsed": 272745896,
+        "external": 77630164,
+        "arrayBuffers": 49673185
+      },
+      "after": {
+        "rss": 634744832,
+        "heapTotal": 427675648,
+        "heapUsed": 287663184,
+        "external": 138540685,
+        "arrayBuffers": 93110670
+      },
+      "caveat": "In-process Fastify injection; local DB; no network/TLS, browser DOM, attachments, or concurrent users. Not a production capacity certification."
+    },
+    {
+      "shipments": 2000,
+      "concurrency": 10,
+      "elapsedMs": 1158.0529000000006,
+      "samples": [
+        {
+          "ms": 1032.738300000001,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1052.0558,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1149.1116999999995,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1140.5227000000014,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 927.8240000000005,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1157.3657000000003,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 914.1509999999998,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1065.0355999999992,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1094.0720000000001,
+          "bytes": 733700,
+          "status": 200
+        },
+        {
+          "ms": 1112.1514000000006,
+          "bytes": 733700,
+          "status": 200
+        }
+      ],
+      "memory": {
+        "rss": 663302144,
+        "heapTotal": 445677568,
+        "heapUsed": 313228368,
+        "external": 145566287,
+        "arrayBuffers": 82663236
+      }
+    }
+  ],
+  "concurrentTransitions": {
+    "requests": 3,
+    "outcomes": [
+      {
+        "success": true,
+        "from": "VALIDATION",
+        "to": "PERMITS",
+        "slaDeadline": "2026-10-31T12:22:14.804Z"
+      },
+      {
+        "success": true,
+        "message": "Already in this stage",
+        "from": "PERMITS",
+        "to": "PERMITS",
+        "noop": true
+      },
+      {
+        "success": true,
+        "message": "Already in this stage",
+        "from": "PERMITS",
+        "to": "PERMITS",
+        "noop": true
+      }
+    ],
+    "newStageHistoryRows": 1
+  },
+  "workflows": [
+    {
+      "type": "SEA_FCL",
+      "suppliedTransportDocument": "BL",
+      "outcome": {
+        "success": true,
+        "from": "DOCS_RECEIVED",
+        "to": "VALIDATION",
+        "slaDeadline": "2026-10-30T12:22:14.790Z"
+      }
+    },
+    {
+      "type": "SEA_LCL",
+      "suppliedTransportDocument": "BL",
+      "outcome": {
+        "success": true,
+        "from": "DOCS_RECEIVED",
+        "to": "VALIDATION",
+        "slaDeadline": "2026-10-30T12:22:14.821Z"
+      }
+    },
+    {
+      "type": "AIR",
+      "suppliedTransportDocument": "AWB",
+      "outcome": {
+        "success": true,
+        "from": "DOCS_RECEIVED",
+        "to": "VALIDATION",
+        "slaDeadline": "2026-10-30T12:22:14.840Z"
+      }
+    },
+    {
+      "type": "ROAD",
+      "suppliedTransportDocument": "BL",
+      "outcome": {
+        "success": true,
+        "from": "DOCS_RECEIVED",
+        "to": "VALIDATION",
+        "slaDeadline": "2026-10-30T12:22:14.865Z"
+      }
+    },
+    {
+      "type": "RAIL",
+      "suppliedTransportDocument": "BL",
+      "outcome": {
+        "success": true,
+        "from": "DOCS_RECEIVED",
+        "to": "VALIDATION",
+        "slaDeadline": "2026-10-30T12:22:14.883Z"
+      }
+    },
+    {
+      "type": "BULK",
+      "suppliedTransportDocument": "BL",
+      "outcome": {
+        "success": true,
+        "from": "DOCS_RECEIVED",
+        "to": "VALIDATION",
+        "slaDeadline": "2026-10-30T12:22:14.897Z"
+      }
+    }
+  ],
+  "demurrage": [
+    {
+      "return_date": "2026-01-08",
+      "expected": 0,
+      "total_days": 7,
+      "free_days": 7,
+      "demurrage_days": 0,
+      "demurrage_cost": 0,
+      "currency": "USD",
+      "tariff_found": true
+    },
+    {
+      "return_date": "2026-01-09",
+      "expected": 10,
+      "total_days": 8,
+      "free_days": 7,
+      "demurrage_days": 1,
+      "demurrage_cost": 10,
+      "currency": "USD",
+      "tariff_found": true
+    },
+    {
+      "return_date": "2026-01-11",
+      "expected": 30,
+      "total_days": 10,
+      "free_days": 7,
+      "demurrage_days": 3,
+      "demurrage_cost": 30,
+      "currency": "USD",
+      "tariff_found": true
+    },
+    {
+      "return_date": "2026-01-12",
+      "expected": 50,
+      "total_days": 11,
+      "free_days": 7,
+      "demurrage_days": 4,
+      "demurrage_cost": 50,
+      "currency": "USD",
+      "tariff_found": true
+    },
+    {
+      "return_date": "2026-01-18",
+      "expected": 170,
+      "total_days": 17,
+      "free_days": 7,
+      "demurrage_days": 10,
+      "demurrage_cost": 170,
+      "currency": "USD",
+      "tariff_found": true
+    }
+  ],
+  "currencies": [
+    {
+      "currency": "USD",
+      "fx_rate_override": 2500,
+      "cif_tzs": 2750000
+    },
+    {
+      "currency": "EUR",
+      "fx_rate_override": 2750,
+      "cif_tzs": 3025000
+    },
+    {
+      "currency": "ZAR",
+      "fx_rate_override": 140,
+      "cif_tzs": 154000
+    },
+    {
+      "currency": "TZS",
+      "fx_rate_override": 1,
+      "cif_tzs": 1100
+    }
+  ],
+  "vehicleAges": [
+    {
+      "vehicle_age_years": 7,
+      "excise": 0,
+      "note": null
+    },
+    {
+      "vehicle_age_years": 8,
+      "excise": 5625000,
+      "note": "Used motor vehicle, 8 to 10 years old — 18% excise (Finance Act 2026, July update)"
+    },
+    {
+      "vehicle_age_years": 10,
+      "excise": 5625000,
+      "note": "Used motor vehicle, 8 to 10 years old — 18% excise (Finance Act 2026, July update)"
+    },
+    {
+      "vehicle_age_years": 11,
+      "excise": 10937500,
+      "note": "Used motor vehicle, over 10 up to 20 years old — 35% excise (Finance Act 2026, July update)"
+    },
+    {
+      "vehicle_age_years": 20,
+      "excise": 10937500,
+      "note": "Used motor vehicle, over 10 up to 20 years old — 35% excise (Finance Act 2026, July update)"
+    },
+    {
+      "vehicle_age_years": 21,
+      "excise": 12500000,
+      "note": "Used motor vehicle, over 20 years old — 40% excise (Finance Act 2026, July update)"
+    }
+  ]
+}

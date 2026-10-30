@@ -33,8 +33,6 @@ import {
 } from '../clearanceData.js';
 import { ChBadge } from '../../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../../data/staffData.js';
-import type { Employee } from '../../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';

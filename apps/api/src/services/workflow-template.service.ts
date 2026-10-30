@@ -103,8 +103,8 @@ export class WorkflowTemplateService {
         next_step_ids: JSON.stringify(s.next.map((k) => keyToId[k]).filter(Boolean)),
         entry_conditions: JSON.stringify(entryConditions),
         auto_comms: JSON.stringify(autoComms),
-        sla_hours: s.slaHours, color: s.color, created_at: now, updated_at: now,
-      }).execute();
+        sla_hours: s.slaHours, step_type: (s as any).stepType ?? null, color: s.color, created_at: now, updated_at: now,
+      } as any).execute();
     }
     return { created: true, workflowId: wf.id };
   }

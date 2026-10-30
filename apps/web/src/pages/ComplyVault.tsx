@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {Banner} from '../components/ui/alert.js';
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from '../components/ui/table.js';
+import {Sheet, SheetContent, SheetTitle} from '../components/ui/sheet.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Input } from '../components/ui/input.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
+import { Card } from '../components/ui/card.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -16,7 +25,7 @@ import './ComplyOS.css';
 import { Button } from '../components/ui/button.js';
 import { Tip } from '../components/ui/tooltip.js';
 
-type Filter = 'all' | 'active' | 'expiring' | 'expired';
+type Filter = 'current' | 'all' | 'active' | 'expiring' | 'expired' | 'unknown';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -26,7 +35,7 @@ function daysLeft(expiryDate: string | null): number {
 }
 
 function expiryLabel(c: CompCertificate): string {
-  if (!c.expiry_date) return 'Perpetual';
+  if (!c.expiry_date) return 'Unknown validity';
   const d = daysLeft(c.expiry_date);
   if (d < 0)   return `Expired ${Math.abs(d)}d ago`;
   if (d === 0) return 'Expires today';
@@ -72,7 +81,22 @@ export function ComplyVault() {
   const [revoking, setRevoking]          = useState(false);
   const [shareStatus, setShareStatus]    = useState<string | null>(null);
 
-  const visible = filter === 'all' ? certs : certs.filter(c => c.status === filter);
+  const [params,setParams]=useSearchParams();
+  const [linkError,setLinkError]=useState<string|null>(null);
+  const requestedStatus=params.get('status');
+  useEffect(()=>{
+    if(requestedStatus && ['all','current','active','expiring','expired','unknown'].includes(requestedStatus))setFilter(requestedStatus as Filter);
+  },[requestedStatus]);
+  useEffect(()=>{
+    const id=params.get('certificate');
+    if(!id||loading||error)return;
+    const record=certs.find(c=>c.id===id);
+    if(record){setSelected(record);setFilter('all');setLinkError(null);}
+    else setLinkError('This certificate was not found or is not accessible in your workspace.');
+    const next=new URLSearchParams(params);next.delete('certificate');setParams(next,{replace:true});
+  },[params,loading,error,certs,setParams]);
+
+  const visible = filter === 'all' ? certs : certs.filter(c => filter === 'current' ? ['active','expiring'].includes(c.status) : c.status === filter);
 
   function handleExportAll() {
     const rows = [
@@ -137,7 +161,7 @@ export function ComplyVault() {
   return (
     <div className="comply-page">
       <PageHeader
-        crumbs={['ComplyOS', 'Certificate Vault']} 
+        crumbs={['ComplyOS', 'Certificate Vault']}
         titlePlain="Certificate"
         titleEm="vault"
         subtitle={<> {certs.filter(c => c.status === 'active').length} active ·{' '}
@@ -158,19 +182,20 @@ export function ComplyVault() {
         }
       />
 
-      {error && <div className="comply-note comply-note--error">Failed to load certificates: {error}</div>}
+      {linkError && <Banner variant="error">{linkError}</Banner>}
+      {error && <Banner variant="error" icon={false} className="">Failed to load certificates: {error}</Banner>}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)} variant="boxed">
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)} >
         <TabsList>
-          {(['all', 'active', 'expiring', 'expired'] as Filter[]).map(f => {
+          {(['all', 'current', 'active', 'expiring', 'expired', 'unknown'] as Filter[]).map(f => {
             const isActive = filter === f;
             return (
               <TabsTrigger key={f} value={f}>
                 {f.charAt(0).toUpperCase() + f.slice(1)}
                 {f !== 'all' && (
                   <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
-                    {certs.filter(c => c.status === f).length}
+                    {certs.filter(c => f === 'current' ? ['active','expiring'].includes(c.status) : c.status === f).length}
                   </span>
                 )}
               </TabsTrigger>
@@ -179,16 +204,16 @@ export function ComplyVault() {
         </TabsList>
         </Tabs>
         <div className="comply-view-toggle">
-          <Tip label="Grid view"><button type="button" aria-label="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} data-ui-native-button="">
+          <Tip label="Grid view"><Button variant="ghost" size="icon" type="button" aria-label="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')} >
             <Icon name="grid" size={15} />
-          </button></Tip>
-          <Tip label="List view"><button type="button" aria-label="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} data-ui-native-button="">
+          </Button></Tip>
+          <Tip label="List view"><Button variant="ghost" size="icon" type="button" aria-label="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')} >
             <Icon name="list" size={15} />
-          </button></Tip>
+          </Button></Tip>
         </div>
       </div>
 
-      {loading && <div className="comply-empty-hint">Loading certificates…</div>}
+      {loading && <div className="comply-empty-hint"><SectionLoading label="Loading certificates…" /></div>}
 
       {!loading && visible.length === 0 && (
         <div className="comply-empty-hint">No certificates in this view.</div>
@@ -197,14 +222,13 @@ export function ComplyVault() {
       {view === 'grid' ? (
         <div className="comply-cert-grid">
           {visible.map(cert => (
-            <div key={cert.id} className="comply-cert-card" onClick={() => setSelected(cert)}
-              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(cert); } }}>
+            <Card key={cert.id} className="comply-cert-card" onClick={() => setSelected(cert)}>
               <div className="comply-cert-card-body">
                 <div className="comply-cert-card-hdr-row">
-                  <span className={`comply-agency comply-agency--${cert.agency_class}`}>{cert.agency_code}</span>
-                  <span className={`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`}>
+                  <Badge variant={complyBadgeVariant(`comply-agency comply-agency--${cert.agency_class}`)}>{cert.agency_code}</Badge>
+                  <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`)}>
                     {cert.status === 'expiring' ? 'Expiring' : cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="comply-cert-name">{cert.name}</div>
                 <div className="comply-cert-agency comply-cert-ref">{cert.cert_number}</div>
@@ -253,32 +277,32 @@ export function ComplyVault() {
                   </Button>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       ) : (
-        <div className="comply-card">
+        <Card className="comply-card">
           <div className="comply-card-body">
-            <table className="comply-table">
-              <thead>
-                <tr>
-                  <th>Certificate</th><th>Agency</th><th>Cert #</th><th>Issued</th><th>Validity</th><th>Status</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="comply-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Certificate</TableHead><TableHead>Agency</TableHead><TableHead>Cert #</TableHead><TableHead>Issued</TableHead><TableHead>Validity</TableHead><TableHead>Status</TableHead><TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {visible.map(cert => (
-                  <tr key={cert.id} className="comply-tr-click" onClick={() => setSelected(cert)}>
-                    <td className="comply-table-name">{cert.name}</td>
-                    <td><span className={`comply-agency comply-agency--${cert.agency_class}`}>{cert.agency_code}</span></td>
-                    <td className="comply-td-mono">{cert.cert_number}</td>
-                    <td className="comply-td-muted">{issuedLabel(cert)}</td>
-                    <td className={expiryValClass(cert)}>{expiryLabel(cert)}</td>
-                    <td>
-                      <span className={`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`}>
+                  <TableRow tabIndex={0} onKeyDown={event => {if(event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')){event.preventDefault();event.currentTarget.click();}}} key={cert.id} className="comply-tr-click" onClick={() => setSelected(cert)}>
+                    <TableCell data-label="Certificate" className="comply-table-name">{cert.name}</TableCell>
+                    <TableCell data-label="Agency"><Badge variant={complyBadgeVariant(`comply-agency comply-agency--${cert.agency_class}`)}>{cert.agency_code}</Badge></TableCell>
+                    <TableCell data-label="Cert #" className="comply-td-mono">{cert.cert_number}</TableCell>
+                    <TableCell data-label="Issued" className="comply-td-muted">{issuedLabel(cert)}</TableCell>
+                    <TableCell data-label="Validity" className={expiryValClass(cert)}>{expiryLabel(cert)}</TableCell>
+                    <TableCell data-label="Status">
+                      <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`)}>
                         {cert.status === 'expiring' ? 'Expiring' : cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
-                      </span>
-                    </td>
-                    <td onClick={e => e.stopPropagation()}>
+                      </Badge>
+                    </TableCell>
+                    <TableCell data-label="Actions" onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <Button type="button" variant="outline" size="xs" onClick={() => setSelected(cert)}>
                           <Icon name="eye" size={14} /> View
@@ -296,26 +320,24 @@ export function ComplyVault() {
                           </Button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {selected && (
-        <div className="comply-overlay" onClick={() => setSelected(null)}>
-          <div className="comply-modal comply-modal--480" onClick={e => e.stopPropagation()}>
+        <Sheet open={true} onOpenChange={open => { if (!open) (() => setSelected(null))(); }}>
+          <SheetContent aria-describedby={undefined} className="comply-detail-sheet w-full sm:max-w-xl flex flex-col p-0 gap-0">
             <div className="comply-panel-hdr">
               <div>
-                <div className="comply-panel-hdr-title">{selected.name}</div>
-                <span className={`comply-agency comply-agency--${selected.agency_class}`}>{selected.agency_code}</span>
+                <SheetTitle className="comply-panel-hdr-title">{selected.name}</SheetTitle>
+                <Badge variant={complyBadgeVariant(`comply-agency comply-agency--${selected.agency_class}`)}>{selected.agency_code}</Badge>
               </div>
-              <Tip label="Close"><button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)} data-ui-native-button="">
-                <Icon name="x" size={18} />
-              </button></Tip>
+
             </div>
             <div className="comply-panel-body">
               <div className="comply-meta-grid">
@@ -332,6 +354,11 @@ export function ComplyVault() {
                   { label: 'Expiry / Validity',   val: expiryLabel(selected), mono: false },
                   ...(selected.expiry_date ? [{ label: 'Reminders', val: reminderStageLabel(selected), mono: false }] : []),
                   ...(selected.external_ref ? [{ label: 'Agency Reference', val: selected.external_ref, mono: true }] : []),
+                  ...(selected.metadata?.source==='tausi_reviewed_import' ? [
+                    {label:'Import source',val:selected.metadata.capture_method==='tab_capture'?'Tausi · reviewed tab capture':'Tausi · reviewed document',mono:false},
+                    {label:'Reported licence cost',val:typeof selected.metadata.reported_cost==='number'?new Intl.NumberFormat('en-GB',{style:'currency',currency:'TZS'}).format(selected.metadata.reported_cost):'Not recorded',mono:false},
+                    {label:'Authority verification',val:'Not independently verified',mono:false},
+                  ]:[]),
                   ...(selected.last_synced_at ? [{ label: 'Last Synced', val: new Date(selected.last_synced_at).toLocaleString(), mono: false }] : []),
                 ].map(m => (
                   <div key={m.label}>
@@ -341,12 +368,12 @@ export function ComplyVault() {
                 ))}
               </div>
               {selected.non_renewal_risk && (
-                <div className="comply-note comply-note--warning">
+                <Banner variant="warning" icon={false} className="">
                   <strong>If not renewed: </strong>{selected.non_renewal_risk}
-                </div>
+                </Banner>
               )}
               {shareStatus && (
-                <div className="comply-note comply-note--success">{shareStatus}</div>
+                <Banner variant="success" icon={false} className="">{shareStatus}</Banner>
               )}
               <div className="comply-action-row">
                 {selected.document_url && (
@@ -362,7 +389,7 @@ export function ComplyVault() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    style={{ color: 'var(--comply)', borderColor: 'var(--comply-edge)' }}
+                    style={{color: 'var(--comply)', borderColor: 'var(--comply-edge)'}}
                     disabled={renewing === selected.id}
                     onClick={e => handleRenew(e, selected.id)}
                   >
@@ -371,14 +398,14 @@ export function ComplyVault() {
                   </Button>
                 )}
                 {selected.status !== 'revoked' && (
-                  <Button type="button" variant="outline" size="sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} disabled={revoking} onClick={() => handleRevoke(selected)}>
+                  <Button type="button" variant="outline" size="sm" style={{color: 'var(--red)', borderColor: 'var(--red)'}} disabled={revoking} onClick={() => handleRevoke(selected)}>
                     <Icon name="trash" size={13} color="var(--red)" /> {revoking ? 'Revoking…' : 'Revoke'}
                   </Button>
                 )}
               </div>
             </div>
-          </div>
-        </div>
+          </SheetContent>
+        </Sheet>
       )}
 
     </div>
@@ -450,10 +477,10 @@ export function AddCertificatePage() {
       {step === 0 && (
         <>
           <WizardField label="Certificate / Reference Number">
-            <input className="input-field" value={certNumber} onChange={e => setCertNumber(e.target.value)} placeholder="e.g. 137644169" autoFocus />
+            <Input className="input-field" value={certNumber} onChange={e => setCertNumber(e.target.value)} placeholder="e.g. 137644169" autoFocus />
           </WizardField>
           <WizardField label="Certificate Name">
-            <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Certificate of Incorporation" />
+            <Input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Certificate of Incorporation" />
           </WizardField>
           <WizardField label="Agency">
             <Select value={agencyCode} onValueChange={setAgencyCode}>
@@ -479,7 +506,7 @@ export function AddCertificatePage() {
             </p>
           )}
           <WizardField label="If not renewed in time (optional)">
-            <textarea
+            <Textarea
               className="input-field" rows={3} value={nonRenewalRisk} onChange={e => setNonRenewalRisk(e.target.value)}
               placeholder="e.g. Operating without this licence is unlawful and can lead to a stop-work order…"
             />

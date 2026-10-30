@@ -1,3 +1,7 @@
+import { Textarea } from '../components/ui/textarea.js';
+import { Input } from '../components/ui/input.js';
+import { Card } from '../components/ui/card.js';
+import { Button } from '../components/ui/button.js';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -70,12 +74,12 @@ export function ComplyCalendar() {
         subtitle="Renewal windows, filing deadlines, and penalty dates"
         actions={
         <div style={{ display: 'flex', gap: 10 }}>
-          <button type="button" className="comply-btn-secondary" onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }} data-ui-native-button="">
+          <Button variant="outline" size="sm" type="button"  onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }} >
             Today
-          </button>
-          <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/calendar/new-reminder')} data-ui-native-button="">
+          </Button>
+          <Button variant="default" size="sm" type="button"  onClick={() => navigate('/complyos/calendar/new-reminder')} >
             <Icon name="plus" size={14} /> Add Reminder
-          </button>
+          </Button>
         </div>
         }
       />
@@ -85,15 +89,15 @@ export function ComplyCalendar() {
         <div>
           {/* Month nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={prevMonth} data-ui-native-button="">
+            <Button aria-label="Previous month" variant="outline" size="sm" type="button" onClick={prevMonth}>
               <Icon name="chevronLeft" size={13} />
-            </button>
+            </Button>
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
               {MONTHS[month]} {year}
             </span>
-            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={nextMonth} data-ui-native-button="">
+            <Button aria-label="Next month" variant="outline" size="sm" type="button" onClick={nextMonth}>
               <Icon name="chevronRight" size={13} />
-            </button>
+            </Button>
           </div>
 
           <div className="comply-month-grid">
@@ -125,7 +129,7 @@ export function ComplyCalendar() {
 
         {/* Upcoming deadlines panel */}
         <div>
-          <div className="comply-card">
+          <Card className="comply-card">
             <div className="comply-card-hdr">
               <h3 className="comply-card-title">Upcoming Deadlines</h3>
             </div>
@@ -145,16 +149,16 @@ export function ComplyCalendar() {
                   </div>
                   {d.source === 'reminder' && (
                     <Tip label="Delete reminder">
-                      <button type="button" aria-label="Delete reminder" onClick={() => deleteReminder(d.source_id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginLeft: 2, flexShrink: 0 }} data-ui-native-button="">
+                      <Button variant="outline" size="sm" type="button" aria-label="Delete reminder" onClick={() => deleteReminder(d.source_id)}
+                        style={{cursor: 'pointer', color: 'var(--ink3)', marginLeft: 2, flexShrink: 0}} >
                         <Icon name="x" size={13} />
-                      </button>
+                      </Button>
                     </Tip>
                   )}
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -212,7 +216,7 @@ export function AddReminderPage() {
       {step === 0 && (
         <>
           <WizardField label="Title">
-            <input className="input-field" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Renew TBS conformity certificate" autoFocus />
+            <Input className="input-field" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Renew TBS conformity certificate" autoFocus />
           </WizardField>
           <WizardField label="Agency (optional)">
             <Select value={agencyCode} onValueChange={setAgencyCode}>
@@ -231,7 +235,7 @@ export function AddReminderPage() {
             <DatePicker date={date} onChange={setDate} />
           </WizardField>
           <WizardField label="Notes (optional)">
-            <textarea className="input-field" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+            <Textarea className="input-field" rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
           </WizardField>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </>

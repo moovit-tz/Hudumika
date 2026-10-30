@@ -33,8 +33,6 @@ import {
 } from '../clearanceData.js';
 import { ChBadge } from '../../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../../data/staffData.js';
-import type { Employee } from '../../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -45,6 +43,20 @@ import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/pop
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '../../components/ui/hover-card.js';
 import { SwitchRow } from '../../components/ui/list-item-row.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet.js';
+// ─── HTML escaping — prevents stored XSS in generated report markup ─────────
+
+function escapeHtml(str: string | null | undefined): string {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function sanitizeImgUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  const s = String(url).trim();
+  if (!/^https?:\/\//i.test(s) && !/^data:image\//i.test(s)) return '';
+  return s.replace(/["'<>]/g, '');
+}
+
 // ─── Clock-in gate ───────────────────────────────────────────────────────────
 
 export function clockGate(isStaff: boolean, isCheckedIn: boolean, triggerOpen: () => void): boolean {
@@ -106,14 +118,12 @@ export function apiTaskToInternal(t: any): InternalTask {
   };
 }
 
-// shipment_time_entries has no separate id/name split for member or task —
-// just `member` and `task_ref` strings — so memberId/taskId reuse those
-// same strings rather than fabricating separate identifiers.
+// Older logs have only display names; leave their identity unresolved.
 export function apiTimeEntryToInternal(t: any): TimeEntry {
   const hours = Number(t.hours) || 0;
   return {
     id: String(t.id),
-    memberId: t.member || '', memberName: t.member || 'Unknown',
+    memberId: t.user_id || '', memberName: t.member || 'Unknown',
     taskId: t.task_ref || '', taskTitle: t.task_ref || 'General',
     duration: `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, '0')}:00`,
     hours, date: new Date(t.log_date || t.created_at || Date.now()),
@@ -193,8 +203,8 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
     const n = daysSince(new Date(t.ts));
     return `<tr>
       <td>${dayFmt(new Date(t.ts))}</td>
-      <td class="stage-tag">${t.label}</td>
-      <td>${t.note || ''}</td>
+      <td class="stage-tag">${escapeHtml(t.label)}</td>
+      <td>${escapeHtml(t.note)}</td>
       <td class="num"><span class="day-count${n === 0 ? ' zero' : ''}">Day ${n ?? '—'}</span></td>
     </tr>`;
   }).join('');
@@ -204,9 +214,9 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
   const docRows = job.documents.map(d => {
     const st = d.extracted?.status || 'pending';
     return `<tr>
-      <td>${d.name}</td>
-      <td>${d.type.toUpperCase()}</td>
-      <td><span class="status-flag ${statusClass[st] || 'pending'}">${statusLabel[st] || st}</span></td>
+      <td>${escapeHtml(d.name)}</td>
+      <td>${escapeHtml(d.type.toUpperCase())}</td>
+      <td><span class="status-flag ${statusClass[st] || 'pending'}">${escapeHtml(statusLabel[st] || st)}</span></td>
     </tr>`;
   }).join('');
 
@@ -221,14 +231,14 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
       <td class="k">Credits Saved (est.)</td><td class="v">${Number(credits ?? 0).toFixed(2)}</td>
     </tr>
     ${calc ? `<tr>
-      <td class="k">Distance</td><td class="v">${calc.distance_km ?? '—'} km</td>
-      <td class="k">Mode</td><td class="v">${calc.mode ?? job.mode}</td>
+      <td class="k">Distance</td><td class="v">${escapeHtml(String(calc.distance_km ?? '—'))} km</td>
+      <td class="k">Mode</td><td class="v">${escapeHtml(calc.mode ?? job.mode)}</td>
     </tr>` : ''}
   </table>
   <div class="note-line">GLEC v3.2 / ISO 14083 methodology, computed from route distance and cargo weight. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>` : '';
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>${job.sysRef || job.id} — Shipment Report</title>
+<title>${escapeHtml(job.sysRef || job.id)} — Shipment Report</title>
 <style>
   @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,12 +299,12 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
 
   <div class="doc-header">
     <div>
-      ${co.logoUrl ? `<img class="org-logo" src="${co.logoUrl}" alt="${co.name}">` : `<div class="org-name">${co.name}</div>`}
-      <div class="org-addr">${co.address} &nbsp;|&nbsp; ${co.city}, ${co.country}</div>
+      ${co.logoUrl ? `<img class="org-logo" src="${sanitizeImgUrl(co.logoUrl)}" alt="${escapeHtml(co.name)}">` : `<div class="org-name">${escapeHtml(co.name)}</div>`}
+      <div class="org-addr">${escapeHtml(co.address)} &nbsp;|&nbsp; ${escapeHtml(co.city)}, ${escapeHtml(co.country)}</div>
     </div>
     <div class="doc-id-block">
       <div class="doc-label">Shipment Report</div>
-      <div class="doc-number">${job.sysRef || job.id}</div>
+      <div class="doc-number">${escapeHtml(job.sysRef || job.id)}</div>
       <div class="doc-generated">Generated: ${genDate}, ${genTime}</div>
     </div>
   </div>
@@ -302,7 +312,7 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
   <div class="metrics-strip">
     <div class="metric-cell">
       <div class="metric-label">Current Stage</div>
-      <div class="metric-value">${stageLabel}</div>
+      <div class="metric-value">${escapeHtml(stageLabel)}</div>
     </div>
     <div class="metric-cell">
       <div class="metric-label">Declaration Date</div>
@@ -314,31 +324,31 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
     </div>
     <div class="metric-cell">
       <div class="metric-label">Mode</div>
-      <div class="metric-value">${job.mode}</div>
+      <div class="metric-value">${escapeHtml(job.mode)}</div>
     </div>
   </div>
 
   <div class="section-title">Shipment Overview</div>
   <table class="kv">
     <tr>
-      <td class="k">Goods</td><td class="v">${job.title}</td>
-      <td class="k">Customer</td><td class="v">${job.customer}</td>
+      <td class="k">Goods</td><td class="v">${escapeHtml(job.title)}</td>
+      <td class="k">Customer</td><td class="v">${escapeHtml(job.customer)}</td>
     </tr>
     <tr>
-      <td class="k">Origin</td><td class="v">${job.origin}</td>
-      <td class="k">Destination</td><td class="v">${job.destination}</td>
+      <td class="k">Origin</td><td class="v">${escapeHtml(job.origin)}</td>
+      <td class="k">Destination</td><td class="v">${escapeHtml(job.destination)}</td>
     </tr>
     <tr>
-      <td class="k">Weight</td><td class="v">${job.weight || '—'}</td>
-      <td class="k">Declared Value</td><td class="v">${job.invoiceValue || '—'}</td>
+      <td class="k">Weight</td><td class="v">${job.weight ? escapeHtml(String(job.weight)) : '—'}</td>
+      <td class="k">Declared Value</td><td class="v">${job.invoiceValue ? escapeHtml(String(job.invoiceValue)) : '—'}</td>
     </tr>
     <tr>
-      <td class="k">B/L Number</td><td class="v mono">${job.bl || '—'}</td>
-      <td class="k">TANSAD</td><td class="v mono">${job.tansad || '—'}</td>
+      <td class="k">B/L Number</td><td class="v mono">${job.bl ? escapeHtml(job.bl) : '—'}</td>
+      <td class="k">TANSAD</td><td class="v mono">${job.tansad ? escapeHtml(job.tansad) : '—'}</td>
     </tr>
     ${job.vessel || (job.containers && job.containers.length > 0) ? `<tr>
-      <td class="k">Vessel</td><td class="v">${job.vessel || '—'}</td>
-      <td class="k">Containers</td><td class="v">${job.containers && job.containers.length > 0 ? job.containers.join(', ') : '—'}</td>
+      <td class="k">Vessel</td><td class="v">${job.vessel ? escapeHtml(job.vessel) : '—'}</td>
+      <td class="k">Containers</td><td class="v">${job.containers && job.containers.length > 0 ? job.containers.map(c => escapeHtml(c)).join(', ') : '—'}</td>
     </tr>` : ''}
   </table>
 
@@ -371,7 +381,7 @@ export function buildShipmentReportHtml(job: ClearanceJob, opts?: { generatedAt?
 export function openShipmentReportWindow(job: ClearanceJob) {
   const html = buildShipmentReportHtml(job).replace('</body>', '<script>window.onload=function(){window.print()}</script></body>');
   const win = window.open('', '_blank', 'width=860,height=1000');
-  if (win) { win.document.write(html); win.document.close(); }
+  if (win) { win.document.write(html); win.document.close(); win.opener = null; }
 }
 
 /** Gets or creates this shipment's public "check progress" link (the same

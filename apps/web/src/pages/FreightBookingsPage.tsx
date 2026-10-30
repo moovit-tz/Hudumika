@@ -36,6 +36,8 @@ export function FreightBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rateCards, setRateCards] = useState<RateCard[]>([]);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [nextCursor,setNextCursor] = useState<string>();
+  const [hasMore,setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [focusedBookingId, setFocusedBookingId] = useState<string | null>(null);
@@ -45,13 +47,13 @@ export function FreightBookingsPage() {
   const [quoteForm, setQuoteForm] = useState({ rate_card_id: '', carrier_id: '', quoted_cost: '', quoted_sell: '' });
   const [confirmForm, setConfirmForm] = useState({ vessel_name: '', voyage_number: '', carrier_booking_ref: '', bl_number: '', awb_number: '', eta: '' });
 
-  function load() {
+  function load(cursor?: string) {
     setLoading(true);
     Promise.all([
-      apiFetch('/v1/freight-booking/bookings'),
+      apiFetch(`/v1/freight-booking/bookings?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`),
       apiFetch('/v1/freight-booking/rate-cards'),
       apiFetch('/v1/freight-booking/carriers?active_only=true'),
-    ]).then(([b, rc, c]) => { setBookings(b); setRateCards(rc); setCarriers(c); }).catch(() => {}).finally(() => setLoading(false));
+    ]).then(([b, rc, c]) => { setBookings(prev=>cursor?[...prev,...b.data]:b.data);setNextCursor(b.cursor);setHasMore(b.has_more); setRateCards(rc); setCarriers(c); }).catch((error:any) => setError(error.message || 'Could not load bookings')).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -144,6 +146,7 @@ export function FreightBookingsPage() {
         }
       />
 
+      {error&&!expanded&&<p role="alert" className="text-destructive">{error}</p>}
       <SectionCard padded={false}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading bookings…</div>
@@ -255,6 +258,7 @@ export function FreightBookingsPage() {
           </div>
         )}
       </SectionCard>
+      {hasMore&&<Button type="button" variant="outline" disabled={loading} onClick={()=>load(nextCursor)}>Load more bookings</Button>}
     </div>
   );
 }

@@ -12,6 +12,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireRole } from '../middleware/rbac.js';
 import { withTenant } from '../db/client.js';
 import {
   calculateLclAdvanced, calculateAirAdvanced, calculateTransit,
@@ -72,6 +73,7 @@ const airSchema = z.object({
   num_units: z.number().positive().optional(),
   transportation_tzs: z.number().nonnegative().optional(),
   storage_applicable: z.boolean().optional(),
+  storage_days: z.number().int().nonnegative().optional(),
   fx_rate_override: z.number().positive().optional(),
   rate_overrides: rateOverridesSchema,
   shipment_ref: z.string().optional(),
@@ -130,40 +132,46 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
    *  history table — same shape historyExtras() in customs.routes.ts builds
    *  for the existing calculators, kept local since that helper isn't
    *  exported (it's a closure inside customsRoutes). */
-  async function saveToHistory(tenantId: string, userId: string | undefined, body: any, result: AdvancedCalcResult) {
+  async function saveToHistory(tenantId: string, userId: string | undefined, body: any, result: AdvancedCalcResult): Promise<boolean> {
     let payload: string | null = null;
     try {
       const json = JSON.stringify({ input: body, result });
       if (json.length <= MAX_PAYLOAD_BYTES) payload = json;
     } catch { /* payload stays null */ }
 
-    await withTenant(tenantId, trx => trx.insertInto('landed_cost_records').values({
-      tenant_id: tenantId,
-      shipment_ref: body.shipment_ref ?? null,
-      hs_code: result.hs_code || null,
-      description: result.description || null,
-      cif_usd: result.currency === 'USD' ? result.cif : null,
-      fx_rate: result.fx_rate,
-      cif_tzs: result.cif_tzs,
-      duty_rate: result.duty_rate,
-      duty_amount: result.breakdown.find(b => b.label === 'Import Duty')?.amount_tzs ?? 0,
-      vat_amount: result.breakdown.find(b => b.label === 'VAT')?.amount_tzs ?? 0,
-      rdl_amount: result.breakdown.find(b => b.label === 'Railway Development Levy')?.amount_tzs ?? 0,
-      cpf_amount: result.breakdown.find(b => b.label === 'Customs Processing Fee')?.amount_tzs ?? 0,
-      icd_amount: result.charges_total_tzs,
-      wharfage_amount: result.breakdown.find(b => b.label.includes('Wharfage'))?.amount_tzs ?? 0,
-      total_tzs: result.grand_total_tzs,
-      qty: result.per_unit?.qty ?? 1,
-      per_unit_tzs: result.per_unit?.cost_incl_vat != null ? result.per_unit.cost_incl_vat * result.fx_rate : null,
-      source: SOURCE_BY_MODE[result.mode] ?? 'calculator',
-      created_by: userId ?? null,
-      shipment_mode: result.mode,
-      customer_name: body.customer_name?.trim() || null,
-      destination: body.destination?.trim() || null,
-      title: body.title?.trim().slice(0, 160) || null,
-      item_count: 1,
-      payload,
-    } as any).execute()).catch(() => {}); // non-blocking, same as the existing calculators
+    try {
+      await withTenant(tenantId, trx => trx.insertInto('landed_cost_records').values({
+        tenant_id: tenantId,
+        shipment_ref: body.shipment_ref ?? null,
+        hs_code: result.hs_code || null,
+        description: result.description || null,
+        cif_usd: result.currency === 'USD' ? result.cif : null,
+        fx_rate: result.fx_rate,
+        cif_tzs: result.cif_tzs,
+        duty_rate: result.duty_rate,
+        duty_amount: result.breakdown.find(b => b.label === 'Import Duty')?.amount_tzs ?? 0,
+        vat_amount: result.breakdown.find(b => b.label === 'VAT')?.amount_tzs ?? 0,
+        rdl_amount: result.breakdown.find(b => b.label === 'Railway Development Levy')?.amount_tzs ?? 0,
+        cpf_amount: result.breakdown.find(b => b.label === 'Customs Processing Fee')?.amount_tzs ?? 0,
+        icd_amount: result.charges_total_tzs,
+        wharfage_amount: result.breakdown.find(b => b.label.includes('Wharfage'))?.amount_tzs ?? 0,
+        total_tzs: result.grand_total_tzs,
+        qty: result.per_unit?.qty ?? 1,
+        per_unit_tzs: result.per_unit?.cost_incl_vat != null ? result.per_unit.cost_incl_vat * result.fx_rate : null,
+        source: SOURCE_BY_MODE[result.mode] ?? 'calculator',
+        created_by: userId ?? null,
+        shipment_mode: result.mode,
+        customer_name: body.customer_name?.trim() || null,
+        destination: body.destination?.trim() || null,
+        title: body.title?.trim().slice(0, 160) || null,
+        item_count: 1,
+        payload,
+      } as any).execute());
+      return true;
+    } catch (e: any) {
+      fastify.log.warn({ err: e }, 'advanced-calculator history save failed');
+      return false;
+    }
   }
 
   // ── POST /v1/customs/lcl-advanced ─────────────────────────────────────
@@ -171,8 +179,8 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const body = lclSchema.parse(request.body);
     const result = await calculateLclAdvanced(body);
-    if (body.save_to_history !== false) await saveToHistory(user.tenant_id, user.sub, body, result);
-    return result;
+    const history_saved = body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
+    return { ...result, history_saved };
   });
 
   // ── POST /v1/customs/air-advanced ─────────────────────────────────────
@@ -180,8 +188,8 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const body = airSchema.parse(request.body);
     const result = await calculateAirAdvanced(body);
-    if (body.save_to_history !== false) await saveToHistory(user.tenant_id, user.sub, body, result);
-    return result;
+    const history_saved = body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
+    return { ...result, history_saved };
   });
 
   // ── POST /v1/customs/transit ───────────────────────────────────────────
@@ -189,29 +197,31 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const body = transitSchema.parse(request.body);
     const result = await calculateTransit(user.tenant_id, body);
-    if (body.save_to_history !== false) await saveToHistory(user.tenant_id, user.sub, body, result);
-    return result;
+    const history_saved = body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
+    return { ...result, history_saved };
   });
 
   // ── Transit route reference table (editable per tenant) ────────────────
+  const routeAdmin = { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') };
+
   fastify.get('/transit-routes', async (request) => {
     const user = request.user as any;
     return { data: await listTransitRoutes(user.tenant_id) };
   });
 
-  fastify.post('/transit-routes', async (request) => {
+  fastify.post('/transit-routes', routeAdmin, async (request) => {
     const user = request.user as any;
     const body = routeSchema.parse(request.body);
     return upsertTransitRoute(user.tenant_id, body);
   });
 
-  fastify.patch<{ Params: { id: string } }>('/transit-routes/:id', async (request) => {
+  fastify.patch<{ Params: { id: string } }>('/transit-routes/:id', routeAdmin, async (request) => {
     const user = request.user as any;
     const body = routeSchema.parse(request.body);
     return upsertTransitRoute(user.tenant_id, { ...body, id: request.params.id });
   });
 
-  fastify.delete<{ Params: { id: string } }>('/transit-routes/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/transit-routes/:id', routeAdmin, async (request, reply) => {
     const user = request.user as any;
     await deleteTransitRoute(user.tenant_id, request.params.id);
     reply.status(204);

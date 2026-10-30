@@ -98,9 +98,34 @@ export async function debitAiCredit(tenantId: string, runId: string | null, reas
  *  something accurate instead: platform AI genuinely off, or this
  *  tenant's own credits are exhausted for the month. */
 export async function describeAiUnavailable(tenantId: string): Promise<string> {
+  // Check if this tenant is ESB-metered — if so, the issue is balance, not credits
+  const esbMetered = await isEsbMeteredForAi(tenantId);
+  if (esbMetered) {
+    return "Your workspace's External Services Balance is too low for this AI call. Top up your balance in Billing > External Services to continue.";
+  }
   const { remaining, limit } = await getAiCreditBalance(tenantId);
   if (limit > 0 && remaining <= 0) {
     return "Your workspace has used all its included AI credits for this month. They reset at the start of next month, or add your own API key in Settings > Integrations > AI Integration (available on the Hudu Advanced plan) to keep going without a monthly limit.";
   }
   return 'AI is not configured. Enable it in Settings > Integrations > AI Integration.';
+}
+
+async function isEsbMeteredForAi(tenantId: string): Promise<boolean> {
+  const row = await withTenant(tenantId, trx =>
+    trx.selectFrom('tenant_service_config')
+      .select('esb_metered')
+      .where('tenant_id', '=', tenantId)
+      .where('service_kind', '=', 'ai')
+      .executeTakeFirst()
+  );
+  if (row) return row.esb_metered;
+  // Fall back to package default
+  const pkg = await withTenant(tenantId, trx =>
+    trx.selectFrom('tenants')
+      .innerJoin('packages', 'packages.code', 'tenants.plan')
+      .select('packages.esb_metered_default')
+      .where('tenants.id', '=', tenantId)
+      .executeTakeFirst()
+  );
+  return pkg?.esb_metered_default ?? false;
 }

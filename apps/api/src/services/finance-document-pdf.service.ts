@@ -5,7 +5,7 @@
 // read from the stored row/lines (line totals are recomputed the same way
 // each document's own route computes them); nothing here invents a number.
 import PDFDocument from 'pdfkit';
-import { documentBranding, drawDocumentHeader, type DocumentBranding } from './document-branding.service.js';
+import { documentBranding, documentCompanyIdentity, drawDocumentPageNumbers, drawDocumentHeader, type DocumentBranding } from './document-branding.service.js';
 import type { DocumentKind } from '@hudumika/types';
 import { withTenant } from '../db/client.js';
 
@@ -43,7 +43,7 @@ interface PdfSpec {
 
 function renderSpec(spec: PdfSpec): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
     const chunks: Buffer[] = [];
     doc.on('data', b => chunks.push(b));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -79,6 +79,7 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
       { label: 'Tax %', w: W * 0.1, align: 'right' as const },
       { label: 'Amount', w: W * 0.22, align: 'right' as const },
     ];
+    const drawColumns=()=>{
     doc.rect(M, y, W, 22).fill('#f1f5f4');
     let cx = M;
     for (const c of cols) {
@@ -87,9 +88,13 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
     }
     y += 22;
 
+    };
+    drawColumns();
+    let cx=M;
     for (const l of spec.lines) {
-      const rowH = Math.max(24, doc.font('Document-Regular').fontSize(9).heightOfString(l.description, {width: cols[0].w - 16}) + 12);
-      if (y + rowH > 780) { doc.addPage(); y = M; doc.font('Document-Bold').fontSize(9).fillColor(INK).text(`${spec.title} · ${spec.number}`, M, y); y += 24; }
+      const cells=[l.description,String(l.qty),`${spec.currency} ${money(l.rate)}`,`${l.taxPct}%`,`${spec.currency} ${money(l.amount)}`];
+      const rowH=Math.max(24,...cells.map((value,index)=>doc.font(index===4?'Document-Bold':'Document-Regular').fontSize(9).heightOfString(value,{width:cols[index].w-16})+12));
+      if (y + rowH > 780) { doc.addPage(); y = M; doc.font('Document-Bold').fontSize(9).fillColor(INK).text(`${spec.title} · ${spec.number}`, M, y); y += 24; drawColumns(); }
       cx = M;
       doc.font('Document-Regular').fontSize(9).fillColor(INK).text(l.description, cx + 8, y + 5, { width: cols[0].w - 8 }); cx += cols[0].w;
       doc.text(String(l.qty), cx, y + 5, { width: cols[1].w - 8, align: 'right' }); cx += cols[1].w;
@@ -104,11 +109,13 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
     if (y + (spec.totals.length + 1) * 20 + 12 > 780) { doc.addPage(); y = M; }
     const totalsX = M + W * 0.55, totalsW = W * 0.45;
     const row = (label: string, value: string, bold = false) => {
+      const height=Math.max(doc.font(bold?'Document-Bold':'Document-Regular').fontSize(bold?11:9.5).heightOfString(label,{width:totalsW*.5}),doc.heightOfString(value,{width:totalsW*.5}))+8;
+      if(y+height>780){doc.addPage();y=M;}
       doc.font(bold ? 'Document-Bold' : 'Document-Regular').fontSize(bold ? 11 : 9.5).fillColor(bold ? INK : MUTED)
         .text(label, totalsX, y, { width: totalsW * 0.5 });
       doc.font(bold ? 'Document-Bold' : 'Document-Regular').fontSize(bold ? 11 : 9.5).fillColor(bold ? accent : INK)
         .text(value, totalsX + totalsW * 0.5, y, { width: totalsW * 0.5, align: 'right' });
-      y += bold ? 20 : 16;
+      y += height;
     };
     for (const [label, value] of spec.totals) row(label, `${spec.currency} ${money(value)}`);
     doc.moveTo(totalsX, y).lineTo(M + W, y).strokeColor(BORDER).lineWidth(0.5).stroke();
@@ -120,6 +127,7 @@ function renderSpec(spec: PdfSpec): Promise<Buffer> {
       doc.font('Document-Bold').fontSize(9).fillColor(MUTED).text('NOTES', M, y);
       doc.font('Document-Regular').fontSize(9).fillColor(INK).text(spec.notes, M, doc.y + 4, { width: W });
     }
+    drawDocumentPageNumbers(doc,spec.number);
     doc.end();
   });
 }
@@ -131,8 +139,7 @@ async function company(trx: any, tenantId: string, kind?: DocumentKind): Promise
   const c = settings?.company ?? {};
   return {
     branding: kind ? await documentBranding(settings, kind) : undefined,
-    name: c.name || tenant?.name || 'Hudumika',
-    address: [c.address, [c.city, c.country].filter(Boolean).join(', ')].filter(Boolean).join(' · '),
+    ...documentCompanyIdentity(c,tenant?.name || 'Hudumika'),
   };
 }
 
@@ -144,7 +151,7 @@ export async function renderCreditNotePdf(tenantId: string, id: string): Promise
     if (!cn) throw new Error('Credit note not found');
     const lines = await trx.selectFrom('credit_note_lines').selectAll().where('credit_note_id', '=', id).orderBy('sort_order').execute();
     const co = await company(trx, tenantId, 'credit_note');
-    const pdfLines = lines.map(l => ({ description: l.name, qty: Number(l.qty), rate: Number(l.rate), taxPct: Number(l.tax_pct), amount: lineAmt(Number(l.qty), Number(l.rate), Number(l.tax_pct)) }));
+    const pdfLines = lines.map(l => ({ description: [l.name,l.description].filter(Boolean).join('\n'), qty: Number(l.qty), rate: Number(l.rate), taxPct: Number(l.tax_pct), amount: lineAmt(Number(l.qty), Number(l.rate), Number(l.tax_pct)) }));
     const net = pdfLines.reduce((s, l) => s + l.qty * l.rate, 0);
     const grand = pdfLines.reduce((s, l) => s + l.amount, 0);
     return {
@@ -211,8 +218,9 @@ export async function renderBillPdf(tenantId: string, id: string): Promise<Buffe
     const b = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
     if (!b) throw new Error('Bill not found');
     const lines = await trx.selectFrom('supplier_bill_lines').selectAll().where('bill_id', '=', id).orderBy('sort_order').execute();
-    const co = await company(trx, tenantId);
+    const co = await company(trx, tenantId, 'bill');
     return {
+      branding: co.branding,
       title: 'SUPPLIER BILL', number: b.bill_number, companyName: co.name, companyAddress: co.address,
       partyLabel: 'FROM SUPPLIER', partyName: b.supplier_name || '',
       meta: [
@@ -236,6 +244,7 @@ export async function renderBillPdf(tenantId: string, id: string): Promise<Buffe
 // table, and a summary. Same header styling as renderSpec.
 interface TableCol { label: string; w: number; align?: 'right' }
 interface TableSpec {
+  branding?: DocumentBranding;
   title: string;
   number: string;
   companyName: string;
@@ -249,7 +258,7 @@ interface TableSpec {
 
 function renderTableSpec(spec: TableSpec): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
     const chunks: Buffer[] = [];
     doc.on('data', b => chunks.push(b));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -259,56 +268,44 @@ function renderTableSpec(spec: TableSpec): Promise<Buffer> {
     const W = 595.28 - M * 2;
     let y = M;
 
-    doc.font('Helvetica-Bold').fontSize(18).fillColor(INK).text(spec.companyName, M, y);
-    if (spec.companyAddress) doc.font('Helvetica').fontSize(8.5).fillColor(MUTED).text(spec.companyAddress, M, doc.y + 2);
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(TEAL).text(spec.title, M, y, { width: W, align: 'right' });
-    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(spec.number, M, doc.y + 2, { width: W, align: 'right' });
-    y = Math.max(doc.y, y + 50) + 16;
+    y = drawDocumentHeader(doc, spec.branding ?? { layout: 'classic', accent: TEAL, logo: null },
+      { name: spec.companyName, address: spec.companyAddress }, spec.title, spec.number, M, y, W);
     doc.moveTo(M, y).lineTo(M + W, y).strokeColor(BORDER).lineWidth(1).stroke();
     y += 16;
 
     for (const [label, value] of spec.meta) {
       if (y > 780) { doc.addPage(); y = M; }
-      doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(label, M, y, { width: W * 0.3 });
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(INK).text(value || '—', M + W * 0.3, y, { width: W * 0.7 });
+      doc.font('Document-Regular').fontSize(9).fillColor(MUTED).text(label, M, y, { width: W * 0.3 });
+      doc.font('Document-Bold').fontSize(9).fillColor(INK).text(value || '—', M + W * 0.3, y, { width: W * 0.7 });
       y = Math.max(doc.y, y + 14) + 2;
     }
     y += 10;
 
     if (spec.columns.length && spec.rows.length) {
-      doc.rect(M, y, W, 22).fill('#f1f5f4');
-      let cx = M;
-      for (const c of spec.columns) {
-        doc.font('Helvetica-Bold').fontSize(8).fillColor(MUTED).text(c.label.toUpperCase(), cx + 6, y + 7, { width: c.w * W - 8, align: c.align });
-        cx += c.w * W;
+      const heading=()=>{doc.rect(M,y,W,22).fill('#f1f5f4');let x=M;for(const c of spec.columns){doc.font('Document-Bold').fontSize(8).fillColor(MUTED).text(c.label.toUpperCase(),x+6,y+7,{width:c.w*W-8,align:c.align});x+=c.w*W;}y+=22;};
+      heading();
+      for(const r of spec.rows){
+        const rowHeight=Math.max(24,...spec.columns.map((c,i)=>doc.font('Document-Regular').fontSize(8.5).heightOfString(r[i]??'',{width:c.w*W-12})+10));
+        if(y+rowHeight>780){doc.addPage();y=M;heading();}
+        let x=M;spec.columns.forEach((c,i)=>{doc.font('Document-Regular').fontSize(8.5).fillColor(INK).text(r[i]??'',x+6,y+5,{width:c.w*W-12,align:c.align});x+=c.w*W;});
+        doc.moveTo(M,y+rowHeight).lineTo(M+W,y+rowHeight).strokeColor(BORDER).lineWidth(.5).stroke();y+=rowHeight;
       }
-      y += 22;
-      for (const r of spec.rows) {
-        if (y + 20 > 780) { doc.addPage(); y = M; }
-        cx = M;
-        spec.columns.forEach((c, i) => {
-          doc.font('Helvetica').fontSize(8.5).fillColor(INK)
-            .text(r[i] ?? '', cx + 6, y + 5, { width: c.w * W - 8, align: c.align, lineBreak: false, ellipsis: true });
-          cx += c.w * W;
-        });
-        doc.moveTo(M, y + 20).lineTo(M + W, y + 20).strokeColor(BORDER).lineWidth(0.5).stroke();
-        y += 20;
-      }
-      y += 12;
+      y+=12;
     }
 
     for (const [label, value] of spec.summary) {
       if (y > 780) { doc.addPage(); y = M; }
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(MUTED).text(label, M + W * 0.4, y, { width: W * 0.35 });
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(TEAL).text(value, M + W * 0.75, y, { width: W * 0.25, align: 'right' });
+      doc.font('Document-Bold').fontSize(10).fillColor(MUTED).text(label, M + W * 0.4, y, { width: W * 0.35 });
+      doc.font('Document-Bold').fontSize(10).fillColor(spec.branding?.accent ?? TEAL).text(value, M + W * 0.75, y, { width: W * 0.25, align: 'right' });
       y += 18;
     }
 
     if (spec.notes) {
       y += 12;
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(MUTED).text('NOTES', M, y);
-      doc.font('Helvetica').fontSize(9).fillColor(INK).text(spec.notes, M, doc.y + 4, { width: W });
+      doc.font('Document-Bold').fontSize(9).fillColor(MUTED).text('NOTES', M, y);
+      doc.font('Document-Regular').fontSize(9).fillColor(INK).text(spec.notes, M, doc.y + 4, { width: W });
     }
+    drawDocumentPageNumbers(doc,spec.number);
     doc.end();
   });
 }
@@ -320,15 +317,16 @@ export async function renderExpensePdf(tenantId: string, id: string): Promise<Bu
     const supplier = e.supplier_id
       ? await trx.selectFrom('suppliers').select('name').where('id', '=', e.supplier_id).where('tenant_id', '=', tenantId).executeTakeFirst()
       : undefined;
-    const co = await company(trx, tenantId);
+    const co = await company(trx, tenantId, 'expense');
     return {
+      branding: co.branding,
       title: 'EXPENSE VOUCHER', number: `EXP-${String(e.id).slice(0, 8).toUpperCase()}`, companyName: co.name, companyAddress: co.address,
       meta: [
         ['Description', e.name], ['Date', dateFmt(e.expense_date)], ['Category', e.category],
         ['Supplier', supplier?.name ?? ''], ['Payment mode', e.payment_mode ?? ''], ['Reference', e.reference ?? ''],
         ['Status', String(e.status)],
       ],
-      columns: [], rows: [], summary: [['Amount', money(Number(e.amount))]], notes: e.note,
+      columns: [], rows: [], summary: [['Amount (TZS)', money(Number(e.amount))]], notes: e.note,
     };
   });
   return renderTableSpec(spec);
@@ -436,6 +434,47 @@ export async function renderTrialBalancePdf(tenantId: string, periodId: string):
         money(Number(r.period_debit)), money(Number(r.period_credit)), money(Number(r.closing_debit)), money(Number(r.closing_credit)),
       ]),
       summary: snap.totals ? [['Total debit', money(Number(snap.totals.debit))], ['Total credit', money(Number(snap.totals.credit))]] : [],
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+
+export async function renderExpenseReportPdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const report = await trx.selectFrom('finance_expense_reports').selectAll().where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst();
+    if (!report) throw new Error('Expense report not found');
+    const items = await trx.selectFrom('finance_expense_report_items').selectAll().where('tenant_id', '=', tenantId).where('report_id', '=', id).orderBy('created_at').execute();
+    const co = await company(trx, tenantId, 'expense_report');
+    return { branding: co.branding, companyName: co.name, companyAddress: co.address,
+      title: 'EXPENSE CLAIM REPORT', number: `CLAIM-${id.slice(0, 8).toUpperCase()}`,
+      meta: [['Report', report.name], ['Status', report.status], ['Created', dateFmt(report.created_at)], ['Payment reference', report.payment_reference ?? '']] as [string, string][],
+      columns: [{label: 'Date', w: .18}, {label: 'Description', w: .43}, {label: 'Category', w: .19}, {label: 'TZS', w: .20, align: 'right' as const}],
+      rows: items.map(i => [dateFmt(i.expense_date), i.name, i.category, money(Number(i.amount))]),
+      summary: [['Total claimed (TZS)', money(items.reduce((n, i) => n + Number(i.amount), 0))]] as [string, string][],
+      notes: [report.review_note, 'Receipt originals are available to authorised users in the expense report. This PDF is a current report, not proof of reimbursement.'].filter(Boolean).join('\n'),
+    };
+  });
+  return renderTableSpec(spec);
+}
+
+export async function renderVendorStatementPdf(tenantId: string, id: string): Promise<Buffer> {
+  const spec = await withTenant(tenantId, async (trx): Promise<TableSpec> => {
+    const vendor = await trx.selectFrom('suppliers').selectAll().where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirst();
+    if (!vendor) throw new Error('Vendor not found');
+    const bills = await trx.selectFrom('supplier_bills').selectAll().where('tenant_id', '=', tenantId).where('supplier_id', '=', id).where('status', 'not in', ['DRAFT', 'PENDING_APPROVAL', 'VOID']).execute();
+    const payments = await trx.selectFrom('bill_payments as p').innerJoin('supplier_bills as b', join => join.onRef('b.id', '=', 'p.bill_id').on('b.tenant_id', '=', tenantId))
+      .select(['p.id', 'p.payment_date', 'p.reference', 'p.amount', 'p.currency']).where('p.tenant_id', '=', tenantId).where('b.supplier_id', '=', id).execute();
+    const events = [...bills.map(b => ({date: dateFmt(b.bill_date), sort: String(b.bill_date ?? b.created_at), ref: b.bill_number, currency: b.currency, debit: Number(b.total), credit: 0})),
+      ...payments.map(p => ({date: dateFmt(p.payment_date), sort: String(p.payment_date ?? ''), ref: p.reference || `PAY-${p.id.slice(0,8)}`, currency: p.currency, debit: 0, credit: Number(p.amount)}))].sort((a,b) => a.sort.localeCompare(b.sort) || a.ref.localeCompare(b.ref));
+    const balances = new Map<string, number>();
+    const rows = events.map(e => { const balance = (balances.get(e.currency) ?? 0) + e.debit - e.credit; balances.set(e.currency, balance); return [e.date, e.ref, e.currency, money(e.debit), money(e.credit), money(balance)]; });
+    const co = await company(trx, tenantId, 'vendor_statement');
+    return { branding: co.branding, companyName: co.name, companyAddress: co.address, title: 'VENDOR STATEMENT', number: vendor.ref_code || id.slice(0,8),
+      meta: [['Vendor', vendor.name], ['Generated', dateFmt(new Date())], ['Basis', 'Posted bills and recorded payments; balances separated by currency']] as [string,string][],
+      columns: [{label:'Date',w:.16},{label:'Reference',w:.24},{label:'CCY',w:.10},{label:'Billed',w:.16,align:'right' as const},{label:'Paid',w:.16,align:'right' as const},{label:'Balance',w:.18,align:'right' as const}],
+      rows, summary: Array.from(balances, ([currency, value]) => [`Balance (${currency})`, money(value)] as [string,string]),
+      notes: 'Current account statement. Draft and void bills are excluded. No exchange-rate conversion is applied.',
     };
   });
   return renderTableSpec(spec);

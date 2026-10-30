@@ -1,6 +1,10 @@
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
@@ -29,13 +33,15 @@ import { useTaxCodes } from '../data/taxCodeData.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { FinanceCatalogPicker } from '../components/FinanceCatalogPicker.js';
+import { financeCatalogOptions } from '@hudumika/types';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type BillStatus = 'DRAFT'|'PENDING_APPROVAL'|'POSTED'|'PARTIAL'|'PAID'|'OVERDUE'|'VOID';
 type RecurFreq  = 'WEEKLY'|'MONTHLY'|'QUARTERLY'|'ANNUAL';
 type RecurState = 'ACTIVE'|'PAUSED'|'ENDED';
-type BillCat    = 'FREIGHT'|'CUSTOMS'|'PORT'|'TRANSPORT'|'WAREHOUSE'|'INSURANCE'|'PROFESSIONAL'|'UTILITIES'|'OTHER';
+type BillCat = string;
 
 interface BillLine {
   _key: string; description: string; category: BillCat;
@@ -297,7 +303,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
   const financeCapabilities = useFinanceCapabilities();
   const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
 
-  const [f, setF] = useState<BillForm>({
+  const [f, setF] = useFinanceDraft<BillForm>('f',{
     supplier_id:  initial?.supplier_id  ?? '',
     bill_date:    initial?.bill_date    ?? new Date().toISOString().split('T')[0],
     due_date:     initial?.due_date     ?? '',
@@ -397,7 +403,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
 
   return (
     <FormPage
-      title={initial ? `Edit ${initial.bill_number}` : 'New Bill'}
+      title={initial ? `Edit ${initial.bill_number}` : 'New bill'}
       subtitle="Supplier bill with line items"
       onCancel={onClose}
       actions={
@@ -448,12 +454,12 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                 disabled={Boolean(initial && initial.status !== 'DRAFT')}
               />
             </div>
-            <div>
+            {(financeConfiguration.data?.industries.includes('logistics') || shipmentItem) && <div>
               <EntityPicker
                 label="Shipment Ref" value={shipmentItem} onChange={handleShipmentChange}
                 search={searchShipmentsLocal} placeholder="Search shipments…"
               />
-            </div>
+            </div>}
           </div>
           {canUseBusinessLines && (
             <div style={{ marginBottom:16 }}>
@@ -469,6 +475,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
           )}
 
           <div style={sec}>Line Items</div>
+          <div className="mb-4"><FinanceCatalogPicker currency={f.currency} purchase onSelect={product=>setF(previous=>({...previous,lines:[...previous.lines.filter(line=>line.description.trim()),{_key:newKey(),description:[product.name,product.billing_description].filter(Boolean).join('\n'),category:product.category || 'OTHER',qty:1,unit_price:Number(product.purchase_price)||0,tax_rate:Number(product.tax_rate)||0,tax_code_id:product.tax_code_id ?? null}]}))}/></div>
           <div style={{ border:'1px solid var(--border)', borderRadius: 'var(--r)', overflow:'hidden', marginBottom:14 }}>
             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5 }}>
               <thead>
@@ -489,7 +496,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                       <Select value={ln.category} onValueChange={v => updateLine(ln._key, 'category', v as BillCat)}>
                         <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {ALL_CATS.map(c => <SelectItem key={c} value={c}>{CAT_CFG[c].label}</SelectItem>)}
+                          {[...new Set([...financeCatalogOptions(financeConfiguration.data?.industries ?? []).expenses,...f.lines.map(line=>line.category)])].map(c => <SelectItem key={c} value={c}>{CAT_CFG[c]?.label ?? c}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </td>
@@ -565,7 +572,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
   const financeCapabilities = useFinanceCapabilities();
   const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
 
-  const [f, setF] = useState<RecurForm>({
+  const [f, setF] = useFinanceDraft<RecurForm>('f',{
     name:          initial?.name          ?? '',
     supplier_id:   initial?.supplier_id   ?? '',
     frequency:     initial?.frequency     ?? 'MONTHLY',
@@ -638,7 +645,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
           )}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
             <div><label style={lbl}>Frequency</label><Select value={f.frequency} onValueChange={v => set('frequency', v as RecurFreq)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ALL_FREQS.map(fr => <SelectItem key={fr} value={fr}>{FREQ_CFG[fr].label}</SelectItem>)}</SelectContent></Select></div>
-            <div><label style={lbl}>Category</label><Select value={f.category} onValueChange={v => set('category', v as BillCat)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ALL_CATS.map(c => <SelectItem key={c} value={c}>{CAT_CFG[c].label}</SelectItem>)}</SelectContent></Select></div>
+            <div><label style={lbl}>Category</label><Select value={f.category} onValueChange={v => set('category', v as BillCat)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[...new Set([...financeCatalogOptions(financeConfiguration.data?.industries ?? []).expenses,f.category])].map(c => <SelectItem key={c} value={c}>{CAT_CFG[c]?.label ?? c}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:14 }}>
             <div><label style={lbl}>Amount</label><input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
@@ -730,7 +737,8 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
 
   return (
     <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
-      <div style={{ padding:'18px 32px', borderBottom:'1px solid var(--border)', background:'var(--white)' }}>
+      <PageHeader crumbs={['Finance','Bills']} titleEm={bill.bill_number} subtitle={bill.supplier_name || 'Supplier bill'}/>
+      <div style={{ padding:'0 0 20px', borderBottom:'1px solid var(--border)', background:'var(--white)' }}>
         <button type="button" onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', fontSize:13, fontWeight:600, marginBottom:14, padding:0 }} data-ui-native-button="">
           <Icon name="arrowLeft" size={14} /> All Bills
         </button>
@@ -748,9 +756,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
             {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="dollarSign" size={13} /> Pay</button>}
             <button type="button" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="edit" size={13} /> Edit</button>
-            <Tip label="Print bill">
-              <button type="button" aria-label="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="printer" size={13} /></button>
-            </Tip>
+            <FinanceDocumentActions kind="bill" id={bill.id} label={bill.bill_number}/>
             {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Void</button>}
           </div>
         </div>
@@ -773,7 +779,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
                 {bill.lines.map(l => (
                   <tr key={l._key} style={{ borderBottom:'1px solid var(--border)' }}>
                     <td style={{ padding:'10px 12px', fontWeight:600 }}>{l.description}</td>
-                    <td style={{ padding:'10px 12px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[l.category].color }}>{CAT_CFG[l.category].label}</span></td>
+                    <td style={{ padding:'10px 12px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[l.category]?.color ?? 'var(--ink2)' }}>{CAT_CFG[l.category]?.label ?? l.category}</span></td>
                     <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink2)' }}>{l.qty}</td>
                     <td style={{ padding:'10px 12px', textAlign:'right', color:'var(--ink2)' }}>{fmt(l.unit_price, bill.currency)}</td>
                     <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink3)', fontSize:12 }}>{l.tax_rate > 0 ? `${l.tax_rate}%` : '—'}</td>
@@ -961,7 +967,7 @@ function RecurringTab({ recurring, summary, onEdit, onToggle, onGenerate, onDele
                     <td style={{ padding:'12px 14px', fontSize:13, color:'var(--ink2)' }}>{r.supplier_name}</td>
                     <td style={{ padding:'12px 14px' }}><FreqBadge freq={r.frequency} /></td>
                     <td style={{ padding:'12px 14px', fontWeight:700 }}>{fmt(total, r.currency)}</td>
-                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[r.category].color }}>{CAT_CFG[r.category].label}</span></td>
+                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[r.category]?.color ?? 'var(--ink2)' }}>{CAT_CFG[r.category]?.label ?? r.category}</span></td>
                     <td style={{ padding:'12px 14px', color: dueSoon && r.state==='ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon ? 700 : 400 }}>{fmtDate(r.next_due)}{dueSoon && r.state==='ACTIVE' && <span style={{ fontSize:10, display:'block', color:'var(--gold)' }}>Due soon</span>}</td>
                     <td style={{ padding:'12px 14px', textAlign:'center', fontWeight:700, color:'var(--ink2)' }}>{r.bills_generated}</td>
                     <td style={{ padding:'12px 14px' }}><span style={{ padding:'2px 9px', borderRadius: 'var(--r)', fontSize:11, fontWeight:700, background: r.state==='ACTIVE'?'var(--green-l)':r.state==='PAUSED'?'var(--gold-l)':'var(--bg)', color: r.state==='ACTIVE'?'var(--green)':r.state==='PAUSED'?'var(--gold)':'var(--ink3)' }}>{r.state}</span></td>
@@ -993,6 +999,7 @@ type MainTab  = 'bills'|'recurring';
 type AppView  = 'list'|'detail'|'form';
 
 export const Bills: React.FC = () => {
+  const documentRoute=useFinanceDocumentRoute("bills");
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
   const [bills, setBills]           = useState<Bill[]>([]);
@@ -1096,7 +1103,7 @@ export const Bills: React.FC = () => {
   function handleSupplierCreated(s: any) { setSuppliers(prev => [...prev, s]); }
   useEffect(() => {
     function handler(e: Event) {
-      if ((e as CustomEvent).detail?.section === 'bills') { setShowBillForm(true); setFormBill(null); }
+      if ((e as CustomEvent).detail?.section === 'bills') { documentRoute.open('new'); }
     }
     window.addEventListener('fin:new-doc', handler);
     return () => window.removeEventListener('fin:new-doc', handler);
@@ -1108,7 +1115,7 @@ export const Bills: React.FC = () => {
   const displayed = loadingBills ? [] : effectiveBills;
 
   const openBillSequence = useRef(0);
-  async function openBill(id: string, edit = false) {
+  async function openBill(id: string, edit = false, syncRoute = true) {
     const sequence = ++openBillSequence.current;
     try {
       const payload = await apiFetch(`/v1/bills/${id}`);
@@ -1117,8 +1124,10 @@ export const Bills: React.FC = () => {
       setPayments((payload.payments ?? []).map((payment: any) => mapApiPayment({ ...payment, bill_number: payload.bill_number, supplier_name: payload.supplier_name })));
       if (edit) { setFormBill(full); setShowBillForm(true); }
       else { setSelected(full); setView('detail'); }
+      if(syncRoute)documentRoute.open(edit?'edit':'detail',id);
     } catch (error) { showAlert(error instanceof Error ? error.message : 'Could not open bill.'); }
   }
+  useEffect(()=>{if(documentRoute.mode==='new'){setFormBill(null);setShowBillForm(true);setView('list');}else if(documentRoute.id){setShowBillForm(false);void openBill(documentRoute.id,documentRoute.mode==='edit',false);}else{setShowBillForm(false);setFormBill(null);setSelected(null);setView('list');}},[documentRoute.path]);
   function toggleSort(col: typeof sortBy) {
     if (sortBy === col) setSortDir(d => d==='asc'?'desc':'asc');
     else { setSortBy(col); setSortDir('asc'); }
@@ -1140,11 +1149,12 @@ export const Bills: React.FC = () => {
       items: f.lines.map((l, i) => ({ description: l.description, category: l.category, qty: l.qty, unit_price: l.unit_price, tax_rate: l.tax_rate, tax_code_id: l.tax_code_id, sort_order: i })),
     };
     try {
-      await apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
+      const saved = await apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
         method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
       });
       setBillRefresh(value => value + 1);
       setShowBillForm(false); setFormBill(null);
+      clearFinanceDrafts();documentRoute.open('detail',saved.id);
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not save this bill.');
     }
@@ -1277,7 +1287,7 @@ export const Bills: React.FC = () => {
         suppliers={suppliers}
         onSupplierCreated={handleSupplierCreated}
         onSave={handleSaveBill}
-        onClose={() => { setShowBillForm(false); setFormBill(null); }}
+        onClose={() => documentRoute.open('list')}
       />
     );
   }
@@ -1315,8 +1325,8 @@ export const Bills: React.FC = () => {
           bill={{ ...selected, status: isOverdue(selected) ? 'OVERDUE' : selected.status }}
           payments={payments}
           supplierMap={supplierMap}
-          onBack={() => { setView('list'); setSelected(null); }}
-          onEdit={() => { setFormBill(selected); setShowBillForm(true); }}
+          onBack={() => documentRoute.open('list')}
+          onEdit={() => documentRoute.open('edit',selected.id)}
           onPay={() => setPayTarget(selected)}
           onPost={() => handlePost(selected)}
           onVoid={() => setVoidTarget(selected)}
@@ -1325,7 +1335,8 @@ export const Bills: React.FC = () => {
         />
       ) : (
         <div style={{ flex:1, overflowY:'auto', padding: 0 }}>
-          <PageHeader
+          <FinanceDocumentListExport kind="bill"/>
+      <PageHeader
             crumbs={['FINANCE', 'BILLS']}
             titlePlain="Supplier"
             titleEm="bills"
@@ -1348,7 +1359,7 @@ export const Bills: React.FC = () => {
                 { value: statusFilter === 'ALL' ? null : statusFilter, onChange: (value: string | null) => setStatusFilter((value as BillStatus) ?? 'ALL'), allLabel: 'All statuses', options: (['DRAFT','PENDING_APPROVAL','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(value => ({value,label: STATUS_CFG[value]?.label ?? value})) },
                 { value: supFilter === 'ALL' ? null : supFilter, onChange: (value: string | null) => setSupFilter(value ?? 'ALL'), allLabel: 'All suppliers', searchable: true, options: uniqueSups.map(id => ({value:id,label:supplierMap[id]?.name ?? id})) },
               ]} : {})}
-              actions={<Button onClick={() => { if(tab==='recurring'){setFormRecur(null);setShowRecurForm(true);}else{setFormBill(null);setShowBillForm(true);} }}><Icon name="plus" size={14} />{tab === 'recurring' ? 'New recurring bill' : 'New Bill'}</Button>}
+              actions={<Button onClick={() => { if(tab==='recurring'){setFormRecur(null);setShowRecurForm(true);}else{documentRoute.open('new');} }}><Icon name="plus" size={14} />{tab === 'recurring' ? 'New recurring bill' : 'New bill'}</Button>}
             />
           </div>
 
@@ -1392,7 +1403,7 @@ export const Bills: React.FC = () => {
                       <Icon name="receipt" size={32} color="var(--ink3)" />
                     </div>
                     <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{loadingBills ? 'Loading bills…' : billError ? 'Could not load bills' : 'No bills found'}</div>
-                    <div style={{ fontSize:13, color:'var(--ink3)', marginTop:4 }}>Adjust filters or use "+ New Bill" above.</div>
+                    <div style={{ fontSize:13, color:'var(--ink3)', marginTop:4 }}>Adjust filters or use "+ New bill" above.</div>
                   </div>
                 ) : (
                   <>
@@ -1423,7 +1434,7 @@ export const Bills: React.FC = () => {
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                               onMouseLeave={e => (e.currentTarget.style.background = over && bal>0 ? 'rgba(239,68,68,0.02)' : '')}>
                               <td style={{ padding:'11px 14px' }}>
-                                <div style={{ fontFamily:'var(--font)', fontSize:12, fontWeight:700, color:'var(--teal)' }}>{b.bill_number}</div>
+                                <div style={{ fontFamily:'var(--font)', fontSize:12, fontWeight:700, color:'var(--teal)' }}><Link to={`/finance/bills/${b.id}`} onClick={e=>e.stopPropagation()}>{b.bill_number}</Link></div>
                                 {b.recurring_id && <div style={{ fontSize:10, color:'var(--purple)', fontWeight:600, marginTop:2 }}>↻ Recurring</div>}
                               </td>
                               <td style={{ padding:'11px 14px' }}>

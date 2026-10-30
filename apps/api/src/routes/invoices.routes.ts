@@ -33,6 +33,7 @@ const invoiceLineSchema = z.object({
   // lines) — better a clean 400 here than the raw Postgres constraint
   // violation this schema previously let straight through.
   name: z.string().trim().min(1).max(500),
+  description: z.string().max(5000).optional(),
   unit: z.string().max(50).optional(),
   rate: z.number().optional(),
   qty: z.number().optional(),
@@ -206,6 +207,7 @@ function buildInvoiceLines(
     return {
       invoice_id: invoiceId,
       name: it.name,
+      description: it.description || null,
       unit: it.unit || 'PER BIL',
       rate: it.rate || 0,
       qty: it.qty || 1,

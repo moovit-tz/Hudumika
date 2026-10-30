@@ -1,3 +1,4 @@
+import { Button } from '../components/ui/button.js';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -32,6 +33,7 @@ interface Tariff {
 }
 
 interface ContainerTrack {
+  tariff_snapshot?: unknown;
   id: string;
   shipment_id: string;
   container_number: string;
@@ -50,10 +52,13 @@ interface ContainerTrack {
 }
 
 interface Summary {
+  unpriced_containers?: number;
   total_containers: number;
   active_containers: number;
   completed_containers: number;
-  total_demurrage_cost: number;
+  total_demurrage_cost: number | null;
+  currency?: string;
+  by_currency?: Record<string, number>;
   active_demurrage_cost: number;
   by_carrier: Record<string, { count: number; cost: number }>;
 }
@@ -306,15 +311,15 @@ export const Demurrage: React.FC = () => {
                 title: 'Accruing Demurrage',
                 value: String(summary?.active_containers || 0),
                 invertTrend: true,
-                sub1Label: 'AT RISK', sub1Value: String(Math.floor((summary?.active_containers || 0) * 0.4)),
-                sub2Label: 'FREE DAYS LEFT', sub2Value: '2.4 avg', barHighlight: 'var(--red)',
+                sub1Label: 'AT RISK', sub1Value: '—',
+                sub2Label: 'FREE DAYS LEFT', sub2Value: '—', barHighlight: 'var(--red)',
               },
               {
                 title: 'Total Cost',
-                value: formatCurrency(summary?.total_demurrage_cost || 0),
+                value: summary?.unpriced_containers ? 'Tariff required' : summary?.total_demurrage_cost === null ? 'Multiple currencies' : formatCurrency(summary?.total_demurrage_cost || 0, summary?.currency),
                 invertTrend: true,
-                sub1Label: 'THIS MONTH', sub1Value: formatCurrency((summary?.total_demurrage_cost || 0) * 0.35),
-                sub2Label: 'AVG PER BOX', sub2Value: formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0), barHighlight: 'var(--gold)',
+                sub1Label: 'CURRENCIES', sub1Value: Object.keys(summary?.by_currency || {}).join(', ') || '—',
+                sub2Label: 'AVG PER BOX', sub2Value: summary?.unpriced_containers ? 'Tariff required' : summary?.total_demurrage_cost === null ? 'Per currency' : formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0, summary?.currency), barHighlight: 'var(--gold)',
               },
             ]} />
 
@@ -326,7 +331,7 @@ export const Demurrage: React.FC = () => {
                     <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
-                        {data.count} containers · {formatCurrency(data.cost)}
+                        {data.count} containers · {data.cost.toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2})} recorded{summary.unpriced_containers ? ' · Incomplete: missing tariffs' : ''}
                       </div>
                     </div>
                   ))}
@@ -463,7 +468,7 @@ export const Demurrage: React.FC = () => {
                           <Badge variant={c.demurrage_days > 0 ? 'error' : 'success'}>{c.demurrage_days}</Badge>
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: 700, color: c.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)' }}>
-                          {formatCurrency(c.demurrage_cost, c.demurrage_currency)}
+                          {c.status==='ACTIVE' && c.demurrage_days>0 && !c.tariff_snapshot ? 'Tariff required' : formatCurrency(c.demurrage_cost, c.demurrage_currency)}
                           {c.demurrage_cost > 0 && c.liable_party === 'COMPANY' && (
                             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink3)', marginTop: 2 }}>Absorbed</div>
                           )}
@@ -525,14 +530,15 @@ export const Demurrage: React.FC = () => {
         <TabsContent value="tariffs">
           <SectionCard title="Demurrage Tariff Configuration" padded={false}>
             <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
+            <Button variant="outline" size="sm" onClick={()=>navigate('/cargotracker/demurrage/tariffs/new')}>Add tariff</Button>
             {tariffs.length === 0 ? (
-              <EmptyState icon="sliders" title="No tariffs configured" sub="Use the API to add tariff rules." />
+              <EmptyState icon="sliders" title="No tariffs configured" sub="Add a dated tariff to calculate charges." />
             ) : (
               <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
                 <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: 'var(--bg)' }}>
-                      {['Carrier', 'Container Size', 'Free Days', 'Rate Tiers', 'Currency', 'Status'].map(h => (
+                      {['Carrier', 'Container Size', 'Free Days', 'Rate Tiers', 'Currency', 'Status', 'Actions'].map(h => (
                         <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink3)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)' }}>
                           {h}
                         </th>
@@ -542,7 +548,7 @@ export const Demurrage: React.FC = () => {
                   <tbody>
                     {tariffs.map(t => {
                       let tiers: any[] = [];
-                      try { tiers = JSON.parse(t.rate_tiers); } catch {}
+                      try { tiers = (typeof t.rate_tiers === 'string' ? JSON.parse(t.rate_tiers) : t.rate_tiers); } catch {}
                       return (
                         <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '10px 14px' }}>
@@ -553,7 +559,7 @@ export const Demurrage: React.FC = () => {
                           <td style={{ padding: '10px 14px' }}>
                             {tiers.map((tier, i) => (
                               <span key={i} style={{ display: 'inline-block', marginRight: 8, marginBottom: 4, padding: '2px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 11, color: 'var(--ink2)' }}>
-                                Day {tier.from_day}-{tier.to_day}: ${tier.daily_rate}/day
+                                Day {tier.from_day}-{tier.to_day}: {formatCurrency(tier.daily_rate, t.currency)}/day
                               </span>
                             ))}
                           </td>
@@ -561,6 +567,7 @@ export const Demurrage: React.FC = () => {
                           <td style={{ padding: '10px 14px' }}>
                             <Badge variant={t.active ? 'success' : 'gray'}>{t.active ? 'Active' : 'Inactive'}</Badge>
                           </td>
+                          <td><Button variant="outline" size="sm" onClick={()=>navigate(`/cargotracker/demurrage/tariffs/${t.id}/edit`)}>Edit</Button></td>
                         </tr>
                       );
                     })}
@@ -651,7 +658,7 @@ export const Demurrage: React.FC = () => {
                   }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Estimated Demurrage Cost</div>
                     <div style={{ fontSize: 36, fontWeight: 800, color: calcResult.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatCurrency(calcResult.demurrage_cost, calcResult.currency)}
+                      {calcResult.tariff_found ? formatCurrency(calcResult.demurrage_cost, calcResult.currency) : 'Tariff required'}
                     </div>
                   </div>
                 </div>

@@ -49,7 +49,7 @@
   outline: none;
   box-sizing: border-box;
 }
-.be-input:focus { border-color: var(--teal); }
+.be-input:focus { border-color: var(--ink3); }
 .be-text { resize: vertical; line-height: 1.6; }
 .be-quote { font-style: italic; border-left: 3px solid var(--teal); resize: vertical; }
 

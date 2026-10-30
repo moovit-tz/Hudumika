@@ -42,9 +42,11 @@ export async function dispatchAutoComms(
       if (!res.value.success) {
         console.error(`[WorkflowComms] send failed for shipment ${shipmentId}, comm ${comm.id}: ${res.value.error}`);
       }
+      const status = !res.value.success ? 'FAILED'
+        : res.value.simulated ? 'SIMULATED' : 'SENT';
       outcomes.push({
         commId: comm.id, channel: comm.channel, recipient: comm.recipient,
-        status: res.value.success ? 'SENT' : 'FAILED',
+        status,
         ...(res.value.success ? {} : { error: res.value.error ?? 'Unknown error' }),
       });
     } else {
@@ -86,8 +88,16 @@ export async function dispatchAutoComms(
   return outcomes;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Cancels any still-pending delayed comms queued for a step the shipment just left. */
 export async function cancelPendingComms(tenantId: string, shipmentId: string, stepId: string): Promise<void> {
+  // workflow_step_id is a UUID column. Legacy shipments carry ClearanceStage
+  // literals (e.g. 'DOCS_RECEIVED') as step IDs — passing one to Postgres
+  // throws "invalid input syntax for type uuid". Legacy workflows never queue
+  // comms (their autoComms is []), so there are no rows to cancel; skip early.
+  if (!UUID_RE.test(stepId)) return;
+
   const cancelled = await withTenant(tenantId, (trx) =>
     trx
       .updateTable('workflow_comm_queue')
@@ -212,7 +222,7 @@ export async function resolveComm(
 }
 
 /** Sends (or honestly logs, for channels with no real integration) a single AutoComm. Exported for the delayed-queue job to reuse. */
-export async function sendOneComm(tenantId: string, shipmentId: string, comm: AutoComm, stepName: string): Promise<{ success: boolean; error?: string }> {
+export async function sendOneComm(tenantId: string, shipmentId: string, comm: AutoComm, stepName: string): Promise<{ success: boolean; error?: string; simulated?: boolean }> {
   const resolved = await resolveComm(tenantId, shipmentId, comm, stepName);
   if (!resolved) return { success: false, error: 'Shipment not found' };
   const { shipment, subject, body, toEmail, toPhone, toUserId } = resolved;
@@ -227,12 +237,12 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
       // (already relied on by dispatchAutoComms' run-outcome journal) keeps
       // meaning what it always meant.
       const result = await MailService.sendNow(tenantId, { to: toEmail, subject, bodyHtml: `<p>${body}</p>`, sourceApp: 'workflow-comms' });
-      return { success: result.success, error: result.error };
+      return { success: result.success, error: result.error, simulated: result.simulated };
     }
     case 'whatsapp': {
       if (!toPhone) return { success: false, error: 'No phone number available for recipient' };
       const result = await WhatsAppIntegration.sendMessage(toPhone, body);
-      return { success: result.success, error: result.error };
+      return { success: result.success, error: result.error, simulated: result.simulated };
     }
     case 'webhook': {
       const settingsRow = await withTenant(tenantId, trx => trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst());

@@ -1,0 +1,52 @@
+{
+  "pages": [
+    {
+      "route": "applications",
+      "width": 390,
+      "document": 390,
+      "h1": 1,
+      "footer": true,
+      "cards": 1,
+      "rawButtons": 0,
+      "text": "TT\nComplyOS\n/\nApplications\nLicense applications.\nNew Application\n\nTrack submissions across all government agencies\n\n1\nDRAFT\n0\nSUBMITTED\n0\nAGENCY REVIEW\n0\nDECISION\n0\nISSUED\nAll\nDraf",
+      "overflow": [
+        {
+          "tag": "BUTTON",
+          "cls": "ds-tabs-trigger",
+          "width": 78.9375,
+          "right": 472.234375
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "failures": [],
+  "interactions": [
+    {
+      "route": "applications",
+      "drawer": true
+    },
+    {
+      "route": "applications",
+      "escapeCloses": true
+    },
+    {
+      "wizardBackNextPreservesInput": true
+    },
+    {
+      "sharedRadiusSetting": true
+    },
+    {
+      "liveComponentCatalogChecked": true
+    }
+  ],
+  "apiFailures": [],
+  "dark": {
+    "background": "rgb(19, 24, 22)",
+    "color": "rgb(248, 250, 252)"
+  },
+  "shapeTokens": {
+    "radius": "0px"
+  },
+  "cleaned": true
+}

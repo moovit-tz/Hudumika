@@ -1,3 +1,4 @@
+import {ComplyFinanceEntry} from '../pages/ComplyFinanceEntry.js';
 import { Routes, Route } from 'react-router-dom';
 import '../pages/ComplyOS.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
@@ -24,6 +25,8 @@ import { ComplyLicenseCatalog } from '../pages/ComplyLicenseCatalog.js';
 import { ComplyLicenseApply }   from '../pages/ComplyLicenseApply.js';
 import { ComplyTraExtract }     from '../pages/ComplyTraExtract.js';
 import { ComplyLicenseAutomation } from '../pages/ComplyLicenseAutomation.js';
+import { ComplyRenewalFinance } from '../pages/ComplyRenewalFinance.js';
+import { ComplyPermitCosts } from '../pages/ComplyPermitCosts.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -43,6 +46,7 @@ const NAV: SidebarSection[] = [
           { label: 'Calendar',     icon: 'calendar',      path: '/complyos/calendar'     },
         ],
       },
+      { label: 'Renewal Finance', icon: 'bankNote', path: '/complyos/renewal-finance' },
       {
         label: 'Automation', icon: 'zap', path: '/complyos/workflows',
         children: [
@@ -106,6 +110,9 @@ export function ComplyOSShell() {
               <Route path="license-catalog/apply/:catalogId" element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyLicenseApply /></RequireRoles>} />
               <Route path="tra-extract"               element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyTraExtract /></RequireRoles>} />
               <Route path="license-automation"        element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyLicenseAutomation /></RequireRoles>} />
+              <Route path="renewal-finance"            element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyRenewalFinance /></RequireRoles>} />
+              <Route path="renewal-finance/:cycleId/:action" element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyFinanceEntry /></RequireRoles>} />
+              <Route path="renewal-finance/:cycleId"   element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyPermitCosts /></RequireRoles>} />
             </Route>
           </Routes>
           </div>

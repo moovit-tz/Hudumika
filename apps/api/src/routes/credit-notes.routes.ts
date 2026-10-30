@@ -11,6 +11,7 @@ import { invoiceGrandTotal, invoiceNetAndTax } from './invoices.routes.js';
 import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 
 const lineSchema = z.object({
+  description: z.string().max(5000).optional(),
   name: z.string().max(300),
   unit: z.string().max(50).optional(),
   rate: z.number(),
@@ -254,6 +255,7 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
         exchangeRate = body.exchange_rate ?? 1;
       }
       const lines = body.items.map((it, i) => ({
+        description: it.description || null,
         name: it.name,
         unit: it.unit || 'PER BIL',
         rate: it.rate,

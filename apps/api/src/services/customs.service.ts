@@ -288,13 +288,93 @@ export function classifyValuationSignal(declaredUnitValueTzs: number, reference:
   return { signal: 'normal', deviationPct };
 }
 
-/** TPA wharfage on imports — 1.6% of CIF (TPA Tariff Book, Sea Ports:
- *  "Wharfage (Imports) 1.6% of CIF"; exports are charged 1%). The charge is
- *  itself VAT-able like the other TPA service lines, but that 18% is applied
- *  where the breakdown is rendered, not here — this constant yields the net
- *  amount only. Shared by the single-item and multi-item calculators so the
- *  two can't drift apart. */
-const WHARFAGE_IMPORT_RATE = 0.016;
+// ─────────────────────────────────────────────────────────────────────────────
+// Versioned statutory tax rules (C06).
+//
+// Each entry carries the rates that apply from its effective_date, the
+// jurisdiction, and the exact source document. The engine picks the latest
+// entry whose effective_date <= the declaration date (or the latest overall
+// when no date is given). A future rate change is a new entry here — the old
+// one stays so the calculator can reproduce a past declaration's arithmetic.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TaxRuleSet {
+  id: string;
+  effective_date: string;      // ISO date
+  jurisdiction: string;
+  source_document: string;
+  fallback_duty_rate: number;  // when HS code not found
+  fallback_vat_rate: number;
+  fallback_rdl_rate: number;
+  fallback_cpf_rate: number;
+  wharfage_import_rate: number; // as a decimal, e.g. 0.016 = 1.6%
+  pid_rate_pct: number;
+  tbs_physical_verification_tzs: number;
+  tbs_service_fee_tzs: number;
+  shipping_do_fee_usd: number;
+  shipping_tasac_usd: { '20ft': number; '40ft': number };
+  green_port_usd: { '20ft': number; '40ft': number };
+  vehicle_excise_bands: { min_age: number; max_age: number | null; rate: number; note: string }[];
+  plastic_rubber_clogs_excise: number;
+}
+
+const TAX_RULES: TaxRuleSet[] = [
+  {
+    id: 'TZ-2022-CET',
+    effective_date: '2022-07-01',
+    jurisdiction: 'TZ',
+    source_document: 'EAC Common External Tariff 2022; TPA Tariff Book (Sea Ports) Jan 2023; Finance Act 2021',
+    fallback_duty_rate: 25,
+    fallback_vat_rate: 18,
+    fallback_rdl_rate: 2,
+    fallback_cpf_rate: 0.6,
+    wharfage_import_rate: 0.016,
+    pid_rate_pct: 9,
+    tbs_physical_verification_tzs: 150_000,
+    tbs_service_fee_tzs: 30_000,
+    shipping_do_fee_usd: 38.14,
+    shipping_tasac_usd: { '20ft': 50, '40ft': 100 },
+    green_port_usd: { '20ft': 50, '40ft': 100 },
+    vehicle_excise_bands: [],
+    plastic_rubber_clogs_excise: 0,
+  },
+  {
+    id: 'TZ-2026-FA',
+    effective_date: '2026-07-01',
+    jurisdiction: 'TZ',
+    source_document: 'Finance Act 2026 (effective 1 Jul 2026); TRA "Key Changes" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates',
+    fallback_duty_rate: 25,
+    fallback_vat_rate: 18,
+    fallback_rdl_rate: 2,
+    fallback_cpf_rate: 1,
+    wharfage_import_rate: 0.016,
+    pid_rate_pct: 4.5,
+    tbs_physical_verification_tzs: 150_000,
+    tbs_service_fee_tzs: 30_000,
+    shipping_do_fee_usd: 38.14,
+    shipping_tasac_usd: { '20ft': 50, '40ft': 100 },
+    green_port_usd: { '20ft': 50, '40ft': 100 },
+    vehicle_excise_bands: [
+      { min_age: 8, max_age: 10, rate: 18, note: 'Used motor vehicle, 8 to 10 years old — 18% excise (Finance Act 2026, July update)' },
+      { min_age: 10, max_age: 20, rate: 35, note: 'Used motor vehicle, over 10 up to 20 years old — 35% excise (Finance Act 2026, July update)' },
+      { min_age: 20, max_age: null, rate: 40, note: 'Used motor vehicle, over 20 years old — 40% excise (Finance Act 2026, July update)' },
+    ],
+    plastic_rubber_clogs_excise: 20,
+  },
+];
+
+export function getTaxRules(declarationDate?: string | Date | null): TaxRuleSet {
+  const d = declarationDate ? new Date(declarationDate).toISOString().slice(0, 10) : '9999-12-31';
+  for (let i = TAX_RULES.length - 1; i >= 0; i--) {
+    if (TAX_RULES[i].effective_date <= d) return TAX_RULES[i];
+  }
+  return TAX_RULES[TAX_RULES.length - 1];
+}
+
+// Legacy aliases — kept so existing call sites compile unchanged, all now
+// sourced from the latest rule set rather than scattered bare constants.
+const _latest = getTaxRules();
+const WHARFAGE_IMPORT_RATE = _latest.wharfage_import_rate;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Destination charge — shared between the single-item and multi-item
@@ -483,6 +563,10 @@ export interface LandedCostInput {
    *  rubber/plastic sandals, so guessing from HS code would over-tax
    *  unrelated footwear under the same code. */
   is_plastic_rubber_clogs?: boolean;
+  /** ISO date of the declaration — selects which tax rule set governs
+   *  fallback rates, vehicle excise bands and the PID rate. Omit for
+   *  a fresh quote (uses the latest rule set). */
+  declaration_date?: string;
 }
 
 export interface LandedCostResult {
@@ -490,6 +574,7 @@ export interface LandedCostResult {
   description: string;
   cif_usd: number;
   fx_rate: number;
+  fx_source: string;
   cif_tzs: number;
   duty_rate: number;
   duty: number;
@@ -564,14 +649,16 @@ export interface LandedCostResult {
    *  mark user-entered figures so they're never mistaken for TRA-sourced
    *  ones. */
   overridden_fields: string[];
+  tax_rules_id: string;
+  tax_rules_source: string;
+  tax_rules_effective_date: string;
 }
 
-/** TBS reference rates, per Bill of Lading — clearing agent's own rate sheet. */
-const TBS_PHYSICAL_VERIFICATION_TZS = 150000;
-const TBS_SERVICE_FEE_TZS = 30000;
-const SHIPPING_DO_FEE_USD = 38.14;                                  // per BL
-const SHIPPING_TASAC_USD = { '20ft': 50, '40ft': 100 } as const;    // per container
-const GREEN_PORT_USD = { '20ft': 50, '40ft': 100 } as const;        // per container
+const TBS_PHYSICAL_VERIFICATION_TZS = _latest.tbs_physical_verification_tzs;
+const TBS_SERVICE_FEE_TZS = _latest.tbs_service_fee_tzs;
+const SHIPPING_DO_FEE_USD = _latest.shipping_do_fee_usd;
+const SHIPPING_TASAC_USD = _latest.shipping_tasac_usd;
+const GREEN_PORT_USD = _latest.green_port_usd;
 
 export interface ConsignmentCharges {
   wharfage: number; wharfageRate: number;
@@ -637,23 +724,21 @@ export function computeConsignmentCharges(args: {
 }
 
 export async function calculateLandedCost(input: LandedCostInput): Promise<LandedCostResult> {
+  const rules = getTaxRules(input.declaration_date);
   const hsEntry = await getHsCode(input.hs_code);
   const fxRate = input.fx_rate_override ?? await getUsdToTzs();
-  const qty = input.qty ?? 1;
+  const fxSource = input.fx_rate_override ? 'manual override' : `open.er-api.com (cached up to 1h, fetched ${_fxCache ? new Date(_fxCache.fetchedAt).toISOString() : 'n/a'})`;
+  if (!Number.isFinite(fxRate) || fxRate <= 0) throw new Error('FX rate must be a positive number');
+  if (Number.isFinite(input.cif_usd) && input.cif_usd < 0) throw new Error('cif_usd must not be negative');
+  const qty = Math.max(1, Math.floor(input.qty ?? 1));
 
-  // CPF raised from 0.6% to 1% of FOB under the Finance Act 2026 (effective
-  // 2026-07-01) — hs_codes.cpf_rate was bulk-updated to 1.0 accordingly; the
-  // fallback below (used only when an HS code isn't found in our DB) mirrors
-  // that same rate rather than the old, now-incorrect 0.6.
   const ov = input.rate_overrides ?? {};
-  /** Names of rates the caller replaced — surfaced on the result so the UI
-   *  and the PDF can mark them as user-entered rather than TRA/TPA-sourced. */
   const overriddenFields: string[] = [];
-  const dutyRate    = pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : 25, ov.duty_rate, 'duty_rate', overriddenFields);
-  const vatRate     = pickRate(hsEntry ? Number(hsEntry.vat_rate) : 18, ov.vat_rate, 'vat_rate', overriddenFields);
+  const dutyRate    = pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : rules.fallback_duty_rate, ov.duty_rate, 'duty_rate', overriddenFields);
+  const vatRate     = pickRate(hsEntry ? Number(hsEntry.vat_rate) : rules.fallback_vat_rate, ov.vat_rate, 'vat_rate', overriddenFields);
   const exciseRate  = hsEntry ? Number(hsEntry.excise_rate) : 0;
-  const rdlRate     = pickRate(hsEntry ? Number(hsEntry.rdl_rate) : 2, ov.rdl_rate, 'rdl_rate', overriddenFields);
-  const cpfRate     = pickRate(hsEntry ? Number(hsEntry.cpf_rate) : 1, ov.cpf_rate, 'cpf_rate', overriddenFields);
+  const rdlRate     = pickRate(hsEntry ? Number(hsEntry.rdl_rate) : rules.fallback_rdl_rate, ov.rdl_rate, 'rdl_rate', overriddenFields);
+  const cpfRate     = pickRate(hsEntry ? Number(hsEntry.cpf_rate) : rules.fallback_cpf_rate, ov.cpf_rate, 'cpf_rate', overriddenFields);
   const description = hsEntry?.description ?? 'General goods';
   const pvocReq     = hsEntry?.pvoc_required ?? false;
   const diReq       = hsEntry?.di_required ?? false;
@@ -672,21 +757,17 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     cbm: input.cbm, weight_kg: input.weight_kg, override_tzs: input.icd_per_container,
   });
 
-  // Finance Act 2026 (July TRA circular) excise overrides — explicit inputs,
-  // not HS-code guesses (see LandedCostInput comments). The circular gives
-  // no rate for used vehicles under 8 years old, so that bracket falls
-  // through to the HS code's own excise_rate unchanged.
   let effectiveExciseRate = exciseRate;
   let exciseOverrideNote: string | null = null;
   if (input.vehicle_condition === 'used' && input.vehicle_age_years != null && input.hs_code.trim().startsWith('87')) {
     const age = input.vehicle_age_years;
-    if (age > 20) { effectiveExciseRate = 40; exciseOverrideNote = 'Used motor vehicle, over 20 years old — 40% excise (Finance Act 2026, July update)'; }
-    else if (age > 10) { effectiveExciseRate = 35; exciseOverrideNote = 'Used motor vehicle, over 10 up to 20 years old — 35% excise (Finance Act 2026, July update)'; }
-    else if (age >= 8) { effectiveExciseRate = 18; exciseOverrideNote = 'Used motor vehicle, 8 to 10 years old — 18% excise (Finance Act 2026, July update)'; }
+    const band = rules.vehicle_excise_bands.find(b =>
+      age >= b.min_age && (b.max_age === null || age <= b.max_age));
+    if (band) { effectiveExciseRate = band.rate; exciseOverrideNote = band.note; }
   }
-  if (input.is_plastic_rubber_clogs) {
-    effectiveExciseRate = 20;
-    exciseOverrideNote = 'Plastic or rubber clogs — 20% excise (Finance Act 2026, July update)';
+  if (input.is_plastic_rubber_clogs && rules.plastic_rubber_clogs_excise > 0) {
+    effectiveExciseRate = rules.plastic_rubber_clogs_excise;
+    exciseOverrideNote = `Plastic or rubber clogs — ${rules.plastic_rubber_clogs_excise}% excise (${rules.source_document})`;
   }
 
   const cifTzs   = input.cif_usd * fxRate;
@@ -714,8 +795,8 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
   const vat      = (cifTzs + duty + excise + rdl + cpf) * vatRate / 100;
   const icd = destCharge.amount_tzs;
   const applyTbs = true;
-  const wharfageRate = pickRate(WHARFAGE_IMPORT_RATE * 100, ov.wharfage_rate, 'wharfage_rate', overriddenFields);
-  const pidRate = pickRate(4.5, ov.pid_rate, 'pid_rate', overriddenFields);
+  const wharfageRate = pickRate(rules.wharfage_import_rate * 100, ov.wharfage_rate, 'wharfage_rate', overriddenFields);
+  const pidRate = pickRate(rules.pid_rate_pct, ov.pid_rate, 'pid_rate', overriddenFields);
   // Shared with the multi-item calculator so the two cannot drift — see
   // computeConsignmentCharges for why that matters here specifically.
   const charges = computeConsignmentCharges({
@@ -767,9 +848,9 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
 
   const warnings: string[] = [];
   const assumptions: string[] = [
-    'Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET 2022 tariff database — verify current rates with TRA before final declaration.',
+    `Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET tariff database, governed by rule set ${rules.id} (${rules.source_document}, effective ${rules.effective_date}) — verify current rates with TRA before final declaration.`,
     destAssumption,
-    'CPF is calculated at 1% per the Finance Act 2026 (effective 1 Jul 2026) — verify with TRA if your declaration predates this.',
+    `CPF fallback is ${rules.fallback_cpf_rate}% per ${rules.source_document} — verify with TRA if your declaration uses a different schedule.`,
     ...(isSeaPort ? ['Green Port Initiatives is per the TPA Tariff Book, Sea Ports, January 2026, Clause 15.1(b) — it uses the motor-vehicle rate (USD 1.00/CBM) instead of the container/general-cargo rate shown here if this consignment is a vehicle; verify against your HS classification. Port Infrastructure Development is charged at 4.5% of Customs Duty per the Finance Act 2026 July update (the TPA Tariff Book itself, published January 2026, still shows the earlier 9% rate).'] : []),
     ...(exciseOverrideNote ? [`${exciseOverrideNote}. This is based on TRA's summary "Key Changes" circular, not the full Finance Act 2026 text — verify the exact base and treatment with TRA before a real declaration.`] : []),
     ...(applyTbs ? [`TBS Charges (TZS ${TBS_PHYSICAL_VERIFICATION_TZS.toLocaleString()} Physical Verification Fee + TZS ${TBS_SERVICE_FEE_TZS.toLocaleString()} Service Fee) are flat reference rates from the clearing agent's own rate sheet, applied to every consignment and not scaled by CIF value or quantity${diReq ? '' : ' — this HS code is not separately flagged for Destination Inspection in our tariff data, so remove this line if TBS does not in fact inspect this cargo'}. Verify against your actual TBS invoice.`] : []),
@@ -797,6 +878,7 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     description,
     cif_usd: input.cif_usd,
     fx_rate: fxRate,
+    fx_source: fxSource,
     cif_tzs: cifTzs,
     duty_rate: dutyRate,
     duty,
@@ -837,6 +919,9 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     warnings,
     assumptions,
     overridden_fields: overriddenFields,
+    tax_rules_id: rules.id,
+    tax_rules_source: rules.source_document,
+    tax_rules_effective_date: rules.effective_date,
   };
 }
 
@@ -885,6 +970,7 @@ export interface MultiItemInput {
   num_containers?: number;
   cbm?: number;
   weight_kg?: number;
+  declaration_date?: string;
 }
 
 export interface MultiLineItemResult {
@@ -926,6 +1012,7 @@ export interface MultiLineItemResult {
 
 export interface MultiItemResult {
   fx_rate: number;
+  fx_source: string;
   mode: ShipmentMode;
   destination_charge_label: string;
   chargeable_weight_kg: number | null;
@@ -958,6 +1045,9 @@ export interface MultiItemResult {
   };
   warnings: string[];
   assumptions: string[];
+  tax_rules_id: string;
+  tax_rules_source: string;
+  tax_rules_effective_date: string;
 }
 
 export async function calculateMultiItemLandedCost(input: MultiItemInput): Promise<MultiItemResult> {
@@ -966,18 +1056,24 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     throw new Error('At least one line item with a valid HS code, quantity and unit price is required.');
   }
 
+  const rules = getTaxRules(input.declaration_date);
   const fxRate = input.fx_rate_override ?? await getUsdToTzs();
+  const fxSource = input.fx_rate_override ? 'manual override' : `open.er-api.com (cached up to 1h, fetched ${_fxCache ? new Date(_fxCache.fetchedAt).toISOString() : 'n/a'})`;
 
   // Look each HS code up once, not once per line. A real invoice repeats the
   // same code across many lines — 260 lines against a handful of codes — and
   // the naive version fired two queries per line simultaneously, so a long
   // invoice queued hundreds of round trips behind a small connection pool.
   const uniqueCodes = [...new Set(items.map(it => it.hs_code.trim()))];
-  const lookups = await Promise.all(uniqueCodes.map(async code => ({
-    code,
-    hs: await getHsCode(code),
-    wma: await checkWmaCompliance(code),
-  })));
+  const BATCH = 10;
+  const lookups: { code: string; hs: any; wma: any }[] = [];
+  for (let i = 0; i < uniqueCodes.length; i += BATCH) {
+    const batch = uniqueCodes.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(async code => ({
+      code, hs: await getHsCode(code), wma: await checkWmaCompliance(code),
+    })));
+    lookups.push(...results);
+  }
   const byCode = new Map(lookups.map(l => [l.code, l]));
   const hsEntries = items.map(it => byCode.get(it.hs_code.trim())?.hs);
   const wmaMatchesPerItem = items.map(it => byCode.get(it.hs_code.trim())?.wma ?? []);
@@ -1026,11 +1122,11 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     const hsEntry = hsEntries[i];
     const lineOv = it.rate_overrides ?? {};
     const lineOverridden: string[] = [];
-    const dutyRate = pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : 25, lineOv.duty_rate, 'duty_rate', lineOverridden);
-    const vatRate = pickRate(hsEntry ? Number(hsEntry.vat_rate) : 18, lineOv.vat_rate, 'vat_rate', lineOverridden);
+    const dutyRate = pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : rules.fallback_duty_rate, lineOv.duty_rate, 'duty_rate', lineOverridden);
+    const vatRate = pickRate(hsEntry ? Number(hsEntry.vat_rate) : rules.fallback_vat_rate, lineOv.vat_rate, 'vat_rate', lineOverridden);
     const exciseRate = hsEntry ? Number(hsEntry.excise_rate) : 0;
-    const rdlRate = pickRate(hsEntry ? Number(hsEntry.rdl_rate) : 2, lineOv.rdl_rate, 'rdl_rate', lineOverridden);
-    const cpfRate = pickRate(hsEntry ? Number(hsEntry.cpf_rate) : 1, lineOv.cpf_rate, 'cpf_rate', lineOverridden);
+    const rdlRate = pickRate(hsEntry ? Number(hsEntry.rdl_rate) : rules.fallback_rdl_rate, lineOv.rdl_rate, 'rdl_rate', lineOverridden);
+    const cpfRate = pickRate(hsEntry ? Number(hsEntry.cpf_rate) : rules.fallback_cpf_rate, lineOv.cpf_rate, 'cpf_rate', lineOverridden);
     const pvocReq = hsEntry?.pvoc_required ?? false;
     const diReq = hsEntry?.di_required ?? false;
     const permits = hsEntry?.permits ? hsEntry.permits.split(',').map((p: string) => p.trim()) : [];
@@ -1051,7 +1147,7 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     const cpf = fobTzs * cpfRate / 100;
     const vat = (cifTzs + duty + excise + rdl + cpf) * vatRate / 100;
     const destinationTzs = destinationAlloc[i];
-    const wharfage = cifTzs * WHARFAGE_IMPORT_RATE;
+    const wharfage = cifTzs * rules.wharfage_import_rate;
     const statutoryTotal = duty + excise + rdl + cpf + vat;
     const landedTotal = cifTzs + duty + excise + vat + rdl + cpf + destinationTzs + wharfage;
     const landedTotalExVat = landedTotal - vat;
@@ -1127,6 +1223,7 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
 
   return {
     fx_rate: fxRate,
+    fx_source: fxSource,
     mode: input.mode,
     destination_charge_label: destCharge.label,
     chargeable_weight_kg: destCharge.chargeable_weight_kg,
@@ -1145,11 +1242,14 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     },
     warnings,
     assumptions: [
-      'Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET 2022 tariff database, per line item — verify current rates with TRA before final declaration.',
+      `Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET tariff database, governed by rule set ${rules.id} (${rules.source_document}, effective ${rules.effective_date}), per line item — verify current rates with TRA before final declaration.`,
       'Freight, insurance and destination charges are apportioned across line items by FOB value share (largest-remainder rounding), the standard WTO valuation basis.',
       destAssumption,
-      'CPF is calculated at 1% per the Finance Act 2026 (effective 1 Jul 2026) — verify with TRA if your declaration predates this.',
+      `CPF fallback is ${rules.fallback_cpf_rate}% per ${rules.source_document} — verify with TRA if your declaration uses a different schedule.`,
     ],
+    tax_rules_id: rules.id,
+    tax_rules_source: rules.source_document,
+    tax_rules_effective_date: rules.effective_date,
   };
 }
 
@@ -1409,7 +1509,7 @@ export async function calculatePenalty(input: PenaltyInput): Promise<PenaltyResu
   const breakdown: PenaltyResult['breakdown'] = [];
   const legalRefs: string[] = [];
 
-  if (input.violation_type === 'under_declaration' && input.declared_value_usd && input.actual_value_usd) {
+  if (input.violation_type === 'under_declaration' && input.declared_value_usd != null && input.actual_value_usd != null) {
     const hs = await getHsCode(input.hs_code ?? '');
     const dutyRate = (hs ? Number(hs.import_duty_rate) : 25) / 100;
     const declared = input.declared_value_usd * fxRate * dutyRate;
@@ -1470,7 +1570,15 @@ export async function calculatePenalty(input: PenaltyInput): Promise<PenaltyResu
     legalRefs.push('TRA Destination Inspection Guidelines — Penalty for skipping DI: TZS 2,000,000 or 10% of CIF');
   }
 
-  const total = underDeclarationPenalty + misclassificationFine + lateInterest + noPvocFine + noDiFine;
+  let prohibitedGoodsFine = 0;
+  if (input.violation_type === 'prohibited_goods') {
+    const valueTzs = (input.declared_value_usd ?? 0) * fxRate;
+    prohibitedGoodsFine = Math.max(valueTzs * 5, 10_000_000);
+    breakdown.push({ label: 'Prohibited goods penalty — ESTIMATE, requires assessment (min TZS 10M)', amount: prohibitedGoodsFine, basis: '5× CIF value or TZS 10,000,000 minimum — cited as CEMA s.200; exact penalty subject to TRA assessment' });
+    legalRefs.push('CEMA CAP 403 s.200 — Importation of prohibited goods: fine of 5× value or TZS 10,000,000 (requires independent TRA assessment — this is an estimate only)');
+  }
+
+  const total = underDeclarationPenalty + misclassificationFine + lateInterest + noPvocFine + noDiFine + prohibitedGoodsFine;
   if (total > 0) {
     breakdown.push({ label: 'TOTAL PENALTIES (TZS)', amount: total, basis: 'Sum of all applicable penalties' });
   }

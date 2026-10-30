@@ -37,13 +37,15 @@ export function CheckboxRow({
 export function SwitchRow({
   title, description, checked, onCheckedChange, disabled, className,
 }: RowProps & { checked: boolean; onCheckedChange: (checked: boolean) => void }) {
+  const labelId = React.useId()
+  const descriptionId = React.useId()
   return (
     <div className={cn(rowClass, className)}>
       <div className={textClass}>
-        <div className={titleClass}>{title}</div>
-        {description && <div className={descClass}>{description}</div>}
+        <div id={labelId} className={titleClass}>{title}</div>
+        {description && <div id={descriptionId} className={descClass}>{description}</div>}
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} className="mt-0.5 shrink-0" />
+      <Switch aria-labelledby={labelId} aria-describedby={description ? descriptionId : undefined} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} className="mt-0.5 shrink-0" />
     </div>
   )
 }

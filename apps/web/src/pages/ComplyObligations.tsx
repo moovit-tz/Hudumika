@@ -1,7 +1,13 @@
+import {Banner} from '../components/ui/alert.js';
+import {SearchToolbar} from '../components/ui/filter-dropdown.js';
+import { Input } from '../components/ui/input.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
+import { Card,CardHeader,CardTitle,CardDescription,CardContent } from '../components/ui/card.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon.js';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useComplyObligations, useComplyAgencyDirectory } from '../hooks/useComply.js';
 import type { CompObligation } from '@hudumika/types';
@@ -11,6 +17,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
+import './ComplyObligations.css';
 import { showConfirm } from '../lib/confirm.js';
 import { Button } from '../components/ui/button.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -44,6 +51,8 @@ export function ComplyObligations() {
   const deepLinkedObligationRef = useRef<string | null>(new URLSearchParams(window.location.search).get('obligation'));
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>('all');
+  const [search,setSearch]=useState('');
+  const [agencyFilter,setAgencyFilter]=useState('all');
   const { obligations, loading, error, refresh, update, remove } = useComplyObligations();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [focusedObligationId, setFocusedObligationId] = useState<string | null>(null);
@@ -54,6 +63,7 @@ export function ComplyObligations() {
     deepLinkedObligationRef.current = null;
     setFocusedObligationId(id);
     setFilter('all');
+    setSearch('');setAgencyFilter('all');
     window.history.replaceState(null, '', window.location.pathname);
     window.setTimeout(() => document.getElementById(`obligation-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
   }, [loading, obligations]);
@@ -81,7 +91,9 @@ export function ComplyObligations() {
     }
   }
 
-  const visible = filter === 'all' ? obligations : obligations.filter(o => o.status === filter);
+  const query=search.trim().toLowerCase();
+  const visible = obligations.filter(o=>(filter==='all'||o.status===filter)&&(agencyFilter==='all'||o.agency_code===agencyFilter)&&(!query||`${o.name} ${o.agency_code} ${o.obligation_code} ${o.frequency}`.toLowerCase().includes(query))).sort((a,b)=>(a.due_date??'9999').localeCompare(b.due_date??'9999')||a.name.localeCompare(b.name));
+  const agencies=[...new Set(obligations.map(o=>o.agency_code))].sort();
 
   const stats = {
     active:         obligations.filter(o => o.status === 'active').length,
@@ -98,126 +110,29 @@ export function ComplyObligations() {
   });
 
   return (
-    <div className="comply-page">
-      <PageHeader
-        crumbs={['ComplyOS', 'Compliance Obligations']} 
-        titlePlain="Compliance"
-        titleEm="obligations"
-        subtitle={<> {obligations.filter(o => o.mandatory).length} mandatory ·{' '}
-            {obligations.filter(o => !o.mandatory).length} optional across {Object.keys(groups).length} agencies </>}
-        actions={
-        <div className="comply-action-row">
-          <Tip label="Refresh obligations">
-            <Button type="button" variant="outline" size="icon" onClick={refresh} aria-label="Refresh obligations">
-              <Icon name="refresh" size={13} />
-            </Button>
-          </Tip>
-          <Button type="button" variant="outline" size="sm" onClick={() => navigate('/complyos/obligations/new')}>
-            <Icon name="plus" size={14} /> Add Obligation
-          </Button>
-          <Button asChild size="sm"><Link to="/complyos/applications"><Icon name="plus" size={14} /> New Application</Link></Button>
-        </div>
-        }
-      />
-
-      {error && <div className="comply-note comply-note--error">Failed to load obligations: {error}</div>}
-
-      {/* Summary KPIs */}
-      <div className="comply-kpis comply-kpis--4col">
-        {[
-          { val: String(stats.active),          label: 'Active & Current', kind: 'up'     as const },
-          { val: String(stats.pending),         label: 'Pending Renewal',  kind: 'warn'   as const },
-          { val: String(stats.expired),         label: 'Lapsed / Overdue', kind: 'danger' as const },
-          { val: String(stats['not-started']),  label: 'Not Yet Started',  kind: 'up'     as const },
-        ].map(k => (
-          <div key={k.label} className="comply-kpi">
-            <div className={`comply-kpi-val${k.kind === 'danger' && Number(k.val) > 0 ? ' comply-kpi-delta--danger' : k.kind === 'warn' && Number(k.val) > 0 ? ' comply-kpi-delta--warn' : ''}`}>{k.val}</div>
-            <div className="comply-kpi-label">{k.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters — the shared segmented ds-tabs, not a page-local pill style. */}
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} variant="boxed">
-      <TabsList style={{ marginBottom: 20 }}>
-        {FILTER_OPTS.map(f => {
-          const isActive = filter === f.key;
-          return (
-            <TabsTrigger key={f.key} value={f.key}>
-              {f.label}
-              {f.key !== 'all' && (
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', lineHeight: 1.5, background: isActive ? 'var(--teal-l)' : 'var(--bg)', color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>
-                  {stats[f.key as keyof typeof stats] ?? 0}
-                </span>
-              )}
-            </TabsTrigger>
-          );
-        })}
-      </TabsList>
-      </Tabs>
-
-      {loading && <div className="comply-empty-hint">Loading obligations…</div>}
-
-      {/* Grouped list */}
-      {!loading && Object.entries(groups).map(([agency, obls]) => (
-        <div key={agency} className="comply-card comply-mb-16">
-          <div className="comply-card-hdr">
-            <h3 className="comply-card-title">
-              <span className="comply-card-title-row">
-                <Icon name={AGENCY_CLASS_ICON[obls[0].agency_class] ?? 'building'} size={15} color="var(--comply)" />
-                {agency}
-              </span>
-            </h3>
-            <span className="comply-oblig-count">
-              {obls.filter(o => o.status === 'active').length}/{obls.length} active
-            </span>
-          </div>
-          <div>
-            {obls.map(o => (
-              <div id={`obligation-${o.id}`} key={o.id} aria-current={focusedObligationId === o.id ? 'true' : undefined} className="comply-oblig-row" style={{ background: focusedObligationId === o.id ? 'var(--teal-l)' : undefined, boxShadow: focusedObligationId === o.id ? 'inset 3px 0 0 var(--teal)' : undefined }}>
-                <div className={`comply-oblig-icon comply-agency--${o.agency_class}`}>
-                  <Icon name={AGENCY_CLASS_ICON[o.agency_class] ?? 'fileText'} size={16} />
-                </div>
-                <div className="comply-oblig-flex-body">
-                  <div className="comply-oblig-name">
-                    {o.name}
-                    {!o.mandatory && <span className="comply-optional-badge">Optional</span>}
-                  </div>
-                  <div className="comply-oblig-agency">
-                    {o.frequency}{o.due_date ? ` · Due: ${new Date(o.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
-                  </div>
-                </div>
-                <div className="comply-oblig-actions-row">
-                  <span className={`comply-badge ${statusBadgeClass(o.status)}`}>{statusLabel(o.status)}</span>
-                  {(o.status === 'not-started' || o.status === 'expired' || o.status === 'pending') && (
-                    <>
-                      <Button asChild size="xs"><Link to="/complyos/applications">Apply</Link></Button>
-                      <Button type="button" variant="outline" size="xs" disabled={busyId === o.id} onClick={() => handleFulfil(o)} title="Mark as fulfilled" aria-label="Mark as fulfilled">
-                        <Icon name="check" size={12} />
-                      </Button>
-                    </>
-                  )}
-                  <Tip label="Delete obligation">
-                    <span>
-                      <Button type="button" variant="ghost" size="xs" disabled={busyId === o.id} onClick={() => handleDelete(o)}
-                        style={{ color: 'var(--ink3)' }} aria-label="Delete obligation">
-                        <Icon name="trash" size={13} />
-                      </Button>
-                    </span>
-                  </Tip>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {!loading && visible.length === 0 && (
-        <div className="comply-card">
-          <div className="comply-empty-hint">No obligations match this filter.</div>
-        </div>
-      )}
-
+    <div className="comply-page comply-obligations-page">
+      <PageHeader crumbs={['ComplyOS','Obligations']} titlePlain="Compliance" titleEm="obligations" subtitle="Track recurring requirements, review deadlines and record fulfilment."
+        actions={<div className="comply-action-row"><Button variant="outline" size="icon" disabled={loading} onClick={()=>void refresh()} aria-label="Refresh obligations"><Icon name="refresh" size={14}/></Button><Button size="sm" onClick={()=>navigate('/complyos/obligations/new')}><Icon name="plus" size={14}/>Add obligation</Button></div>}/>
+      {error&&<Banner variant="error" action={<Button variant="outline" size="sm" onClick={()=>void refresh()}>Retry obligations</Button>}>Failed to load obligations: {error}</Banner>}
+      <Card className="obligations-register">
+        <CardHeader className="obligations-register-header"><div><CardTitle>Obligation register</CardTitle><CardDescription>{loading?'Loading your requirements…':`${obligations.length} recorded requirements · ${agencies.length} agencies`}</CardDescription></div><Button asChild variant="outline" size="sm"><Link to="/complyos/applications">Applications<Icon name="arrowRight" size={13}/></Link></Button></CardHeader>
+        <CardContent className="obligations-register-body">
+          <div className="obligations-status-strip" aria-label="Recorded obligation status">{FILTER_OPTS.map(f=><Button key={f.key} size="sm" variant={filter===f.key?'secondary':'ghost'} aria-pressed={filter===f.key} onClick={()=>setFilter(f.key)}>{f.label}<Badge variant={f.key==='expired'?'error':'gray'}>{loading||error?'—':f.key==='all'?obligations.length:stats[f.key]}</Badge></Button>)}</div>
+          <div className="obligations-toolbar"><SearchToolbar search={search} onSearch={setSearch} placeholder="Search requirements or references…" activeFilterCount={0}/><Select value={agencyFilter} onValueChange={setAgencyFilter}><SelectTrigger aria-label="Filter obligations by agency"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="all">All agencies</SelectItem>{agencies.map(agency=><SelectItem key={agency} value={agency}>{agency}</SelectItem>)}</SelectContent></Select></div>
+          <div className="obligations-register-caption"><span>{loading?'Loading…':error?'Register unavailable':`${visible.length} matching requirements`}</span><span>Earliest due date first</span>{(query||filter!=='all'||agencyFilter!=='all')&&<Button variant="ghost" size="xs" onClick={()=>{setFilter('all');setSearch('');setAgencyFilter('all');}}>Clear filters</Button>}</div>
+          {loading?<SectionLoading label="Loading obligations…"/>:!error&&Object.entries(groups).map(([agency,obls])=><section className="obligations-agency" key={agency} aria-label={`${agency} obligations`}>
+            <div className="obligations-agency-heading"><Icon name={AGENCY_CLASS_ICON[obls[0].agency_class]??'building'} size={15}/><h2>{agency}</h2><span>{obls.length} requirements</span></div>
+            <ul>{obls.map(o=><li id={`obligation-${o.id}`} key={o.id} aria-current={focusedObligationId===o.id?'true':undefined} className="obligations-record">
+              <div className="obligations-record-main"><div className="obligations-record-title"><strong>{o.name}</strong>{!o.mandatory&&<Badge variant="gray">Optional</Badge>}</div><span>{o.obligation_code} · {o.frequency}{o.last_fulfilled_date?` · Last recorded ${new Date(o.last_fulfilled_date).toLocaleDateString('en-GB')}`:''}</span></div>
+              <div className="obligations-record-deadline"><small>Next recorded deadline</small><strong>{o.due_date?new Date(o.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'No date set'}</strong></div>
+              <Badge variant={complyBadgeVariant(`comply-badge ${statusBadgeClass(o.status)}`)}>{statusLabel(o.status)}</Badge>
+              <div className="obligations-record-actions">{o.status!=='active'&&<Button variant="outline" size="sm" disabled={busyId!==null} onClick={()=>void handleFulfil(o)} aria-label={`Record fulfilment for ${o.name}`}><Icon name="check" size={13}/>{busyId===o.id?'Saving…':'Record fulfilled'}</Button>}<Tip label="Delete obligation"><Button variant="ghost" size="icon" disabled={busyId!==null} onClick={()=>void handleDelete(o)} aria-label={`Delete ${o.name}`}><Icon name="trash" size={14}/></Button></Tip></div>
+            </li>)}</ul>
+          </section>)}
+          {!loading&&!error&&!visible.length&&<div className="obligations-empty"><Icon name="clipboardList" size={26}/><h3>{obligations.length?'No matching requirements':'Build your obligation register'}</h3><p>{obligations.length?'Try another search or clear the filters.':'Add your first requirement with its agency, frequency and next deadline.'}</p>{!obligations.length&&<Button asChild size="sm"><Link to="/complyos/obligations/new">Add first obligation</Link></Button>}</div>}
+          <div className="obligations-register-footer"><Icon name="info" size={14}/><span>Status and fulfilment are workspace records. Recording fulfilment does not verify an authority submission or advance the next deadline.</span></div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -274,7 +189,7 @@ export function AddObligationPage() {
       {step === 0 && (
         <>
           <WizardField label="Obligation Name">
-            <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Annual Company Return" autoFocus />
+            <Input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Annual Company Return" autoFocus />
           </WizardField>
           <WizardField label="Agency">
             <Select value={effectiveAgency} onValueChange={setAgencyCode}>

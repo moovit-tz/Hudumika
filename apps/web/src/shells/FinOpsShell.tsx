@@ -1,3 +1,5 @@
+import { FinanceRoutedPage } from '../components/FinanceRoutedPage.js';
+import { FinanceDocumentPreview } from '../pages/FinanceDocumentPreview.js';
 import React from 'react';
 import { Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import '../pages/FinOps.css';
@@ -177,7 +179,9 @@ const SALES_FINANCE_PATHS = new Set([
 
 function roleCanSeeFinancePath(role: UserRole | undefined, path: string): boolean {
   if (!role) return false;
-  if (role === 'SALES') return SALES_FINANCE_PATHS.has(path);
+  if (role === 'SALES') {
+    return SALES_FINANCE_PATHS.has(path) || path.startsWith('/finance/products');
+  }
   return true;
 }
 
@@ -281,32 +285,55 @@ export function FinOpsShell() {
           <Route path="industries/:industry/:id/production/new" element={gated('finance.inventory', <RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryProductionNew /></RequireRoles>)} />
           <Route path="industries/:industry/:id/allocation/new" element={gated('finance.inventory', <RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']}><FinanceIndustryAllocationNew /></RequireRoles>)} />
           {/* Receivables */}
-          <Route path="invoices"       element={<RequireRoles roles={FIN_ROLES}><Billing /></RequireRoles>} />
+          <Route path="documents/:kind/:id/preview" element={<RequireRoles roles={FIN_ROLES}><FinanceDocumentPreview /></RequireRoles>} />
+          <Route path="invoices"       element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Billing /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="invoices/new"       element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Billing /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="invoices/:id"       element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Billing /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="invoices/:id/edit"       element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Billing /></FinanceRoutedPage></RequireRoles>} />
           <Route path="invoices/recurring" element={<RequireRoles roles={FIN_ROLES}><RecurringInvoices /></RequireRoles>} />
-          <Route path="credit-notes"     element={<RequireRoles roles={FIN_ROLES}><CreditNotes /></RequireRoles>} />
-          <Route path="credit-notes/new" element={<RequireRoles roles={FIN_ROLES}><CreditNotes /></RequireRoles>} />
-          <Route path="quotations"     element={<RequireRoles roles={FIN_ROLES}><Quotations /></RequireRoles>} />
-          <Route path="delivery-documents" element={<RequireRoles roles={FIN_ROLES}><DeliveryDocumentsPage /></RequireRoles>} />
+          <Route path="credit-notes"     element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><CreditNotes /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="credit-notes/:id"     element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><CreditNotes /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="credit-notes/new" element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><CreditNotes /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="quotations"     element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Quotations /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="quotations/new"     element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Quotations /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="quotations/:id"     element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Quotations /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="quotations/:id/edit"     element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Quotations /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="delivery-documents" element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><DeliveryDocumentsPage /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="delivery-documents/new" element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><DeliveryDocumentsPage /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="delivery-documents/:id" element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><DeliveryDocumentsPage /></FinanceRoutedPage></RequireRoles>} />
           <Route path="delivery-notes" element={<Navigate to="/finance/delivery-documents" replace />} />
 
           {/* Payables */}
-          <Route path="purchase-orders" element={gated('finance.procurement', <PurchaseOrders />)} />
-          <Route path="bills"           element={<RequireRoles roles={FIN_ROLES}><Bills /></RequireRoles>} />
-          <Route path="vendors"         element={<RequireRoles roles={FIN_ROLES}><FinanceVendors /></RequireRoles>} />
+          <Route path="purchase-orders" element={gated('finance.procurement', <FinanceRoutedPage><PurchaseOrders /></FinanceRoutedPage>)} />
+          <Route path="purchase-orders/new" element={gated('finance.procurement', <FinanceRoutedPage><PurchaseOrders /></FinanceRoutedPage>)} />
+          <Route path="purchase-orders/:id" element={gated('finance.procurement', <FinanceRoutedPage><PurchaseOrders /></FinanceRoutedPage>)} />
+          <Route path="purchase-orders/:id/edit" element={gated('finance.procurement', <FinanceRoutedPage><PurchaseOrders /></FinanceRoutedPage>)} />
+          <Route path="bills"           element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Bills /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="bills/new"           element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Bills /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="bills/:id"           element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Bills /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="bills/:id/edit"           element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Bills /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="vendors"         element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><FinanceVendors /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="vendors/new"         element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><FinanceVendors /></FinanceRoutedPage></RequireRoles>} />
           <Route path="vendors/:id"     element={<RequireRoles roles={FIN_ROLES}><VendorProfilePage /></RequireRoles>} />
           <Route path="vendors/:id/:tab" element={<RequireRoles roles={FIN_ROLES}><VendorProfilePage /></RequireRoles>} />
-          <Route path="expenses"        element={<RequireRoles roles={FIN_ROLES}><Expenses /></RequireRoles>} />
+          <Route path="expenses"        element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Expenses /></FinanceRoutedPage></RequireRoles>} />
+          <Route path="expenses/:id"        element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><Expenses /></FinanceRoutedPage></RequireRoles>} />
           <Route path="expense-reports" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReports /></RequireRoles>} />
           <Route path="expense-reports/new" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReportNew /></RequireRoles>} />
-          <Route path="expense-reports/:id" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseReportDetail /></RequireRoles>} />
+          <Route path="expense-reports/:id" element={<RequireRoles roles={FIN_ROLES}><FinanceRoutedPage><FinanceExpenseReportDetail /></FinanceRoutedPage></RequireRoles>} />
           <Route path="expenses/new"    element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseNew /></RequireRoles>} />
           <Route path="expenses/categories" element={<RequireRoles roles={FIN_ROLES}><FinanceExpenseCategories /></RequireRoles>} />
 
           {/* Accounts */}
           <Route path="payments"  element={<RequireRoles roles={FIN_ROLES}><FinancePayments /></RequireRoles>} />
+          {/* Products & Catalog */}
           <Route path="products"             element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
+          <Route path="products/new"         element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
+          <Route path="products/tariff"      element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
           <Route path="products/categories" element={<RequireRoles roles={FIN_ROLES}><ProductCategoriesPage /></RequireRoles>} />
           <Route path="products/reviews"    element={<RequireRoles roles={FIN_ROLES}><ProductReviewsPage /></RequireRoles>} />
+          <Route path="products/:id"         element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
+          <Route path="products/:id/edit"    element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
           <Route path="pos/settings" element={gated('finance.pos', <FinancePosSettings />)} />
           <Route path="pos"       element={gated('finance.pos', <FinancePos />)} />
           <Route path="tax-codes" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxCodes /></RequireRoles>} />

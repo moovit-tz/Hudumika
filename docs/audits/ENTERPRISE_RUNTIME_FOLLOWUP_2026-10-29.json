@@ -1,0 +1,372 @@
+{
+  "date": "2026-10-29",
+  "scope": "Disposable tenant real API/database probes; no external side effects",
+  "checks": {
+    "ownerEntityCreate": {
+      "status": 201,
+      "data": {
+        "id": "e3bee24e-af6b-4d46-a4b1-e1854686c166",
+        "tenant_id": "ec510790-9c46-4245-9f7e-dec503b093af",
+        "legal_name": "Disposable enterprise API entity",
+        "short_name": null,
+        "registration_no": null,
+        "tax_id": null,
+        "country_code": "TZ",
+        "currency": "TZS",
+        "entity_type": "subsidiary",
+        "parent_entity_id": null,
+        "status": "active",
+        "registered_address": null,
+        "primary_industry": null,
+        "metadata": {},
+        "created_by": null,
+        "created_at": "2026-10-29T11:56:32.471Z",
+        "updated_at": "2026-10-29T11:56:32.471Z"
+      }
+    },
+    "ownerLaunchCreate": {
+      "status": 200,
+      "data": {
+        "id": "65ae6263-46c1-45b1-9bef-e7536cc6d30e",
+        "tenant_id": "ec510790-9c46-4245-9f7e-dec503b093af",
+        "entity_id": null,
+        "title": "Disposable enterprise launch",
+        "description": null,
+        "status": "intake",
+        "industries": [],
+        "jurisdictions": [
+          "TZ"
+        ],
+        "target_date": null,
+        "actual_launch_date": null,
+        "overall_readiness": 0,
+        "created_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+        "approved_by": null,
+        "approved_at": null,
+        "metadata": {},
+        "created_at": "2026-10-29T11:56:32.623Z",
+        "updated_at": "2026-10-29T11:56:32.623Z"
+      }
+    },
+    "ownerCycleCreate": {
+      "status": 200,
+      "data": {
+        "id": "4453c325-c84e-45a4-8552-4c444540d508",
+        "cert_id": null,
+        "requirement_def_id": null,
+        "cycle_type": "application",
+        "status": "draft",
+        "owner_id": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+        "delegate_id": null,
+        "entity_id": null,
+        "site_id": null,
+        "jurisdiction": "TZ",
+        "agency_code": null,
+        "prerequisites": [],
+        "deadline": null,
+        "budget_estimate": null,
+        "budget_currency": "TZS",
+        "actual_cost": null,
+        "submission_ref": null,
+        "submission_date": null,
+        "authority_ref": null,
+        "outcome_date": null,
+        "outcome_notes": null,
+        "metadata": {},
+        "created_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+        "created_at": "2026-10-29T11:56:32.848Z",
+        "updated_at": "2026-10-29T11:56:32.848Z"
+      }
+    },
+    "ownerCaptureCreate": {
+      "status": 200,
+      "data": {
+        "id": "25670984-225a-474e-87ea-38bacab23fae",
+        "source_app": "cloud",
+        "source_record_type": null,
+        "source_record_id": null,
+        "source_attachment_id": null,
+        "source_file_name": "Review evidence.pdf",
+        "source_file_url": null,
+        "source_version": 1,
+        "classification": "pending",
+        "confidence": null,
+        "classifier_type": null,
+        "holder_claim": null,
+        "issuer_claim": null,
+        "jurisdiction_claim": null,
+        "permit_number_claim": null,
+        "expiry_claim": null,
+        "issued_claim": null,
+        "captured_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "review_notes": null,
+        "status": "pending",
+        "linked_cert_id": null,
+        "linked_cycle_id": null,
+        "metadata": {},
+        "created_at": "2026-10-29T11:56:32.992Z",
+        "updated_at": "2026-10-29T11:56:32.992Z"
+      }
+    },
+    "ownerPortfolioCreate": {
+      "status": 200,
+      "data": {
+        "id": "823d45ca-5131-4de4-be5f-08dcfccee46c",
+        "provider_tenant_id": "ec510790-9c46-4245-9f7e-dec503b093af",
+        "client_tenant_id": null,
+        "client_name": "Disposable client",
+        "client_type": "external",
+        "status": "prospect",
+        "contact_name": null,
+        "contact_email": null,
+        "contact_phone": null,
+        "industry_key": null,
+        "jurisdictions": [],
+        "onboarded_at": null,
+        "terminated_at": null,
+        "termination_reason": null,
+        "metadata": {},
+        "created_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+        "created_at": "2026-10-29T11:56:33.196Z",
+        "updated_at": "2026-10-29T11:56:33.196Z"
+      }
+    },
+    "ownerMetricsCompute": {
+      "status": 200,
+      "data": {
+        "id": "3d9b6461-a7db-4f25-a639-a350c95416e8",
+        "tenant_id": "ec510790-9c46-4245-9f7e-dec503b093af",
+        "snapshot_date": "2026-10-29",
+        "metric_type": "daily",
+        "entity_count": 1,
+        "site_count": 0,
+        "user_count": 3,
+        "permit_count": 0,
+        "permits_active": 0,
+        "permits_expiring": 0,
+        "permits_expired": 0,
+        "compliance_score": null,
+        "total_cost_ytd": 0,
+        "cost_currency": "TZS",
+        "renewal_work_pending": 1,
+        "blockers": 0,
+        "app_usage": {},
+        "computed_at": "2026-10-29T11:56:33.336Z"
+      }
+    },
+    "legacyAdminMetricsCompute": {
+      "status": 200,
+      "data": {
+        "id": "3d9b6461-a7db-4f25-a639-a350c95416e8",
+        "tenant_id": "ec510790-9c46-4245-9f7e-dec503b093af",
+        "snapshot_date": "2026-10-29",
+        "metric_type": "daily",
+        "entity_count": 1,
+        "site_count": 0,
+        "user_count": 3,
+        "permit_count": 0,
+        "permits_active": 0,
+        "permits_expiring": 0,
+        "permits_expired": 0,
+        "compliance_score": null,
+        "total_cost_ytd": 0,
+        "cost_currency": "TZS",
+        "renewal_work_pending": 1,
+        "blockers": 0,
+        "app_usage": {},
+        "computed_at": "2026-10-29T11:56:33.523Z"
+      }
+    },
+    "juniorCandidates": {
+      "status": 403,
+      "data": {
+        "error": "Admin role required"
+      }
+    },
+    "juniorCandidateDetail": {
+      "status": 200,
+      "data": {
+        "id": "19847425-2ad8-4b1b-bd99-e9811908dd1e",
+        "source_app": "nexushr",
+        "source_record_type": null,
+        "source_record_id": null,
+        "source_attachment_id": null,
+        "source_file_name": "Review confidential qualification.pdf",
+        "source_file_url": null,
+        "source_version": 1,
+        "classification": "pending",
+        "confidence": null,
+        "classifier_type": null,
+        "holder_claim": "Restricted review fixture",
+        "issuer_claim": null,
+        "jurisdiction_claim": null,
+        "permit_number_claim": null,
+        "expiry_claim": null,
+        "issued_claim": null,
+        "captured_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "review_notes": null,
+        "status": "pending",
+        "linked_cert_id": null,
+        "linked_cycle_id": null,
+        "metadata": {},
+        "created_at": "2026-10-29T11:56:33.529Z",
+        "updated_at": "2026-10-29T11:56:33.529Z"
+      }
+    },
+    "metricsAfterEntity": {
+      "id": "3d9b6461-a7db-4f25-a639-a350c95416e8",
+      "tenant_id": "ec510790-9c46-4245-9f7e-dec503b093af",
+      "snapshot_date": "2026-10-29",
+      "metric_type": "daily",
+      "entity_count": 2,
+      "site_count": 0,
+      "user_count": 3,
+      "permit_count": 0,
+      "permits_active": 0,
+      "permits_expiring": 0,
+      "permits_expired": 0,
+      "compliance_score": null,
+      "total_cost_ytd": 0,
+      "cost_currency": "TZS",
+      "renewal_work_pending": 1,
+      "blockers": 0,
+      "app_usage": {},
+      "computed_at": "2026-10-29T11:56:33.861Z"
+    },
+    "actualEntityCount": {
+      "count": "2"
+    },
+    "draftToIssuedWithoutEvidence": {
+      "status": 500,
+      "data": {
+        "statusCode": 500,
+        "error": "Internal Server Error",
+        "message": "Invalid status transition: draft → issued"
+      }
+    },
+    "cycleEvidence": {
+      "status": 200,
+      "data": []
+    },
+    "foreignCertificateRejection": "Certificate not found in this tenant",
+    "expiredPermitNewCheck": {
+      "id": "d4d2af93-7c21-4deb-a6bb-1ccd29886491",
+      "requesting_app": "tracking",
+      "requesting_record_type": null,
+      "requesting_record_id": null,
+      "check_type": "status",
+      "entity_id": null,
+      "site_id": null,
+      "jurisdiction": "TZ",
+      "requirement_code": null,
+      "cert_id": "9ba415e3-9752-4ba5-aa12-8827c139ce14",
+      "result": "expired",
+      "reasons": [
+        "Certificate expired on 2020-01-01"
+      ],
+      "assurance_level": "unverified",
+      "rules_version": null,
+      "freshness": "live",
+      "impact_action": "require_review",
+      "impact_notes": null,
+      "checked_at": "2026-10-29T11:56:34.270Z",
+      "checked_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+      "expires_at": null
+    },
+    "expiredPermitLegacyRead": {
+      "status": 200,
+      "data": [
+        {
+          "id": "9ba415e3-9752-4ba5-aa12-8827c139ce14",
+          "cert_number": "EXPIRED-ENTERPRISE-REVIEW",
+          "name": "Expired permit review fixture",
+          "agency_code": "REVIEW",
+          "agency_name": "Review only",
+          "agency_class": "gov",
+          "issued_date": null,
+          "expiry_date": "2020-01-01",
+          "status": "expired",
+          "document_url": null,
+          "external_ref": null,
+          "auto_renew": false,
+          "last_synced_at": null,
+          "metadata": {},
+          "customer_id": null,
+          "customer_name": null,
+          "reminder_90d_sent_at": null,
+          "reminder_30d_sent_at": null,
+          "non_renewal_risk": null,
+          "created_at": "2026-10-29T11:56:34.269Z",
+          "updated_at": "2026-10-29T11:56:34.269Z"
+        }
+      ]
+    },
+    "undatedPermitCheck": {
+      "id": "f53540d7-9d98-40aa-a2b8-f7ee7cfadaac",
+      "requesting_app": "tracking",
+      "requesting_record_type": null,
+      "requesting_record_id": null,
+      "check_type": "status",
+      "entity_id": null,
+      "site_id": null,
+      "jurisdiction": "TZ",
+      "requirement_code": null,
+      "cert_id": "1e33e0fe-ff83-4bb9-a78f-015737881548",
+      "result": "valid",
+      "reasons": [],
+      "assurance_level": "unverified",
+      "rules_version": null,
+      "freshness": "live",
+      "impact_action": "none",
+      "impact_notes": null,
+      "checked_at": "2026-10-29T11:56:34.437Z",
+      "checked_by": "eaa4e531-df42-43bf-aa6f-18e1cd810793",
+      "expires_at": null
+    },
+    "legacyChangedDatePatch": {
+      "status": 200,
+      "data": {
+        "ok": true
+      }
+    },
+    "legacyRenewalsAfterChangedDate": {
+      "status": 200,
+      "data": [
+        {
+          "id": "f9b5a252-fa4e-4929-b38e-c570791caa0c",
+          "cert_id": "f6491a0d-c7d5-437e-9450-2646a5342041",
+          "cert_name": "Legacy correction review",
+          "agency_code": "BRELA",
+          "status": "issued",
+          "trigger": "manual",
+          "triggered_at": "2026-10-29T11:56:34.867Z",
+          "approved_by": null,
+          "approved_by_name": null,
+          "approved_at": null,
+          "submitted_at": null,
+          "completed_at": "2026-10-29T11:56:35.195Z",
+          "notes": null
+        }
+      ]
+    },
+    "disabledPlanOldRoute": {
+      "status": 403,
+      "data": {
+        "error": "Your current plan does not include this feature.",
+        "code": "PLAN_UPGRADE_REQUIRED"
+      }
+    },
+    "disabledPlanNewRoute": {
+      "status": 403,
+      "data": {
+        "error": "Your current plan does not include this feature.",
+        "code": "PLAN_UPGRADE_REQUIRED"
+      }
+    }
+  },
+  "cleaned": true
+}

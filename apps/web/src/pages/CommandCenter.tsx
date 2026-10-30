@@ -470,7 +470,7 @@ export const CommandCenter: React.FC = () => {
   const declFiltersActive = declStatus !== '__all__' || lane !== '__all__'
     || declPresence !== '__all__' || selectedType !== 'ALL';
 
-  const { groupedShipments, kpis, loading, refresh } = useShipments({
+  const { groupedShipments, kpis, pagination, loading, loadingMore, hasMore, loadMore, refresh } = useShipments({
     ...(showOnlyMyCases ? { assigned_to: user?.id } : {}),
     ...(declStatus !== '__all__' ? { declaration_status: declStatus } : {}),
     ...(lane !== '__all__' ? { selectivity_channel: lane } : {}),
@@ -478,6 +478,7 @@ export const CommandCenter: React.FC = () => {
     ...(serverSearch ? { search: serverSearch } : {}),
     ...(selectedMetric === 'checked_in' ? { checked_in: true } : {}),
     ...(selectedMetric === 'pending' ? { pending: true } : {}),
+    limit: 1000,
   });
 
   // Auto-refresh data every 15 seconds. Silent: this used to call the same
@@ -487,10 +488,13 @@ export const CommandCenter: React.FC = () => {
   // customer groups, and anything mid-interaction. The data still needs to
   // stay fresh for a live ops board; only the disruptive remount was the bug.
   useEffect(() => {
-    const timer = setInterval(() => {
-      refresh({ silent: true });
-    }, 15000);
-    return () => clearInterval(timer);
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (!timer) timer = setInterval(() => refresh({ silent: true }), 15000); };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+    const onVisibility = () => { document.hidden ? stop() : start(); };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [refresh]);
 
   const [opsSummary, setOpsSummary] = useState<{ checked_in: number; active_shipments: number; pending_tasks: number } | null>(null);
@@ -678,7 +682,7 @@ export const CommandCenter: React.FC = () => {
         aria-pressed={active}
         onClick={() => setSelectedMetric(m => (m === cell.metric ? null : cell.metric))}
         title={active ? 'Filtering — click to clear' : 'Click to filter'}
-       data-ui-native-button="">
+       >
         {inner}
       </button>
     ) : (
@@ -759,15 +763,14 @@ export const CommandCenter: React.FC = () => {
         {/* Collapsible Ops Summary & Filters — one row, wraps as a unit on narrow screens */}
         {expanded && (
           <div className="cc-toolbar-row" style={{ paddingLeft: 0, paddingRight: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
-              <div className="ds-tabs-list" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
+              <div className="cc-toolbar-buttons" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
                 {opsSummary && (
                   <>
-                    <button
-                      type="button"
-                      className="ds-tabs-trigger"
-                      data-state={selectedMetric === 'active' ? 'active' : 'inactive'}
+                    <Button variant="outline" size="sm"
+                      className="cc-toolbar-button"
+                      aria-pressed={selectedMetric === 'active'}
                       onClick={() => setSelectedMetric(m => m === 'active' ? null : 'active')}
-                     data-ui-native-button="">
+                    >
                       Active
                       <span style={{
                         fontSize: 10,
@@ -779,14 +782,13 @@ export const CommandCenter: React.FC = () => {
                       }}>
                         {opsSummary.active_shipments}
                       </span>
-                    </button>
+                    </Button>
 
-                    <button
-                      type="button"
-                      className="ds-tabs-trigger"
-                      data-state={selectedMetric === 'checked_in' ? 'active' : 'inactive'}
+                    <Button variant="outline" size="sm"
+                      className="cc-toolbar-button"
+                      aria-pressed={selectedMetric === 'checked_in'}
                       onClick={() => setSelectedMetric(m => m === 'checked_in' ? null : 'checked_in')}
-                     data-ui-native-button="">
+                    >
                       Checked In
                       <span style={{
                         fontSize: 10,
@@ -798,14 +800,13 @@ export const CommandCenter: React.FC = () => {
                       }}>
                         {opsSummary.checked_in}
                       </span>
-                    </button>
+                    </Button>
 
-                    <button
-                      type="button"
-                      className="ds-tabs-trigger"
-                      data-state={selectedMetric === 'pending' ? 'active' : 'inactive'}
+                    <Button variant="outline" size="sm"
+                      className="cc-toolbar-button"
+                      aria-pressed={selectedMetric === 'pending'}
                       onClick={() => setSelectedMetric(m => m === 'pending' ? null : 'pending')}
-                     data-ui-native-button="">
+                    >
                       Pending
                       <span style={{
                         fontSize: 10,
@@ -817,30 +818,28 @@ export const CommandCenter: React.FC = () => {
                       }}>
                         {opsSummary.pending_tasks}
                       </span>
-                    </button>
+                    </Button>
 
                     <div style={{ width: 1, height: 16, background: 'var(--ink3)', opacity: 0.2, alignSelf: 'center', margin: '0 4px' }} />
                   </>
                 )}
 
-                <button
-                  type="button"
-                  className="ds-tabs-trigger"
-                  data-state={showOnlyMyCases ? 'active' : 'inactive'}
+                <Button variant="outline" size="sm"
+                      className="cc-toolbar-button"
+                  aria-pressed={showOnlyMyCases}
                   onClick={() => setShowOnlyMyCases(!showOnlyMyCases)}
-                 data-ui-native-button="">
+                >
                   My Cases
-                </button>
+                </Button>
 
-                <button
-                  type="button"
-                  className="ds-tabs-trigger"
-                  data-state={selectedRiskOnly ? 'active' : 'inactive'}
+                <Button variant="outline" size="sm"
+                      className="cc-toolbar-button"
+                  aria-pressed={selectedRiskOnly}
                   onClick={() => setSelectedRiskOnly(!selectedRiskOnly)}
                   style={selectedRiskOnly ? { color: 'var(--red)' } : {}}
-                 data-ui-native-button="">
+                >
                   At Risk
-                </button>
+                </Button>
               </div>
 
               {/* Filter bar */}
@@ -878,11 +877,11 @@ export const CommandCenter: React.FC = () => {
                   {/* Sort — shared so it works on Board and List alike. */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className="fc fc-filterby" data-ui-native-button="">
+                      <Button variant="outline" size="sm" className="cc-toolbar-button">
                         <Icon name="arrowUpDown" size={12} />
                         {SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? 'Sort'}
                         <Icon name="chevronDown" size={11} />
-                      </button>
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
                       {SORT_OPTIONS.map(o => (
@@ -894,7 +893,7 @@ export const CommandCenter: React.FC = () => {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" className={`fc fc-filterby${declFiltersActive ? ' on' : ''}`} data-ui-native-button="">
+                      <Button variant="outline" size="sm" className="cc-toolbar-button" aria-pressed={declFiltersActive}>
                         <Icon name="sliders" size={12} />
                         Filter by
                         {declFiltersActive && (
@@ -903,7 +902,7 @@ export const CommandCenter: React.FC = () => {
                           </span>
                         )}
                         <Icon name="chevronDown" size={11} />
-                      </button>
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60">
                       <DropdownMenuSub>
@@ -1026,6 +1025,16 @@ export const CommandCenter: React.FC = () => {
                 />
               ))}
             </div>
+
+            {/* Truncation warning + Load more when server has more than we loaded */}
+            {!loading && hasMore && pagination && (
+              <div style={{ padding: '8px 16px', margin: '8px 0', background: 'var(--gold-l, #fffbeb)', border: '1px solid var(--gold, #f59e0b)', borderRadius: 'var(--r-sm, 6px)', fontSize: '12px', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                <span>Showing {groupedShipments.reduce((sum: number, g: any) => sum + (g.shipment_count || g.shipments?.length || 0), 0)} of {pagination.total} matching shipments.</span>
+                <button onClick={loadMore} disabled={loadingMore} style={{ padding: '4px 12px', fontSize: '12px', borderRadius: 'var(--r-sm, 6px)', border: '1px solid var(--gold, #f59e0b)', background: 'var(--white, #fff)', cursor: loadingMore ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+                  {loadingMore ? 'Loading…' : 'Load more'}
+                </button>
+              </div>
+            )}
 
             {/* Pagination bar */}
             {!loading && totalGroups > 0 && (

@@ -83,27 +83,34 @@ export async function runComplyExpiryReminderJob(): Promise<void> {
         if (alreadySent) continue;
         if (daysLeft > stage.leadDays) continue;
 
-        await withTenant(cert.tenant_id, (trx) =>
-          trx.updateTable('comply_certificates')
-            .set({ [stage.column]: now })
-            .where('id', '=', cert.id)
-            .where('tenant_id', '=', cert.tenant_id)
-            .execute()
-        );
-
         const overdue = daysLeft < 0;
         const whenText = overdue
           ? `expired ${Math.abs(daysLeft)} day${Math.abs(daysLeft) === 1 ? '' : 's'} ago`
           : `expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
         const riskText = cert.non_renewal_risk ? ` If not renewed: ${cert.non_renewal_risk}` : '';
 
-        await notifyComplyManagers(
-          cert.tenant_id,
-          overdue ? `Overdue: ${cert.name}` : `Renewal due (${stage.label}): ${cert.name}`,
-          `${cert.cert_number} (${cert.agency_code}) ${whenText}.${riskText}`,
-          '/complyos/vault',
-        ).catch((err) => console.error('⚠️  ComplyOS expiry reminder failed for tenant', cert.tenant_id, err));
-        sent++;
+        // C06 fix: deliver notifications BEFORE marking the stage as sent.
+        // The old order wrote the timestamp first, so a notification failure
+        // permanently suppressed that stage's retry.
+        try {
+          await notifyComplyManagers(
+            cert.tenant_id,
+            overdue ? `Overdue: ${cert.name}` : `Renewal due (${stage.label}): ${cert.name}`,
+            `${cert.cert_number} (${cert.agency_code}) ${whenText}.${riskText}`,
+            '/complyos/vault',
+          );
+
+          await withTenant(cert.tenant_id, (trx) =>
+            trx.updateTable('comply_certificates')
+              .set({ [stage.column]: now })
+              .where('id', '=', cert.id)
+              .where('tenant_id', '=', cert.tenant_id)
+              .execute()
+          );
+          sent++;
+        } catch (err) {
+          console.error('⚠️  ComplyOS expiry reminder failed for tenant', cert.tenant_id, err);
+        }
       }
     }
 

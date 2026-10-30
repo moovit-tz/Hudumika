@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import type { PosAnalytics, PosCashMovementDirection, PosHeldCart, PosPaymentMethod, PosSale, PosShift } from '@hudumika/types';
 import { PaginationBar } from '../components/PaginationBar.js';
-import { Icon } from '../components/Icon.js';
+import { Icon, type IconName } from '../components/Icon.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
@@ -16,12 +16,15 @@ import { useAuth } from '../hooks/useAuth.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
-import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion.js';
 import { useCompany } from '../data/companyStore.js';
-import { loadPosPrintSettings, posPrintKey, printPosReceipt } from '../lib/pos-print.js';
+import { loadPosPrintSettings, posPrintKey, printPosReceipt, buildPosReceiptHtml } from '../lib/pos-print.js';
+import {loadSavedPosReceipt,type SavedPosReceipt} from '../lib/saved-pos-receipt.js';
+import {PosReceiptPreview} from '../components/PosReceiptPreview.js';
+import {Banner} from '../components/ui/alert.js';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../components/ui/resizable.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import './FinancePos.css';
 
@@ -38,6 +41,27 @@ const METHODS: { value: PosPaymentMethod; label: string }[] = [
   { value:'CASH', label:'Cash' }, { value:'CARD', label:'Card' }, { value:'MOBILE_MONEY', label:'Mobile money' },
   { value:'BANK', label:'Bank transfer' }, { value:'OTHER', label:'Other' },
 ];
+
+const CATEGORY_ICONS: Record<string, IconName> = {
+  clothing: 'tag', apparel: 'tag', fashion: 'tag', garments: 'tag',
+  footwear: 'layers', shoes: 'layers',
+  watches: 'clock', jewellery: 'star', jewelry: 'star', accessories: 'star',
+  food: 'leaf', beverages: 'leaf', drinks: 'leaf', groceries: 'leaf',
+  electronics: 'smartphone', phones: 'smartphone', computers: 'smartphone',
+  bags: 'briefcase', luggage: 'briefcase',
+  beauty: 'leaf', health: 'leaf', cosmetics: 'leaf',
+  stationery: 'bookOpen', books: 'bookOpen', office: 'bookOpen',
+  home: 'home', furniture: 'home', decor: 'home',
+  sports: 'flag', fitness: 'flag',
+  toys: 'package', gifts: 'package',
+  tools: 'tool', hardware: 'tool',
+  automotive: 'truck', parts: 'truck',
+};
+function categoryIcon(name: string): IconName {
+  const key = name.toLowerCase();
+  for (const [k, v] of Object.entries(CATEGORY_ICONS)) if (key.includes(k)) return v;
+  return 'package';
+}
 const QUICK_DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
 
 const cash = (value:number, currency='TZS') => new Intl.NumberFormat(undefined, { style:'currency', currency, maximumFractionDigits:2 }).format(value);
@@ -72,6 +96,22 @@ export function FinancePos() {
   const [shiftDialog, setShiftDialog] = useState<'open'|'close'|null>(null);
   const [saving, setSaving] = useState(false);
   const [receipt, setReceipt] = useState<PosSale|null>(null);
+  useEffect(()=>{setReceipt(null);},[user?.tenant_id,user?.id]);
+  const [receiptOutput,setReceiptOutput]=useState<SavedPosReceipt|null>(null);
+  const [receiptLayoutError,setReceiptLayoutError]=useState('');
+  const [receiptRevision,setReceiptRevision]=useState(0);
+  useEffect(()=>{
+    let controller:AbortController|undefined;
+    if(!receipt||!user){setReceiptOutput(null);return;}
+    const refresh=()=>{
+      controller?.abort();const request=new AbortController();controller=request;
+      setReceiptOutput(null);setReceiptLayoutError('');
+      loadSavedPosReceipt(user.tenant_id,user.id,request.signal).then(output=>{if(!request.signal.aborted)setReceiptOutput(output);}).catch(error=>{if(!request.signal.aborted)setReceiptLayoutError(error instanceof Error?error.message:'Could not load the saved receipt design.');});
+    };
+    refresh();window.addEventListener('focus',refresh);window.addEventListener('hudumika-pos-receipt-saved',refresh);
+    return()=>{controller?.abort();window.removeEventListener('focus',refresh);window.removeEventListener('hudumika-pos-receipt-saved',refresh);};
+  },[receipt?.id,receipt?.status,user?.tenant_id,user?.id,receiptRevision]);
+  const receiptHtml=useMemo(()=>receipt&&receiptOutput?buildPosReceiptHtml(receipt,receiptOutput.device,receiptOutput.company,receiptOutput.profile,getComputedStyle(document.documentElement).getPropertyValue('--font').trim()):'',[receipt,receiptOutput]);
   const [refundTarget, setRefundTarget] = useState<PosSale|null>(null);
   const [refundReason, setRefundReason] = useState('');
   const [refundLocationId, setRefundLocationId] = useState('');
@@ -89,6 +129,7 @@ export function FinancePos() {
   const [receiptTotal, setReceiptTotal] = useState(0);
   const [usage, setUsage] = useState<PosUsage|null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState<'receipts'|'analytics'>('receipts');
   const [mobilePane, setMobilePane] = useState<'products'|'sale'>('products');
   const searchRef = useRef<HTMLInputElement>(null);
   const productGridRef = useRef<HTMLDivElement>(null);
@@ -291,6 +332,15 @@ export function FinancePos() {
     } catch (e:any) { showAlert(e.message); } finally { setSaving(false); }
   }
 
+  async function printSale(sale:PosSale) {
+    try {
+      if(!user)throw new Error('Sign in before printing.');
+      const [output,currentSale]=await Promise.all([loadSavedPosReceipt(user.tenant_id,user.id),apiFetch<PosSale>(`/v1/finance/pos/sales/${sale.id}`)]);
+      if(receipt?.id===sale.id){setReceipt(currentSale);setReceiptOutput(output);}
+      printPosReceipt(currentSale,output.device,output.company,output.profile,message=>showAlert(message));
+    } catch(error) { showAlert(`The sale is saved, but printing could not start: ${error instanceof Error?error.message:'Check printer settings and retry.'}`); }
+  }
+
   async function checkout() {
     if (!data?.shift || !cart.length) return;
     if (paymentBalance > 0.01) { showAlert(`Payment is short by ${cash(paymentBalance, currency)}.`); return; }
@@ -309,7 +359,7 @@ export function FinancePos() {
       setUsage(cur => cur ? { ...cur, used:cur.used + 1 } : cur);
       setReceipt(full);
       const printSettings = loadPosPrintSettings(posPrintKey(user?.tenant_id, user?.id));
-      if (printSettings.autoPrint) printPosReceipt(full, printSettings, company.name);
+      if (printSettings.autoPrint) void printSale(full);
       clearCart();
       setPayments([{ id:'primary', method:'CASH', amount:'', reference:'' }]);
       await Promise.all([load(), loadSales()]);
@@ -351,7 +401,7 @@ export function FinancePos() {
         event.preventDefault();
         const target = payments.find(p => p.method === 'CASH') ?? payments[0];
         updatePayment(target.id, { method:'CASH', amount:totals.total.toFixed(2) });
-      } else if (event.key === 'F9') { event.preventDefault(); setHistoryOpen(true); }
+      } else if (event.key === 'F9') { event.preventDefault(); setHistoryTab('receipts'); setHistoryOpen(true); }
       else if (event.ctrlKey && event.key === 'Enter' && paymentBalance <= 0.01 && !invalidChange && !saving) {
         event.preventDefault(); void checkout();
       }
@@ -373,7 +423,14 @@ export function FinancePos() {
         <Button variant="ghost" size="sm" onClick={() => { setExitTarget('/finance'); cart.length ? setExitOpen(true) : navigate('/finance'); }}><Icon name="arrowLeft" size={16} /><span>Back office</span></Button>
         <div className="pos-toolbar-brand">
           <FeaturedIcon size="sm" variant="brand"><Icon name="shoppingCart" size={18} /></FeaturedIcon>
-          <div><strong>Point of sale</strong><small>Counter sales &amp; checkout</small></div>
+          <strong>POS</strong>
+        </div>
+        <div className="pos-toolbar-datetime">
+          <Icon name="calendar" size={14} />
+          <span>{new Date().toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</span>
+          <span className="pos-toolbar-sep" />
+          <Icon name="clock" size={14} />
+          <span>{new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</span>
         </div>
 
         <div className={`pos-toolbar-status ${sel.shift ? 'is-open' : 'is-closed'}`}>
@@ -402,12 +459,12 @@ export function FinancePos() {
         </div>
 
         <div className="pos-toolbar-actions">
-          <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm" aria-label="Product display"><Icon name={productView === 'grid' ? 'grid' : 'list'} size={15} />View</Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem onSelect={() => setProductView('grid')}>Product grid</DropdownMenuItem><DropdownMenuItem onSelect={() => setProductView('list')}>Product list</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-          <Button variant="outline" size="sm" aria-label="Receipt history" onClick={() => setHistoryOpen(true)}><Icon name="receipt" size={16}/>Receipts</Button>
+          <Button variant="outline" size="sm" aria-label="Receipt history" onClick={() => { setHistoryTab('receipts'); setHistoryOpen(true); }}><Icon name="receipt" size={16}/>Receipts</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="outline" size="sm" aria-label="Till actions"><Icon name="moreHorizontal" size={16}/>More</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => { setExitTarget('/finance/pos/settings'); cart.length ? setExitOpen(true) : navigate('/finance/pos/settings'); }}><Icon name="printer" size={15}/>Printer settings</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => { setHistoryTab('analytics'); setHistoryOpen(true); }}><Icon name="barChart" size={15}/>Shift insights</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setShiftHistoryOpen(true)}><Icon name="clock" size={15}/>Register history</DropdownMenuItem>
               {!readOnly && <>
                 {holds.length > 0 && <DropdownMenuItem onSelect={() => setHoldDialog('list')}><Icon name="pause" size={15}/>Held carts ({holds.length})</DropdownMenuItem>}
@@ -436,16 +493,27 @@ export function FinancePos() {
 
       {/* ═══ Main Body: Catalogue + Cart ═══ */}
       {!readOnly && (
-        <div className="pos-body">
+        <ResizablePanelGroup direction="horizontal" className="pos-body" autoSaveId="hudumika-pos-columns-v1">
+          <ResizablePanel id="pos-categories" order={1} defaultSize={7} minSize={6} maxSize={20} className="pos-column">
           <nav className="pos-category-nav" aria-label="Product categories">
-            <h2>Categories</h2>
-            {[{ name: '', label: 'All items', count: data.products.length }, ...categories.map(name => ({ name, label: name, count: data.products.filter(product => product.category === name).length }))].map(category => <Button key={category.name} className="px-3" variant={selectedCategory === category.name ? 'secondary' : 'ghost'} size="sm" aria-pressed={selectedCategory === category.name} onClick={() => { setSelectedCategory(category.name); setProductPage(1); }}><span>{category.label}</span><small>{category.count}</small></Button>)}
+            {[{ name: '', label: 'All', icon: 'grid' as IconName, count: data.products.length }, ...categories.map(name => ({ name, label: name, icon: categoryIcon(name), count: data.products.filter(product => product.category === name).length }))].map(category => (
+              <button key={category.name} className={`pos-cat-tile${selectedCategory === category.name ? ' is-active' : ''}`} aria-pressed={selectedCategory === category.name} onClick={() => { setSelectedCategory(category.name); setProductPage(1); }}>
+                <span className="pos-cat-icon"><Icon name={category.icon} size={22} /></span>
+                <span className="pos-cat-label">{category.label}</span>
+              </button>
+            ))}
           </nav>
+          </ResizablePanel>
+          <ResizableHandle className="pos-column-divider" aria-label="Resize product categories" />
 
           {/* ── LEFT: Catalogue ── */}
+          <ResizablePanel id="pos-products" order={2} defaultSize={65} minSize={30} className="pos-column">
           <div className="pos-catalogue">
-            <div className="pos-section-heading"><div><h2>Product catalogue</h2><p>Select an item or scan its barcode.</p></div><Badge variant="secondary">{filtered.length} products</Badge></div>
             <div className="pos-catalogue-head">
+              <div className="pos-catalogue-left">
+                <Button variant="outline" size="sm"><Icon name="filter" size={15} />Filter</Button>
+                <Badge variant="secondary">{filtered.length} products</Badge>
+              </div>
               <div className="pos-catalogue-search">
                 <Icon name="search" size={16} />
                 <Input
@@ -454,10 +522,10 @@ export function FinancePos() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   onKeyDown={handleCatalogueKey}
-                  placeholder="Search or scan barcode…"
+                  placeholder="Search product…"
                 />
               </div>
-
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="Product display"><Icon name={productView === 'grid' ? 'grid' : 'list'} size={16} /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem onSelect={() => setProductView('grid')}>Grid view</DropdownMenuItem><DropdownMenuItem onSelect={() => setProductView('list')}>List view</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
 
             {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="warning" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
@@ -468,21 +536,22 @@ export function FinancePos() {
                 const unavailable = !!locationId && available !== undefined && available <= 0;
                 const inCart = cart.find(line => line.id === product.id)?.qty ?? 0;
                 return (
-                  <Button variant="ghost" size="xs" type="button" className="pos-tile" data-in-cart={inCart > 0 || undefined} key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable}>
-                    <div className="pos-tile-visual"><FeaturedIcon size="sm" variant="brand"><Icon name="package" size={18}/></FeaturedIcon><span className="pos-tile-category">{product.category ?? product.type}</span>{inCart > 0 && <Badge variant="brand">{inCart} in sale</Badge>}</div>
-                    <div className="pos-tile-top">
-                      <div>
-                        <div className="pos-tile-name">{product.name}</div>
-                        <div className="pos-tile-code">{product.code || product.category || '—'}</div>
-                      </div>
+                  <button type="button" className={`pos-tile${inCart > 0 ? ' is-in-cart' : ''}`} key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable}>
+                    <div className="pos-tile-img"><FeaturedIcon size="md" variant="gray"><Icon name={categoryIcon(product.category ?? '')} size={24}/></FeaturedIcon>{inCart > 0 && <Badge variant="brand" className="pos-tile-qty">{inCart}</Badge>}{unavailable && <span className="pos-tile-unavail">Not Available</span>}</div>
+                    <div className="pos-tile-info">
+                      <div className="pos-tile-name">{product.name}</div>
+                      <div className="pos-tile-code">SKU: {product.code || '—'}</div>
                     </div>
-                    <div className="pos-tile-bottom"><div className="pos-tile-price">{cash(product.sale_price, product.currency)}<small>per {product.unit}</small></div><span className="pos-tile-add" aria-hidden="true"><Icon name="plus" size={16}/></span></div>
+                    <div className="pos-tile-bottom">
+                      <div className="pos-tile-price">{cash(product.sale_price, product.currency)}</div>
+                      <span className="pos-tile-add" aria-hidden="true"><Icon name="plus" size={18}/></span>
+                    </div>
                     {locationId && available !== undefined && (
                       <Badge variant={available <= 0 ? 'destructive' : available <= 5 ? 'warning' : 'success'} className="pos-tile-stock">
                         {available <= 0 ? 'Out of stock' : `${available} ${product.unit}`}
                       </Badge>
                     )}
-                  </Button>
+                  </button>
                 );
               })}
               {!filtered.length && (
@@ -495,21 +564,33 @@ export function FinancePos() {
             </div>
             <PaginationBar className="pos-product-pagination" page={safeProductPage} pageSize={productPageSize} total={filtered.length} onPageChange={setProductPage} onPageSizeChange={setProductPageSize} pageSizeOptions={[8,12,24]} itemLabel="product" />
           </div>
+          </ResizablePanel>
+          <ResizableHandle className="pos-column-divider" aria-label="Resize order details" />
 
           {/* ── RIGHT: Cart Panel ── */}
+          <ResizablePanel id="pos-order" order={3} defaultSize={28} minSize={25} maxSize={50} className="pos-column">
           <div className="pos-cart-panel">
             <div className="pos-cart-head">
-              <div><small className="pos-eyebrow">CHECKOUT</small><h2>Current sale <Badge variant="brand">{cartItemCount}</Badge></h2></div>
-              {cart.length > 0 && <Button size="xs" variant="ghost" onClick={clearCart}>Clear all</Button>}
+              <div className="pos-cart-head-top">
+                <h2>Order Detail</h2>
+                <small>Items: {cartItemCount}</small>
+              </div>
+              {cart.length > 0 && <Button size="xs" variant="ghost" onClick={clearCart}>Clear All</Button>}
+            </div>
+
+            <div className="pos-customer-bar">
+              <PersonAvatar userId={customerId || undefined} name={customerId ? sel.customers.find(c => c.id === customerId)?.name ?? 'Customer' : 'Walk-in'} size={40} />
+              <div className="pos-customer-info">
+                <Combobox
+                  options={[{value:'',label:'Walk-in customer'}, ...sel.customers.map(c => ({value:c.id,label:c.name,sublabel:c.email ?? undefined}))]}
+                  value={customerId} onChange={setCustomerId} placeholder="Walk-in customer" searchPlaceholder="Search customers…" />
+              </div>
             </div>
 
             <div className="pos-cart-scroll">
             <Accordion type="single" collapsible className="pos-sale-settings">
-              <AccordionItem value="details"><AccordionTrigger>Customer &amp; sale details<span className="pos-settings-summary">{customerId ? sel.customers.find(customer => customer.id === customerId)?.name : 'Walk-in customer'}</span></AccordionTrigger><AccordionContent>
+              <AccordionItem value="details"><AccordionTrigger>Sale details<span className="pos-settings-summary">{locationId ? sel.locations.find(l => l.id === locationId)?.name ?? '' : ''}{saleNotes ? ` · ${saleNotes}` : ''}</span></AccordionTrigger><AccordionContent>
             <div className="pos-cart-fields">
-              <label className="pos-field"><span>Customer</span><Combobox
-                options={[{value:'',label:'Walk-in customer'}, ...sel.customers.map(c => ({value:c.id,label:c.name,sublabel:c.email ?? undefined}))]}
-                value={customerId} onChange={setCustomerId} placeholder="Walk-in customer" searchPlaceholder="Search customers…" /></label>
               <label className="pos-field"><span>Stock location</span><Combobox
                 options={[{value:'',label:'No stock deduction'}, ...sel.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
                 value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Stock location…" /></label>
@@ -630,77 +711,280 @@ export function FinancePos() {
               {/* Charge row */}
             </div>
             </div>
-              <div className="pos-charge-row">
-                <Button variant="outline" disabled={!cart.length || saving} onClick={() => {
-                  setHoldLabel(customerId ? sel.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
-                  setHoldDialog('save');
-                }}><Icon name="pause" size={14}/>Hold</Button>
+              <div className="pos-checkout-footer">
+                <button type="button" className="pos-action-btn" disabled={!cart.length || saving} onClick={() => { setHoldLabel(customerId ? sel.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`); setHoldDialog('save'); }}><span className="pos-action-icon"><Icon name="pause" size={18}/></span><span>Hold</span></button>
+                <button type="button" className="pos-action-btn" disabled={!sel.shift || !cart.length || saving} onClick={() => { showAlert('Invoice mode is available after checkout — select a customer and check out to generate a linked invoice.'); }}><span className="pos-action-icon"><Icon name="fileText" size={18}/></span><span>Bill</span></button>
                 <Button size="lg"
                   type="button"
                   className="pos-charge-btn"
                   disabled={!sel.shift || !cart.length || saving || quotaExhausted || stockIssues.length > 0 || paymentBalance > 0.01 || invalidChange}
                   onClick={checkout}
                 >
-                  <Icon name="creditCard" size={18}/>
-                  {saving ? 'Processing…' : `Charge ${cash(totals.total, currency)}`}
+                  <Icon name="shoppingCart" size={18} />
+                  {saving ? 'Processing…' : 'Submit Order'}
                 </Button>
               </div>
               {!sel.shift && <p className="pos-register-closed-note">Open the register to start selling.</p>}
           </div>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       )}
 
       {!readOnly && <div className="pos-mobile-basket"><div><small>{cartItemCount} items in your sale</small><strong>{cash(totals.total, currency)}</strong></div><Button onClick={() => setMobilePane('sale')}>Review sale<Icon name="shoppingCart" size={16}/></Button></div>}
 
-      {/* ═══ Receipt History Side Panel ═══ */}
+      {/* ═══ Receipt History & Shift Insights Side Panel ═══ */}
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        <SheetContent className="pos-history-panel" aria-describedby={undefined}>
+        <SheetContent className="w-full sm:max-w-[520px] pos-history-panel" aria-describedby={undefined}>
           <div className="pos-history-head">
-            <SheetTitle>Receipt history</SheetTitle>
-          </div>
-          <div className="pos-history-filters">
-            <SearchToolbar search={receiptSearch} onSearch={value => { setReceiptSearch(value); setReceiptPage(1); }} placeholder="Receipt or customer…" />
-            <Select value={receiptStatus} onValueChange={v => { setReceiptStatus(v); setReceiptPage(1); }}>
-              <SelectTrigger aria-label="Receipt status"><SelectValue/></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="REFUNDED">Refunded</SelectItem>
-                <SelectItem value="POSTING_FAILED">Failed</SelectItem>
-                <SelectItem value="VOIDED">Voided</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="pos-history-list">
-            {sales.map(sale => (
-              <Button variant="ghost" size="xs" type="button" key={sale.id} className="pos-history-item" onClick={() => { apiFetch(`/v1/finance/pos/sales/${sale.id}`).then(r => { setReceipt(r as PosSale); setHistoryOpen(false); }).catch((e:Error) => showAlert(e.message)); }}>
-                <span><strong>{sale.sale_number}</strong><small>{sale.customer_name ?? 'Walk-in'} · {new Date(sale.sold_at).toLocaleString()}</small></span>
-                <Badge variant={sale.status === 'POSTING_FAILED' || sale.status === 'VOIDED' ? 'destructive' : sale.status === 'REFUNDED' ? 'warning' : 'success'}>{sale.status === 'POSTING_FAILED' ? 'Failed' : sale.status}</Badge>
-                <b>{cash(sale.grand_total, sale.currency)}</b>
-              </Button>
-            ))}
-            {!sales.length && <div className="pos-history-empty">No receipts match these filters.</div>}
-          </div>
-          <div className="pos-history-footer">
-            <PaginationBar page={receiptPage} pageSize={receiptPageSize} total={receiptTotal} onPageChange={setReceiptPage} onPageSizeChange={size => { setReceiptPageSize(size); setReceiptPage(1); }} pageSizeOptions={[10,20,50]} itemLabel="receipt" />
+            <div className="pos-history-title-group">
+              <SheetTitle className="pos-history-title">
+                {historyTab === 'receipts' ? 'Receipt history' : 'Shift insights'}
+              </SheetTitle>
+              <p className="pos-history-subtitle">
+                {historyTab === 'receipts'
+                  ? `${receiptTotal} recorded sale${receiptTotal === 1 ? '' : 's'}`
+                  : `${analytics?.today.sales_count ?? 0} transactions today`}
+              </p>
+            </div>
           </div>
 
-          {/* Analytics inside history panel */}
-          {analytics && (
-            <div className="pos-analytics-grid">
-              <div className="pos-analytics-card">
-                <h3>Cashier leaderboard <small>Today</small></h3>
-                {analytics.cashiers.map(c => (
-                  <div key={c.user_id} className="pos-analytics-row"><PersonAvatar userId={c.user_id} name={c.name} size={28} /><span><strong>{c.name}</strong><small>{c.sales_count} sales · Avg {cash(c.average_sale, currency)}</small></span><b>{cash(c.revenue, currency)}</b></div>
-                ))}
-                {!analytics.cashiers.length && <div className="pos-history-empty">No sales today.</div>}
+          <div className="pos-history-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={historyTab === 'receipts'}
+              className={`pos-history-tab${historyTab === 'receipts' ? ' is-active' : ''}`}
+              onClick={() => setHistoryTab('receipts')}
+            >
+              <Icon name="receipt" size={15} />
+              <span>Receipts</span>
+              {receiptTotal > 0 && <span className="pos-tab-badge">{receiptTotal}</span>}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={historyTab === 'analytics'}
+              className={`pos-history-tab${historyTab === 'analytics' ? ' is-active' : ''}`}
+              onClick={() => setHistoryTab('analytics')}
+            >
+              <Icon name="barChart" size={15} />
+              <span>Today’s shift</span>
+            </button>
+          </div>
+
+          {historyTab === 'receipts' ? (
+            <div className="pos-history-body">
+              <div className="pos-history-filters">
+                <div className="pos-history-search">
+                  <Icon name="search" size={15} className="pos-search-icon" />
+                  <input
+                    type="text"
+                    value={receiptSearch}
+                    onChange={e => { setReceiptSearch(e.target.value); setReceiptPage(1); }}
+                    placeholder="Search receipt # or customer…"
+                    aria-label="Search receipts"
+                  />
+                  {receiptSearch && (
+                    <button
+                      type="button"
+                      className="pos-search-clear"
+                      onClick={() => { setReceiptSearch(''); setReceiptPage(1); }}
+                      aria-label="Clear search"
+                    >
+                      <Icon name="close" size={13} />
+                    </button>
+                  )}
+                </div>
+                <Select value={receiptStatus} onValueChange={v => { setReceiptStatus(v); setReceiptPage(1); }}>
+                  <SelectTrigger className="w-[125px] shrink-0 h-9" aria-label="Receipt status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All statuses</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="REFUNDED">Refunded</SelectItem>
+                    <SelectItem value="POSTING_FAILED">Failed</SelectItem>
+                    <SelectItem value="VOIDED">Voided</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="pos-analytics-card">
-                <h3>Payment mix <small>Today</small></h3>
-                {analytics.payments.map(p => (
-                  <div key={p.method} className="pos-analytics-row"><span className="pos-pay-icon"><Icon name={p.method === 'CASH' ? 'coins' : 'creditCard'} size={14}/></span><span><strong>{METHODS.find(m => m.value === p.method)?.label ?? p.method}</strong><small>{p.count} entries</small></span><b>{cash(p.amount, currency)}</b></div>
+
+              <div className="pos-history-list">
+                {sales.map(sale => (
+                  <button
+                    type="button"
+                    key={sale.id}
+                    className="pos-history-item"
+                    onClick={() => {
+                      apiFetch(`/v1/finance/pos/sales/${sale.id}`)
+                        .then(r => { setReceipt(r as PosSale); setHistoryOpen(false); })
+                        .catch((e: Error) => showAlert(e.message));
+                    }}
+                  >
+                    <div className="pos-history-item-top">
+                      <span className="pos-history-receipt-num">{sale.sale_number}</span>
+                      <div className="pos-history-item-status">
+                        <Badge variant={sale.status === 'POSTING_FAILED' || sale.status === 'VOIDED' ? 'destructive' : sale.status === 'REFUNDED' ? 'warning' : 'success'}>
+                          {sale.status === 'POSTING_FAILED' ? 'Failed' : sale.status}
+                        </Badge>
+                        <strong className="pos-history-item-total">{cash(sale.grand_total, sale.currency)}</strong>
+                      </div>
+                    </div>
+                    <div className="pos-history-item-meta">
+                      <span className="pos-history-customer">
+                        <Icon name="user" size={13} />
+                        {sale.customer_name ?? 'Walk-in'}
+                      </span>
+                      <span className="pos-history-dot">·</span>
+                      <span className="pos-history-date">
+                        <Icon name="clock" size={13} />
+                        {new Date(sale.sold_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                      <Icon name="chevronRight" size={14} className="pos-history-chevron" />
+                    </div>
+                  </button>
                 ))}
-                {!analytics.payments.length && <div className="pos-history-empty">No payments today.</div>}
+                {!sales.length && (
+                  <div className="pos-history-empty">
+                    <div className="pos-empty-icon-wrap">
+                      <Icon name="receipt" size={26} />
+                    </div>
+                    <strong>No receipts found</strong>
+                    <p>
+                      {receiptSearch || receiptStatus !== 'ALL'
+                        ? 'No receipts match your search or status filter.'
+                        : 'Completed sales will appear in this log.'}
+                    </p>
+                    {(receiptSearch || receiptStatus !== 'ALL') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setReceiptSearch(''); setReceiptStatus('ALL'); setReceiptPage(1); }}
+                      >
+                        Clear filters
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="pos-history-footer">
+                <PaginationBar
+                  page={receiptPage}
+                  pageSize={receiptPageSize}
+                  total={receiptTotal}
+                  onPageChange={setReceiptPage}
+                  onPageSizeChange={size => { setReceiptPageSize(size); setReceiptPage(1); }}
+                  pageSizeOptions={[10, 20, 50]}
+                  itemLabel="receipt"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="pos-shift-insights">
+              <div className="pos-shift-kpi-grid">
+                <div className="pos-shift-kpi-card">
+                  <span className="pos-shift-kpi-label">Today's Sales</span>
+                  <strong className="pos-shift-kpi-val">{cash(analytics?.today.revenue ?? 0, currency)}</strong>
+                  <small className="pos-shift-kpi-sub">{analytics?.today.sales_count ?? 0} receipts</small>
+                </div>
+                <div className="pos-shift-kpi-card">
+                  <span className="pos-shift-kpi-label">Average Sale</span>
+                  <strong className="pos-shift-kpi-val">{cash(analytics?.today.average_sale ?? 0, currency)}</strong>
+                  <small className="pos-shift-kpi-sub">Per transaction</small>
+                </div>
+                <div className="pos-shift-kpi-card">
+                  <span className="pos-shift-kpi-label">Gross Margin</span>
+                  <strong className="pos-shift-kpi-val">{cash(analytics?.today.margin ?? 0, currency)}</strong>
+                  <small className="pos-shift-kpi-sub">After tax &amp; cost</small>
+                </div>
+                <div className="pos-shift-kpi-card">
+                  <span className="pos-shift-kpi-label">Discounts</span>
+                  <strong className="pos-shift-kpi-val">{cash(analytics?.today.discounts ?? 0, currency)}</strong>
+                  <small className="pos-shift-kpi-sub">{analytics?.today.revenue ? `${((analytics.today.discounts / analytics.today.revenue) * 100).toFixed(1)}%` : '0%'} rate</small>
+                </div>
+              </div>
+
+              <div className="pos-analytics-card">
+                <div className="pos-analytics-card-header">
+                  <div className="pos-analytics-card-title">
+                    <Icon name="users" size={15} />
+                    <h3>Cashier Leaderboard</h3>
+                  </div>
+                  <Badge variant="outline">Today</Badge>
+                </div>
+                {analytics?.cashiers && analytics.cashiers.length > 0 ? (
+                  <div className="pos-analytics-list">
+                    {analytics.cashiers.map((c, idx) => (
+                      <div key={c.user_id} className="pos-analytics-row">
+                        <span className={`pos-rank pos-rank-${idx + 1}`}>#{idx + 1}</span>
+                        <PersonAvatar userId={c.user_id} name={c.name} size={30} />
+                        <div className="pos-cashier-info">
+                          <strong>{c.name}</strong>
+                          <small>{c.sales_count} sales · Avg {cash(c.average_sale, currency)}</small>
+                        </div>
+                        <b className="pos-cashier-revenue">{cash(c.revenue, currency)}</b>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="pos-insights-empty">
+                    <Icon name="users" size={24} />
+                    <strong>No cashier sales today</strong>
+                    <p>Sales processed during today’s shifts will be ranked here.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="pos-analytics-card">
+                <div className="pos-analytics-card-header">
+                  <div className="pos-analytics-card-title">
+                    <Icon name="creditCard" size={15} />
+                    <h3>Payment Mix</h3>
+                  </div>
+                  <Badge variant="outline">Today</Badge>
+                </div>
+                {analytics?.payments && analytics.payments.length > 0 ? (
+                  <div className="pos-analytics-list">
+                    {analytics.payments.map(p => {
+                      const totalPay = analytics.payments.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+                      const pct = totalPay > 0 ? Math.round(((Number(p.amount) || 0) / totalPay) * 100) : 0;
+                      return (
+                        <div key={p.method} className="pos-pay-mix-item">
+                          <div className="pos-analytics-row">
+                            <span className="pos-pay-icon">
+                              <Icon name={p.method === 'CASH' ? 'coins' : p.method === 'CARD' ? 'creditCard' : p.method === 'MOBILE_MONEY' ? 'smartphone' : p.method === 'BANK' ? 'bankNote' : 'creditCard'} size={14} />
+                            </span>
+                            <div className="pos-pay-info">
+                              <strong>{METHODS.find(m => m.value === p.method)?.label ?? p.method}</strong>
+                              <small>{p.count} entries · {pct}%</small>
+                            </div>
+                            <b className="pos-pay-amount">{cash(p.amount, currency)}</b>
+                          </div>
+                          <div className="pos-pay-progress-bar">
+                            <div className="pos-pay-progress-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="pos-insights-empty">
+                    <Icon name="creditCard" size={24} />
+                    <strong>No payments today</strong>
+                    <p>Payments collected across all tenders will display here.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="pos-shift-actions-card">
+                <div>
+                  <strong>Register Sessions &amp; Cash Float</strong>
+                  <p>Inspect opened/closed drawer records, counted cash, and variance.</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { setShiftHistoryOpen(true); setHistoryOpen(false); }}>
+                  <Icon name="clock" size={14} /> Register history
+                </Button>
               </div>
             </div>
           )}
@@ -817,54 +1101,19 @@ export function FinancePos() {
 
       {/* Receipt */}
       <Dialog open={!!receipt} onOpenChange={open => !open && setReceipt(null)}>
-        <DialogContent size="md"><DialogHeader><DialogTitle>Sale receipt</DialogTitle></DialogHeader>
+        <DialogContent size="lg" style={{height:'min(90dvh,1000px)'}}><DialogHeader><DialogTitle>Sale receipt</DialogTitle></DialogHeader>
         <DialogBody>
-          {receipt && (
-            <div className="pos-receipt">
-              <div className="pos-receipt-head">
-                <Badge variant={receipt.status === 'POSTING_FAILED' ? 'destructive' : receipt.status === 'REFUNDED' ? 'warning' : 'success'}>
-                  {receipt.status === 'POSTING_FAILED' ? 'Accounting failed' : receipt.status === 'REFUNDED' ? 'Refunded' : 'Paid'}
-                </Badge>
-                <h2>{receipt.sale_number}</h2>
-                <p>{new Date(receipt.sold_at).toLocaleString()} · {receipt.customer_name ?? 'Walk-in customer'}</p>
-                {receipt.notes && <p className="pos-receipt-note">{receipt.notes}</p>}
-                {receipt.refund_reason && <p className="pos-refund-reason">Refund: {receipt.refund_reason}</p>}
-                {receipt.posting_error && <p className="pos-posting-error">{receipt.posting_error}</p>}
-              </div>
-              <div className="pos-receipt-lines">
-                {receipt.lines?.map(line => (
-                  <div key={line.id}>
-                    <span>{line.product_name}<small>{line.qty} × {cash(line.unit_price, receipt.currency)}{line.discount > 0 ? ` − ${cash(line.discount, receipt.currency)} off` : ''}</small></span>
-                    <b>{cash(line.line_total, receipt.currency)}</b>
-                  </div>
-                ))}
-              </div>
-              <div className="pos-receipt-subtotals">
-                {receipt.discount_total > 0 && <div><span>Discount</span><b>− {cash(receipt.discount_total, receipt.currency)}</b></div>}
-                {receipt.tax_total > 0 && <div><span>Tax</span><b>{cash(receipt.tax_total, receipt.currency)}</b></div>}
-              </div>
-              <div className="pos-receipt-total"><span>Total</span><b>{cash(receipt.grand_total, receipt.currency)}</b></div>
-              {receipt.payments && receipt.payments.length > 0 && (
-                <div className="pos-receipt-payments">
-                  <p className="pos-receipt-payments-label">Tendered</p>
-                  {receipt.payments.map(p => (
-                    <div key={p.id}>
-                      <span>{METHODS.find(m => m.value === p.method)?.label ?? p.method}{p.reference ? ` · ${p.reference}` : ''}</span>
-                      <b>{cash(p.amount, receipt.currency)}</b>
-                    </div>
-                  ))}
-                  {receipt.change_due > 0 && (
-                    <div className="pos-receipt-change"><span>Change</span><b>{cash(receipt.change_due, receipt.currency)}</b></div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {receipt?.posting_error&&<Banner variant="error">{receipt.posting_error}</Banner>}
+          {receipt?.refund_reason&&<Banner variant="info">Refund: {receipt.refund_reason}</Banner>}
+          {receiptLayoutError?<Banner variant="error">Could not load the saved receipt design: {receiptLayoutError}<Button variant="outline" size="sm" onClick={()=>setReceiptRevision(r=>r+1)}>Retry</Button></Banner>:!receiptOutput?<SectionLoading/>:<>
+            <p className="mb-3 text-xs text-muted-foreground">Saved tenant receipt design · {receiptOutput.profile.template} · {receiptOutput.device.paper}</p>
+            <PosReceiptPreview html={receiptHtml} title="Saved sale receipt preview"/>
+          </>}
         </DialogBody>
         <DialogFooter>
           {!readOnly && canRefund && receipt?.status === 'POSTING_FAILED' && <Button disabled={saving} onClick={retryPosting}><Icon name="refresh" size={14}/>{saving ? 'Retrying…' : 'Retry accounting'}</Button>}
           {!readOnly && canRefund && receipt?.status === 'COMPLETED' && <Button variant="destructive" onClick={() => { setRefundTarget(receipt); setReceipt(null); }}><Icon name="refresh" size={14}/>Refund</Button>}
-          <Button variant="outline" onClick={() => receipt && printPosReceipt(receipt, loadPosPrintSettings(posPrintKey(user?.tenant_id, user?.id)), company.name)}><Icon name="fileText" size={14}/>Print</Button>
+          <Button variant="outline" disabled={!receiptOutput||!!receiptLayoutError} onClick={() => receipt && void printSale(receipt)}><Icon name="fileText" size={14}/>Print</Button>
           <Button onClick={() => setReceipt(null)}>Done</Button>
         </DialogFooter>
         </DialogContent>

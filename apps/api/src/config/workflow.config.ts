@@ -1,11 +1,27 @@
-import type { ClearanceStage, DocumentType } from '@hudumika/types';
+import type { ClearanceStage, DocumentType, ShipmentType } from '@hudumika/types';
 
 export interface StageConfig {
   stage: ClearanceStage;
   label: string;
   slaHours: number; // Target SLA duration in hours
-  requiredDocuments: DocumentType[]; // Documents that MUST be verified/received to enter or complete this stage
+  requiredDocuments: DocumentType[]; // Documents that MUST be verified/received to enter or complete this stage (mode-agnostic; transport doc added by transportDocumentForMode)
   prerequisites: ClearanceStage[]; // Stages that must be completed before entering this stage
+}
+
+/**
+ * Returns the transport document type required for a given freight mode.
+ * SEA/BULK → BL (Bill of Lading), AIR → AWB (Air Waybill).
+ * ROAD/RAIL return null — no single mandatory transport document type
+ * exists in the platform's document-type enum yet; the prerequisite
+ * check skips the transport-document gate for those modes rather than
+ * blocking on a document the shipper cannot upload.
+ */
+export function transportDocumentForMode(shipmentType: ShipmentType | string): DocumentType | null {
+  switch (shipmentType) {
+    case 'SEA_FCL': case 'SEA_LCL': case 'BULK': return 'BL';
+    case 'AIR': return 'AWB';
+    default: return null;
+  }
 }
 
 export const WORKFLOW_CONFIGS: Record<ClearanceStage, StageConfig> = {
@@ -20,7 +36,7 @@ export const WORKFLOW_CONFIGS: Record<ClearanceStage, StageConfig> = {
     stage: 'VALIDATION',
     label: 'Document Validation',
     slaHours: 24,
-    requiredDocuments: ['BL', 'INVOICE', 'PACKING_LIST'],
+    requiredDocuments: ['INVOICE', 'PACKING_LIST'],
     prerequisites: ['DOCS_RECEIVED'],
   },
   PERMITS: {

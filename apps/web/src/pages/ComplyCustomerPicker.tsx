@@ -45,8 +45,8 @@ export function ComplyCustomerPicker({ value, onChange, label = 'Client / Entity
   ];
 
   return (
-    <div>
-      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>{label}</label>
+    <fieldset className="comply-form-field">
+      <legend>{label}</legend>
       <Combobox
         options={options}
         value={value ?? NONE}
@@ -56,6 +56,6 @@ export function ComplyCustomerPicker({ value, onChange, label = 'Client / Entity
         emptyText="No matching clients."
         disabled={loading}
       />
-    </div>
+    </fieldset>
   );
 }

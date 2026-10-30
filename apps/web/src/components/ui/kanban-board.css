@@ -22,6 +22,9 @@
   border-color: var(--teal-m, var(--teal));
 }
 
+:root .cc-shell .cc-main .kb-column { background: var(--card-sunken); }
+:root .cc-shell .cc-main .kb-column--over { background: var(--teal-l); }
+
 /* Column header */
 .kb-col-header {
   display: flex;

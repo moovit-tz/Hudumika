@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { ButtonSpinner } from '../components/ui/spinner.js';
-import { getContainerDetails, SAMPLE_CONTAINER_MSCU } from '../components/container/containerData.js';
+import { getContainerDetails } from '../components/container/containerData.js';
 import { getContainerColor } from '../components/container/containerColors.js';
 import { IsometricContainerIllustration } from '../components/container/IsometricContainerIllustration.js';
 import { CarrierSelect } from '../components/container/CarrierSelect.js';
@@ -164,36 +164,7 @@ export const RecordContainerPage: React.FC = () => {
   const navigate = useNavigate();
 
   const isEdit = !!number;
-  const [formData, setFormData] = useState<ContainerDetails>(() => ({
-    ...SAMPLE_CONTAINER_MSCU,
-    container_number: '',
-    carrier: '',
-    iso_code: '20G1',
-    size_type: '20ft General Purpose Dry',
-    ownership: 'CARRIER_OWNED' as ContainerOwnership,
-    condition: 'EXCELLENT' as ContainerCondition,
-    dimensions: { len_m: 6.06, ht_m: 2.59, wd_m: 2.44, height_m: 2.59, width_m: 2.44, length_m: 6.06 } as any,
-    tare_weight_kg: 2230,
-    max_gross_weight_kg: 30480,
-    payload_capacity_kg: 28250,
-    cubic_capacity_cbm: 33.2,
-    floor_type: 'Apitong 28mm Plywood',
-    manufacturer: 'CIMC Container Logistics',
-    manufacture_year: new Date().getFullYear(),
-    design_validity_years: 10,
-    compliance: {
-      csc_cert_date: '10 Jan 2026',
-      csc_expiry_date: '10 Jan 2031',
-      acep_ccep: 'ACEP/CH/2026/889',
-      customs_seal_no: 'SEAL-779812',
-    },
-    current_depot: {
-      name: 'Mombasa Port Terminal (KEMBA)',
-      code: 'KEMBA-01',
-      date: '28 Sep 2026',
-      state: 'Empty',
-    },
-  }));
+  const [formData, setFormData] = useState<ContainerDetails>(() => getContainerDetails(''));
 
   const [validationError, setValidationError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -206,23 +177,21 @@ export const RecordContainerPage: React.FC = () => {
           if (data && data.container_number) setFormData(data);
           else setFormData(getContainerDetails(number));
         })
-        .catch(() => setFormData(getContainerDetails(number)));
+        .catch((error) => setValidationError(error.message || 'Could not load container'));
     }
   }, [number]);
 
   // Detected shipping line from typed container number or carrier selection
-  const identifiedCarrier = detectShippingLine(formData.container_number || formData.carrier);
+  const identifiedCarrier = detectShippingLine(formData.container_number) ?? detectShippingLine(formData.carrier);
   const containerPalette = getContainerColor(formData.container_number, formData.carrier);
 
   // 1. Handle typing container number — instantly identifies shipping line, color, logo, and dimensions
   const handleContainerNumChange = (val: string) => {
     const cleanNum = val.toUpperCase().replace(/\s/g, '');
-    const detected = detectShippingLine(cleanNum);
 
     setFormData((prev) => ({
       ...prev,
       container_number: cleanNum,
-      carrier: detected ? detected.shortName : prev.carrier,
     }));
 
     // ISO 6346 Check Digit Validation
@@ -269,6 +238,8 @@ export const RecordContainerPage: React.FC = () => {
       setValidationError('Container number is required');
       return;
     }
+    const check = validateContainerNumber(formData.container_number);
+    if (!check.valid) { setValidationError(check.reason || 'Invalid container number'); return; }
     setSaving(true);
     try {
       await apiFetch('/v1/tracker/containers', {
@@ -277,7 +248,7 @@ export const RecordContainerPage: React.FC = () => {
           ...formData,
           color_hex: containerPalette.primary,
         }),
-      }).catch(() => {});
+      });
 
       showAlert(`Container ${formData.container_number} recorded successfully.`);
       navigate(`/cargotracker/containers/${formData.container_number}`);
@@ -291,12 +262,12 @@ export const RecordContainerPage: React.FC = () => {
   const isIdentified = !!(formData.container_number?.trim() || formData.carrier?.trim());
 
   return (
-    <div className="p-4 sm:p-7 max-w-6xl mx-auto space-y-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         crumbs={['Cargo Tracker', 'Containers', isEdit ? `Edit ${number}` : 'Record New']}
         titlePlain={isEdit ? 'Edit' : 'Record New'}
         titleEm="Container"
-        subtitle="Configure container specifications, ISO classification, CSC safety compliance, and live 3D shipping line model."
+        subtitle="Configure container specifications, ISO classification, CSC safety compliance, and an illustrative shipping line model."
         actions={
           <Button
             variant="outline"
@@ -310,14 +281,14 @@ export const RecordContainerPage: React.FC = () => {
         }
       />
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="flex flex-col gap-6">
         {/* ── 3D Live Container Mockup ──────────────────────────────────────── */}
-        <div className="p-5 sm:p-6 bg-(--white) border border-(--border) rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-5 sm:p-6 border border-(--border) overflow-hidden" style={{ borderRadius: 'var(--r)', background: 'var(--card-sunken, var(--bg))' }}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch">
 
             {/* Left — 3D Isometric Illustration */}
             <div className="lg:col-span-7 flex justify-center items-center py-4 lg:py-2 min-h-[200px] sm:min-h-[240px]">
-              <IsometricContainerIllustration
+              <IsometricContainerIllustration maxGrossWeightKg={formData.max_gross_weight_kg} tareWeightKg={formData.tare_weight_kg}
                 containerNumber={formData.container_number}
                 isoCode={formData.iso_code || '20G1'}
                 carrierName={formData.carrier}
@@ -345,11 +316,11 @@ export const RecordContainerPage: React.FC = () => {
 
               {/* Identified carrier card  OR  empty-state hint */}
               {isIdentified && identifiedCarrier ? (
-                <div className="p-3 rounded-xl bg-(--teal-l) border border-(--teal-m) space-y-2">
+                <div className="p-3 bg-(--teal-l) border border-(--teal-m) space-y-2" style={{ borderRadius: 'var(--r-sm)' }}>
                   <div className="flex items-center justify-between gap-2">
                     <CarrierLogo carrier={identifiedCarrier} size="sm" variant="badge" />
                     {identifiedCarrier.rank && (
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[var(--gold-l)] text-[var(--gold)] border border-[var(--gold)]/30 shrink-0">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0" style={{ background: 'var(--gold-l)', color: 'var(--gold)', border: '1px solid color-mix(in srgb, var(--gold) 30%, transparent)' }}>
                         #{identifiedCarrier.rank} Global
                       </span>
                     )}
@@ -360,7 +331,7 @@ export const RecordContainerPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-(--bg) border border-(--border) space-y-1">
+                <div className="p-3 bg-(--white) border border-(--border) space-y-1" style={{ borderRadius: 'var(--r-sm)' }}>
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-(--ink2)">
                     <Icon name="info" size={12} color="var(--teal)" />
                     Clean Unbranded Mockup
@@ -392,7 +363,7 @@ export const RecordContainerPage: React.FC = () => {
                     sub: 'Capacity',
                   },
                 ].map(({ label, value, sub }) => (
-                  <div key={label} className="p-2 rounded-lg bg-(--bg) border border-(--border) text-center">
+                  <div key={label} className="p-2 bg-(--white) border border-(--border) text-center" style={{ borderRadius: 'var(--r-sm)' }}>
                     <p className="text-[10px] font-bold text-(--ink3) uppercase tracking-wide leading-none mb-1">{label}</p>
                     <p className="text-[12px] font-black text-(--ink) font-mono leading-none">{value}</p>
                     <p className="text-[9px] text-(--ink3) mt-0.5 leading-none">{sub}</p>
@@ -414,7 +385,7 @@ export const RecordContainerPage: React.FC = () => {
             {/* Container Number — drives auto-detection of carrier + 3D paint */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-(--ink2) block">
-                Container Number (ISO 6346) <span className="text-red-500">*</span>
+                Container Number (ISO 6346) <span style={{ color: 'var(--red)' }}>*</span>
               </label>
               <Input
                 value={formData.container_number}
@@ -424,9 +395,9 @@ export const RecordContainerPage: React.FC = () => {
                 required
               />
               {validationError ? (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">{validationError}</p>
+                <p className="text-[11px] font-medium" style={{ color: 'var(--gold)' }}>{validationError}</p>
               ) : (
-                <p className="text-[10px] text-(--ink3)">BIC prefix auto-identifies carrier &amp; paints 3D model</p>
+                <p className="text-[10px] text-(--ink3)">BIC prefix identifies equipment owner/brand; select the operating carrier separately</p>
               )}
             </div>
 
@@ -589,8 +560,8 @@ export const RecordContainerPage: React.FC = () => {
                 <label className="text-xs font-bold text-(--ink2) block">Manufacture Year</label>
                 <Input
                   type="number"
-                  value={formData.manufacture_year || new Date().getFullYear()}
-                  onChange={(e) => setFormData((p) => ({ ...p, manufacture_year: parseInt(e.target.value, 10) || 2026 }))}
+                  value={formData.manufacture_year || ''}
+                  onChange={(e) => setFormData((p) => ({ ...p, manufacture_year: parseInt(e.target.value, 10) || 0 }))}
                   className="font-mono text-xs"
                 />
               </div>
@@ -598,8 +569,8 @@ export const RecordContainerPage: React.FC = () => {
                 <label className="text-xs font-bold text-(--ink2) block">Design Validity (Years)</label>
                 <Input
                   type="number"
-                  value={formData.design_validity_years || 10}
-                  onChange={(e) => setFormData((p) => ({ ...p, design_validity_years: parseInt(e.target.value, 10) || 10 }))}
+                  value={formData.design_validity_years || ''}
+                  onChange={(e) => setFormData((p) => ({ ...p, design_validity_years: parseInt(e.target.value, 10) || 0 }))}
                   className="font-mono text-xs"
                 />
               </div>
@@ -685,11 +656,12 @@ export const RecordContainerPage: React.FC = () => {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-(--ink2) block">Storage State</label>
               <Select
-                value={formData.current_depot?.state || 'Empty'}
+                value={formData.current_depot?.state || '__unknown__'}
                 onValueChange={(val) => setFormData((p) => ({ ...p, current_depot: { ...p.current_depot, state: val as 'Empty' | 'Laden' } }))}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__unknown__">Unknown</SelectItem>
                   <SelectItem value="Empty">Empty — Available</SelectItem>
                   <SelectItem value="Laden">Laden — Loaded</SelectItem>
                 </SelectContent>

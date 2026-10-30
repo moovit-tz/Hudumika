@@ -1,4 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import type { HrTimeReconciliation } from '@hudumika/types';
+import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -43,6 +45,7 @@ interface ClockSession {
   status: 'ACTIVE' | 'ON_BREAK' | 'COMPLETED' | 'CANCELLED';
   total_break_minutes: number;
   worked_minutes: number | null;
+  source?: string;
 }
 
 interface ClockBreak {
@@ -90,6 +93,16 @@ export function ClockInPage() {
   const [userProfile, setUserProfile] = useState<{ name: string; role?: string } | null>(null);
   const [dateRangeFilter, setDateRangeFilter] = useState('7days');
   const [workedMinutesTotal, setWorkedMinutesTotal] = useState(0);
+  const [reconciliation, setReconciliation] = useState<HrTimeReconciliation | null>(null);
+  const [correctionSession, setCorrectionSession] = useState('');
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [queueStatus, setQueueStatus] = useState('SUBMITTED');
+  const [reopenTarget, setReopenTarget] = useState<string | null>(null);
+  const [reopenReason, setReopenReason] = useState('');
+  const weeklyRequest = useRef(0);
+  const [unknownSessionCount, setUnknownSessionCount] = useState(0);
+  const [plannedHours, setPlannedHours] = useState(0);
+  const [plannedDays, setPlannedDays] = useState(0);
   const [loadErrors, setLoadErrors] = useState<string[]>([]);
 
   // Manual entry modal
@@ -113,9 +126,11 @@ export function ClockInPage() {
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
 
-  // The window the weekly view shows: last 7 days, inclusive of today.
-  const periodEnd = new Date().toISOString().slice(0, 10);
-  const periodStart = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+  const now = new Date();
+  const periodEnd = toDateOnlyString(now);
+  const start = new Date(now.getFullYear(), now.getMonth(), dateRangeFilter === 'month' ? 1 : now.getDate() - (dateRangeFilter === '14days' ? 13 : 6));
+  const periodStart = toDateOnlyString(start);
+  const periodDays = Math.round((Date.parse(periodEnd) - Date.parse(periodStart)) / 86400000) + 1;
 
   // Load Active Session
   const loadActiveState = useCallback(async () => {
@@ -141,21 +156,32 @@ export function ClockInPage() {
 
   // Load Weekly Data
   const loadWeeklyData = useCallback(async () => {
+    const sequence = ++weeklyRequest.current;
     try {
-      const res = await apiFetch('/v1/hr/clock-in/weekly');
+      const [res, allocation] = await Promise.all([
+        apiFetch(`/v1/hr/clock-in/weekly?from=${periodStart}&to=${periodEnd}`),
+        apiFetch(`/v1/hr/clock-in/reconciliation?from=${periodStart}&to=${periodEnd}`),
+      ]);
+      if (sequence !== weeklyRequest.current) return;
+      setReconciliation(allocation);
       if (res) {
         setWeeklySessions(res.sessions || []);
         setWeeklyBreaks(res.breaks || []);
         setWorkedMinutesTotal(res.workedMinutesTotal || 0);
+        setUnknownSessionCount(res.unknownSessionCount || 0);
+        setPlannedHours(res.plannedHours || 0);
+        setPlannedDays(res.plannedDays || 0);
         if (res.user) {
           setUserProfile(res.user);
         }
       }
       setLoadErrors(previous => previous.filter(item => item !== 'weekly timesheets'));
     } catch {
+      if (sequence !== weeklyRequest.current) return;
+      setReconciliation(null);
       setLoadErrors(previous => previous.includes('weekly timesheets') ? previous : [...previous, 'weekly timesheets']);
     }
-  }, []);
+  }, [periodStart, periodEnd]);
 
   useEffect(() => {
     loadActiveState();
@@ -238,7 +264,7 @@ export function ClockInPage() {
         setElapsedSeconds(0);
         await Promise.all([loadActiveState(), loadWeeklyData()]);
         if (Array.isArray(res.warnings) && res.warnings.length > 0) {
-          showAlert(`Clocked out successfully, but these linked records could not be synchronized: ${res.warnings.join(', ')}. Contact HR if they remain outdated.`, { variant: 'warning' });
+          showAlert(`Clocked out. Review these items with HR: ${res.warnings.join(', ')}.`, { variant: 'warning' });
         }
       }
     } catch (err: any) {
@@ -265,6 +291,8 @@ export function ClockInPage() {
           clock_out: manualClockOut,
           break_minutes: Number(manualBreakMins) || 0,
           project_name: manualProject || undefined,
+          session_id: correctionSession || undefined,
+          correction_reason: correctionSession ? correctionReason : undefined,
         }),
       });
       setShowManualModal(false);
@@ -281,16 +309,18 @@ export function ClockInPage() {
     try {
       const res = await apiFetch(`/v1/hr/clock-in/timesheet/status?period_start=${periodStart}`);
       setMyApproval(res?.approval || null);
-    } catch { /* no submission yet */ }
+      setLoadErrors(previous => previous.filter(item => item !== 'timesheet approval'));
+    } catch { setMyApproval(null); setLoadErrors(previous => previous.includes('timesheet approval') ? previous : [...previous, 'timesheet approval']); }
     if (isManager) {
       try {
-        const qs = myReportsOnly ? 'status=SUBMITTED&my_reports_only=true' : 'status=SUBMITTED';
+        const qs = `status=${queueStatus}${myReportsOnly ? '&my_reports_only=true' : ''}`;
         const res = await apiFetch(`/v1/hr/clock-in/timesheet/approvals?${qs}`);
         if (Array.isArray(res)) setApprovals(res);
-      } catch { /* not permitted / none */ }
+        setLoadErrors(previous => previous.filter(item => item !== 'approval queue'));
+      } catch { setApprovals([]); setLoadErrors(previous => previous.includes('approval queue') ? previous : [...previous, 'approval queue']); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isManager, myReportsOnly, periodStart]);
+  }, [isManager, myReportsOnly, periodStart, queueStatus]);
 
   useEffect(() => { loadApprovalState(); }, [loadApprovalState]);
 
@@ -368,11 +398,11 @@ export function ClockInPage() {
     const rows: DayTimesheetRow[] = [];
     const today = new Date();
     
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < periodDays; i++) {
       const d = new Date(today.getTime() - i * 86400000);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = toDateOnlyString(d);
       
-      const daySessions = weeklySessions.filter(s => s.date === iso);
+      const daySessions = weeklySessions.filter(s => s.date === iso && s.status !== 'CANCELLED').sort((a, b) => Date.parse(b.clock_in_at) - Date.parse(a.clock_in_at));
       const isToday = i === 0;
 
       let dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
@@ -411,7 +441,8 @@ export function ClockInPage() {
 
         let dayWorkedMins = 0;
         daySessions.forEach(s => { dayWorkedMins += (s.worked_minutes || 0); });
-        const hrs = (dayWorkedMins / 60).toFixed(0);
+        const duration = formatHoursMins(dayWorkedMins);
+        const unknown = daySessions.some(s => s.status === 'COMPLETED' && s.worked_minutes == null);
 
         // Generate scale blocks
         const blocks: DailyTimelineBlock[] = [];
@@ -428,7 +459,7 @@ export function ClockInPage() {
           let outMins = Math.min(DAY_END_MINS, new Date().getHours() * 60 + new Date().getMinutes());
           if (sess.clock_out_at) {
             const outDate = new Date(sess.clock_out_at);
-            outMins = outDate.getHours() * 60 + outDate.getMinutes();
+            outMins = Math.min(DAY_END_MINS, inMins + Math.round((outDate.getTime() - inDate.getTime()) / 60000));
           }
 
           const startRel = Math.max(0, inMins - DAY_START_MINS);
@@ -442,7 +473,7 @@ export function ClockInPage() {
             label: sess.project_name ? `Working (${sess.project_name})` : 'Working time',
             startTime: `${String(inDate.getHours()).padStart(2, '0')}:${String(inDate.getMinutes()).padStart(2, '0')}`,
             endTime: sess.clock_out_at ? `${String(new Date(sess.clock_out_at).getHours()).padStart(2, '0')}:${String(new Date(sess.clock_out_at).getMinutes()).padStart(2, '0')}` : 'Now',
-            durationMinutes: sess.worked_minutes || durRel,
+            durationMinutes: sess.worked_minutes ?? (sess.status === 'COMPLETED' ? 0 : durRel),
             startPercent,
             widthPercent,
           });
@@ -471,7 +502,7 @@ export function ClockInPage() {
           dayOfWeek: d.toLocaleDateString('en-US', { weekday: 'short' }),
           clockInTime: inTimeStr,
           clockOutTime: outTimeStr,
-          durationHours: `${hrs}h`,
+          durationHours: unknown ? `${duration} + needs review` : duration,
           blocks,
         });
       }
@@ -492,7 +523,7 @@ export function ClockInPage() {
         titleEm="timesheets"
         subtitle="Live attendance tracking, stopwatch timer, and weekly hours visualizer"
         actions={
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
               <Icon name="clock" size={14} color="var(--teal)" />
               <span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--ink)' }}>
@@ -519,12 +550,12 @@ export function ClockInPage() {
             </Button>
 
             {(!myApproval || myApproval.status === 'REJECTED') && (
-              <Button onClick={handleSubmitForApproval} disabled={submittingSheet}>
+              <Button onClick={handleSubmitForApproval} disabled={submittingSheet || unknownSessionCount > 0}>
                 <Icon name="send" size={14} /> {submittingSheet ? 'Submitting…' : (myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval')}
               </Button>
             )}
 
-            <Button variant="outline" onClick={() => setShowManualModal(true)}>
+            <Button variant="outline" onClick={() => { setCorrectionSession(''); setCorrectionReason(''); setShowManualModal(true); }}>
               <Icon name="plus" size={14} /> Entry log
             </Button>
           </div>
@@ -536,6 +567,8 @@ export function ClockInPage() {
           Unavailable: {loadErrors.join(', ')}. Refresh the page or try again shortly.
         </Banner>
       )}
+
+      {unknownSessionCount > 0 && <Banner variant="warning" title="Recorded time needs HR review">{unknownSessionCount} completed session(s) have unknown hours. Known totals exclude those sessions; submission is blocked until resolved.</Banner>}
 
       {/* User Welcome & Date Filter Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -551,7 +584,7 @@ export function ClockInPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
           <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
             <SelectTrigger style={{ minHeight: 32, fontSize: 13, width: 'auto' }}><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -570,20 +603,22 @@ export function ClockInPage() {
       </div>
 
       {/* Manager: timesheets awaiting approval (real submissions only) */}
-      {isManager && (approvals.length > 0 || myReportsOnly) && (
+      {isManager && (
         <SectionCard
-          title={`Timesheets awaiting your approval (${approvals.length})`}
-          action={
+          title={`Timesheet reviews (${approvals.length})`}
+          action={<div className="flex flex-wrap items-center gap-2">
+            <Select value={queueStatus} onValueChange={setQueueStatus}><SelectTrigger aria-label="Timesheet review status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SUBMITTED">Awaiting review</SelectItem><SelectItem value="APPROVED">Approved</SelectItem></SelectContent></Select>
             <button
               type="button"
               onClick={() => setMyReportsOnly(v => !v)}
               style={{ fontSize: 12, fontWeight: 600, color: myReportsOnly ? 'hsl(var(--primary))' : 'var(--ink3)', border: '1px solid', borderColor: myReportsOnly ? 'hsl(var(--primary))' : 'var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 10px', background: myReportsOnly ? 'var(--teal-l)' : 'transparent', cursor: 'pointer' }}
             >
-              {myReportsOnly ? 'My direct reports' : 'All team'}
-            </button>
+              {myReportsOnly ? 'My direct reports' : 'Permitted team'}
+            </button></div>
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {approvals.length === 0 && <p className="text-sm text-muted-foreground">No timesheets in this queue.</p>}
             {approvals.map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
                 <PersonAvatar userId={a.user_id} name={a.employee_name || 'Employee'} size={34} />
@@ -595,12 +630,13 @@ export function ClockInPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
+                  {a.status === 'APPROVED' ? (['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user?.role || '') && <Button size="sm" variant="outline" onClick={() => { setReopenTarget(a.id); setReopenReason(''); }}>Reopen for correction</Button>) : <>
                   <Button type="button" variant="outline" size="sm" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>
                     <Icon name="x" size={13} /> Reject
                   </Button>
                   <Button type="button" size="sm" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ background: 'var(--green)', color: 'hsl(var(--green-foreground))' }}>
                     <Icon name="check" size={13} /> {reviewingId === a.id ? '…' : 'Approve'}
-                  </Button>
+                  </Button></>}
                 </div>
               </div>
             ))}
@@ -691,11 +727,24 @@ export function ClockInPage() {
 
           <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', alignItems: 'flex-start', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
             <Icon name="info" size={13} color="var(--ink3)" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>The total time an employee worked, including break time.</span>
+            <span>Recorded work excluding breaks. Planned: {plannedHours} hours across {plannedDays} scheduled days.</span>
           </div>
         </SectionCard>
 
       </div>
+
+      {reconciliation && <SectionCard title="Time reconciliation">
+        <p className="text-sm text-muted-foreground">Attendance measures presence. Header, Tasks and ClearOS entries allocate work and may describe the same hours; they are shown separately and are never added to attendance.</p>
+        <div className="grid grid-cols-2 gap-3 py-3 md:grid-cols-4">
+          {[
+            ['Attendance', reconciliation.attendance_minutes], ['Header timer', reconciliation.header_minutes],
+            ['Tasks', reconciliation.task_minutes], ['ClearOS', reconciliation.shipment_minutes],
+          ].map(([label, minutes]) => <div key={String(label)}><div className="text-xs text-muted-foreground">{label}</div><div className="font-semibold">{formatHoursMins(Number(minutes))}</div></div>)}
+        </div>
+        {(reconciliation.unknown_header_entries > 0 || reconciliation.unknown_task_entries > 0) && <Banner variant="warning" title="Allocation hours need review">Some closed timer entries have unknown durations. Displayed totals include known hours only.</Banner>}
+        {reconciliation.allocation_exceeds_attendance && <Banner variant="warning" title="Hours need reconciliation">An allocation ledger exceeds known attendance. Review missing attendance and duplicate allocations before billing or payroll use.</Banner>}
+        {reconciliation.unlinked_shipment_entries > 0 && <p className="text-sm text-muted-foreground">{reconciliation.unlinked_shipment_entries} legacy shipment entries in this workspace have no employee identity and are excluded from personal totals.</p>}
+      </SectionCard>}
 
       {/* Main Section: My Timesheets Timeline */}
       <SectionCard
@@ -722,7 +771,7 @@ export function ClockInPage() {
               </div>
             </div>
 
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowManualModal(true)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => { setCorrectionSession(''); setCorrectionReason(''); setShowManualModal(true); }}>
               + Entry log
             </Button>
           </div>
@@ -768,10 +817,11 @@ export function ClockInPage() {
                         style={{
                           height: '100%',
                           width: `${b.widthPercent}%`,
-                          marginLeft: idx === 0 ? `${b.startPercent}%` : 0,
+                          position: 'absolute',
+                          left: `${b.startPercent}%`,
                           background: bg,
                           borderRadius: 'var(--r-sm)',
-                          marginRight: 2,
+                          opacity: b.type === 'break' ? 0.8 : 1,
                           transition: 'opacity 0.2s',
                           cursor: 'pointer',
                         }}
@@ -800,11 +850,19 @@ export function ClockInPage() {
         <DialogContent className="sm:max-w-110">
           <DialogHeader><DialogTitle>Log Manual Time Entry</DialogTitle></DialogHeader>
           <form onSubmit={handleSaveManualEntry} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <label className="text-sm font-medium">Entry to record or correct
+              <Combobox value={correctionSession} options={[{ value: '', label: 'New manual entry' }, ...weeklySessions.filter(s => s.status === 'COMPLETED' && (s.source === 'MANUAL' || ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user?.role || ''))).map(s => ({ value: s.id, label: `${s.date} · ${s.project_name || 'Attendance'}${s.worked_minutes == null ? ' · Needs review' : ''}` }))]} onChange={id => {
+                setCorrectionSession(id); setCorrectionReason('');
+                const session = weeklySessions.find(s => s.id === id);
+                if (session) { setManualDate(session.date); setManualClockIn(new Date(session.clock_in_at).toTimeString().slice(0, 5)); setManualClockOut(session.clock_out_at ? new Date(session.clock_out_at).toTimeString().slice(0, 5) : '17:00'); setManualBreakMins(String(session.total_break_minutes)); setManualProject(session.project_name || ''); }
+              }} />
+            </label>
+            {correctionSession && <label className="text-sm font-medium">Correction reason<Input value={correctionReason} onChange={e => setCorrectionReason(e.target.value)} minLength={10} maxLength={2000} required /></label>}
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Date</label>
               <DatePicker
                 date={parseDateOnly(manualDate)}
-                onChange={d => setManualDate(toDateOnlyString(d))}
+                onChange={d => { if (!correctionSession) setManualDate(toDateOnlyString(d)); }}
                 placeholder="Select date"
               />
             </div>
@@ -857,6 +915,19 @@ export function ClockInPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!reopenTarget} onOpenChange={open => { if (!open) setReopenTarget(null); }}>
+        <DialogContent><DialogHeader><DialogTitle>Reopen approved timesheet</DialogTitle></DialogHeader>
+          <label className="text-sm font-medium">Reason for correction<Textarea value={reopenReason} onChange={e => setReopenReason(e.target.value)} minLength={10} maxLength={2000} /></label>
+          <p className="text-sm text-muted-foreground">This preserves the previous approval in the audit log and requires a new submission and approval after correction.</p>
+          <DialogFooter><Button variant="outline" onClick={() => setReopenTarget(null)}>Cancel</Button><Button disabled={reopenReason.trim().length < 10 || reviewingId === reopenTarget} onClick={async () => {
+            if (!reopenTarget) return; setReviewingId(reopenTarget);
+            try { await apiFetch(`/v1/hr/clock-in/timesheet/approvals/${reopenTarget}/reopen`, { method: 'POST', body: JSON.stringify({ reason: reopenReason }) }); setReopenTarget(null); await loadApprovalState(); }
+            catch (err: any) { showAlert(err.message || 'Could not reopen timesheet', { variant: 'error' }); }
+            finally { setReviewingId(null); }
+          }}>Reopen</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

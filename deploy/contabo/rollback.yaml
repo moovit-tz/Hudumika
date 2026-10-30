@@ -1,0 +1,5 @@
+services:
+  api:
+    image: hudumika-api:rollback
+  gateway:
+    image: hudumika-web:rollback

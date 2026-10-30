@@ -22,9 +22,15 @@ const batchBodySchema = z.object({
 });
 
 export async function fieldPolicyRoutes(fastify: FastifyInstance) {
-  fastify.addHook('preHandler', requireRole(...ADMIN_ROLES));
+  // Every route in this plugin requires a valid session — the original
+  // code skipped fastify.authenticate entirely, so requireRole read an
+  // undefined request.user and every call returned 401.
+  fastify.addHook('preHandler', fastify.authenticate);
 
-  fastify.get('/', async (req) => {
+  // Admin-only: the full policy matrix (used by the admin settings UI).
+  fastify.get('/', {
+    preHandler: requireRole(...ADMIN_ROLES),
+  }, async (req) => {
     const user = req.user;
     const overrides = await withTenant(user.tenant_id, async (trx) =>
       trx.selectFrom('tenant_field_policies' as any)
@@ -55,6 +61,8 @@ export async function fieldPolicyRoutes(fastify: FastifyInstance) {
     }));
   });
 
+  // Any authenticated user can check their own visibility — this is
+  // the endpoint useFieldPolicy.ts calls from every app.
   fastify.get('/my-visibility', async (req) => {
     const user = req.user;
     const overrides = await withTenant(user.tenant_id, async (trx) =>
@@ -78,7 +86,9 @@ export async function fieldPolicyRoutes(fastify: FastifyInstance) {
     return result;
   });
 
-  fastify.put('/', async (req, reply) => {
+  fastify.put('/', {
+    preHandler: requireRole(...ADMIN_ROLES),
+  }, async (req, reply) => {
     const user = req.user;
     const parsed = batchBodySchema.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.issues[0].message });
@@ -141,7 +151,9 @@ export async function fieldPolicyRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.delete('/:resource/:fieldGroup', async (req, reply) => {
+  fastify.delete('/:resource/:fieldGroup', {
+    preHandler: requireRole(...ADMIN_ROLES),
+  }, async (req, reply) => {
     const user = req.user;
     const { resource, fieldGroup } = req.params as { resource: string; fieldGroup: string };
 

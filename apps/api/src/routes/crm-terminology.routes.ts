@@ -62,7 +62,7 @@ const termSchema = z.object({
   singular: z.string().trim().min(1).max(80),
   plural:   z.string().trim().min(1).max(80),
 });
-const putSchema = z.record(z.enum(TERM_KEYS), termSchema);
+const putSchema = z.partialRecord(z.enum(TERM_KEYS), termSchema);
 const presetSchema = z.object({ preset: z.enum(['logistics', 'agency', 'saas', 'retail']) });
 
 export async function crmTerminologyRoutes(fastify: FastifyInstance) {

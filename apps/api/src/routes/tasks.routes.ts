@@ -103,7 +103,7 @@ const taskPatchSchema = z.object({
   // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
   // shape MeetingLinkPanel.tsx writes for calendar events and notes too.
   meetingUrl: z.string().max(2000).nullable().optional(),
-  meetingSettings: z.record(z.any()).optional(),
+  meetingSettings: z.record(z.string(), z.any()).optional(),
   blissMeetingId: uuidSchema.nullable().optional(),
 });
 const collaboratorAddSchema = z.object({

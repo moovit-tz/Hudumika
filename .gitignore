@@ -19,6 +19,9 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+deploy/contabo/backups/
+deploy/contabo/.state/
 
 # IDE
 .vscode/
@@ -46,6 +49,10 @@ apps/api/uploads/
 # Coverage
 coverage/
 
+
+# Large trace files (TypeScript --generateTrace output, 200MB+)
+**/types.json
+*-ts-trace/
 
 # Misc
 *.bak

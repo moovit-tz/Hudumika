@@ -28,13 +28,14 @@ export const cargoAnalyticsService = {
   async getSummary(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
       const snapshots = await trx.selectFrom('tracking_snapshots')
-        .where('tenant_id', '=', tenantId)
+        .where('tenant_id', '=', tenantId).where('source','=','live').where('fetched_at','is not',null)
+        .distinctOn(['tracking_type','tracking_number']).orderBy('tracking_type').orderBy('tracking_number').orderBy('fetched_at','desc').orderBy('created_at','desc')
         .select(['status_code', 'eta', 'eta_initial'])
         .execute();
-      const containers = await trx.selectFrom('container_tracking')
+      const containers = await trx.selectFrom('tracked_containers')
         .where('tenant_id', '=', tenantId)
-        .select(['status'])
-        .execute();
+        .select(trx.fn.countAll().as('count'))
+        .executeTakeFirstOrThrow();
 
       const delayedShipments = snapshots.filter(s =>
         s.eta && s.eta_initial && new Date(s.eta).getTime() > new Date(s.eta_initial).getTime()
@@ -43,7 +44,7 @@ export const cargoAnalyticsService = {
 
       return {
         shipments: snapshots.length,
-        containers: containers.length,
+        containers: Number(containers.count),
         delayed_shipments: delayedShipments,
         shipments_at_pod: atPod,
       };
@@ -54,7 +55,8 @@ export const cargoAnalyticsService = {
   async getCarrierAnalysis(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx.selectFrom('tracking_snapshots')
-        .where('tenant_id', '=', tenantId)
+        .where('tenant_id', '=', tenantId).where('source','=','live').where('fetched_at','is not',null)
+        .distinctOn(['tracking_type','tracking_number']).orderBy('tracking_type').orderBy('tracking_number').orderBy('fetched_at','desc').orderBy('created_at','desc')
         .select(['carrier', 'eta', 'eta_initial', 'events'])
         .execute();
 
@@ -103,7 +105,8 @@ export const cargoAnalyticsService = {
   async getLaneAnalysis(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx.selectFrom('tracking_snapshots')
-        .where('tenant_id', '=', tenantId)
+        .where('tenant_id', '=', tenantId).where('source','=','live').where('fetched_at','is not',null)
+        .distinctOn(['tracking_type','tracking_number']).orderBy('tracking_type').orderBy('tracking_number').orderBy('fetched_at','desc').orderBy('created_at','desc')
         .select(['origin_name', 'origin_code', 'dest_name', 'dest_code', 'eta', 'eta_initial', 'events'])
         .execute();
 
@@ -147,7 +150,8 @@ export const cargoAnalyticsService = {
   async getRegionalAnalysis(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx.selectFrom('tracking_snapshots')
-        .where('tenant_id', '=', tenantId)
+        .where('tenant_id', '=', tenantId).where('source','=','live').where('fetched_at','is not',null)
+        .distinctOn(['tracking_type','tracking_number']).orderBy('tracking_type').orderBy('tracking_number').orderBy('fetched_at','desc').orderBy('created_at','desc')
         .select(['dest_code', 'eta', 'eta_initial'])
         .execute();
 
@@ -176,14 +180,14 @@ export const cargoAnalyticsService = {
     return withTenant(tenantId, async (trx) => {
       const containers = await trx.selectFrom('container_tracking')
         .where('tenant_id', '=', tenantId)
-        .select(['discharge_date', 'demurrage_cost', 'demurrage_days'])
+        .select(['discharge_date', 'demurrage_cost', 'demurrage_days','demurrage_currency'])
         .execute();
 
       const byMonth: Record<string, { cost: number; days: number; count: number }> = {};
       for (const c of containers) {
         if (!c.discharge_date) continue;
         const d = new Date(c.discharge_date);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')} ${c.demurrage_currency}`;
         if (!byMonth[key]) byMonth[key] = { cost: 0, days: 0, count: 0 };
         byMonth[key].cost += Number(c.demurrage_cost) || 0;
         byMonth[key].days += Number(c.demurrage_days) || 0;

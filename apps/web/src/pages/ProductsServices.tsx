@@ -1,35 +1,38 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { PaginationBar } from '../components/PaginationBar.js';
 import { apiFetch } from '../lib/api.js';
 import { formatAmount } from '../lib/currency.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
-import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
-import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
-import { FormPage } from '../components/FormPage.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Badge } from '../components/ui/badge.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Progress } from '../components/ui/progress.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
+import { CompanyAvatar } from '../components/PersonAvatar.js';
+import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { financeCatalogOptions, financeCatalogProfile, financeIndustryName, catalogBillingDescription, type FinanceIndustryKey, type IndustryCatalogData } from '@hudumika/types';
+import { useCompany } from '../data/companyStore.js';
+import { cn } from '../lib/utils.js';
 import './ProductsServices.css';
 
 // -- Types ---------------------------------------------------------------------
-// Field names/values below mirror the real `products` table (migration
-// 052_products.sql) and the /v1/products routes exactly — this catalog is the
-// same one Billing.tsx's line-item "add from catalog" picker already reads
-// from (ChargeSectionEditor.searchProducts), so a mismatch here would mean
-// services created here silently fail to price correctly on invoices.
 
-export interface Product {
+export interface Product extends IndustryCatalogData {
   id: string;
   name: string;
   code: string;
@@ -41,21 +44,45 @@ export interface Product {
   purchase_price?: number;
   currency: string;
   tax_rate: number;
-  /** The tax treatment, when one was recorded — preserved through edits so a
-   *  code set elsewhere is never silently dropped. */
   tax_code_id?: string | null;
   status: 'active' | 'inactive';
   notes?: string;
+  compare_at_price?: number | null;
+  brand?: string;
+  vendor_name?: string;
+  image_urls?: string[];
+  stock_quantity?: number | null;
+  low_stock_threshold?: number;
+  track_inventory?: boolean;
+  weight_kg?: number | null;
+  dimensions_cm?: { length: number; width: number; height: number } | null;
+  shipping_class?: string;
+  variants?: { name: string; values: string[] }[];
+  meta_title?: string;
+  meta_description?: string;
+  url_handle?: string;
+  visibility?: 'published' | 'draft' | 'scheduled';
+  channels?: string[];
   created_at: string;
   updated_at?: string;
 }
 
-interface ProductForm {
-  name: string; code: string; type: 'product' | 'service'; category: string; description: string;
-  unit: string; sale_price: number; purchase_price: number; currency: string; tax_rate: number;
+export interface ProductFormState {
+  industry_key: FinanceIndustryKey | null;
+  industry_attributes: Record<string, string>;
+  name: string;
+  code: string;
+  type: 'product' | 'service';
+  category: string;
+  description: string;
+  unit: string;
+  sale_price: number;
+  purchase_price: number;
+  currency: string;
+  tax_rate: number;
   tax_code_id: string | null;
-  status: 'active' | 'inactive'; notes: string;
-  // Retail/POS fields — only shown/sent when type === 'product'
+  status: 'active' | 'inactive';
+  notes: string;
   compare_at_price: number | null;
   brand: string;
   vendor_name: string;
@@ -74,11 +101,7 @@ interface ProductForm {
   channels: string[];
 }
 
-type CatFilter = 'ALL' | string;
-
-/** A customer's agreed (contract) price for this service — overrides the
- *  catalog sale_price on that customer's invoices/quotes/POs. */
-interface CustomerPriceRow {
+export interface CustomerPriceRow {
   customer_id: string;
   customer_name: string;
   price: number;
@@ -107,12 +130,6 @@ const CAT_CFG: Record<string, { label: string; color: string; bg: string }> = {
 const UNITS = ['shipment','container','kg','CBM','trip','day','hour','set','certificate','declaration','audit','order','delivery','pallet','%','unit','m3','ton','MT','BL','AWB','transire','vehicle'];
 const CURRENCIES = ['USD','TZS','EUR','GBP','KES','ZAR','AED'];
 
-// -- Starter catalog (supply-chain service templates spanning freight,
-// clearance, handling, transport, warehousing, fulfillment, packaging,
-// procurement, duty, insurance and labor — offered once when a tenant's real
-// catalog is empty. Each item is POSTed to /v1/products like any other new
-// service, never written straight into local state.) -------------------------
-
 const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   // Freight
   { name:'Sea Freight — 20ft FCL',        code:'SF-FCL-20',   category:'FREIGHT',     unit:'container',   sale_price:1200, currency:'USD', tax_rate:0,  status:'active', description:'Full container load sea freight — 20ft standard container' },
@@ -123,11 +140,7 @@ const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   { name:'Air Freight — Minimum',         code:'AF-MIN',      category:'FREIGHT',     unit:'shipment',    sale_price:350,  currency:'USD', tax_rate:0,  status:'active', description:'Air freight minimum charge per shipment' },
   { name:'Rail Freight — Container',      code:'SF-RAIL',     category:'FREIGHT',     unit:'container',   sale_price:900,  currency:'USD', tax_rate:0,  status:'active', description:'Rail freight, per container' },
   { name:'Bulk / Break-Bulk Cargo',       code:'SF-BULK',     category:'FREIGHT',     unit:'ton',         sale_price:45,   currency:'USD', tax_rate:0,  status:'active', description:'Bulk or break-bulk ocean freight, per metric ton' },
-  // Clearance — statutory minimum clearing/forwarding agency fees per the
-  // Tanzania Shipping Agencies (Fees for Clearing and Forwarding Services)
-  // Order, 2026 (GN. No. 83, published 20/3/2026, Schedule to order 5). A
-  // registered clearing and forwarding agent may not charge below these
-  // minimums; rates are USD-equivalent, payable in TZS at the prevailing rate.
+  // Clearance
   { name:'Clearing Agency Fee — Import · Sea · 20ft Container',        code:'CL-IMP-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:150, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, 20-foot container' },
   { name:'Clearing Agency Fee — Import · Sea · 40ft Container',        code:'CL-IMP-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, 40-foot container' },
   { name:'Clearing Agency Fee — Import · Sea · Dry Bulk Cargo',        code:'CL-IMP-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, sea/inland waterways, dry bulk cargo, per metric ton' },
@@ -147,47 +160,12 @@ const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   { name:'Clearing Agency Fee — Import · Air · Parcel/Courier',        code:'CL-IMP-AIR-PARCEL',    category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, air transport, parcel / courier, per AWB' },
   { name:'Clearing Agency Fee — Import · Air · General Cargo',         code:'CL-IMP-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, air transport, general cargo, per AWB' },
   { name:'Clearing Agency Fee — Import · Air · Live Animal',           code:'CL-IMP-AIR-LIVEANIMAL',category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — import, air transport, live animal, per AWB' },
-  { name:'Clearing Agency Fee — Export · Sea · 20ft Container',        code:'CL-EXP-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:150, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, 20-foot container' },
-  { name:'Clearing Agency Fee — Export · Sea · 40ft Container',        code:'CL-EXP-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, 40-foot container' },
-  { name:'Clearing Agency Fee — Export · Sea · Dry Bulk Cargo',        code:'CL-EXP-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, dry bulk cargo, per metric ton' },
-  { name:'Clearing Agency Fee — Export · Sea · Bulk Liquid',           code:'CL-EXP-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.6, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, bulk liquid, per metric ton' },
-  { name:'Clearing Agency Fee — Export · Sea · Motor Vehicle',         code:'CL-EXP-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, motor vehicle' },
-  { name:'Clearing Agency Fee — Export · Sea · Heavy Machines & Equipment', code:'CL-EXP-SEA-MACHINE', category:'CLEARANCE', unit:'unit',    sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Export · Sea · Live Animal',           code:'CL-EXP-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, live animal, per BL' },
-  { name:'Clearing Agency Fee — Export · Sea · Loose Cargo/LCL',       code:'CL-EXP-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, loose cargo / less than container load, per BL' },
-  { name:'Clearing Agency Fee — Export · Sea · Carriage Coastwise',    code:'CL-EXP-SEA-COASTWISE', category:'CLEARANCE', unit:'transire',  sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, sea/inland waterways, carriage coastwise, per transire' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · 20ft Container', code:'CL-EXP-ROAD-20FT',  category:'CLEARANCE', unit:'container', sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), 20-foot container' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · 40ft Container', code:'CL-EXP-ROAD-40FT',  category:'CLEARANCE', unit:'container', sale_price:190, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), 40-foot container' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Motor Vehicle', code:'CL-EXP-ROAD-VEHICLE',category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), motor vehicle' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Heavy Machines & Equipment', code:'CL-EXP-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Live Animal', code:'CL-EXP-ROAD-LIVEANIMAL',category:'CLEARANCE', unit:'BL',      sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), live animal, per BL' },
-  { name:'Clearing Agency Fee — Export · Road (Border) · Loose Cargo/LCL', code:'CL-EXP-ROAD-LCL',  category:'CLEARANCE', unit:'vehicle',   sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, road transport (border), loose cargo / less than container load, per vehicle' },
-  { name:'Clearing Agency Fee — Export · Air · Parcel/Courier',        code:'CL-EXP-AIR-PARCEL',    category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, parcel / courier, per AWB' },
-  { name:'Clearing Agency Fee — Export · Air · General Cargo',         code:'CL-EXP-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, general cargo, per AWB' },
-  { name:'Clearing Agency Fee — Export · Air · Precious Metal/Minerals', code:'CL-EXP-AIR-PRECIOUS',category:'CLEARANCE', unit:'AWB',       sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, precious metal / minerals, per AWB' },
-  { name:'Clearing Agency Fee — Export · Air · Live Animal',           code:'CL-EXP-AIR-LIVEANIMAL',category:'CLEARANCE', unit:'AWB',       sale_price:60,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — export, air transport, live animal, per AWB' },
-  { name:'Clearing Agency Fee — Transit · Sea · 20ft Container',       code:'CL-TRN-SEA-20FT',      category:'CLEARANCE', unit:'container', sale_price:200, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, 20-foot container' },
-  { name:'Clearing Agency Fee — Transit · Sea · 40ft Container',       code:'CL-TRN-SEA-40FT',      category:'CLEARANCE', unit:'container', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, 40-foot container' },
-  { name:'Clearing Agency Fee — Transit · Sea · Dry Bulk Cargo',       code:'CL-TRN-SEA-DRYBULK',   category:'CLEARANCE', unit:'MT',        sale_price:0.5, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, dry bulk cargo, per metric ton' },
-  { name:'Clearing Agency Fee — Transit · Sea · Bulk Liquid',          code:'CL-TRN-SEA-BULKLIQ',   category:'CLEARANCE', unit:'MT',        sale_price:0.5, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, bulk liquid, per metric ton' },
-  { name:'Clearing Agency Fee — Transit · Sea · Motor Vehicle',        code:'CL-TRN-SEA-VEHICLE',   category:'CLEARANCE', unit:'unit',      sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, motor vehicle' },
-  { name:'Clearing Agency Fee — Transit · Sea · Heavy Machines & Equipment', code:'CL-TRN-SEA-MACHINE', category:'CLEARANCE', unit:'unit',   sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Transit · Sea · Live Animal',          code:'CL-TRN-SEA-LIVEANIMAL',category:'CLEARANCE', unit:'BL',        sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, live animal, per BL' },
-  { name:'Clearing Agency Fee — Transit · Sea · Loose Cargo/LCL',      code:'CL-TRN-SEA-LCL',       category:'CLEARANCE', unit:'BL',        sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, sea/inland waterways, loose cargo / less than container load, per BL' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · 20ft Container', code:'CL-TRN-ROAD-20FT', category:'CLEARANCE', unit:'container', sale_price:210, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), 20-foot container' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · 40ft Container', code:'CL-TRN-ROAD-40FT', category:'CLEARANCE', unit:'container', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), 40-foot container' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Motor Vehicle', code:'CL-TRN-ROAD-VEHICLE', category:'CLEARANCE', unit:'unit',    sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), motor vehicle' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Heavy Machines & Equipment', code:'CL-TRN-ROAD-MACHINE', category:'CLEARANCE', unit:'unit', sale_price:250, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), heavy machines & equipment' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Live Animal', code:'CL-TRN-ROAD-LIVEANIMAL', category:'CLEARANCE', unit:'BL',    sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), live animal, per BL' },
-  { name:'Clearing Agency Fee — Transit · Road (Border) · Loose Cargo/LCL', code:'CL-TRN-ROAD-LCL', category:'CLEARANCE', unit:'vehicle',   sale_price:90,  currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, road transport (border), loose cargo / less than container load, per vehicle' },
-  { name:'Clearing Agency Fee — Transit · Air · General Cargo',        code:'CL-TRN-AIR-GENERAL',   category:'CLEARANCE', unit:'AWB',       sale_price:130, currency:'USD', tax_rate:0, status:'active', description:'GN. 83-2026 statutory minimum agency fee — transit, air transport, general cargo, per AWB' },
   { name:'Documentation Fee',             code:'CL-DOCS',     category:'CLEARANCE',   unit:'set',         sale_price:75,   currency:'USD', tax_rate:18, status:'active', description:'Preparation of shipping documentation and certificates' },
   { name:'Bill of Lading Processing',     code:'CL-BL',       category:'CLEARANCE',   unit:'set',         sale_price:60,   currency:'USD', tax_rate:18, status:'active', description:'Bill of lading processing and handling fee' },
   { name:'Pre-Shipment Inspection',       code:'CL-PSI',      category:'CLEARANCE',   unit:'shipment',    sale_price:200,  currency:'USD', tax_rate:18, status:'active', description:'Pre-shipment inspection (PVoC / CoC)' },
   { name:'Phytosanitary Certificate',     code:'CL-PHYTO',    category:'CLEARANCE',   unit:'certificate', sale_price:80,   currency:'USD', tax_rate:18, status:'active', description:'Phytosanitary / health certificate processing' },
   { name:'TANCIS Declaration Lodgement',  code:'CL-TANCIS',   category:'CLEARANCE',   unit:'declaration', sale_price:120,  currency:'USD', tax_rate:18, status:'active', description:'Customs declaration lodgement via TANCIS' },
   { name:'Certificate of Origin',         code:'CL-COO',      category:'CLEARANCE',   unit:'certificate', sale_price:50,   currency:'USD', tax_rate:18, status:'active', description:'Certificate of origin processing and endorsement' },
-  { name:'Customs Bond / Guarantee Setup',code:'CL-BOND',     category:'CLEARANCE',   unit:'shipment',    sale_price:150,  currency:'USD', tax_rate:18, status:'active', description:'Arranging a customs bond or guarantee for a shipment' },
   // Handling
   { name:'Terminal Handling Charge',      code:'PH-THC',      category:'HANDLING',    unit:'container',   sale_price:250,  currency:'USD', tax_rate:0,  status:'active', description:'Terminal handling charges at port of loading or discharge' },
   { name:'Port Scanning / X-Ray',         code:'PH-SCAN',     category:'HANDLING',    unit:'container',   sale_price:50,   currency:'USD', tax_rate:0,  status:'active', description:'Port scanner / X-ray inspection fee' },
@@ -195,53 +173,22 @@ const STARTER_CATALOG: Omit<Product, 'id' | 'created_at' | 'updated_at'>[] = [
   { name:'Fumigation Treatment',          code:'PH-FUM',      category:'HANDLING',    unit:'container',   sale_price:150,  currency:'USD', tax_rate:18, status:'active', description:'Fumigation treatment and phytosanitary certificate' },
   { name:'Container Devanning',           code:'PH-DEVAN',    category:'HANDLING',    unit:'container',   sale_price:120,  currency:'USD', tax_rate:18, status:'active', description:'Unloading / stripping a container at the warehouse' },
   { name:'Container Stuffing',            code:'PH-STUFF',    category:'HANDLING',    unit:'container',   sale_price:120,  currency:'USD', tax_rate:18, status:'active', description:'Loading / stuffing a container for export' },
-  { name:'Crane / Forklift Handling',     code:'PH-CRANE',    category:'HANDLING',    unit:'hour',        sale_price:40,   currency:'USD', tax_rate:18, status:'active', description:'Crane or forklift operation, per hour' },
   // Transport
   { name:'Road Transport — Local',        code:'RT-LOCAL',    category:'TRANSPORT',   unit:'trip',        sale_price:450,  currency:'USD', tax_rate:18, status:'active', description:'Local inland transport and delivery' },
   { name:'Road Transport — Upcountry',    code:'RT-UPCTRY',   category:'TRANSPORT',   unit:'trip',        sale_price:850,  currency:'USD', tax_rate:18, status:'active', description:'Upcountry delivery to inland destination' },
   { name:'Cross-Border Haulage',          code:'RT-XBORDER',  category:'TRANSPORT',   unit:'trip',        sale_price:1500, currency:'USD', tax_rate:0,  status:'active', description:'Cross-border road haulage to a neighboring country' },
   { name:'Last-Mile Delivery',            code:'RT-LASTMILE', category:'TRANSPORT',   unit:'delivery',    sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'Final-leg delivery to the consignee' },
-  { name:'Container Drayage (Port→CFS)',  code:'RT-DRAY',     category:'TRANSPORT',   unit:'container',   sale_price:180,  currency:'USD', tax_rate:18, status:'active', description:'Short-haul container move from port to CFS/warehouse' },
   // Warehousing
   { name:'Warehouse Storage — General',   code:'WH-STOR',     category:'WAREHOUSING', unit:'day',         sale_price:15,   currency:'USD', tax_rate:18, status:'active', description:'General goods storage, per pallet per day' },
   { name:'Bonded Warehouse Storage',      code:'WH-BOND',     category:'WAREHOUSING', unit:'day',         sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'Bonded (duty-suspended) warehouse storage, per day' },
   { name:'Cold Chain / Reefer Storage',   code:'WH-COLD',     category:'WAREHOUSING', unit:'day',         sale_price:40,   currency:'USD', tax_rate:18, status:'active', description:'Temperature-controlled storage, per day' },
-  { name:'Pallet Racking / Slot Fee',     code:'WH-SLOT',     category:'WAREHOUSING', unit:'unit',        sale_price:8,    currency:'USD', tax_rate:18, status:'active', description:'Racking slot allocation fee, per pallet position' },
-  { name:'Cross-Docking Service',         code:'WH-XDOCK',    category:'WAREHOUSING', unit:'shipment',    sale_price:90,   currency:'USD', tax_rate:18, status:'active', description:'Direct transfer from inbound to outbound with no long-term storage' },
   // Fulfillment
   { name:'Pick & Pack',                   code:'FF-PICKPACK', category:'FULFILLMENT', unit:'order',       sale_price:3.5,  currency:'USD', tax_rate:18, status:'active', description:'Order picking and packing, per order' },
   { name:'Kitting / Assembly',            code:'FF-KIT',      category:'FULFILLMENT', unit:'unit',        sale_price:2,    currency:'USD', tax_rate:18, status:'active', description:'Kitting or light assembly of components, per unit' },
   { name:'Returns Processing',            code:'FF-RETURN',   category:'FULFILLMENT', unit:'unit',        sale_price:5,    currency:'USD', tax_rate:18, status:'active', description:'Reverse-logistics inspection and restocking of a returned unit' },
-  { name:'Inventory Cycle Count',         code:'FF-CYCLE',    category:'FULFILLMENT', unit:'hour',        sale_price:20,   currency:'USD', tax_rate:18, status:'active', description:'Scheduled inventory cycle counting, per hour' },
-  { name:'E-commerce Order Fulfillment',  code:'FF-ECOM',     category:'FULFILLMENT', unit:'order',       sale_price:4,    currency:'USD', tax_rate:18, status:'active', description:'End-to-end e-commerce order fulfillment, per order' },
-  // Packaging
-  { name:'Standard Export Packaging',     code:'PK-STD',      category:'PACKAGING',   unit:'unit',        sale_price:10,   currency:'USD', tax_rate:18, status:'active', description:'Standard export-grade packaging, per unit' },
-  { name:'Custom Crating',                code:'PK-CRATE',    category:'PACKAGING',   unit:'unit',        sale_price:60,   currency:'USD', tax_rate:18, status:'active', description:'Custom wooden crate build for oversized or fragile cargo' },
-  { name:'Shrink Wrap / Palletizing',     code:'PK-WRAP',     category:'PACKAGING',   unit:'pallet',      sale_price:12,   currency:'USD', tax_rate:18, status:'active', description:'Shrink-wrapping and palletizing, per pallet' },
-  { name:'Labeling & Barcoding',          code:'PK-LABEL',    category:'PACKAGING',   unit:'unit',        sale_price:0.5,  currency:'USD', tax_rate:18, status:'active', description:'Labeling and barcode application, per unit' },
-  { name:'Dangerous Goods Packaging',     code:'PK-DG',       category:'PACKAGING',   unit:'unit',        sale_price:45,   currency:'USD', tax_rate:18, status:'active', description:'IMO/IATA-compliant hazardous goods packaging, per unit' },
-  // Procurement
-  { name:'Sourcing & Vendor Management',  code:'PR-SOURCE',   category:'PROCUREMENT', unit:'hour',        sale_price:35,   currency:'USD', tax_rate:18, status:'active', description:'Supplier sourcing and vendor management, per hour' },
-  { name:'Purchase Order Processing',     code:'PR-PO',       category:'PROCUREMENT', unit:'order',       sale_price:20,   currency:'USD', tax_rate:18, status:'active', description:'Purchase order creation and processing, per order' },
-  { name:'Supplier Quality Audit',        code:'PR-AUDIT',    category:'PROCUREMENT', unit:'audit',       sale_price:300,  currency:'USD', tax_rate:18, status:'active', description:'On-site supplier quality/compliance audit' },
-  { name:'Supply Chain Consultancy',      code:'PR-CONSULT',  category:'PROCUREMENT', unit:'hour',        sale_price:60,   currency:'USD', tax_rate:18, status:'active', description:'Freight forwarding / supply chain advisory, per hour' },
-  // Duty & Taxes (rate is typically set per shipment against the CIF/customs value)
+  // Duty & Taxes
   { name:'Import Duty',                   code:'DT-IMP',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Customs import duty — percentage of CIF value, rate varies by HS code' },
   { name:'VAT on Import',                 code:'DT-VAT',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Value added tax assessed on imported goods' },
-  { name:'Excise Duty',                   code:'DT-EXC',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Excise duty applicable on specific commodities' },
-  { name:'Railway Development Levy',      code:'DT-RDL',      category:'DUTY',        unit:'%',           sale_price:0,    currency:'USD', tax_rate:0,  status:'active', description:'Railway Development Levy on imports' },
-  // Insurance
-  { name:'Marine Cargo Insurance',        code:'INS-CARGO',   category:'INSURANCE',   unit:'%',           sale_price:0,    currency:'USD', tax_rate:18, status:'active', description:'Marine cargo insurance — percentage of insured cargo value, set per shipment' },
-  { name:'Goods-in-Storage Insurance',    code:'INS-WH',      category:'INSURANCE',   unit:'%',           sale_price:0,    currency:'USD', tax_rate:18, status:'active', description:'Insurance on goods held in warehouse — percentage of insured value' },
-  // Labor
-  { name:'Casual Labor — Loading',        code:'LB-CASUAL',   category:'LABOR',       unit:'hour',        sale_price:6,    currency:'USD', tax_rate:18, status:'active', description:'Casual loading/offloading labor, per hour' },
-  { name:'Skilled Technician / Operator', code:'LB-SKILLED',  category:'LABOR',       unit:'hour',        sale_price:15,   currency:'USD', tax_rate:18, status:'active', description:'Skilled equipment operator or technician, per hour' },
-  { name:'Supervisor / Team Lead',        code:'LB-SUPER',    category:'LABOR',       unit:'hour',        sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'On-site supervisor or team lead, per hour' },
-  // Other
-  { name:'Storage / Demurrage',           code:'OT-STOR',     category:'OTHER',       unit:'day',         sale_price:25,   currency:'USD', tax_rate:18, status:'active', description:'Container or cargo storage charge per day' },
-  { name:'Port Congestion Surcharge',     code:'OT-CONG',     category:'OTHER',       unit:'container',   sale_price:150,  currency:'USD', tax_rate:0,  status:'active', description:'Port congestion surcharge (applied when applicable)' },
-  { name:'Dangerous Goods / IMO Fee',     code:'OT-DG',       category:'OTHER',       unit:'shipment',    sale_price:120,  currency:'USD', tax_rate:18, status:'active', description:'Handling surcharge for IMO / DG classified cargo' },
-  { name:'Detention Charges',             code:'OT-DET',      category:'OTHER',       unit:'day',         sale_price:30,   currency:'USD', tax_rate:0,  status:'active', description:'Detention charge for container held beyond free time' },
 ];
 
 function genCode(name: string, category: string): string {
@@ -250,10 +197,8 @@ function genCode(name: string, category: string): string {
     FULFILLMENT: 'FF', PACKAGING: 'PK', PROCUREMENT: 'PR', DUTY: 'DT', INSURANCE: 'INS', LABOR: 'LB', OTHER: 'OT',
   };
   const slug = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
-  return `${abbr[category] ?? 'SV'}-${slug}`;
+  return `${abbr[category] ?? 'SV'}-${slug || 'ITEM'}`;
 }
-
-// -- Helpers -------------------------------------------------------------------
 
 function fmt(amount: number, currency = 'USD') {
   if (amount === 0) return '—';
@@ -267,1019 +212,1792 @@ function fmtDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-// -- Pagination ------------------------------------------------------------
-
-const PAGE_SIZE = 20;
-
-// -- Category badge ------------------------------------------------------------
-
 function CatBadge({ cat }: { cat: string }) {
   const c = CAT_CFG[cat] ?? CAT_CFG.OTHER;
-  return <span style={{ padding: '2px 9px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{c.label}</span>;
-}
-
-// -- Status toggle -------------------------------------------------------------
-
-function StatusPill({ status }: { status: 'active' | 'inactive' }) {
-  const isActive = status === 'active';
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: isActive ? 'var(--green-l)' : 'var(--bg)', color: isActive ? 'var(--green)' : 'var(--ink3)' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: isActive ? 'var(--green)' : 'var(--ink3)', display: 'inline-block' }} />
-      {isActive ? 'Active' : 'Inactive'}
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap', border: `1px solid color-mix(in srgb, ${c.color} 18%, transparent)` }}>
+      {c.label}
     </span>
   );
 }
 
-// -- Delete confirm modal ------------------------------------------------------
-
-function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
+function StatusPill({ status }: { status: 'active' | 'inactive' }) {
   return (
-    <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
-      <DialogContent className="max-w-100 gap-0">
-        <DialogTitle style={{ fontSize: 16, marginBottom: 8 }}>Delete Service</DialogTitle>
-        <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20 }}>
-          Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.
-        </div>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-          <Button type="button" variant="destructive" onClick={onConfirm}>Delete</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <Badge variant={status === 'active' ? 'success' : 'gray'}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block', opacity: 0.7 }} />
+      {status === 'active' ? 'Active' : 'Inactive'}
+    </Badge>
   );
 }
 
-// -- Product Form (slide-in panel) ---------------------------------------------
+function ProductTypeBadge({ type }: { type?: 'product' | 'service' }) {
+  const isProd = type === 'product';
+  return (
+    <span className={cn('product-type-badge', isProd ? 'product-type-badge--product' : 'product-type-badge--service')}>
+      <Icon name={isProd ? 'package' : 'zap'} size={11} />
+      {isProd ? 'Product' : 'Service'}
+    </span>
+  );
+}
 
-function ProductForm({ initial, onSave, onClose, isMobile }: {
-  initial?: Product;
-  onSave: (data: ProductForm) => Promise<Product>;
-  onClose: () => void;
-  isMobile: boolean;
+function StockPill({ product }: { product: Product }) {
+  if (product.type !== 'product' || !product.track_inventory) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+  const qty = product.stock_quantity ?? 0;
+  const threshold = product.low_stock_threshold ?? 5;
+  if (qty <= 0) {
+    return <span className="stock-pill stock-pill--out"><Icon name="alertCircle" size={10} /> Out of stock</span>;
+  }
+  if (qty <= threshold) {
+    return <span className="stock-pill stock-pill--low"><Icon name="clock" size={10} /> Low ({qty})</span>;
+  }
+  return <span className="stock-pill stock-pill--in"><Icon name="check" size={10} /> {qty} in stock</span>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW 1: Dedicated Product Detail Page
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProductDetailPage({
+  product,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+  baseRoute,
+}: {
+  product: Product;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleStatus: () => void;
+  baseRoute: string;
 }) {
+  const [prices, setPrices] = useState<CustomerPriceRow[]>([]);
+  const [loadingPrices, setLoadingPrices] = useState(true);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    setLoadingPrices(true);
+    apiFetch(`/v1/products/${product.id}/customer-prices`)
+      .then((rows: any) => {
+        setPrices(Array.isArray(rows) ? rows.map((r: any) => ({
+          customer_id: r.customer_id,
+          customer_name: r.customer_name,
+          price: Number(r.price) || 0,
+          currency: r.currency || product.currency,
+          note: r.note || '',
+        })) : []);
+      })
+      .catch(() => setPrices([]))
+      .finally(() => setLoadingPrices(false));
+  }, [product.id, product.currency]);
+
+  const hasCost = typeof product.purchase_price === 'number' && product.purchase_price > 0;
+  const grossProfit = hasCost ? product.sale_price - (product.purchase_price || 0) : null;
+  const marginPct = hasCost && product.sale_price > 0 ? Math.round(((grossProfit || 0) / product.sale_price) * 100) : null;
+
+  return (
+    <div className="products-services-page">
+      <PageHeader
+        crumbs={['Finance', { label: 'Products & Services', to: `${baseRoute}/products` }, product.name]}
+        titlePlain={product.name}
+        titleEm={product.code}
+        subtitle={`${CAT_CFG[product.category]?.label ?? product.category} · ${product.type === 'product' ? 'Physical Product' : 'Invoiceable Service'}`}
+        backTo={`${baseRoute}/products`}
+        backLabel="Back to products"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button onClick={onEdit} size="sm">
+              <Icon name="edit" size={13} /> Edit Item
+            </Button>
+            <Button variant="outline" size="sm" onClick={onToggleStatus}>
+              <Icon name="eye" size={13} /> {product.status === 'active' ? 'Set Inactive' : 'Set Active'}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={onDelete}>
+              <Icon name="trash" size={13} /> Delete
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="product-detail-layout mt-4">
+        {/* Main Column */}
+        <div className="flex flex-col gap-5">
+          {/* Hero Pricing & Margin Card */}
+          <div className="product-hero-pricing">
+            <div>
+              <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Selling Price
+              </div>
+              <div className="product-hero-amount">
+                {product.sale_price > 0 ? fmt(product.sale_price, product.currency) : '—'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                <span>per <strong>{product.unit}</strong></span>
+                <span>•</span>
+                <span>{product.tax_rate > 0 ? `${product.tax_rate}% tax` : 'Tax exempt'}</span>
+                {product.compare_at_price && product.compare_at_price > product.sale_price && (
+                  <>
+                    <span>•</span>
+                    <span className="line-through text-muted-foreground">{fmt(product.compare_at_price, product.currency)}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {hasCost && (
+                <div className="text-right">
+                  <div className="text-[11px] font-semibold text-muted-foreground uppercase">Unit Cost</div>
+                  <div className="text-sm font-semibold tabular-nums text-foreground">
+                    {fmt(product.purchase_price || 0, product.currency)}
+                  </div>
+                  {marginPct !== null && (
+                    <div className="product-margin-badge mt-1">
+                      +{marginPct}% Margin ({fmt(grossProfit || 0, product.currency)})
+                    </div>
+                  )}
+                </div>
+              )}
+              <StatusPill status={product.status} />
+            </div>
+          </div>
+
+          {/* Inventory & Logistics (if physical product) */}
+          {product.type === 'product' && (
+            <SectionCard title="Inventory & Logistics">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                <div className="p-3 rounded-lg border border-border bg-card">
+                  <div className="text-xs text-muted-foreground mb-1">Inventory Level</div>
+                  <div><StockPill product={product} /></div>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-card">
+                  <div className="text-xs text-muted-foreground mb-1">Tracking Status</div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {product.track_inventory ? 'Tracked' : 'Unmanaged'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-card">
+                  <div className="text-xs text-muted-foreground mb-1">Low Alert At</div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {product.low_stock_threshold ? `${product.low_stock_threshold} units` : '5 units'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-card">
+                  <div className="text-xs text-muted-foreground mb-1">Shipping Class</div>
+                  <div className="text-sm font-semibold text-foreground capitalize">
+                    {product.shipping_class || 'Standard'}
+                  </div>
+                </div>
+              </div>
+
+              {(product.weight_kg || product.dimensions_cm) && (
+                <div className="flex flex-wrap gap-4 pt-3 border-t border-border text-xs text-muted-foreground">
+                  {product.weight_kg && (
+                    <div>Weight: <strong className="text-foreground">{product.weight_kg} kg</strong></div>
+                  )}
+                  {product.dimensions_cm && (
+                    <div>
+                      Dimensions: <strong className="text-foreground">
+                        {product.dimensions_cm.length} × {product.dimensions_cm.width} × {product.dimensions_cm.height} cm
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              )}
+            </SectionCard>
+          )}
+
+          {/* Description & Scope */}
+          <SectionCard title="Service Specifications & Scope">
+            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+              {catalogBillingDescription(product) || product.description || 'No description provided for this item.'}
+            </p>
+            {product.notes && (
+              <div className="mt-4 p-3 rounded-lg text-xs" style={{ background: 'var(--gold-l)', border: '1px solid color-mix(in srgb, var(--gold) 20%, transparent)', color: 'var(--ink)' }}>
+                <strong className="block mb-1 font-semibold uppercase tracking-wider text-[10px]" style={{ color: 'var(--gold)' }}>Internal Notes:</strong>
+                {product.notes}
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Customer Negotiated Rates */}
+          <SectionCard
+            title="Customer Contract Rates"
+            action={<span className="text-xs text-muted-foreground">{prices.length} special agreements</span>}
+          >
+            <p className="text-xs text-muted-foreground mb-3">
+              When one of these customers is added to an invoice or quotation, their agreed rate applies automatically instead of the standard {fmt(product.sale_price, product.currency)} catalog price.
+            </p>
+            {loadingPrices ? (
+              <SectionLoading label="Loading contract rates…" />
+            ) : prices.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                No customer-specific agreed prices registered yet. Click Edit Item to add agreed customer contracts.
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-border rounded-lg">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border">
+                      <th className="p-2.5 font-semibold text-muted-foreground">Customer</th>
+                      <th className="p-2.5 font-semibold text-muted-foreground text-right">Agreed Rate</th>
+                      <th className="p-2.5 font-semibold text-muted-foreground">Contract Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {prices.map(pr => (
+                      <tr key={pr.customer_id} className="border-b border-border/60 hover:bg-muted/30">
+                        <td className="p-2.5 font-medium text-foreground flex items-center gap-2">
+                          <CompanyAvatar id={pr.customer_id} name={pr.customer_name} size={22} shape="square" />
+                          <span>{pr.customer_name}</span>
+                        </td>
+                        <td className="p-2.5 text-right font-semibold tabular-nums" style={{ color: 'var(--teal)' }}>
+                          {fmt(pr.price, pr.currency)}
+                        </td>
+                        <td className="p-2.5 text-muted-foreground">{pr.note || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </SectionCard>
+        </div>
+
+        {/* Side Column */}
+        <div className="flex flex-col gap-5">
+          {/* Images preview (if product) */}
+          {product.image_urls && product.image_urls.length > 0 && (
+            <SectionCard title="Product Media">
+              <div className="grid grid-cols-2 gap-2">
+                {product.image_urls.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt=""
+                    className="w-full h-32 object-cover rounded-lg border border-border"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ))}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Classification & Properties */}
+          <SectionCard title="Classification & Meta">
+            <div className="flex flex-col gap-3 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Category</span>
+                <CatBadge cat={product.category} />
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Catalog Type</span>
+                <ProductTypeBadge type={product.type} />
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Currency</span>
+                <strong className="text-foreground">{product.currency}</strong>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Industry</span>
+                <span className="font-medium text-foreground">
+                  {product.industry_key ? financeIndustryName(product.industry_key) : 'General'}
+                </span>
+              </div>
+              {product.brand && (
+                <div className="flex justify-between items-center pb-2 border-b border-border">
+                  <span className="text-muted-foreground">Brand</span>
+                  <span className="font-medium text-foreground">{product.brand}</span>
+                </div>
+              )}
+              {product.vendor_name && (
+                <div className="flex justify-between items-center pb-2 border-b border-border">
+                  <span className="text-muted-foreground">Vendor</span>
+                  <span className="font-medium text-foreground">{product.vendor_name}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Created On</span>
+                <span>{fmtDate(product.created_at)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Last Updated</span>
+                <span>{fmtDate(product.updated_at || product.created_at)}</span>
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* Channels & SEO */}
+          <SectionCard title="Channels & Visibility">
+            <div className="flex flex-col gap-2.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Publication Status</span>
+                <Badge variant={product.visibility === 'published' ? 'brand' : 'outline'}>
+                  {product.visibility || 'published'}
+                </Badge>
+              </div>
+              {product.url_handle && (
+                <div className="pt-2 border-t border-border">
+                  <div className="text-[11px] text-muted-foreground mb-1">URL Slug</div>
+                  <div className="font-mono text-[11px] text-foreground bg-muted p-1.5 rounded truncate">
+                    /{product.url_handle}
+                  </div>
+                </div>
+              )}
+              {product.channels && product.channels.length > 0 && (
+                <div className="pt-2 border-t border-border">
+                  <div className="text-[11px] text-muted-foreground mb-1.5">Active Channels</div>
+                  <div className="flex flex-wrap gap-1">
+                    {product.channels.map(c => (
+                      <span key={c} className="px-2 py-0.5 rounded bg-muted text-[10.5px] font-medium text-foreground">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW 2: Dedicated Full-Page Product Form (New & Edit)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProductFormPage({
+  initial,
+  industries,
+  onSave,
+  onCancel,
+  baseRoute,
+}: {
+  initial?: Product;
+  industries: FinanceIndustryKey[];
+  onSave: (data: ProductFormState, prices: CustomerPriceRow[]) => Promise<Product>;
+  onCancel: () => void;
+  baseRoute: string;
+}) {
+  const company = useCompany();
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState('identity');
+  const [stepError, setStepError] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
+  const headingRef = useRef<HTMLDivElement>(null);
   const ext = initial as any;
-  const [f, setF] = useState<ProductForm>({
-    name:              initial?.name           ?? '',
-    code:              initial?.code           ?? '',
-    type:              initial?.type           ?? 'service',
-    category:          initial?.category       ?? 'FREIGHT',
-    description:       initial?.description    ?? '',
-    unit:              initial?.unit           ?? 'shipment',
-    sale_price:        initial?.sale_price     ?? 0,
-    purchase_price:    initial?.purchase_price ?? 0,
-    currency:          initial?.currency       ?? 'USD',
-    tax_rate:          initial?.tax_rate       ?? 0,
-    tax_code_id:       initial?.tax_code_id    ?? null,
-    status:            initial?.status         ?? 'active',
-    notes:             initial?.notes          ?? '',
-    compare_at_price:  ext?.compare_at_price   ?? null,
-    brand:             ext?.brand              ?? '',
-    vendor_name:       ext?.vendor_name        ?? '',
-    image_urls:        Array.isArray(ext?.image_urls) ? ext.image_urls : [],
-    stock_quantity:    ext?.stock_quantity     ?? null,
+
+  const defaultInd = initial?.industry_key ?? industries[0] ?? null;
+  const profile = financeCatalogProfile(defaultInd);
+
+  const [f, setF] = useState<ProductFormState>({
+    industry_key: defaultInd,
+    industry_attributes: initial?.industry_attributes ?? {},
+    name: initial?.name ?? '',
+    code: initial?.code ?? '',
+    type: initial?.type ?? profile.defaultType,
+    category: initial?.category ?? profile.categories[0],
+    description: initial?.description ?? '',
+    unit: initial?.unit ?? profile.units[0],
+    sale_price: initial?.sale_price ?? 0,
+    purchase_price: initial?.purchase_price ?? 0,
+    currency: initial?.currency ?? company.currency ?? 'USD',
+    tax_rate: initial?.tax_rate ?? 0,
+    tax_code_id: initial?.tax_code_id ?? null,
+    status: initial?.status ?? 'active',
+    notes: initial?.notes ?? '',
+    compare_at_price: ext?.compare_at_price ?? null,
+    brand: ext?.brand ?? '',
+    vendor_name: ext?.vendor_name ?? '',
+    image_urls: Array.isArray(ext?.image_urls) ? ext.image_urls : [],
+    stock_quantity: ext?.stock_quantity ?? null,
     low_stock_threshold: ext?.low_stock_threshold ?? 5,
-    track_inventory:   ext?.track_inventory    ?? false,
-    weight_kg:         ext?.weight_kg          ?? null,
-    dimensions_cm:     ext?.dimensions_cm      ?? null,
-    shipping_class:    ext?.shipping_class     ?? 'standard',
-    variants:          Array.isArray(ext?.variants) ? ext.variants : [],
-    meta_title:        ext?.meta_title         ?? '',
-    meta_description:  ext?.meta_description   ?? '',
-    url_handle:        ext?.url_handle         ?? '',
-    visibility:        ext?.visibility         ?? 'published',
-    channels:          Array.isArray(ext?.channels) ? ext.channels : ['online_store'],
+    track_inventory: ext?.track_inventory ?? false,
+    weight_kg: ext?.weight_kg ?? null,
+    dimensions_cm: ext?.dimensions_cm ?? null,
+    shipping_class: ext?.shipping_class ?? 'standard',
+    variants: Array.isArray(ext?.variants) ? ext.variants : [],
+    meta_title: ext?.meta_title ?? '',
+    meta_description: ext?.meta_description ?? '',
+    url_handle: ext?.url_handle ?? '',
+    visibility: ext?.visibility ?? 'published',
+    channels: Array.isArray(ext?.channels) ? ext.channels : ['pos', 'direct'],
   });
 
-  // Customer-specific (contract) prices. Loaded for an existing service; for a
-  // new one they are held here and saved right after the service is created.
   const [prices, setPrices] = useState<CustomerPriceRow[]>([]);
+
   useEffect(() => {
     if (!initial?.id) return;
     apiFetch(`/v1/products/${initial.id}/customer-prices`)
-      .then((rows: any) => setPrices((Array.isArray(rows) ? rows : []).map((r: any) => ({
-        customer_id: r.customer_id, customer_name: r.customer_name,
-        price: Number(r.price) || 0, currency: r.currency || 'USD', note: r.note || '',
-      }))))
+      .then((rows: any) => {
+        setPrices(Array.isArray(rows) ? rows.map((r: any) => ({
+          customer_id: r.customer_id,
+          customer_name: r.customer_name,
+          price: Number(r.price) || 0,
+          currency: r.currency || f.currency,
+          note: r.note || '',
+        })) : []);
+      })
       .catch(() => {});
   }, [initial?.id]);
 
-  function set<K extends keyof ProductForm>(k: K, v: ProductForm[K]) {
-    setF(p => {
-      const next = { ...p, [k]: v };
-      if (k === 'name' && !initial) next.code = genCode(String(v), next.category);
-      if (k === 'category' && !initial) next.code = genCode(next.name, String(v));
+  function set<K extends keyof ProductFormState>(k: K, v: ProductFormState[K]) {
+    setF(prev => {
+      const next = { ...prev, [k]: v };
+      if (k === 'name' && !initial && !prev.code) {
+        next.code = genCode(String(v), next.category);
+        if (!prev.url_handle) {
+          next.url_handle = String(v).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+      }
       return next;
     });
   }
 
-  function setPriceRow(i: number, patch: Partial<CustomerPriceRow>) {
-    setPrices(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r));
-  }
   async function searchCustomers(q: string): Promise<PickerItem[]> {
     const res: any = await apiFetch(`/v1/customers${q.trim() ? `?search=${encodeURIComponent(q.trim())}` : ''}`).catch(() => []);
     const list = Array.isArray(res) ? res : (res?.data ?? []);
     const filtered = q.trim() ? list.filter((c: any) => (c.name || '').toLowerCase().includes(q.toLowerCase())) : list;
-    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined, avatarUserId: c.id, avatarKind: 'customers' as const, avatarType: 'company' as const }));
-  }
-  function addCustomer(item: PickerItem | null) {
-    if (!item) return;
-    setPrices(prev => prev.some(p => p.customer_id === item.id) ? prev
-      : [...prev, { customer_id: item.id, customer_name: item.label, price: f.sale_price, currency: f.currency, note: '' }]);
+    return filtered.slice(0, 25).map((c: any) => ({
+      id: c.id,
+      label: c.name,
+      sublabel: c.email || undefined,
+      avatarUserId: c.id,
+      avatarKind: 'customers' as const,
+      avatarType: 'company' as const,
+    }));
   }
 
-  async function submit() {
-    if (!f.name.trim()) { showAlert('Service name is required.'); return; }
+  function addCustomerPrice(item: PickerItem | null) {
+    if (!item) return;
+    if (prices.some(p => p.customer_id === item.id)) {
+      showAlert(`${item.label} already has a special rate configured.`);
+      return;
+    }
+    setPrices(prev => [
+      ...prev,
+      { customer_id: item.id, customer_name: item.label, price: f.sale_price, currency: f.currency, note: '' },
+    ]);
+  }
+
+  function updatePriceRow(idx: number, patch: Partial<CustomerPriceRow>) {
+    setPrices(prev => prev.map((r, i) => i === idx ? { ...r, ...patch } : r));
+  }
+
+  function removePriceRow(idx: number) {
+    setPrices(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    if (step !== 'review') { advanceStep(); return; }
+    if (!f.name.trim() || !f.code.trim()) { goToStep('identity'); setStepError('Enter an item name and catalogue code.'); return; }
+    if ([f.sale_price, f.purchase_price, f.tax_rate, ...prices.map(p => p.price)].some(v => !Number.isFinite(v) || v < 0) || f.tax_rate > 100) { goToStep('pricing'); setStepError('Check prices and tax rate before saving.'); return; }
     setSaving(true);
     try {
-      const saved = await onSave(f);
-      // The service now has an id (whether it was just created or already
-      // existed), so its agreed prices can be written against it.
-      await apiFetch(`/v1/products/${saved.id}/customer-prices`, {
-        method: 'PUT',
-        body: JSON.stringify({ prices: prices.map(p => ({ customer_id: p.customer_id, price: Number(p.price) || 0, currency: p.currency, note: p.note })) }),
-      });
-      onClose();
+      await onSave(f, prices);
     } catch (err: any) {
-      showAlert(err.message || 'Failed to save this service.');
-    } finally { setSaving(false); }
+      showAlert(err.message || 'Failed to save item.');
+    } finally {
+      setSaving(false);
+    }
   }
-
-  const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box' as const, color: 'var(--ink)', fontFamily: 'inherit' };
-  const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
-  const row: React.CSSProperties = { marginBottom: 16 };
 
   const isProduct = f.type === 'product';
-  const typeName = isProduct ? 'Product' : 'Service';
+  const indProfile = financeCatalogProfile(f.industry_key);
+  const activeCategories = [...new Set([...indProfile.categories, ...CATEGORIES, f.category])].filter(Boolean);
+  const activeUnits = [...new Set([...indProfile.units, ...UNITS, f.unit])].filter(Boolean);
 
-  function toggleChannel(ch: string) {
-    setF(p => ({ ...p, channels: p.channels.includes(ch) ? p.channels.filter(c => c !== ch) : [...p.channels, ch] }));
+  const steps = [
+    { id: 'identity', label: 'Identity', title: 'Identity & Classification', hint: 'Industry, type and description' },
+    { id: 'pricing', label: 'Pricing', title: 'Pricing & Taxation', hint: 'Prices, currency and tax' },
+    ...(isProduct ? [{ id: 'inventory', label: 'Inventory', title: 'Physical Inventory & Shipping', hint: 'Stock and shipping' }] : []),
+    { id: 'contracts', label: 'Customer rates', title: 'Customer Contract Pricing', hint: 'Optional agreed prices' },
+    { id: 'publication', label: 'Availability', title: 'Publication & Channels', hint: 'Status and internal notes' },
+    { id: 'review', label: 'Review', title: 'Review your item', hint: 'Check and create your item' },
+  ];
+  const stepIndex = steps.findIndex(s => s.id === step);
+  function goToStep(id: string) {
+    setStep(id); setStepError('');
+    requestAnimationFrame(() => { headingRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' }); headingRef.current?.focus(); });
   }
-  function setVariantValues(i: number, raw: string) {
-    const vals = raw.split(',').map(v => v.trim()).filter(Boolean);
-    setF(p => ({ ...p, variants: p.variants.map((v, idx) => idx === i ? { ...v, values: vals } : v) }));
+  function advanceStep() {
+    if (!formRef.current?.reportValidity()) return;
+    if (step === 'identity' && (!f.name.trim() || !f.code.trim())) { setStepError('Enter an item name and catalogue code.'); return; }
+    goToStep(steps[Math.min(stepIndex + 1, steps.length - 1)].id);
   }
-  function addVariant() { setF(p => ({ ...p, variants: [...p.variants, { name: '', values: [] }] })); }
-  function removeVariant(i: number) { setF(p => ({ ...p, variants: p.variants.filter((_, idx) => idx !== i) })); }
-  function setImageUrl(i: number, val: string) { setF(p => { const a = [...p.image_urls]; a[i] = val; return { ...p, image_urls: a }; }); }
-  function addImageSlot() { setF(p => ({ ...p, image_urls: [...p.image_urls, ''] })); }
-  function removeImageSlot(i: number) { setF(p => ({ ...p, image_urls: p.image_urls.filter((_, idx) => idx !== i) })); }
 
   return (
-    <FormPage
-      title={initial ? `Edit ${typeName}` : `New ${typeName}`}
-      subtitle={initial ? `Editing ${initial.code}` : `Add a ${typeName.toLowerCase()} to your catalog — its code, price, unit and tax.`}
-      onCancel={onClose}
-      actions={
-        <>
-          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
-          <button type="button" onClick={submit} disabled={saving} className="btn btn-primary" data-ui-native-button="">
-            <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? `Update ${typeName}` : `Add ${typeName}`}
-          </button>
-        </>
-      }
-    >
-      <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={row}>
-            <label style={lbl}>{typeName} Name *</label>
-            <input type="text" title={`${typeName} name`} placeholder={isProduct ? 'e.g. Wireless Bluetooth Speaker' : 'e.g. Sea Freight — 20ft FCL'} value={f.name} onChange={e => set('name', e.target.value)} style={inp} />
-          </div>
+    <div className="products-services-page">
+      <div className="product-form-container">
+        <PageHeader
+          crumbs={['Finance', { label: 'Products & Services', to: `${baseRoute}/products` }, initial ? `Edit ${initial.name}` : 'New Item']}
+          titlePlain={initial ? 'Edit' : 'New'}
+          titleEm={isProduct ? 'Product' : 'Service'}
+          subtitle={initial ? `Editing catalog item ${initial.code}` : 'Define item codes, pricing, units, and inventory properties.'}
+          variant="create"
+          backTo={initial ? `${baseRoute}/products/${initial.id}` : `${baseRoute}/products`}
+          backLabel="Cancel"
+        />
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div>
-              <label style={lbl}>Type</label>
-              <Select value={f.type} onValueChange={v => set('type', v as 'product' | 'service')}>
-                <SelectTrigger aria-label="Type" style={inp}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="service">Service</SelectItem>
-                  <SelectItem value="product">Product</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label style={lbl}>Code / SKU</label>
-              <input type="text" title="Service code" placeholder="e.g. SF-FCL-20" value={f.code} onChange={e => set('code', e.target.value.toUpperCase())} style={{ ...inp, fontFamily: 'var(--font)', fontSize: 12 }} />
-            </div>
-            <div>
-              <label style={lbl}>Category</label>
-              <Select value={f.category} onValueChange={v => set('category', v)}>
-                <SelectTrigger aria-label="Category" style={inp}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{CAT_CFG[c].label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div style={row}>
-            <label style={lbl}>Description</label>
-            <textarea title="Description" placeholder="Brief description of the service…" value={f.description} onChange={e => set('description', e.target.value)} rows={3}
-              style={{ ...inp, resize: 'vertical' }} />
-          </div>
-
-          {/* Pricing */}
-          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing</div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div>
-                <label style={lbl}>Sale Price</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>{f.currency}</span>
-                  <input type="number" title="Sale price" value={f.sale_price} min={0} step={0.01} onChange={e => set('sale_price', parseFloat(e.target.value) || 0)}
-                    style={{ ...inp, paddingLeft: f.currency.length * 8 + 14 }} />
-                </div>
-              </div>
-              <div>
-                <label style={lbl}>Purchase / Cost Price</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>{f.currency}</span>
-                  <input type="number" title="Purchase price" value={f.purchase_price} min={0} step={0.01} onChange={e => set('purchase_price', parseFloat(e.target.value) || 0)}
-                    style={{ ...inp, paddingLeft: f.currency.length * 8 + 14 }} />
-                </div>
-              </div>
-              <div>
-                <label style={lbl}>Currency</label>
-                <Select value={f.currency} onValueChange={v => set('currency', v)}>
-                  <SelectTrigger aria-label="Currency" style={inp}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-              <div>
-                <label style={lbl}>Unit of Measure</label>
-                <Select value={f.unit} onValueChange={v => set('unit', v)}>
-                  <SelectTrigger aria-label="Unit" style={inp}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label style={lbl}>Tax Rate (%)</label>
-                <input type="number" title="Tax rate" value={f.tax_rate} min={0} max={100} step={0.5} onChange={e => set('tax_rate', parseFloat(e.target.value) || 0)} style={inp} />
-              </div>
-            </div>
-            {isProduct && (
-              <div style={{ marginTop: 12 }}>
-                <label style={lbl}>Compare-at Price (crossed-out "was" price)</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>{f.currency}</span>
-                  <input type="number" title="Compare-at price" value={f.compare_at_price ?? ''} min={0} step={0.01}
-                    onChange={e => set('compare_at_price', e.target.value ? parseFloat(e.target.value) : null)}
-                    style={{ ...inp, paddingLeft: f.currency.length * 8 + 14 }} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── Product-only sections ─────────────────────────── */}
-          {isProduct && (<>
-
-          {/* Media */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Product Images</div>
-            {f.image_urls.map((url, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                <input type="url" title={`Image URL ${i + 1}`} placeholder="https://…" value={url} onChange={e => setImageUrl(i, e.target.value)} style={{ ...inp, flex: 1 }} />
-                {url && <img src={url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />}
-                {i === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>COVER</span>}
-                <Tip label="Remove image">
-                  <button type="button" aria-label="Remove image" onClick={() => removeImageSlot(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }} data-ui-native-button=""><Icon name="trash" size={14} /></button>
-                </Tip>
-              </div>
-            ))}
-            {f.image_urls.length < 5 && (
-              <button type="button" onClick={addImageSlot} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--teal)', background: 'none', border: '1px dashed var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer' }} data-ui-native-button="">
-                <Icon name="plus" size={12} /> Add image URL
-              </button>
-            )}
-          </div>
-
-          {/* Brand & Vendor */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div>
-              <label style={lbl}>Brand</label>
-              <input type="text" title="Brand" placeholder="e.g. Sony" value={f.brand} onChange={e => set('brand', e.target.value)} style={inp} />
-            </div>
-            <div>
-              <label style={lbl}>Vendor / Supplier</label>
-              <input type="text" title="Vendor name" placeholder="e.g. Tech Distributors Ltd" value={f.vendor_name} onChange={e => set('vendor_name', e.target.value)} style={inp} />
-            </div>
-          </div>
-
-          {/* Inventory */}
-          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Inventory</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <Checkbox id="track-inv" checked={f.track_inventory} onCheckedChange={v => set('track_inventory', !!v)} />
-              <label htmlFor="track-inv" style={{ fontSize: 13, cursor: 'pointer' }}>Track inventory for this product</label>
-            </div>
-            {f.track_inventory && (
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={lbl}>Stock Quantity</label>
-                  <input type="number" title="Stock quantity" value={f.stock_quantity ?? ''} min={0} onChange={e => set('stock_quantity', e.target.value ? parseInt(e.target.value) : null)} style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>Low-Stock Alert At</label>
-                  <input type="number" title="Low stock threshold" value={f.low_stock_threshold} min={0} onChange={e => set('low_stock_threshold', parseInt(e.target.value) || 0)} style={inp} />
-                </div>
-                <div>
-                  <label style={lbl}>Weight (kg)</label>
-                  <input type="number" title="Weight in kg" value={f.weight_kg ?? ''} min={0} step={0.001} onChange={e => set('weight_kg', e.target.value ? parseFloat(e.target.value) : null)} style={inp} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Variants */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Variants</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Define option groups like Color or Size. Values are comma-separated.</div>
-            {f.variants.map((v, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 32px', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                <input type="text" title="Option name" placeholder="e.g. Color" value={v.name} onChange={e => setF(p => ({ ...p, variants: p.variants.map((vv, idx) => idx === i ? { ...vv, name: e.target.value } : vv) }))} style={{ ...inp, padding: '7px 10px' }} />
-                <input type="text" title="Option values" placeholder="e.g. Black, White, Silver" value={v.values.join(', ')} onChange={e => setVariantValues(i, e.target.value)} style={{ ...inp, padding: '7px 10px' }} />
-                <Tip label="Remove variant">
-                  <button type="button" aria-label="Remove variant" onClick={() => removeVariant(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4, display: 'flex', justifyContent: 'center' }} data-ui-native-button=""><Icon name="trash" size={14} /></button>
-                </Tip>
-              </div>
-            ))}
-            <button type="button" onClick={addVariant} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--teal)', background: 'none', border: '1px dashed var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: '6px 12px', cursor: 'pointer', marginTop: 4 }} data-ui-native-button="">
-              <Icon name="plus" size={12} /> Add option
-            </button>
-          </div>
-
-          {/* Shipping */}
-          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Shipping</div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={lbl}>Shipping Class</label>
-              <Select value={f.shipping_class || 'standard'} onValueChange={v => set('shipping_class', v)}>
-                <SelectTrigger aria-label="Shipping class" style={inp}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="standard">Standard</SelectItem>
-                  <SelectItem value="express">Express</SelectItem>
-                  <SelectItem value="freight">Freight</SelectItem>
-                  <SelectItem value="digital">Digital / No shipping</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label style={lbl}>Dimensions (cm) — L × W × H</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                {(['length', 'width', 'height'] as const).map(dim => (
-                  <input key={dim} type="number" title={dim} placeholder={dim.charAt(0).toUpperCase() + dim.slice(1)} min={0} step={0.1}
-                    value={f.dimensions_cm?.[dim] ?? ''}
-                    onChange={e => {
-                      const v = parseFloat(e.target.value) || 0;
-                      setF(p => ({ ...p, dimensions_cm: { length: p.dimensions_cm?.length ?? 0, width: p.dimensions_cm?.width ?? 0, height: p.dimensions_cm?.height ?? 0, [dim]: v } }));
-                    }}
-                    style={{ ...inp, padding: '7px 10px' }} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Visibility & Channels */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Visibility</div>
-              <RadioGroup value={f.visibility} onValueChange={value => set('visibility', value as typeof f.visibility)}>
-                {(['published', 'draft', 'scheduled'] as const).map(opt => (
-                  <label key={opt} htmlFor={`visibility-${opt}`} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                    <RadioGroupItem id={`visibility-${opt}`} value={opt} />
-                    <span style={{ fontWeight: f.visibility === opt ? 700 : 400 }}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</span>
-                  </label>
-                ))}
-              </RadioGroup>
-            </div>
-            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Sales Channels</div>
-              {[{ id: 'online_store', label: 'Online Store' }, { id: 'pos', label: 'Point of Sale' }, { id: 'marketplace', label: 'Marketplace' }].map(ch => (
-                <label key={ch.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer', fontSize: 13 }}>
-                  <Checkbox checked={f.channels.includes(ch.id)} onCheckedChange={() => toggleChannel(ch.id)} />
-                  {ch.label}
-                </label>
+        <div className="product-wizard-progress">
+          <div aria-live="polite" style={{ fontSize: 13, color: 'var(--ink2)' }}>Step {stepIndex + 1} of {steps.length} · {steps[stepIndex]?.label}</div>
+          <Progress value={(stepIndex + 1) / steps.length * 100} aria-label="Creation progress" />
+          <Tabs value={step} onValueChange={id => goToStep(id)}>
+            <TabsList wrap aria-label="Product creation steps">
+              {steps.map((item, index) => (
+                <TabsTrigger key={item.id} value={item.id} disabled={saving || index > stepIndex}>
+                  {index < stepIndex ? '✓' : index + 1}. {item.label}
+                </TabsTrigger>
               ))}
+            </TabsList>
+          </Tabs>
+        </div>
+        <SectionCard collapsible={false}>
+          <form ref={formRef} onSubmit={handleSubmit} className="product-form-body">
+            <div ref={headingRef} tabIndex={-1} style={{ outline: 'none' }}>
+              <h2 className="product-form-heading">{steps[stepIndex]?.title}</h2>
+              <p className="product-form-hint">{steps[stepIndex]?.hint}</p>
             </div>
-          </div>
+            {stepError && <p role="alert" className="text-sm text-destructive">{stepError}</p>}
+          {step === 'identity' && (<div>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Industry profile</label>
+                <Select value={f.industry_key || '__general__'} onValueChange={v => {
+                  const key = v === '__general__' ? null : v as FinanceIndustryKey;
+                  const selected = financeCatalogProfile(key);
+                  setF(prev => ({ ...prev, industry_key: key, category: selected.categories[0], unit: selected.units[0] }));
+                }}>
+                  <SelectTrigger aria-label="Industry profile"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="__general__">General</SelectItem>{[...new Set([...industries, ...(f.industry_key ? [f.industry_key] : [])])].map(key => <SelectItem key={key} value={key}>{financeIndustryName(key)}</SelectItem>)}</SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">{indProfile.billingHint}</p>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">Item Classification</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => set('type', 'service')}
+                    className={cn(
+                      "flex-1 min-w-56 flex-col items-start whitespace-normal p-3 text-left",
+                      f.type === 'service'
+                        ? "border-border bg-card"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    )}
+                    style={f.type === 'service' ? { borderColor: 'var(--teal)', background: 'var(--teal-l)', boxShadow: '0 0 0 2px var(--teal-m)' } : undefined}
+                  >
+                    <div className="font-semibold text-sm flex items-center gap-1.5">
+                      <Icon name="zap" size={14} style={{ color: 'var(--teal)' }} /> Invoiceable Service
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Work, expertise or subscriptions billed by time, project or agreed unit.
+                    </div>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => set('type', 'product')}
+                    className={cn(
+                      "flex-1 min-w-56 flex-col items-start whitespace-normal p-3 text-left",
+                      f.type === 'product'
+                        ? "border-border bg-card"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    )}
+                    style={f.type === 'product' ? { borderColor: 'var(--teal)', background: 'var(--teal-l)', boxShadow: '0 0 0 2px var(--teal-m)' } : undefined}
+                  >
+                    <div className="font-semibold text-sm flex items-center gap-1.5">
+                      <Icon name="package" size={14} style={{ color: 'var(--purple)' }} /> Physical Product / Stock
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Physical goods with inventory counts, warehouse spots, weights, and dimensions.
+                    </div>
+                  </Button>
+                </div>
+              </div>
 
-          {/* SEO */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>SEO</div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={lbl}>URL Handle (slug)</label>
-              <input type="text" title="URL handle" placeholder="e.g. wireless-bluetooth-speaker" value={f.url_handle} onChange={e => set('url_handle', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-'))} style={inp} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={lbl}>Meta Title</label>
-              <input type="text" title="Meta title" value={f.meta_title} onChange={e => set('meta_title', e.target.value)} style={inp} />
-              <div style={{ fontSize: 11, color: f.meta_title.length > 60 ? 'var(--red)' : 'var(--ink3)', marginTop: 4 }}>{f.meta_title.length}/60 characters</div>
-            </div>
-            <div>
-              <label style={lbl}>Meta Description</label>
-              <textarea title="Meta description" value={f.meta_description} onChange={e => set('meta_description', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
-              <div style={{ fontSize: 11, color: f.meta_description.length > 160 ? 'var(--red)' : 'var(--ink3)', marginTop: 4 }}>{f.meta_description.length}/160 characters</div>
-            </div>
-          </div>
+              <div className="product-form-grid">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Item Name *</label>
+                  <Input aria-label="Item name"
+                    type="text"
+                    required
+                    placeholder="e.g. Sea Freight — 20ft FCL or Container Seal"
+                    value={f.name}
+                    onChange={e => set('name', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-semibold text-muted-foreground">Catalog Code / SKU *</label>
+                    <button
+                      type="button"
+                      onClick={() => set('code', genCode(f.name || 'ITEM', f.category))}
+                      className="text-[11px] hover:underline"
+                      style={{ color: 'var(--teal)' }}
+                    >
+                      Generate Code
+                    </button>
+                  </div>
+                  <Input aria-label="Catalogue code / SKU"
+                    type="text"
+                    required
+                    placeholder="e.g. SF-FCL-20"
+                    value={f.code}
+                    onChange={e => set('code', e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+              </div>
 
-          </>)}
+              <div className="product-form-grid">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Category</label>
+                  <Select value={f.category} onValueChange={v => set('category', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {activeCategories.map(cat => (
+                        <SelectItem key={cat} value={cat}>
+                          {CAT_CFG[cat]?.label ?? cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Billing / Inventory Unit</label>
+                  <Select value={f.unit} onValueChange={v => set('unit', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {activeUnits.map(u => (
+                        <SelectItem key={u} value={u}>{u}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          {/* Status */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Status</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Inactive {typeName.toLowerCase()}s don't appear in the invoice line-item picker</div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Description & Scope</label>
+                <Textarea aria-label="Description and scope"
+                  rows={2}
+                  placeholder="Detailed description of what is included in this charge or product specification…"
+                  value={f.description}
+                  onChange={e => set('description', e.target.value)}
+                />
+              </div>
             </div>
-            <button type="button" onClick={() => set('status', f.status === 'active' ? 'inactive' : 'active')}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }} />
-              {f.status === 'active' ? 'Active' : 'Inactive'}
-            </button>
-          </div>
+          <div className="product-form-grid mt-4">{indProfile.fields.map(field => <label key={field.key} className="text-xs font-semibold text-muted-foreground">{field.label}<Input className="mt-1" value={f.industry_attributes[field.key] || ''} onChange={e => set('industry_attributes', { ...f.industry_attributes, [field.key]: e.target.value })} /></label>)}</div>
+          </div>)}
 
-          <div style={row}>
-            <label style={lbl}>Internal Notes</label>
-            <textarea title="Notes" placeholder={`Any internal notes about this ${typeName.toLowerCase()}…`} value={f.notes} onChange={e => set('notes', e.target.value)} rows={2}
-              style={{ ...inp, resize: 'vertical' }} />
-          </div>
-
-          {/* Customer-specific (contract) prices */}
-          <div style={{ marginBottom: 16, border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, background: 'var(--bg)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Customer-specific prices</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
-              Agreed contract rates. When one of these customers is on an invoice, quotation or purchase order, their price for this service is triggered instead of the catalog price of{' '}
-              <strong style={{ color: 'var(--ink2)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : '—'}</strong>.
-            </div>
-            {prices.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                {prices.map((p, i) => (
-                  <div key={p.customer_id} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.4fr) 120px 92px minmax(0,1fr) 32px', gap: 8, alignItems: 'center' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.customer_name}>{p.customer_name}</div>
-                    <input type="number" title="Agreed price" value={p.price} min={0} step={0.01} onChange={e => setPriceRow(i, { price: parseFloat(e.target.value) || 0 })} style={{ ...inp, padding: '7px 10px' }} />
-                    <Select value={p.currency} onValueChange={v => setPriceRow(i, { currency: v })}>
-                      <SelectTrigger aria-label="Currency" style={{ ...inp, padding: '7px 10px' }}><SelectValue /></SelectTrigger>
-                      <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+          {step === 'pricing' && (<div>
+            <div className="flex flex-col gap-4">
+              <div className="product-form-grid">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Selling Price *</label>
+                  <div className="flex gap-2">
+                    <Input aria-label="Selling price"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      required
+                      value={f.sale_price}
+                      onChange={e => set('sale_price', parseFloat(e.target.value) || 0)}
+                      className="flex-1 font-semibold tabular-nums"
+                    />
+                    <Select value={f.currency} onValueChange={v => set('currency', v)}>
+                      <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
                     </Select>
-                    <input type="text" title="Note" placeholder="Contract ref / note" value={p.note} onChange={e => setPriceRow(i, { note: e.target.value })} style={{ ...inp, padding: '7px 10px' }} />
-                    <Tip label="Remove agreed price">
-                      <button type="button" aria-label="Remove agreed price" onClick={() => setPrices(prev => prev.filter((_, idx) => idx !== i))}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex', justifyContent: 'center', padding: 4 }} data-ui-native-button="">
-                        <Icon name="trash" size={15} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Purchase / Cost Price</label>
+                  <Input aria-label="Purchase / cost price"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="Optional cost baseline"
+                    value={f.purchase_price || ''}
+                    onChange={e => set('purchase_price', parseFloat(e.target.value) || 0)}
+                    className="tabular-nums"
+                  />
+                  {f.purchase_price > 0 && f.sale_price > 0 && (
+                    <div className="text-[11px] mt-1 font-medium" style={{ color: 'var(--green)' }}>
+                      Projected margin: {Math.round(((f.sale_price - f.purchase_price) / f.sale_price) * 100)}% ({fmt(f.sale_price - f.purchase_price, f.currency)})
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="product-form-grid">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Compare-at Price (Discount baseline)</label>
+                  <Input aria-label="Compare-at price"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="e.g. higher strike-through retail price"
+                    value={f.compare_at_price || ''}
+                    onChange={e => set('compare_at_price', parseFloat(e.target.value) || null)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground block mb-1">Standard Tax Rate (%)</label>
+                  <Input aria-label="Standard tax rate (%)"
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={f.tax_rate}
+                    onChange={e => set('tax_rate', parseFloat(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>)}
+
+          {isProduct && step === 'inventory' && (
+            <div>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3 p-3 rounded-(--r-sm) bg-muted/40 border border-border">
+                  <Checkbox
+                    id="track_inv"
+                    checked={f.track_inventory}
+                    onCheckedChange={v => set('track_inventory', Boolean(v))}
+                  />
+                  <label htmlFor="track_inv" className="text-sm font-medium text-foreground cursor-pointer">
+                    Track inventory quantity for this product
+                  </label>
+                </div>
+
+                {f.track_inventory && (
+                  <div className="product-form-grid">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Stock on Hand</label>
+                      <Input aria-label="Stock on hand"
+                        type="number"
+                        min={0}
+                        value={f.stock_quantity ?? ''}
+                        onChange={e => set('stock_quantity', parseInt(e.target.value, 10) || 0)}
+                        placeholder="Current units in stock"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground block mb-1">Low Stock Warning Threshold</label>
+                      <Input aria-label="Low stock warning threshold"
+                        type="number"
+                        min={0}
+                        value={f.low_stock_threshold}
+                        onChange={e => set('low_stock_threshold', parseInt(e.target.value, 10) || 0)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="product-form-grid">
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Weight (kg)</label>
+                    <Input aria-label="Weight (kg)"
+                      type="number"
+                      step={0.01}
+                      min={0}
+                      value={f.weight_kg ?? ''}
+                      onChange={e => set('weight_kg', parseFloat(e.target.value) || null)}
+                      placeholder="e.g. 1.25"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground block mb-1">Shipping Class</label>
+                    <Select value={f.shipping_class} onValueChange={v => set('shipping_class', v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="heavy">Heavy / Pallet</SelectItem>
+                        <SelectItem value="fragile">Fragile</SelectItem>
+                        <SelectItem value="cold_chain">Cold Chain</SelectItem>
+                        <SelectItem value="hazardous">Dangerous Goods (DG)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 'contracts' && (<div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Configure special negotiated pricing for specific accounts. When generating invoices or quotations for these customers, their rate overrides the catalog price.
+            </p>
+
+            {prices.length > 0 && (
+              <div className="flex flex-col gap-2 mb-3">
+                {prices.map((p, idx) => (
+                  <div key={p.customer_id} className="p-2.5 rounded-lg border border-border bg-card flex flex-wrap items-center gap-3">
+                    <div className="flex-1 min-w-[140px] font-semibold text-xs text-foreground truncate">
+                      {p.customer_name}
+                    </div>
+                    <div className="w-32">
+                      <Input aria-label="Customer agreed price"
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={p.price}
+                        onChange={e => updatePriceRow(idx, { price: parseFloat(e.target.value) || 0 })}
+                        className="font-semibold tabular-nums text-xs"
+                        style={{ minHeight: 'var(--ctl-h-xs)' }}
+                      />
+                    </div>
+                    <div className="w-44">
+                      <Input aria-label="Contract reference / note"
+                        type="text"
+                        placeholder="Contract ref / note"
+                        value={p.note}
+                        onChange={e => updatePriceRow(idx, { note: e.target.value })}
+                        className="text-xs"
+                        style={{ minHeight: 'var(--ctl-h-xs)' }}
+                      />
+                    </div>
+                    <Tip label="Remove contract rate">
+                      <button
+                        type="button"
+                        onClick={() => removePriceRow(idx)}
+                        className="p-1.5 text-muted-foreground hover:text-destructive rounded transition-colors"
+                      >
+                        <Icon name="trash" size={13} />
                       </button>
                     </Tip>
                   </div>
                 ))}
               </div>
             )}
-            <EntityPicker value={null} onChange={addCustomer} search={searchCustomers} placeholder="Add a customer with an agreed price…" />
-          </div>
 
-          {/* Live preview */}
-          <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 'var(--r)', padding: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Preview</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                {isProduct && f.image_urls[0] && (
-                  <img src={f.image_urls[0]} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                )}
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{f.name || `${typeName} Name`}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--font)' }}>{f.code || '—'} · {CAT_CFG[f.category]?.label}</div>
-                  {isProduct && f.brand && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.brand}</div>}
-                </div>
+            <EntityPicker
+              value={null}
+              onChange={addCustomerPrice}
+              search={searchCustomers}
+              placeholder="Search and add customer for special agreed rate…"
+            />
+          </div>)}
+
+          {step === 'publication' && (<div>
+            <div className="product-form-grid">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">Catalog Status</label>
+                <Select value={f.status} onValueChange={v => set('status', v as 'active' | 'inactive')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active (Visible in billing pickers)</SelectItem>
+                    <SelectItem value="inactive">Inactive (Hidden from new documents)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                {isProduct && f.compare_at_price && f.compare_at_price > 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', textDecoration: 'line-through' }}>{fmt(f.compare_at_price, f.currency)}</div>
-                )}
-                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : '—'}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>per {f.unit}{f.tax_rate > 0 ? ` · ${f.tax_rate}% tax` : ' · no tax'}</div>
-                {isProduct && f.track_inventory && f.stock_quantity !== null && (
-                  <div style={{ fontSize: 11, color: (f.stock_quantity ?? 0) <= f.low_stock_threshold ? 'var(--red)' : 'var(--green)' }}>{f.stock_quantity} in stock</div>
-                )}
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">SEO URL Slug</label>
+                <Input aria-label="SEO URL slug"
+                  type="text"
+                  value={f.url_handle}
+                  onChange={e => set('url_handle', e.target.value)}
+                  placeholder="e.g. sea-freight-fcl-20"
+                />
               </div>
             </div>
-          </div>
-        </div>
 
-    </FormPage>
+            <div className="mt-4">
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">Internal Notes</label>
+              <Textarea aria-label="Internal notes"
+                rows={2}
+                placeholder="Any internal operational notes regarding vendor agreements, exclusions, or rules…"
+                value={f.notes}
+                onChange={e => set('notes', e.target.value)}
+              />
+            </div>
+          </div>)}
+
+          {step === 'review' && <div>
+            <dl className="product-review-grid">
+              {[
+                ['Name', f.name], ['Code / SKU', f.code], ['Industry', f.industry_key ? financeIndustryName(f.industry_key) : 'General'],
+                ['Type', isProduct ? 'Physical product' : 'Service'], ['Category', CAT_CFG[f.category]?.label ?? f.category], ['Unit', f.unit],
+                ['Selling price', fmt(f.sale_price, f.currency)], ['Cost price', fmt(f.purchase_price, f.currency)], ['Tax rate', `${f.tax_rate}%`],
+                ['Inventory', isProduct && f.track_inventory ? `${f.stock_quantity ?? 0} units; warning at ${f.low_stock_threshold}` : 'Not tracked'],
+                ['Customer rates', String(prices.length)], ['Status', f.status], ['Description', catalogBillingDescription(f) || 'Not provided'], ['Internal notes', f.notes || 'None'],
+              ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+            </dl>
+            <p className="text-xs text-muted-foreground mt-4">Nothing is saved until you confirm below. Use Back to make changes.</p>
+          </div>}
+
+          <div className="product-form-actions">
+            <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
+              Cancel
+            </Button>
+            <div className="flex flex-wrap gap-2">
+            {stepIndex > 0 && <Button type="button" variant="outline" disabled={saving} onClick={() => goToStep(steps[stepIndex - 1].id)}>Back</Button>}
+            {step !== 'review' ? <Button type="submit">Continue <Icon name="arrowRight" size={14} /></Button> : <Button type="submit" disabled={saving}>
+              <Icon name="check" size={14} />
+              {saving ? 'Saving Item…' : initial ? 'Save Changes' : 'Create Item'}
+            </Button>}
+            </div>
+          </div>
+        </form>
+        </SectionCard>
+      </div>
+    </div>
   );
 }
 
-// -- Detail Panel (right slide-in) ---------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW 3: Dedicated Full-Page Tariff Import Page
+// ─────────────────────────────────────────────────────────────────────────────
 
-function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
-  product: Product;
-  onEdit: () => void;
-  onDelete: () => void;
-  onToggleStatus: () => void;
-  onClose: () => void;
+function ProductTariffImportPage({
+  onImportComplete,
+  baseRoute,
+}: {
+  onImportComplete: () => void;
+  baseRoute: string;
 }) {
-  return (
-    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
-      <SheetContent className="w-95 sm:max-w-95 flex flex-col p-0 gap-0">
-        <SheetHeader style={{ padding: '20px 22px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--teal)', fontWeight: 700 }}>{product.code}</div>
-          <SheetTitle style={{ fontSize: 16, lineHeight: 1.3 }}>{product.name}</SheetTitle>
-        </SheetHeader>
+  const [query, setQuery] = useState('');
+  const [authorityFilter, setAuthorityFilter] = useState<'ALL' | 'TPA' | 'TASAC' | 'TRA'>('ALL');
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: 22 }}>
-          {/* Pricing hero */}
-          <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '18px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Unit Price</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.5px' }}>{product.sale_price > 0 ? fmt(product.sale_price, product.currency) : '—'}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>per {product.unit}{product.tax_rate > 0 ? ` · +${product.tax_rate}% tax` : ''}</div>
-            </div>
-            <StatusPill status={product.status} />
-          </div>
-
-          {/* Meta */}
-          {[
-            { label: 'Category',   value: <CatBadge cat={product.category} /> },
-            { label: 'Unit',       value: product.unit },
-            { label: 'Currency',   value: product.currency },
-            { label: 'Tax Rate',   value: product.tax_rate > 0 ? `${product.tax_rate}%` : 'No tax' },
-            { label: 'Created',    value: fmtDate(product.created_at) },
-            { label: 'Updated',    value: fmtDate(product.updated_at) },
-          ].map(r => (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, paddingBottom: 10, marginBottom: 10, borderBottom: '1px solid var(--border)' }}>
-              <span style={{ color: 'var(--ink3)' }}>{r.label}</span>
-              <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{r.value}</span>
-            </div>
-          ))}
-
-          {product.description && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Description</div>
-              <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>{product.description}</div>
-            </div>
-          )}
-
-          {product.notes && (
-            <div style={{ background: 'var(--gold-l)', borderRadius: 'var(--r)', padding: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Notes</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>{product.notes}</div>
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button type="button" onClick={onEdit}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            <Icon name="edit" size={14} /> Edit Service
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={onToggleStatus}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }} data-ui-native-button="">
-              <Icon name="eye" size={13} /> {product.status === 'active' ? 'Set Inactive' : 'Set Active'}
-            </button>
-            <button type="button" onClick={onDelete}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--red)', borderRadius: 'var(--r)', background: 'var(--red-l)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--red)' }} data-ui-native-button="">
-              <Icon name="trash" size={13} /> Delete
-            </button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-// -- Main Page -----------------------------------------------------------------
-
-export const ProductsServices: React.FC = () => {
-  const isMobile = useIsMobile();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isClearOS = location.pathname.startsWith('/clearos');
-  const baseRoute = isClearOS ? '/clearos' : '/finance';
-  const [products, setProducts]   = useState<Product[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [catFilter, setCatFilter] = useState<CatFilter>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'inactive'>('ALL');
-  const [search, setSearch]       = useState('');
-  const [selected, setSelected]   = useState<Product | null>(null);
-  const [editing, setEditing]     = useState<Product | 'new' | null>(null);
-  const [deleting, setDeleting]   = useState<Product | null>(null);
-  const [loadingStarter, setLoadingStarter] = useState(false);
-  const [tariffSheetOpen, setTariffSheetOpen] = useState(false);
-  const [tariffQuery, setTariffQuery] = useState('');
-  const [tariffResults, setTariffResults] = useState<any[]>([]);
-  const [tariffLoading, setTariffLoading] = useState(false);
-  const [tariffSelected, setTariffSelected] = useState<Set<string>>(new Set());
-  const [tariffImporting, setTariffImporting] = useState(false);
-  const [sortBy, setSortBy]       = useState<'name' | 'price' | 'category' | 'created'>('name');
-  const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('asc');
-  const [page, setPage]           = useState(1);
-
-  const [total,setTotal]=useState(0);
-  const [stats,setStats]=useState({total:0,active:0,inactive:0,physical:0,tracked:0,low_stock:0,out_of_stock:0,priced:0,free:0,categories:[] as {category:string|null;count:number}[],currencies:[] as {currency:string;average_price:number;inventory_value:number}[]});
-  const loadId=useRef(0);
-
-  // -- Load -------------------------------------------------------------------
-
-  async function loadProducts() {
-    const requestId=++loadId.current;
-    setLoading(true);setLoadError('');
-    const params=new URLSearchParams({page:String(page),page_size:String(PAGE_SIZE),sort:sortBy,direction:sortDir});
-    if(search.trim())params.set('search',search.trim());
-    if(catFilter!=='ALL')params.set('category',catFilter);
-    if(statusFilter!=='ALL')params.set('status',statusFilter);
-    try {
-      const [result,summary]=await Promise.all([apiFetch(`/v1/products?${params}`),apiFetch('/v1/products/stats')]);
-      if(requestId!==loadId.current)return;
-      setProducts(result.items);setTotal(result.total);setStats(summary);
-      if(page>Math.max(1,Math.ceil(result.total/PAGE_SIZE)))setPage(Math.max(1,Math.ceil(result.total/PAGE_SIZE)));
-    }catch(error:any){if(requestId===loadId.current)setLoadError(error.message || 'Failed to load the catalog.');}
-    finally{if(requestId===loadId.current)setLoading(false);}
-  }
-  useEffect(()=>{const timer=setTimeout(()=>void loadProducts(),200);return()=>{clearTimeout(timer);++loadId.current;};},[page,search,catFilter,statusFilter,sortBy,sortDir]);
-
-  // -- CRUD -------------------------------------------------------------------
-  // Every mutation round-trips through the real API and reconciles local state
-  // from the response it actually returns — no optimistic writes that could
-  // drift from what's in the database, no swallowed failures.
-
-  // Returns the saved product so the form can write its customer-specific
-  // prices against the id (needed for a brand-new service). The form itself
-  // reports failures and closes on success.
-  async function handleSave(data: ProductForm): Promise<Product> {
-    const isNew = editing === 'new';
-    if (isNew) {
-      const created: Product = await apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(data) });
-      void loadProducts();
-      return created;
-    }
-    const target = editing as Product;
-    const updated: Product = await apiFetch(`/v1/products/${target.id}`, { method: 'PATCH', body: JSON.stringify(data) });
-    void loadProducts();
-    if (selected?.id === target.id) setSelected(updated);
-    return updated;
-  }
-
-  async function handleDelete(product: Product) {
-    try {
-      await apiFetch(`/v1/products/${product.id}`, { method: 'DELETE' });
-      void loadProducts();
-      if (selected?.id === product.id) setSelected(null);
-      setDeleting(null);
-    } catch (err: any) {
-      showAlert(err.message || 'Failed to delete this service.');
-    }
-  }
-
-  async function handleToggleStatus(product: Product) {
-    const nextStatus = product.status === 'active' ? 'inactive' : 'active';
-    try {
-      const updated: Product = await apiFetch(`/v1/products/${product.id}`, { method: 'PATCH', body: JSON.stringify({ status: nextStatus }) });
-      void loadProducts();
-      if (selected?.id === product.id) setSelected(updated);
-    } catch (err: any) {
-      showAlert(err.message || 'Failed to update this service.');
-    }
-  }
-
-  async function handleLoadStarterCatalog() {
-    if (!(await showConfirm(`Add ${STARTER_CATALOG.length} common freight & clearing services to your catalog as a starting point? You can edit or delete any of them afterward.`, { confirmLabel: 'Add Services' }))) return;
-    setLoadingStarter(true);
-    try {
-      const created = await Promise.all(STARTER_CATALOG.map(p => apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(p) })));
-      void loadProducts();
-    } catch (err: any) {
-      showAlert(err.message || 'Failed to add the starter catalog — some services may not have been added.');
-      loadProducts();
-    } finally {
-      setLoadingStarter(false);
-    }
-  }
-
-  // -- Import from TPA/TASAC tariff reference ---------------------------------
-  // Distinct from Load Starter Catalog: that seeds a small curated common
-  // baseline for every new tenant; this browses the full ~335-row TPA/TASAC
-  // tariff reference (Tools > Reference > Tariff, port_tariff_items) so a
-  // tenant can pick only the specific charges relevant to their operation
-  // (e.g. one container-hire tier, not all of Clause 22) into their own
-  // invoiceable catalog.
   useEffect(() => {
-    if (!tariffSheetOpen) return;
-    setTariffLoading(true);
-    const t = setTimeout(() => {
-      apiFetch(`/v1/reference/tariff?q=${encodeURIComponent(tariffQuery)}&limit=100`)
-        .then(res => setTariffResults((res.data ?? []).filter((r: any) => r.rate_amount != null)))
-        .catch(() => setTariffResults([]))
-        .finally(() => setTariffLoading(false));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [tariffSheetOpen, tariffQuery]);
+    setLoading(true);
+    const timer = setTimeout(() => {
+      apiFetch(`/v1/reference/tariff?q=${encodeURIComponent(query)}&limit=150`)
+        .then(res => {
+          const list = (res.data ?? []).filter((r: any) => r.rate_amount != null);
+          setResults(list);
+        })
+        .catch(() => setResults([]))
+        .finally(() => setLoading(false));
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  function toggleTariffSelected(id: string) {
-    setTariffSelected(prev => {
+  const filtered = results.filter(r => authorityFilter === 'ALL' || r.authority?.toUpperCase().includes(authorityFilter));
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  }
+  };
 
-  const TARIFF_CATEGORY: Record<string, string> = { TPA: 'HANDLING', TASAC_CFA: 'CLEARANCE', TRA: 'DUTY' };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(r => r.id)));
+    }
+  };
 
-  async function handleImportSelectedTariff() {
-    const chosen = tariffResults.filter(r => tariffSelected.has(r.id));
+  const TARIFF_CAT_MAP: Record<string, string> = { TPA: 'HANDLING', TASAC_CFA: 'CLEARANCE', TRA: 'DUTY' };
+
+  async function handleImport() {
+    const chosen = results.filter(r => selectedIds.has(r.id));
     if (chosen.length === 0) return;
-    setTariffImporting(true);
+    setImporting(true);
     try {
-      const created = await Promise.all(chosen.map(r => apiFetch('/v1/products', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: r.item_name,
-          code: r.clause_ref ? `${r.authority}-${r.clause_ref}`.replace(/[^A-Za-z0-9.\-]/g, '') : undefined,
-          category: TARIFF_CATEGORY[r.authority] ?? 'OTHER',
-          description: [r.source_document, r.category, r.subcategory].filter(Boolean).join(' — '),
-          unit: r.unit || 'unit',
-          sale_price: Number(r.rate_amount) || 0,
-          currency: r.rate_currency || 'USD',
-          tax_rate: 0,
-          status: 'active',
-        }),
-      })));
-      void loadProducts();
-      setTariffSelected(new Set());
-      setTariffSheetOpen(false);
+      await Promise.all(
+        chosen.map(r =>
+          apiFetch('/v1/products', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: r.item_name,
+              code: r.clause_ref ? `${r.authority}-${r.clause_ref}`.replace(/[^A-Za-z0-9.-]/g, '') : undefined,
+              category: TARIFF_CAT_MAP[r.authority] ?? 'OTHER',
+              description: [r.source_document, r.category, r.subcategory].filter(Boolean).join(' — '),
+              unit: r.unit || 'unit',
+              sale_price: Number(r.rate_amount) || 0,
+              currency: r.rate_currency || 'USD',
+              tax_rate: 0,
+              status: 'active',
+            }),
+          })
+        )
+      );
+      showAlert(`Successfully imported ${chosen.length} tariff items into your catalog.`);
+      onImportComplete();
     } catch (err: any) {
-      showAlert(err.message || 'Failed to import the selected tariff items — some may not have been added.');
-      loadProducts();
+      showAlert(err.message || 'Failed to import selected items.');
     } finally {
-      setTariffImporting(false);
+      setImporting(false);
     }
   }
 
-  // -- Filter + Sort ----------------------------------------------------------
+  return (
+    <div className="products-services-page">
+      <div className="tariff-import-container">
+        <PageHeader
+          crumbs={['Finance', { label: 'Products & Services', to: `${baseRoute}/products` }, 'Import Tariff']}
+          titlePlain="Import Port & TASAC"
+          titleEm="Tariffs"
+          subtitle="Select items from official sea port authority tariffs and government agency fee schedules to add into your catalog."
+          backTo={`${baseRoute}/products`}
+          backLabel="Back to products"
+        />
 
-  const displayed = products;
-  const safePage = page;
-  const paginated = products;
+        <SectionCard className="mt-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[240px]">
+              <Input
+                type="search"
+                placeholder="Search clause, handling service, or charge name…"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              {(['ALL', 'TPA', 'TASAC', 'TRA'] as const).map(auth => (
+                <button
+                  key={auth}
+                  type="button"
+                  onClick={() => setAuthorityFilter(auth)}
+                  className={cn(
+                    "px-3 h-9 rounded-(--r-sm) text-xs font-semibold border transition-colors",
+                    authorityFilter !== auth && "bg-background border-border text-muted-foreground hover:bg-muted"
+                  )}
+                  style={authorityFilter === auth ? { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' } : undefined}
+                >
+                  {auth === 'ALL' ? 'All Authorities' : auth}
+                </button>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
 
-  function toggleSort(col: typeof sortBy) {
-    setPage(1);
-    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setSortDir('asc'); }
+        <SectionCard padded={false} className="mt-4">
+          {loading ? (
+            <SectionLoading label="Searching tariff schedules…" />
+          ) : filtered.length === 0 ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">No tariff clauses match your query.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border">
+                    <th className="p-3 w-10 text-center">
+                      <Checkbox
+                        checked={selectedIds.size === filtered.length && filtered.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </th>
+                    <th className="p-3 font-semibold text-muted-foreground">Clause / Authority</th>
+                    <th className="p-3 font-semibold text-muted-foreground">Service Name & Scope</th>
+                    <th className="p-3 font-semibold text-muted-foreground text-right">Official Tariff Rate</th>
+                    <th className="p-3 font-semibold text-muted-foreground">Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(r => {
+                    const isChecked = selectedIds.has(r.id);
+                    return (
+                      <tr
+                        key={r.id}
+                        onClick={() => toggleSelect(r.id)}
+                        className="border-b border-border/60 hover:bg-muted/30 cursor-pointer transition-colors"
+                        style={isChecked ? { background: 'var(--teal-l)' } : undefined}
+                      >
+                        <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
+                          <Checkbox checked={isChecked} onCheckedChange={() => toggleSelect(r.id)} />
+                        </td>
+                        <td className="p-3 font-mono font-medium" style={{ color: 'var(--teal)' }}>
+                          {r.clause_ref || r.authority || '—'}
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-sm text-foreground">{r.item_name}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">
+                            {[r.source_document, r.category, r.subcategory].filter(Boolean).join(' · ')}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-semibold tabular-nums text-foreground">
+                          {r.rate_currency} {Number(r.rate_amount).toLocaleString('en-US')}
+                        </td>
+                        <td className="p-3 text-muted-foreground">{r.unit || 'unit'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </SectionCard>
+
+        {selectedIds.size > 0 && (
+          <div className="tariff-sticky-bar">
+            <div className="font-semibold text-sm text-foreground">
+              {selectedIds.size} tariff item{selectedIds.size === 1 ? '' : 's'} selected
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                Clear
+              </Button>
+              <Button size="sm" disabled={importing} onClick={handleImport}>
+                <Icon name="download" size={13} />
+                {importing ? 'Importing…' : `Import ${selectedIds.size} into Catalog`}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW 4: Main Products List Page (Table & Grid)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ProductsServices: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+
+  const isClearOS = location.pathname.startsWith('/clearos');
+  const baseRoute = isClearOS ? '/clearos' : '/finance';
+
+  const isNew = location.pathname.endsWith('/new');
+  const isTariff = location.pathname.endsWith('/tariff');
+  const isEdit = location.pathname.endsWith('/edit');
+  const isDetail = Boolean(id && !isNew && !isTariff && !isEdit && id !== 'categories' && id !== 'reviews');
+
+  const financeConfiguration = useFinanceConfiguration(!isClearOS);
+  const industries = financeConfiguration.data?.industries ?? [];
+  const industryOptions = financeCatalogOptions(industries);
+  const isLogistics = isClearOS || industries.includes('logistics');
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [catFilter, setCatFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'active' | 'inactive'>('ALL');
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'product' | 'service'>('ALL');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'category' | 'created'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [industryFilter, setIndustryFilter] = useState<FinanceIndustryKey | null>(null);
+
+  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    physical: 0,
+    tracked: 0,
+    low_stock: 0,
+    out_of_stock: 0,
+    priced: 0,
+    free: 0,
+    categories: [] as { category: string | null; count: number }[],
+    currencies: [] as { currency: string; average_price: number; inventory_value: number }[],
+  });
+
+  const loadId = useRef(0);
+  const catalogCategories = [...new Set([...industryOptions.categories, ...stats.categories.map(row => row.category).filter((v): v is string => !!v)])];
+
+  async function loadProducts() {
+    const requestId = ++loadId.current;
+    setLoading(true);
+    setLoadError('');
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+      sort: sortBy,
+      direction: sortDir,
+    });
+    if (search.trim()) params.set('search', search.trim());
+    if (catFilter !== 'ALL') params.set('category', catFilter);
+    if (statusFilter !== 'ALL') params.set('status', statusFilter);
+    if (typeFilter !== 'ALL') params.set('type', typeFilter);
+    if (industryFilter) params.set('industry', industryFilter);
+
+    try {
+      const [result, summary] = await Promise.all([
+        apiFetch(`/v1/products?${params}`),
+        apiFetch('/v1/products/stats'),
+      ]);
+      if (requestId !== loadId.current) return;
+      setProducts(result.items || []);
+      setTotal(result.total || 0);
+      setStats(summary);
+    } catch (error: any) {
+      if (requestId === loadId.current) setLoadError(error.message || 'Failed to load catalog items.');
+    } finally {
+      if (requestId === loadId.current) setLoading(false);
+    }
   }
 
-  function SortIcon({ col }: { col: typeof sortBy }) {
-    if (sortBy !== col) return <Icon name="arrowUp" size={10} color="var(--border)" />;
-    return <Icon name={sortDir === 'asc' ? 'arrowUp' : 'arrowDown'} size={10} color="var(--teal)" />;
+  useEffect(() => {
+    const timer = setTimeout(() => void loadProducts(), 200);
+    return () => { clearTimeout(timer); ++loadId.current; };
+  }, [page, pageSize, search, catFilter, statusFilter, typeFilter, sortBy, sortDir, industryFilter]);
+
+  // Handle Form Save (Create or Edit)
+  async function handleSaveItem(data: ProductFormState, contractPrices: CustomerPriceRow[]): Promise<Product> {
+    const isEditingMode = isEdit && id;
+    let saved: Product;
+    if (isEditingMode) {
+      saved = await apiFetch(`/v1/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    } else {
+      saved = await apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    if (contractPrices.length > 0) {
+      await apiFetch(`/v1/products/${saved.id}/customer-prices`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          prices: contractPrices.map(p => ({
+            customer_id: p.customer_id,
+            price: Number(p.price) || 0,
+            currency: p.currency,
+            note: p.note,
+          })),
+        }),
+      });
+    }
+
+    void loadProducts();
+    navigate(`${baseRoute}/products/${saved.id}`);
+    return saved;
   }
 
-  // -- Metrics ----------------------------------------------------------------
+  // Handle Item Delete
+  async function handleDeleteItem(product: Product) {
+    const confirmed = await showConfirm(
+      `Are you sure you want to delete ${product.name} (${product.code})? This action cannot be undone.`,
+      { confirmLabel: 'Delete Item' }
+    );
+    if (!confirmed) return;
+    try {
+      await apiFetch(`/v1/products/${product.id}`, { method: 'DELETE' });
+      void loadProducts();
+      showAlert(`Deleted ${product.name}.`);
+      navigate(`${baseRoute}/products`);
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to delete item.');
+    }
+  }
 
-  const {active,inactive}=stats;
-  const topCategory=stats.categories[0];
-  const currencyMetric=(field:'average_price'|'inventory_value')=>stats.currencies.length===1 ? formatAmount(stats.currencies[0][field],stats.currencies[0].currency) : stats.currencies.length ? `${stats.currencies.length} currencies` : '—';
+  // Handle Status Toggle
+  async function handleToggleStatus(product: Product) {
+    const nextStatus = product.status === 'active' ? 'inactive' : 'active';
+    try {
+      const updated = await apiFetch(`/v1/products/${product.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
+      void loadProducts();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to update status.');
+    }
+  }
 
-  // -- Render -----------------------------------------------------------------
+  // Handle Starter Catalog Seed
+  async function handleSeedStarterCatalog() {
+    const confirmed = await showConfirm(
+      `Add ${STARTER_CATALOG.length} pre-configured logistics and clearing services to your catalog as a template? You can customize or delete any item afterward.`,
+      { confirmLabel: 'Add Template Catalog' }
+    );
+    if (!confirmed) return;
+    try {
+      await Promise.all(
+        STARTER_CATALOG.map(p => apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(p) }))
+      );
+      void loadProducts();
+      showAlert('Starter catalog added successfully.');
+    } catch (err: any) {
+      showAlert(err.message || 'Could not add starter catalog.');
+    }
+  }
 
-  // The form replaces the list rather than layering over it — the same
-  // full-page pattern every other finance document create/edit now uses.
-  if (editing !== null) {
+  // 1. ROUTE: Dedicated Tariff Import Page
+  if (isTariff) {
     return (
-      <ProductForm
-        initial={editing === 'new' ? undefined : editing}
-        onSave={handleSave}
-        onClose={() => setEditing(null)}
-        isMobile={isMobile}
+      <ProductTariffImportPage
+        baseRoute={baseRoute}
+        onImportComplete={() => {
+          void loadProducts();
+          navigate(`${baseRoute}/products`);
+        }}
       />
     );
   }
 
+  // 2. ROUTE: Dedicated Create or Edit Page
+  if (isNew || isEdit) {
+    const targetProduct = isEdit ? products.find(p => p.id === id) : undefined;
+    return (
+      <ProductFormPage
+        initial={targetProduct}
+        industries={industries}
+        baseRoute={baseRoute}
+        onSave={handleSaveItem}
+        onCancel={() => {
+          if (isEdit && id) navigate(`${baseRoute}/products/${id}`);
+          else navigate(`${baseRoute}/products`);
+        }}
+      />
+    );
+  }
+
+  // 3. ROUTE: Dedicated Product Detail Page
+  if (isDetail && id) {
+    const currentProduct = products.find(p => p.id === id);
+    if (!currentProduct && !loading) {
+      // If direct deep link, fetch it directly
+      return (
+        <ProductDetailFetcher
+          productId={id}
+          baseRoute={baseRoute}
+          onEdit={() => navigate(`${baseRoute}/products/${id}/edit`)}
+          onDelete={(p) => handleDeleteItem(p)}
+          onToggleStatus={(p) => handleToggleStatus(p)}
+        />
+      );
+    }
+    if (currentProduct) {
+      return (
+        <ProductDetailPage
+          product={currentProduct}
+          baseRoute={baseRoute}
+          onEdit={() => navigate(`${baseRoute}/products/${id}/edit`)}
+          onDelete={() => handleDeleteItem(currentProduct)}
+          onToggleStatus={() => handleToggleStatus(currentProduct)}
+        />
+      );
+    }
+  }
+
+  // 4. ROUTE: Main Products List Page
   return (
-    <>
-      {deleting && (
-        <DeleteModal
-          name={deleting.name}
-          onConfirm={() => handleDelete(deleting)}
-          onCancel={() => setDeleting(null)}
-        />
-      )}
-      {selected && !editing && !deleting && (
-        <DetailPanel
-          product={selected}
-          onEdit={() => setEditing(selected)}
-          onDelete={() => { setDeleting(selected); setSelected(null); }}
-          onToggleStatus={() => handleToggleStatus(selected)}
-          onClose={() => setSelected(null)}
-        />
-      )}
+    <div className="products-services-page">
+      <PageHeader
+        crumbs={[isClearOS ? 'CLEAROS' : 'FINANCE', 'PRODUCTS & SERVICES']}
+        titlePlain="Products &"
+        titleEm="catalog"
+        subtitle="Manage sales items, service specifications, pricing units, and customer contracts."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button onClick={() => navigate(`${baseRoute}/products/new`)} size="sm">
+              <Icon name="plus" size={13} /> New Item
+            </Button>
+            {isLogistics && (
+              <Button variant="outline" size="sm" onClick={() => navigate(`${baseRoute}/products/tariff`)}>
+                <Icon name="download" size={13} /> Import Tariff
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => navigate(`${baseRoute}/products/categories`)}>
+              <Icon name="tag" size={13} /> Categories
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`${baseRoute}/products/reviews`)}>
+              <Icon name="star" size={13} /> Reviews
+            </Button>
+          </div>
+        }
+      />
 
-      <div className="products-services-page">
-        <PageHeader
-          crumbs={[isClearOS ? 'CLEAROS' : 'FINANCE', 'PRODUCTS & SERVICES']}
-          titlePlain="Product"
-          titleEm="catalog"
-          subtitle="Service pricing, billable inventory items and unit rates."
-        />
+      {/* Metrics Row */}
+      <MetricsRow cards={[
+        {
+          title: 'Total Catalog',
+          value: String(stats.total),
+          sub1Label: 'PRODUCTS',
+          sub1Value: String(stats.physical),
+          sub2Label: 'SERVICES',
+          sub2Value: String(stats.total - stats.physical),
+          barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'Active Items',
+          value: String(stats.active),
+          sub1Label: 'ACTIVE',
+          sub1Value: String(stats.active),
+          sub2Label: 'INACTIVE',
+          sub2Value: String(stats.inactive),
+          barHighlight: 'var(--green)',
+        },
+        {
+          title: stats.physical > 0 ? 'Stock Status' : 'Avg Unit Price',
+          value: stats.physical > 0
+            ? `${stats.tracked} tracked`
+            : stats.currencies.length === 1
+              ? formatAmount(stats.currencies[0].average_price, stats.currencies[0].currency)
+              : `${stats.currencies.length} currencies`,
+          sub1Label: stats.physical > 0 ? 'LOW STOCK' : 'PRICED',
+          sub1Value: stats.physical > 0 ? String(stats.low_stock) : String(stats.priced),
+          sub2Label: stats.physical > 0 ? 'OUT OF STOCK' : 'EXEMPT',
+          sub2Value: stats.physical > 0 ? String(stats.out_of_stock) : String(stats.free),
+          barHighlight: stats.low_stock > 0 ? 'var(--gold)' : 'var(--blue)',
+        },
+        {
+          title: 'Categories',
+          value: String(stats.categories.length),
+          sub1Label: 'TOP CATEGORY',
+          sub1Value: stats.categories[0]?.category ? (CAT_CFG[stats.categories[0].category]?.label ?? stats.categories[0].category) : '—',
+          sub2Label: 'TOP ITEMS',
+          sub2Value: String(stats.categories[0]?.count ?? 0),
+          barHighlight: 'var(--purple)',
+        },
+      ]} />
 
-        <Sheet open={tariffSheetOpen} onOpenChange={setTariffSheetOpen}>
-          <SheetContent side="right" style={{ width: 480, maxWidth: '100vw', display: 'flex', flexDirection: 'column' }}>
-            <SheetHeader>
-              <SheetTitle>Import from TPA / TASAC Tariff</SheetTitle>
-            </SheetHeader>
-            <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 12px', lineHeight: 1.5 }}>
-              Browse the TPA Sea Ports Tariff Book and TASAC agency-fee guide and pick only the specific charges your operation actually bills for — each becomes its own invoiceable service in your catalog, editable afterward like any other.
-            </p>
-            <input
-              value={tariffQuery}
-              onChange={e => setTariffQuery(e.target.value)}
-              placeholder="Search clause, item, category…"
-              style={{ width: '100%', boxSizing: 'border-box', height: 34, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, marginBottom: 10 }}
-            />
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r)'}}>
-              {tariffLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
-              {!tariffLoading && tariffResults.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No tariff items match.</div>}
-              {!tariffLoading && tariffResults.map(r => (
-                <label key={r.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                  <Checkbox checked={tariffSelected.has(r.id)} onCheckedChange={() => toggleTariffSelected(r.id)} style={{ marginTop: 3 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.item_name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                      {[r.clause_ref, r.category, r.subcategory].filter(Boolean).join(' · ')} — {r.rate_currency} {Number(r.rate_amount).toLocaleString('en-US')}{r.unit ? ` / ${r.unit}` : ''}
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tariffSelected.size} selected</span>
-              <button type="button" disabled={tariffSelected.size === 0 || tariffImporting} onClick={handleImportSelectedTariff}
-                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-                {tariffImporting ? 'Adding…' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
-              </button>
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {/* Metrics */}
-        <MetricsRow cards={[
-          {title:'Total Catalog',value:String(stats.total),sub1Label:'PRODUCTS',sub1Value:String(stats.physical),sub2Label:'SERVICES',sub2Value:String(stats.total-stats.physical),barHighlight:'var(--blue)'},
-          {title:'Active',value:String(active),sub1Label:'WITH PRICE',sub1Value:String(stats.priced),sub2Label:'INACTIVE',sub2Value:String(inactive),barHighlight:'var(--green)'},
-          ...(stats.physical>0 ? [
-            {title:'Low Stock',value:String(stats.low_stock),sub1Label:'OUT OF STOCK',sub1Value:String(stats.out_of_stock),sub2Label:'TRACKED',sub2Value:String(stats.tracked),barHighlight:'var(--gold)'},
-            {title:'Stock Sale Value',value:currencyMetric('inventory_value'),sub1Label:'PRODUCTS',sub1Value:String(stats.physical),sub2Label:'TRACKED',sub2Value:String(stats.tracked),barHighlight:'var(--purple)'},
-          ] : [
-            {title:'Avg Unit Price',value:currencyMetric('average_price'),sub1Label:'PRICED',sub1Value:String(stats.priced),sub2Label:'FREE/DUTY',sub2Value:String(stats.free),barHighlight:'var(--gold)'},
-            {title:'Categories',value:String(stats.categories.length),sub1Label:'TOP CATEGORY',sub1Value:topCategory?.category ? (CAT_CFG[topCategory.category]?.label ?? topCategory.category) : '—',sub2Label:'ITEMS',sub2Value:String(topCategory?.count ?? 0),barHighlight:'var(--purple)'},
-          ]),
-        ]}/>
-        {stats.currencies.length>1 && <SectionCard><div className="flex flex-wrap gap-x-8 gap-y-3">{stats.currencies.map(row=><div key={row.currency} className="text-sm"><strong>{row.currency}</strong><div className="text-muted-foreground">Average unit price: {formatAmount(row.average_price,row.currency)}</div>{stats.physical>0 && <div className="text-muted-foreground">Stock sale value: {formatAmount(row.inventory_value,row.currency)}</div>}</div>)}</div></SectionCard>}
-
-        <div className="products-action-bar">
-          {!loading && stats.total === 0 && (
-            <button type="button" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm" data-ui-native-button="">
-              <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
-            </button>
-          )}
-          <button type="button" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm" data-ui-native-button="">
-            <Icon name="layers" size={13} /> Import from Tariff
-          </button>
-          <button type="button" onClick={() => navigate(`${baseRoute}/products/categories`)} className="btn btn-secondary btn-sm" data-ui-native-button="">
-            <Icon name="tag" size={13} /> Categories
-          </button>
-          <button type="button" onClick={() => navigate(`${baseRoute}/products/reviews`)} className="btn btn-secondary btn-sm" data-ui-native-button="">
-            <Icon name="star" size={13} /> Reviews
-          </button>
-          <button type="button" onClick={() => setEditing('new')}
-            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-            <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Item
-          </button>
-        </div>
-
-        {/* Filters Toolbar Card */}
-        <div className="products-filter-card">
-        <SectionCard>
-          <SearchToolbar layout="register"
+      {/* Search & Filters */}
+      <SectionCard padded={false} className="mt-4">
+        <SearchToolbar
+            layout="register"
             search={search}
-            onSearch={value => { setSearch(value); setPage(1); }}
-            placeholder="Search products, services, codes, or categories"
+            onSearch={v => { setSearch(v); setPage(1); }}
+            placeholder="Search items, SKU codes, categories, or descriptions…"
             quickFilters={[
+              ...(industries.length > 0 ? [{
+                label: 'Industry',
+                allLabel: 'All Industries',
+                value: industryFilter,
+                onChange: (v: string | null) => { setIndustryFilter(v as FinanceIndustryKey | null); setPage(1); },
+                options: industries.map(k => ({ value: k, label: financeIndustryName(k) })),
+              }] : []),
               {
-                label: 'Category', allLabel: `All Categories (${stats.total})`, value: catFilter === 'ALL' ? null : catFilter,
-                onChange: value => { setCatFilter((value || 'ALL') as CatFilter); setPage(1); },
-                options: CATEGORIES.map(category => ({ value: category, label: `${CAT_CFG[category].label} (${stats.categories.find(row=>row.category===category)?.count ?? 0})` })),
+                label: 'Category',
+                allLabel: `All Categories (${stats.total})`,
+                value: catFilter === 'ALL' ? null : catFilter,
+                onChange: v => { setCatFilter(v || 'ALL'); setPage(1); },
+                options: catalogCategories.map(c => ({
+                  value: c,
+                  label: `${CAT_CFG[c]?.label ?? c} (${stats.categories.find(r => r.category === c)?.count ?? 0})`,
+                })),
                 columns: 2,
               },
               {
-                label: 'Status', allLabel: 'All Status', value: statusFilter === 'ALL' ? null : statusFilter,
-                onChange: value => { setStatusFilter((value || 'ALL') as typeof statusFilter); setPage(1); },
-                options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }],
+                label: 'Type',
+                allLabel: 'All Types',
+                value: typeFilter === 'ALL' ? null : typeFilter,
+                onChange: v => { setTypeFilter((v || 'ALL') as 'ALL' | 'product' | 'service'); setPage(1); },
+                options: [
+                  { value: 'service', label: `Services (${stats.total - stats.physical})` },
+                  { value: 'product', label: `Products (${stats.physical})` },
+                ],
+              },
+              {
+                label: 'Status',
+                allLabel: 'All Status',
+                value: statusFilter === 'ALL' ? null : statusFilter,
+                onChange: v => { setStatusFilter((v || 'ALL') as any); setPage(1); },
+                options: [
+                  { value: 'active', label: `Active (${stats.active})` },
+                  { value: 'inactive', label: `Inactive (${stats.inactive})` },
+                ],
               },
             ]}
-          />
-        </SectionCard>
-        </div>
-
-        {/* Table */}
-        <SectionCard padded={false}>
-          {loading ? (
-            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading services…</div>
-          ) : loadError ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-              <div style={{ marginBottom: 12 }}><Icon name="alertCircle" size={44} color="var(--red)" /></div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Couldn't load the catalog</div>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{loadError}</div>
-              <button type="button" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="refresh" size={13} /> Retry</button>
-            </div>
-          ) : displayed.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-              <div style={{ marginBottom: 12 }}><Icon name="package" size={44} color="var(--border)" /></div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>No services found</div>
-              <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{search ? 'Try a different search.' : 'Add your first service to the catalog.'}</div>
-              {!search && <button type="button" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13} /> New Service</button>}
-            </div>
-          ) : (
-            <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
-              <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg)' }}>
-                    {[
-                      { label: 'Code',      col: null        },
-                      { label: 'Name',      col: 'name' as const },
-                      { label: 'Category',  col: 'category' as const },
-                      { label: 'Unit',      col: null        },
-                      { label: 'Unit Price',col: 'price' as const },
-                      { label: 'Tax',       col: null        },
-                      { label: 'Status',    col: null        },
-                      { label: 'Added',     col: 'created' as const },
-                      { label: 'Last Edited', col: null      },
-                      { label: '',          col: null        },
-                    ].map(h => (
-                      <th key={h.label}
-                        onClick={() => h.col && toggleSort(h.col)}
-                        style={{ padding: '10px 14px', textAlign: h.label === 'Unit Price' ? 'right' : 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', cursor: h.col ? 'pointer' : 'default', userSelect: 'none' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          {h.label}{h.col && <SortIcon col={h.col} />}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map(p => (
-                    <tr key={p.id}
-                      onClick={() => setSelected(p)}
-                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s', opacity: p.status === 'inactive' ? 0.6 : 1 }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                      <td style={{ padding: '11px 14px', fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--teal)', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.code}</td>
-                      <td style={{ padding: '11px 14px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{p.name}</div>
-                        {p.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</div>}
-                      </td>
-                      <td style={{ padding: '11px 14px' }}><CatBadge cat={p.category} /></td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink2)' }}>{p.unit}</td>
-                      <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700 }}>{p.sale_price > 0 ? fmt(p.sale_price, p.currency) : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>—</span>}</td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.tax_rate > 0 ? `${p.tax_rate}%` : '—'}</td>
-                      <td style={{ padding: '11px 14px' }}><StatusPill status={p.status} /></td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(p.created_at)}</td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.updated_at && p.updated_at !== p.created_at ? fmtDate(p.updated_at) : '—'}</td>
-                      <td style={{ padding: '11px 10px' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 2 }}>
-                          {[
-                            { title: 'Edit',   icon: 'edit'  as const, fn: () => setEditing(p)              },
-                            { title: 'Delete', icon: 'trash' as const, fn: () => setDeleting(p), red: true  },
-                          ].map(a => (
-                            <Tip key={a.title} label={a.title}>
-                              <button type="button" aria-label={a.title} onClick={a.fn}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: a.red ? 'var(--red)' : 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}
-                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                                onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
-                                <Icon name={a.icon} size={14} />
-                              </button>
-                            </Tip>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ padding: '6px 16px 0', fontSize: 12, color: 'var(--ink3)', textAlign: 'right' }}>
-                {active} active · {inactive} inactive
+            actions={
+              <div className="products-view-toggle">
+                <Tip label="Table view">
+                  <button
+                    type="button"
+                    className={viewMode === 'table' ? 'is-active' : ''}
+                    onClick={() => setViewMode('table')}
+                    aria-label="Table view"
+                  >
+                    <Icon name="list" size={13} />
+                  </button>
+                </Tip>
+                <Tip label="Card grid view">
+                  <button
+                    type="button"
+                    className={viewMode === 'grid' ? 'is-active' : ''}
+                    onClick={() => setViewMode('grid')}
+                    aria-label="Card grid view"
+                  >
+                    <Icon name="layoutGrid" size={13} />
+                  </button>
+                </Tip>
               </div>
-              <PaginationBar
-                page={safePage}
-                pageSize={PAGE_SIZE}
-                total={total}
-                itemLabel="service"
-                onPageChange={setPage}
-              />
+            }
+          />
+      </SectionCard>
+
+      {/* Content Table or Grid */}
+      <SectionCard padded={false} className="mt-3">
+        {loading ? (
+          <SectionLoading label="Loading catalog items…" />
+        ) : loadError ? (
+          <div className="py-16 text-center flex flex-col items-center">
+            <FeaturedIcon variant="error" size="lg" shape="circle" className="mb-3">
+              <Icon name="alertCircle" size={22} />
+            </FeaturedIcon>
+            <div className="text-sm font-semibold text-foreground mb-1">Could not load catalog</div>
+            <div className="text-xs text-muted-foreground mb-4">{loadError}</div>
+            <Button variant="outline" size="sm" onClick={loadProducts}>
+              <Icon name="refresh" size={13} /> Retry
+            </Button>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-20 text-center flex flex-col items-center">
+            <FeaturedIcon variant="gray" size="lg" shape="circle" className="mb-3">
+              <Icon name="package" size={22} />
+            </FeaturedIcon>
+            <div className="text-sm font-semibold text-foreground mb-1">No items found</div>
+            <div className="text-xs text-muted-foreground mb-4">
+              {search ? 'No items match your filter criteria.' : 'Your catalog is empty. Start by adding your first service or product.'}
             </div>
-          )}
-        </SectionCard>
-      </div>
-    </>
+            {!search && (
+              <div className="flex justify-center gap-2">
+                <Button onClick={() => navigate(`${baseRoute}/products/new`)} size="sm">
+                  <Icon name="plus" size={13} /> New Item
+                </Button>
+                {isLogistics && (
+                  <Button variant="outline" size="sm" onClick={handleSeedStarterCatalog}>
+                    <Icon name="refresh" size={13} /> Load Starter Catalog
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : viewMode === 'table' ? (
+          <div className="rtbl-wrap">
+            <table className="rtbl w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-muted/50 border-b border-border">
+                  <th className="p-3 font-semibold text-muted-foreground w-28">Code</th>
+                  <th
+                    className="p-3 font-semibold text-muted-foreground cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortBy === 'name') setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                      else { setSortBy('name'); setSortDir('asc'); }
+                    }}
+                  >
+                    <span className="flex items-center gap-1">
+                      Item Name & Description
+                      <Icon name={sortBy === 'name' ? (sortDir === 'asc' ? 'arrowUp' : 'arrowDown') : 'arrowUp'} size={11} className={sortBy !== 'name' ? 'opacity-30' : ''} style={sortBy === 'name' ? { color: 'var(--teal)' } : undefined} />
+                    </span>
+                  </th>
+                  <th className="p-3 font-semibold text-muted-foreground">Type</th>
+                  <th className="p-3 font-semibold text-muted-foreground">Category</th>
+                  <th className="p-3 font-semibold text-muted-foreground">Unit</th>
+                  <th
+                    className="p-3 font-semibold text-muted-foreground text-right cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortBy === 'price') setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                      else { setSortBy('price'); setSortDir('asc'); }
+                    }}
+                  >
+                    <span className="flex items-center justify-end gap-1">
+                      Selling Price
+                      <Icon name={sortBy === 'price' ? (sortDir === 'asc' ? 'arrowUp' : 'arrowDown') : 'arrowUp'} size={11} className={sortBy !== 'price' ? 'opacity-30' : ''} style={sortBy === 'price' ? { color: 'var(--teal)' } : undefined} />
+                    </span>
+                  </th>
+                  <th className="p-3 font-semibold text-muted-foreground">Inventory</th>
+                  <th className="p-3 font-semibold text-muted-foreground">Status</th>
+                  <th className="p-3 w-10 text-right pr-4"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map(p => (
+                  <tr
+                    key={p.id}
+                    onClick={() => navigate(`${baseRoute}/products/${p.id}`)}
+                    className="products-table-row border-b border-border/60"
+                  >
+                    <td className="p-3">
+                      <span className="product-code-pill">{p.code}</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-semibold text-sm text-foreground">{p.name}</div>
+                      {p.description && (
+                        <div className="text-[11.5px] text-muted-foreground truncate max-w-sm mt-0.5">
+                          {p.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <ProductTypeBadge type={p.type} />
+                    </td>
+                    <td className="p-3">
+                      <CatBadge cat={p.category} />
+                    </td>
+                    <td className="p-3 text-muted-foreground font-medium">{p.unit}</td>
+                    <td className="p-3 text-right font-semibold tabular-nums text-foreground">
+                      {p.sale_price > 0 ? fmt(p.sale_price, p.currency) : <span className="text-muted-foreground font-normal">—</span>}
+                    </td>
+                    <td className="p-3">
+                      <StockPill product={p} />
+                    </td>
+                    <td className="p-3">
+                      <StatusPill status={p.status} />
+                    </td>
+                    <td className="p-3 text-right pr-3" onClick={e => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-7 h-7 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                          >
+                            <Icon name="moreHorizontal" size={14} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onSelect={() => navigate(`${baseRoute}/products/${p.id}`)}>
+                            <Icon name="eye" size={13} className="mr-2" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => navigate(`${baseRoute}/products/${p.id}/edit`)}>
+                            <Icon name="edit" size={13} className="mr-2" /> Edit Item
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleToggleStatus(p)}>
+                            <Icon name="refresh" size={13} className="mr-2" />
+                            {p.status === 'active' ? 'Set Inactive' : 'Set Active'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => handleDeleteItem(p)} style={{ color: 'var(--red)' }}>
+                            <Icon name="trash" size={13} className="mr-2" /> Delete Item
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="products-grid p-4">
+            {products.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => navigate(`${baseRoute}/products/${p.id}`)}
+                className="product-card"
+              >
+                <div>
+                  <div className="product-card-top">
+                    <span className="product-code-pill">{p.code}</span>
+                    <StatusPill status={p.status} />
+                  </div>
+                  <div className="product-card-body">
+                    <div className="product-card-title">{p.name}</div>
+                    <div className="product-card-desc">{p.description || 'No description provided.'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1.5 my-2">
+                    <ProductTypeBadge type={p.type} />
+                    <CatBadge cat={p.category} />
+                  </div>
+                  <div className="product-card-footer">
+                    <div>
+                      <div className="product-card-price">
+                        {p.sale_price > 0 ? fmt(p.sale_price, p.currency) : '—'}
+                      </div>
+                      <div className="text-[10.5px] text-muted-foreground">per {p.unit}</div>
+                    </div>
+                    <div><StockPill product={p} /></div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          itemLabel="item"
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          bordered={true}
+        />
+      </SectionCard>
+    </div>
   );
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Subcomponent: Detail Fetcher for Direct Deep Link Navigation
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ProductDetailFetcher({
+  productId,
+  baseRoute,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+}: {
+  productId: string;
+  baseRoute: string;
+  onEdit: () => void;
+  onDelete: (p: Product) => void;
+  onToggleStatus: (p: Product) => void;
+}) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch(`/v1/products/${productId}`)
+      .then(res => setProduct(res))
+      .catch(err => setError(err.message || 'Item not found.'))
+      .finally(() => setLoading(false));
+  }, [productId]);
+
+  if (loading) {
+    return (
+      <div className="products-services-page">
+        <SectionLoading label="Loading item specifications…" />
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="products-services-page">
+        <PageHeader
+          crumbs={['Finance', { label: 'Products & Services', to: `${baseRoute}/products` }, 'Item Not Found']}
+          titlePlain="Item"
+          titleEm="not found"
+          backTo={`${baseRoute}/products`}
+          backLabel="Back to products"
+        />
+        <div className="py-16 text-center flex flex-col items-center">
+          <FeaturedIcon variant="error" size="lg" shape="circle" className="mb-3">
+            <Icon name="alertCircle" size={22} />
+          </FeaturedIcon>
+          <div className="text-sm font-semibold text-foreground mb-1">Catalog item not found</div>
+          <div className="text-xs text-muted-foreground mb-4">{error || 'This item may have been removed.'}</div>
+          <Button asChild size="sm">
+            <Link to={`${baseRoute}/products`}>Return to catalog</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ProductDetailPage
+      product={product}
+      baseRoute={baseRoute}
+      onEdit={onEdit}
+      onDelete={() => onDelete(product)}
+      onToggleStatus={() => onToggleStatus(product)}
+    />
+  );
+}

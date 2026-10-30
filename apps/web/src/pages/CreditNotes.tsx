@@ -1,6 +1,10 @@
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { apiFetch, apiViewBlob } from '../lib/api.js';
+import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showPrompt } from '../lib/prompt.js';
@@ -12,6 +16,7 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Badge } from '../components/ui/badge.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { getCompany } from '../data/companyStore.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { PaginationBar } from '../components/PaginationBar.js';
@@ -35,7 +40,7 @@ interface CreditNote {
 function creditNoteTotal(cn: CreditNote): number {
   return (cn.items ?? []).reduce((s, l) => s + (Number(l.rate) || 0) * (Number(l.qty) || 1) * (1 + (Number(l.tax_pct) || 0) / 100), 0);
 }
-interface DraftLine { name: string; rate: string; qty: string; tax_pct: string }
+interface DraftLine { name: string; description?:string; rate: string; qty: string; tax_pct: string }
 const emptyLine = (): DraftLine => ({ name: '', rate: '', qty: '1', tax_pct: '0' });
 
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
@@ -51,17 +56,6 @@ function fmtDate(d: string | null | undefined) {
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function printCreditNote(cn: CreditNote) {
-  void apiViewBlob(`/v1/credit-notes/${cn.id}/pdf`).catch(error => showAlert(error instanceof Error ? error.message : 'Could not open the credit note PDF.', {variant: 'error'}));
-}
-
-function sendCreditNoteEmail(cn: CreditNote, total: number, fmt: (n: number, currency?: string) => string) {
-  const body = encodeURIComponent(
-    `Dear ${cn.client_name || 'Customer'},\n\nPlease find attached credit note ${cn.credit_note_number} for ${fmt(total, cn.currency)}.${cn.reason ? `\n\nReason: ${cn.reason}` : ''}\n\nKind regards,\n${getCompany().name}`
-  );
-  window.open(`mailto:?subject=Credit Note ${cn.credit_note_number}&body=${body}`, '_blank');
-}
-
 function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
   note: CreditNote;
   fmt: (n: number, currency?: string) => string;
@@ -74,8 +68,8 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
 
   const actionGroups: DocumentAction[][] = [
     [
-      { key: 'print', label: 'Print / PDF', icon: 'printer', onClick: () => printCreditNote(note) },
-      { key: 'send', label: 'Send by Email', icon: 'mail', onClick: () => sendCreditNoteEmail(note, total, fmt) },
+
+
     ],
     [
       { key: 'void', label: 'Void Credit Note', icon: 'xCircle', variant: 'destructive', loading: voiding, loadingLabel: 'Voiding…', hidden: note.status !== 'POSTED', onClick: onVoid },
@@ -85,6 +79,7 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
   return (
     <DocumentDetailShell backLabel="Credit Notes" onBack={onBack} docNumber={note.credit_note_number}>
       <DocumentDetailMain>
+        <FinanceDocumentActions kind="credit_note" id={note.id} label={note.credit_note_number}/>
         <DocumentHeaderCard
           eyebrow="Credit note"
           number={note.credit_note_number}
@@ -104,7 +99,7 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
         <DocumentLineItemsCard
           title="Line Items"
           columns={[
-            { key: 'desc', header: 'Description', render: (l, i) => l.name || l.description || `Credit item ${i + 1}` },
+            { key: 'desc', header: 'Description', render: (l, i) => <div className="whitespace-pre-line">{l.name || `Credit item ${i + 1}`}{l.description && <div className="mt-1 text-muted-foreground">{l.description}</div>}</div> },
             { key: 'qty', header: 'Qty', align: 'right', render: l => Number(l.qty) || 1 },
             { key: 'rate', header: 'Rate', align: 'right', render: l => fmt(Number(l.rate) || 0, note.currency) },
             { key: 'tax', header: 'Tax', align: 'right', render: l => `${Number(l.tax_pct) || 0}%` },
@@ -141,6 +136,8 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
 }
 
 export function CreditNotes() {
+  const documentRoute=useFinanceDocumentRoute("credit-notes");
+  useEffect(()=>{if(documentRoute.id){apiFetch(`/v1/credit-notes/${documentRoute.id}`).then(setSelected).catch(e=>showAlert(e.message));}else setSelected(null);},[documentRoute.path]);
   const { fmt, convert } = useCurrency();
   const location = useLocation();
   const navigate = useNavigate();
@@ -213,10 +210,10 @@ export function CreditNotes() {
   // ── New credit note form ──
   const params = new URLSearchParams(location.search);
   const [invoiceId] = useState(params.get('invoice_id') || '');
-  const [customerItem, setCustomerItem] = useState<PickerItem | null>(null);
-  const [clientName, setClientName] = useState(params.get('client_name') || '');
-  const [reason, setReason] = useState('');
-  const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
+  const [customerItem, setCustomerItem] = useFinanceDraft<PickerItem | null>('customerItem',null);
+  const [clientName, setClientName] = useFinanceDraft('clientName',params.get('client_name') || '');
+  const [reason, setReason] = useFinanceDraft('reason','');
+  const [lines, setLines] = useFinanceDraft<DraftLine[]>('lines',[emptyLine()]);
   const [saving, setSaving] = useState(false);
 
   async function searchCustomers(q: string): Promise<PickerItem[]> {
@@ -244,24 +241,18 @@ export function CreditNotes() {
     if (!clientName.trim() && !customerItem) return showAlert('A customer is required.');
     setSaving(true);
     try {
-      await apiFetch('/v1/credit-notes', {
+      const created = await apiFetch<{id:string}>('/v1/credit-notes', {
         method: 'POST',
         body: JSON.stringify({
           original_invoice_id: invoiceId || undefined,
           customer_id: customerItem?.id,
           client_name: clientName.trim() || customerItem?.label,
           reason: reason.trim() || undefined,
-          items: validLines.map(l => ({ name: l.name.trim(), rate: Number(l.rate), qty: Number(l.qty) || 1, tax_pct: Number(l.tax_pct) || 0 })),
+          items: validLines.map(l => ({ name: l.name.trim(), description:l.description || '', rate: Number(l.rate), qty: Number(l.qty) || 1, tax_pct: Number(l.tax_pct) || 0 })),
         }),
       });
-      // The list route and this "new" route render the same component
-      // instance (React Router doesn't remount across two sibling routes
-      // with identical element types), so the mount-only `useEffect` above
-      // never re-fires on navigate() below — the list previously stayed on
-      // whatever it fetched before this credit note existed. Refetch here,
-      // before navigating away, so the list is already current when it lands.
       await load(); fetchStats();
-      navigate('/finance/credit-notes');
+      clearFinanceDrafts();documentRoute.open('detail',created.id);
     } catch (err) {
       showAlert(err instanceof Error ? err.message : 'Could not issue this credit note.');
     } finally {
@@ -272,7 +263,7 @@ export function CreditNotes() {
   if (isNew) {
     return (
       <FormPage
-        title="New Credit Note"
+        title="New credit note"
         subtitle={invoiceId ? "Reduces the linked invoice's outstanding balance." : 'A standalone credit against a customer.'}
         onCancel={() => navigate('/finance/credit-notes')}
         actions={<FormPageActions onCancel={() => navigate('/finance/credit-notes')} onSave={submit} saving={saving} saveLabel="Issue Credit Note" />}
@@ -296,7 +287,7 @@ export function CreditNotes() {
           </div>
           {lines.map((l, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 90px 32px', gap: 8, marginBottom: 8 }}>
-              <Input value={l.name} onChange={e => updateLine(i, { name: e.target.value })} placeholder="What is being credited" />
+              <div><Input value={l.name} onChange={e => updateLine(i, { name: e.target.value })} placeholder="What is being credited" /><Textarea className="mt-2" aria-label={`Credit item ${i+1} specification`} maxLength={5000} value={l.description || ''} onChange={e=>updateLine(i,{description:e.target.value})} placeholder="Original specification / credited scope"/></div>
               <Input className="text-right" type="number" value={l.rate} onChange={e => updateLine(i, { rate: e.target.value })} placeholder="0.00" />
               <Input className="text-right" type="number" value={l.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
               <Input className="text-right" type="number" value={l.tax_pct} onChange={e => updateLine(i, { tax_pct: e.target.value })} />
@@ -328,7 +319,7 @@ export function CreditNotes() {
         note={selected}
         fmt={fmt}
         voiding={voiding}
-        onBack={() => setSelected(null)}
+        onBack={() => documentRoute.open('list')}
         onVoid={() => voidNote(selected.id)}
       />
     );
@@ -336,6 +327,7 @@ export function CreditNotes() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
+      <FinanceDocumentListExport kind="credit_note"/>
       <PageHeader
         crumbs={['FINANCE', 'CREDIT NOTES']}
         titlePlain="Credit"
@@ -375,7 +367,7 @@ export function CreditNotes() {
             label: 'Status', value: statusFilter, onChange: handleStatusFilterChange, allLabel: 'All statuses',
             options: [{ value: 'DRAFT', label: 'Draft' }, { value: 'POSTED', label: 'Posted' }, { value: 'VOID', label: 'Void' }],
           }}
-          actions={<Button size="sm" onClick={() => navigate('/finance/credit-notes/new')}><Icon name="plus" size={14} />New Credit Note</Button>}
+          actions={<Button size="sm" onClick={() => navigate('/finance/credit-notes/new')}><Icon name="plus" size={14} />New credit note</Button>}
         />
       </div>
 
@@ -398,10 +390,10 @@ export function CreditNotes() {
                 {notes.length === 0 ? (
                   <tr><td colSpan={5} style={{ textAlign: 'center', padding: 24, color: 'var(--ink3)', fontStyle: 'italic' }}>No credit notes found.</td></tr>
                 ) : notes.map(n => (
-                  <tr key={n.id} onClick={() => setSelected(n)} tabIndex={0} role="button"
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(n); } }}
+                  <tr key={n.id} onClick={() => documentRoute.open('detail',n.id)} tabIndex={0} role="button"
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); documentRoute.open('detail',n.id); } }}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
-                    <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontWeight: 600 }}>{n.credit_note_number}</td>
+                    <td style={{ padding: '9px 12px', fontFamily: 'var(--font)', fontWeight: 600 }}><Link to={`/finance/credit-notes/${n.id}`} onClick={e=>e.stopPropagation()}>{n.credit_note_number}</Link></td>
                     <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{n.credit_date ? new Date(n.credit_date).toLocaleDateString('en-GB') : '—'}</td>
                     <td style={{ padding: '9px 12px' }}>{n.client_name || '—'}</td>
                     <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{n.reason || '—'}</td>

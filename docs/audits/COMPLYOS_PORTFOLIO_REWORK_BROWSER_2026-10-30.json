@@ -1,0 +1,106 @@
+{
+  "checks": [
+    "Finance destination retains scope and exposes clear-scope link",
+    "Entity totals, dependent branch options, jurisdiction intersection, currency separation, unknown costs, scoped drilldowns and three responsive viewports"
+  ],
+  "errors": [],
+  "viewports": [
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "brief": 590.0625,
+      "metrics": [
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "brief": 924.75,
+      "metrics": [
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        },
+        {
+          "height": 63,
+          "padding": "6px 0px",
+          "gap": "16px"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "brief": 991.9375,
+      "metrics": [
+        {
+          "height": 36,
+          "padding": "6px 0px",
+          "gap": "6px"
+        },
+        {
+          "height": 36,
+          "padding": "6px 0px",
+          "gap": "6px"
+        },
+        {
+          "height": 36,
+          "padding": "6px 0px",
+          "gap": "6px"
+        },
+        {
+          "height": 36,
+          "padding": "6px 0px",
+          "gap": "6px"
+        },
+        {
+          "height": 36,
+          "padding": "6px 0px",
+          "gap": "6px"
+        }
+      ]
+    }
+  ],
+  "cleaned": true
+}

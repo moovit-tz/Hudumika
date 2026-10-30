@@ -1,3 +1,4 @@
+import { detectShippingLine } from './shippingLines.js';
 export interface ContainerColorPalette {
   id: string;
   carrier: string;
@@ -277,68 +278,8 @@ export function getContainerColor(
     };
   }
 
-  const num = (containerNumber || '').toUpperCase().trim();
-  const carrier = (carrierName || '').toUpperCase().trim();
-
-  // If no container number and no carrier specified, return clean unbranded container
-  if (!num && !carrier) {
-    return CARRIER_CONTAINER_COLORS.UNBRANDED;
-  }
-
-  if (num.startsWith('MSC') || num.startsWith('MED') || num.startsWith('TGH') || carrier.includes('MSC')) {
-    return CARRIER_CONTAINER_COLORS.MSC;
-  }
-  if (num.startsWith('MAE') || num.startsWith('MSK') || num.startsWith('SUD') || num.startsWith('MRK') || carrier.includes('MAERSK')) {
-    return CARRIER_CONTAINER_COLORS.MAERSK;
-  }
-  if (num.startsWith('CMA') || num.startsWith('ANL') || num.startsWith('APL') || carrier.includes('CMA')) {
-    return CARRIER_CONTAINER_COLORS.CMA_CGM;
-  }
-  if (num.startsWith('COS') || num.startsWith('CCL') || num.startsWith('CSN') || carrier.includes('COSCO')) {
-    return CARRIER_CONTAINER_COLORS.COSCO;
-  }
-  if (num.startsWith('HLX') || num.startsWith('HLC') || num.startsWith('UAS') || carrier.includes('HAPAG')) {
-    return CARRIER_CONTAINER_COLORS.HAPAG_LLOYD;
-  }
-  if (num.startsWith('ONE') || num.startsWith('KKF') || num.startsWith('NYK') || num.startsWith('MOL') || carrier.includes('ONE')) {
-    return CARRIER_CONTAINER_COLORS.ONE;
-  }
-  if (num.startsWith('EGL') || num.startsWith('EMC') || num.startsWith('EIS') || carrier.includes('EVERGREEN')) {
-    return CARRIER_CONTAINER_COLORS.EVERGREEN;
-  }
-  if (num.startsWith('HMM') || num.startsWith('HDM') || carrier.includes('HMM')) {
-    return CARRIER_CONTAINER_COLORS.HMM;
-  }
-  if (num.startsWith('YML') || carrier.includes('YANG MING')) {
-    return CARRIER_CONTAINER_COLORS.YANG_MING;
-  }
-  if (num.startsWith('ZIM') || num.startsWith('ZCS') || carrier.includes('ZIM')) {
-    return CARRIER_CONTAINER_COLORS.ZIM;
-  }
-  if (num.startsWith('WHL') || num.startsWith('WHP') || carrier.includes('WAN HAI')) {
-    return CARRIER_CONTAINER_COLORS.WAN_HAI;
-  }
-  if (num.startsWith('PIL') || num.startsWith('PCI') || carrier.includes('PIL')) {
-    return CARRIER_CONTAINER_COLORS.PIL;
-  }
-  if (num.startsWith('OOL') || num.startsWith('OOC') || carrier.includes('OOCL')) {
-    return CARRIER_CONTAINER_COLORS.OOCL;
-  }
-  if (num.startsWith('KMT') || carrier.includes('KMTC')) {
-    return CARRIER_CONTAINER_COLORS.KMTC;
-  }
-  if (num.startsWith('SIT') || num.startsWith('SNT') || carrier.includes('SITC')) {
-    return CARRIER_CONTAINER_COLORS.SITC;
-  }
-  if (num.startsWith('MAT') || num.startsWith('MLI') || carrier.includes('MATSON')) {
-    return CARRIER_CONTAINER_COLORS.MATSON;
-  }
-  if (num.startsWith('MSF') || num.startsWith('LNX') || carrier.includes('MESSINA')) {
-    return CARRIER_CONTAINER_COLORS.MESSINA;
-  }
-  if (num.includes('REEF') || num.startsWith('TRI') || num.startsWith('SEGU') || carrier.includes('REEFER')) {
-    return CARRIER_CONTAINER_COLORS.REEFER_WHITE;
-  }
-
-  return CARRIER_CONTAINER_COLORS.UNBRANDED;
+  const line = detectShippingLine(containerNumber) ?? detectShippingLine(carrierName);
+  if (!line) return CARRIER_CONTAINER_COLORS.UNBRANDED;
+  const existing = Object.values(CARRIER_CONTAINER_COLORS).find(palette => palette.id === line.id);
+  return existing ?? {id:line.id,carrier:line.shortName,name:line.shortName,primary:line.colorHex,dark:line.darkHex,light:line.lightHex,roofGradStart:line.lightHex,roofGradEnd:line.darkHex,textColor:line.textColor,accentBadge:line.accentBadge};
 }

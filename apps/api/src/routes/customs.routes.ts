@@ -97,12 +97,42 @@ const hsSuggestAiPickSchema = z.object({
 // field already runs through parseFloat/parseInt with NaN-safe fallbacks at
 // the point of use below, which z.coerce would duplicate without adding
 // protection this calculator doesn't already have.
+const SHIPMENT_MODES = ['sea_fcl', 'sea_lcl', 'air', 'road', 'rail', 'sea_transit'] as const;
+const LANDED_COST_MODES = ['sea_fcl', 'sea_lcl', 'air'] as const;
+const positiveFinite = z.number().positive().finite();
+const nonnegFinite  = z.number().nonnegative().finite();
 const landedCostSchema = z.object({
   hs_code: z.string().trim().min(1),
-  cif_usd: z.union([z.string(), z.number()]).refine(v => Number.isFinite(parseFloat(String(v))) && parseFloat(String(v)) > 0, 'cif_usd must be a positive number'),
+  cif_usd: z.union([z.string(), z.number()]).refine(v => {
+    const s = String(v).trim();
+    if (!/^[0-9]+(\.[0-9]+)?$/.test(s) && typeof v !== 'number') return false;
+    const n = Number(s);
+    return Number.isFinite(n) && n > 0;
+  }, 'cif_usd must be a positive number with no trailing text'),
+  fx_rate_override: positiveFinite.optional(),
+  fob_usd: nonnegFinite.optional(),
+  freight_usd: nonnegFinite.optional(),
+  insurance_usd: nonnegFinite.optional(),
+  mode: z.enum(LANDED_COST_MODES).optional(),
+  qty: z.number().int().positive().optional(),
+  weight_kg: nonnegFinite.optional(),
+  cbm: nonnegFinite.optional(),
+}).catchall(z.any());
+const coercedPositive = z.union([z.string(), z.number()]).transform(v => Number(v)).pipe(z.number().positive().finite());
+const coercedNonneg  = z.union([z.string(), z.number()]).transform(v => Number(v)).pipe(z.number().nonnegative().finite());
+const multiItemLineSchema = z.object({
+  hs_code: z.string().trim().min(1),
+  qty: coercedPositive,
+  unit_price_usd: coercedNonneg,
+  description: z.string().optional(),
+  rate_overrides: z.record(z.string(), z.number()).optional(),
 }).catchall(z.any());
 const landedCostMultiSchema = z.object({
-  items: z.array(z.any()).min(1),
+  items: z.array(multiItemLineSchema).min(1).max(500),
+  freight_usd: coercedNonneg.optional(),
+  insurance_usd: coercedNonneg.optional(),
+  fx_rate_override: coercedPositive.optional(),
+  mode: z.enum(LANDED_COST_MODES).optional(),
 }).catchall(z.any());
 const complianceCheckSchema = z.object({
   hs_code: z.string().trim().min(1),
@@ -539,60 +569,65 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
     const result = await calculateLandedCost({
       hs_code: body.hs_code,
       cif_usd: parseFloat(String(body.cif_usd)),
-      qty: parseInt(body.qty ?? '1'),
-      icd_per_container: body.icd_per_container ? parseFloat(body.icd_per_container) : undefined,
-      num_containers: body.num_containers ? parseInt(body.num_containers) : undefined,
-      fx_rate_override: body.fx_rate_override ? parseFloat(body.fx_rate_override) : undefined,
+      qty: body.qty,
+      icd_per_container: body.icd_per_container ? parseFloat(String(body.icd_per_container)) : undefined,
+      num_containers: body.num_containers ? parseInt(String(body.num_containers)) : undefined,
+      fx_rate_override: body.fx_rate_override,
       shipment_ref: body.shipment_ref,
       description: body.description,
-      fob_usd: body.fob_usd ? parseFloat(body.fob_usd) : undefined,
-      freight_usd: body.freight_usd ? parseFloat(body.freight_usd) : undefined,
-      insurance_usd: body.insurance_usd ? parseFloat(body.insurance_usd) : undefined,
+      fob_usd: body.fob_usd,
+      freight_usd: body.freight_usd,
+      insurance_usd: body.insurance_usd,
       mode: body.mode as ShipmentMode | undefined,
       container: body.container,
       containers: parseContainerLots(body.containers),
-      cbm: body.cbm ? parseFloat(body.cbm) : undefined,
-      weight_kg: body.weight_kg ? parseFloat(body.weight_kg) : undefined,
+      cbm: body.cbm,
+      weight_kg: body.weight_kg,
       vehicle_condition: body.vehicle_condition,
-      vehicle_age_years: body.vehicle_age_years ? parseFloat(body.vehicle_age_years) : undefined,
+      vehicle_age_years: body.vehicle_age_years ? parseFloat(String(body.vehicle_age_years)) : undefined,
       is_plastic_rubber_clogs: !!body.is_plastic_rubber_clogs,
       rate_overrides: parseRateOverrides(body.rate_overrides),
     });
 
     // Optionally save to history
+    let history_saved: boolean | null = null;
     if (body.save_to_history !== false) {
-      await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
-        tenant_id: user.tenant_id,
-        shipment_ref: body.shipment_ref ?? null,
-        hs_code: result.hs_code,
-        description: result.description,
-        cif_usd: result.cif_usd,
-        fx_rate: result.fx_rate,
-        cif_tzs: result.cif_tzs,
-        duty_rate: result.duty_rate,
-        duty_amount: result.duty,
-        vat_amount: result.vat,
-        rdl_amount: result.rdl,
-        cpf_amount: result.cpf,
-        icd_amount: result.icd,
-        wharfage_amount: result.wharfage,
-        total_tzs: result.total,
-        qty: result.qty,
-        per_unit_tzs: result.per_unit,
-        source: 'calculator',
-        created_by: user.sub ?? null,
-        // Corridor/source-market data. Stored as given; a blank stays NULL so
-        // reporting can tell "not recorded" from a real value.
-        origin_country: body.origin_country?.trim() || null,
-        loading_point: body.loading_point?.trim() || null,
-        loading_point_type: ['SEA_PORT', 'AIRPORT', 'BORDER_POST'].includes(body.loading_point_type) ? body.loading_point_type : null,
-        shipment_mode: result.mode,
-        price_basis: ['EXW', 'FOB', 'CFR', 'CIF'].includes(body.price_basis) ? body.price_basis : null,
-        ...historyExtras(body, result, 1),
-      }).execute()).catch(() => {}); // Non-blocking
+      try {
+        await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
+          tenant_id: user.tenant_id,
+          shipment_ref: body.shipment_ref ?? null,
+          hs_code: result.hs_code,
+          description: result.description,
+          cif_usd: result.cif_usd,
+          fx_rate: result.fx_rate,
+          cif_tzs: result.cif_tzs,
+          duty_rate: result.duty_rate,
+          duty_amount: result.duty,
+          vat_amount: result.vat,
+          rdl_amount: result.rdl,
+          cpf_amount: result.cpf,
+          icd_amount: result.icd,
+          wharfage_amount: result.wharfage,
+          total_tzs: result.total,
+          qty: result.qty,
+          per_unit_tzs: result.per_unit,
+          source: 'calculator',
+          created_by: user.sub ?? null,
+          origin_country: body.origin_country?.trim() || null,
+          loading_point: body.loading_point?.trim() || null,
+          loading_point_type: ['SEA_PORT', 'AIRPORT', 'BORDER_POST'].includes(body.loading_point_type) ? body.loading_point_type : null,
+          shipment_mode: result.mode,
+          price_basis: ['EXW', 'FOB', 'CFR', 'CIF'].includes(body.price_basis) ? body.price_basis : null,
+          ...historyExtras(body, result, 1),
+        }).execute());
+        history_saved = true;
+      } catch (e: any) {
+        fastify.log.warn({ err: e }, 'landed-cost history save failed');
+        history_saved = false;
+      }
     }
 
-    return result;
+    return { ...result, history_saved };
   });
 
   // ── GET /v1/customs/landed-cost/history ───────────────────────────────────
@@ -725,13 +760,13 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
         items: body.items.map((it: any) => ({
           description: it.description ?? '',
           hs_code: it.hs_code ?? '',
-          qty: parseFloat(it.qty) || 0,
-          unit_price_usd: parseFloat(it.unit_price_usd) || 0,
+          qty: it.qty,
+          unit_price_usd: it.unit_price_usd,
           rate_overrides: parseRateOverrides(it.rate_overrides),
         })),
-        freight_usd: parseFloat(body.freight_usd) || 0,
-        insurance_usd: body.insurance_usd !== undefined && body.insurance_usd !== '' ? parseFloat(body.insurance_usd) : undefined,
-        fx_rate_override: body.fx_rate_override ? parseFloat(body.fx_rate_override) : undefined,
+        freight_usd: body.freight_usd ?? 0,
+        insurance_usd: body.insurance_usd,
+        fx_rate_override: body.fx_rate_override,
         mode: (body.mode as ShipmentMode) ?? 'sea_fcl',
         container: body.container,
         containers: parseContainerLots(body.containers),
@@ -743,33 +778,40 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
       return reply.status(400).send({ error: e.message });
     }
 
+    let history_saved: boolean | null = null;
     if (body.save_to_history !== false) {
-      await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
-        tenant_id: user.tenant_id,
-        shipment_ref: body.shipment_ref ?? null,
-        hs_code: 'MULTI',
-        description: `${result.items.length} line item${result.items.length === 1 ? '' : 's'}`,
-        cif_usd: result.totals.cif_tzs / result.fx_rate,
-        fx_rate: result.fx_rate,
-        cif_tzs: result.totals.cif_tzs,
-        duty_rate: null,
-        duty_amount: result.totals.duty,
-        vat_amount: result.totals.vat,
-        rdl_amount: result.totals.rdl,
-        cpf_amount: result.totals.cpf,
-        icd_amount: result.totals.destination,
-        wharfage_amount: result.totals.wharfage,
-        total_tzs: result.totals.total,
-        qty: result.items.length,
-        per_unit_tzs: null,
-        source: 'calculator-multi',
-        created_by: user.sub ?? null,
-        shipment_mode: result.mode,
-        ...historyExtras(body, result, result.items.length),
-      }).execute()).catch(() => {});
+      try {
+        await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
+          tenant_id: user.tenant_id,
+          shipment_ref: body.shipment_ref ?? null,
+          hs_code: 'MULTI',
+          description: `${result.items.length} line item${result.items.length === 1 ? '' : 's'}`,
+          cif_usd: result.totals.cif_tzs / result.fx_rate,
+          fx_rate: result.fx_rate,
+          cif_tzs: result.totals.cif_tzs,
+          duty_rate: null,
+          duty_amount: result.totals.duty,
+          vat_amount: result.totals.vat,
+          rdl_amount: result.totals.rdl,
+          cpf_amount: result.totals.cpf,
+          icd_amount: result.totals.destination,
+          wharfage_amount: result.totals.wharfage,
+          total_tzs: result.totals.total,
+          qty: result.items.length,
+          per_unit_tzs: null,
+          source: 'calculator-multi',
+          created_by: user.sub ?? null,
+          shipment_mode: result.mode,
+          ...historyExtras(body, result, result.items.length),
+        }).execute());
+        history_saved = true;
+      } catch (e: any) {
+        fastify.log.warn({ err: e }, 'multi-item history save failed');
+        history_saved = false;
+      }
     }
 
-    return result;
+    return { ...result, history_saved };
   });
 
   // ── POST /v1/customs/compliance-check ────────────────────────────────────────

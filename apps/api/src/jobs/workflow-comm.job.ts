@@ -67,9 +67,10 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
         }
 
         const result = await sendOneComm(row.tenant_id, row.shipment_id, comm, step.name);
+        const deliveryStatus = !result.success ? 'FAILED' : result.simulated ? 'SIMULATED' : 'SENT';
         await withTenant(row.tenant_id, (trx) =>
           trx.updateTable('workflow_comm_queue')
-            .set({ status: result.success ? 'SENT' : 'FAILED', error: result.error ?? null, sent_at: new Date() })
+            .set({ status: deliveryStatus, error: result.error ?? null, sent_at: new Date() })
             .where('id', '=', row.id).execute(),
         );
 
@@ -78,7 +79,7 @@ export async function runWorkflowCommQueueJob(): Promise<void> {
         // than leaving it reading QUEUED forever.
         if (row.run_id) {
           await settleQueuedComm(row.tenant_id, row.run_id, row.auto_comm_id, {
-            status: result.success ? 'SENT' : 'FAILED',
+            status: deliveryStatus,
             error: result.error,
           });
         }

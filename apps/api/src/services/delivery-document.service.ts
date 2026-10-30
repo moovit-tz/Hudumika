@@ -7,7 +7,7 @@
 // column is meaningful for every type (containers is RO/DO-only,
 // delivery_document_lines is DELIVERY_NOTE-only).
 import PDFDocument from 'pdfkit';
-import { documentBranding, drawDocumentHeader, applyDocumentFonts, type DocumentBranding } from './document-branding.service.js';
+import { documentBranding, drawDocumentPageNumbers, drawDocumentHeader, applyDocumentFonts, type DocumentBranding } from './document-branding.service.js';
 import { withTenant } from '../db/client.js';
 
 export interface ContainerLine {
@@ -265,7 +265,7 @@ async function getCompanyInfo(tenantId: string): Promise<CompanyInfo> {
     return {
       branding: await documentBranding(settings, 'delivery_note'),
       name: c.name || tenant?.name || 'Hudumika',
-      address: c.address || '',
+      address: [c.address,(c.taxId||c.tax_id)?`Tax ID: ${c.taxId||c.tax_id}`:''].filter(Boolean).join(' · '),
       city: c.city || '',
       country: c.country || '',
       phone: c.phone || '',
@@ -275,9 +275,9 @@ async function getCompanyInfo(tenantId: string): Promise<CompanyInfo> {
   });
 }
 
-function sectionHeader(doc: PDFKit.PDFDocument, x: number, y: number, w: number, title: string): number {
+function baseSectionHeader(doc: PDFKit.PDFDocument, x: number, y: number, w: number, title: string, accent=ORANGE): number {
   doc.rect(x, y, w, 16).fill(SECTION_BG);
-  doc.rect(x, y, 3, 16).fill(ORANGE);
+  doc.rect(x, y, 3, 16).fill(accent);
   doc.font('Document-Bold').fontSize(8).fillColor(INK).text(title.toUpperCase(), x + 10, y + 4, { characterSpacing: 0.4 });
   return y + 16;
 }
@@ -287,7 +287,7 @@ function sectionHeader(doc: PDFKit.PDFDocument, x: number, y: number, w: number,
  *  to a second line would otherwise overrun into the row below it (this
  *  actually happened: "Dodoma Wine Company" wrapped and collided with the
  *  Contact/Phone row underneath, verified against a real rendered PDF). */
-function fieldGrid(doc: PDFKit.PDFDocument, x: number, y: number, w: number, fields: [string, string][], cols = 3): number {
+function baseFieldGrid(doc: PDFKit.PDFDocument, x: number, y: number, w: number, fields: [string, string][], cols = 3, accent=ORANGE): number {
   const colW = w / cols;
   const rowH = 24;
   fields.forEach(([label, value], i) => {
@@ -295,7 +295,7 @@ function fieldGrid(doc: PDFKit.PDFDocument, x: number, y: number, w: number, fie
     const row = Math.floor(i / cols);
     const fx = x + col * colW;
     const fy = y + row * rowH;
-    doc.font('Document-Bold').fontSize(6.5).fillColor(ORANGE).text(label.toUpperCase(), fx, fy, { width: colW - 8, height: 8, ellipsis: true, characterSpacing: 0.2 });
+    doc.font('Document-Bold').fontSize(6.5).fillColor(accent).text(label.toUpperCase(), fx, fy, { width: colW - 8, height: 8, ellipsis: true, characterSpacing: 0.2 });
     doc.font('Document-Regular').fontSize(8.5).fillColor(INK).text(value || ' ', fx, fy + 9, { width: colW - 8, height: 11, ellipsis: true });
     doc.moveTo(fx, fy + 20).lineTo(fx + colW - 8, fy + 20).strokeColor(BORDER).lineWidth(0.5).stroke();
   });
@@ -303,11 +303,11 @@ function fieldGrid(doc: PDFKit.PDFDocument, x: number, y: number, w: number, fie
 }
 
 /** Bordered table: orange header row, alternating body rows, optional totals row. */
-function documentTable(doc: PDFKit.PDFDocument, x: number, y: number, colWidths: number[], headers: string[], rows: (string | number)[][], totals?: (string | number)[]): number {
+function baseDocumentTable(doc: PDFKit.PDFDocument, x: number, y: number, colWidths: number[], headers: string[], rows: (string | number)[][], totals?: (string | number)[], accent=ORANGE): number {
   const w = colWidths.reduce((a, b) => a + b, 0);
   let cy = y;
   const header = () => {
-    doc.rect(x, cy, w, 20).fill(ORANGE);
+    doc.rect(x, cy, w, 20).fill(accent);
     let cx = x;
     headers.forEach((h, i) => {
       doc.font('Document-Bold').fontSize(7.5).fillColor('#ffffff').text(h, cx + 5, cy + 4, { width: colWidths[i] - 8, height: 16 });
@@ -322,7 +322,7 @@ function documentTable(doc: PDFKit.PDFDocument, x: number, y: number, colWidths:
     doc.rect(x, cy, w, height).fill(total ? SECTION_BG : ri % 2 ? '#fafafa' : '#ffffff');
     let cx = x;
     row.forEach((cell, i) => {
-      doc.font(total ? 'Document-Bold' : 'Document-Regular').fontSize(7.5).fillColor(total ? ORANGE : INK)
+      doc.font(total ? 'Document-Bold' : 'Document-Regular').fontSize(7.5).fillColor(total ? accent : INK)
         .text(String(cell ?? ''), cx + 5, cy + 4, {width: colWidths[i] - 10});
       doc.rect(cx, cy, colWidths[i], height).strokeColor(BORDER).lineWidth(.5).stroke();
       cx += colWidths[i];
@@ -352,11 +352,15 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
   if (!r) throw new Error('Delivery document not found');
   const containers: ContainerLine[] = typeof r.containers === 'string' ? JSON.parse(r.containers) : (r.containers as any) ?? [];
   const company = await getCompanyInfo(tenantId);
+  const accent=company.branding.accent;
+  const sectionHeader=(doc:PDFKit.PDFDocument,x:number,y:number,w:number,title:string)=>baseSectionHeader(doc,x,y,w,title,accent);
+  const fieldGrid=(doc:PDFKit.PDFDocument,x:number,y:number,w:number,fields:[string,string][],cols=3)=>baseFieldGrid(doc,x,y,w,fields,cols,accent);
+  const documentTable=(doc:PDFKit.PDFDocument,x:number,y:number,widths:number[],headers:string[],rows:(string|number)[][],totals?:(string|number)[])=>baseDocumentTable(doc,x,y,widths,headers,rows,totals,accent);
   const isDeliveryNote = r.doc_type === 'DELIVERY_NOTE';
 
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 32 });
-    applyDocumentFonts(doc, isDeliveryNote ? company.branding : undefined);
+    const doc = new PDFDocument({ size: 'A4', margin: 32, bufferPages: true });
+    applyDocumentFonts(doc, company.branding);
     const chunks: Buffer[] = [];
     doc.on('data', (b) => chunks.push(b));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -372,45 +376,11 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
     const leftW = 150, rightW = 130, midW = W - leftW - rightW;
     let y = M;
 
-    if (isDeliveryNote) {
-      y = drawDocumentHeader(doc, company.branding,
-        { name: company.name, address: [company.address, company.city, company.country, company.phone, company.email].filter(Boolean).join(' · ') },
-        'DELIVERY NOTE', r.doc_number || 'DRAFT', M, y, W);
-      doc.font('Document-Regular').fontSize(8).fillColor(INK).text(`Delivery: ${dateFmt(r.delivery_date)} · Status: ${r.status}`, M, y);
-      y = doc.y + 12;
-    } else {
-    // ── Header band ──
-    const headerH = 74;
-    doc.rect(M, y, leftW, headerH).fill(DARK);
-    doc.rect(M, y, 4, headerH).fill(ORANGE);
-    doc.font('Document-Bold').fontSize(12).fillColor('#ffffff').text(company.name, M + 14, y + 10, { width: leftW - 24, height: 26, ellipsis: true });
-    doc.font('Document-Regular').fontSize(7).fillColor('#c7ccd6').text(
-      [company.address, [company.city, company.country].filter(Boolean).join(', ')].filter(Boolean).join('\n'),
-      M + 14, doc.y + 4, { width: leftW - 24 }
-    );
-    doc.font('Document-Regular').fontSize(7).fillColor('#c7ccd6').text(
-      [company.phone, company.email].filter(Boolean).join('  ·  '), M + 14, doc.y + 2, { width: leftW - 24 }
-    );
-
-    doc.rect(M + leftW, y, midW, headerH).fill(DARK);
-    doc.font('Document-Bold').fontSize(20).fillColor('#ffffff')
-      .text(DOC_TITLE[r.doc_type] ?? r.doc_type, M + leftW + 14, y + 20, { width: midW - 24, height: 24, ellipsis: true });
-    doc.font('Document-Regular').fontSize(8).fillColor('#9aa3b2').text(company.website || '', M + leftW + 14, y + 50, { width: midW - 24 });
-
-    doc.rect(M + leftW + midW, y, rightW, headerH).fill(CREAM);
-    const metaFields: [string, string][] = isDeliveryNote
-      ? [['Note No', r.doc_number || 'DRAFT'], ['Date', dateFmt(r.created_at)], ['Delivery Date', dateFmt(r.delivery_date)], ['Status', r.status.toUpperCase()]]
-      : [['Order No', r.doc_number || 'DRAFT'], ['Issued', dateFmt(r.issued_at)], ['Valid To', dateFmt(r.valid_until)], ['Status', r.status.toUpperCase()]];
-    let mfy = y + 6;
-    metaFields.forEach(([label, value]) => {
-      doc.font('Document-Bold').fontSize(6.5).fillColor('#8a8578').text(`${label.toUpperCase()}:`, M + leftW + midW + 10, mfy, { width: rightW - 20 });
-      doc.font('Document-Bold').fontSize(8.5).fillColor(INK).text(value, M + leftW + midW + 10, mfy + 8, { width: rightW - 20 });
-      doc.moveTo(M + leftW + midW + 10, mfy + 18).lineTo(M + leftW + midW + rightW - 10, mfy + 18).strokeColor(ORANGE).lineWidth(1).stroke();
-      mfy += 18;
-    });
-    y += headerH + 12;
-
-    }
+    y = drawDocumentHeader(doc, company.branding,
+      {name:company.name,address:[company.address,company.city,company.country,company.phone,company.email].filter(Boolean).join(' · ')},
+      DOC_TITLE[r.doc_type] || r.doc_type,r.doc_number || 'DRAFT',M,y,W);
+    doc.font('Document-Regular').fontSize(8).fillColor(INK).text(`Status: ${r.status} · ${isDeliveryNote?'Delivery: '+dateFmt(r.delivery_date):'Valid until: '+dateFmt(r.valid_until)}`,M,y);
+    y=doc.y+12;
 
     // ── Consignee + Transport boxes ──
     const boxW = (W - 8) / 2;
@@ -476,12 +446,12 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
         const cx = M + 10 + (i % 2) * 100;
         const cy = sy + Math.floor(i / 2) * 16;
         const checked = r.status === key;
-        doc.rect(cx, cy, 8, 8).fillAndStroke(checked ? ORANGE : '#ffffff', checked ? ORANGE : BORDER);
+        doc.rect(cx, cy, 8, 8).fillAndStroke(checked ? accent : '#ffffff', checked ? accent : BORDER);
         if (checked) doc.font('Document-Bold').fontSize(7).fillColor('#ffffff').text('✓', cx + 1.5, cy);
         doc.font('Document-Regular').fontSize(7.5).fillColor(INK).text(label, cx + 12, cy, { width: 85 });
       });
       sy += 40;
-      doc.font('Document-Bold').fontSize(7).fillColor(ORANGE).text('DISCREPANCY NOTES', M + 10, sy);
+      doc.font('Document-Bold').fontSize(7).fillColor(accent).text('DISCREPANCY NOTES', M + 10, sy);
       doc.font('Document-Regular').fontSize(7.5).fillColor(INK).text(r.discrepancy_notes || '—', M + 10, sy + 10, { width: leftBoxW - 20, height: 30 });
     } else {
       doc.rect(M, bottomTop, leftBoxW, 110).strokeColor(BORDER).lineWidth(0.5).stroke();
@@ -495,12 +465,12 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
     const partyW = sigBoxW / parties.length;
     parties.forEach((party, i) => {
       const px = M + leftBoxW + 8 + i * partyW;
-      doc.rect(px, bottomTop + 16, partyW, 16).fill(ORANGE);
+      doc.rect(px, bottomTop + 16, partyW, 16).fill(accent);
       doc.font('Document-Bold').fontSize(7.5).fillColor('#ffffff').text(party, px + 6, bottomTop + 20, { width: partyW - 12 });
       ['Name', 'Sig', 'Date'].forEach((f, fi) => {
         const fy = bottomTop + 42 + fi * 22;
         doc.font('Document-Bold').fontSize(6.5).fillColor(INK).text(`${f}:`, px + 6, fy);
-        doc.moveTo(px + 6, fy + 12).lineTo(px + partyW - 8, fy + 12).strokeColor(ORANGE).lineWidth(0.75).stroke();
+        doc.moveTo(px + 6, fy + 12).lineTo(px + partyW - 8, fy + 12).strokeColor(accent).lineWidth(0.75).stroke();
       });
     });
     y = bottomTop + 110 + 14;
@@ -517,6 +487,7 @@ export async function renderDeliveryDocumentPdf(tenantId: string, id: string): P
     // rendered PDF before this fix).
     doc.font('Document-Regular').fontSize(6).fillColor('#999999').text(`Generated by ${company.name} via Hudumika — ${r.id} — ${new Date().toISOString()}.`, M, y + 26, { width: W });
 
+    drawDocumentPageNumbers(doc,r.doc_number || r.id);
     doc.end();
   });
 }

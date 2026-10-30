@@ -13,7 +13,7 @@ const templateWriteSchema = z.object({
   body_plain: z.string().default(''),
   locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/).default('en'),
   status: z.enum(['draft', 'active', 'archived']).default('active'),
-  block_document: z.object({ version: z.literal(1), blocks: z.array(z.record(z.unknown())) }).nullable().default(null),
+  block_document: z.object({ version: z.literal(1), blocks: z.array(z.record(z.string(), z.unknown())) }).nullable().default(null),
   event_key: z.string().trim().min(1).nullable().optional(),
   application: z.string().trim().min(1).max(100).nullable().optional(),
 });

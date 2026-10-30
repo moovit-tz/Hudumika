@@ -5,6 +5,7 @@
    Matches the Hudumika design system body card treatment (/admin/dashboard
    and other platform workspaces) with a soft border, rounded corners, and elevation. */
 .bliss-inbox-card {
+  --tab-hit-height: calc(max(44px, var(--tab-height, 44px)) * .9);
   width: 100%;
   height: 100%;
   display: flex;
@@ -480,18 +481,32 @@
 }
 
 .spt-resize-handle {
-  width: 2px;
-  background-color: var(--border);
+  width: 7px;
+  margin-inline: -3px;
+  position: relative;
+  background-color: transparent;
   cursor: col-resize;
-  transition: background-color 0.2s, width 0.2s;
+  transition: background-color 0.2s;
   z-index: 10;
+}
+.spt-resize-handle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 3px;
+  width: 1px;
+  background: var(--border);
+  transition: background-color 0.2s;
 }
 
 .spt-resize-handle:hover,
 .spt-resize-handle[data-resize-handle-state="drag"] {
-  background-color: var(--teal);
-  width: 4px;
+  background-color: transparent;
 }
+.spt-resize-handle:hover::before,
+.spt-resize-handle[data-resize-handle-state="drag"]::before { background: var(--teal); }
+.bliss-inbox-card .spt-conv-list,
+.bliss-inbox-card .spt-thread { border-right: 0; }
 
 .spt-inbox-nav-pane,
 .spt-tix-list-pane {
@@ -503,11 +518,11 @@
 }
 
 .spt-inbox-nav-pane {
-  border-right: 1px solid var(--border);
+  border-right: 0;
 }
 
 .spt-tix-list-pane {
-  border-right: 1px solid var(--border);
+  border-right: 0;
 }
 
 .spt-nav-scroll {
@@ -2967,6 +2982,18 @@
   position: relative;
 }
 
+/* Conversation rows share their pane's surface; the global card selector
+   otherwise gives every row a second rounded container. */
+.bliss-inbox-card .spt-bedesk-conv-card {
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: none;
+}
+.bliss-inbox-card .spt-bedesk-conv-card--active {
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
 .spt-bedesk-conv-card:hover {
   background: var(--hover-bg);
 }
@@ -3481,6 +3508,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* The contact summary is a flush section of Details, not a nested card. */
+.spt-bedesk-details .spt-bedesk-profile-card {
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: none;
 }
 
 .spt-bedesk-profile-av-wrap {

@@ -21,7 +21,7 @@ const noteInputSchema = z.object({
   // Real cross-app meeting linking (369_meeting_link_everywhere.sql) — same
   // shape MeetingLinkPanel.tsx writes for calendar events and tasks too.
   meetingUrl: z.string().max(2000).nullable().optional(),
-  meetingSettings: z.record(z.any()).optional(),
+  meetingSettings: z.record(z.string(), z.any()).optional(),
   blissMeetingId: z.string().uuid().nullable().optional(),
   visibility: z.enum(['team', 'private', 'shared']).optional(),
   shares: z.array(shareEntrySchema).optional(),

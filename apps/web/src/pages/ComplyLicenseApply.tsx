@@ -1,3 +1,7 @@
+import {Banner} from '../components/ui/alert.js';
+import { Input } from '../components/ui/input.js';
+import { Button } from '../components/ui/button.js';
+import { Textarea } from '../components/ui/textarea.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -7,6 +11,7 @@ import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { Tip } from '../components/ui/tooltip.js';
+import {PageHeader} from '../components/PageHeader.js';
 
 const STEPS = ['Licence', 'Requirements', 'Review'];
 
@@ -78,9 +83,10 @@ export function ComplyLicenseApply() {
   if (!loading && !entry) {
     return (
       <div className="comply-page">
-        <div className="comply-note comply-note--error">
+        <PageHeader crumbs={['ComplyOS', 'Applications']} titlePlain="Licence" titleEm="application" subtitle="Select an available licence from the catalogue to start an application." />
+        <Banner variant="error" icon={false} className="">
           Licence not found. <a href="/complyos/license-catalog">Back to the catalogue</a>.
-        </div>
+        </Banner>
       </div>
     );
   }
@@ -117,13 +123,13 @@ export function ComplyLicenseApply() {
               </div>
             ))}
           </div>
-          {entry.notes && <div className="comply-note" style={{ marginTop: 12 }}><strong>Note: </strong>{entry.notes}</div>}
+          {entry.notes && <Banner variant="info" icon={false} className="" style={{ marginTop: 12 }}><strong>Note: </strong>{entry.notes}</Banner>}
           <div style={{ marginTop: 16 }}>
             <ComplyCustomerPicker value={customerId} onChange={setCustomerId} />
           </div>
           <div style={{ marginTop: 16 }}>
             <WizardField label="Notes (optional)">
-              <textarea className="input-field" rows={3} placeholder="Any context for this application…" value={notes} onChange={e => setNotes(e.target.value)} />
+              <Textarea className="input-field" rows={3} placeholder="Any context for this application…" value={notes} onChange={e => setNotes(e.target.value)} />
             </WizardField>
           </div>
         </>
@@ -141,16 +147,16 @@ export function ComplyLicenseApply() {
                 <Icon name="fileText" size={13} color="var(--comply)" />
                 <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{r}</span>
                 <Tip label="Remove requirement">
-                  <button type="button" className="comply-close-btn" aria-label="Remove requirement" onClick={() => removeRequirement(i)} data-ui-native-button="">
+                  <Button variant="ghost" size="icon" type="button" className="comply-close-btn" aria-label="Remove requirement" onClick={() => removeRequirement(i)} >
                     <Icon name="x" size={14} />
-                  </button>
+                  </Button>
                 </Tip>
               </div>
             ))}
             {requirements.length === 0 && <div className="comply-empty-hint">No requirements listed — add any documents your council requires below.</div>}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input
+            <Input
               className="input-field"
               style={{ flex: 1 }}
               placeholder="Add a required document or condition…"
@@ -158,9 +164,9 @@ export function ComplyLicenseApply() {
               onChange={e => setNewReq(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRequirement(); } }}
             />
-            <button type="button" className="comply-btn-secondary" onClick={addRequirement} data-ui-native-button="">
+            <Button variant="outline" size="sm" type="button"  onClick={addRequirement} >
               <Icon name="plus" size={13} /> Add
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -182,7 +188,7 @@ export function ComplyLicenseApply() {
               </div>
             ))}
           </div>
-          {notes && <div className="comply-note"><strong>Note: </strong>{notes}</div>}
+          {notes && <Banner variant="info" icon={false} className=""><strong>Note: </strong>{notes}</Banner>}
           <p style={{ fontSize: 12, color: 'var(--ink3)' }}>
             This creates a draft application you can review and submit from the Applications page. Submitting routes it through
             the LGA (walk-in/portal) channel and tracks its status the same way as your other agency applications.

@@ -34,14 +34,28 @@ type PlanKey = string;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-type PlanDisplay = { name: string; color: string; bg: string; pricePerSeat: number | null; extraSeatPrice: number | null; extraSeatThreshold: number | null; itemLimit: number | null; storageLimitGb: number | null; tagline?: string; icon: IconName; badge?: string; features: string[] };
+type PlanDisplay = {
+  name: string; color: string; bg: string;
+  pricePerSeat: number | null; extraSeatPrice: number | null; extraSeatThreshold: number | null;
+  itemLimit: number | null; storageLimitGb: number | null;
+  tagline?: string; icon: IconName; badge?: string; features: string[];
+  currency: string; priceFlatMonthly: number | null; priceFlatAnnual: number | null;
+  includedSeats: number | null; maxLocations: number | null;
+};
 
-/** Mirrors billing.routes.ts's computePlanAmount — the real per-period charge
- *  for a seat count, discounted past extraSeatThreshold when a plan has one
- *  set. Used only as the pre-invoice estimate; once a real invoice exists,
- *  its server-computed amount is authoritative (see priceMonthlyTotalNum's
- *  own comment on why that estimate is never allowed to override it). */
-function estimatePlanAmount(plan: PlanDisplay, seats: number): number | null {
+/** Mirrors subscription-billing.service.ts's computePlanAmount — supports both
+ *  the legacy per-seat model and the new flat + included-seats model.
+ *  Used only as the pre-invoice estimate; real invoices are authoritative. */
+function estimatePlanAmount(plan: PlanDisplay, seats: number, cycle: 'monthly' | 'annual' = 'monthly'): number | null {
+  if (plan.priceFlatMonthly != null || plan.priceFlatAnnual != null) {
+    const base = cycle === 'annual'
+      ? (plan.priceFlatAnnual ?? (plan.priceFlatMonthly ?? 0) * 12)
+      : (plan.priceFlatMonthly ?? 0);
+    const included = plan.includedSeats ?? 0;
+    if (seats <= included || plan.extraSeatPrice == null) return base;
+    const overage = seats - included;
+    return base + overage * (cycle === 'annual' ? plan.extraSeatPrice * 12 : plan.extraSeatPrice);
+  }
   if (plan.pricePerSeat === null) return null;
   if (plan.extraSeatPrice != null && plan.extraSeatThreshold != null && seats > plan.extraSeatThreshold) {
     return plan.extraSeatThreshold * plan.pricePerSeat + (seats - plan.extraSeatThreshold) * plan.extraSeatPrice;
@@ -59,9 +73,13 @@ const PLAN_TAGLINES: Record<string, string> = {
   growth: 'HuduPlus — For growing teams scaling their operations',
   scale: 'Legacy Plan — Scale',
   enterprise: 'Hudu Advanced — Metered option shared per quotation',
+  'starter-tzs': 'Starter — Basic finance, POS & CRM for small teams',
+  'business-tzs': 'Business — Advanced operations, HR & logistics',
+  'scale-tzs': 'Scale — Full platform with multi-entity & advanced analytics',
 };
 const PLAN_ICONS: Record<string, IconName> = {
   starter: 'zap', growth: 'trendingUp', scale: 'barChart', enterprise: 'crown',
+  'starter-tzs': 'zap', 'business-tzs': 'trendingUp', 'scale-tzs': 'barChart',
 };
 
 // Shown only until /v1/packages resolves for the first time, so there's no
@@ -71,14 +89,17 @@ const PLAN_DEFAULTS: Record<string, PlanDisplay> = {
   starter: {
     name: 'HuduStarter', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 6, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: 100, storageLimitGb: 10, icon: 'zap',
     features: ['Every module included', '100 items / month', '10 GB storage', 'Basic shipment tracking', 'TANCIS integration', 'Email support', 'Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'],
+    currency: 'USD', priceFlatMonthly: null, priceFlatAnnual: null, includedSeats: null, maxLocations: null,
   },
   growth: {
     name: 'HuduPlus', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 18, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: 500, storageLimitGb: 50, icon: 'trendingUp', badge: 'Most Popular',
     features: ['Every module included', '500 items / month', '50 GB storage', 'Advanced tracking & alerts', 'WhatsApp Bot', 'Priority 24h support'],
+    currency: 'USD', priceFlatMonthly: null, priceFlatAnnual: null, includedSeats: null, maxLocations: null,
   },
   enterprise: {
     name: 'Hudu Advanced', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: null, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: null, storageLimitGb: null, icon: 'crown',
     features: ['Every module included', 'Unlimited items / month', 'Unlimited storage', 'Dedicated account manager', '24/7 phone & WhatsApp support', 'Custom integrations (core banking APIs)', 'White-label option', '99.99% SLA guarantee', 'Metered option shared per quotation'],
+    currency: 'USD', priceFlatMonthly: null, priceFlatAnnual: null, includedSeats: null, maxLocations: null,
   },
 };
 
@@ -92,7 +113,15 @@ function usePlans(): Record<string, PlanDisplay> {
   useEffect(() => {
     apiFetch('/v1/packages').then(res => {
       const next: Record<string, PlanDisplay> = {};
-      for (const pkg of res.data as Array<{ code: string; name: string; price_per_seat: number | null; extra_seat_price: number | null; extra_seat_threshold: number | null; monthly_item_limit: number | null; storage_limit_bytes: number | null; features: string[]; color: string; popular: boolean }>) {
+      for (const pkg of res.data as Array<{
+        code: string; name: string; price_per_seat: number | null;
+        extra_seat_price: number | null; extra_seat_threshold: number | null;
+        monthly_item_limit: number | null; storage_limit_bytes: number | null;
+        features: string[]; color: string; popular: boolean;
+        currency?: string; price_flat_monthly?: number | null;
+        price_flat_annual?: number | null; included_seats?: number | null;
+        max_locations?: number | null;
+      }>) {
         next[pkg.code] = {
           name: pkg.name,
           color: pkg.color || 'var(--teal)',
@@ -101,11 +130,16 @@ function usePlans(): Record<string, PlanDisplay> {
           extraSeatPrice: pkg.extra_seat_price,
           extraSeatThreshold: pkg.extra_seat_threshold,
           itemLimit: pkg.monthly_item_limit,
-          storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
+          storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(Number(pkg.storage_limit_bytes) / 1073741824) : null,
           tagline: PLAN_TAGLINES[pkg.code],
           icon: PLAN_ICONS[pkg.code] ?? 'package',
           badge: pkg.popular ? 'Most Popular' : undefined,
           features: pkg.features,
+          currency: pkg.currency ?? 'USD',
+          priceFlatMonthly: pkg.price_flat_monthly ?? null,
+          priceFlatAnnual: pkg.price_flat_annual ?? null,
+          includedSeats: pkg.included_seats ?? null,
+          maxLocations: pkg.max_locations ?? null,
         };
       }
       if (Object.keys(next).length > 0) setPlans(next);
@@ -117,6 +151,7 @@ function usePlans(): Record<string, PlanDisplay> {
 
 const UNKNOWN_PLAN: PlanDisplay = {
   name: 'Unknown plan', color: 'var(--ink3)', bg: 'var(--bg)', pricePerSeat: null, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: null, storageLimitGb: null, icon: 'package', features: [],
+  currency: 'USD', priceFlatMonthly: null, priceFlatAnnual: null, includedSeats: null, maxLocations: null,
 };
 
 /** The tenant's own current plan by code, falling back to the first real
@@ -140,6 +175,10 @@ function useFxReady(): void {
 }
 function tzsEquivalent(usd: number): string {
   return formatAmount(convertAmount(usd, 'USD', 'TZS'), 'TZS');
+}
+function fmtPlanPrice(amount: number, currency: string): string {
+  if (currency === 'TZS') return `TZS ${amount.toLocaleString()}`;
+  return `$${amount.toLocaleString()}`;
 }
 
 /** Green below the limit, gold once a tenant is close enough to it that a
@@ -373,17 +412,22 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
               </div>
             </div>
             {[
-              ['Price / seat', plan.pricePerSeat === null ? 'Custom' : `$${plan.pricePerSeat}/mo`],
-              ['Active seats', String(seats)],
-              ['Est. monthly bill', estMonthly === null ? 'Custom' : `$${estMonthly.toLocaleString()}`],
+              plan.priceFlatMonthly != null
+                ? ['Plan price', `${fmtPlanPrice(plan.priceFlatMonthly, plan.currency)}/mo`]
+                : ['Price / seat', plan.pricePerSeat === null ? 'Custom' : `${fmtPlanPrice(plan.pricePerSeat, plan.currency)}/mo`],
+              plan.includedSeats != null
+                ? ['Included seats', `${plan.includedSeats} (${seats} active)`]
+                : ['Active seats', String(seats)],
+              ['Est. monthly bill', estMonthly === null ? 'Custom' : fmtPlanPrice(estMonthly, plan.currency)],
               ['Storage', plan.storageLimitGb === null ? 'Unlimited' : `${plan.storageLimitGb} GB`],
+              ...(plan.maxLocations != null ? [['Max locations', String(plan.maxLocations)]] : []),
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink3)' }}>{k}</span>
                 <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{v}</span>
               </div>
             ))}
-            {estMonthly !== null && (
+            {estMonthly !== null && plan.currency === 'USD' && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -6, marginBottom: 8 }}>
                 <span style={{ fontSize: 11, color: 'var(--ink3)' }}>≈ {tzsEquivalent(estMonthly)}</span>
               </div>
@@ -418,8 +462,9 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
   const currentPlan = tenant?.plan || 'starter';
   const plan = planFor(plans, currentPlan);
   const seats = useSeatCount();
-  const isCustomPricing = plan.pricePerSeat === null;
-  const priceLabel = isCustomPricing ? 'Custom' : `$${plan.pricePerSeat}/user`;
+  const isFlat = plan.priceFlatMonthly != null;
+  const isCustomPricing = !isFlat && plan.pricePerSeat === null;
+  const priceLabel = isCustomPricing ? 'Custom' : isFlat ? `${fmtPlanPrice(plan.priceFlatMonthly!, plan.currency)}/mo` : `${fmtPlanPrice(plan.pricePerSeat!, plan.currency)}/user`;
 
   const { invoices, reload: reloadInvoices } = useInvoices();
   const { methods } = usePaymentMethods();
@@ -437,7 +482,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
   // correctly read $45. Only fall back to the estimate before any invoice
   // has ever been generated for this tenant.
   const priceMonthlyTotalNum = isCustomPricing ? null : current ? Number(current.amount) : estimatePlanAmount(plan, seats);
-  const priceMonthlyTotal = priceMonthlyTotalNum === null ? 'Custom' : `$${priceMonthlyTotalNum.toLocaleString()}`;
+  const priceMonthlyTotal = priceMonthlyTotalNum === null ? 'Custom' : fmtPlanPrice(priceMonthlyTotalNum, current?.currency ?? plan.currency);
   useFxReady();
 
   function fmtAmount(inv: any) { return `${inv.currency} ${Number(inv.amount).toFixed(2)}`; }
@@ -499,7 +544,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: plan.color }}>{priceMonthlyTotal}</div>
-                {priceMonthlyTotalNum !== null && <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>≈ {tzsEquivalent(priceMonthlyTotalNum)}</div>}
+                {priceMonthlyTotalNum !== null && plan.currency === 'USD' && <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>≈ {tzsEquivalent(priceMonthlyTotalNum)}</div>}
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>per month</div>
                 {Number(current?.addons_amount ?? 0) > 0 && (
                   <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600, marginTop: 2 }}>
@@ -594,7 +639,186 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
           </tbody>
         </table></div>
       </Card>
+
+      {/* External Services Balance */}
+      <EsbBalanceCard />
+      <ServiceMeteringOverview />
     </div>
+  );
+}
+
+// ─── ESB Balance Card ──────────────────────────────────────────────────────────
+
+function EsbBalanceCard() {
+  const [balance, setBalance] = useState<{ available: number; reserved: number; total: number; currency: string } | null>(null);
+  const [statement, setStatement] = useState<Array<{ id: string; posting_type: string; amount: number; currency: string; service_kind: string | null; description: string | null; created_at: string }> | null>(null);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showStatement, setShowStatement] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  const loadBalance = useCallback(async () => {
+    try {
+      const res = await apiFetch('/v1/billing/esb/balance');
+      setBalance(res);
+    } catch { /* wallet may not exist yet */ }
+  }, []);
+
+  useEffect(() => { loadBalance(); }, [loadBalance]);
+
+  // After returning from a gateway top-up redirect, verify the payment
+  useEffect(() => {
+    const txRef = searchParams.get('tx_ref');
+    const esbTopup = searchParams.get('esb_topup');
+    if (esbTopup && txRef) {
+      apiFetch('/v1/billing/esb/top-up/verify', { method: 'POST', body: JSON.stringify({ tx_ref: txRef }) })
+        .then(() => { showAlert('Top-up successful!', { variant: 'success', title: 'Balance updated' }); loadBalance(); })
+        .catch((err: any) => showAlert(`Top-up verification failed: ${err.message}`));
+      // Clean up query params
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, loadBalance]);
+
+  async function loadStatement() {
+    try {
+      const res = await apiFetch('/v1/billing/esb/statement?limit=20');
+      setStatement(res.data);
+      setShowStatement(true);
+    } catch { setStatement([]); setShowStatement(true); }
+  }
+
+  async function handleTopUp() {
+    const amount = Number(topUpAmount);
+    if (!amount || amount < 1000) { showAlert('Minimum top-up is TZS 1,000'); return; }
+    setLoading(true);
+    try {
+      const res = await apiFetch('/v1/billing/esb/top-up/checkout', { method: 'POST', body: JSON.stringify({ amount }) });
+      if (res.url) window.location.href = res.url;
+    } catch (err: any) {
+      showAlert(`Top-up failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fmt = (n: number) => `TZS ${n.toLocaleString()}`;
+  const postingLabel: Record<string, string> = { top_up: 'Top-up', reserve: 'Reserved', capture: 'Charged', release: 'Released', refund: 'Refund' };
+
+  return (
+    <Card>
+      <CardHead title="External Services Balance" sub="Prepaid TZS balance for AI, SMS, OCR and other metered services." right={
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!showStatement && <Btn label="Statement" icon="fileText" onClick={loadStatement} />}
+          {showStatement && <Btn label="Hide" icon="chevronUp" onClick={() => setShowStatement(false)} />}
+        </div>
+      } />
+      <div style={{ padding: 20 }}>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Available</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{balance ? fmt(balance.available) : '—'}</div>
+          </div>
+          {(balance?.reserved ?? 0) > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Reserved</div>
+              <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--gold)' }}>{fmt(balance!.reserved)}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Top-up form */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="number"
+            placeholder="Amount (TZS)"
+            value={topUpAmount}
+            onChange={e => setTopUpAmount(e.target.value)}
+            min={1000}
+            step={1000}
+            style={{
+              width: 180, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
+              background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)',
+            }}
+          />
+          <Btn label={loading ? 'Redirecting…' : 'Top Up'} icon="plus" variant="primary" onClick={handleTopUp} disabled={loading} />
+        </div>
+
+        {/* Statement */}
+        {showStatement && (
+          <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Recent Activity</div>
+            {statement && statement.length === 0 && (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', padding: '12px 0' }}>No transactions yet.</div>
+            )}
+            {statement?.map(entry => (
+              <div key={entry.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 0', borderBottom: '1px solid var(--border-subtle, var(--border))',
+                fontSize: 12.5,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{postingLabel[entry.posting_type] ?? entry.posting_type}</span>
+                  {entry.service_kind && <span style={{ color: 'var(--ink3)', marginLeft: 8 }}>· {entry.service_kind}</span>}
+                  {entry.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{entry.description}</div>}
+                </div>
+                <div style={{ fontWeight: 600, color: entry.amount >= 0 ? 'var(--green)' : 'var(--red)', whiteSpace: 'nowrap' }}>
+                  {entry.amount >= 0 ? '+' : ''}{fmt(entry.amount)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ─── Service Metering Overview ────────────────────────────────────────────────
+
+function ServiceMeteringOverview() {
+  const [services, setServices] = useState<Array<{ serviceKind: string; credentialOwner: string; esbMetered: boolean; isEnabled: boolean }> | null>(null);
+  useEffect(() => {
+    apiFetch('/v1/billing/esb/service-overview').then((r: any) => setServices(r.services)).catch(() => {});
+  }, []);
+  if (!services || services.length === 0) return null;
+  const ownerLabel: Record<string, string> = { tenant: 'Your own key', platform: 'Platform-managed', hybrid: 'Split (tenant + platform fallback)' };
+  const kindLabel: Record<string, string> = { ai: 'AI Integration', sms: 'SMS Gateway', ocr: 'Document OCR' };
+  return (
+    <Card>
+      <CardHead title="Service Metering" sub="How each external service is billed for this workspace." />
+      <div style={{ padding: 20 }}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {services.map(s => (
+            <div key={s.serviceKind} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '10px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
+              background: 'var(--surface)', fontSize: 13,
+            }}>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{kindLabel[s.serviceKind] ?? s.serviceKind}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{ownerLabel[s.credentialOwner] ?? s.credentialOwner}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {s.esbMetered && (
+                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600 }}>
+                    ESB Metered
+                  </span>
+                )}
+                {!s.esbMetered && s.credentialOwner === 'platform' && (
+                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--blue-l, var(--teal-l))', color: 'var(--blue, var(--teal))', fontWeight: 600 }}>
+                    Credits
+                  </span>
+                )}
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: s.isEnabled ? 'var(--green)' : 'var(--ink3)',
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -1127,11 +1351,12 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
 
   async function handleSelectPlan(k: PlanKey) {
     const name = plans[k]?.name ?? k;
-    if (!(await showConfirm(`Change your plan to ${name}? This takes effect immediately — there's no separate checkout, the new price is simply what's billed on your next Billing invoice.`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
+    const cycle = billing === 'yearly' ? 'annual' : 'monthly';
+    if (!(await showConfirm(`Change your plan to ${name} (${cycle})? This takes effect immediately — there's no separate checkout, the new price is simply what's billed on your next Billing invoice.`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
     try {
-      await apiFetch('/v1/settings', {
-        method: 'PATCH',
-        body: JSON.stringify({ plan: k })
+      await apiFetch('/v1/billing/plan-change', {
+        method: 'POST',
+        body: JSON.stringify({ plan: k, billing_cycle: cycle })
       });
       await onReload();
       showAlert(`You're now on ${name}.`, { variant: 'success', title: 'Plan changed' });
@@ -1163,10 +1388,44 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
         {order.map(k => {
           const p = plans[k];
           const isCurrent = k === currentPlan;
-          const isCustom = p.pricePerSeat === null;
-          // Yearly billing = ~17% off, same discount rate the old flat-price plans used — no separate
-          // per-seat-yearly column on the backend, so it's derived client-side from the monthly seat price.
-          const perSeatDisplay = isCustom ? null : (billing === 'yearly' ? Math.round((p.pricePerSeat as number) * 0.83) : (p.pricePerSeat as number));
+          const isFlat = p.priceFlatMonthly != null;
+          const isCustom = !isFlat && p.pricePerSeat === null;
+          const curr = p.currency === 'TZS' ? 'TZS ' : '$';
+
+          let priceDisplay: string;
+          let priceUnit: string;
+          let fxLine: string | null = null;
+          let annualNote: string;
+
+          if (isCustom) {
+            priceDisplay = 'Custom';
+            priceUnit = '';
+            annualNote = 'Tailored pricing for your organization';
+          } else if (isFlat) {
+            const monthly = billing === 'yearly'
+              ? Math.round((p.priceFlatAnnual ?? p.priceFlatMonthly! * 10) / 12)
+              : p.priceFlatMonthly!;
+            priceDisplay = monthly.toLocaleString();
+            priceUnit = '/mo';
+            if (billing === 'yearly') {
+              const annual = p.priceFlatAnnual ?? p.priceFlatMonthly! * 10;
+              annualNote = `Billed annually · ${curr}${annual.toLocaleString()}/yr`;
+            } else {
+              annualNote = 'Billed monthly · switch to yearly to save';
+            }
+            if (p.currency === 'USD') fxLine = `≈ ${tzsEquivalent(monthly)}/mo`;
+          } else {
+            const perSeat = billing === 'yearly' ? Math.round((p.pricePerSeat as number) * 0.83) : (p.pricePerSeat as number);
+            priceDisplay = perSeat.toLocaleString();
+            priceUnit = '/user/mo';
+            if (p.currency === 'USD') fxLine = `≈ ${tzsEquivalent(perSeat)}/user/mo`;
+            if (billing === 'yearly') {
+              annualNote = `Billed annually · ${curr}${(perSeat * 12).toLocaleString()} /seat/yr`;
+            } else {
+              annualNote = 'Billed monthly · switch to yearly for 2 months free';
+            }
+          }
+
           return (
             <div key={k} data-plan={k} className={`sub-card${p.badge && !isCurrent ? ' sub-card--rec' : ''}${isCurrent ? ' sub-card--current' : ''}`}>
               {isCurrent ? (
@@ -1184,27 +1443,28 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
               {isCustom ? (
                 <>
                   <div className="sub-card-price-row"><span className="sub-card-price">Custom</span></div>
-                  <div className="sub-card-annual-note">Tailored pricing for your organization</div>
+                  <div className="sub-card-annual-note">{annualNote}</div>
                 </>
               ) : (
                 <>
                   <div className="sub-card-price-row">
-                    <span className="sub-card-currency">$</span>
-                    <span className="sub-card-price">{perSeatDisplay!.toLocaleString()}</span>
-                    <span className="sub-card-per">/user/mo</span>
+                    <span className="sub-card-currency">{curr}</span>
+                    <span className="sub-card-price">{priceDisplay}</span>
+                    <span className="sub-card-per">{priceUnit}</span>
                   </div>
-                  <div className="sub-card-fx">≈ {tzsEquivalent(perSeatDisplay!)}/user/mo</div>
-                  <div className="sub-card-annual-note">
-                    {billing === 'yearly'
-                      ? `Billed annually · $${(perSeatDisplay! * 12).toLocaleString()} /seat/yr — save ${tzsEquivalent(((p.pricePerSeat as number) - perSeatDisplay!) * 12)}/seat/yr`
-                      : 'Billed monthly · switch to yearly for 2 months free'}
-                  </div>
+                  {fxLine && <div className="sub-card-fx">{fxLine}</div>}
+                  <div className="sub-card-annual-note">{annualNote}</div>
+                  {p.includedSeats != null && (
+                    <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
+                      {p.includedSeats} user{p.includedSeats > 1 ? 's' : ''} included{p.maxLocations != null ? ` · ${p.maxLocations} location${p.maxLocations > 1 ? 's' : ''}` : ''}
+                    </div>
+                  )}
                   <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
                     {p.itemLimit === null ? 'Unlimited items / month' : `Up to ${p.itemLimit.toLocaleString()} items / month`}
                   </div>
                   {p.extraSeatThreshold != null && p.extraSeatPrice != null && (
                     <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
-                      Seat {p.extraSeatThreshold + 1}+ at ${billing === 'yearly' ? Math.round(p.extraSeatPrice * 0.83) : p.extraSeatPrice}/user/mo
+                      Seat {p.extraSeatThreshold + 1}+ at {curr}{billing === 'yearly' ? Math.round(p.extraSeatPrice * 0.83) : p.extraSeatPrice}/user/mo
                     </div>
                   )}
                 </>

@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {Banner} from '../components/ui/alert.js';
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from '../components/ui/table.js';
+import {Sheet, SheetContent, SheetTitle} from '../components/ui/sheet.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Input } from '../components/ui/input.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Card } from '../components/ui/card.js';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -35,7 +44,7 @@ const AGENCY_OPTIONS = [
   'BOT — Bank of Tanzania',
 ];
 
-type AppStatus = 'all' | 'draft' | 'submitted' | 'review' | 'issued' | 'rejected';
+type AppStatus = 'pending' | 'all' | 'draft' | 'submitted' | 'review' | 'issued' | 'rejected';
 
 const AGENCY_CLASS: Record<string, string> = {
   BRELA: 'gov', TRA: 'tax', NSSF: 'social', WCF: 'social',
@@ -45,6 +54,7 @@ const AGENCY_CLASS: Record<string, string> = {
 
 const FILTERS: { key: AppStatus; label: string }[] = [
   { key: 'all',       label: 'All'       },
+  { key: 'pending', label: 'Pending' },
   { key: 'draft',     label: 'Draft'     },
   { key: 'submitted', label: 'Submitted' },
   { key: 'review',    label: 'In Review' },
@@ -85,9 +95,24 @@ export function ComplyApplications() {
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const [params,setParams]=useSearchParams();
+  const [linkError,setLinkError]=useState<string|null>(null);
+  const requestedStatus=params.get('status');
+  useEffect(()=>{
+    if(FILTERS.some(f=>f.key===requestedStatus))setFilter(requestedStatus as AppStatus);
+  },[requestedStatus]);
+  useEffect(()=>{
+    const id=params.get('application');
+    if(!id||loading||error)return;
+    const record=apps.find(a=>a.id===id);
+    if(record){setSelected(record);setFilter('all');setLinkError(null);}
+    else setLinkError('This application was not found or is not accessible in your workspace.');
+    const next=new URLSearchParams(params);next.delete('application');setParams(next,{replace:true});
+  },[params,loading,error,apps,setParams]);
+
   const visible = filter === 'all'
     ? apps
-    : apps.filter(a => a.status === filter || (filter === 'submitted' && a.status === 'pending'));
+    : apps.filter(a => filter === 'pending' ? ['submitted','review','pending'].includes(a.status) : a.status === filter || (filter === 'submitted' && a.status === 'pending'));
 
   const pipelineSteps = [
     { label: 'Draft',         count: apps.filter(a => a.status === 'draft').length     },
@@ -193,7 +218,8 @@ export function ComplyApplications() {
         }
       />
 
-      {error && <div className="comply-note comply-note--error">Failed to load applications: {error}</div>}
+      {linkError && <Banner variant="error">{linkError}</Banner>}
+      {error && <Banner variant="error" icon={false} className="">Failed to load applications: {error}</Banner>}
 
       {/* Pipeline */}
       <div className="comply-pipeline">
@@ -206,7 +232,7 @@ export function ComplyApplications() {
       </div>
 
       {/* Filters — the shared segmented ds-tabs, not a page-local pill style. */}
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} variant="boxed">
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} >
         <TabsList style={{ marginBottom: 20 }}>
           {FILTERS.map(f => (
             <TabsTrigger key={f.key} value={f.key}>{f.label}</TabsTrigger>
@@ -215,37 +241,37 @@ export function ComplyApplications() {
       </Tabs>
 
       {/* Table */}
-      <div className="comply-card">
+      <Card className="comply-card">
         <div className="comply-card-body">
-          <table className="comply-table">
-            <thead>
-              <tr>
-                <th>Application ID</th>
-                <th>Certification</th>
-                <th>Agency</th>
-                <th>Status</th>
-                <th>Submitted</th>
-                <th>Last Update</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td colSpan={7} className="comply-empty-hint">Loading applications…</td></tr>}
+          <Table className="comply-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Application ID</TableHead>
+                <TableHead>Certification</TableHead>
+                <TableHead>Agency</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Submitted</TableHead>
+                <TableHead>Last Update</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && <TableRow><TableCell colSpan={7} className="comply-empty-hint"><SectionLoading label="Loading applications…" /></TableCell></TableRow>}
               {!loading && visible.length === 0 && (
-                <tr><td colSpan={7} className="comply-empty-hint">No applications found.</td></tr>
+                <TableRow><TableCell colSpan={7} className="comply-empty-hint">No applications found.</TableCell></TableRow>
               )}
               {visible.map(app => (
-                <tr key={app.id} className="comply-tr-click" onClick={() => setSelected(app)}>
-                  <td className="comply-td-mono">{app.app_number}</td>
-                  <td>
+                <TableRow tabIndex={0} onKeyDown={event => {if(event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')){event.preventDefault();event.currentTarget.click();}}} key={app.id} className="comply-tr-click" onClick={() => setSelected(app)}>
+                  <TableCell data-label="Application ID" className="comply-td-mono">{app.app_number}</TableCell>
+                  <TableCell data-label="Certification">
                     <div className="comply-table-name">{app.cert_type}</div>
                     {app.notes && <div className="comply-table-sub">{app.notes}</div>}
-                  </td>
-                  <td><span className={`comply-agency comply-agency--${AGENCY_CLASS[app.agency_code] ?? 'gov'}`}>{app.agency_code}</span></td>
-                  <td><span className={`comply-badge comply-badge--${app.status}`}>{statusLabel(app.status)}</span></td>
-                  <td className="comply-td-muted">{formatDate(app.submitted_at)}</td>
-                  <td className="comply-td-muted">{formatDate(app.updated_at)}</td>
-                  <td onClick={e => e.stopPropagation()}>
+                  </TableCell>
+                  <TableCell data-label="Agency"><Badge variant={complyBadgeVariant(`comply-agency comply-agency--${AGENCY_CLASS[app.agency_code] ?? 'gov'}`)}>{app.agency_code}</Badge></TableCell>
+                  <TableCell data-label="Status"><Badge variant={complyBadgeVariant(`comply-badge comply-badge--${app.status}`)}>{statusLabel(app.status)}</Badge></TableCell>
+                  <TableCell data-label="Submitted" className="comply-td-muted">{formatDate(app.submitted_at)}</TableCell>
+                  <TableCell data-label="Last Update" className="comply-td-muted">{formatDate(app.updated_at)}</TableCell>
+                  <TableCell data-label="Actions" onClick={e => e.stopPropagation()}>
                     <div className="comply-td-actions">
                       <Button type="button" variant="outline" size="xs" onClick={() => setSelected(app)}>
                         View
@@ -254,28 +280,24 @@ export function ComplyApplications() {
                         <Button type="button" variant="outline" size="xs" disabled={submitting} onClick={() => handleAppeal(app)}>Appeal</Button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
 
       {/* Detail drawer */}
       {selected && (
-        <div className="comply-overlay comply-overlay--end" onClick={() => setSelected(null)}>
-          <div className="comply-drawer" onClick={e => e.stopPropagation()}>
+        <Sheet open={true} onOpenChange={open => { if (!open) (() => setSelected(null))(); }}>
+          <SheetContent aria-describedby={undefined} className="comply-detail-sheet w-full sm:max-w-xl flex flex-col p-0 gap-0">
             <div className="comply-panel-hdr">
               <div>
-                <div className="comply-panel-hdr-title">{selected.cert_type}</div>
-                <span className={`comply-badge comply-badge--${selected.status}`}>{statusLabel(selected.status)}</span>
+                <SheetTitle className="comply-panel-hdr-title">{selected.cert_type}</SheetTitle>
+                <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${selected.status}`)}>{statusLabel(selected.status)}</Badge>
               </div>
-              <Tip label="Close">
-                <button type="button" aria-label="Close" className="comply-close-btn" onClick={() => setSelected(null)} data-ui-native-button="">
-                  <Icon name="x" size={18} />
-                </button>
-              </Tip>
+
             </div>
 
             <div className="comply-panel-body">
@@ -308,9 +330,9 @@ export function ComplyApplications() {
               </div>
 
               {selected.notes && (
-                <div className="comply-note">
+                <Banner variant="info" icon={false} className="">
                   <strong>Note: </strong>{selected.notes}
-                </div>
+                </Banner>
               )}
 
               {Array.isArray((selected.metadata as any)?.requirements) && (selected.metadata as any).requirements.length > 0 && (
@@ -373,14 +395,14 @@ export function ComplyApplications() {
                   </Button>
                 )}
                 {selected.status === 'draft' && (
-                  <Button type="button" variant="outline" size="sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} disabled={deleting} onClick={() => handleDelete(selected)}>
+                  <Button type="button" variant="outline" size="sm" style={{color: 'var(--red)', borderColor: 'var(--red)'}} disabled={deleting} onClick={() => handleDelete(selected)}>
                     <Icon name="trash" size={13} color="var(--red)" /> {deleting ? 'Deleting…' : 'Delete Draft'}
                   </Button>
                 )}
               </div>
             </div>
-          </div>
-        </div>
+          </SheetContent>
+        </Sheet>
       )}
 
     </div>
@@ -480,8 +502,8 @@ export function NewApplicationPage() {
               onChange={e => { const f = e.target.files?.[0]; if (f) handleScanDocument(f); e.target.value = ''; }}
             />
           </label>
-          {scanNote && <div className="comply-note comply-note--success" style={{ marginTop: 8 }}>{scanNote}</div>}
-          {scanError && <div className="comply-note comply-note--error" style={{ marginTop: 8 }}>{scanError}</div>}
+          {scanNote && <Banner variant="success" icon={false} className="" style={{ marginTop: 8 }}>{scanNote}</Banner>}
+          {scanError && <Banner variant="error" icon={false} className="" style={{ marginTop: 8 }}>{scanError}</Banner>}
           <p style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
             Optional — scanning a certificate auto-fills the agency and certification type on the next step. You can also skip this and enter the details manually.
           </p>
@@ -499,11 +521,11 @@ export function NewApplicationPage() {
             </Select>
           </WizardField>
           <WizardField label="Certification Type">
-            <input className="input-field" placeholder="e.g. Annual Business Licence, VAT Registration…" value={certTypeValue} onChange={e => setCertTypeValue(e.target.value)} />
+            <Input className="input-field" placeholder="e.g. Annual Business Licence, VAT Registration…" value={certTypeValue} onChange={e => setCertTypeValue(e.target.value)} />
           </WizardField>
           <ComplyCustomerPicker value={customerId} onChange={setCustomerId} />
           <WizardField label="Notes (optional)">
-            <textarea className="input-field" rows={3} placeholder="Any context or special instructions for this application…" value={notes} onChange={e => setNotes(e.target.value)} />
+            <Textarea className="input-field" rows={3} placeholder="Any context or special instructions for this application…" value={notes} onChange={e => setNotes(e.target.value)} />
           </WizardField>
         </>
       )}
@@ -523,7 +545,7 @@ export function NewApplicationPage() {
             ))}
           </div>
           {notes && (
-            <div className="comply-note"><strong>Note: </strong>{notes}</div>
+            <Banner variant="info" icon={false} className=""><strong>Note: </strong>{notes}</Banner>
           )}
           <p style={{ fontSize: 12, color: 'var(--ink3)' }}>Review the details above, then click Create Application. You can submit it to the agency afterwards from the application's detail view.</p>
         </div>

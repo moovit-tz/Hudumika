@@ -1,0 +1,4 @@
+{
+  "probe": "Report output generation only; no browser execution, no stored records",
+  "unescapedUserMarkup": true
+}

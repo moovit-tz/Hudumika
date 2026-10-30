@@ -157,7 +157,7 @@ function makeStep(order: number, isFirst = false): WorkflowStep {
   // isTerminal is recomputed from nextStepIds.length===0 at save time (see
   // buildSavePayload) — it mirrors that derivation rather than being a
   // separately-edited field, so a placeholder value here is fine.
-  return {id:uid(), workflowId:'', name:`Step ${order}`, description:'', order, isStart:isFirst, isTerminal:false, nextStepIds:[], entryConditions:[], autoComms:[], color:STEP_COLORS[(order-1)%STEP_COLORS.length]};
+  return {id:uid(), workflowId:'', name:`Step ${order}`, description:'', order, isStart:isFirst, isTerminal:false, nextStepIds:[], entryConditions:[], autoComms:[], stepType:null, color:STEP_COLORS[(order-1)%STEP_COLORS.length]};
 }
 function makeWorkflow(): Workflow {
   const step = makeStep(1, true);
@@ -312,6 +312,18 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
             <div className="wfb-field">
               <label className="wfb-label">SLA (hours optional)</label>
               <Input type="number" min="0" value={step.slaHours??''} onChange={e=>onUpdateStep(step.id,{slaHours:e.target.value?Number(e.target.value):undefined})} placeholder="No SLA"/>
+            </div>
+            <div className="wfb-field">
+              <label className="wfb-label">Automation role</label>
+              <Select value={step.stepType ?? '__none__'} onValueChange={v => onUpdateStep(step.id, { stepType: v === '__none__' ? null : v })}>
+                <SelectTrigger className="wfb-select"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  <SelectItem value="invoicing">Invoicing</SelectItem>
+                  <SelectItem value="payment">Payment</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="wfb-field">
               <label className="wfb-label">Color</label>
@@ -747,6 +759,7 @@ export function ClearanceWorkflowBuilder() {
                       {step.entryConditions.length>0&&<Badge variant="warning"><Icon name="lock" size={9} /> {step.entryConditions.length}</Badge>}
                       {step.autoComms.length>0&&<Badge variant="info"><Icon name="zap" size={9} /> {step.autoComms.length}</Badge>}
                       {step.slaHours!=null&&<Badge variant="gray"><Icon name="timer" size={9} /> {step.slaHours}h</Badge>}
+                      {step.stepType&&<Badge variant="brand"><Icon name="zap" size={9} /> {step.stepType}</Badge>}
                     </div>
                   </div>
                 );

@@ -1,3 +1,10 @@
+import {Banner} from '../components/ui/alert.js';
+import {Table, TableBody, TableRow, TableCell, TableHeader, TableHead} from '../components/ui/table.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Card } from '../components/ui/card.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -177,7 +184,7 @@ export function ComplyTraExtract() {
 
         {/* Credentials Form Card */}
         {status !== 'completed' && (
-          <div className="comply-card">
+          <Card className="comply-card">
             <div className="comply-card-hdr">
               <h2 className="comply-card-title">Preview Lookup</h2>
             </div>
@@ -196,7 +203,7 @@ export function ComplyTraExtract() {
 
                 <div>
                   <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>TIN Number</label>
-                  <input
+                  <Input
                     type="text"
                     placeholder="e.g. 108-449-012"
                     value={tin}
@@ -221,34 +228,34 @@ export function ComplyTraExtract() {
                   </label>
                 </div>
 
-                <div className="comply-note comply-note--info" style={{ margin: 0 }}>
+                <Banner variant="info" icon={false} className="" style={{ margin: 0 }}>
                   <Icon name="info" size={14} />
                   <span>This tool never asks for your TRA portal username or password — it doesn't perform a live login.</span>
-                </div>
+                </Banner>
 
                 {status === 'idle' ? (
-                  <button type="submit" className="comply-btn-primary" style={{ marginTop: 8 }} data-ui-native-button="">
+                  <Button variant="default" size="sm" type="submit"  style={{marginTop: 8}} >
                     <Icon name="zap" style={{ marginRight: 8 }} /> Generate Preview
-                  </button>
+                  </Button>
                 ) : (
-                  <button type="button" className="comply-btn-secondary" disabled style={{ marginTop: 8 }} data-ui-native-button="">
+                  <Button variant="outline" size="sm" type="button"  disabled style={{marginTop: 8}} >
                     Generating…
-                  </button>
+                  </Button>
                 )}
               </div>
             </form>
-          </div>
+          </Card>
         )}
 
         {/* Console / Terminal View */}
         {status !== 'completed' && (
-          <div className="comply-card" style={{ background: '#0F172A', color: '#38BDF8', border: '1px solid #1E293B', borderRadius: 12 }}>
-            <div className="comply-card-hdr" style={{ borderBottom: '1px solid #1E293B', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Card className="comply-card" style={{ color: 'var(--blue)' }}>
+            <div className="comply-card-hdr" style={{ borderBottom: '1px solid var(--surface2)', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--ink3)', fontFamily: 'monospace' }}>PREVIEW BUILDER LOG</span>
               <div style={{ display: 'flex', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444' }} />
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B' }} />
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gold)' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
               </div>
             </div>
             <div style={{ padding: 20, height: 320, overflowY: 'auto', fontFamily: 'monospace', fontSize: 12.5, lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -259,10 +266,10 @@ export function ComplyTraExtract() {
                   <div key={log.id} style={{ display: 'flex', gap: 10 }}>
                     <span style={{ color: 'var(--ink2)' }}>[{log.time}]</span>
                     <span style={{
-                      color: log.type === 'error' ? '#EF4444' :
-                             log.type === 'success' ? '#34D399' :
-                             log.type === 'warn' ? '#FBBF24' :
-                             log.type === 'input' ? '#F472B6' : '#38BDF8'
+                      color: log.type === 'error' ? 'var(--red)' :
+                             log.type === 'success' ? 'var(--green)' :
+                             log.type === 'warn' ? 'var(--gold)' :
+                             log.type === 'input' ? 'var(--purple)' : 'var(--blue)'
                     }}>
                       {log.type === 'input' ? `> ` : ``}{log.text}
                     </span>
@@ -271,47 +278,47 @@ export function ComplyTraExtract() {
               )}
               <div ref={logsEndRef} />
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Extracted Details View */}
         {status === 'completed' && resultData && (
-          <div className="comply-card">
+          <Card className="comply-card">
             <div className="comply-card-hdr" style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <h2 className="comply-card-title" style={{ fontSize: 18, fontWeight: 900 }}>{resultData.taxpayer.name}</h2>
                   {simulated ? (
-                    <span className="comply-badge comply-badge--pending" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Badge variant={complyBadgeVariant("comply-badge comply-badge--pending")} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Icon name="alertTriangle" style={{ width: 12, height: 12 }} /> Simulated Preview
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="comply-badge comply-badge--active" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Badge variant={complyBadgeVariant("comply-badge comply-badge--active")} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Icon name="checkCircle" style={{ width: 12, height: 12 }} /> Extracted from document
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <p className="comply-page-sub" style={{ margin: '4px 0 0' }}>TIN: {resultData.taxpayer.tin} · {simulated ? 'Demo data — not a live TRA record' : 'From your uploaded document'}</p>
               </div>
-              <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => { setStatus('idle'); setUploadFile(null); }} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button"  onClick={() => { setStatus('idle'); setUploadFile(null); }} >
                 <Icon name="refresh" style={{ marginRight: 6 }} /> New Preview
-              </button>
+              </Button>
             </div>
 
             {simulated ? (
-              <div className="comply-note comply-note--warning comply-note--icon" style={{ margin: '16px 24px 0' }}>
+              <Banner variant="warning" icon={false} className="comply-note--icon" style={{ margin: '16px 24px 0' }}>
                 <Icon name="alertTriangle" size={15} />
                 <span><strong>Simulated data.</strong> TRA has no public API for ComplyOS to query, and no document was uploaded (or OCR isn't configured for this platform) — the profile, obligations, TCC and filing history below are a fixed demo dataset for previewing this feature, not a live extraction for this specific TIN. Verify anything you import against your actual TRA records.</span>
-              </div>
+              </Banner>
             ) : (
-              <div className="comply-note comply-note--info comply-note--icon" style={{ margin: '16px 24px 0' }}>
+              <Banner variant="info" icon={false} className="comply-note--icon" style={{ margin: '16px 24px 0' }}>
                 <Icon name="info" size={15} />
                 <span><strong>Extracted from your uploaded document.</strong> Verify the figures below before relying on them — OCR can misread a low-quality screenshot.</span>
-              </div>
+              </Banner>
             )}
 
             {/* Results Navigation Tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} variant="segmented">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} >
             <TabsList style={{ padding: '0 24px', marginTop: 16 }}>
               {([
                 { key: 'profile', label: 'Taxpayer Profile', icon: 'user' },
@@ -335,25 +342,25 @@ export function ComplyTraExtract() {
                 <div className="comply-grid-2" style={{ marginBottom: 0 }}>
                   <div>
                     <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>Corporate Identity</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <tbody>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Registered Name</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.name}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>TIN Number</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.tin}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>VRN Number</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.vrn}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Incorporation Date</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.incorporation_date}</td></tr>
-                      </tbody>
-                    </table>
+                    <Table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <TableBody>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Registered Name</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.name}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>TIN Number</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.tin}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>VRN Number</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.vrn}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>Incorporation Date</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.incorporation_date}</TableCell></TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
                   <div>
                     <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>Portal & Bio Data</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <tbody>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Tax Office</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.tax_office}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>NIDA / NIN</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.nida}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Registered Phone</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.phone}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Registered Email</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.email}</td></tr>
-                      </tbody>
-                    </table>
+                    <Table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <TableBody>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Tax Office</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.tax_office}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>NIDA / NIN</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.nida}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>Registered Phone</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.phone}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>Registered Email</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.taxpayer.email}</TableCell></TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               )}
@@ -368,33 +375,33 @@ export function ComplyTraExtract() {
                         ✓ Registered in Obligations
                       </span>
                     ) : (
-                      <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleImportObligations} disabled={savingObligations} data-ui-native-button="">
+                      <Button variant="outline" size="sm" type="button"  onClick={handleImportObligations} disabled={savingObligations} >
                         {savingObligations ? 'Registering...' : 'Register Obligations'}
-                      </button>
+                      </Button>
                     )}
                   </div>
-                  <table className="comply-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>Tax Obligation Type</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>Filing Frequency</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="comply-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <TableHeader>
+                      <TableRow style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'left' }}>Tax Obligation Type</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'left' }}>Filing Frequency</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'left' }}>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {resultData.obligations.map((ob: any, idx: number) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '12px', fontWeight: 600 }}>{ob.name}</td>
-                          <td style={{ padding: '12px', color: 'var(--ink2)' }}>{ob.type}</td>
-                          <td style={{ padding: '12px' }}>
-                            <span className={`comply-badge comply-badge--${ob.status === 'Active' ? 'active' : 'draft'}`}>
+                        <TableRow key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <TableCell data-label="Tax Obligation Type" style={{ padding: '12px', fontWeight: 600 }}>{ob.name}</TableCell>
+                          <TableCell data-label="Filing Frequency" style={{ padding: '12px', color: 'var(--ink2)' }}>{ob.type}</TableCell>
+                          <TableCell data-label="Status" style={{ padding: '12px' }}>
+                            <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${ob.status === 'Active' ? 'active' : 'draft'}`)}>
                               {ob.status}
-                            </span>
-                          </td>
-                        </tr>
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
 
@@ -411,19 +418,19 @@ export function ComplyTraExtract() {
                       {tccSaved ? (
                         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--comply)' }}>✓ Imported into Vault</span>
                       ) : (
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={handleImportTcc} disabled={savingTcc} data-ui-native-button="">
+                        <Button variant="outline" size="sm" type="button"  onClick={handleImportTcc} disabled={savingTcc} >
                           {savingTcc ? 'Importing...' : 'Import to Vault'}
-                        </button>
+                        </Button>
                       )}
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <tbody>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Certificate Ref</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.reference}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Date of Issue</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.issued_date}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>Expiry Date</td><td style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.expiry_date}</td></tr>
-                        <tr style={{ borderBottom: '1px solid var(--border)' }}><td style={{ padding: '8px 0', color: 'var(--ink2)' }}>TRA Status</td><td style={{ padding: '8px 0', color: 'var(--green)', fontWeight: 700 }}>{resultData.tcc.status}</td></tr>
-                      </tbody>
-                    </table>
+                    <Table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <TableBody>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)', width: 140 }}>Certificate Ref</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.reference}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>Date of Issue</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.issued_date}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>Expiry Date</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', fontWeight: 600 }}>{resultData.tcc.expiry_date}</TableCell></TableRow>
+                        <TableRow style={{ borderBottom: '1px solid var(--border)' }}><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--ink2)' }}>TRA Status</TableCell><TableCell data-label="Details" style={{ padding: '8px 0', color: 'var(--green)', fontWeight: 700 }}>{resultData.tcc.status}</TableCell></TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               )}
@@ -432,39 +439,39 @@ export function ComplyTraExtract() {
               {activeTab === 'history' && (
                 <div>
                   <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>Corporate Tax Return History</h3>
-                  <table className="comply-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>Assessment Year</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>Tax Type</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'left' }}>Date Submitted</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Tax Assessed (TZS)</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Tax Paid (TZS)</th>
-                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Assessment Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="comply-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <TableHeader>
+                      <TableRow style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'left' }}>Assessment Year</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'left' }}>Tax Type</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'left' }}>Date Submitted</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'right' }}>Tax Assessed (TZS)</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'right' }}>Tax Paid (TZS)</TableHead>
+                        <TableHead style={{ padding: '10px 12px', textAlign: 'center' }}>Assessment Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {resultData.filing_history.map((hist: any, idx: number) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '12px', fontWeight: 600 }}>{hist.year}</td>
-                          <td style={{ padding: '12px', color: 'var(--ink2)' }}>{hist.return_type}</td>
-                          <td style={{ padding: '12px', color: 'var(--ink3)' }}>{hist.filed_date}</td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>{hist.tax_due.toLocaleString()} TZS</td>
-                          <td style={{ padding: '12px', textAlign: 'right', color: 'var(--green)' }}>{hist.tax_paid.toLocaleString()} TZS</td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <span className={`comply-badge comply-badge--${hist.status === 'Assessed' ? 'active' : 'pending'}`}>
+                        <TableRow key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <TableCell data-label="Assessment Year" style={{ padding: '12px', fontWeight: 600 }}>{hist.year}</TableCell>
+                          <TableCell data-label="Tax Type" style={{ padding: '12px', color: 'var(--ink2)' }}>{hist.return_type}</TableCell>
+                          <TableCell data-label="Date Submitted" style={{ padding: '12px', color: 'var(--ink3)' }}>{hist.filed_date}</TableCell>
+                          <TableCell data-label="Tax Assessed (TZS)" style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>{hist.tax_due.toLocaleString()} TZS</TableCell>
+                          <TableCell data-label="Tax Paid (TZS)" style={{ padding: '12px', textAlign: 'right', color: 'var(--green)' }}>{hist.tax_paid.toLocaleString()} TZS</TableCell>
+                          <TableCell data-label="Assessment Status" style={{ padding: '12px', textAlign: 'center' }}>
+                            <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${hist.status === 'Assessed' ? 'active' : 'pending'}`)}>
                               {hist.status}
-                            </span>
-                          </td>
-                        </tr>
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
 
             </div>
-          </div>
+          </Card>
         )}
 
       </div>

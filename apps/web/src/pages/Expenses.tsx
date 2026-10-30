@@ -1,3 +1,7 @@
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
+import { csvText } from '../lib/financeDocuments.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -12,6 +16,7 @@ import { Badge } from '../components/ui/badge.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { financeCatalogOptions, financeIndustryName, type FinanceIndustryKey } from '@hudumika/types';
 
 const CATS: Record<string, { label: string; color: string }> = {
   PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
@@ -51,6 +56,7 @@ export interface ExpenseListItem {
 }
 
 export interface ExpenseDetail {
+  industry_key?: FinanceIndustryKey | null; industry_work_id?: string | null;
   id: string;
   name: string;
   amount: number;
@@ -184,9 +190,10 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
 
+        <FinanceDocumentActions kind="expense" id={expense.id} label={expense.name}/>
         {/* Title Block */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>{expense.name}</div>
+          <PageHeader crumbs={['Finance','Expenses']} titlePlain={expense.name.split(' ').slice(0,-1).join(' ')} titleEm={expense.name.split(' ').slice(-1)[0]} subtitle="Expense voucher"/>
           <div style={{ fontSize: 28, fontWeight: 800, color: expense.is_revenue ? 'var(--green)' : 'var(--red)' }}>
             {expense.is_revenue ? '+' : '-'}{fmt(expense.amount, 'TZS')}
           </div>
@@ -201,6 +208,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
         </div>
 
         {/* Info Grid */}
+        {expense.industry_key && <p className="mb-4 text-sm">Industry: <strong>{financeIndustryName(expense.industry_key)}</strong>{expense.industry_work_id && <Link className="ml-3 text-primary underline" to={`/finance/industries/${expense.industry_key}/${expense.industry_work_id}`}>View linked work</Link>}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Payment Mode</div>
@@ -336,6 +344,8 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export const Expenses: React.FC = () => {
+  const configuration = useFinanceConfiguration();
+  const documentRoute=useFinanceDocumentRoute("expenses");
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { fmt } = useCurrency();
@@ -428,7 +438,7 @@ export const Expenses: React.FC = () => {
         e.is_revenue ? 'Revenue' : 'Expense', e.amount, SOURCE_LABEL[e.source] || 'Finance',
       ]),
     ];
-    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = csvText(rows);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -443,6 +453,7 @@ export const Expenses: React.FC = () => {
       if (item.vehicle_id) navigate(`/tracking/vehicles/${item.vehicle_id}`);
       return;
     }
+    documentRoute.open('detail',item.id);
     setSelectedId(item.id);
     setDetailLoading(true);
     try {
@@ -456,7 +467,10 @@ export const Expenses: React.FC = () => {
     }
   }
 
+  useEffect(()=>{ if(documentRoute.id){setSelectedId(documentRoute.id);setDetailLoading(true);apiFetch(`/v1/finance/expenses/${documentRoute.id}`).then(setSelectedDetail).catch(e=>showAlert(e.message)).finally(()=>setDetailLoading(false));}else{setSelectedId(null);setSelectedDetail(null);} },[documentRoute.path]);
+
   function closeDetail() {
+    documentRoute.open('list');
     setSelectedId(null);
     setSelectedDetail(null);
   }
@@ -501,13 +515,15 @@ export const Expenses: React.FC = () => {
     }
   };
 
+  if(documentRoute.id && selectedDetail && !detailLoading)return <ExpenseDetailPanel expense={selectedDetail} onClose={closeDetail} onChanged={()=>{apiFetch(`/v1/finance/expenses/${selectedDetail.id}`).then(setSelectedDetail).catch(e=>showAlert(e.message));}} shipments={shipments} customers={customers} suppliers={suppliers} isMobile={isMobile}/>;
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <FinanceDocumentListExport kind="expense"/>
       <PageHeader
         crumbs={['FINANCE', 'EXPENSES']}
         titlePlain="Expense "
         titleEm="tracking"
-        subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
+        subtitle="Company expenses and revenue, classified for your industries and allocated to the work that incurred them."
         actions={
           <>
             <Button variant="outline" size="sm" asChild>
@@ -564,7 +580,7 @@ export const Expenses: React.FC = () => {
               <button type="button" className="stb-icon-btn" onClick={() => setShowBulkUpload(true)} title="Bulk Upload" aria-label="Bulk Upload" data-ui-native-button="">
                 <Icon name="upload" size={14} />
               </button>
-              <Tip label="Export CSV"><button type="button" className="stb-icon-btn" onClick={exportCsv} aria-label="Export CSV" data-ui-native-button=""><Icon name="download" size={14} /></button></Tip>
+              <Tip label="Export page CSV"><button type="button" className="stb-icon-btn" onClick={exportCsv} aria-label="Export page CSV" data-ui-native-button=""><Icon name="download" size={14} /></button></Tip>
             </>
           }
         />
@@ -572,7 +588,7 @@ export const Expenses: React.FC = () => {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 0 4px' }}>
             <SingleSelectFilter
               label="Category"
-              options={Object.entries(CATS).map(([k, v]) => ({ value: k, label: v.label }))}
+              options={[...new Set([...financeCatalogOptions(configuration.data?.industries ?? []).expenses,...items.map(item=>item.category)])].map(key=>({value:key,label:CATS[key]?.label ?? key}))}
               value={filterCat || null}
               onChange={v => setFilterCat(v ?? '')}
               allLabel="All Categories"
@@ -611,7 +627,7 @@ export const Expenses: React.FC = () => {
                 {/* Description */}
                 <div style={{ flex: 2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}><Link to={e.editable?`/finance/expenses/${e.id}`:`/tracking/vehicles/${e.vehicle_id}`} onClick={event=>event.stopPropagation()}>{e.name}</Link></span>
                     {e.retirement_status === 'pending' && (
                       <span title="Petty cash retirement pending" style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)'}}>Retire</span>
                     )}

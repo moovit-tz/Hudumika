@@ -295,6 +295,7 @@ export class OnboardingService {
         active: true,
         referred_by_tenant_id: referredByTenantId,
         founder_personal_email_domain: founderDomain && PERSONAL_EMAIL_DOMAIN_SET.has(founderDomain) ? founderDomain : null,
+        onboarding_journey: input.onboarding_journey ?? null,
         created_at: now,
         updated_at: now,
       }).returningAll().executeTakeFirstOrThrow();

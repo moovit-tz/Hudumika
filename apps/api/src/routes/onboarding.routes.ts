@@ -10,6 +10,7 @@ import {
   findTenantByEmailDomain,
   createJoinRequest,
 } from '../services/onboarding.service.js';
+import { ActivationService } from '../services/activation.service.js';
 
 const joinRequestSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -61,6 +62,7 @@ const onboardingCompleteSchema = z.object({
     locale: z.string().min(2).max(20).default('en'),
   }),
   referral_code: z.string().trim().max(63).optional(),
+  onboarding_journey: z.string().max(60).optional(),
 });
 
 export async function onboardingRoutes(fastify: FastifyInstance) {
@@ -126,8 +128,6 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
    * payment + settings atomically, and returns a login-compatible session.
    */
   fastify.post('/complete', async (request, reply) => {
-    // Throws ZodError on a bad shape — caught by the global error handler
-    // (index.ts) and turned into a clean 400 with per-field messages.
     const input = onboardingCompleteSchema.parse(request.body);
 
     try {
@@ -140,5 +140,11 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
       fastify.log.error(err);
       return reply.status(500).send({ error: 'Failed to complete onboarding' });
     }
+  });
+
+  /** GET /v1/onboarding/journeys — public, pre-auth listing of available
+   *  industry entry journeys for the onboarding wizard's journey picker. */
+  fastify.get('/journeys', async () => {
+    return ActivationService.listJourneys();
   });
 }

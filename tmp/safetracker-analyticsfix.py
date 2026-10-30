@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('apps/api/src/services/cargoAnalytics.service.ts');s=p.read_text(encoding='utf-8');a=s.index('  async getDemurrageTrend');s=s[:a]+s[a:].replace("selectFrom('tracked_containers')", "selectFrom('container_tracking')").replace("'demurrage_days']", "'demurrage_days','demurrage_currency']").replace("const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`", "const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')} ${c.demurrage_currency}`");p.write_text(s,encoding='utf-8')

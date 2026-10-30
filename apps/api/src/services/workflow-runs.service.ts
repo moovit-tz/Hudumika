@@ -25,7 +25,7 @@ export interface CommOutcome {
    * CANCELLED the shipment left the step before the delay elapsed, so it was
    *           deliberately never sent — not a failure, and not a success.
    */
-  status: 'SENT' | 'FAILED' | 'QUEUED' | 'CANCELLED';
+  status: 'SENT' | 'FAILED' | 'QUEUED' | 'CANCELLED' | 'SIMULATED';
   error?: string;
   delayMinutes?: number;
 }
@@ -93,7 +93,7 @@ export async function settleQueuedComm(
   tenantId: string,
   runId: string,
   commId: string,
-  outcome: { status: 'SENT' | 'FAILED' | 'CANCELLED'; error?: string },
+  outcome: { status: 'SENT' | 'FAILED' | 'CANCELLED' | 'SIMULATED'; error?: string },
 ): Promise<void> {
   try {
     await withTenant(tenantId, async (trx) => {
@@ -111,9 +111,13 @@ export async function settleQueuedComm(
         ...(outcome.status === 'FAILED' ? { error: outcome.error ?? 'Unknown error' } : { error: undefined }),
       };
 
-      // A delayed message that failed downgrades the run exactly like an
-      // immediate one does. Anything already worse than SUCCESS stays as it is.
-      const status = row.status === 'SUCCESS' && comms.some((x) => x.status === 'FAILED') ? 'PARTIAL' : row.status;
+      // A delayed message that failed or was simulated downgrades the run.
+      // Anything already worse than SUCCESS stays as it is.
+      let status: RunStatus = row.status as RunStatus;
+      if (status === 'SUCCESS') {
+        if (comms.some((x) => x.status === 'FAILED')) status = 'PARTIAL';
+        else if (comms.length > 0 && comms.every((x) => x.status === 'SIMULATED')) status = 'SIMULATED';
+      }
 
       await trx.updateTable('workflow_step_runs')
         .set({ comms: JSON.stringify(comms), status })
@@ -139,8 +143,11 @@ export async function attachCommOutcomes(tenantId: string, runId: string, comms:
         .where('id', '=', runId).where('tenant_id', '=', tenantId).executeTakeFirst();
       if (!existing) return;
 
-      const anyFailed = comms.some((c) => c.status === 'FAILED');
-      const status = existing.status === 'SUCCESS' && anyFailed ? 'PARTIAL' : existing.status;
+      let status: RunStatus = existing.status as RunStatus;
+      if (status === 'SUCCESS') {
+        if (comms.some((c) => c.status === 'FAILED')) status = 'PARTIAL';
+        else if (comms.length > 0 && comms.every((c) => c.status === 'SIMULATED')) status = 'SIMULATED';
+      }
 
       await trx.updateTable('workflow_step_runs')
         .set({ comms: JSON.stringify(comms), status })

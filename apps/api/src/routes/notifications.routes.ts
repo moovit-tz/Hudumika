@@ -199,7 +199,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       title: z.string().trim().min(1).max(300),
       message: z.string().max(2000).optional(),
       link: z.string().max(500).optional(),
-      metadata: z.record(z.any()).optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
       entity_type: z.string().max(50).optional(),
       entity_id: z.string().max(100).optional(),
       entity_label: z.string().max(200).optional(),

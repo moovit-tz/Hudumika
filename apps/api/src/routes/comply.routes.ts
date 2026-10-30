@@ -52,8 +52,19 @@ const traExtractSchema = z.object({
   media_type: z.string().max(100).optional(),
 });
 const tausiImportSchema = z.object({
-  image_base64: z.string().optional(),
-  media_type: z.string().max(100).optional(),
+  image_base64: z.string().min(4).max(12*1024*1024).regex(/^[A-Za-z0-9+/]+={0,2}$/),
+  media_type: z.enum(['image/png','image/jpeg','image/webp','application/pdf']).default('image/jpeg'),
+});
+const portalDate=z.preprocess(v=>v===''||v===undefined?null:v,z.string().date().nullable());
+const tausiLicenseSchema=z.object({
+  name:z.string().trim().min(1).max(500),license_number:z.string().trim().min(1).max(200),
+  lga:z.string().trim().max(500).default(''),issued_date:portalDate,expiry_date:portalDate,
+  status:z.string().max(100).default(''),cost:z.number().finite().nonnegative().nullable().default(null),
+}).refine(v=>!v.issued_date||!v.expiry_date||v.expiry_date>=v.issued_date,{message:'Expiry date cannot precede issue date'});
+const saveTausiSchema=z.object({
+  licenses:z.array(tausiLicenseSchema).min(1).max(100),source:z.enum(['tab_capture','document_upload']),
+  taxpayer:z.object({name:z.string().max(500).optional(),tin:z.string().max(100).optional()}).optional(),
+  customer_id:z.string().uuid().nullable().optional(),
 });
 
 // Same superadmin-configurable key lookup as ocr.routes.ts / comply-ocr.routes.ts
@@ -73,14 +84,14 @@ Return ONLY valid JSON matching this exact schema — no markdown, no explanatio
 {
   "confidence": 0.0-1.0,
   "taxpayer": { "name": "", "tin": "", "nin": "", "registered_council": "", "region": "" },
-  "licenses": [ { "name": "", "license_number": "", "lga": "", "issued_date": "YYYY-MM-DD or ''", "expiry_date": "YYYY-MM-DD or ''", "status": "Active | Lapsed | Pending | ''", "cost": 0 } ],
+  "licenses": [ { "name": "", "license_number": "", "lga": "", "issued_date": "YYYY-MM-DD or ''", "expiry_date": "YYYY-MM-DD or ''", "status": "Active | Lapsed | Pending | ''", "cost": null } ],
   "levies": [ { "name": "", "control_number": "", "amount": 0, "status": "Paid | Unpaid | ''", "due_date": "YYYY-MM-DD or ''" } ],
   "flags": []
 }
 
 Rules:
 - Only extract data that is actually visible in the uploaded document — never invent license numbers, control numbers, taxpayer names, or amounts.
-- Use empty string / 0 / empty array for anything not visible or not legible.
+- Use empty strings or empty arrays for text not visible. Use null for unknown cost or amount; never infer a fee.
 - "flags" is an array of short strings for anything unusual (e.g. "ILLEGIBLE", "PARTIAL_DOCUMENT", "NOT_A_TAUSI_DOCUMENT").
 - Monetary values (cost, amount) must be plain numbers without currency symbols or commas.
 `;
@@ -199,7 +210,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
       await ComplyService.updateCertificate(request.user.tenant_id, id, request.body);
       return { ok: true };
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      return reply.status(err.statusCode === 404 ? 404 : 400).send({ error: err.message });
     }
   });
 
@@ -210,7 +221,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
       await ComplyService.revokeCertificate(request.user.tenant_id, id);
       return { ok: true };
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      return reply.status(err.statusCode === 404 ? 404 : 400).send({ error: err.message });
     }
   });
 
@@ -393,7 +404,8 @@ export async function complyRoutes(fastify: FastifyInstance) {
       await ComplyService.approveRenewal(request.user.tenant_id, id, request.user.sub);
       return { ok: true };
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+      const status = err.message?.includes('not found') ? 404 : 400;
+      return reply.status(status).send({ error: err.message });
     }
   });
 
@@ -622,7 +634,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
           },
         });
         const raw = (response.text ?? '{}').trim();
-        extracted = JSON.parse(raw);
+        extracted=JSON.parse(raw);
         simulated = false;
       } catch (err: any) {
         fastify.log.error(err, 'TRA document extraction failed');
@@ -647,19 +659,24 @@ export async function complyRoutes(fastify: FastifyInstance) {
   // screenshots their license/levy statement, and uploads it here. This
   // extracts the real data from that upload — it does not log into or scrape
   // the portal itself.
+  fastify.post('/tausi-import/save',async(request:any,reply)=>{
+    const parsed=saveTausiSchema.safeParse(request.body);
+    if(!parsed.success)return reply.status(400).send({error:'INVALID_LICENSES',message:parsed.error.issues.map(i=>i.message).join('; ')});
+    try{return await ComplyService.saveTausiLicenses(request.user.tenant_id,request.user.sub,parsed.data);}
+    catch{return reply.status(400).send({error:'IMPORT_FAILED',message:'Could not save the reviewed licences. Check the customer link and licence fields.'});}
+  });
+
   fastify.post('/tausi-import', async (request: any, reply) => {
-    const { image_base64, media_type = 'image/jpeg' } = tausiImportSchema.parse(request.body);
+    const payload=tausiImportSchema.safeParse(request.body);
+    if(!payload.success)return reply.status(400).send({error:'INVALID_DOCUMENT',message:'Provide a PNG, JPEG, WebP or PDF as non-empty base64 (maximum 8 MB upload).'});
+    const {image_base64,media_type}=payload.data;
 
     const apiKey = await getGeminiApiKey();
     let extracted: any;
     let simulated: boolean;
 
-    if (!apiKey || !image_base64) {
-      // Simulated result for demo/dev environments without a key or when capturing directly —
-      // a superadmin can set a real key under Platform Settings → OCR.
-      simulated = true;
-      extracted = buildSimulatedTausiResult();
-    } else {
+    if(!apiKey)return reply.status(503).send({error:'OCR_NOT_CONFIGURED',message:'Configure the OCR provider in Platform Settings before extracting Tausi records.'});
+    {
       try {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
@@ -679,11 +696,17 @@ export async function complyRoutes(fastify: FastifyInstance) {
           },
         });
         const raw = (response.text ?? '{}').trim();
-        extracted = JSON.parse(raw);
+        const parsed=JSON.parse(raw);
+        extracted=z.object({
+          taxpayer:z.object({name:z.string().max(500).default(''),tin:z.string().max(100).default(''),nin:z.string().max(100).default(''),registered_council:z.string().max(500).default(''),region:z.string().max(500).default('')}).default({name:'',tin:'',nin:'',registered_council:'',region:''}),
+          licenses:z.array(tausiLicenseSchema).max(100).default([]),
+          levies:z.array(z.object({name:z.string().max(500),control_number:z.string().max(200).default(''),due_date:portalDate,amount:z.number().finite().nonnegative().nullable().default(null),status:z.string().max(100).default('')})).max(100).default([]),
+          flags:z.array(z.string().max(500)).max(50).default([]),
+        }).parse(parsed);
         simulated = false;
       } catch (err: any) {
         fastify.log.error(err, 'Tausi document extraction failed');
-        return reply.status(500).send({ error: err.message || 'Document extraction failed' });
+        return reply.status(502).send({error:'EXTRACTION_FAILED',message:'The OCR provider could not extract valid licence records. Try a clearer licence page or upload its PDF.'});
       }
     }
 
@@ -733,56 +756,6 @@ function buildSimulatedTraResult(tin: string) {
       { year: 2025, return_type: 'Income Tax (Corporation)', filed_date: '2026-06-15', status: 'Assessed', tax_due: 4200000, tax_paid: 4200000 },
       { year: 2024, return_type: 'Income Tax (Corporation)', filed_date: '2025-06-20', status: 'Assessed', tax_due: 3800000, tax_paid: 3800000 },
       { year: 2026, return_type: 'VAT - June', filed_date: '2026-07-18', status: 'Pending', tax_due: 1250000, tax_paid: 1250000 },
-    ],
-    flags: [],
-  };
-}
-
-function buildSimulatedTausiResult() {
-  return {
-    confidence: 0.9,
-    taxpayer: {
-      name: 'KILIMANJARO LOGISTICS & FREIGHT LTD',
-      tin: '108-449-012',
-      nin: '19900315-11102-00001-22',
-      registered_council: 'Ilala Municipal Council',
-      region: 'Dar es Salaam',
-    },
-    licenses: [
-      {
-        name: 'Business License (Retail Trade of Goods)',
-        license_number: 'BL-2025-90182',
-        lga: 'Ilala Municipal Council',
-        issued_date: '2025-07-01',
-        expiry_date: '2026-06-30',
-        status: 'Lapsed',
-        cost: 150000,
-      },
-      {
-        name: 'Liquor License (Ordinary Retail)',
-        license_number: 'LL-2025-10293',
-        lga: 'Temeke Municipal Council',
-        issued_date: '2025-10-16',
-        expiry_date: '2026-10-15',
-        status: 'Active',
-        cost: 250000,
-      },
-    ],
-    levies: [
-      {
-        name: 'Service Levy (Q2 2026)',
-        control_number: '990220319203',
-        amount: 850000,
-        status: 'Unpaid',
-        due_date: '2026-07-31',
-      },
-      {
-        name: 'Billboard Advertising Fee (Annual)',
-        control_number: '990220319882',
-        amount: 450000,
-        status: 'Unpaid',
-        due_date: '2026-08-15',
-      },
     ],
     flags: [],
   };

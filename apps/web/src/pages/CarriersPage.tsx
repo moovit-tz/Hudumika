@@ -1,3 +1,6 @@
+import { CarrierLogo } from '../components/container/CarrierLogo.js';
+import { SHIPPING_LINES } from '../components/container/shippingLines.js';
+import { CARRIER_ASSETS } from '../components/container/carrierAssets.js';
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
@@ -8,7 +11,6 @@ import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { showAlert } from '../lib/alert.js';
-import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -49,6 +51,8 @@ const fieldLabel: React.CSSProperties = { display: 'block', fontSize: 12, fontWe
 export function CarriersPage() {
   const isMobile = useIsMobile();
   const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [nextCursor,setNextCursor] = useState<string>();
+  const [hasMore,setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,10 +70,10 @@ export function CarriersPage() {
   const [addingId, setAddingId] = useState<string | null>(null);
   const dirTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function load() {
+  function load(cursor?: string) {
     setLoading(true);
     setLoadError(null);
-    apiFetch('/v1/freight-booking/carriers').then(setCarriers).catch(() => {
+    apiFetch(`/v1/freight-booking/carriers?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`).then(page=>{setCarriers(prev=>cursor?[...prev,...page.data]:page.data);setNextCursor(page.cursor);setHasMore(page.has_more);}).catch(() => {
       setCarriers([]);
       setLoadError('Could not load carriers.');
     }).finally(() => setLoading(false));
@@ -141,7 +145,7 @@ export function CarriersPage() {
   const carrierColumns: TableColumn<Carrier>[] = [
     {
       key: 'name', header: 'Name', sortable: true,
-      render: carrier => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><CompanyAvatar name={carrier.name} size={26} shape="square" />{carrier.name}</span>,
+      render: carrier => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}><CarrierLogo carrier={carrier.name} size={32} />{carrier.name}</span>,
     },
     { key: 'mode', header: 'Mode', render: carrier => MODES.find(mode => mode.value === carrier.mode)?.label || carrier.mode, sortable: true },
     { key: 'code', header: 'Code', render: carrier => carrier.scac_or_iata || '—' },
@@ -174,6 +178,18 @@ export function CarriersPage() {
           </div>
         }
       />
+
+      <div className="mb-5">
+        <SectionCard title="Shipping line and container owner logos" defaultOpen={false}>
+          <p className="mb-4 text-xs text-(--ink3)">Local identification artwork. Container prefixes indicate equipment ownership; the operating carrier must be confirmed separately. Legacy brands remain identifiable.</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {SHIPPING_LINES.filter(line => CARRIER_ASSETS[line.id]).map(line => <div key={line.id} className="rounded-lg border border-(--border) bg-(--white) p-3">
+              <CarrierLogo carrier={line} size={64} variant="horizontal" />
+              <p className="mt-2 break-words font-mono text-[10px] text-(--ink3)">{line.bicPrefixes.join(' · ') || 'Name lookup only'}</p>
+            </div>)}
+          </div>
+        </SectionCard>
+      </div>
 
       {/* ── Browse the global carrier directory ── */}
       {showDirectory && (
@@ -288,6 +304,7 @@ export function CarriersPage() {
         emptyMessage="Add one manually or browse the global directory above."
         defaultSortKey="name"
       />
+      {hasMore&&<Button type="button" variant="outline" disabled={loading} onClick={()=>load(nextCursor)}>Load more carriers</Button>}
     </div>
   );
 }

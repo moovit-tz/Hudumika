@@ -1,3 +1,12 @@
+import {SearchToolbar} from '../components/ui/filter-dropdown.js';
+import {Banner} from '../components/ui/alert.js';
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from '../components/ui/table.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Card } from '../components/ui/card.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Input } from '../components/ui/input.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -34,7 +43,7 @@ function stepIndex(status: string): number {
 }
 
 function EngagementStepper({ status }: { status: string }) {
-  if (status === 'cancelled') return <span className="comply-badge comply-badge--draft">Cancelled</span>;
+  if (status === 'cancelled') return <Badge variant={complyBadgeVariant("comply-badge comply-badge--draft")}>Cancelled</Badge>;
   const current = stepIndex(status);
   return (
     <div className="wf-stepper">
@@ -95,16 +104,14 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
   }
 
   return (
-    <div className="comply-overlay comply-overlay--end" onClick={onClose}>
-      <div className="comply-drawer" onClick={e => e.stopPropagation()}>
+    <Sheet open={true} onOpenChange={open => { if (!open) (onClose)(); }}>
+      <SheetContent aria-describedby={undefined} className="comply-detail-sheet w-full sm:max-w-xl flex flex-col p-0 gap-0">
         <div className="comply-panel-hdr">
           <div>
-            <div className="comply-panel-hdr-title">{engagement.firm_name}</div>
+            <SheetTitle className="comply-panel-hdr-title">{engagement.firm_name}</SheetTitle>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{engagement.engagement_type}{engagement.agency_code ? ` · ${engagement.agency_code}` : ''}{engagement.customer_name ? ` · ${engagement.customer_name}` : ''}</div>
           </div>
-          <Tip label="Close">
-            <button type="button" aria-label="Close" className="comply-close-btn" onClick={onClose} data-ui-native-button=""><Icon name="x" size={18} /></button>
-          </Tip>
+
         </div>
         <div className="comply-panel-body">
           <EngagementStepper status={engagement.status} />
@@ -149,7 +156,7 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input className="input-field" style={{ flex: 1 }} value={message} onChange={e => setMessage(e.target.value)} placeholder="Send a message to the firm…" onKeyDown={e => { if (e.key === 'Enter') handleSend(); }} />
+              <Input className="input-field" style={{ flex: 1 }} value={message} onChange={e => setMessage(e.target.value)} placeholder="Send a message to the firm…" onKeyDown={e => { if (e.key === 'Enter') handleSend(); }} />
               <Tip label="Send message">
                 <span>
                   <Button type="button" size="icon" disabled={sending} onClick={handleSend} aria-label="Send message">
@@ -161,13 +168,13 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
           </div>
 
           {engagement.status !== 'completed' && engagement.status !== 'cancelled' && (
-            <Button type="button" variant="outline" size="sm" style={{ alignSelf: 'flex-start', color: 'var(--red)', borderColor: 'var(--red)' }} disabled={cancelling} onClick={handleCancel}>
+            <Button type="button" variant="outline" size="sm" style={{alignSelf: 'flex-start', color: 'var(--red)', borderColor: 'var(--red)'}} disabled={cancelling} onClick={handleCancel}>
               <Icon name="x" size={13} color="var(--red)" /> {cancelling ? 'Cancelling…' : 'Cancel Engagement'}
             </Button>
           )}
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -211,7 +218,7 @@ export function ComplyLegal() {
         subtitle="Engage vetted legal firms to handle your compliance applications"
       />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} variant="boxed">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} >
       <TabsList style={{ marginBottom: 18 }}>
         <TabsTrigger value="firms">Browse Firms</TabsTrigger>
         <TabsTrigger value="engagements">
@@ -228,40 +235,28 @@ export function ComplyLegal() {
       {tab === 'firms' && (
         <>
           {prefillAgency && (
-            <div className="comply-note" style={{ marginBottom: 16 }}>
+            <Banner variant="info" icon={false} className="" style={{ marginBottom: 16 }}>
               <Icon name="briefcase" size={16} />
               <span>Showing firms that can help with {prefillAgency}
                 {prefillApplication ? ' for your application' : ''} — pick a firm below and click Engage.</span>
-            </div>
+            </Banner>
           )}
 
-          <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }}>
-                <Icon name="search" size={14} />
-              </span>
-              <input
-                type="search"
-                placeholder="Search firms or location…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', paddingLeft: 34, paddingRight: 12, paddingTop: 9, paddingBottom: 9, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', boxSizing: 'border-box' }}
-              />
-            </div>
-          </div>
-
+          <div className="comply-list-toolbar">
           <Tabs value={specialty} onValueChange={setSpecialty}>
-          <TabsList style={{ marginBottom: 18 }}>
+          <TabsList >
             {SPECIALTIES_FILTER.map(s => (
               <TabsTrigger key={s} value={s}>{s}</TabsTrigger>
             ))}
           </TabsList>
           </Tabs>
+            <div className="comply-list-search"><SearchToolbar search={search} onSearch={setSearch} placeholder="Search firms or location…" activeFilterCount={0} /></div>
+          </div>
 
           <div className="comply-firm-grid">
-            {firmsLoading && <div className="comply-empty">Loading firms…</div>}
+            {firmsLoading && <div className="comply-empty"><SectionLoading label="Loading firms…" /></div>}
             {!firmsLoading && visible.map(firm => (
-              <div key={firm.id} className="comply-firm-card">
+              <Card key={firm.id} className="comply-firm-card">
                 <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                   <CompanyAvatar name={firm.name} size={44} shape="square" />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -278,13 +273,13 @@ export function ComplyLegal() {
                 <div>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Specialties</div>
                   <div className="comply-firm-tags">
-                    {firm.specialties.map(s => <span key={s} className="comply-firm-tag">{s}</span>)}
+                    {firm.specialties.map(s => <Badge key={s} variant={complyBadgeVariant("comply-firm-tag")}>{s}</Badge>)}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Handles</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                    {firm.agencies_handled.map(a => <span key={a} className="comply-badge comply-badge--review">{a}</span>)}
+                    {firm.agencies_handled.map(a => <Badge key={a} variant={complyBadgeVariant("comply-badge comply-badge--review")}>{a}</Badge>)}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)', marginTop: 4 }}>
@@ -294,7 +289,7 @@ export function ComplyLegal() {
                     <Button type="button" size="xs" onClick={() => navigate(engageUrl(firm.id))}>Engage</Button>
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
             {!firmsLoading && visible.length === 0 && (
               <div className="comply-empty" style={{ gridColumn: '1/-1' }}>No firms match your filters.</div>
@@ -304,52 +299,52 @@ export function ComplyLegal() {
       )}
 
       {tab === 'engagements' && (
-        <div className="comply-card">
+        <Card className="comply-card">
           <div className="comply-card-body">
             {engagements.length === 0 ? (
               <div className="comply-empty">No engagements yet — browse firms and click Engage to get started.</div>
             ) : (
-              <table className="comply-table">
-                <thead>
-                  <tr>
-                    <th>Firm</th><th>Type</th><th>Agency</th><th>Client</th><th>Progress</th><th>Created</th><th></th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="comply-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Firm</TableHead><TableHead>Type</TableHead><TableHead>Agency</TableHead><TableHead>Client</TableHead><TableHead>Progress</TableHead><TableHead>Created</TableHead><TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {engagements.map(e => (
-                    <tr key={e.id} className="comply-tr-click" onClick={() => setOpenEngagement(e)}>
-                      <td className="comply-table-name">{e.firm_name}</td>
-                      <td>{e.engagement_type}</td>
-                      <td>{e.agency_code ?? '—'}</td>
-                      <td className="comply-td-muted">
+                    <TableRow tabIndex={0} onKeyDown={event => {if(event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')){event.preventDefault();event.currentTarget.click();}}} key={e.id} className="comply-tr-click" onClick={() => setOpenEngagement(e)}>
+                      <TableCell data-label="Firm" className="comply-table-name">{e.firm_name}</TableCell>
+                      <TableCell data-label="Type">{e.engagement_type}</TableCell>
+                      <TableCell data-label="Agency">{e.agency_code ?? '—'}</TableCell>
+                      <TableCell data-label="Client" className="comply-td-muted">
                         {e.customer_name ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                             <PersonAvatar userId={e.customer_id ?? undefined} kind="customers" name={e.customer_name} size={20} />
                             {e.customer_name}
                           </span>
                         ) : 'This business'}
-                      </td>
-                      <td><EngagementStepper status={e.status} /></td>
-                      <td className="comply-td-muted">{new Date(e.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                      <td onClick={ev => ev.stopPropagation()}>
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => setOpenEngagement(e)} data-ui-native-button="">Open</button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell data-label="Progress"><EngagementStepper status={e.status} /></TableCell>
+                      <TableCell data-label="Created" className="comply-td-muted">{new Date(e.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell>
+                      <TableCell data-label="Actions" onClick={ev => ev.stopPropagation()}>
+                        <Button variant="outline" size="sm" type="button"  onClick={() => setOpenEngagement(e)} >Open</Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Profile overlay */}
       <Sheet open={!!selected} onOpenChange={o => { if (!o) setSelected(null); }}>
-        <SheetContent className="w-120 sm:max-w-120 flex flex-col p-0 gap-0">
+        <SheetContent aria-describedby={undefined} className="comply-detail-sheet w-full sm:max-w-xl flex flex-col p-0 gap-0">
           {selected && (
             <>
               <div style={{ height: 6, background: selected.color }} />
-              <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <SheetHeader className="comply-detail-header">
                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                   <CompanyAvatar name={selected.name} size={48} shape="square" />
                   <div>
@@ -363,13 +358,13 @@ export function ComplyLegal() {
                 <div>
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Specialties</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {selected.specialties.map(s => <span key={s} className="comply-firm-tag">{s}</span>)}
+                    {selected.specialties.map(s => <Badge key={s} variant={complyBadgeVariant("comply-firm-tag")}>{s}</Badge>)}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Agencies Handled</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {selected.agencies_handled.map(a => <span key={a} className="comply-badge comply-badge--review">{a}</span>)}
+                    {selected.agencies_handled.map(a => <Badge key={a} variant={complyBadgeVariant("comply-badge comply-badge--review")}>{a}</Badge>)}
                   </div>
                 </div>
                 <div className="comply-grid-2" style={{ gap: 14, marginBottom: 0 }}>
@@ -385,9 +380,9 @@ export function ComplyLegal() {
                     </div>
                   ))}
                 </div>
-                <button type="button" className="comply-btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => { const id = selected.id; setSelected(null); navigate(engageUrl(id)); }} data-ui-native-button="">
+                <Button variant="default" size="sm" type="button"  style={{alignSelf: 'flex-start'}} onClick={() => { const id = selected.id; setSelected(null); navigate(engageUrl(id)); }} >
                   <Icon name="briefcase" size={13} /> Engage this Firm
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -451,15 +446,16 @@ export function EngageFirmPage() {
   }
 
   if (firmsLoading) {
-    return <div className="comply-page"><div className="comply-empty-hint">Loading firm…</div></div>;
+    return <div className="comply-page"><PageHeader crumbs={['ComplyOS', 'Legal']} titlePlain="Legal" titleEm="engagement" /><SectionLoading label="Loading firm…" /></div>;
   }
   if (!firm) {
     return (
       <div className="comply-page">
-        <div className="comply-note comply-note--error">Firm not found.</div>
-        <button type="button" className="comply-btn-secondary" style={{ marginTop: 12 }} onClick={() => navigate('/complyos/legal')} data-ui-native-button="">
+        <PageHeader crumbs={['ComplyOS', 'Legal']} titlePlain="Legal" titleEm="engagement" subtitle="Select an available legal firm to start an engagement." />
+        <Banner variant="error" icon={false} className="">Firm not found.</Banner>
+        <Button variant="outline" size="sm" type="button"  style={{marginTop: 12}} onClick={() => navigate('/complyos/legal')} >
           <Icon name="chevronLeft" size={13} /> Back to Legal Marketplace
-        </button>
+        </Button>
       </div>
     );
   }
@@ -506,7 +502,7 @@ export function EngageFirmPage() {
         <>
           <ComplyCustomerPicker value={customerId} onChange={setCustomerId} />
           <WizardField label="Brief">
-            <textarea className="input-field" rows={3} placeholder="Describe what you need help with and any specific requirements…" value={brief} onChange={e => setBrief(e.target.value)} autoFocus />
+            <Textarea className="input-field" rows={3} placeholder="Describe what you need help with and any specific requirements…" value={brief} onChange={e => setBrief(e.target.value)} autoFocus />
           </WizardField>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </>
@@ -527,7 +523,7 @@ export function EngageFirmPage() {
               </div>
             ))}
           </div>
-          <div className="comply-note"><strong>Brief: </strong>{brief}</div>
+          <Banner variant="info" icon={false} className=""><strong>Brief: </strong>{brief}</Banner>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
           <div style={{ background: 'var(--comply-l)', border: '1px solid var(--comply-edge)', borderRadius: 'var(--r)', padding: '11px 14px', fontSize: 12.5, color: 'var(--ink2)' }}>
             <strong style={{ color: 'var(--comply)' }}>Milestone tracked</strong> — Payment milestones are tracked in-app as pending/paid/released; ComplyOS does not process payment directly.

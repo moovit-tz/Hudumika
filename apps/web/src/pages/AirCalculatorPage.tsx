@@ -11,8 +11,10 @@ import { HsCodeField } from '../components/HsCodeField.js';
 import { WizardShell, WizardStepCaption, WizardNavRow, Field } from '../components/CalcWizardShell.js';
 import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
+import { Switch } from '../components/ui/switch.js';
 import type { WizardStepItem } from '../components/CalcWizardShell.js';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import type { AdvancedCalcResult } from '../lib/advancedCalculators.js';
 
@@ -46,6 +48,8 @@ export const AirCalculatorPage: React.FC = () => {
   const [numAwbs, setNumAwbs] = useState('1');
   const [numUnits, setNumUnits] = useState('');
   const [transportationTzs, setTransportationTzs] = useState('');
+  const [storageApplicable, setStorageApplicable] = useState(false);
+  const [storageDays, setStorageDays] = useState('');
   const [customerLead, setCustomerLead] = useState<PickerItem | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -73,11 +77,15 @@ export const AirCalculatorPage: React.FC = () => {
           num_awbs: numAwbs ? parseInt(numAwbs) : undefined,
           num_units: numUnits ? parseFloat(numUnits) : undefined,
           transportation_tzs: transportationTzs ? parseFloat(transportationTzs) : undefined,
+          storage_applicable: storageApplicable || undefined,
+          storage_days: storageDays ? parseInt(storageDays) : undefined,
           customer_name: customerName.trim() || undefined,
           shipment_ref: shipmentRef.trim() || undefined,
         }),
       });
       setResult(r);
+      if (r.history_saved === true) showAlert('Estimate saved to history.', { variant: 'success' });
+      else if (r.history_saved === false) showAlert('Estimate calculated but could not be saved to history.', { variant: 'warning' });
       setLoading(false);
       return true;
     } catch (e: any) {
@@ -166,6 +174,11 @@ export const AirCalculatorPage: React.FC = () => {
                 </div>
                 <Field label="Total Units" hint="For per-unit cost"><Input type="number" value={numUnits} onChange={e => setNumUnits(e.target.value)} /></Field>
                 <Field label="Transportation (TZS)" hint="Airport → warehouse, default 0"><Input type="number" value={transportationTzs} onChange={e => setTransportationTzs(e.target.value)} /></Field>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                  <Switch checked={storageApplicable} onCheckedChange={v => setStorageApplicable(v === true)} />
+                  <span style={{ fontSize: 13 }}>Include cargo storage charges</span>
+                </div>
+                {storageApplicable && <Field label="Storage Days" hint="Days cargo held at airport"><Input type="number" min="0" value={storageDays} onChange={e => setStorageDays(e.target.value)} /></Field>}
               </div>
               <WizardNavRow step={step} totalSteps={STEPS.length} setStep={setStep} error={stepError} />
             </SectionCard>

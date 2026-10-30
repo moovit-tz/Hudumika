@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+.claude
+.codex
+.tmp
+.env*
+**/.env*
+**/uploads
+docs
+**/*.log
+**/coverage
+deploy/contabo/backups
+deploy/contabo/.state

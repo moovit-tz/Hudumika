@@ -61,6 +61,8 @@ async function mirrorExpenseAttachment(tenantId: string, expense: { id: string; 
 // PETTI_CATEGORIES).
 const EXPENSE_CATEGORIES = ['PORT_CHARGES', 'CUSTOMS_DUTY', 'FREIGHT', 'HANDLING', 'TRANSPORT', 'INSPECTION_FEE', 'AGENT_FEE', 'MISCELLANEOUS'] as const;
 const expenseCreateSchema = z.object({
+  industry_key: catalogIndustrySchema,
+  industry_work_id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(1).max(255),
   amount: z.number(),
   expense_date: z.string().optional(),
@@ -76,6 +78,8 @@ const expenseCreateSchema = z.object({
   attachment_data: z.string().nullable().optional(),
 });
 const expensePatchSchema = z.object({
+  industry_key: catalogIndustrySchema,
+  industry_work_id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(1).max(255).optional(),
   amount: z.number().optional(),
   expense_date: z.string().optional(),
@@ -129,7 +133,7 @@ export async function postExpenseToGl(tenantId: string, row: any, userId: string
   if (amount <= 0) return;
   const entryDate = row.expense_date ? new Date(row.expense_date).toISOString() : new Date().toISOString();
   const expenseAccount = (row.category && EXPENSE_ACCOUNT[row.category]) || '5900';
-  const dimensions = row.business_line_id ? { business_line_id: row.business_line_id } : undefined;
+  const dimensions = { ...(row.business_line_id ? { business_line_id: row.business_line_id } : {}), ...(row.industry_work_id ? {work_id:row.industry_work_id} : {}), ...(row.industry_key ? {industry:row.industry_key} : {}) };
   const lines = row.is_revenue
     ? [
         { accountCode: CASH_ACCOUNT, debit: amount, credit: 0, description: 'Cash received', dimensions },
@@ -151,6 +155,7 @@ export async function postExpenseToGl(tenantId: string, row: any, userId: string
 }
 
 interface FinanceExpenseListItem {
+  industry_key?: string | null; industry_work_id?: string | null;
   id: string;
   source: FinanceExpenseSource;
   name: string;
@@ -232,7 +237,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const [financeRows, vehicleExpenseRows, fuelRows, maintenanceRows] = await Promise.all([
         trx.selectFrom('finance_expenses')
-          .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id', 'business_line_id', 'retirement_status'])
+          .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id', 'business_line_id', 'retirement_status', 'industry_key', 'industry_work_id'])
           .where('tenant_id', '=', user.tenant_id)
           .orderBy('expense_date', 'desc')
           .execute(),
@@ -268,6 +273,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       const items: FinanceExpenseListItem[] = [
         ...financeRows.map((r): FinanceExpenseListItem => ({
           id: r.id, source: 'finance', name: r.name, amount: Number(r.amount),
+          industry_key:r.industry_key, industry_work_id:r.industry_work_id,
           date: new Date(r.expense_date).toISOString(), category: r.category, is_revenue: r.is_revenue,
           shipment_id: r.shipment_id, customer_id: r.customer_id, supplier_id: r.supplier_id, business_line_id: r.business_line_id,
           vehicle_id: null, vehicle_label: null, editable: true, retirement_status: r.retirement_status,
@@ -330,7 +336,16 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
 
     const row = await withTenant(user.tenant_id, async (trx) => {
       const requiresApproval = await expenseApprovalRequired(trx, user.tenant_id);
+      let industry = body.industry_key;
+      if (body.industry_work_id) {
+        const work = await trx.selectFrom('finance_industry_work').select(['id','industry']).where('tenant_id','=',user.tenant_id).where('id','=',body.industry_work_id).executeTakeFirst();
+        if (!work || (body.industry_key && work.industry !== body.industry_key)) throw Object.assign(new Error('Industry work does not belong to this workspace and industry.'), {statusCode:422});
+        industry = work.industry as typeof industry;
+      }
+      await validateCatalogIndustry(trx, user.tenant_id, industry);
       return trx.insertInto('finance_expenses').values({
+        industry_key: industry ?? null,
+        industry_work_id: body.industry_work_id ?? null,
         tenant_id: user.tenant_id,
         name: body.name,
         amount: Number(body.amount),
@@ -384,6 +399,8 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     }
 
     const patch: Record<string, any> = {};
+    if ('industry_key' in body) patch.industry_key = body.industry_key;
+    if ('industry_work_id' in body) patch.industry_work_id = body.industry_work_id;
     for (const key of ['name', 'category', 'payment_mode', 'reference', 'note', 'attachment_data', 'efd_verified', 'efd_error'] as const) {
       if (key in body) patch[key] = body[key];
     }
@@ -399,6 +416,17 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No fields to update' });
 
     const row = await withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('finance_expenses').select(['industry_key','industry_work_id']).where('tenant_id','=',user.tenant_id).where('id','=',id).executeTakeFirst();
+      if (!existing) return undefined;
+      let industry = body.industry_key === undefined ? existing.industry_key : body.industry_key;
+      await validateCatalogIndustry(trx, user.tenant_id, industry, undefined, existing.industry_key);
+      const workId = body.industry_work_id === undefined ? existing.industry_work_id : body.industry_work_id;
+      if (workId) {
+        const work = await trx.selectFrom('finance_industry_work').select(['id','industry']).where('tenant_id','=',user.tenant_id).where('id','=',workId).executeTakeFirst();
+        if (!work || (industry && work.industry !== industry)) throw Object.assign(new Error('Industry work does not belong to this workspace and industry.'), {statusCode:422});
+        if (!industry) { industry = work.industry as typeof industry; patch.industry_key = industry; }
+      }
+      await validateCatalogIndustry(trx, user.tenant_id, industry, undefined, existing.industry_key);
       // Scoped. Without the tenant filter this reached any expense in the
       // database given its id, and RLS does not stop it: the connection owns
       // the table, and Postgres lets an owner bypass row-level policies.
@@ -517,3 +545,4 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     return reply.status(204).send();
   });
 }
+import { catalogIndustrySchema, validateCatalogIndustry } from '../services/finance-catalog.service.js';

@@ -45,6 +45,7 @@ const workflowStepSchema = z.object({
   entryConditions: z.array(fieldConditionSchema),
   autoComms: z.array(autoCommSchema),
   slaHours: z.number().optional(),
+  stepType: z.string().nullable().optional(),
   color: z.string(),
 });
 const workflowTriggerSchema = z.object({
@@ -87,6 +88,7 @@ function toStep(row: any): WorkflowStep {
     entryConditions: parseJson(row.entry_conditions, []),
     autoComms: parseJson(row.auto_comms, []),
     slaHours: row.sla_hours ?? undefined,
+    stepType: row.step_type ?? null,
     color: row.color,
   };
 }
@@ -277,10 +279,11 @@ export async function workflowRoutes(fastify: FastifyInstance) {
           entry_conditions: JSON.stringify(step.entryConditions),
           auto_comms: JSON.stringify(step.autoComms),
           sla_hours: step.slaHours ?? null,
+          step_type: step.stepType ?? null,
           color: step.color || '#0d9488',
           created_at: now,
           updated_at: now,
-        }).execute();
+        } as any).execute();
       }
 
       const workflow = await loadWorkflowWithSteps(trx, user.tenant_id, wfRow.id);
@@ -418,16 +421,17 @@ export async function workflowRoutes(fastify: FastifyInstance) {
             entry_conditions: JSON.stringify(step.entryConditions),
             auto_comms: JSON.stringify(step.autoComms),
             sla_hours: step.slaHours ?? null,
+            step_type: step.stepType ?? null,
             color: step.color || '#0d9488',
             updated_at: now,
           };
 
           if (existingIds.has(stepId)) {
-            await trx.updateTable('workflow_steps').set(values)
+            await trx.updateTable('workflow_steps').set(values as any)
               .where('id', '=', stepId).where('tenant_id', '=', user.tenant_id).execute();
           } else {
             await trx.insertInto('workflow_steps')
-              .values({ id: stepId, tenant_id: user.tenant_id, workflow_id: id, created_at: now, ...values })
+              .values({ id: stepId, tenant_id: user.tenant_id, workflow_id: id, created_at: now, ...values } as any)
               .execute();
           }
         }
@@ -783,10 +787,11 @@ export async function workflowRoutes(fastify: FastifyInstance) {
           entry_conditions: JSON.stringify(s.entryConditions),
           auto_comms: JSON.stringify(s.autoComms),
           sla_hours: s.slaHours ?? null,
+          step_type: s.stepType ?? null,
           color: s.color,
           created_at: now,
           updated_at: now,
-        }).execute();
+        } as any).execute();
       }
 
       const workflow = await loadWorkflowWithSteps(trx, user.tenant_id, wfRow.id);

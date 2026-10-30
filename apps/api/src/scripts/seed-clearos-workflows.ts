@@ -189,9 +189,10 @@ async function upsertWorkflow(tenantId: string, staffUserId: string, def: Workfl
       entry_conditions: JSON.stringify(s.entryConditions),
       auto_comms: JSON.stringify(s.autoComms),
       sla_hours: s.slaHours,
+      step_type: (s as any).stepType ?? null,
       color: s.color,
       created_at: now, updated_at: now,
-    }).execute();
+    } as any).execute();
   }
 
   console.log(`  ✓ Created workflow "${def.name}" (${wf.id}) with ${def.steps.length} steps for tenant ${tenantId}.`);

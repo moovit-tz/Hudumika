@@ -1,3 +1,7 @@
+import { escapePrintData, safePrintImage } from '../lib/print-data.js';
+import { CarrierLogo } from '../components/container/CarrierLogo.js';
+import { detectShippingLine } from '../components/container/shippingLines.js';
+import { ContainerIdentity } from '../components/container/ContainerIdentity.js';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
@@ -72,11 +76,17 @@ interface TrackingResult {
   port_calls?: PortCall[];
   co2_emission?: number;
   transit_days?: number;
-  source: 'live' | 'mock';
+  source: 'live' | 'mock' | 'manual' | 'unknown';
+  proof?: string;
   provider?: 'ship24' | 'shipsgo';
 }
 
 interface TrackingSnapshot {
+  source: TrackingResult['source'];
+  provider?: string;
+  fetched_at?: string;
+  share_expires_at?: string;
+  share_revoked?: boolean;
   id: string;
   tracking_type: 'AWB' | 'BL';
   tracking_number: string;
@@ -132,7 +142,9 @@ const NAVY  = '#0e1f3d';
 const NAVY2 = '#1a3260';
 
 function generatePDF(result: TrackingResult) {
-  const co  = getCompany();
+  result = escapePrintData(result);
+  const company = getCompany();
+  const co = escapePrintData({ ...company, logoUrl: safePrintImage(company.logoUrl || '') });
   const st  = getStatus(result.status_code);
   const days = daysUntil(result.eta);
 
@@ -219,7 +231,7 @@ function generatePDF(result: TrackingResult) {
     </div>
     <div class="report-meta">
       Generated: ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}<br/>
-      ${new Date().toLocaleTimeString('en-GB')} · ${result.source === 'mock' ? 'Demo Data' : 'Live Data'}
+      ${new Date().toLocaleTimeString('en-GB')} · ${result.source === 'live' ? 'Provider data' : result.source === 'manual' ? 'Manually entered data' : 'Unverified data'}
     </div>
   </div>
 
@@ -270,7 +282,7 @@ function generatePDF(result: TrackingResult) {
   </table>
 
   <div class="footer">
-    <div class="footer-brand"><div class="footer-dot"></div><strong>${co.name}</strong> · ClearOS powered by Hudumika</div>
+    <div class="footer-brand"><div class="footer-dot"></div><strong>${co.name}</strong> · Safetracker powered by Hudumika</div>
     <div>Generated automatically · may contain estimated data &copy; ${new Date().getFullYear()}</div>
   </div>
 </div>
@@ -374,9 +386,9 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           <div style={{ width: 18, height: 18, borderRadius: 'var(--r-sm)', background: 'linear-gradient(135deg, var(--teal), hsl(var(--primary)))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="globe" size={9} color="#fff" />
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika ClearOS</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika Safetracker</span>
         </div>
-        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'mock' ? 'Demo' : 'Live'} · {fmtDate(new Date().toISOString())}</span>
+        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'live' ? 'Provider' : 'Unverified'} · {fmtDate(new Date().toISOString())}</span>
       </div>
     </div>
   );
@@ -457,12 +469,16 @@ export const Tracker: React.FC = () => {
   const [demurrageContainers, setDemurrageContainers] = useState<any[]>([]);
   const [carrierReliability, setCarrierReliability] = useState<any | null>(null);
   const [fleetContainers, setFleetContainers] = useState<any[]>([]);
+  const [fleetCursor,setFleetCursor] = useState<string>();
+  const [snapshotCursor,setSnapshotCursor] = useState<string>();
+  const [hasMoreFleet,setHasMoreFleet] = useState(false);
+  const [hasMoreSnapshots,setHasMoreSnapshots] = useState(false);
   const [loadingFleet, setLoadingFleet] = useState(true);
 
-  const loadFleet = useCallback(async () => {
+  const loadFleet = useCallback(async (cursor?: string) => {
     setLoadingFleet(true);
-    try { setFleetContainers(await apiFetch('/v1/tracker/containers') ?? []); }
-    catch { setFleetContainers([]); }
+    try { const rows = await apiFetch(`/v1/tracker/containers?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`) ?? []; setFleetContainers(prev=>cursor?[...prev,...rows.data]:rows.data); setHasMoreFleet(rows.has_more); setFleetCursor(rows.cursor); }
+    catch (error: any) { showAlert(error.message || 'Could not load containers'); }
     finally { setLoadingFleet(false); }
   }, []);
 
@@ -472,10 +488,10 @@ export const Tracker: React.FC = () => {
     apiFetch('/v1/shipments').then((d: any) => setShipments(d?.data ?? d ?? [])).catch(() => {});
   }, []);
 
-  const loadSnapshots = useCallback(async () => {
+  const loadSnapshots = useCallback(async (cursor?: string) => {
     setLoadingSnaps(true);
-    try { setSnapshots(await apiFetch('/v1/tracker/snapshots') ?? []); }
-    catch { setSnapshots([]); }
+    try { const rows = await apiFetch(`/v1/tracker/snapshots?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`) ?? []; setSnapshots(prev=>cursor?[...prev,...rows.data]:rows.data); setHasMoreSnapshots(rows.has_more); setSnapshotCursor(rows.cursor); }
+    catch (error: any) { showAlert(error.message || 'Could not load saved tracking'); }
     finally { setLoadingSnaps(false); }
   }, []);
 
@@ -492,20 +508,11 @@ export const Tracker: React.FC = () => {
     const num = targetNum.replace(/\s/g, '').toUpperCase();
     if (!num) return;
 
-    // A container has one canonical intelligence surface. Sending direct
-    // container searches there keeps search results, fleet shortcuts, and
-    // copied URLs consistent while BL/AWB searches retain their journey view.
-    if (targetType === 'CONTAINER') {
-      setShowSugg(false);
-      navigate(`/cargotracker/containers/${encodeURIComponent(num)}`);
-      return;
-    }
-
     const requestId = ++containerRequest.current;
     setLoading(true); setError(null); setSavedId(null); setContainerModel(null); setActiveContainerNum(''); setResult(null);
     setDemurrageContainers([]); setCarrierReliability(null);
     try {
-      const r: TrackingResult = await apiFetch('/v1/tracker/track', { method: 'POST', body: JSON.stringify({ number: num, type: targetType }) });
+      const r: TrackingResult = await apiFetch('/v1/tracker/track', { method: 'POST', body: JSON.stringify({ number: num, type: targetType === 'CONTAINER' ? 'BL' : targetType }) });
       if (requestId !== containerRequest.current) return;
       setResult(r);
 
@@ -520,19 +527,14 @@ export const Tracker: React.FC = () => {
             pol_country: r.origin_code || '',
             pod_city: r.dest_name || 'Destination Port',
             pod_country: r.dest_code || '',
-            voyage_no: r.voyage_number || 'VOY-2026/09',
-            vessel_name: r.vessel_name || `${r.carrier?.split(' ')[0] || 'Vessel'} INTEGRITY`,
-            etd: r.eta ? new Date(Date.now() - 12 * 86_400_000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+            voyage_no: r.voyage_number || '',
+            vessel_name: r.vessel_name || '',
+            etd: '',
             eta: r.eta ? new Date(r.eta).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
             current_location: r.current_location || 'Transit Corridor',
             delay_status: (r.status_code === 'DELAYED' ? 'DELAYED' : r.status_code === 'ON_HOLD' ? 'SLIGHTLY_DELAYED' : 'ON_TIME') as DelayStatus,
           },
-          current_depot: {
-            name: `${r.current_location || r.dest_name || 'Container Depot'} Yard`,
-            code: `PORT-${r.dest_code || 'DEM'}-01`,
-            date: r.eta ? new Date(r.eta).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '',
-            state: 'Laden' as 'Laden' | 'Empty',
-          },
+
         };
         // Try the real container intelligence API first.
         // Always use getContainerDetails as base so required fields (status, condition,
@@ -591,9 +593,18 @@ export const Tracker: React.FC = () => {
     finally { setSavingSnap(false); }
   };
 
-  const copyLink = (token: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/track/shared/${token}`)
-      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  const copyLink = async (token: string) => {
+    const snap = snapshots.find(s => s.share_token === token);
+    if (!snap) return;
+    try {
+      const share = await apiFetch(`/v1/tracker/snapshots/${snap.id}/share`, { method: 'POST', body: JSON.stringify({ revoke: false }) });
+      await navigator.clipboard.writeText(`${window.location.origin}/track/shared/${share.share_token}`);
+      setCopied(true); setTimeout(() => setCopied(false), 2000); await loadSnapshots();
+    } catch (error: any) { showAlert(error.message || 'Could not create share'); }
+  };
+  const revokeShare = async (id: string) => {
+    try { await apiFetch(`/v1/tracker/snapshots/${id}/share`, { method: 'POST', body: JSON.stringify({ revoke: true }) }); await loadSnapshots(); showAlert('Share revoked'); }
+    catch (error: any) { showAlert(error.message || 'Could not revoke share'); }
   };
 
   const linkSnap = async (snapId: string, shipId: string) => {
@@ -702,7 +713,7 @@ export const Tracker: React.FC = () => {
       const r = await apiFetch('/v1/tracker/track', { method: 'POST', body: JSON.stringify({ number: snap.tracking_number, type: snap.tracking_type }) });
       await apiFetch(`/v1/tracker/snapshots/${snap.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: r.status, current_location: r.current_location, eta: r.eta, progress_pct: r.progress_pct }),
+        body: JSON.stringify(r),
       });
       await loadSnapshots();
     } catch (e: any) { showAlert(e.message ?? 'Refresh failed'); }
@@ -721,8 +732,8 @@ export const Tracker: React.FC = () => {
         pol_country: result?.origin_code || '',
         pod_city: result?.dest_name || 'Destination Port',
         pod_country: result?.dest_code || '',
-        voyage_no: result?.voyage_number || 'VOY-2026/09',
-        vessel_name: result?.vessel_name || `${result?.carrier?.split(' ')[0] || 'Vessel'} INTEGRITY`,
+        voyage_no: result?.voyage_number || '',
+        vessel_name: result?.vessel_name || '',
         etd: '',
         eta: result?.eta ? new Date(result.eta).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
         current_location: result?.current_location || 'Transit Corridor',
@@ -870,6 +881,8 @@ export const Tracker: React.FC = () => {
             </Button>
           </div>
 
+          {trackType === 'CONTAINER' && <ContainerIdentity number={inputNumber} />}
+
           {/* Fleet quick-access chips — from real DB */}
           {fleetContainers.length > 0 && (
             <div className="flex items-center flex-wrap gap-2 mt-3 pt-2">
@@ -936,7 +949,7 @@ export const Tracker: React.FC = () => {
             title="Tracked Fleet"
             action={
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={loadFleet} disabled={loadingFleet}>
+                <Button variant="outline" size="sm" onClick={()=>loadFleet()} disabled={loadingFleet}>
                   <Icon name="refresh" size={13} color="var(--ink3)" />Refresh
                 </Button>
                 <Button size="sm" onClick={() => navigate('/cargotracker/containers/new')}>
@@ -1064,7 +1077,7 @@ export const Tracker: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 'var(--r-lg)', background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color="var(--teal)" />
+                  {detectShippingLine(result.carrier) ? <CarrierLogo carrier={result.carrier} size={44} /> : <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color="var(--teal)" />}
                 </div>
                 <div>
                   <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` · ${result.service_name}` : ''}</div>
@@ -1415,7 +1428,7 @@ export const Tracker: React.FC = () => {
       <SectionCard
         title="Saved Snapshots"
         action={
-          <Button variant="outline" size="sm" onClick={loadSnapshots}>
+          <Button variant="outline" size="sm" onClick={()=>loadSnapshots()}>
             <Icon name="refresh" size={13} />Refresh
           </Button>
         }
@@ -1446,6 +1459,10 @@ export const Tracker: React.FC = () => {
                     <Icon name="x" size={12} color="rgba(255,255,255,.55)" />
                   </button>
 
+                  <div style={{fontSize:11,color:'rgba(255,255,255,.75)',marginBottom:10,paddingRight:24}}>
+                    {snap.source === 'live' ? `Provider: ${snap.provider || 'tracking provider'}` : snap.source === 'manual' ? 'Manually entered — not provider verified' : 'Unverified legacy snapshot — refresh from provider before relying on it'}
+                    {snap.fetched_at && ` · Fetched ${fmtDate(snap.fetched_at)}`}
+                  </div>
                   {editingId === snap.id ? (
                     <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <input value={editNumber} onChange={e => setEditNumber(e.target.value)} placeholder="Tracking number"
@@ -1460,7 +1477,7 @@ export const Tracker: React.FC = () => {
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />
+                        {detectShippingLine(snap.carrier ?? undefined) ? <CarrierLogo carrier={snap.carrier} size={28} /> : <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
@@ -1500,10 +1517,11 @@ export const Tracker: React.FC = () => {
 
                   {/* Snap actions */}
                   <div style={{ display: 'flex', gap: 6 }}>
+                    <Button variant="outline" size="sm" onClick={() => revokeShare(snap.id)}>Revoke share</Button>
                     <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
                       <Icon name="link" size={10} color="rgba(255,255,255,.55)" />Share
                     </button>
-                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
+                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: snap.source ?? 'unknown' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
                       <Icon name="fileText" size={10} color="rgba(255,255,255,.55)" />PDF
                     </button>
                     {!snap.shipment_id
@@ -1534,6 +1552,10 @@ export const Tracker: React.FC = () => {
           </div>
         )}
       </SectionCard>
+      <div className="flex gap-2">
+        {hasMoreSnapshots&&<Button variant="outline" onClick={()=>loadSnapshots(snapshotCursor)} disabled={loadingSnaps}>Load more saved tracking</Button>}
+        {hasMoreFleet&&<Button variant="outline" onClick={()=>loadFleet(fleetCursor)} disabled={loadingFleet}>Load more containers</Button>}
+      </div>
     </div>
   );
 };

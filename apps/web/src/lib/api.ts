@@ -240,12 +240,15 @@ export async function apiFetchBlob(path: string, options: RequestInit = {}): Pro
 
 /** Fetches a binary endpoint with the session cookie attached and opens it in a new tab for inline viewing (no forced download). */
 export async function apiViewBlob(path: string) {
-  const response = await doFetch(path);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank', 'noopener');
-  // Give the new tab time to load the resource before releasing it.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  const tab = window.open('', '_blank');
+  if (!tab) throw new Error('Your browser blocked the PDF tab. Allow pop-ups and retry, or use Download PDF.');
+  tab.opener = null;
+  try {
+    const blob = await apiFetchBlob(path);
+    const url = URL.createObjectURL(blob);
+    tab.location.replace(url);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch(error) { tab.close(); throw error; }
 }
 
 /**

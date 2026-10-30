@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { requireTrackerAccess } from '../services/tracker-integrity.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { demurrageService } from '../services/demurrage.service.js';
@@ -7,11 +9,8 @@ export async function demurrageRoutes(app: FastifyInstance) {
   app.addHook('preHandler', requireEntitlement('demurrage'));
   // HUD-0024 continuation: tariffs and container tracking had no role check
   // at all — internal ops data, not customer-portal data.
-  app.addHook('preHandler', async (req: any, reply: any) => {
-    if (req.user.role === 'CUSTOMER') {
-      return reply.status(403).send({ error: 'Not available for this account type.' });
-    }
-  });
+  app.addHook('preHandler', requireTrackerAccess);
+  app.addHook('preHandler', async req => { for (const id of Object.values(req.params as Record<string,string>)) z.string().uuid().parse(id); if (req.method === 'POST' || req.method === 'PATCH') z.record(z.string(), z.unknown()).parse(req.body); });
 
   // ── Tariffs ──
 
@@ -23,7 +22,7 @@ export async function demurrageRoutes(app: FastifyInstance) {
 
   app.post('/tariffs', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role)) {
+    if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role)) {
       return reply.code(403).send({ error: 'Only admins/managers can manage tariffs' });
     }
     const body = req.body as any;
@@ -33,7 +32,7 @@ export async function demurrageRoutes(app: FastifyInstance) {
 
   app.patch('/tariffs/:tariffId', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role)) {
+    if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role)) {
       return reply.code(403).send({ error: 'Only admins/managers can manage tariffs' });
     }
     const { tariffId } = req.params as any;
@@ -87,7 +86,7 @@ export async function demurrageRoutes(app: FastifyInstance) {
 
   app.delete('/tariffs/:tariffId', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'ADMIN'].includes(user.role)) {
+    if (!['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'ADMIN'].includes(user.role)) {
       return reply.code(403).send({ error: 'Only admins/managers can manage tariffs' });
     }
     const { tariffId } = req.params as any;

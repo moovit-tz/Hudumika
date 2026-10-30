@@ -39,6 +39,12 @@ const PaymentLogos = () => (
   </div>
 );
 
+function storageLabel(pkg: Package): string {
+  if (pkg.storage_limit_bytes == null || pkg.storage_limit_bytes <= 0) return 'Unlimited storage';
+  const gb = Math.round(pkg.storage_limit_bytes / (1024 * 1024 * 1024));
+  return `${gb} GB Cloud Vault`;
+}
+
 export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages }) => {
   const [err, setErr] = useState<string | null>(null);
   const [showMatrix, setShowMatrix] = useState(false);
@@ -90,7 +96,39 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
       <div className="ob-pkg-grid">
         {packages.map((pkg, idx) => {
           const isCustom = pkg.code === 'enterprise';
-          const seatPrice = isCustom ? 0 : (draft.billing_cycle === 'annual' ? Math.round(pkg.annual_price / 12) : pkg.monthly_price);
+          const isFlat = pkg.price_flat_monthly != null;
+          const curr = pkg.currency === 'TZS' ? 'TZS' : '$';
+          const sep = pkg.currency === 'TZS' ? ' ' : '';
+
+          let displayPrice: string;
+          let priceUnit: string;
+          let annualNote: string | null = null;
+
+          if (isCustom) {
+            displayPrice = 'Custom';
+            priceUnit = '';
+          } else if (isFlat) {
+            const monthly = draft.billing_cycle === 'annual'
+              ? Math.round((pkg.price_flat_annual ?? pkg.price_flat_monthly! * 10) / 12)
+              : pkg.price_flat_monthly!;
+            displayPrice = `${curr}${sep}${monthly.toLocaleString()}`;
+            priceUnit = '/mo';
+            if (pkg.included_seats) {
+              annualNote = `${pkg.included_seats} user${pkg.included_seats > 1 ? 's' : ''} included`;
+            }
+            if (draft.billing_cycle === 'annual') {
+              const annual = pkg.price_flat_annual ?? pkg.price_flat_monthly! * 10;
+              annualNote = `Billed ${curr}${sep}${annual.toLocaleString()}/yr` + (pkg.included_seats ? ` · ${pkg.included_seats} users included` : '');
+            }
+          } else {
+            const seatPrice = draft.billing_cycle === 'annual' ? Math.round(pkg.annual_price / 12) : pkg.monthly_price;
+            displayPrice = `${curr}${sep}${seatPrice.toLocaleString()}`;
+            priceUnit = '/user/mo';
+            if (draft.billing_cycle === 'annual') {
+              annualNote = `Billed annually (${curr}${sep}${pkg.annual_price.toLocaleString()}/seat/yr)`;
+            }
+          }
+
           const selected = draft.package_code === pkg.code;
           const isPro = pkg.popular || idx === 1;
 
@@ -121,11 +159,11 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 </div>
               ) : (
                 <div className="ob-pkg-price">
-                  ${seatPrice}
-                  <span>/user/mo</span>
-                  {draft.billing_cycle === 'annual' && (
+                  {displayPrice}
+                  {priceUnit && <span>{priceUnit}</span>}
+                  {annualNote && (
                     <span style={{ fontSize: '11px', display: 'block', color: 'var(--ink3)', fontWeight: 'normal', marginTop: 4 }}>
-                      Billed annually (${pkg.annual_price}/seat/yr)
+                      {annualNote}
                     </span>
                   )}
                 </div>
@@ -146,9 +184,15 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 <ul className="ob-pkg-feature-list">
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
-                    <span>{pkg.max_users === 0 ? 'Unlimited users' : `Up to ${pkg.max_users} users`}</span>
+                    <span>{pkg.max_users === 0 ? 'Unlimited users' : pkg.included_seats ? `${pkg.included_seats} users included` : `Up to ${pkg.max_users} users`}</span>
                     {idx === 1 && <span className="ob-boosted-pill"><Icon name="trendingUp" size={10} /> Boosted</span>}
                   </li>
+                  {pkg.max_locations != null && (
+                    <li className="ob-pkg-feature-item">
+                      <span className="ob-pkg-feature-icon">✓</span>
+                      <span>{pkg.max_locations === 0 ? 'Unlimited locations' : `Up to ${pkg.max_locations} location${pkg.max_locations > 1 ? 's' : ''}`}</span>
+                    </li>
+                  )}
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
                     <span>Built for East African enterprises</span>
@@ -170,7 +214,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <span className="ob-pkg-feature-icon">✓</span>
                     <span>Customs &amp; TANCIS integration</span>
                   </li>
-                  {!isCustom && pkg.code !== 'starter' && (
+                  {!isCustom && !pkg.code.startsWith('starter') && (
                     <li className="ob-pkg-feature-item">
                       <span className="ob-pkg-feature-icon">✓</span>
                       <span>Demurrage Risk Radar</span>
@@ -185,7 +229,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 <ul className="ob-pkg-feature-list">
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>
-                    <span>{pkg.code === 'starter' ? '10 GB Cloud Vault' : pkg.code === 'growth' ? '50 GB Cloud Vault' : 'Unlimited storage'}</span>
+                    <span>{storageLabel(pkg)}</span>
                   </li>
                   <li className="ob-pkg-feature-item">
                     <span className="ob-pkg-feature-icon">✓</span>

@@ -19,9 +19,9 @@ export const FIELD_GROUP_LABELS: Record<FieldGroup, string> = {
 
 export const RESOURCE_FIELD_MAP: Record<FieldPolicyResource, Record<FieldGroup, readonly string[]>> = {
   customers: {
-    operational: ['name', 'status', 'account_status', 'sector', 'classification', 'industry', 'type', 'source', 'created_at', 'updated_at'],
-    contact: ['email', 'phone', 'website', 'address', 'city', 'region', 'country', 'postal_code'],
-    financial: ['credit_terms', 'credit_limit', 'outstanding', 'payment_terms', 'tin', 'vat_number', 'bank_name', 'bank_account', 'bank_branch', 'currency', 'price_list_id'],
+    operational: ['name', 'status', 'account_status', 'sector', 'classification', 'industry', 'type', 'source', 'created_at', 'updated_at', 'ref_code', 'client_type', 'category', 'preferred_port', 'preferred_channel', 'active'],
+    contact: ['email', 'phone', 'phone_wa', 'phone_wechat', 'contact_name', 'website', 'address', 'city', 'region', 'country', 'postal_code', 'registered_address'],
+    financial: ['credit_terms', 'credit_limit', 'credit_days', 'outstanding', 'payment_terms', 'tin', 'tax_id', 'vat_number', 'tancis_number', 'import_license', 'freight_terms', 'commodity_type', 'bank_name', 'bank_account', 'bank_branch', 'currency', 'price_list_id'],
     sensitive: ['notes', 'internal_notes', 'margin_target', 'contract_pricing', 'custom_rates', 'rating'],
   },
   contacts: {

@@ -1,0 +1,34 @@
+{
+  "checks": [
+    "Action queue prioritises expired permits, switches source and filters search",
+    "Deadline opens the exact certificate in Vault",
+    "Recent application opens its exact detail",
+    "Expiring metric opens its filtered register",
+    "Pending metric matches pending application filter",
+    "Refresh reloads dashboard, applications and business profile and reflects database edits",
+    "Application failures are visible and Retry recovers",
+    "Profile failures do not fabricate onboarding state"
+  ],
+  "errors": [],
+  "viewports": [
+    {
+      "width": 1440,
+      "document": 1440,
+      "headings": 1,
+      "primaryActions": 1
+    },
+    {
+      "width": 768,
+      "document": 768,
+      "headings": 1,
+      "primaryActions": 1
+    },
+    {
+      "width": 390,
+      "document": 390,
+      "headings": 1,
+      "primaryActions": 1
+    }
+  ],
+  "cleaned": true
+}

@@ -1,4 +1,4 @@
-import { WORKFLOW_CONFIGS } from '../config/workflow.config.js';
+import { WORKFLOW_CONFIGS, transportDocumentForMode } from '../config/workflow.config.js';
 import { CLEARANCE_STAGES } from '@hudumika/types';
 import type { FieldCondition, AutoComm, ShipmentType } from '@hudumika/types';
 import { applyOperator } from '../studio/conditions.js';
@@ -13,6 +13,7 @@ export interface ResolvedStep {
   entryConditions: FieldCondition[];
   autoComms: AutoComm[];
   slaHours: number;
+  stepType: string | null;
 }
 
 export interface ResolvedWorkflow {
@@ -35,10 +36,20 @@ const FREIGHT_MODE_MAP: Record<string, string> = {
  * on CLOSED (matches the old `nextStage === 'CLOSED'` checks exactly),
  * entryConditions built from WORKFLOW_CONFIGS[stage].requiredDocuments.
  */
-function synthesizeLegacyWorkflow(): ResolvedWorkflow {
+function synthesizeLegacyWorkflow(shipmentType?: ShipmentType | string): ResolvedWorkflow {
   const steps: ResolvedStep[] = CLEARANCE_STAGES.map((stage, i) => {
     const config = WORKFLOW_CONFIGS[stage];
     const next = CLEARANCE_STAGES[i + 1];
+
+    // Build required-document conditions. The transport document (BL vs AWB)
+    // depends on freight mode and is injected here rather than hard-coded in
+    // the config, so AIR shipments require AWB and SEA/BULK require BL.
+    const requiredDocs = [...config.requiredDocuments];
+    if (stage === 'VALIDATION' && shipmentType) {
+      const transportDoc = transportDocumentForMode(shipmentType);
+      if (transportDoc) requiredDocs.unshift(transportDoc);
+    }
+
     return {
       id: stage,
       order: i,
@@ -46,7 +57,7 @@ function synthesizeLegacyWorkflow(): ResolvedWorkflow {
       isStart: i === 0,
       isTerminal: stage === 'CLOSED',
       nextStepIds: next ? [next] : [],
-      entryConditions: config.requiredDocuments.map((docType) => ({
+      entryConditions: requiredDocs.map((docType) => ({
         id: `legacy-${stage}-${docType}`,
         field: `document:${docType}`,
         operator: 'required' as const,
@@ -54,6 +65,7 @@ function synthesizeLegacyWorkflow(): ResolvedWorkflow {
       })),
       autoComms: [],
       slaHours: config.slaHours,
+      stepType: null,
     };
   });
   return { kind: 'LEGACY', workflowId: null, steps };
@@ -70,6 +82,7 @@ function parseSteps(rows: any[]): ResolvedStep[] {
     entryConditions: typeof r.entry_conditions === 'string' ? JSON.parse(r.entry_conditions) : (r.entry_conditions ?? []),
     autoComms: typeof r.auto_comms === 'string' ? JSON.parse(r.auto_comms) : (r.auto_comms ?? []),
     slaHours: r.sla_hours ?? 24,
+    stepType: r.step_type ?? null,
   }));
 }
 
@@ -85,13 +98,10 @@ async function loadWorkflowSteps(trx: any, tenantId: string, workflowId: string)
 }
 
 /** Re-hydrates the workflow governing an EXISTING shipment (workflowId as stored on shipment_cases.workflow_id). */
-export async function loadResolvedWorkflow(trx: any, tenantId: string, workflowId: string | null): Promise<ResolvedWorkflow> {
-  if (!workflowId) return synthesizeLegacyWorkflow();
+export async function loadResolvedWorkflow(trx: any, tenantId: string, workflowId: string | null, shipmentType?: ShipmentType | string): Promise<ResolvedWorkflow> {
+  if (!workflowId) return synthesizeLegacyWorkflow(shipmentType);
   const steps = await loadWorkflowSteps(trx, tenantId, workflowId);
-  // Safety net: the workflow was deleted or emptied out from under an active
-  // shipment — fall back to legacy rather than leaving the shipment stranded
-  // with zero valid steps to transition through.
-  if (steps.length === 0) return synthesizeLegacyWorkflow();
+  if (steps.length === 0) return synthesizeLegacyWorkflow(shipmentType);
   return { kind: 'CUSTOM', workflowId, steps };
 }
 

@@ -1,3 +1,6 @@
+import { escapePrintData } from '../../lib/print-data.js';
+import { apiFetch } from '../../lib/api.js';
+import { showAlert } from '../../lib/alert.js';
 import React, { useState } from 'react';
 import { ContainerDetails, ContainerRepair } from './containerTypes.js';
 import { IsometricContainerIllustration } from './IsometricContainerIllustration.js';
@@ -25,16 +28,21 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
   const [activeTab, setActiveTab] = useState<'details' | 'tracking'>(initialTab);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [repairs, setRepairs] = useState<ContainerRepair[]>(container.survey_report?.repairs || []);
-  const statusLabel = (container.status ?? 'AVAILABLE').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
-  const conditionLabel = (container.condition ?? 'GOOD').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const statusLabel = (container.status || 'UNKNOWN').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const conditionLabel = (container.condition || 'UNKNOWN').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-  const toggleRepair = (id: string) => {
-    setRepairs((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, completed: !r.completed } : r))
-    );
+  const toggleRepair = async (id: string) => {
+    const repair = repairs.find(r => r.id === id);
+    if (!repair) return;
+    try {
+      await apiFetch(`/v1/tracker/containers/${container.container_number}/repairs/${id}`, { method: 'PATCH', body: JSON.stringify({ resolved: !repair.completed }) });
+      setRepairs(prev => prev.map(r => r.id === id ? { ...r, completed: !r.completed } : r));
+    } catch (error: any) { showAlert(error.message || 'Could not save repair'); }
   };
 
   const handlePrintSurveyReport = () => {
+    if (!container.survey_report?.last_survey_date || !container.survey_report?.grade) { showAlert('Record a survey before printing a report'); return; }
+    const printable = escapePrintData(container);
     const w = window.open('', '_blank');
     if (!w) return;
 
@@ -42,7 +50,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Container Survey Certificate — ${container.container_number}</title>
+<title>Container Survey Record — ${printable.container_number}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@600;800&display=swap');
   @page { size: A4; margin: 16mm 18mm; }
@@ -62,50 +70,50 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
 <body>
   <div class="cert-header">
     <div>
-      <div class="brand">ClearOS · Hudumika</div>
-      <div style="font-size:11px;color:#64748b;margin-top:2px;">ISO Container Inspection &amp; Survey Certificate</div>
+      <div class="brand">Safetracker · Hudumika</div>
+      <div style="font-size:11px;color:#64748b;margin-top:2px;">Recorded Container Survey Report</div>
     </div>
     <div style="text-align:right;">
-      <div class="badge-grade">${container.survey_report?.grade || 'Grade A'} · ${container.survey_report?.rating_label || 'Cargo Worthy'}</div>
-      <div style="font-size:10.5px;color:#64748b;margin-top:4px;">Survey Date: ${container.survey_report?.last_survey_date || '—'}</div>
+      <div class="badge-grade">${printable.survey_report?.grade || 'Unassessed'} · ${printable.survey_report?.rating_label || 'Not assessed'}</div>
+      <div style="font-size:10.5px;color:#64748b;margin-top:4px;">Survey Date: ${printable.survey_report?.last_survey_date || '—'}</div>
     </div>
   </div>
 
   <div style="font-size:18px;font-weight:900;font-family:monospace;letter-spacing:1px;margin-bottom:6px;">
-    ${container.container_number} <span style="font-size:13px;font-weight:600;color:#64748b;">(${container.size_type} · ISO: ${container.iso_code})</span>
+    ${printable.container_number} <span style="font-size:13px;font-weight:600;color:#64748b;">(${printable.size_type} · ISO: ${printable.iso_code})</span>
   </div>
 
   <div class="grid-2">
     <div class="card">
       <div class="card-title">Technical Specifications</div>
-      <div class="spec-row"><span>Max Gross Weight:</span><strong>${container.max_gross_weight_kg?.toLocaleString()} Kg</strong></div>
-      <div class="spec-row"><span>Tare Weight:</span><strong>${container.tare_weight_kg?.toLocaleString()} Kg</strong></div>
-      <div class="spec-row"><span>Payload Capacity:</span><strong>${container.payload_capacity_kg?.toLocaleString()} Kg</strong></div>
-      <div class="spec-row"><span>Cubic Capacity:</span><strong>${container.cubic_capacity_cbm} m³</strong></div>
-      <div class="spec-row"><span>Floor Type:</span><strong>${container.floor_type}</strong></div>
-      <div class="spec-row"><span>Manufacturer:</span><strong>${container.manufacturer} (${container.manufacture_year})</strong></div>
-      <div class="spec-row"><span>Design Validity:</span><strong>${container.design_validity_years} Years</strong></div>
+      <div class="spec-row"><span>Max Gross Weight:</span><strong>${printable.max_gross_weight_kg?.toLocaleString()} Kg</strong></div>
+      <div class="spec-row"><span>Tare Weight:</span><strong>${printable.tare_weight_kg?.toLocaleString()} Kg</strong></div>
+      <div class="spec-row"><span>Payload Capacity:</span><strong>${printable.payload_capacity_kg?.toLocaleString()} Kg</strong></div>
+      <div class="spec-row"><span>Cubic Capacity:</span><strong>${printable.cubic_capacity_cbm} m³</strong></div>
+      <div class="spec-row"><span>Floor Type:</span><strong>${printable.floor_type}</strong></div>
+      <div class="spec-row"><span>Manufacturer:</span><strong>${printable.manufacturer} (${printable.manufacture_year})</strong></div>
+      <div class="spec-row"><span>Design Validity:</span><strong>${printable.design_validity_years} Years</strong></div>
     </div>
 
     <div class="card">
       <div class="card-title">Compliance &amp; Certifications</div>
-      <div class="spec-row"><span>CSC Cert Date:</span><strong>${container.compliance?.csc_cert_date || '—'}</strong></div>
-      <div class="spec-row"><span>CSC Expiry Date:</span><strong>${container.compliance?.csc_expiry_date || '—'}</strong></div>
-      <div class="spec-row"><span>ACEP / CCEP:</span><strong>${container.compliance?.acep_ccep || 'N/A'}</strong></div>
-      <div class="spec-row"><span>Customs Seal No:</span><strong>${container.compliance?.customs_seal_no || 'N/A'}</strong></div>
-      <div class="spec-row"><span>Current Depot:</span><strong>${container.current_depot?.name} (${container.current_depot?.code})</strong></div>
-      <div class="spec-row"><span>Status:</span><strong>${container.current_depot?.state}</strong></div>
+      <div class="spec-row"><span>CSC Cert Date:</span><strong>${printable.compliance?.csc_cert_date || '—'}</strong></div>
+      <div class="spec-row"><span>CSC Expiry Date:</span><strong>${printable.compliance?.csc_expiry_date || '—'}</strong></div>
+      <div class="spec-row"><span>ACEP / CCEP:</span><strong>${printable.compliance?.acep_ccep || 'N/A'}</strong></div>
+      <div class="spec-row"><span>Customs Seal No:</span><strong>${printable.compliance?.customs_seal_no || 'N/A'}</strong></div>
+      <div class="spec-row"><span>Current Depot:</span><strong>${printable.current_depot?.name} (${printable.current_depot?.code})</strong></div>
+      <div class="spec-row"><span>Status:</span><strong>${printable.current_depot?.state}</strong></div>
     </div>
   </div>
 
   <div class="notes">
     <strong>Surveyor Remarks:</strong><br/>
-    ${container.survey_report?.surveyor_notes || 'Container inspected and certified in compliance with ISO 1496 and CSC safety regulations.'}
+    ${printable.survey_report?.surveyor_notes || 'No survey notes recorded.'}
   </div>
 
   <div class="footer">
-    <div>Hudumika ClearOS Container Report · Document ID: ${container.container_number}-CERT</div>
-    <div>Official Digital Record &copy; ${new Date().getFullYear()}</div>
+    <div>Hudumika Safetracker Container Report · Document ID: ${printable.container_number}-CERT</div>
+    <div>Recorded survey information &copy; ${new Date().getFullYear()}</div>
   </div>
 </body>
 </html>`;
@@ -160,7 +168,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
             <div className="cnt-hero-card p-5 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
                 <div className="md:col-span-7 flex justify-center">
-                  <IsometricContainerIllustration
+                  <IsometricContainerIllustration maxGrossWeightKg={container.max_gross_weight_kg} tareWeightKg={container.tare_weight_kg}
                     containerNumber={container.container_number}
                     isoCode={container.iso_code}
                     height={container.dimensions?.height_m || 2.5}
@@ -175,7 +183,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--green)] animate-pulse" />
                       {statusLabel}
                     </Badge>
-                    <CarrierLogo carrier={container.carrier || container.voyage?.vessel_name || container.container_number} size="xs" variant="badge" />
+                    <CarrierLogo carrier={container.carrier} containerNumber={container.container_number} size="xs" variant="badge" />
                   </div>
 
                   <div>
@@ -190,7 +198,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                   <div className="pt-2 border-t border-[var(--border)] space-y-2 text-xs font-medium text-[var(--ink2)]">
                     <div className="flex items-center gap-2">
                       <Icon name="user" size={14} color="var(--ink3)" />
-                      <span>{container.ownership === 'PRIVATELY_OWNED' ? 'Privately Owned' : 'Carrier Owned'}</span>
+                      <span>{container.ownership === 'PRIVATELY_OWNED' ? 'Privately Owned' : container.ownership === 'CARRIER_OWNED' ? 'Carrier Owned' : container.ownership === 'LEASED' ? 'Leased' : 'Ownership not recorded'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Icon name="checkCircle" size={14} color="var(--green)" />
@@ -213,7 +221,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                   <div>
                     <div className="text-xs font-semibold text-[var(--ink3)]">Max</div>
                     <div className="text-base sm:text-lg font-black text-[var(--ink)] tracking-tight">
-                      {container.max_gross_weight_kg?.toLocaleString()} Kg
+                      {container.max_gross_weight_kg ? container.max_gross_weight_kg.toLocaleString() : '—'} Kg
                     </div>
                     <div className="text-[11px] font-medium text-[var(--ink3)]">Gross Weight</div>
                   </div>
@@ -226,7 +234,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                   </div>
                   <div>
                     <div className="text-base sm:text-lg font-black text-[var(--ink)] tracking-tight">
-                      {container.tare_weight_kg?.toLocaleString()} Kg
+                      {container.tare_weight_kg ? container.tare_weight_kg.toLocaleString() : '—'} Kg
                     </div>
                     <div className="text-[11px] font-medium text-[var(--ink3)]">Tare Weight</div>
                   </div>
@@ -293,8 +301,8 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
               <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
                 <div className="flex items-center gap-3.5">
                   <div className="cnt-calendar-badge">
-                    <span className="cal-day">{container.current_depot?.date?.split(' ')[0] || '28'}</span>
-                    <span className="cal-month">{container.current_depot?.date?.split(' ')[1] || 'June'}</span>
+                    <span className="cal-day">{container.current_depot?.date?.split(' ')[0] || '—'}</span>
+                    <span className="cal-month">{container.current_depot?.date?.split(' ')[1] || '—'}</span>
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-[var(--ink3)]">Current Depot</div>
@@ -309,7 +317,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
 
                 <Badge variant="warning">
                   <Icon name="package" size={13} color="currentColor" />
-                  {container.current_depot?.state || 'Empty'}
+                  {container.current_depot?.state || 'Unknown'}
                 </Badge>
               </div>
             </div>
@@ -318,14 +326,14 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
             <div className="cnt-side-card space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-[var(--ink)] tracking-tight">Classification</h3>
-                <span className="text-xs font-semibold text-[var(--ink2)]">{container.classification?.category || 'General Purpose'}</span>
+                <span className="text-xs font-semibold text-[var(--ink2)]">{container.classification?.category || 'Not recorded'}</span>
               </div>
 
               <div className="space-y-3 pt-1 text-xs">
                 <div className="flex items-center flex-wrap gap-2">
                   <span className="text-[var(--ink3)] font-medium min-w-24">Cargo Types:</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {(container.classification?.cargo_types || ['Dry Goods', 'Palletized', 'Machinery']).map((tag) => (
+                    {(container.classification?.cargo_types || []).map((tag) => (
                       <span
                         key={tag}
                         className="px-2.5 py-1 rounded-md bg-[var(--bg)] border border-[var(--border)] text-[var(--ink)] font-semibold text-[11px]"
@@ -339,7 +347,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                 <div className="flex items-center flex-wrap gap-2">
                   <span className="text-[var(--ink3)] font-medium min-w-24">Certifications:</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {(container.classification?.certifications || ['ISO 1496-1', 'IICL 6', 'CTU Code']).map((cert) => (
+                    {(container.classification?.certifications || []).map((cert) => (
                       <span
                         key={cert}
                         className="px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-bold text-[11px]"
@@ -359,8 +367,8 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
             <div className="cnt-side-card space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-base font-extrabold text-[var(--ink)]">{container.survey_report?.rating_label || 'Cargo Worthy'}</h3>
-                  <p className="text-xs font-semibold text-[var(--ink3)]">{container.survey_report?.grade || 'Grade A'}</p>
+                  <h3 className="text-base font-extrabold text-[var(--ink)]">{container.survey_report?.rating_label || 'Not assessed'}</h3>
+                  <p className="text-xs font-semibold text-[var(--ink3)]">{container.survey_report?.grade || 'Unassessed'}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={handlePrintSurveyReport}>
                   <Icon name="fileText" size={13} color="var(--blue)" />
@@ -370,7 +378,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
 
               <div className="flex items-center gap-1.5 text-xs text-[var(--ink3)] font-medium">
                 <Icon name="clock" size={13} color="var(--ink3)" />
-                <span>Last survey: {container.survey_report?.last_survey_date || '15 Dec, 2025'}</span>
+                <span>Last survey: {container.survey_report?.last_survey_date || 'Not recorded'}</span>
               </div>
 
               <div className="space-y-1.5">
@@ -478,7 +486,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
             <div className="cnt-hero-card p-5 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
                 <div className="md:col-span-7 flex justify-center">
-                  <IsometricContainerIllustration
+                  <IsometricContainerIllustration maxGrossWeightKg={container.max_gross_weight_kg} tareWeightKg={container.tare_weight_kg}
                     containerNumber={container.container_number}
                     isoCode={container.iso_code}
                     height={container.dimensions?.height_m || 2.5}
@@ -505,7 +513,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                   <div className="pt-2 border-t border-[var(--border)] space-y-2 text-xs font-medium text-[var(--ink2)]">
                     <div className="flex items-center gap-2">
                       <Icon name="user" size={14} color="var(--ink3)" />
-                      <span>{container.ownership === 'PRIVATELY_OWNED' ? 'Privately Owned' : 'Carrier Owned'}</span>
+                      <span>{container.ownership === 'PRIVATELY_OWNED' ? 'Privately Owned' : container.ownership === 'CARRIER_OWNED' ? 'Carrier Owned' : container.ownership === 'LEASED' ? 'Leased' : 'Ownership not recorded'}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Icon name="checkCircle" size={14} color="var(--green)" />
@@ -533,7 +541,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                 <div className="flex items-center gap-3">
                   <Badge variant="warning">Slightly Delayed</Badge>
                   <div className="text-xs font-semibold text-[var(--ink3)]">
-                    ETA: <strong className="text-[var(--ink)] font-bold">{container.voyage?.eta || 'Oct 25, 14:00'}</strong>
+                    ETA: <strong className="text-[var(--ink)] font-bold">{container.voyage?.eta || 'Not recorded'}</strong>
                   </div>
                 </div>
               </div>
@@ -608,7 +616,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                   <h3 className="text-lg font-black text-[var(--ink)] font-mono">{container.container_number}</h3>
                   <p className="text-xs text-[var(--ink3)]">ISO: {container.iso_code}</p>
                 </div>
-                <CarrierLogo carrier={container.carrier || container.voyage?.vessel_name || container.container_number} size="xs" variant="mark" />
+                <CarrierLogo carrier={container.carrier} containerNumber={container.container_number} size="xs" variant="mark" />
               </div>
 
               <div className="space-y-1">
@@ -618,7 +626,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                     <Icon name="user" size={11} />
                     OWNED
                   </div>
-                  <CarrierLogo carrier={container.carrier || container.voyage?.vessel_name || container.container_number} size="xs" variant="badge" />
+                  <CarrierLogo carrier={container.carrier} containerNumber={container.container_number} size="xs" variant="badge" />
                 </div>
               </div>
 
@@ -627,7 +635,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-1.5 text-xs text-[var(--ink3)]">
-                      <span>{container.voyage?.pol_flag || '🇮🇳'}</span>
+                      <span>{container.voyage?.pol_flag || ''}</span>
                       <span className="font-bold uppercase tracking-wider text-[10px]">POL</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--ink)]">{container.voyage?.pol_city}</div>
@@ -637,7 +645,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
 
                   <div className="text-right">
                     <div className="flex items-center justify-end gap-1.5 text-xs text-[var(--ink3)]">
-                      <span>{container.voyage?.pod_flag || '🇺🇸'}</span>
+                      <span>{container.voyage?.pod_flag || ''}</span>
                       <span className="font-bold uppercase tracking-wider text-[10px]">POD</span>
                     </div>
                     <div className="text-sm font-bold text-[var(--ink)]">{container.voyage?.pod_city}</div>

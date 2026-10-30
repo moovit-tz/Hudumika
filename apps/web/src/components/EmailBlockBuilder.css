@@ -687,7 +687,7 @@
 [data-theme="dark"] .ebb-palette-item { background: var(--email-night-raised, var(--white)); border-color: rgba(148, 163, 184, 0.08); box-shadow: none; }
 [data-theme="dark"] .ebb-palette-item:hover { background: color-mix(in srgb, var(--teal) 10%, var(--email-night-surface, var(--white))); border-color: var(--email-night-edge-strong, var(--teal-m)); }
 [data-theme="dark"] .ebb-props :is(input, textarea, button[role="combobox"]) { background: var(--email-night-sunken, var(--bg)); border-color: var(--email-night-edge, var(--border)); }
-[data-theme="dark"] .ebb-props :is(input, textarea, button[role="combobox"]):focus { background: var(--email-night-raised, var(--white)); border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent); }
+[data-theme="dark"] .ebb-props :is(input, textarea, button[role="combobox"]):focus { background: var(--email-night-raised, var(--white)); border-color: var(--ink3); box-shadow: none; }
 
 /* ── Font picker ─────────────────────────────────────────────────────────── */
 .ebb-font-preview {

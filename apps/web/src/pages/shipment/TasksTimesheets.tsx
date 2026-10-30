@@ -1,3 +1,7 @@
+import './TasksTimesheets.css';
+import { Card as UICard } from '../../components/ui/card.js';
+import { Button } from '../../components/ui/button.js';
+import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { ExaminationsQueue } from '../../components/ExaminationsQueue.js';
@@ -33,8 +37,6 @@ import {
 } from '../clearanceData.js';
 import { ChBadge } from '../../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../../data/staffData.js';
-import type { Employee } from '../../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -47,6 +49,8 @@ import { SwitchRow } from '../../components/ui/list-item-row.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet.js';
 import { clockGate, entryAmount, fdate, ftime, fdatetime, fmtTZS, fmtServiceRate, avatarBg, initials, isUUID, friendlyAssignee, Av, Card } from './utils.js';
 import { TASK_STATUS_CFG, PRIORITY_CFG } from './OverviewUpdates.js';
+const FILTER_LABELS: Record<TaskStatus | 'all', string> = { all: 'All', not_started: 'Not Started', in_progress: 'In Progress', testing: 'Testing', awaiting_feedback: 'Feedback', complete: 'Complete' };
+
 export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all');
   const [search,       setSearch]       = useState('');
@@ -196,23 +200,22 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
   }
 
   return (
-    <div>
-      {/* Status filter strip */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
-        {statuses.map(s => { const cfg = TASK_STATUS_CFG[s]; const on = filterStatus === s; return (
-          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            {cfg.label} <span style={{ fontWeight: 700 }}>{counts[s]}</span>
-          </button>
-        ); })}
-      </div>
-
-      {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="input-field" style={{ flex: 1, fontSize: 13 }} />
-        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-          <Icon name="plus" size={14} /> Add Task
-        </button>
+    <UICard className="shipment-tasks-card">
+      <div className="shipment-task-controls">
+        <div className="shipment-task-filters" role="group" aria-label="Filter tasks by status">
+          {(['all', ...statuses] as const).map(status => {
+            const active = filterStatus === status;
+            return (
+              <button key={status} type="button" className={`stf-pill${active ? ' stf-active' : ''}`} aria-pressed={active} onClick={() => setFilterStatus(status)}>
+                <span className="stf-label">{FILTER_LABELS[status]}</span>
+                <span className="stf-count">{counts[status]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <SearchToolbar search={search} onSearch={setSearch} placeholder="Search tasks…" actions={
+          <Button size="sm" onClick={() => setShowAdd(true)}><Icon name="plus" size={14} /> Add Task</Button>
+        } />
       </div>
 
       {/* Add-task form */}
@@ -281,8 +284,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
       )}
 
       {/* Table */}
-      <div className="rtbl-wrap">
-      <Card padded={false}>
+      <div className="shipment-task-table">
         <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr>{['#','Task','Service','Status','Start','Due','Assignees','Priority','Tags','Actions'].map(h => (
@@ -297,12 +299,12 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
               const overdue = task.dueDate && new Date() > task.dueDate && task.status !== 'complete';
               return (
                 <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-                  <td style={{ padding: '10px 14px', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)', width: 36 }}>{i + 1}</td>
-                  <td style={{ padding: '10px 14px', maxWidth: 240 }}>
+                  <td data-label="#" style={{ padding: '10px 14px', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)', width: 36 }}>{i + 1}</td>
+                  <td data-label="Task" style={{ padding: '10px 14px', maxWidth: 240 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
                     {task.description && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.description}</div>}
                   </td>
-                  <td style={{ padding: '10px 14px', maxWidth: 160 }}>
+                  <td data-label="Service" style={{ padding: '10px 14px', maxWidth: 160 }}>
                     {task.serviceName ? (
                       <>
                         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.serviceName}</div>
@@ -310,12 +312,12 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                       </>
                     ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
                   </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: sCfg.bg, color: sCfg.color, whiteSpace: 'nowrap' }}>{sCfg.label}</span>
+                  <td data-label="Status" style={{ padding: '10px 14px' }}>
+                    <Badge variant={task.status === 'complete' ? 'success' : task.status === 'in_progress' ? 'info' : task.status === 'testing' ? 'info' : task.status === 'awaiting_feedback' ? 'warning' : 'gray'}>{sCfg.label}</Badge>
                   </td>
-                  <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(task.startDate)}</td>
-                  <td style={{ padding: '10px 14px', fontSize: 12, color: overdue ? 'var(--red)' : 'var(--ink3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fdate(task.dueDate)}</td>
-                  <td style={{ padding: '10px 14px' }}>
+                  <td data-label="Start" style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(task.startDate)}</td>
+                  <td data-label="Due" style={{ padding: '10px 14px', fontSize: 12, color: overdue ? 'var(--red)' : 'var(--ink3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fdate(task.dueDate)}</td>
+                  <td data-label="Assignees" style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 3 }}>
                       {task.assignees.slice(0, 3).map(a => (
                         <Av key={a} name={a} size={24} />
@@ -323,15 +325,15 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                       {task.assignees.length > 3 && <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--border)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>+{task.assignees.length - 3}</div>}
                     </div>
                   </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: pCfg.color }}>{task.priority.toUpperCase()}</span>
+                  <td data-label="Priority" style={{ padding: '10px 14px' }}>
+                    <Badge variant={task.priority === 'urgent' ? 'error' : task.priority === 'high' ? 'warning' : task.priority === 'low' ? 'success' : 'gray'}>{pCfg.label}</Badge>
                   </td>
-                  <td style={{ padding: '10px 14px' }}>
+                  <td data-label="Tags" style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                       {task.tags.map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>{tag}</span>)}
                     </div>
                   </td>
-                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                  <td data-label="Actions" style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                     {task.closedAt ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span title={`Closed ${fdate(task.closedAt)}${task.closedById ? ` by ${nameFor(task.closedById)}` : ''}`}
@@ -339,10 +341,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                           <Icon name="lock" size={12} /> Closed{task.closedById ? ` · ${nameFor(task.closedById)}` : ''}
                         </span>
                         {canEditStatus(task) && (
-                          <button type="button" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task"
-                            style={{ fontSize: 11, fontWeight: 600, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-                            Reopen
-                          </button>
+                          <Button variant="outline" size="xs" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task">Reopen</Button>
                         )}
                       </div>
                     ) : canEditStatus(task) ? (
@@ -358,15 +357,13 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                           </Select>
                         </div>
                         {task.status !== 'complete' && (
-                          <button type="button" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                          <Button variant="outline" size="xs" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete" style={{ borderColor: 'var(--green)', color: 'var(--green)', paddingInline: 6 }}>
                             <Icon name="check" size={12} />
-                          </button>
+                          </Button>
                         )}
-                        <button type="button" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id} title="Close & sign off this task"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal-d)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                        <Button variant="outline" size="xs" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id} title="Close & sign off this task" style={{ borderColor: 'var(--teal)', background: 'var(--teal-l)', color: 'var(--teal-d)' }}>
                           <Icon name="lock" size={11} /> Close
-                        </button>
+                        </Button>
                       </div>
                     ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
                   </td>
@@ -375,17 +372,18 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
             })}
           </tbody>
         </table>
-      </Card>
       </div>
-    </div>
+    </UICard>
   );
 }
 
 // ─── Timesheets Tab ───────────────────────────────────────────────────────────
 
 export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+  const { user } = useAuth();
+  const canLogOthers = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR'].includes(user.role);
   const [showLog,   setShowLog]   = useState(false);
-  const [logMember, setLogMember] = useState(job.assignees[0] || '');
+  const [logMember, setLogMember] = useState(user?.id || '');
   const [logTask,   setLogTask]   = useState(job.tasks[0]?.id || '');
   const [logHours,  setLogHours]  = useState('');
   const [logNote,   setLogNote]   = useState('');
@@ -394,7 +392,6 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
   const [logSaving, setLogSaving] = useState(false);
   const [staff,     setStaff]     = useState<{ id: string; name: string }[]>([]);
   const [services,  setServices]  = useState<{ id: string; name: string; sale_price: number; currency: string; unit: string }[]>([]);
-  const { user } = useAuth();
   const { isCheckedIn, triggerOpen: triggerOpenRaw } = useClockIn();
   const triggerOpen = () => triggerOpenRaw({ shipmentId: job.id, shipmentRef: job.sysRef || job.id });
   const isStaff = !!(user && user.role !== 'CUSTOMER');
@@ -430,7 +427,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
       if (isLive) {
         await apiFetch(`/v1/shipments/${shipmentId}/time-entries`, {
           method: 'POST',
-          body: JSON.stringify({ member: memberName, task_ref: job.tasks.find(t => t.id === logTask)?.title || undefined, hours: h, note: logNote || undefined, log_date: logDate, product_id: logProductId || undefined }),
+          body: JSON.stringify({ user_id: logMember || user?.id, member: memberName, task_ref: job.tasks.find(t => t.id === logTask)?.title || undefined, hours: h, note: logNote || undefined, log_date: logDate, product_id: logProductId || undefined }),
         });
         onRefresh();
       } else {
@@ -473,7 +470,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Member</label>
               <Combobox
-                options={staff.map(s => ({ value: s.id, label: s.name }))}
+                options={staff.filter(s => canLogOthers || s.id === user?.id).map(s => ({ value: s.id, label: s.name }))}
                 value={logMember} onChange={setLogMember} placeholder="Select staff…"
               />
             </div>

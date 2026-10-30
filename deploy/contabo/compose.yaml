@@ -1,0 +1,168 @@
+name: hudumika
+
+x-api-environment: &api-environment
+  NODE_ENV: production
+  APP_ENV: production
+  APP_PORT: 3001
+  TZ: ${TZ:-Africa/Dar_es_Salaam}
+  LOG_LEVEL: info
+  TRUST_PROXY: '1'
+  DATABASE_URL: postgresql://hudumika_app:${DB_APP_PASSWORD:?Run init.py}@db:5432/hudumika
+  DATABASE_URL_APP: postgresql://hudumika_app:${DB_APP_PASSWORD}@db:5432/hudumika
+  DATABASE_URL_PLATFORM: postgresql://hudumika_platform:${DB_PLATFORM_PASSWORD:?Run init.py}@db:5432/hudumika
+  DATABASE_URL_READONLY: postgresql://hudumika_readonly:${DB_READONLY_PASSWORD:?Run init.py}@db:5432/hudumika
+  REDIS_URL: redis://:${REDIS_PASSWORD:?Run init.py}@redis:6379
+  JWT_SECRET: ${JWT_SECRET:?Run init.py}
+  SIGN_CERT_PASSWORD: ${SIGN_CERT_PASSWORD:?Run init.py}
+  ONSITE_SECRETS_KEY: ${ONSITE_SECRETS_KEY:?Run init.py}
+  FILE_SIGNING_SECRET: ${FILE_SIGNING_SECRET:?Run init.py}
+  CORS_ORIGINS: https://${APP_DOMAIN:?Set your domain}
+  PUBLIC_APP_URL: https://${APP_DOMAIN}
+  API_BASE_URL: https://${APP_DOMAIN}
+  OPS_BOARD_URL: https://${APP_DOMAIN}/clearos/ops
+  CLAMAV_HOST: clamav
+  CLOUD_REQUIRE_SCAN: 'true'
+  SMTP_HOST: ${SMTP_HOST:?Configure real SMTP}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:?Configure real SMTP}
+  SMTP_PASS: ${SMTP_PASS:?Configure real SMTP}
+  SMTP_FROM: ${SMTP_FROM:?Configure real SMTP}
+  SMS_WEBHOOK_SECRET: ${SMS_WEBHOOK_SECRET:-}
+
+services:
+  db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hudumika
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run init.py}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [private]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d hudumika']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes', --requirepass, '${REDIS_PASSWORD:?Run init.py}']
+    environment: {REDISCLI_AUTH: '${REDIS_PASSWORD}'}
+    volumes: [redis_data:/data]
+    networks: [private]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes: [clamav_data:/var/lib/clamav]
+    networks: [private, edge]
+    healthcheck:
+      test: [CMD, clamdscan, '--ping=1']
+      start_period: 180s
+      interval: 30s
+      timeout: 10s
+      retries: 12
+
+  migrate:
+    image: hudumika-api:${RELEASE_TAG:-local}
+    build: {context: ../.., dockerfile: deploy/contabo/Dockerfile, target: api}
+    command: [sh, /app/deploy/contabo/migrate.sh]
+    environment:
+      <<: *api-environment
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/hudumika
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+      DB_PLATFORM_PASSWORD: ${DB_PLATFORM_PASSWORD}
+      DB_READONLY_PASSWORD: ${DB_READONLY_PASSWORD}
+    depends_on: {db: {condition: service_healthy}}
+    networks: [private]
+    profiles: [tools]
+
+  api:
+    image: hudumika-api:${RELEASE_TAG:-local}
+    build: {context: ../.., dockerfile: deploy/contabo/Dockerfile, target: api}
+    restart: unless-stopped
+    init: true
+    environment: *api-environment
+    volumes: [uploads:/app/apps/api/uploads]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      clamav: {condition: service_healthy}
+    networks: [private, edge]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://127.0.0.1:3001/health").then(async r=>{const b=await r.json();process.exit(r.ok && b.antivirus === "connected" ? 0 : 1)}).catch(()=>process.exit(1))']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  storage-init:
+    image: hudumika-api:${RELEASE_TAG:-local}
+    user: '0:0'
+    command: [sh, -c, 'chown 1000:1000 /app/apps/api/uploads && chmod 750 /app/apps/api/uploads']
+    volumes: [uploads:/app/apps/api/uploads]
+    network_mode: none
+    profiles: [tools]
+
+  preflight:
+    image: hudumika-api:${RELEASE_TAG:-local}
+    command: [node, --conditions=production, /app/deploy/contabo/verify-dependencies.mjs]
+    environment: *api-environment
+    profiles: [tools]
+    networks: [private, edge]
+
+  gateway:
+    image: hudumika-web:${RELEASE_TAG:-local}
+    build: {context: ../.., dockerfile: deploy/contabo/Dockerfile, target: web}
+    restart: unless-stopped
+    environment: {APP_DOMAIN: '${APP_DOMAIN}', ACME_EMAIL: '${ACME_EMAIL:?Set certificate email}'}
+    ports: ['80:80', '443:443', '443:443/udp']
+    volumes: [caddy_data:/data, caddy_config:/config]
+    depends_on: {api: {condition: service_healthy}}
+    networks: [edge]
+
+  backup:
+    image: hudumika-backup:${RELEASE_TAG:-local}
+    build: {context: ../.., dockerfile: deploy/contabo/Dockerfile, target: backup}
+    profiles: [tools]
+    environment: &backup-environment
+      PGHOST: db
+      PGUSER: postgres
+      PGDATABASE: hudumika
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY:?Configure off-server backups}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?Run init.py}
+      AWS_ACCESS_KEY_ID: ${BACKUP_ACCESS_KEY:?Configure backup storage}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_SECRET_KEY:?Configure backup storage}
+      AWS_DEFAULT_REGION: ${BACKUP_REGION:-us-east-1}
+    volumes: [uploads:/snapshot/uploads:ro, '../../.env.production:/snapshot/production.env:ro', backup_cache:/root/.cache/restic]
+    networks: [private, edge]
+
+  restore-check:
+    image: hudumika-backup:${RELEASE_TAG:-local}
+    entrypoint: [bash, /usr/local/bin/hudumika-restore-check]
+    profiles: [tools]
+    environment: *backup-environment
+    volumes: [backup_cache:/root/.cache/restic]
+    networks: [private, edge]
+
+volumes:
+  postgres_data:
+  redis_data:
+  clamav_data:
+  uploads:
+  caddy_data:
+  caddy_config:
+  backup_cache:
+networks:
+  private: {internal: true}
+  edge:

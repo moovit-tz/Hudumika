@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-29",
+  "scope": "Disposable tenant budget/manual actual-cost probe, not a payment test",
+  "manualCostPatch": {
+    "status": 200,
+    "data": {
+      "id": "9d70d8d5-f786-4f43-bd0f-d814a2f48de1",
+      "cert_id": "d57397fa-3148-4021-be08-70e5e2f73f8b",
+      "requirement_def_id": null,
+      "cycle_type": "renewal",
+      "status": "draft",
+      "owner_id": "24fa5c9c-9aeb-4c74-a874-3a632e7e4eb5",
+      "delegate_id": null,
+      "entity_id": null,
+      "site_id": null,
+      "jurisdiction": "TZ",
+      "agency_code": null,
+      "prerequisites": [],
+      "deadline": null,
+      "budget_estimate": 100000,
+      "budget_currency": "TZS",
+      "actual_cost": 40000,
+      "submission_ref": null,
+      "submission_date": null,
+      "authority_ref": null,
+      "outcome_date": null,
+      "outcome_notes": null,
+      "metadata": {},
+      "created_by": "24fa5c9c-9aeb-4c74-a874-3a632e7e4eb5",
+      "created_at": "2026-10-29T12:58:24.049Z",
+      "updated_at": "2026-10-29T12:58:24.228Z"
+    }
+  },
+  "currentUiRenewalApi": {
+    "status": 200,
+    "data": [
+      {
+        "id": "d01473f7-d3ac-410f-ac85-c5f4bb99880b",
+        "cert_id": "d57397fa-3148-4021-be08-70e5e2f73f8b",
+        "cert_name": "Spend review permit",
+        "agency_code": "REVIEW",
+        "status": "pending_review",
+        "trigger": "manual",
+        "triggered_at": "2026-10-29T12:58:24.038Z",
+        "approved_by": null,
+        "approved_by_name": null,
+        "approved_at": null,
+        "submitted_at": null,
+        "completed_at": null,
+        "notes": null
+      }
+    ]
+  },
+  "tenantSnapshot": {
+    "id": "419c2214-57b7-4126-867b-de9627ff08b8",
+    "tenant_id": "8d0469c3-65d4-4a0b-ab14-b6a77471c7c2",
+    "snapshot_date": "2026-10-29",
+    "metric_type": "daily",
+    "entity_count": 0,
+    "site_count": 0,
+    "user_count": 1,
+    "permit_count": 1,
+    "permits_active": 1,
+    "permits_expiring": 0,
+    "permits_expired": 0,
+    "compliance_score": null,
+    "total_cost_ytd": 0,
+    "cost_currency": "TZS",
+    "renewal_work_pending": 1,
+    "blockers": 0,
+    "app_usage": {},
+    "computed_at": "2026-10-29T12:58:24.359Z"
+  },
+  "noPaymentPerformed": true,
+  "cleaned": true
+}

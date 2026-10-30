@@ -1,4 +1,5 @@
 import { dbPlatform, withTenant } from '../db/client.js';
+import { syncAttendanceFromSessions } from './attendance-recording.service.js';
 
 /**
  * Clocking out of a shift nobody clocked out of.
@@ -101,31 +102,33 @@ export async function sweepStaleCheckIns(now = new Date()): Promise<{ closed: nu
  * project_name doubles as the flag: hr_clock_sessions has no notes column of
  * its own, and this is the one field already surfaced wherever a session is
  * listed, so a real HR reviewer sees *why* worked_minutes is blank without a
- * schema change. hr_attendance is deliberately left unsynced here (that would
- * need hr.routes.ts's own syncAttendanceFromSessions, and importing a route
- * file into a service would invert the dependency direction the rest of this
- * codebase keeps) — the next real write for that date recomputes it anyway.
+ * schema change. The shared attendance aggregator marks the day INCOMPLETE
+ * in the same transaction so a missing clock-out is immediately actionable.
  */
 export async function sweepStaleClockSessions(now = new Date()): Promise<{ closed: number }> {
   const cutoff = new Date(now.getTime() - MAX_SHIFT_MINUTES * 60000);
   const stale = await dbPlatform
     .selectFrom('hr_clock_sessions')
-    .select(['id', 'tenant_id', 'clock_in_at'])
+    .select(['id', 'tenant_id', 'user_id', 'date', 'clock_in_at'])
     .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
     .where('clock_in_at', '<', cutoff)
     .execute();
 
   for (const s of stale) {
     const hours = Math.round((now.getTime() - new Date(s.clock_in_at).getTime()) / 3600000);
-    await withTenant(s.tenant_id, trx =>
-      trx.updateTable('hr_clock_sessions')
+    await withTenant(s.tenant_id, async trx => {
+      await trx.updateTable('hr_clock_sessions')
         .set({
           status: 'COMPLETED', clock_out_at: now, worked_minutes: null, updated_at: now,
           project_name: `Auto-closed after ${hours}h — no clock-out was recorded, so the time worked is not known and has been left blank rather than guessed. Needs HR review.`,
         })
         .where('id', '=', s.id)
         .where('tenant_id', '=', s.tenant_id)
-        .execute());
+        .execute();
+      const rawDate: unknown = s.date;
+      const date = rawDate instanceof Date ? `${rawDate.getFullYear()}-${String(rawDate.getMonth() + 1).padStart(2, '0')}-${String(rawDate.getDate()).padStart(2, '0')}` : String(rawDate).slice(0, 10);
+      await syncAttendanceFromSessions(trx, s.tenant_id, s.user_id, date, s.user_id);
+    });
   }
   return { closed: stale.length };
 }

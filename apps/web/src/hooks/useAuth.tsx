@@ -7,6 +7,7 @@ import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStor
 import { resetTasksCache } from '../data/calendarStore.js';
 import { applyTenantLocale } from '../lib/tenantLocale.js';
 import { clearIdleLockState } from '../lib/idleLockKeys.js';
+import { clearShipmentCache } from '../pages/clearanceData.js';
 
 // Session-cookie migration (security checklist #9): the access/refresh
 // tokens are httpOnly cookies now, invisible to JS entirely — only the
@@ -159,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetFinanceCapabilitiesCache();
     resetCompanyCache();
     resetTasksCache();
+    clearShipmentCache();
     setUser(res.user);
     hydrateCompanyFromServer();
     // Also on a fresh sign-in, not only when restoring a stored session — this
@@ -335,6 +337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetFinanceCapabilitiesCache();
     resetCompanyCache();
     resetTasksCache();
+    clearShipmentCache();
     setUser(null);
   };
 

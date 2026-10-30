@@ -13,6 +13,10 @@ import { DOCUMENT_KINDS, DOCUMENT_TEMPLATES, useDocumentTemplate, type DocumentK
 import './StoreDocumentTemplates.css';
 
 const DOCUMENT_COPY: Record<DocumentKind, { party:string; partyName:string; number:string; total:string; note:string }> = {
+  bill:{party:'Supplier',partyName:'East Africa Supplies',number:'BILL-0042',total:'Balance due',note:'Supplier bill.'},
+  expense:{party:'Paid to',partyName:'East Africa Supplies',number:'EXP-0042',total:'Expense amount',note:'Expense voucher.'},
+  expense_report:{party:'Claimed by',partyName:'Employee',number:'CLAIM-0042',total:'Total claimed',note:'Receipt-backed expense report.'},
+  vendor_statement:{party:'Vendor',partyName:'East Africa Supplies',number:'STMT-0042',total:'Balance',note:'Balances are separated by currency.'},
   invoice:{ party:'Bill to', partyName:'Bahari Logistics Ltd', number:'INV-2026-0042', total:'Amount due', note:'Payment due within 30 days.' },
   credit_note:{ party:'Credit to', partyName:'Bahari Logistics Ltd', number:'CN-2026-0011', total:'Total credited', note:'Credit against invoice INV-2026-0036.' },
   purchase_order:{ party:'Supplier', partyName:'East Africa Office Supplies', number:'PO-2026-0087', total:'Order total', note:'Deliver to the main warehouse by 16 October 2026.' },

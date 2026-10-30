@@ -121,7 +121,7 @@ export async function commEventsRoutes(fastify: FastifyInstance) {
   fastify.post('/events/:key/simulate', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req, reply) => {
     const user = req.user;
     const { key } = req.params as { key: string };
-    const body = z.object({ vars: z.record(z.string()).optional() }).optional().parse(req.body);
+    const body = z.object({ vars: z.record(z.string(), z.string()).optional() }).optional().parse(req.body);
     try {
       const result = await CommEventsService.simulate(user.tenant_id, key, body?.vars);
       return {
@@ -140,7 +140,7 @@ export async function commEventsRoutes(fastify: FastifyInstance) {
   fastify.post('/events/:key/test-send', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req, reply) => {
     const user = req.user;
     const { key } = req.params as { key: string };
-    const body = z.object({ to: z.string().email(), vars: z.record(z.string()).optional() }).parse(req.body);
+    const body = z.object({ to: z.string().email(), vars: z.record(z.string(), z.string()).optional() }).parse(req.body);
     try {
       const result = await CommEventsService.simulate(user.tenant_id, key, body.vars);
       const { MailService } = await import('../services/mail.service.js');
@@ -168,7 +168,7 @@ export async function commEventsRoutes(fastify: FastifyInstance) {
     const { key } = req.params as { key: string };
     const body = z.object({
       record: z.object({ type: z.string().min(1), id: z.string().min(1), label: z.string().optional() }).optional(),
-      context: z.record(z.unknown()).default({}), idempotency_key: z.string().min(1).max(250).optional(), locale: z.string().optional(),
+      context: z.record(z.string(), z.unknown()).default({}), idempotency_key: z.string().min(1).max(250).optional(), locale: z.string().optional(),
       recipients: z.array(z.object({ email: z.string().email(), name: z.string().optional(), user_id: z.string().uuid().optional(), type: z.enum(['TO', 'CC', 'BCC']).default('TO') })).optional(),
     }).parse(req.body ?? {});
     try {

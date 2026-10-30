@@ -2,6 +2,8 @@ import { dbPlatform } from '../db/client.js';
 import { decryptSecret, encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { AI_PROVIDER_CONFIG, AI_PROVIDERS, detectAiProvider, type AiProvider } from './ai-providers.js';
 import { isByokAllowed, hasAiCreditsRemaining, debitAiCredit } from './ai-credits.js';
+import { getServiceConfig } from './provider-metering.js';
+import * as EsbService from '../services/esb.service.js';
 
 /**
  * SuperAdmin ▸ Settings ▸ Security & Sessions / API & Webhooks
@@ -236,7 +238,7 @@ export async function getPlatformAiSettings(): Promise<PlatformAiSettings> {
  * the platform-wide item-count quota.
  */
 export async function resolveAiCredentials(tenantId: string, tenantAiConfig: { on?: boolean; apiKey?: string; model?: string; provider?: string } | undefined | null, role?: string):
-  Promise<{ apiKey: string; model: string; provider: string; billedToPlatform: boolean } | null> {
+  Promise<{ apiKey: string; model: string; provider: string; billedToPlatform: boolean; esbOperationId?: string } | null> {
   const isSuperAdmin = role === 'SUPER_ADMIN';
   if (tenantAiConfig?.on && tenantAiConfig.apiKey && (isSuperAdmin || await isByokAllowed(tenantId))) {
     const model = tenantAiConfig.model || 'claude-sonnet-5';
@@ -249,6 +251,38 @@ export async function resolveAiCredentials(tenantId: string, tenantAiConfig: { o
   }
   const platform = await getPlatformAiSettings();
   if (!platform.enabled) return null;
+
+  // Check if this tenant uses ESB metering for AI (Phase 3)
+  const aiConfig = await getServiceConfig(tenantId, 'ai');
+  const useEsb = !isSuperAdmin && aiConfig.esbMetered;
+
+  if (useEsb) {
+    // ESB-metered path: reserve funds before handing out platform credentials.
+    // getRate is called inside meterBefore; here we just need to check balance.
+    const { meterBefore } = await import('./provider-metering.js');
+    const reservation = await meterBefore({
+      tenantId,
+      serviceKind: 'ai',
+      provider: platform.provider,
+      billedToPlatform: true,
+      sourceApp: 'ai',
+    });
+    if (reservation.metered && !reservation.operationId) {
+      // Reservation failed (insufficient funds, no rate, etc.)
+      return null;
+    }
+    const stored = normalizeAiSettings((await readRaw()).ai).providers[platform.provider]?.apiKey;
+    const apiKey = stored ? decryptSecret(stored) : process.env.PLATFORM_AI_API_KEY!;
+    return {
+      apiKey,
+      model: platform.model,
+      provider: platform.provider,
+      billedToPlatform: true,
+      esbOperationId: reservation.operationId,
+    };
+  }
+
+  // Legacy AI-credits path
   if (!isSuperAdmin && !(await hasAiCreditsRemaining(tenantId))) return null;
   // A stored key wins over the env var when both exist — it's the one a
   // SuperAdmin most recently and deliberately set via the settings screen.

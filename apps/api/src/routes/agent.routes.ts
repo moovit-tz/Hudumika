@@ -5,6 +5,7 @@ import { requireUuidParams } from '../middleware/uuid-params.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { resolveAiCredentials } from '../lib/platform-settings.js';
 import { describeAiUnavailable } from '../lib/ai-credits.js';
+import { settleAiCall } from '../lib/esb-ai-settle.js';
 import { loadMemory, memoryPromptSection, parseRememberCommand } from '../services/ai-memory.service.js';
 import { AGENT_TOOL_REGISTRY, AGENT_TOOL_INPUT_SCHEMAS, runAgentTool } from '../services/agent-registry.js';
 import { getTenantAgentUsage } from '../lib/agent-usage.js';
@@ -174,7 +175,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
     /** Optional expiry applied to every listed grant. */
     expiresAt: z.string().datetime().nullable().optional(),
     /** toolId → largest amountTzs the agent may spend without a human approving. */
-    maxAmountTzs: z.record(z.number().positive()).optional(),
+    maxAmountTzs: z.record(z.string(), z.number().positive()).optional(),
   });
 
   fastify.get('/usage', async (request: any, reply) => {
@@ -243,7 +244,14 @@ export async function agentRoutes(fastify: FastifyInstance) {
     await withTenant(user.tenant_id, trx => recordMessage(trx, user.tenant_id, run.id, 1, 'user', body.goal));
 
     const memorySection = await loadMemorySection(user.tenant_id, user.sub);
-    const loop = await runAgentLoop(user.tenant_id, user.sub, creds.apiKey, creds.model, creds.provider, user.role, [{ role: 'user', content: body.goal }], undefined, memorySection, await getAllowedToolIds(user.tenant_id, agentId), await getToolLimits(user.tenant_id, agentId));
+    let loop: AgentLoopResult;
+    try {
+      loop = await runAgentLoop(user.tenant_id, user.sub, creds.apiKey, creds.model, creds.provider, user.role, [{ role: 'user', content: body.goal }], undefined, memorySection, await getAllowedToolIds(user.tenant_id, agentId), await getToolLimits(user.tenant_id, agentId));
+      await settleAiCall(user.tenant_id, creds.esbOperationId, true);
+    } catch (e: any) {
+      await settleAiCall(user.tenant_id, creds.esbOperationId, false, e.message);
+      throw e;
+    }
     const summary = await applyLoopResult(user.tenant_id, run.id, loop);
 
     reply.status(201);
@@ -321,7 +329,14 @@ export async function agentRoutes(fastify: FastifyInstance) {
     await withTenant(user.tenant_id, trx => recordMessage(trx, user.tenant_id, id, seq, 'user', body.message));
     await withTenant(user.tenant_id, trx => trx.updateTable('agent_runs').set({ status: 'running', updated_at: new Date() }).where('id', '=', id).execute());
 
-    const loop = await runAgentLoop(user.tenant_id, user.sub, creds.apiKey, creds.model, creds.provider, user.role, [...history, { role: 'user', content: body.message }], undefined, await loadMemorySection(user.tenant_id, user.sub), await getAllowedToolIds(user.tenant_id, run.agent_id), await getToolLimits(user.tenant_id, run.agent_id));
+    let loop: AgentLoopResult;
+    try {
+      loop = await runAgentLoop(user.tenant_id, user.sub, creds.apiKey, creds.model, creds.provider, user.role, [...history, { role: 'user', content: body.message }], undefined, await loadMemorySection(user.tenant_id, user.sub), await getAllowedToolIds(user.tenant_id, run.agent_id), await getToolLimits(user.tenant_id, run.agent_id));
+      await settleAiCall(user.tenant_id, creds.esbOperationId, true);
+    } catch (e: any) {
+      await settleAiCall(user.tenant_id, creds.esbOperationId, false, e.message);
+      throw e;
+    }
     const summary = await applyLoopResult(user.tenant_id, id, loop);
 
     return { id, status: loop.status, ...summary };
@@ -483,11 +498,18 @@ export async function agentRoutes(fastify: FastifyInstance) {
       await withTenant(user.tenant_id, trx => trx.updateTable('agent_runs').set({ status: 'failed', error_message: reason, updated_at: new Date(), completed_at: new Date() }).where('id', '=', approval.run_id).execute());
       return reply.status(400).send({ error: reason });
     }
-    const resumed = await runAgentLoop(
-      user.tenant_id, run.initiator_user_id, creds.apiKey, creds.model || run.model || creds.model, creds.provider, user.role, history,
-      { toolId: approval.tool_id, result, rawAssistantMessage: preview.rawAssistantMessage, toolUseId: preview.toolUseId },
-      await loadMemorySection(user.tenant_id, run.initiator_user_id), allowedNow, await getToolLimits(user.tenant_id, run.agent_id),
-    );
+    let resumed: AgentLoopResult;
+    try {
+      resumed = await runAgentLoop(
+        user.tenant_id, run.initiator_user_id, creds.apiKey, creds.model || run.model || creds.model, creds.provider, user.role, history,
+        { toolId: approval.tool_id, result, rawAssistantMessage: preview.rawAssistantMessage, toolUseId: preview.toolUseId },
+        await loadMemorySection(user.tenant_id, run.initiator_user_id), allowedNow, await getToolLimits(user.tenant_id, run.agent_id),
+      );
+      await settleAiCall(user.tenant_id, creds.esbOperationId, true);
+    } catch (e: any) {
+      await settleAiCall(user.tenant_id, creds.esbOperationId, false, e.message);
+      throw e;
+    }
     const summary = await applyLoopResult(user.tenant_id, approval.run_id, resumed);
 
     return { status: 'approved', runStatus: resumed.status, approvalsReceived, approvalsRequired: approval.required_approvals, ...summary };

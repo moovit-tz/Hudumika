@@ -1,3 +1,8 @@
+import {Banner} from '../components/ui/alert.js';
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from '../components/ui/table.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Card } from '../components/ui/card.js';
+import { Input } from '../components/ui/input.js';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -479,10 +484,10 @@ export function ComplyBrelaSearch() {
         </div>
       )}
       {importError && (
-        <div className="comply-note comply-note--error comply-note--icon comply-mb-24">
+        <Banner variant="error" icon={false} className="comply-note--icon comply-mb-24">
           <Icon name="alertTriangle" size={15} />
           <span>{importError}</span>
-        </div>
+        </Banner>
       )}
 
       {/* ── BRELA Search Form — numbered step rows, each with an eyebrow +
@@ -515,14 +520,14 @@ export function ComplyBrelaSearch() {
           <FeaturedIcon variant="brand" size="sm" shape="square" className="comply-search-compact-icon">
             <Icon name="search" size={15} />
           </FeaturedIcon>
-          <button type="button" className="comply-search-compact-chip" onClick={() => setFormExpanded(true)} title="Change object type or search field" data-ui-native-button="">
+          <Button aria-label="Change object type or search field" variant="ghost" size="icon" type="button" className="comply-search-compact-chip" onClick={() => setFormExpanded(true)} title="Change object type or search field" >
             <span>{objectType === 'Business name' ? 'Business Name' : 'Company'}</span>
             <Icon name="chevronRight" size={11} />
             <span>{searchBy === 'number' ? (objectType === 'Business name' ? 'Reg. number' : 'Inc. number') : (objectType === 'Business name' ? 'Business Name' : 'Company name')}</span>
             <Icon name="edit" size={11} />
-          </button>
+          </Button>
           {searchBy === 'number' ? (
-            <input
+            <Input
               type="text"
               className="comply-search-compact-input"
               value={incNumber}
@@ -534,7 +539,7 @@ export function ComplyBrelaSearch() {
               autoFocus
             />
           ) : (
-            <input
+            <Input
               type="text"
               className="comply-search-compact-input"
               value={companyName}
@@ -543,20 +548,20 @@ export function ComplyBrelaSearch() {
               autoFocus
             />
           )}
-          <button
+          <Button aria-label="Search BRELA" variant="default" size="icon"
             type="submit"
             className="comply-search-compact-submit"
             disabled={!isSearchReady}
             title="Search BRELA"
-           data-ui-native-button="">
+           >
             {searching
               ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={16} /></span>
               : <Icon name="search" size={16} />}
-          </button>
-          <button type="button" className="comply-btn-secondary comply-btn-sm comply-search-compact-clear" onClick={handleClearForm} data-ui-native-button="">
+          </Button>
+          <Button variant="outline" size="sm" type="button" className="comply-search-compact-clear" onClick={handleClearForm} >
             <Icon name="refresh" size={13} />
             <span>Clear</span>
-          </button>
+          </Button>
         </form>
       )}
 
@@ -564,49 +569,49 @@ export function ComplyBrelaSearch() {
       {searchStatus !== 'idle' && (
         <>
           {searchStatus === 'live' && (
-            <div className="comply-note comply-note--success comply-note--icon">
+            <Banner variant="success" icon={false} className="comply-note--icon">
               <Icon name="checkCircle" size={15} />
               <span><strong>Live from BRELA</strong> — these results were fetched from the BRELA ORS portal just now, not local reference data.</span>
-            </div>
+            </Banner>
           )}
           {searchStatus === 'reference' && !searchRequestError && (
-            <div className="comply-note comply-note--warning comply-note--icon">
+            <Banner variant="warning" icon={false} className="comply-note--icon">
               <Icon name="alertTriangle" size={15} />
               <span><strong>Showing local reference data</strong> — the BRELA ORS portal didn't return live results for this query (it has no public API and blocks most automated requests). The records below are Hudumika's own reference set, not live BRELA data. Use "Open BRELA ORS Portal" above to search the official site directly.</span>
-            </div>
+            </Banner>
           )}
           {searchStatus === 'reference' && searchRequestError && (
-            <div className="comply-note comply-note--error comply-note--icon">
+            <Banner variant="error" icon={false} className="comply-note--icon">
               <Icon name="alertTriangle" size={15} />
               <span><strong>Search request failed</strong> — {searchRequestError} Showing Hudumika's local reference set below instead, not live BRELA data.</span>
-            </div>
+            </Banner>
           )}
           {shareStatus && (
-            <div className="comply-note comply-note--success comply-note--icon">
+            <Banner variant="success" icon={false} className="comply-note--icon">
               <Icon name="checkCircle" size={15} />
               <span>{shareStatus}</span>
-            </div>
+            </Banner>
           )}
 
           {displayResults.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
               <div className="comply-view-toggle">
-                <Tip label="Grid view"><button type="button" aria-label="Grid view" className={`comply-view-btn${resultsView === 'grid' ? ' active' : ''}`} onClick={() => setResultsView('grid')} data-ui-native-button="">
+                <Tip label="Grid view"><Button variant="ghost" size="icon" type="button" aria-label="Grid view" className={`comply-view-btn${resultsView === 'grid' ? ' active' : ''}`} onClick={() => setResultsView('grid')} >
                   <Icon name="grid" size={15} />
-                </button></Tip>
-                <Tip label="List view"><button type="button" aria-label="List view" className={`comply-view-btn${resultsView === 'list' ? ' active' : ''}`} onClick={() => setResultsView('list')} data-ui-native-button="">
+                </Button></Tip>
+                <Tip label="List view"><Button variant="ghost" size="icon" type="button" aria-label="List view" className={`comply-view-btn${resultsView === 'list' ? ' active' : ''}`} onClick={() => setResultsView('list')} >
                   <Icon name="list" size={15} />
-                </button></Tip>
+                </Button></Tip>
               </div>
             </div>
           )}
 
           {displayResults.length === 0 ? (
-            <div className="comply-card">
+            <Card className="comply-card">
               <div className="comply-empty-hint" style={{ textAlign: 'center', padding: 32 }}>
                 No matching BRELA ORS record found for <strong>"{incNumber || companyName}"</strong>.
               </div>
-            </div>
+            </Card>
           ) : resultsView === 'grid' ? (
             <div className="comply-result-grid">
               {/* Sponsored slot — same card shape as an organic result, clearly
@@ -627,10 +632,10 @@ export function ComplyBrelaSearch() {
                   Engage a licensed partner firm to handle incorporation, name reservation, and BRELA filings end-to-end.
                 </div>
                 <div className="comply-result-actions">
-                  <button type="button" className="comply-btn-primary comply-btn-sm" style={{ flex: 1 }} onClick={() => navigate('/complyos/legal')} data-ui-native-button="">
+                  <Button variant="default" size="sm" type="button"  style={{flex: 1}} onClick={() => navigate('/complyos/legal')} >
                     <Icon name="externalLink" size={13} />
                     <span>Talk to a Filing Agent</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
               {displayResults.map(entity => (
@@ -646,46 +651,46 @@ export function ComplyBrelaSearch() {
                         {formatDashedDigits9(entity.reg_number)}
                       </div>
                     </div>
-                    <span className={`comply-badge comply-badge--${badgeVariantForStatus(entity.status)}`}>{entity.status}</span>
+                    <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${badgeVariantForStatus(entity.status)}`)}>{entity.status}</Badge>
                   </div>
 
                   <div className="comply-result-address">{entity.registered_office}</div>
 
                   <div className="comply-result-actions">
-                    <button
+                    <Button variant="outline" size="sm"
                       type="button"
-                      className="comply-btn-secondary comply-btn-sm"
-                      style={{ flex: 1 }}
+
+                      style={{flex: 1}}
                       onClick={() => handleImportToVault(entity)}
                       disabled={importingRegNumber === entity.reg_number}
-                     data-ui-native-button="">
+                     >
                       {importingRegNumber === entity.reg_number
                         ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
                         : <Icon name="plus" size={13} />}
                       <span>{importingRegNumber === entity.reg_number ? 'Importing…' : 'Import to ComplyOS'}</span>
-                    </button>
-                    <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handleShareEntity(entity)} title="Share" data-ui-native-button="">
+                    </Button>
+                    <Button aria-label="Share" variant="ghost" size="icon" type="button" className="comply-result-action-icon" onClick={() => handleShareEntity(entity)} title="Share" >
                       <Icon name="copy" size={14} />
-                    </button>
-                    <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary" data-ui-native-button="">
+                    </Button>
+                    <Button aria-label="Print BRELA Summary" variant="ghost" size="icon" type="button" className="comply-result-action-icon" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary" >
                       <Icon name="printer" size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="comply-card">
+            <Card className="comply-card">
               <div className="comply-card-body">
-                <table className="comply-table">
-                  <thead>
-                    <tr>
-                      <th>Company</th><th>Agency</th><th>TIN</th><th>Status</th><th>Registered Address</th><th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="comply-result-row--sponsored">
-                      <td colSpan={4}>
+                <Table className="comply-table">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead><TableHead>Agency</TableHead><TableHead>TIN</TableHead><TableHead>Status</TableHead><TableHead>Registered Address</TableHead><TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow className="comply-result-row--sponsored">
+                      <TableCell colSpan={4}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <FeaturedIcon variant="warning" size="sm" shape="square">
                             <Icon name="briefcase" size={15} />
@@ -695,54 +700,54 @@ export function ComplyBrelaSearch() {
                             <div className="comply-table-sub">Engage a licensed partner firm to handle incorporation, name reservation, and BRELA filings end-to-end.</div>
                           </div>
                         </div>
-                      </td>
-                      <td><Badge variant="warning">Sponsored</Badge></td>
-                      <td>
-                        <button type="button" className="comply-btn-primary comply-btn-sm" onClick={() => navigate('/complyos/legal')} data-ui-native-button="">
+                      </TableCell>
+                      <TableCell data-label="Agency"><Badge variant="warning">Sponsored</Badge></TableCell>
+                      <TableCell data-label="TIN">
+                        <Button variant="default" size="sm" type="button"  onClick={() => navigate('/complyos/legal')} >
                           <Icon name="externalLink" size={13} />
                           <span>Talk to a Filing Agent</span>
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                     {displayResults.map(entity => (
-                      <tr key={entity.id}>
-                        <td className="comply-table-name">{entity.name}</td>
-                        <td className="comply-td-clamp">
-                          <span className="comply-agency" style={{ display: 'inline-flex' }} title={entity.type}>
+                      <TableRow key={entity.id}>
+                        <TableCell data-label="Company" className="comply-table-name">{entity.name}</TableCell>
+                        <TableCell data-label="Agency" className="comply-td-clamp">
+                          <Badge variant={complyBadgeVariant("comply-agency")} style={{ display: 'inline-flex' }} title={entity.type}>
                             <Icon name={entity.type === 'Business Name' ? 'briefcase' : 'building'} size={12} />
                             {entity.type}
-                          </span>
-                        </td>
-                        <td className="comply-td-mono">{formatDashedDigits9(entity.reg_number)}</td>
-                        <td><span className={`comply-badge comply-badge--${badgeVariantForStatus(entity.status)}`}>{entity.status}</span></td>
-                        <td className="comply-td-muted comply-td-clamp" title={entity.registered_office}>{entity.registered_office}</td>
-                        <td>
+                          </Badge>
+                        </TableCell>
+                        <TableCell data-label="TIN" className="comply-td-mono">{formatDashedDigits9(entity.reg_number)}</TableCell>
+                        <TableCell data-label="Status"><Badge variant={complyBadgeVariant(`comply-badge comply-badge--${badgeVariantForStatus(entity.status)}`)}>{entity.status}</Badge></TableCell>
+                        <TableCell data-label="Registered Address" className="comply-td-muted comply-td-clamp" title={entity.registered_office}>{entity.registered_office}</TableCell>
+                        <TableCell data-label="Actions">
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                            <button
+                            <Button variant="outline" size="sm"
                               type="button"
-                              className="comply-btn-secondary comply-btn-sm"
+
                               onClick={() => handleImportToVault(entity)}
                               disabled={importingRegNumber === entity.reg_number}
-                             data-ui-native-button="">
+                             >
                               {importingRegNumber === entity.reg_number
                                 ? <span style={{ display: 'inline-flex', animation: 'ds-spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
                                 : <Icon name="plus" size={13} />}
                               <span>{importingRegNumber === entity.reg_number ? 'Importing…' : 'Import'}</span>
-                            </button>
-                            <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handleShareEntity(entity)} title="Share" data-ui-native-button="">
+                            </Button>
+                            <Button aria-label="Share" variant="ghost" size="icon" type="button" className="comply-result-action-icon" onClick={() => handleShareEntity(entity)} title="Share" >
                               <Icon name="copy" size={14} />
-                            </button>
-                            <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary" data-ui-native-button="">
+                            </Button>
+                            <Button aria-label="Print BRELA Summary" variant="ghost" size="icon" type="button" className="comply-result-action-icon" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary" >
                               <Icon name="printer" size={14} />
-                            </button>
+                            </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
-            </div>
+            </Card>
           )}
         </>
       )}
@@ -778,7 +783,7 @@ function BrelaStepRows({
   const detailPlaceholder = searchBy === 'number' ? 'e.g. 137644169' : 'e.g. ALEKA HOLDINGS LIMITED';
 
   return (
-    <div className="comply-card comply-mb-24">
+    <Card className="comply-card comply-mb-24">
       <div className="comply-form-body" style={{ paddingTop: 20 }}>
         <div className="comply-step-rows">
           <div className="comply-step-row">
@@ -819,7 +824,7 @@ function BrelaStepRows({
               <div className="comply-step-row-question">Details</div>
             </div>
             {searchBy ? (
-              <input
+              <Input
                 type="text"
                 className="comply-step-row-control comply-step-row-input"
                 value={detailValue}
@@ -838,16 +843,16 @@ function BrelaStepRows({
         </div>
 
         <div className="comply-action-row comply-form-actions" style={{ paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-          <button type="button" className="comply-btn-primary" disabled={!isSearchReady} onClick={onSearch} data-ui-native-button="">
+          <Button variant="default" size="sm" type="button"  disabled={!isSearchReady} onClick={onSearch} >
             <Icon name="search" size={15} />
             <span>{searching ? 'Searching BRELA…' : 'Search BRELA'}</span>
-          </button>
-          <button type="button" className="comply-btn-secondary" onClick={onClear} disabled={searching} data-ui-native-button="">
+          </Button>
+          <Button variant="outline" size="sm" type="button"  onClick={onClear} disabled={searching} >
             <Icon name="refresh" size={14} />
             <span>Clear</span>
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -31,6 +31,7 @@ import { SuperAdminAnnouncements } from '../pages/SuperAdminAnnouncements.js';
 import { SuperAdminSigningCert } from '../pages/SuperAdminSigningCert.js';
 import { SuperAdminKyb } from '../pages/SuperAdminKyb.js';
 import { SmsGateways } from '../pages/sms/SmsGateways.js';
+import { SuperAdminAnalytics } from '../pages/SuperAdminAnalytics.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -41,6 +42,7 @@ const NAV: SidebarSection[] = [
       { label: 'Packages',      icon: 'package',    path: '/admin/packages'      },
       { label: 'Transactions',  icon: 'receipt',    path: '/admin/transactions'  },
       { label: 'Finance',       icon: 'dollarSign', path: '/admin/finance'       },
+      { label: 'Analytics',     icon: 'trendingUp', path: '/admin/analytics'     },
       { label: 'Domains',       icon: 'globe',      path: '/admin/domains'       },
       { label: 'Activity Log',  icon: 'clock',      path: '/admin/activity'      },
     ],
@@ -85,6 +87,7 @@ function AdminContent() {
           <Route path="packages"      element={<PackagesView />} />
           <Route path="transactions"  element={<TransactionsView />} />
           <Route path="finance"       element={<FinanceView />} />
+          <Route path="analytics"    element={<SuperAdminAnalytics />} />
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
           {/* Moved to NexusHR (biometric attendance hardware is a NexusHR-

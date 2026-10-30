@@ -1,4 +1,6 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+﻿import './ShipmentDetail.css';
+import { Button } from '../components/ui/button.js';
+import React, { useState, useEffect, useRef } from 'react';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { ExaminationsQueue } from '../components/ExaminationsQueue.js';
 import { DangerousGoodsPanel } from '../components/DangerousGoodsPanel.js';
@@ -33,8 +35,6 @@ import {
 } from './clearanceData.js';
 import { ChBadge } from '../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../data/staffData.js';
-import type { Employee } from '../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -194,7 +194,7 @@ export function ShipmentDetail() {
   const isOverdue  = job.dueDate && new Date() > job.dueDate;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent' }}>
+    <div className="shipment-detail" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'transparent' }}>
 
       {/* ── Header ── */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
@@ -210,10 +210,12 @@ export function ShipmentDetail() {
           {/* Utility row — back button + status badges + primary actions; always visible */}
           {/* Top Single Row: Utility + Title + Actions */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 0, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-              <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
-                <Icon name="chevronLeft" size={13} color="var(--ink2)" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
-              </Link>
+            <div className="shipment-identity" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+              <Button asChild variant="outline" size="sm" className="shipment-back">
+                <Link to={isStaff ? '/clearos/ops' : '/'} aria-label={isStaff ? 'Back to Ops Command' : 'Back to your shipments'}>
+                  <Icon name="chevronLeft" size={14} /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
+                </Link>
+              </Button>
               {job.sysRef && (
                 <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
               )}
@@ -245,36 +247,33 @@ export function ShipmentDetail() {
               )}
             </div>
 
-            {/* Right side actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', justifyContent: isMobile ? 'flex-start' : 'flex-end', paddingBottom: isMobile ? 4 : 0 }}>
+            <div className="shipment-actions">
               {isStaff && !isMock && (
-                <Link to={`/clearos/clearance/${id}/edit`} title="Edit shipment details" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', textDecoration: 'none', flexShrink: 0 }}>
-                  <Icon name="edit" size={15} />
-                </Link>
+                <Button asChild variant="outline" size="icon">
+                  <Link to={`/clearos/clearance/${id}/edit`} aria-label="Edit shipment details" title="Edit shipment details">
+                    <Icon name="edit" size={15} />
+                  </Link>
+                </Button>
               )}
               {isStaff && (
-                // The one saturated-colour element in this row, deliberately —
-                // it's the actual primary action, same as accent-colour links
-                // and CTAs are the only colour in the Hostinger reference this
-                // page's palette is being brought closer to.
-                <button type="button" onClick={() => setShowAdv(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, flexShrink: 0 }} data-ui-native-button="">
-                  <Icon name="arrowRight" size={13} color="#fff" /> Advance Stage
-                </button>
+                <Button size="sm" className="shipment-advance" onClick={() => setShowAdv(true)}>
+                  <Icon name="arrowRight" size={15} /> Advance Stage
+                </Button>
               )}
-              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+              <Button variant="outline" size="icon" onClick={() => openShipmentReportWindow(job)} aria-label="Print shipment report" title="Print shipment report">
                 <Icon name="printer" size={15} />
-              </button>
+              </Button>
               {isStaff && (
-                <button type="button" onClick={() => shareShipmentReportLink(job.id)} title="Copy progress link (for WhatsApp/email)" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+                <Button variant="outline" size="icon" onClick={() => shareShipmentReportLink(job.id)} aria-label="Copy progress link" title="Copy progress link (for WhatsApp/email)">
                   <Icon name="link" size={15} />
-                </button>
+                </Button>
               )}
             </div>
           </div>
         </div>
 
         {/* Stage stepper — floats up over the hero band */}
-        <div style={{ margin: isMobile ? '-10px 10px 0' : '-12px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 'var(--r)', padding: '10px 0 8px', border: '1px solid var(--border)' }}>
+        <div style={{ margin: isMobile ? '-10px 10px 0' : '-12px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 'var(--card-radius)', padding: '10px 0 8px', border: '1px solid var(--border)', boxShadow: 'var(--card-shadow, none)' }}>
           {isStaff ? <StageStepper job={job} /> : (
             <div style={{ padding: '0 24px' }}><CustomerMilestoneTimeline job={job} compact /></div>
           )}
@@ -288,9 +287,9 @@ export function ShipmentDetail() {
 
         {/* Tabs — the shared segmented ds-tabs (same control as Ops Command /
             NexusHR), scrolling horizontally when the row overflows its width. */}
-        <div style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+        <div className="shipment-navigation" style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)' }}>
           <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
-            <TabsList style={{ width: '100%', flexWrap: 'nowrap' }}>
+            <TabsList className="shipment-tab-list" style={{ width: '100%', flexWrap: 'nowrap' }}>
               {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
                 const badge =
                   t.id === 'tasks'      ? job.tasks.length :
@@ -312,7 +311,7 @@ export function ShipmentDetail() {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 0 14px' : '0 0 24px', background: 'var(--white)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 0 14px' : '0 0 24px', background: 'var(--bg)' }}>
         <div style={{
           padding: isMobile ? '14px 10px' : '20px 14px',
         }}>

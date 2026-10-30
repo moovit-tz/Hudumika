@@ -17,6 +17,7 @@ import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { parse } from 'csv-parse/sync';
 import { hashPassword } from '../lib/password.js';
+import { resolveFieldPolicy } from '../lib/field-policy.js';
 
 // CSV header normalization — accept "Company Name", "company_name", "Company", etc.
 function normalizeHeaders(row: Record<string, unknown>): Record<string, string> {
@@ -163,7 +164,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
       if (pickerQuery.search) customerQuery = customerQuery.where('customers.name', 'ilike', `%${pickerQuery.search.replace(/[\\%_]/g, '\\$&')}%`);
       customerQuery = customerQuery.orderBy('customers.name', 'asc').orderBy('customers.id');
       const list = await (pickerQuery.limit ? customerQuery.limit(pickerQuery.limit) : customerQuery).execute();
-      return { data: list };
+      const fp = await resolveFieldPolicy(user.tenant_id, 'customers', user.role);
+      return { data: fp.redactAll(list as Record<string, unknown>[]), _redacted: fp.redactedFields.size > 0 };
     });
   });
 
@@ -478,7 +480,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Customer not found' });
     }
 
-    return customer;
+    const fp = await resolveFieldPolicy(user.tenant_id, 'customers', user.role);
+    return fp.redact(customer as Record<string, unknown>);
   });
 
   /**

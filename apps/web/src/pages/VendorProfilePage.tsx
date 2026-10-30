@@ -1,3 +1,5 @@
+import { PageHeader } from '../components/PageHeader.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -79,119 +81,6 @@ function TinChip({ tin }: { tin?: string }) {
   );
 }
 
-/* ── Statement of Account print preview window ── */
-function openVendorStatementPrintWindow(
-  vendor: Vendor,
-  bills: any[],
-  payments: any[],
-  totals: { totalBilled: number; totalPaid: number; outstanding: number },
-) {
-  const co = getCompany();
-  const money = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
-  const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-  // Build combined chronological transactions
-  const txs: { date: string; ref: string; type: string; debit: number; credit: number; balance: number }[] = [];
-  let running = 0;
-
-  const rawEvents = [
-    ...bills.map(b => ({
-      date: b.bill_date ? String(b.bill_date).slice(0, 10) : '',
-      ref: b.bill_number || 'Bill',
-      type: 'Supplier Bill',
-      debit: Number(b.total) || 0,
-      credit: 0,
-    })),
-    ...payments.map(p => ({
-      date: p.payment_date ? String(p.payment_date).slice(0, 10) : '',
-      ref: p.reference || 'Disbursement',
-      type: `Payment (${p.method || 'Transfer'})`,
-      debit: 0,
-      credit: Number(p.amount) || 0,
-    })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
-
-  for (const e of rawEvents) {
-    running += e.debit - e.credit;
-    txs.push({ ...e, balance: running });
-  }
-
-  const rows = txs.map(tx => `<tr>
-    <td>${tx.date || '—'}</td>
-    <td><strong>${tx.ref}</strong></td>
-    <td>${tx.type}</td>
-    <td style="text-align:right;font-family:monospace;color:${tx.debit ? '#dc2626' : '#9ca3af'}">${tx.debit ? money(tx.debit) : '—'}</td>
-    <td style="text-align:right;font-family:monospace;color:${tx.credit ? '#059669' : '#9ca3af'}">${tx.credit ? money(tx.credit) : '—'}</td>
-    <td style="text-align:right;font-family:monospace;font-weight:700;${tx.balance > 0 ? 'color:#dc2626' : '#059669'}">${money(tx.balance)}</td>
-  </tr>`).join('');
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>Vendor Statement of Account — ${vendor.name}</title><style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;color:#111;padding:28px 36px;font-size:11px}
-.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #d5dde8}
-.from strong{font-size:16px;color:#111}
-.from div{color:#555;line-height:1.6;margin-top:4px}
-.title{text-align:right}
-.title h1{font-size:18px;color:#111827}
-.title .sub{color:#9ca3af;font-size:10px;margin-top:4px}
-.to{margin-bottom:16px;display:flex;justify-content:space-between;gap:20px}
-.to .lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:4px}
-.to .name{font-size:14px;font-weight:700}
-.to .sub{color:#555;font-size:11px;margin-top:3px}
-.totals{display:flex;gap:20px;margin-bottom:18px;padding:12px 16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb}
-.totals div{flex:1}
-.totals .lbl{font-size:8.5px;font-weight:800;text-transform:uppercase;color:#6b7280;margin-bottom:4px}
-.totals .val{font-size:15px;font-weight:800;font-family:monospace}
-table{width:100%;border-collapse:collapse}
-thead tr{background:#f9fafb;border-bottom:2px solid #d5dde8}
-th{padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase}
-th:nth-child(4),th:nth-child(5),th:nth-child(6){text-align:right}
-td{padding:8px 10px;border-bottom:1px solid #edf0f4;font-size:11px}
-@media print{body{padding:12px 18px}}
-</style></head><body>
-<div class="top">
-  <div class="from">
-    ${co.logoUrl ? `<img src="${co.logoUrl}" style="max-height:36px;max-width:140px;object-fit:contain" alt="${co.name}">` : `<strong>${co.name}</strong>`}
-    <div>${co.address}<br>${co.city}, ${co.country} · VAT/TIN: ${co.taxId || '—'}</div>
-  </div>
-  <div class="title">
-    <h1>Vendor Statement of Account</h1>
-    <div class="sub">Generated ${today}</div>
-  </div>
-</div>
-<div class="to">
-  <div>
-    <div class="lbl">Vendor / Supplier</div>
-    <div class="name">${vendor.name}</div>
-    <div class="sub">${[vendor.address, vendor.city, vendor.country].filter(Boolean).join(', ') || 'Tanzania'}</div>
-    <div class="sub">TIN: ${vendor.taxId || '—'} · Terms: ${PAYMENT_TERMS_LABEL[vendor.paymentTerms]}</div>
-  </div>
-  <div style="text-align:right">
-    <div class="lbl">Payment Details</div>
-    <div style="font-size:11px;color:#111">Bank: <strong>${vendor.bankName || '—'}</strong></div>
-    <div style="font-size:11px;color:#111">Account: <strong>${vendor.bankAccount || '—'}</strong></div>
-    <div style="font-size:11px;color:#6b7280">Currency: ${vendor.currency}</div>
-  </div>
-</div>
-<div class="totals">
-  <div><div class="lbl">Total Invoiced (Bills)</div><div class="val">${money(totals.totalBilled)}</div></div>
-  <div><div class="lbl">Total Paid to Date</div><div class="val" style="color:#059669">${money(totals.totalPaid)}</div></div>
-  <div><div class="lbl">Net Outstanding Balance</div><div class="val" style="color:${totals.outstanding > 0 ? '#dc2626' : '#059669'}">${money(totals.outstanding)}</div></div>
-</div>
-<table><thead><tr>
-  <th>Date</th><th>Reference</th><th>Transaction</th><th>Billed (Dr)</th><th>Paid (Cr)</th><th>Balance</th>
-</tr></thead><tbody>${rows || '<tr><td colspan="6" style="color:#9ca3af;font-style:italic;padding:16px;text-align:center">No transactions recorded</td></tr>'}</tbody></table>
-<script>window.onload=function(){window.print()}</script>
-</body></html>`;
-
-  const win = window.open('', '_blank', 'width=880,height=1000');
-  if (win) { win.document.write(html); win.document.close(); }
-}
-
-/* ══════════════════════════════════════════════════════════════════════════════
-   VendorProfilePage
-══════════════════════════════════════════════════════════════════════════════ */
 export function VendorProfilePage() {
   const { id, tab: tabParam } = useParams<{ id: string; tab?: string }>();
   const navigate = useNavigate();
@@ -530,6 +419,7 @@ export function VendorProfilePage() {
 
   return (
     <div className="vendor-profile-root">
+      <FinanceDocumentActions kind="vendor_statement" id={v.id} label={v.name}/>
       {/* ── Breadcrumbs Bar ── */}
       <div className="vendor-breadcrumbs-bar">
         <div className="vendor-breadcrumbs-path">
@@ -566,7 +456,7 @@ export function VendorProfilePage() {
 
             <div className="vendor-hero-details">
               <div className="vendor-title-row">
-                <h1 className="vendor-company-title">{v.name}</h1>
+                <PageHeader crumbs={[]} titlePlain={v.name.split(' ').slice(0,-1).join(' ')} titleEm={v.name.split(' ').slice(-1)[0]} subtitle="Vendor profile"/>
                 <Badge
                   style={{
                     background: statusColor.bg,
@@ -706,20 +596,15 @@ export function VendorProfilePage() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+
                 <DropdownMenuItem
-                  onClick={() => openVendorStatementPrintWindow(v, bills, payments, {
-                    totalBilled: financialMetrics.totalBilled,
-                    totalPaid: financialMetrics.totalPaid,
-                    outstanding: financialMetrics.outstanding,
-                  })}
-                >
-                  <Icon name="printer" size={14} />
-                  <span>Statement PDF / Print</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    showAlert('Profile URL copied to clipboard.', { variant: 'success' });
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(window.location.href);
+                      showAlert('Internal profile link copied. Access requires sign-in.', { variant: 'success' });
+                    } catch {
+                      showAlert('Could not copy the link. Copy the address from your browser.', { variant: 'error' });
+                    }
                   }}
                 >
                   <Icon name="share" size={14} />

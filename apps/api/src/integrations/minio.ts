@@ -12,6 +12,7 @@
  * call site imports `MinioIntegration`; kept rather than churn ~40 files.
  */
 import fs from 'fs';
+import { randomUUID } from 'node:crypto';
 import path from 'path';
 import { objectStore } from './object-storage.js';
 
@@ -140,6 +141,12 @@ export class MinioIntegration {
     const storageKey = `tenants/${tenantId}/kyb/${unique}`;
     await objectStore.put(storageKey, fileBuffer);
     console.log(`🗄️ Storage: Org KYB document saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  static async uploadFinanceDocument(tenantId: string, documentId: string, filename: string, fileBuffer: Buffer): Promise<{ storageKey: string; size: number }> {
+    const storageKey = `tenants/${tenantId}/finance-deliveries/${documentId}/${randomUUID()}-${clean(filename)}`;
+    await objectStore.put(storageKey, fileBuffer, 'application/pdf');
     return { storageKey, size: fileBuffer.length };
   }
 

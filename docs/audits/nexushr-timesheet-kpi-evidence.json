@@ -1,0 +1,233 @@
+{
+  "overlap": {
+    "status": 409,
+    "before": 420,
+    "after": 420
+  },
+  "overnight": {
+    "status": 200,
+    "session": {
+      "id": "4f462700-6726-4906-9a27-abbf81cf6307",
+      "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
+      "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+      "date": "2026-10-06",
+      "clock_in_at": "2026-10-06T19:00:00.000Z",
+      "clock_out_at": "2026-10-07T03:00:00.000Z",
+      "project_name": "Manual Entry",
+      "status": "COMPLETED",
+      "total_break_minutes": 60,
+      "worked_minutes": 420,
+      "created_at": "2026-10-29T12:24:01.461Z",
+      "updated_at": "2026-10-29T12:24:01.461Z",
+      "source": "MANUAL",
+      "device_id": null
+    }
+  },
+  "excessBreak": {
+    "status": 400
+  },
+  "future": {
+    "status": 400
+  },
+  "unrelatedManagerApproval": {
+    "status": 403
+  },
+  "afterApproval": {
+    "additionStatus": 409,
+    "liveMinutes": 420,
+    "approvalResponse": {
+      "approval": {
+        "id": "059d675e-9ceb-4f6f-8c5f-4167ef7f782c",
+        "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
+        "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+        "period_start": "2026-10-12",
+        "period_end": "2026-10-12",
+        "status": "APPROVED",
+        "total_worked_minutes": 420,
+        "session_count": 1,
+        "submitted_at": "2026-10-29T12:24:02.098Z",
+        "reviewed_by": "df261656-dcb5-476b-a778-329fc6290a72",
+        "reviewed_at": "2026-10-29T12:24:02.468Z",
+        "note": null,
+        "created_at": "2026-10-29T12:24:02.098Z",
+        "updated_at": "2026-10-29T12:24:02.468Z"
+      }
+    }
+  },
+  "reReview": {
+    "status": 409,
+    "body": {
+      "error": "Only submitted timesheets can be reviewed."
+    }
+  },
+  "reversedPeriod": {
+    "status": 400,
+    "body": {
+      "statusCode": 400,
+      "error": "Bad Request",
+      "message": "Choose an ordered date range of at most 366 days."
+    }
+  },
+  "peerReadStatus": 403,
+  "concurrentStart": [
+    200,
+    400,
+    400
+  ],
+  "headerAfterClockIn": [
+    {
+      "id": "603a9cf1-b477-4fa6-b5fc-ad01ffea02aa",
+      "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
+      "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+      "task_id": null,
+      "task_name": "Clocked in",
+      "is_billable": false,
+      "started_at": "2026-10-29T12:24:04.024Z",
+      "ended_at": null,
+      "duration_minutes": null,
+      "is_extended": false,
+      "is_full_day": false,
+      "notes": null,
+      "entry_type": "CHECK_IN",
+      "date": "2026-10-29",
+      "last_ack_at": "2026-10-29T12:24:04.024Z",
+      "created_at": "2026-10-29T12:24:04.022Z",
+      "updated_at": "2026-10-29T12:24:04.022Z",
+      "project_id": null,
+      "project_ref": null
+    }
+  ],
+  "clockOut": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "session": {
+        "id": "5b87ced1-0c51-49da-a306-e822284b247e",
+        "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
+        "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+        "date": "2026-10-29",
+        "clock_in_at": "2026-10-29T12:24:04.024Z",
+        "clock_out_at": "2026-10-29T12:24:04.489Z",
+        "project_name": null,
+        "status": "COMPLETED",
+        "total_break_minutes": 0,
+        "worked_minutes": 0,
+        "created_at": "2026-10-29T12:24:04.022Z",
+        "updated_at": "2026-10-29T12:24:04.489Z",
+        "source": "WEB",
+        "device_id": null
+      },
+      "warnings": [],
+      "summary": {
+        "worked_minutes": 0,
+        "clock_in_at": "2026-10-29T12:24:04.024Z",
+        "clock_out_at": "2026-10-29T12:24:04.489Z",
+        "tasks_completed_count": 0,
+        "tasks_completed": [],
+        "is_short_shift": true,
+        "needs_review": false
+      }
+    }
+  },
+  "headerAfterClockOut": [
+    {
+      "id": "603a9cf1-b477-4fa6-b5fc-ad01ffea02aa",
+      "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
+      "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+      "task_id": null,
+      "task_name": "Clocked in",
+      "is_billable": false,
+      "started_at": "2026-10-29T12:24:04.024Z",
+      "ended_at": "2026-10-29T12:24:04.489Z",
+      "duration_minutes": 0,
+      "is_extended": false,
+      "is_full_day": false,
+      "notes": null,
+      "entry_type": "CHECK_IN",
+      "date": "2026-10-29",
+      "last_ack_at": "2026-10-29T12:24:04.024Z",
+      "created_at": "2026-10-29T12:24:04.022Z",
+      "updated_at": "2026-10-29T12:24:04.489Z",
+      "project_id": null,
+      "project_ref": null
+    }
+  ],
+  "kpi": {
+    "status": 200,
+    "fixture": {
+      "internalAccounts": 5,
+      "activeInternalAccounts": 4,
+      "customerAccounts": 1,
+      "inactiveInternalAccounts": 1,
+      "lateAttendee": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f"
+    },
+    "body": {
+      "hr": {
+        "total_staff": 5,
+        "active_staff": 4,
+        "on_leave": 0,
+        "pending_leaves": 0,
+        "today_present": 1,
+        "today_absent": 0,
+        "today_late": 1,
+        "today_incomplete": 0
+      },
+      "files": {
+        "total": 0,
+        "this_month": 0,
+        "source": "ClearOS case documents"
+      },
+      "chat": {
+        "total_messages": 0,
+        "this_month": 0,
+        "source": "ClearOS case messages"
+      },
+      "support": {
+        "total_notifications": 0,
+        "unread": 0,
+        "source": "Workspace notifications"
+      },
+      "fetched_at": "2026-10-29T12:24:04.894Z"
+    }
+  },
+  "plannedMonth": {
+    "plannedDays": 22,
+    "plannedHours": 176
+  },
+  "shipmentTime": {
+    "status": 200,
+    "shipmentHours": "2.00",
+    "hrWorkedMinutes": 0
+  },
+  "closedShipmentKpi": {
+    "status": 200,
+    "expectedActive": 0,
+    "body": {
+      "checked_in": 0,
+      "active_shipments": 0,
+      "pending_tasks": 0
+    }
+  },
+  "foreignTask": {
+    "status": 400,
+    "acceptedForeignId": false
+  },
+  "concurrentHeaderStart": {
+    "statuses": [
+      200,
+      200,
+      200
+    ],
+    "openEntries": 1
+  },
+  "weeklyRanges": {
+    "reversed": 400,
+    "malformed": 400
+  },
+  "pureAttendance": {
+    "day": "pass",
+    "night": "pass",
+    "late": "pass",
+    "incomplete": "pass"
+  }
+}

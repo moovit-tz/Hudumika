@@ -1,0 +1,62 @@
+.shipment-detail {
+  min-width: 0;
+  max-width: 100%;
+  --shipment-control-height: max(44px, var(--ctl-h));
+  --shipment-header-control-height: calc(var(--shipment-control-height) * .9);
+}
+
+.shipment-identity { min-width: 0; }
+.shipment-identity :is(h1, a, span) { overflow-wrap: anywhere; }
+.shipment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.shipment-detail :is(.shipment-actions [data-ui-button], .shipment-back) {
+  height: var(--shipment-header-control-height);
+  min-height: var(--shipment-header-control-height);
+  font-size: 11.7px;
+  padding-inline: 10.8px;
+}
+.shipment-actions [data-ui-button] svg, .shipment-back svg { width: 14.4px; height: 14.4px; }
+.shipment-actions [data-size="icon"] {
+  width: var(--shipment-header-control-height);
+  flex: 0 0 var(--shipment-header-control-height);
+}
+
+/* Preserve the selected tab appearance while sharing the control height. */
+:root .shipment-navigation .shipment-tab-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  width: 100%;
+  gap: 7.2px;
+  overflow: visible;
+}
+:root .shipment-navigation .ds-tabs-trigger {
+  min-width: 0;
+  height: var(--shipment-control-height);
+  padding-inline: 12px;
+  font-size: 13px;
+  white-space: normal;
+  line-height: 1.2;
+}
+.shipment-detail :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]), select, [role="combobox"]) {
+  min-height: var(--shipment-control-height);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .shipment-identity { flex-basis: 100% !important; }
+  .shipment-identity h1 { flex-basis: 100%; line-height: 1.4 !important; }
+  .shipment-actions { width: 100%; }
+  .shipment-actions .shipment-advance { flex: 1; padding-inline: 12px; }
+  .shipment-back { padding-inline: 0; width: var(--shipment-header-control-height); }
+  :root .shipment-navigation .shipment-tab-list {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

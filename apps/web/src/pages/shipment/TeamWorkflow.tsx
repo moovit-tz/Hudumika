@@ -33,8 +33,11 @@ import {
 } from '../clearanceData.js';
 import { ChBadge } from '../../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../../data/staffData.js';
-import type { Employee } from '../../data/staffData.js';
+interface StaffMember {
+  id: string; name: string; email: string; phone: string;
+  dept: string; designation: string; role: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE'; hireDate: string;
+}
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -59,11 +62,11 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
   declaredCustomer?: { name: string; id?: string };
 }) {
   const [search, setSearch]         = useState('');
-  const [selected, setSelected]     = useState<Employee[]>([]);
+  const [selected, setSelected]     = useState<StaffMember[]>([]);
   const [channels, setChannels]     = useState<Channel[]>(['email', 'whatsapp']);
   const [saved, setSaved]           = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [staff, setStaff]           = useState<Employee[]>([]);
+  const [staff, setStaff]           = useState<StaffMember[]>([]);
   const [staffLoading, setStaffLoading] = useState(true);
   const [staffError, setStaffError] = useState(false);
   // Slide-in drawer — Sheet (Radix) now owns mount/animate-in and
@@ -86,7 +89,7 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
             (c.name && custName && custName.toLowerCase().includes(c.name.toLowerCase()))
           );
 
-          const customerPeople: Employee[] = [];
+          const customerPeople: StaffMember[] = [];
           const cName = matchingCustomer?.name || custName;
 
           if (matchingCustomer) {
@@ -222,7 +225,7 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
           dept:        u.dept        ?? u.department ?? '',
           designation: u.designation ?? (u.role ?? '').replace(/_/g, ' '),
           role:        u.role        ?? '',
-          status:      (u.status === 'INACTIVE' ? 'INACTIVE' : u.status === 'ON_LEAVE' ? 'ON_LEAVE' : 'ACTIVE') as Employee['status'],
+          status:      (u.status === 'INACTIVE' ? 'INACTIVE' : u.status === 'ON_LEAVE' ? 'ON_LEAVE' : 'ACTIVE') as StaffMember['status'],
           hireDate:    u.hireDate    ?? '',
         })));
       })
@@ -238,7 +241,7 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
       e.designation.toLowerCase().includes(search.toLowerCase()))
   );
 
-  function toggleEmp(e: Employee) {
+  function toggleEmp(e: StaffMember) {
     setSelected(prev => prev.find(x => x.id === e.id) ? prev.filter(x => x.id !== e.id) : [...prev, e]);
   }
 
@@ -350,9 +353,7 @@ export function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existin
             return (
               <button key={e.id} type="button" onClick={() => toggleEmp(e)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--ds-btn-py) 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: empAvatarColor(e.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                  {empInitials(e.name)}
-                </div>
+                <PersonAvatar userId={isUUID(e.id) ? e.id : undefined} name={e.name} size={38} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: on ? 'var(--teal)' : 'var(--ink)' }}>{e.name}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{e.designation} · {e.dept}</div>

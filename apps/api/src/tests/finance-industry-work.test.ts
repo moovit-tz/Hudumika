@@ -9,7 +9,7 @@ describe('Industry accounting workflows', () => {
   let inputItem: string; let outputItem: string; let location: string;
   beforeAll(async () => {
     await getApp(); tenant = await createTestTenant(); other = await createTestTenant();
-    await dbPlatform.insertInto('tenant_settings').values({ tenant_id: tenant.tenantId, settings: JSON.stringify({ 'enabled-apps': { finops: true, 'finance.inventory': true, 'finance.accounting.advanced': true } }) as any }).execute();
+    await dbPlatform.insertInto('tenant_settings').values({ tenant_id: tenant.tenantId, settings: JSON.stringify({ 'enabled-apps': { finops: true, 'finance.manufacturing': true, 'finance.inventory': true, 'finance.accounting.advanced': true } }) as any }).execute();
     await withTenant(tenant.tenantId, async trx => {
       await GLService.seedChartOfAccounts(trx, tenant.tenantId);
       await trx.insertInto('tenant_finance_capabilities').values(['finance.manufacturing', 'finance.inventory', 'finance.accounting.advanced'].map(capability_key => ({ tenant_id: tenant.tenantId, capability_key, enabled: true }))).execute();

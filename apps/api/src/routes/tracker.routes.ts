@@ -1,6 +1,24 @@
+import { sql } from 'kysely';
+import { parseTrackerPage, trackerPage } from '../services/tracker-pagination.js';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { env } from '../config/env.js';
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import { validateContainerNumber } from '@hudumika/types';
+import { requireTrackerAccess, validateTrackerReferences, containerWriteSchema, lifecycleStages } from '../services/tracker-integrity.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+
+function trackingDigest(body: any) {
+  return createHash('sha256').update(JSON.stringify(Object.fromEntries(['tracking_type','tracking_number','carrier','origin_name','origin_code','dest_name','dest_code','current_location','status','status_code','eta','progress_pct','events','source','provider'].map(k => [k, body[k] ?? null])))).digest('hex');
+}
+const eventSchema = z.object({ timestamp: z.string().max(100), location: z.string().max(500), description: z.string().max(4000), status_code: z.string().max(100).optional() });
+const snapshotSchema = z.object({
+ tracking_type: z.enum(['AWB','BL']), tracking_number: z.string().trim().min(1).max(100), source: z.enum(['live','manual']), provider: z.enum(['ship24','shipsgo']).nullable().optional(), proof: z.string().max(4000).optional(), shipment_id: z.string().uuid().nullable().optional(),
+ carrier: z.string().max(200).nullable().optional(), origin_name: z.string().max(300).nullable().optional(), origin_code: z.string().max(20).nullable().optional(), dest_name: z.string().max(300).nullable().optional(), dest_code: z.string().max(20).nullable().optional(), current_location: z.string().max(500).nullable().optional(), status: z.string().max(100).nullable().optional(), status_code: z.string().max(100).nullable().optional(), eta: z.string().refine(v => Number.isFinite(Date.parse(v)), 'Invalid tracking date').nullable().optional(), eta_initial: z.string().refine(v => Number.isFinite(Date.parse(v)), 'Invalid tracking date').nullable().optional(),
+ events: z.array(eventSchema).max(500).optional(), progress_pct: z.number().min(0).max(100).optional(),
+});
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -72,236 +90,6 @@ const EVENT_LABELS: Record<string, string> = {
   EMRT: 'Empty Return',
 };
 
-// ── Mock data (demo / no-api-key mode) ───────────────────────────────────────
-
-export function buildMockResult(number: string, type: 'AWB' | 'BL'): TrackingResult {
-  const now = Date.now();
-  const day = 86_400_000;
-
-  const awbRoutes = [
-    {
-      carrier: 'Kenya Airways Cargo',
-      origin_name: 'Nairobi', origin_code: 'NBO',
-      dest_name: 'Amsterdam', dest_code: 'AMS',
-      stops: ['Nairobi NBO', 'Dubai DXB', 'Amsterdam AMS'],
-    },
-    {
-      carrier: 'Ethiopian Airlines Cargo',
-      origin_name: 'Addis Ababa', origin_code: 'ADD',
-      dest_name: 'London', dest_code: 'LHR',
-      stops: ['Addis Ababa ADD', 'Cairo CAI', 'London LHR'],
-    },
-    {
-      carrier: 'Qatar Airways Cargo',
-      origin_name: 'Dar es Salaam', origin_code: 'DAR',
-      dest_name: 'Frankfurt', dest_code: 'FRA',
-      stops: ['Dar es Salaam DAR', 'Doha DOH', 'Frankfurt FRA'],
-    },
-  ];
-
-  const blRoutes = [
-    {
-      carrier: 'COSCO Shipping',
-      vessel: 'COSCO EUROPE', voyage: '052E',
-      service: 'AEX', imo: '9301469',
-      origin_name: 'Dar es Salaam', origin_code: 'TZDAR',
-      dest_name: 'Rotterdam', dest_code: 'NLRTM',
-      containers: [
-        { number: 'COSU6234187', size: '40HC' },
-        { number: 'COSU4891023', size: '20GP' },
-      ] as Container[],
-      port_calls: [
-        {
-          port_name: 'Dar es Salaam', port_code: 'TZDAR', country_code: 'TZ', is_transshipment: false,
-          events: [
-            { code: 'GTIN', label: 'Gate In',          act: new Date(now - 10 * day).toISOString(), est: null },
-            { code: 'LOAD', label: 'Loaded on Vessel', act: new Date(now -  9 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  act: new Date(now -  8 * day).toISOString(), est: null },
-          ],
-        },
-        {
-          port_name: 'Mombasa', port_code: 'KEMBA', country_code: 'KE', is_transshipment: true,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',   act: new Date(now -  6 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  act: new Date(now -  5 * day).toISOString(), est: null },
-          ],
-        },
-        {
-          port_name: 'Port Said', port_code: 'EGPSD', country_code: 'EG', is_transshipment: true,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',  act:  new Date(now -  2 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  est: new Date(now +  1 * day).toISOString(), act: null },
-          ],
-        },
-        {
-          port_name: 'Rotterdam', port_code: 'NLRTM', country_code: 'NL', is_transshipment: false,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',   est: new Date(now +  8 * day).toISOString(), act: null },
-            { code: 'DISC', label: 'Discharged',        est: new Date(now +  9 * day).toISOString(), act: null },
-            { code: 'GTOT', label: 'Gate Out',          est: new Date(now + 10 * day).toISOString(), act: null },
-          ],
-        },
-      ] as PortCall[],
-    },
-    {
-      carrier: 'MSC',
-      vessel: 'MSC ILONA', voyage: '413E',
-      service: 'SHOGUN', imo: '9702065',
-      origin_name: 'Mombasa', origin_code: 'KEMBA',
-      dest_name: 'Hamburg', dest_code: 'DEHAM',
-      containers: [{ number: 'MSCU4872319', size: '40HC' }] as Container[],
-      port_calls: [
-        {
-          port_name: 'Mombasa', port_code: 'KEMBA', country_code: 'KE', is_transshipment: false,
-          events: [
-            { code: 'GTIN', label: 'Gate In',          act: new Date(now - 8 * day).toISOString(), est: null },
-            { code: 'LOAD', label: 'Loaded on Vessel', act: new Date(now - 7 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  act: new Date(now - 6 * day).toISOString(), est: null },
-          ],
-        },
-        {
-          port_name: 'Djibouti', port_code: 'DJJIB', country_code: 'DJ', is_transshipment: true,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',  act:  new Date(now - 3 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  est: new Date(now + 2 * day).toISOString(), act: null },
-          ],
-        },
-        {
-          port_name: 'Hamburg', port_code: 'DEHAM', country_code: 'DE', is_transshipment: false,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',   est: new Date(now + 10 * day).toISOString(), act: null },
-            { code: 'DISC', label: 'Discharged',        est: new Date(now + 11 * day).toISOString(), act: null },
-          ],
-        },
-      ] as PortCall[],
-    },
-    {
-      carrier: 'CMA CGM',
-      vessel: 'CMA CGM TROCADERO', voyage: '0JXPE1MA',
-      service: 'AFRICA 4', imo: '9839237',
-      origin_name: 'Durban', origin_code: 'ZADUR',
-      dest_name: 'Antwerp', dest_code: 'BEANR',
-      containers: [
-        { number: 'CMAU3214895', size: '40HC' },
-        { number: 'CMAU9876543', size: '40HC' },
-        { number: 'CMAU1234567', size: '20GP' },
-      ] as Container[],
-      port_calls: [
-        {
-          port_name: 'Durban', port_code: 'ZADUR', country_code: 'ZA', is_transshipment: false,
-          events: [
-            { code: 'GTIN', label: 'Gate In',          act: new Date(now - 12 * day).toISOString(), est: null },
-            { code: 'LOAD', label: 'Loaded on Vessel', act: new Date(now - 11 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  act: new Date(now - 10 * day).toISOString(), est: null },
-          ],
-        },
-        {
-          port_name: 'Cape Town', port_code: 'ZACPT', country_code: 'ZA', is_transshipment: true,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',  act:  new Date(now - 7 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  act: new Date(now - 6 * day).toISOString(), est: null },
-          ],
-        },
-        {
-          port_name: 'Las Palmas', port_code: 'ESLPA', country_code: 'ES', is_transshipment: true,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',  act:  new Date(now - 1 * day).toISOString(), est: null },
-            { code: 'DEPA', label: 'Vessel Departed',  est: new Date(now + 2 * day).toISOString(), act: null },
-          ],
-        },
-        {
-          port_name: 'Antwerp', port_code: 'BEANR', country_code: 'BE', is_transshipment: false,
-          events: [
-            { code: 'ARRV', label: 'Vessel Arrived',   est: new Date(now + 9 * day).toISOString(), act: null },
-            { code: 'DISC', label: 'Discharged',        est: new Date(now + 10 * day).toISOString(), act: null },
-            { code: 'GTOT', label: 'Gate Out',          est: new Date(now + 12 * day).toISOString(), act: null },
-          ],
-        },
-      ] as PortCall[],
-    },
-  ];
-
-  if (type === 'AWB') {
-    const routes = awbRoutes;
-    const hash = number.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const route = routes[hash % routes.length];
-    const events: TrackingEvent[] = [
-      { timestamp: new Date(now - 10 * day).toISOString(), location: route.stops[0], description: 'Shipment received and processed', status_code: 'PICKED_UP' },
-      { timestamp: new Date(now -  9 * day).toISOString(), location: route.stops[0], description: 'Departed origin airport', status_code: 'DEPARTED' },
-      { timestamp: new Date(now -  6 * day).toISOString(), location: route.stops[1], description: 'Arrived at transit hub', status_code: 'TRANSIT' },
-      { timestamp: new Date(now -  5 * day).toISOString(), location: route.stops[1], description: 'Cleared customs at transit', status_code: 'CUSTOMS_CLEARED' },
-      { timestamp: new Date(now -  2 * day).toISOString(), location: route.stops[1], description: 'In transit to final destination', status_code: 'IN_TRANSIT' },
-    ];
-    return {
-      tracking_number: number, tracking_type: 'AWB',
-      carrier: route.carrier,
-      origin_name: route.origin_name, origin_code: route.origin_code,
-      dest_name: route.dest_name, dest_code: route.dest_code,
-      current_location: route.stops[route.stops.length - 2] ?? route.stops[1],
-      status: 'In Transit', status_code: 'IN_TRANSIT',
-      eta: new Date(now + 8 * day).toISOString(), eta_initial: new Date(now + 8 * day).toISOString(),
-      progress_pct: 65, events,
-      source: 'mock',
-    };
-  }
-
-  // BL route — hash across full number so different BLs pick different mock routes
-  const routes = blRoutes;
-  const hash = number.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const route = routes[hash % routes.length];
-
-  // Build flat events from port_calls for the timeline
-  const events: TrackingEvent[] = route.port_calls.flatMap(pc =>
-    pc.events
-      .filter(e => e.act)
-      .map(e => ({
-        timestamp: e.act!,
-        location: `${pc.port_name} (${pc.country_code})`,
-        description: e.label,
-        status_code: e.code === 'DEPA' ? 'DEPARTED' : e.code === 'ARRV' ? 'ARRIVED' : e.code === 'DISC' ? 'DELIVERED' : 'IN_TRANSIT',
-      }))
-  ).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  // Find current location (last actual event)
-  const latestPortCall = [...route.port_calls].reverse().find(pc => pc.events.some(e => e.act));
-  const currentLocation = latestPortCall?.port_name ?? route.origin_name;
-
-  // Progress: ratio of completed port events to total
-  const totalEvents = route.port_calls.reduce((s, pc) => s + pc.events.length, 0);
-  const doneEvents  = route.port_calls.reduce((s, pc) => s + pc.events.filter(e => e.act).length, 0);
-  const progress_pct = Math.round((doneEvents / totalEvents) * 100);
-
-  // If the number looks like a container number (4 letters + digits e.g. MSCU1234567), ensure it's in the containers list
-  const isContainerNum = /^[A-Z]{4}\d{6,7}$/i.test(number);
-  const containerList: Container[] = isContainerNum
-    ? [{ number, size: '20GP' }, ...route.containers.filter(c => c.number !== number)]
-    : route.containers;
-
-  return {
-    tracking_number: number, tracking_type: 'BL',
-    carrier: route.carrier,
-    origin_name: route.origin_name, origin_code: route.origin_code,
-    dest_name: route.dest_name, dest_code: route.dest_code,
-    current_location: currentLocation,
-    status: 'In Transit', status_code: 'IN_TRANSIT',
-    eta: new Date(now + 8 * day).toISOString(),
-    eta_initial: new Date(now + 6 * day).toISOString(), // slightly earlier = shows delay
-    progress_pct,
-    events,
-    vessel_name: route.vessel,
-    vessel_imo: route.imo,
-    voyage_number: route.voyage,
-    service_name: route.service,
-    containers: containerList,
-    port_calls: route.port_calls,
-    co2_emission: Math.round(containerList.length * 1840 + Math.random() * 200),
-    transit_days: 18,
-    source: 'mock',
-  };
-}
-
-// ── ShipsGo integration ───────────────────────────────────────────────────────
-
 export async function trackViaShipsGo(number: string, apiKey: string): Promise<TrackingResult | null> {
   const BASE = 'https://api.shipsgo.com/v2';
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
@@ -326,6 +114,7 @@ export async function trackViaShipsGo(number: string, apiKey: string): Promise<T
     });
     if (!detailRes.ok) return null;
     const d = await detailRes.json() as any;
+    if (!d || (!d.status && !d.movements?.length && !d.containers?.length)) return null;
 
     // ── Map ShipsGo response ──────────────────────────────────────────────
     const originPort  = d.port_of_loading ?? {};
@@ -367,14 +156,16 @@ export async function trackViaShipsGo(number: string, apiKey: string): Promise<T
     // Flat events (actual ones, descending)
     const events: TrackingEvent[] = port_calls
       .flatMap(pc => pc.events
-        .filter(e => e.act)
+        .filter(e => e.act && Number.isFinite(Date.parse(e.act)))
         .map(e => ({
           timestamp: e.act!,
           location: `${pc.port_name} (${pc.country_code})`,
           description: e.label,
           status_code: e.code === 'DEPA' ? 'DEPARTED'
             : e.code === 'ARRV' ? 'ARRIVED'
-            : e.code === 'DISC' ? 'DELIVERED'
+            : e.code === 'DISC' ? 'DISCHARGED'
+            : e.code === 'GTOT' ? 'GATE_OUT'
+            : e.code === 'EMRT' ? 'EMPTY_RETURNED'
             : 'IN_TRANSIT',
         }))
       )
@@ -386,12 +177,12 @@ export async function trackViaShipsGo(number: string, apiKey: string): Promise<T
 
     // Progress
     const totalEvts = port_calls.reduce((s, pc) => s + pc.events.length, 0);
-    const doneEvts  = port_calls.reduce((s, pc) => s + pc.events.filter(e => e.act).length, 0);
+    const doneEvts  = port_calls.reduce((s, pc) => s + pc.events.filter(e => e.act && Number.isFinite(Date.parse(e.act))).length, 0);
     const progress_pct = totalEvts > 0 ? Math.round((doneEvts / totalEvts) * 100) : 0;
 
     // Status
     const lastEvt = events[0];
-    const isDelivered = d.status === 'Delivered' || port_calls[port_calls.length - 1]?.events.some(e => e.code === 'GTOT' && e.act);
+    const isDelivered = d.status === 'Delivered';
 
     return {
       tracking_number: number,
@@ -402,8 +193,8 @@ export async function trackViaShipsGo(number: string, apiKey: string): Promise<T
       dest_name:   destPort.name ?? 'Destination',
       dest_code:   destPort.code ?? '',
       current_location: currentLocation,
-      status:      isDelivered ? 'Delivered' : (lastEvt?.description ?? 'In Transit'),
-      status_code: isDelivered ? 'DELIVERED' : 'IN_TRANSIT',
+      status:      isDelivered ? 'Delivered' : (lastEvt?.description ?? d.status ?? 'Unknown'),
+      status_code: isDelivered ? 'DELIVERED' : lastEvt?.status_code ?? 'UNKNOWN',
       eta:         d.date_of_discharge ?? null,
       eta_initial: d.date_of_discharge_initial ?? d.date_of_discharge ?? null,
       progress_pct,
@@ -443,14 +234,16 @@ export async function trackViaShip24(number: string, apiKey: string): Promise<Tr
     const delivery = shipment.delivery ?? {};
     const isDelivered = !!delivery.actualDeliveryDate;
 
-    const events: TrackingEvent[] = (tracker.events ?? []).map((e: any) => ({
-      timestamp:   e.occurrenceDatetime ?? new Date().toISOString(),
+    const events: TrackingEvent[] = (tracker.events ?? []).filter((e: any) => e.occurrenceDatetime && Number.isFinite(Date.parse(e.occurrenceDatetime))).map((e: any) => ({
+      timestamp:   e.occurrenceDatetime,
       location:    [e.location?.name, e.location?.countryCode].filter(Boolean).join(', '),
       description: e.status ?? '',
       status_code: e.statusCode,
     }));
 
+    events.sort((a,b) => Date.parse(b.timestamp)-Date.parse(a.timestamp));
     const latest = events[0];
+    if (!latest && !delivery.actualDeliveryDate && !delivery.estimatedDeliveryDate) return null;
     return {
       tracking_number: number,
       tracking_type:   /^\d{3}-?\d{8}$/.test(number) ? 'AWB' : 'BL',
@@ -460,11 +253,11 @@ export async function trackViaShip24(number: string, apiKey: string): Promise<Tr
       dest_name:   shipment.destinationAddress?.addressLocality ?? 'Destination',
       dest_code:   shipment.destinationAddress?.countryCode ?? '',
       current_location: latest?.location ?? 'Unknown',
-      status:      isDelivered ? 'Delivered' : (latest?.description ?? 'In Transit'),
-      status_code: isDelivered ? 'DELIVERED' : 'IN_TRANSIT',
+      status:      isDelivered ? 'Delivered' : (latest?.description ?? 'Unknown'),
+      status_code: isDelivered ? 'DELIVERED' : latest?.status_code ?? 'UNKNOWN',
       eta:         delivery.estimatedDeliveryDate ?? null,
       eta_initial: delivery.estimatedDeliveryDate ?? null,
-      progress_pct: isDelivered ? 100 : Math.min(85, events.length * 12),
+      progress_pct: isDelivered ? 100 : 0,
       events,
       source: 'live',
       provider: 'ship24',
@@ -484,16 +277,16 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   // shipments.routes.ts's correct model) and no role check — a CUSTOMER
   // would see every other customer's shipment-tracking data, not just
   // their own.
-  fastify.addHook('preHandler', async (request: any, reply) => {
-    if (request.user.role === 'CUSTOMER') {
-      return reply.status(403).send({ error: 'Not available for this account type.' });
-    }
+  fastify.addHook('preHandler', requireTrackerAccess);
+  fastify.addHook('preHandler', async req => { const params = req.params as any; if (params?.id) z.string().uuid().parse(params.id); if(params?.shipmentId) z.string().uuid().parse(params.shipmentId); });
+  fastify.addHook('preHandler', async (req) => {
+    if (req.body && typeof req.body === 'object') await withTenant((req as any).user.tenant_id, trx => validateTrackerReferences(trx, (req as any).user.tenant_id, req.body));
   });
 
   // POST /v1/tracker/track
   fastify.post('/track', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
-    const { number, type } = req.body as { number: string; type?: 'AWB' | 'BL' };
+    const { number, type } = z.object({ number: z.string().trim().min(1).max(100), type: z.enum(['AWB', 'BL']).optional() }).parse(req.body);
     if (!number?.trim()) return reply.code(400).send({ error: 'Tracking number is required' });
 
     const normalized = number.trim().toUpperCase().replace(/\s/g, '');
@@ -511,7 +304,7 @@ export async function trackerRoutes(fastify: FastifyInstance) {
         shipsgoKey = s?.['int-shipsgo']?.shipsgo_api_key ?? null;
         ship24Key  = s?.['int-shipsgo']?.ship24_api_key  ?? null;
       }
-    } catch { /* no settings — use mock */ }
+    } catch { return reply.code(503).send({ error: 'Tracking configuration could not be loaded' }); }
 
     let result: TrackingResult | null = null;
 
@@ -523,18 +316,32 @@ export async function trackerRoutes(fastify: FastifyInstance) {
     if (!result && ship24Key) {
       result = await trackViaShip24(normalized, ship24Key);
     }
-    // Demo fallback
+    // Provider failure must not become an operational tracking result.
     if (!result) {
-      result = buildMockResult(normalized, resolvedType);
+      return reply.code(503).send({ error: shipsgoKey || ship24Key ? 'Tracking provider unavailable or shipment not found. No tracking result was saved.' : 'Configure a tracking provider before tracking shipments.' });
     }
 
-    return result;
+    const expires = Date.now() + 15 * 60000;
+    const signature = createHmac('sha256', env.JWT_SECRET).update(`tracking-result:${user.tenant_id}:${expires}:${trackingDigest(result)}`).digest('hex');
+    return { ...result, proof: `${expires}.${signature}` };
   });
+
+  function verifyLiveProof(body: any, tenantId: string) {
+    if (body.source !== 'live') return;
+    try {
+      const [expires, signature] = z.string().regex(/^\d+\.[0-9a-f]{64}$/).parse(body.proof).split('.');
+      if (!/^\d+$/.test(expires) || !/^[0-9a-f]{64}$/.test(signature) || Number(expires) < Date.now() || Number(expires) > Date.now() + 15 * 60000) throw new Error();
+      const expected = createHmac('sha256', env.JWT_SECRET).update(`tracking-result:${tenantId}:${expires}:${trackingDigest(body)}`).digest();
+      if (!timingSafeEqual(expected, Buffer.from(signature,'hex'))) throw new Error();
+      return new Date(Number(expires) - 15 * 60000);
+    } catch { throw Object.assign(new Error('Live tracking data must match a recent provider result'), { statusCode: 400 }); }
+  }
 
   // POST /v1/tracker/snapshots
   fastify.post('/snapshots', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
-    const body = req.body as any;
+    const body = snapshotSchema.parse(req.body);
+    const fetchedAt = verifyLiveProof(body, user.tenant_id);
     return withTenant(user.tenant_id, async (trx) => {
       const snap = await trx.insertInto('tracking_snapshots').values({
         tenant_id:        user.tenant_id,
@@ -549,10 +356,12 @@ export async function trackerRoutes(fastify: FastifyInstance) {
         current_location: body.current_location ?? null,
         status:           body.status ?? null,
         status_code:      body.status_code ?? null,
-        eta:              body.eta ?? null,
-        eta_initial:      body.eta_initial ?? body.eta ?? null,
+        eta:              body.eta ? new Date(body.eta) : null,
+        eta_initial:      body.eta_initial || body.eta ? new Date((body.eta_initial || body.eta)!) : null,
         progress_pct:     body.progress_pct ?? 0,
         events:           JSON.stringify(body.events ?? []),
+        source: body.source, provider: body.provider ?? null, fetched_at: fetchedAt ?? null,
+        share_expires_at: new Date(Date.now() + 7 * 86400000),
         created_by:       user.sub,
       }).returningAll().executeTakeFirst();
       return reply.code(201).send(snap);
@@ -560,13 +369,10 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   });
 
   // GET /v1/tracker/snapshots
-  fastify.get('/snapshots', async (req: FastifyRequest) => {
-    const user = (req as any).user;
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.selectFrom('tracking_snapshots').selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .orderBy('created_at', 'desc').limit(50).execute()
-    );
+  fastify.get('/snapshots', async req => {
+    return withTenant(req.user.tenant_id, trx => trackerPage(trx,req.user.tenant_id,
+      trx.selectFrom('tracking_snapshots').selectAll().where('tenant_id','=',req.user.tenant_id),
+      'tracking_snapshots','created_at','desc',parseTrackerPage(req.query)));
   });
 
   // GET /v1/tracker/snapshots/by-shipment/:shipmentId
@@ -585,18 +391,25 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   fastify.patch('/snapshots/:id', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
     const { id } = req.params as any;
-    const body = req.body as any;
-    const patch: Record<string, any> = { updated_at: new Date() };
-    for (const key of ['tracking_number', 'tracking_type', 'carrier', 'shipment_id', 'status', 'current_location', 'eta', 'progress_pct'] as const) {
+    const body = snapshotSchema.partial().parse(req.body);
+    const fetchedAt = verifyLiveProof(body, user.tenant_id);
+    const patch: Record<string, any> = { updated_at: new Date(), source: body.source ?? 'manual', provider: body.provider ?? null };
+    for (const key of ['tracking_number', 'tracking_type', 'carrier', 'shipment_id', 'origin_name','origin_code','dest_name','dest_code','status', 'status_code', 'current_location', 'eta', 'progress_pct', 'source', 'provider'] as const) {
       if (key in body) patch[key] = body[key] ?? null;
     }
+    if ('eta' in body) patch.eta = body.eta ? new Date(body.eta) : null;
+    if ('events' in body) patch.events = JSON.stringify(z.array(eventSchema).max(500).parse(body.events));
+    if ('source' in body) patch.source = z.enum(['live', 'manual']).parse(body.source);
+    if (body.source === 'live') patch.fetched_at = fetchedAt;
+    if ('progress_pct' in body) z.number().min(0).max(100).parse(body.progress_pct);
     if (patch.tracking_number) patch.tracking_number = String(patch.tracking_number).trim().toUpperCase().replace(/\s/g, '');
-    const updated = await withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('tracking_snapshots')
-        .set(patch)
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst()
-    );
+    const updated = await withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('tracking_snapshots').select(['id','source','fetched_at']).where('tenant_id','=',user.tenant_id).where('id','=',id).forUpdate().executeTakeFirst();
+      if (!existing) return undefined;
+      if (fetchedAt && existing.fetched_at && fetchedAt < new Date(existing.fetched_at)) throw Object.assign(new Error('A newer provider result is already saved'), { statusCode: 409 });
+      if (body.source === 'live' && existing.source !== 'live') patch.eta_initial = body.eta_initial || body.eta ? new Date((body.eta_initial || body.eta)!) : null;
+      return trx.updateTable('tracking_snapshots').set(patch).where('id','=',id).where('tenant_id','=',user.tenant_id).returningAll().executeTakeFirst();
+    });
     if (!updated) return reply.code(404).send({ error: 'Snapshot not found' });
     return updated;
   });
@@ -605,13 +418,26 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   fastify.patch('/snapshots/:id/link', async (req: FastifyRequest) => {
     const user = (req as any).user;
     const { id } = req.params as any;
-    const { shipment_id } = req.body as any;
+    const { shipment_id } = z.object({shipment_id:z.string().uuid().nullable()}).parse(req.body);
     return withTenant(user.tenant_id, async (trx) =>
       trx.updateTable('tracking_snapshots')
         .set({ shipment_id: shipment_id ?? null, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst()
     );
+  });
+
+  fastify.post('/snapshots/:id/share', async (req, reply) => {
+    const { revoke } = z.object({ revoke: z.boolean().default(false) }).parse(req.body ?? {});
+    const row = await withTenant(req.user.tenant_id, async trx => {
+      const row = await trx.updateTable('tracking_snapshots')
+        .set({ share_revoked: revoke, share_token: randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, ''), share_expires_at: new Date(Date.now() + 7 * 86400000) })
+        .where('tenant_id', '=', req.user.tenant_id).where('id', '=', z.string().uuid().parse((req.params as any).id)).returning(['share_token','share_expires_at','share_revoked']).executeTakeFirst();
+      if (row) await trx.insertInto('platform_activity_log').values({ tenant_id: req.user.tenant_id, actor_user_id: req.user.sub, actor_name: req.user.name, action: revoke ? 'safetracker.share_revoked' : 'safetracker.share_rotated', category: 'system', target_type: 'tracking_snapshot', target_id: (req.params as any).id, target_name: null, metadata: JSON.stringify({ expires_at: row.share_expires_at }) }).execute();
+      return row;
+    });
+    if (!row) return reply.code(404).send({ error: 'Snapshot not found' });
+    return row;
   });
 
   // DELETE /v1/tracker/snapshots/:id
@@ -627,49 +453,6 @@ export async function trackerRoutes(fastify: FastifyInstance) {
 
   // ── Container Intelligence, Carrier Color & Lifecycle API ─────────────────
 
-  // Pure function: derive carrier defaults from container number prefix
-  function detectCarrier(contNum: string) {
-    const prefix = contNum.slice(0, 4);
-    if (prefix.startsWith('MAE') || prefix.startsWith('MSK') || prefix.startsWith('SUD'))
-      return { carrierName: 'A.P. Moller – Maersk Line', carrierCode: 'MAEU', colorHex: '#0284c7', colorName: 'Maersk Sky Cyan' };
-    if (prefix.startsWith('CMA') || prefix.startsWith('ANL') || prefix.startsWith('APL'))
-      return { carrierName: 'CMA CGM Group', carrierCode: 'CMAU', colorHex: '#1e3a8a', colorName: 'CMA CGM Royal Blue' };
-    if (prefix.startsWith('HLX') || prefix.startsWith('HLC') || prefix.startsWith('UAS'))
-      return { carrierName: 'Hapag-Lloyd AG', carrierCode: 'HLXU', colorHex: '#ea580c', colorName: 'Hapag High-Vis Orange' };
-    if (prefix.startsWith('EGL') || prefix.startsWith('EMC') || prefix.startsWith('EIS'))
-      return { carrierName: 'Evergreen Marine Corporation', carrierCode: 'EGLU', colorHex: '#15803d', colorName: 'Evergreen Forest Jade' };
-    if (prefix.startsWith('ONE') || prefix.startsWith('KKF') || prefix.startsWith('NYK'))
-      return { carrierName: 'Ocean Network Express (ONE)', carrierCode: 'ONEY', colorHex: '#db2777', colorName: 'ONE Cherry Magenta' };
-    if (prefix.startsWith('COS') || prefix.startsWith('CCL') || prefix.startsWith('CSN'))
-      return { carrierName: 'COSCO Shipping Lines', carrierCode: 'COSU', colorHex: '#1e40af', colorName: 'COSCO Pacific Ultramarine' };
-    if (prefix.startsWith('YML') || prefix.startsWith('YMM'))
-      return { carrierName: 'Yang Ming Marine Transport', carrierCode: 'YMLU', colorHex: '#64748b', colorName: 'Yang Ming Industrial Silver' };
-    if (prefix.startsWith('ZIM'))
-      return { carrierName: 'ZIM Integrated Shipping', carrierCode: 'ZIMU', colorHex: '#0f766e', colorName: 'ZIM Deep Teal' };
-    return { carrierName: 'MSC Mediterranean Shipping Company', carrierCode: 'MSCU', colorHex: '#1d4ed8', colorName: 'MSC Marine Navy' };
-  }
-
-  function deriveSpecs(contNum: string) {
-    const is40 = contNum.includes('4') || contNum.startsWith('MAEU') || contNum.startsWith('HLXU') || contNum.startsWith('EGLU');
-    const isReefer = contNum.includes('R') || contNum.startsWith('CMAU');
-    return {
-      iso_code: is40 ? '40HC' : isReefer ? '22R1' : '20G1',
-      size_type: is40 ? 'High Cube - 40 feet Container' : isReefer ? 'Reefer - 20 feet Container' : 'Dry Standard - 20 feet Container',
-      dimensions: {
-        height_m: is40 ? 2.89 : 2.59,
-        width_m: 2.44,
-        length_m: is40 ? 12.19 : 6.06,
-        gross_weight_kg: is40 ? 32500 : 30480,
-        tare_weight_kg: is40 ? 3980 : 2280,
-        payload_kg: is40 ? 28520 : 28200,
-        cubic_capacity_cbm: is40 ? 76.4 : 33.2,
-        floor_type: isReefer ? 'T-Bar Aluminum Floor' : 'Corten Steel / Keruing Plywood (28mm)',
-        manufacture_year: 2023,
-        validity_years: 20,
-      },
-    };
-  }
-
   // GET /v1/tracker/containers/:number
   fastify.get('/containers/:number', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
@@ -684,14 +467,15 @@ export async function trackerRoutes(fastify: FastifyInstance) {
           'tc.id', 'tc.container_number', 'tc.iso_code', 'tc.size_type',
           'tc.ownership', 'tc.condition', 'tc.carrier_name', 'tc.carrier_code',
           'tc.color_hex', 'tc.lifecycle_stage', 'tc.shipment_id', 'tc.customer_id',
-          'tc.dimensions', 'tc.compliance', 'tc.current_depot', 'tc.notes',
+          'tc.dimensions', 'tc.compliance', 'tc.current_depot', 'tc.notes', 'tc.cargo_breakdown', 'tc.classification',
           'tc.created_at', 'tc.updated_at',
           'c.name as customer_name', 'c.email as customer_email',
         ])
         .where('tc.tenant_id', '=', user.tenant_id)
         .where('tc.container_number', '=', contNum)
         .executeTakeFirst()
-    ).catch(() => null);
+    );
+    if (!row) return reply.code(404).send({ error: 'Container not found' });
 
     // If no DB record exists, skip sub-table queries
     const containerId = row?.id;
@@ -730,80 +514,28 @@ export async function trackerRoutes(fastify: FastifyInstance) {
         ])
       : [[] as any[], [] as any[], [] as any[]];
 
-    const carrier = detectCarrier(contNum);
-    const specs = deriveSpecs(contNum);
-
-    // Merge DB record over auto-detected defaults
-    const result: any = {
-      container_number: contNum,
-      iso_code: row?.iso_code || specs.iso_code,
-      size_type: row?.size_type || specs.size_type,
-      ownership: row?.ownership || 'Privately Owned / Line Lease',
-      carrier_name: row?.carrier_name || carrier.carrierName,
-      carrier_code: row?.carrier_code || carrier.carrierCode,
-      color_hex: row?.color_hex || carrier.colorHex,
-      color_name: carrier.colorName,
-      lifecycle_stage: row?.lifecycle_stage || 'IN_TRANSIT',
-      status: 'AVAILABLE',
-      dimensions: (row?.dimensions && Object.keys(row.dimensions).length > 0) ? row.dimensions : specs.dimensions,
-      compliance: (row?.compliance && Object.keys(row.compliance).length > 0) ? row.compliance : {
-        csc_certification_date: '10/10/2023',
-        csc_expiry_date: '14/09/2028',
-        csc_approved_by: 'Bureau Veritas (BV) / ISO 1496-1',
-        customs_seal_no: `KRA-SEAL-${contNum.slice(-6)}`,
-      },
-      location_info: (row?.current_depot && Object.keys(row.current_depot).length > 0) ? row.current_depot : {
-        current_depot: `${carrier.carrierName.split(' ')[0]} Yard Terminal 2`,
-        depot_code: `PORT-DEM-${contNum.slice(-2)}`,
-        status: 'Laden',
-      },
+    const result = {
+      ...row, db_id: row.id, carrier: row.carrier_name,
+      cargo_breakdown: Array.isArray(row.cargo_breakdown) ? row.cargo_breakdown : [],
+      ...row.dimensions,
+      status: row.lifecycle_stage,
+      voyage: {},
+      location_info: row.current_depot,
       cargo_worthy: {
-        grade: surveys[0]?.grade || 'Grade A',
-        last_survey_date: surveys[0]?.survey_date || '15 Dec 2025',
-        surveyor_name: surveys[0]?.surveyor_name || 'Lloyds Maritime Register Inspector',
-        survey_notes: surveys[0]?.surveyor_notes || 'The shipping container is in excellent cargo-worthy condition, showing no structural deformation or floor delamination. All rubber door gaskets and locking rods are intact with valid CSC safety plate.',
-        inspection_photos: surveys[0]?.photos || [
-          { url: '/assets/container/inspection_front.jpg', caption: 'Front Door Locking Assembly & Gaskets' },
-          { url: '/assets/container/inspection_corner.jpg', caption: 'Exterior Corrugated Wall & Top Corner Casting' },
-          { url: '/assets/container/inspection_csc.jpg', caption: 'CSC Safety Approval Plate & ISO Decals' },
-          { url: '/assets/container/inspection_interior.jpg', caption: 'Interior Floor Planking & Lashing Rings' },
-        ],
-        repair_history: repairs.length > 0 ? repairs.map((r: any) => ({
-          description: r.description,
-          date: new Date(r.repair_date).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-          resolved: r.resolved,
-        })) : [
-          { description: 'Paint touch-up on exterior bottom rail', date: '24 June 2025, 11:30 AM', resolved: true },
-          { description: 'Surface scratch on left corner post treated with anti-rust', date: '22 April 2025, 10:00 PM', resolved: true },
-        ],
+        grade: surveys[0]?.grade ?? null,
+        last_survey_date: surveys[0]?.survey_date ?? null,
+        surveyor_name: surveys[0]?.surveyor_name ?? null,
+        survey_notes: surveys[0]?.surveyor_notes ?? null,
+        inspection_photos: surveys[0]?.photos ?? [],
+        repair_history: repairs,
       },
-      voyage: {
-        pol_city: 'Kobe Port',
-        pol_country: 'JP',
-        pod_city: 'Mombasa Port',
-        pod_country: 'KE',
-        vessel_name: `${carrier.carrierName.split(' ')[0]} INTEGRITY`,
-        voyage_no: 'VOY-2026/09',
-        eta: new Date(Date.now() + 8 * 86400000).toISOString(),
-        etd: new Date(Date.now() - 12 * 86400000).toISOString(),
-        current_location: 'Indian Ocean Corridor',
-        delay_status: 'ON_SCHEDULE',
+      survey_report: {
+        grade: surveys[0]?.grade ?? '', rating_label: surveys[0]?.rating_label ?? '',
+        last_survey_date: surveys[0]?.survey_date ?? '', surveyor_notes: surveys[0]?.surveyor_notes ?? '',
+        photos: surveys[0]?.photos ?? [],
+        repairs: repairs.map(r => ({ id: r.id, title: r.description, date: r.repair_date, completed: r.resolved, type: r.repair_type })),
       },
-      // Cross-app links
-      db_id: row?.id || null,
-      shipment_id: row?.shipment_id || null,
-      customer_id: row?.customer_id || null,
-      customer_name: row?.customer_name || null,
-      customer_email: row?.customer_email || null,
-      // Real stage history from DB (if any), fall back to empty
-      stage_history: history.map((h: any) => ({
-        stage: h.stage,
-        label: h.stage.replace(/_/g, ' '),
-        timestamp: h.recorded_at,
-        location: h.location || 'Container Depot',
-        actor: h.actor_name || h.actor_email || 'Operations Officer',
-        notes: h.notes || `Container lifecycle transitioned to ${h.stage}`,
-      })),
+      stage_history: history.map(h => ({ stage: h.stage, label: h.stage.replace(/_/g, ' '), timestamp: h.recorded_at, location: h.location, actor: h.actor_name, notes: h.notes })),
     };
 
     return reply.send(result);
@@ -812,40 +544,44 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   // POST /v1/tracker/containers — Record or update container specifications (upsert)
   fastify.post('/containers', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
-    const body = req.body as any;
+    const body = containerWriteSchema.parse(req.body);
     if (!body?.container_number) {
       return reply.code(400).send({ error: 'Container number is required' });
     }
 
     const contNum = String(body.container_number).trim().toUpperCase().replace(/\s/g, '');
-    const carrier = detectCarrier(contNum);
-    const specs = deriveSpecs(contNum);
+
 
     const row = await withTenant(user.tenant_id, async (trx) => {
+      await sql`select pg_advisory_xact_lock(hashtextextended(${`container:${user.tenant_id}:${contNum}`},0))`.execute(trx);
       // Check for existing record
       const existing = await trx.selectFrom('tracked_containers')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('container_number', '=', contNum)
-        .executeTakeFirst();
+        .forUpdate().executeTakeFirst();
+
+      if (body.lifecycle_stage && body.lifecycle_stage !== (existing?.lifecycle_stage ?? 'AVAILABLE_AT_DEPOT')) throw Object.assign(new Error('Use a movement evidence record to change lifecycle stage'), { statusCode: 409 });
 
       const payload: any = {
         tenant_id: user.tenant_id,
         container_number: contNum,
-        iso_code: body.iso_code || existing?.iso_code || specs.iso_code,
-        size_type: body.size_type || existing?.size_type || specs.size_type,
-        ownership: body.ownership || existing?.ownership || 'Privately Owned / Line Lease',
-        condition: body.condition || existing?.condition || 'cargo_worthy',
-        carrier_name: body.carrier_name || existing?.carrier_name || carrier.carrierName,
-        carrier_code: body.carrier_code || existing?.carrier_code || carrier.carrierCode,
-        color_hex: body.color_hex || existing?.color_hex || carrier.colorHex,
-        lifecycle_stage: body.lifecycle_stage || existing?.lifecycle_stage || 'AVAILABLE_AT_DEPOT',
-        shipment_id: body.shipment_id ?? existing?.shipment_id ?? null,
-        customer_id: body.customer_id ?? existing?.customer_id ?? null,
-        dimensions: body.dimensions || existing?.dimensions || specs.dimensions,
-        compliance: body.compliance || existing?.compliance || {},
-        current_depot: body.current_depot || existing?.current_depot || {},
-        notes: body.notes ?? existing?.notes ?? null,
+        iso_code: body.iso_code ?? existing?.iso_code ?? '',
+        size_type: body.size_type ?? existing?.size_type ?? '',
+        ownership: body.ownership ?? existing?.ownership ?? '',
+        condition: body.condition ?? existing?.condition ?? 'UNKNOWN',
+        carrier_name: body.carrier ?? body.carrier_name ?? existing?.carrier_name ?? null,
+        carrier_code: body.carrier_code ?? existing?.carrier_code ?? null,
+        color_hex: body.color_hex ?? existing?.color_hex ?? null,
+        lifecycle_stage: existing?.lifecycle_stage ?? 'AVAILABLE_AT_DEPOT',
+        shipment_id: 'shipment_id' in body ? body.shipment_id : existing?.shipment_id ?? null,
+        customer_id: 'customer_id' in body ? body.customer_id : existing?.customer_id ?? null,
+        dimensions: { ...(existing?.dimensions ?? {}), ...(body.dimensions ?? {}), ...Object.fromEntries(['tare_weight_kg','max_gross_weight_kg','payload_capacity_kg','cubic_capacity_cbm','floor_type','manufacture_year','manufacturer','design_validity_years'].filter(k => k in body).map(k => [k, (body as any)[k]])) },
+        compliance: body.compliance ?? existing?.compliance ?? {},
+        current_depot: body.current_depot ?? existing?.current_depot ?? {},
+        cargo_breakdown: JSON.stringify(body.cargo_breakdown ?? existing?.cargo_breakdown ?? []),
+        classification: body.classification ?? existing?.classification ?? {},
+        notes: 'notes' in body ? body.notes : existing?.notes ?? null,
         updated_at: new Date(),
         updated_by: user.sub,
       };
@@ -853,7 +589,7 @@ export async function trackerRoutes(fastify: FastifyInstance) {
       if (existing) {
         return trx.updateTable('tracked_containers')
           .set(payload)
-          .where('id', '=', existing.id)
+          .where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id)
           .returningAll()
           .executeTakeFirst();
       } else {
@@ -871,7 +607,7 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   fastify.patch('/containers/:number', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
     const { number } = req.params as any;
-    const body = req.body as any;
+    const body = containerWriteSchema.partial().parse(req.body);
     const contNum = String(number).trim().toUpperCase().replace(/\s/g, '');
 
     const row = await withTenant(user.tenant_id, async (trx) => {
@@ -884,16 +620,25 @@ export async function trackerRoutes(fastify: FastifyInstance) {
       if (!existing) return null;
 
       const patch: any = { updated_at: new Date(), updated_by: user.sub };
+      if (body.lifecycle_stage !== undefined) throw Object.assign(new Error('Use the lifecycle transition action'), { statusCode: 400 });
+      if (body.carrier !== undefined) patch.carrier_name = body.carrier;
+      const weights = Object.fromEntries(['tare_weight_kg','max_gross_weight_kg','payload_capacity_kg','cubic_capacity_cbm','floor_type','manufacture_year','manufacturer','design_validity_years'].filter(k => k in body).map(k => [k,(body as any)[k]]));
+      if (Object.keys(weights).length) {
+        const specs = await trx.selectFrom('tracked_containers').select('dimensions').where('id','=',existing.id).where('tenant_id','=',user.tenant_id).executeTakeFirstOrThrow();
+        patch.dimensions = { ...specs.dimensions, ...(body.dimensions ?? {}), ...weights };
+      }
       const allowed = ['iso_code', 'size_type', 'ownership', 'condition', 'carrier_name', 'carrier_code',
-        'color_hex', 'lifecycle_stage', 'shipment_id', 'customer_id', 'dimensions', 'compliance',
+        'color_hex', 'shipment_id', 'customer_id', 'dimensions', 'compliance',
         'current_depot', 'cargo_breakdown', 'classification', 'notes'];
       for (const k of allowed) {
-        if (body[k] !== undefined) patch[k] = body[k];
+        if (k === 'dimensions' && patch.dimensions) continue;
+        if (k === 'carrier_name' && body.carrier !== undefined) continue;
+        if ((body as any)[k] !== undefined) patch[k] = k === 'cargo_breakdown' ? JSON.stringify((body as any)[k]) : (body as any)[k];
       }
 
       return trx.updateTable('tracked_containers')
         .set(patch)
-        .where('id', '=', existing.id)
+        .where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirst();
     });
@@ -906,45 +651,17 @@ export async function trackerRoutes(fastify: FastifyInstance) {
   fastify.patch('/containers/:number/stage', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
     const { number } = req.params as any;
-    const { stage, notes, location } = req.body as any;
-
-    if (!stage) return reply.code(400).send({ error: 'Stage is required' });
-
+    const { stage, notes, location } = z.object({ stage: z.enum(lifecycleStages), notes: z.string().trim().min(1).max(4000), location: z.string().trim().min(1).max(300) }).parse(req.body);
     const contNum = String(number).trim().toUpperCase().replace(/\s/g, '');
-
     const result = await withTenant(user.tenant_id, async (trx) => {
-      // Upsert the container record if it doesn't exist yet
-      let tc = await trx.selectFrom('tracked_containers')
-        .select(['id'])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('container_number', '=', contNum)
-        .executeTakeFirst();
-
-      if (!tc) {
-        const carrier = detectCarrier(contNum);
-        const specs = deriveSpecs(contNum);
-        tc = await trx.insertInto('tracked_containers')
-          .values({
-            tenant_id: user.tenant_id,
-            container_number: contNum,
-            iso_code: specs.iso_code,
-            size_type: specs.size_type,
-            carrier_name: carrier.carrierName,
-            carrier_code: carrier.carrierCode,
-            color_hex: carrier.colorHex,
-            lifecycle_stage: stage,
-            dimensions: specs.dimensions,
-            updated_by: user.sub,
-          })
-          .returning('id')
-          .executeTakeFirstOrThrow();
-      } else {
-        await trx.updateTable('tracked_containers')
-          .set({ lifecycle_stage: stage, updated_at: new Date(), updated_by: user.sub })
-          .where('id', '=', tc.id)
-          .execute();
-      }
-
+      const tc = await trx.selectFrom('tracked_containers').select(['id', 'lifecycle_stage'])
+        .where('tenant_id', '=', user.tenant_id).where('container_number', '=', contNum).forUpdate().executeTakeFirst();
+      if (!tc) throw Object.assign(new Error('Container not found'), { statusCode: 404 });
+      if (tc.lifecycle_stage === stage) return { container_number: contNum, lifecycle_stage: stage };
+      const previous = lifecycleStages.indexOf(tc.lifecycle_stage as any);
+      if (lifecycleStages.indexOf(stage) !== previous + 1) throw Object.assign(new Error('Only the next lifecycle stage may be recorded'), { statusCode: 409 });
+      await trx.updateTable('tracked_containers').set({ lifecycle_stage: stage, updated_at: new Date(), updated_by: user.sub })
+        .where('id', '=', tc.id).where('tenant_id', '=', user.tenant_id).execute();
       await trx.insertInto('container_stage_history')
         .values({
           tenant_id: user.tenant_id,
@@ -984,7 +701,7 @@ export async function trackerRoutes(fastify: FastifyInstance) {
 
       return trx.updateTable('tracked_containers')
         .set(patch)
-        .where('id', '=', tc.id)
+        .where('id', '=', tc.id).where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirst();
     });
@@ -993,22 +710,51 @@ export async function trackerRoutes(fastify: FastifyInstance) {
     return reply.send(row);
   });
 
+  fastify.post('/containers/:number/surveys', async (req, reply) => {
+    const body = z.object({ grade: z.string().trim().min(1).max(100), rating_label: z.string().max(200).nullable().optional(), survey_date: z.string().date(), surveyor_name: z.string().trim().min(1).max(200), surveyor_notes: z.string().trim().min(1).max(10000), photos: z.array(z.string().url().refine(v => /^https?:/.test(v))).max(30).default([]) }).parse(req.body);
+    return withTenant(req.user.tenant_id, async trx => {
+      const tc = await trx.selectFrom('tracked_containers').select('id').where('tenant_id','=',req.user.tenant_id).where('container_number','=',(req.params as any).number).executeTakeFirst();
+      if (!tc) return reply.code(404).send({ error: 'Container not found' });
+      const row = await trx.insertInto('container_survey_reports').values({ ...body, survey_date: new Date(body.survey_date), photos: JSON.stringify(body.photos) as any, tenant_id: req.user.tenant_id, container_id: tc.id }).returningAll().executeTakeFirstOrThrow();
+      return reply.code(201).send(row);
+    });
+  });
+  fastify.post('/containers/:number/repairs', async (req, reply) => {
+    const body = z.object({ description: z.string().trim().min(1).max(4000), repair_type: z.enum(['cosmetic','paint','scratch','weld','seal','floor']), repair_date: z.string().datetime().optional() }).parse(req.body);
+    return withTenant(req.user.tenant_id, async trx => {
+      const tc = await trx.selectFrom('tracked_containers').select('id').where('tenant_id','=',req.user.tenant_id).where('container_number','=',(req.params as any).number).executeTakeFirst();
+      if (!tc) return reply.code(404).send({ error: 'Container not found' });
+      const row = await trx.insertInto('container_repairs').values({ ...body, repair_date: body.repair_date ? new Date(body.repair_date) : new Date(), tenant_id: req.user.tenant_id, container_id: tc.id }).returningAll().executeTakeFirstOrThrow();
+      return reply.code(201).send(row);
+    });
+  });
+  fastify.patch('/containers/:number/repairs/:id', async (req, reply) => {
+    const { resolved } = z.object({ resolved: z.boolean() }).parse(req.body);
+    return withTenant(req.user.tenant_id, async trx => {
+      const tc = await trx.selectFrom('tracked_containers').select('id').where('tenant_id','=',req.user.tenant_id).where('container_number','=',(req.params as any).number).executeTakeFirst();
+      if (!tc) return reply.code(404).send({ error: 'Container not found' });
+      const row = await trx.updateTable('container_repairs').set({ resolved, resolved_at: resolved ? new Date() : null }).where('tenant_id','=',req.user.tenant_id).where('container_id','=',tc.id).where('id','=',(req.params as any).id).returningAll().executeTakeFirst();
+      if (!row) return reply.code(404).send({ error: 'Repair not found' });
+      return row;
+    });
+  });
+
   // GET /v1/tracker/containers — List containers for this tenant
   fastify.get('/containers', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
 
+    const page = parseTrackerPage(req.query);
     const rows = await withTenant(user.tenant_id, (trx) =>
-      trx.selectFrom('tracked_containers as tc')
-        .leftJoin('customers as c', 'c.id', 'tc.customer_id')
+      trackerPage(trx,user.tenant_id,trx.selectFrom('tracked_containers')
+        .leftJoin('customers as c', 'c.id', 'tracked_containers.customer_id')
         .select([
-          'tc.id', 'tc.container_number', 'tc.iso_code', 'tc.size_type',
-          'tc.carrier_name', 'tc.carrier_code', 'tc.color_hex',
-          'tc.lifecycle_stage', 'tc.shipment_id', 'tc.customer_id',
-          'tc.updated_at', 'c.name as customer_name',
+          'tracked_containers.id', 'tracked_containers.container_number', 'tracked_containers.iso_code', 'tracked_containers.size_type',
+          'tracked_containers.carrier_name', 'tracked_containers.carrier_code', 'tracked_containers.color_hex',
+          'tracked_containers.lifecycle_stage', 'tracked_containers.shipment_id', 'tracked_containers.customer_id',
+          'tracked_containers.updated_at', 'c.name as customer_name',
         ])
-        .where('tc.tenant_id', '=', user.tenant_id)
-        .orderBy('tc.updated_at', 'desc')
-        .execute()
+        .where('tracked_containers.tenant_id', '=', user.tenant_id)
+        ,'tracked_containers','updated_at','desc',page)
     );
 
     return reply.send(rows);
@@ -1018,13 +764,14 @@ export async function trackerRoutes(fastify: FastifyInstance) {
 // ── Public shared snapshot (no auth) ─────────────────────────────────────────
 
 export async function trackerPublicRoutes(fastify: FastifyInstance) {
-  fastify.get('/shared/:token', async (req: FastifyRequest, reply) => {
-    const { token } = req.params as any;
+  fastify.get('/shared/:token', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req: FastifyRequest, reply) => {
+    const { token } = z.object({token:z.string().regex(/^[0-9a-f]{64}$/)}).parse(req.params);
+    reply.header('Cache-Control','no-store').header('Referrer-Policy','no-referrer');
     // Public, unauthenticated — no tenant is knowable, access control is the
     // unguessable token alone, same reasoning as landed-cost-share.routes.ts.
     const snap = await dbPlatform.selectFrom('tracking_snapshots').selectAll()
       .where('share_token', '=', token).executeTakeFirst();
-    if (!snap) return reply.code(404).send({ error: 'Snapshot not found or expired' });
-    return snap;
+    if (!snap || snap.share_revoked || !snap.share_expires_at || new Date(snap.share_expires_at).getTime() <= Date.now()) return reply.code(404).send({ error: 'Snapshot not found or expired' });
+    return { tracking_type:snap.tracking_type, tracking_number:snap.tracking_number, carrier:snap.carrier, origin_name:snap.origin_name, origin_code:snap.origin_code, dest_name:snap.dest_name, dest_code:snap.dest_code, current_location:snap.current_location, status:snap.status, status_code:snap.status_code, eta:snap.eta, progress_pct:snap.progress_pct, events:snap.events, source:snap.source, provider:snap.provider, fetched_at:snap.fetched_at, created_at:snap.created_at, share_expires_at:snap.share_expires_at };
   });
 }

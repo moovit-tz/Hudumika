@@ -17,6 +17,11 @@ const packageCreateSchema = z.object({
   storage_limit_bytes: z.number().nullable().optional(),
   monthly_ai_credits: z.number().int().min(0).optional(),
   byok_ai_allowed: z.boolean().optional(),
+  currency: z.enum(['USD', 'TZS']).optional(),
+  included_seats: z.number().int().nullable().optional(),
+  max_locations: z.number().int().nullable().optional(),
+  price_flat_monthly: z.number().nullable().optional(),
+  price_flat_annual: z.number().nullable().optional(),
   features: z.array(z.any()).optional(),
   color: z.string().max(20).optional(),
   popular: z.boolean().optional(),
@@ -34,6 +39,11 @@ const packagePatchSchema = z.object({
   storage_limit_bytes: z.number().nullable().optional(),
   monthly_ai_credits: z.number().int().min(0).optional(),
   byok_ai_allowed: z.boolean().optional(),
+  currency: z.enum(['USD', 'TZS']).optional(),
+  included_seats: z.number().int().nullable().optional(),
+  max_locations: z.number().int().nullable().optional(),
+  price_flat_monthly: z.number().nullable().optional(),
+  price_flat_annual: z.number().nullable().optional(),
   features: z.array(z.any()).optional(),
   color: z.string().max(20).optional(),
   popular: z.boolean().optional(),
@@ -56,6 +66,11 @@ function toPackage(r: any): Package {
     storage_limit_bytes: r.storage_limit_bytes !== null && r.storage_limit_bytes !== undefined ? Number(r.storage_limit_bytes) : null,
     monthly_ai_credits: r.monthly_ai_credits ?? 0,
     byok_ai_allowed: r.byok_ai_allowed ?? false,
+    currency: r.currency ?? 'USD',
+    included_seats: r.included_seats ?? null,
+    max_locations: r.max_locations ?? null,
+    price_flat_monthly: r.price_flat_monthly !== null && r.price_flat_monthly !== undefined ? Number(r.price_flat_monthly) : null,
+    price_flat_annual: r.price_flat_annual !== null && r.price_flat_annual !== undefined ? Number(r.price_flat_annual) : null,
     features: r.features,
     color: r.color || '#0d7a6b',
     popular: r.popular,
@@ -122,6 +137,11 @@ export async function packagesRoutes(fastify: FastifyInstance) {
           storage_limit_bytes: body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null,
           monthly_ai_credits: body.monthly_ai_credits ?? 0,
           byok_ai_allowed: body.byok_ai_allowed ?? false,
+          currency: body.currency ?? 'USD',
+          included_seats: body.included_seats ?? null,
+          max_locations: body.max_locations ?? null,
+          price_flat_monthly: body.price_flat_monthly ?? null,
+          price_flat_annual: body.price_flat_annual ?? null,
           features: JSON.stringify(body.features ?? []) as unknown as string[],
           color: body.color ?? '#0d7a6b',
           popular: body.popular ?? false,
@@ -160,6 +180,11 @@ export async function packagesRoutes(fastify: FastifyInstance) {
       if (body.storage_limit_bytes !== undefined) updates.storage_limit_bytes = body.storage_limit_bytes != null ? String(body.storage_limit_bytes) : null;
       if (body.monthly_ai_credits !== undefined) updates.monthly_ai_credits = body.monthly_ai_credits;
       if (body.byok_ai_allowed !== undefined) updates.byok_ai_allowed = body.byok_ai_allowed;
+      if (body.currency !== undefined) updates.currency = body.currency;
+      if (body.included_seats !== undefined) updates.included_seats = body.included_seats;
+      if (body.max_locations !== undefined) updates.max_locations = body.max_locations;
+      if (body.price_flat_monthly !== undefined) updates.price_flat_monthly = body.price_flat_monthly;
+      if (body.price_flat_annual !== undefined) updates.price_flat_annual = body.price_flat_annual;
       if (body.features !== undefined) updates.features = JSON.stringify(body.features);
       if (body.color !== undefined) updates.color = body.color;
       if (body.popular !== undefined) updates.popular = body.popular;

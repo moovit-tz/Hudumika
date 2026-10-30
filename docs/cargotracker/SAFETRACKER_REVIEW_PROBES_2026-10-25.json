@@ -1,0 +1,119 @@
+[
+  {
+    "probe": "Unknown container read",
+    "status": 200,
+    "db_id": null,
+    "carrier": "MSC Mediterranean Shipping Company",
+    "compliance": {
+      "csc_certification_date": "10/10/2023",
+      "csc_expiry_date": "14/09/2028",
+      "csc_approved_by": "Bureau Veritas (BV) / ISO 1496-1",
+      "customs_seal_no": "KRA-SEAL-000000"
+    },
+    "surveyor": "Lloyds Maritime Register Inspector",
+    "voyage": {
+      "pol_city": "Kobe Port",
+      "pol_country": "JP",
+      "pod_city": "Mombasa Port",
+      "pod_country": "KE",
+      "vessel_name": "MSC INTEGRITY",
+      "voyage_no": "VOY-2026/09",
+      "eta": "2026-11-02T16:03:58.133Z",
+      "etd": "2026-10-13T16:03:58.134Z",
+      "current_location": "Indian Ocean Corridor",
+      "delay_status": "ON_SCHEDULE"
+    }
+  },
+  {
+    "probe": "No-provider tracking",
+    "status": 200,
+    "source": "mock",
+    "statusText": "In Transit"
+  },
+  {
+    "probe": "Invalid tracking request type",
+    "status": 500
+  },
+  {
+    "probe": "Foreign customer link",
+    "status": 201,
+    "linkedForeignCustomer": true,
+    "storedCarrier": "MSC Mediterranean Shipping Company"
+  },
+  {
+    "probe": "Sales role / malformed container write",
+    "status": 201,
+    "number": "BAD-NUMBER",
+    "stage": "MADE_UP"
+  },
+  {
+    "probe": "Invalid lifecycle stage",
+    "status": 200,
+    "stage": "UNVALIDATED_STAGE"
+  },
+  {
+    "probe": "Record form field persistence",
+    "status": 201,
+    "requestedCarrier": "Maersk",
+    "storedCarrier": "MSC Mediterranean Shipping Company",
+    "tare": 3980,
+    "cargo_breakdown": {}
+  },
+  {
+    "probe": "Foreign tenant direct container mutation",
+    "status": 404
+  },
+  {
+    "probe": "Saved demo provenance and public payload",
+    "createStatus": 201,
+    "publicStatus": 200,
+    "sourceStored": false,
+    "publicKeys": [
+      "id",
+      "tenant_id",
+      "shipment_id",
+      "tracking_type",
+      "tracking_number",
+      "carrier",
+      "origin_name",
+      "origin_code",
+      "dest_name",
+      "dest_code",
+      "current_location",
+      "status",
+      "status_code",
+      "eta",
+      "progress_pct",
+      "events",
+      "share_token",
+      "created_by",
+      "created_at",
+      "updated_at",
+      "eta_initial"
+    ]
+  },
+  {
+    "probe": "Booking foreign customer",
+    "status": 201,
+    "foreignLink": true
+  },
+  {
+    "probe": "Concurrent booking number allocation",
+    "statuses": [
+      201,
+      201,
+      201,
+      201,
+      201,
+      201
+    ],
+    "numbers": [
+      "FB-2026-0002",
+      "FB-2026-0004",
+      "FB-2026-0007",
+      "FB-2026-0003",
+      "FB-2026-0006",
+      "FB-2026-0004"
+    ]
+  }
+]

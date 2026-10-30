@@ -40,7 +40,7 @@ const journalEntrySchema = z.object({
     description: z.string().max(500).optional(),
     currency: z.string().max(10).optional(),
     exchangeRate: z.number().optional(),
-    dimensions: z.record(z.string()).optional(),
+    dimensions: z.record(z.string(), z.string()).optional(),
   })).min(1),
 });
 const accountPatchSchema = z.object({

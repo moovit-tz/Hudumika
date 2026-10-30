@@ -1,3 +1,8 @@
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from '../components/ui/table.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Card } from '../components/ui/card.js';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -41,59 +46,59 @@ export function ComplyAgencies() {
         </TabsList>
       </Tabs>
 
-      <div className="comply-card">
+      <Card className="comply-card">
         <div className="comply-card-body">
           {loading ? (
-            <div className="comply-empty">Loading agencies…</div>
+            <div className="comply-empty"><SectionLoading label="Loading agencies…" /></div>
           ) : (
-          <table className="comply-table">
-            <thead>
-              <tr>
-                <th>Agency</th>
-                <th>Category</th>
-                <th>Key Obligations</th>
-                <th>Turnaround</th>
-                <th>Channel</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="comply-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Agency</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Key Obligations</TableHead>
+                <TableHead>Turnaround</TableHead>
+                <TableHead>Channel</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {visible.map(ag => (
-                <tr key={ag.code} onClick={() => setSelected(ag)}>
-                  <td>
+                <TableRow tabIndex={0} onKeyDown={event => {if(event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')){event.preventDefault();event.currentTarget.click();}}} key={ag.code} onClick={() => setSelected(ag)}>
+                  <TableCell data-label="Agency">
                     <div className="comply-table-name">{ag.code}</div>
                     <div className="comply-table-sub">{ag.name}</div>
-                  </td>
-                  <td><span className={`comply-agency comply-agency--${ag.agency_class}`}>{ag.category}</span></td>
-                  <td>
+                  </TableCell>
+                  <TableCell data-label="Category"><Badge variant={complyBadgeVariant(`comply-agency comply-agency--${ag.agency_class}`)}>{ag.category}</Badge></TableCell>
+                  <TableCell data-label="Key Obligations">
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {ag.obligations.slice(0, 2).map(o => <span key={o} className="comply-firm-tag" style={{ fontSize: 10.5 }}>{o}</span>)}
-                      {ag.obligations.length > 2 && <span className="comply-firm-tag" style={{ fontSize: 10.5 }}>+{ag.obligations.length - 2}</span>}
+                      {ag.obligations.slice(0, 2).map(o => <Badge key={o} variant={complyBadgeVariant("comply-firm-tag")} style={{ fontSize: 10.5 }}>{o}</Badge>)}
+                      {ag.obligations.length > 2 && <Badge variant={complyBadgeVariant("comply-firm-tag")} style={{ fontSize: 10.5 }}>+{ag.obligations.length - 2}</Badge>}
                     </div>
-                  </td>
-                  <td style={{ fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{ag.turnaround}</td>
-                  <td>
+                  </TableCell>
+                  <TableCell data-label="Turnaround" style={{ fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{ag.turnaround}</TableCell>
+                  <TableCell data-label="Channel">
                     {ag.portal_type === 'api' || ag.portal_type === 'portal'
-                      ? <span className="comply-badge comply-badge--active">{PORTAL_TYPE_LABEL[ag.portal_type]}</span>
-                      : <span className="comply-badge comply-badge--draft">{PORTAL_TYPE_LABEL[ag.portal_type]}</span>}
-                  </td>
-                  <td onClick={e => e.stopPropagation()}>
+                      ? <Badge variant={complyBadgeVariant("comply-badge comply-badge--active")}>{PORTAL_TYPE_LABEL[ag.portal_type]}</Badge>
+                      : <Badge variant={complyBadgeVariant("comply-badge comply-badge--draft")}>{PORTAL_TYPE_LABEL[ag.portal_type]}</Badge>}
+                  </TableCell>
+                  <TableCell data-label="Actions" onClick={e => e.stopPropagation()}>
                     <Button asChild variant="outline" size="xs"><Link to="/complyos/applications">Apply</Link></Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Detail panel */}
       <Sheet open={!!selected} onOpenChange={o => { if (!o) setSelected(null); }}>
-        <SheetContent className="w-105 sm:max-w-105 flex flex-col p-0 gap-0">
+        <SheetContent aria-describedby={undefined} className="comply-detail-sheet w-full sm:max-w-xl flex flex-col p-0 gap-0">
           {selected && (
             <>
-              <SheetHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+              <SheetHeader className="comply-detail-header">
                 <SheetTitle style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)', marginBottom: 4 }}>{selected.code}</SheetTitle>
                 <div style={{ fontSize: 13, color: 'var(--ink2)' }}>{selected.name}</div>
               </SheetHeader>
@@ -124,7 +129,7 @@ export function ComplyAgencies() {
                     ))}
                   </div>
                 </div>
-                <Button asChild size="sm" style={{ alignSelf: 'flex-start' }}><Link to="/complyos/applications" onClick={() => setSelected(null)}><Icon name="plus" size={13} /> Start Application</Link></Button>
+                <Button asChild size="sm" style={{alignSelf: 'flex-start'}}><Link to="/complyos/applications" onClick={() => setSelected(null)}><Icon name="plus" size={13} /> Start Application</Link></Button>
               </div>
             </>
           )}

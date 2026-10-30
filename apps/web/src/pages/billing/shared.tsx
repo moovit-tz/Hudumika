@@ -37,6 +37,7 @@ export type ChargeGroup = 'clearing' | 'shipping' | 'other';
 export type Currency = string;
 
 export interface LineItem {
+  description?: string;
   name: string;
   unit: string;      // 'PER BIL', 'PER CONT', 'BASIC RATE', etc.
   rate: number;
@@ -194,7 +195,7 @@ export function mapApiInvoice(d: any): Invoice {
     traAckMsg: d.tra_ack_msg || undefined,
     shipmentCarbon: d.shipment_carbon ?? null,
     items: Array.isArray(d.items) ? d.items.map((it: any) => ({
-      name: it.name, unit: it.unit || 'PER BIL', rate: Number(it.rate),
+      name: it.name, description: it.description || '', unit: it.unit || 'PER BIL', rate: Number(it.rate),
       qty: Number(it.qty), taxPct: Number(it.tax_pct),
       group: (it.line_group || 'other') as ChargeGroup,
       currency: (it.currency || d.currency || 'TZS') as Currency,
@@ -204,38 +205,8 @@ export function mapApiInvoice(d: any): Invoice {
 
 /* ── Print / PDF ── */
 export function openPrintWindow(inv: Invoice) {
-  const source = Array.from(document.querySelectorAll<HTMLElement>('[data-invoice-document]')).find(node => node.dataset.invoiceDocument === inv.id);
-  if (!source) {
-    showAlert('Open the Invoice tab before viewing or printing this invoice.');
-    return;
-  }
-  const win = window.open('', '_blank', 'width=860,height=1000');
-  if (!win) {
-    showAlert('Allow pop-ups for Hudumika to view or print this invoice.');
-    return;
-  }
-  const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(node=>node.outerHTML).join('');
-  // App styles include other tools' print rules; the standalone invoice owns its page format.
-  win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Invoice</title>${styles}<style>
-    @page { size:A4; margin:12mm; }
-    html,body{height:auto;overflow:visible;background:white;color:#0b1220}
-    body{padding:24px;margin:0}
-    [data-invoice-document]{background:white;color:#0b1220;box-shadow:none}
-    @media print{body{padding:0} body *{visibility:visible!important} table{width:100%} tr{break-inside:avoid}}
-  </style></head><body></body></html>`);
-  win.document.title = `Invoice ${inv.id}`;
-  const computed = getComputedStyle(source);
-  for (const property of Array.from(computed)) {
-    if (property.startsWith('--')) win.document.body.style.setProperty(property, computed.getPropertyValue(property));
-  }
-  for (const [property, value] of Object.entries({
-    '--background':'0 0% 100%', '--foreground':'216 28% 7%',
-    '--card':'0 0% 100%', '--card-foreground':'216 28% 7%',
-    '--muted-foreground':'212 10% 38%', '--border':'214 24% 90%',
-    '--ink':'#0b1220', '--ink2':'#374151', '--ink3':'#5b6472',
-    '--bg':'#ffffff', '--surface':'#ffffff', '--white':'#ffffff',
-  })) win.document.body.style.setProperty(property, value);
-  win.document.body.appendChild(source.cloneNode(true));
-  win.addEventListener('load',()=>{void win.document.fonts.ready.then(()=>win.print());},{once:true});
-  win.document.close();
+  if (!inv._dbId) { showAlert('Save the invoice before previewing its PDF.'); return; }
+  const win = window.open(`/finance/documents/invoice/${inv._dbId}/preview`, '_blank');
+  if(win)win.opener=null;
+  if (!win) showAlert('Allow pop-ups or open the document preview from the invoice actions.');
 }

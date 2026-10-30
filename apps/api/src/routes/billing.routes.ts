@@ -7,6 +7,9 @@ import { PettiService } from '../services/petti.service.js';
 import { generatePeriodInvoice, settleInvoiceFromGateway } from '../services/subscription-billing.service.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { env } from '../config/env.js';
+import { changePlan, getPlanChangeHistory } from '../services/plan-change.service.js';
+import * as EsbService from '../services/esb.service.js';
+import { z } from 'zod';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
@@ -372,5 +375,168 @@ export default async function billingRoutes(fastify: FastifyInstance) {
       reply.header('Content-Disposition', `attachment; filename="${invoice.invoice_number}.html"`);
       return html;
     });
+  });
+
+  // ── Plan changes (upgrade / downgrade / cycle switch) ───────────
+
+  const planChangeSchema = z.object({
+    plan: z.string().min(1).max(50),
+    billing_cycle: z.enum(['monthly', 'annual']).optional(),
+    reason: z.string().max(500).optional(),
+  });
+
+  fastify.post('/plan-change', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const user = request.user;
+    const body = planChangeSchema.parse(request.body);
+
+    const result = await changePlan({
+      tenantId: user.tenant_id,
+      toPlan: body.plan as any,
+      toCycle: body.billing_cycle,
+      reason: body.reason ?? 'Self-service plan change',
+      initiatedBy: user.sub,
+    });
+
+    if (!result.success) {
+      const status = result.code === 'SEAT_LIMIT_EXCEEDED' ? 422 : 400;
+      return reply.status(status).send({ error: result.error, code: result.code });
+    }
+    return result;
+  });
+
+  fastify.get('/plan-changes', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request) => {
+    const history = await getPlanChangeHistory(request.user.tenant_id);
+    return { data: history };
+  });
+
+  // -----------------------------------------------------------------------
+  // External Services Balance (ESB)
+  // -----------------------------------------------------------------------
+
+  fastify.get('/esb/balance', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request) => {
+    return EsbService.getBalance(request.user.tenant_id);
+  });
+
+  fastify.get('/esb/statement', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request) => {
+    const q = request.query as { limit?: string; offset?: string };
+    const limit = Math.min(Number(q.limit) || 50, 200);
+    const offset = Math.max(Number(q.offset) || 0, 0);
+    const entries = await EsbService.getStatement(request.user.tenant_id, limit, offset);
+    return { data: entries };
+  });
+
+  fastify.get('/esb/pending', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request) => {
+    const ops = await EsbService.getPendingOperations(request.user.tenant_id);
+    return { data: ops };
+  });
+
+  const topUpCheckoutSchema = z.object({
+    amount: z.number().min(1000).max(10_000_000),
+  });
+
+  fastify.post('/esb/top-up/checkout', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const user = request.user;
+    const body = topUpCheckoutSchema.parse(request.body);
+
+    const profile = await withTenant(user.tenant_id, trx =>
+      trx.selectFrom('users').select(['email', 'name']).where('id', '=', user.sub).executeTakeFirst()
+    );
+    const email = profile?.email ?? user.email ?? 'billing@hudumika.com';
+    const name = profile?.name ?? 'Workspace Admin';
+    const origin = (request.headers.origin || request.headers.referer || '').replace(/\/$/, '');
+    const redirectUrl = `${origin}/subscription?esb_topup=1`;
+
+    const checkout = await EsbService.createTopUpCheckout({
+      tenantId: user.tenant_id,
+      amount: body.amount,
+      email,
+      name,
+      redirectUrl,
+      initiatedBy: user.sub,
+    });
+    return checkout;
+  });
+
+  const topUpVerifySchema = z.object({
+    tx_ref: z.string().min(1).max(200),
+  });
+
+  fastify.post('/esb/top-up/verify', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const user = request.user;
+    const body = topUpVerifySchema.parse(request.body);
+
+    const verification = await PaymentGateway.verifyByReference(body.tx_ref);
+    if (!verification.ok) {
+      return reply.status(402).send({ error: 'Payment not confirmed', status: verification.status });
+    }
+
+    const result = await EsbService.topUp({
+      tenantId: user.tenant_id,
+      amount: verification.amount!,
+      gatewayTxRef: body.tx_ref,
+      gatewayTxId: verification.transactionId ? String(verification.transactionId) : undefined,
+      gatewayProvider: 'flutterwave',
+      initiatedBy: user.sub,
+    });
+
+    if (!result.success) {
+      return reply.status(400).send({ error: result.error });
+    }
+    return { success: true, postingId: result.postingId, newBalance: result.newBalance };
+  });
+
+  fastify.post('/esb/refund', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN')],
+  }, async (request, reply) => {
+    const body = z.object({ operationId: z.string().uuid(), amount: z.number().min(1), description: z.string().min(1).max(500) }).parse(request.body);
+    const result = await EsbService.refund(request.user.tenant_id, body.operationId, body.amount, body.description, request.user.sub);
+    if (!result.success) return reply.status(400).send({ error: result.error ?? 'Refund failed' });
+    return result;
+  });
+
+  // ─── Service metering overview (for the billing/subscription UI) ──
+
+  fastify.get('/esb/service-overview', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN')],
+  }, async (request) => {
+    const { getServiceConfig } = await import('../lib/provider-metering.js');
+    const tenantId = request.user.tenant_id;
+    const [ai, sms] = await Promise.all([
+      getServiceConfig(tenantId, 'ai'),
+      getServiceConfig(tenantId, 'sms'),
+    ]);
+    return { services: [ai, sms] };
+  });
+
+  // ─── Activation Progress ──────────────────────────────────────────
+
+  fastify.get('/activation/progress', async (request) => {
+    const { ActivationService } = await import('../services/activation.service.js');
+    return ActivationService.getProgress(request.user.tenant_id);
+  });
+
+  // ─── Feature Flags (tenant-facing read) ───────────────────────────
+
+  fastify.get('/feature-flags', async (request) => {
+    return withTenant(request.user.tenant_id, trx =>
+      trx.selectFrom('tenant_feature_flags')
+        .select(['flag_key', 'enabled', 'config', 'expires_at'])
+        .where('tenant_id', '=', request.user.tenant_id)
+        .execute()
+    );
   });
 }

@@ -1,3 +1,5 @@
+import { FinanceDocumentActions } from '../../components/FinanceDocumentActions.js';
+import { canCollectInvoicePayment } from '../../lib/invoice-payment-actions.js';
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
@@ -312,18 +314,13 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const [reminders, setReminders] = useState<InvReminder[]>([]);
   const [activity, setActivity]   = useState<InvAuditEntry[]>([]);
 
-  const [pdfBusy,setPdfBusy]=useState(false);
   const [linkBusy,setLinkBusy]=useState(false);
   const [paymentLink,setPaymentLink]=useState<string|null>(null);
   const [linkCopied,setLinkCopied]=useState(false);
   const dbId = inv._dbId;
-  async function downloadPdf() {
-    if(!dbId)return;setPdfBusy(true);
-    try {await apiDownload(`/v1/invoices/${dbId}/pdf`,`${inv.id.replace(/[^a-zA-Z0-9_.-]/g,'_')}.pdf`);}
-    catch(e){showAlert(e instanceof Error?e.message:'Could not download PDF.');}finally{setPdfBusy(false);}
-  }
   async function createPaymentLink() {
-    if(!dbId)return;setLinkBusy(true);
+    if (!dbId || !canCollectInvoicePayment(inv.status, invoiceTotals(inv).documentTotal - inv.received)) return;
+    setLinkBusy(true);
     try {const link=await apiFetch<{path:string}>(`/v1/invoices/${dbId}/payment-link`,{method:'POST'});setLinkCopied(false);setPaymentLink(new URL(link.path,window.location.origin).href);}
     catch(e){showAlert(e instanceof Error?e.message:'Could not create payment link.');}finally{setLinkBusy(false);}
   }
@@ -447,22 +444,19 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     apiFetch(`/v1/invoices/${dbId}/reminders/${id}`, { method: 'DELETE' }).then(loadReminders).catch(() => {});
   }
 
-  function sendEmail() {
-    const T = invoiceTotals(inv);
-    const body = encodeURIComponent(
-      `Dear ${inv.client},\n\nPlease find attached Invoice ${inv.id} for ${formatAmount(T.documentTotal, inv.documentCurrency || 'TZS')}.\n\nBL/AWB: ${inv.blNumber}\nDue Date: ${inv.dueDate ?? 'Upon receipt'}\n\nKind regards,\n${co.name}`
-    );
-    window.open(`mailto:?subject=Invoice ${inv.id} – ${inv.client}&body=${body}`, '_blank');
-  }
-
   const T = invoiceTotals(inv);
   const due = T.documentTotal - inv.received;
   const paymentDue = T.documentTotal - inv.received;
+  const canCollectPayment = !!dbId && canCollectInvoicePayment(inv.status, paymentDue);
   const paymentCurrency = inv.documentCurrency || 'TZS';
   const st = getStatusVariant(inv.status);
 
+  useEffect(() => {
+    setShowPayment(false); setPayAmt(''); setShowOnlinePayment(false); setPaymentLink(null);
+  }, [dbId, inv.status]);
 
   async function submitPayment() {
+    if (!canCollectPayment) return;
     const amt = parseFloat(payAmt.replace(/,/g, ''));
     if (!Number.isFinite(amt) || amt <= 0 || paymentSaving) return;
     if (amt > paymentDue) { showAlert('Payment exceeds the invoice balance. Record an advance separately.'); return; }
@@ -492,6 +486,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       {paymentLink&&<Dialog open onOpenChange={open=>{if(!open)setPaymentLink(null);}}><DialogContent size="sm"><DialogHeader><DialogTitle>Invoice payment link</DialogTitle></DialogHeader><DialogBody className="space-y-4"><p className="text-sm text-muted-foreground">The customer must sign in to view this invoice and download its PDF. Online payments await Selcom or Azam Pay integration.</p><Input aria-label="Invoice payment link" readOnly value={paymentLink}/></DialogBody><DialogFooter><Button variant="outline" onClick={()=>setPaymentLink(null)}>Close</Button><Button onClick={copyPaymentLink}>{linkCopied?'Copied':'Copy link'}</Button></DialogFooter></DialogContent></Dialog>}
       {tab !== 'invoice'  && <div className="hidden"><InvoiceDocument inv={inv}/></div>}
 
+      {dbId && <div className="px-4 py-3"><FinanceDocumentActions kind="invoice" id={dbId} label={inv.id}/></div>}
       {/* Action bar */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-2.5 shrink-0">
         {tab !== 'invoice' && (
@@ -525,10 +520,6 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <DropdownMenuItem onClick={() => setTab('tasks')}><Icon name="checkCircle" size={14} /> Tasks</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTab('notes')}><Icon name="file" size={14} /> Notes</DropdownMenuItem>
             <DropdownMenuItem onClick={() => { setTab('reminders'); setShowRemForm(true); }}><Icon name="bell" size={14} /> Reminders</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={sendEmail}><Icon name="mail" size={14} /> Send by Email</DropdownMenuItem>
-            <DropdownMenuItem disabled={!dbId||pdfBusy} onClick={downloadPdf}><Icon name="download" size={14} /> {pdfBusy?'Downloading…':'Download PDF'}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openPrintWindow(inv)}><Icon name="eye" size={14} /> View / Print</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleIssueCreditNote}><Icon name="minusCircle" size={14} /> Issue Credit Note</DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -591,7 +582,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )
         )}
 
-        <DropdownMenu>
+        {canCollectPayment && <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" size="sm" className="px-4">
               <Icon name="dollarSign" size={13} /> Payment <Icon name="chevronDown" size={10} />
@@ -611,7 +602,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu>}
 
         <Tip label="Close"><Button type="button" size="icon" variant="ghost" aria-label="Close" onClick={onClose}><Icon name="x" size={15} /></Button></Tip>
       </div>
@@ -622,7 +613,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       )}
 
       {/* Payment form */}
-      {showPayment && (
+      {showPayment && canCollectPayment && (
         <div className="border-b border-border px-5 py-3 bg-muted shrink-0">
           <div className="text-xs font-bold text-foreground mb-2.5">Record Payment – {inv.id}</div>
           <div className={`grid gap-2.5 mb-2 ${isMobile ? 'grid-cols-1' : 'grid-cols-3'}`}>
@@ -663,7 +654,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           onClose={() => { setShowEsign(false); loadActivity(); }}
         />
       )}
-      {showOnlinePayment && dbId && (
+      {showOnlinePayment && dbId && canCollectPayment && (
         <CollectOnlineDialog
           invoiceId={dbId} invoiceNumber={inv.id}
           balance={paymentDue} currency={paymentCurrency}

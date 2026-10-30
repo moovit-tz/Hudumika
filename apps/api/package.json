@@ -12,7 +12,8 @@
     "check:triggers": "tsx src/scripts/check-triggers.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "node --conditions=production dist/index.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
@@ -61,7 +62,7 @@
     "sharp": "^0.35.4",
     "word-extractor": "^1.0.4",
     "ws": "^8.21.0",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",

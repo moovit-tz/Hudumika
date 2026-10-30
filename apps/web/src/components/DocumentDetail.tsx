@@ -1,3 +1,5 @@
+import { PageHeader } from './PageHeader.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 ﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
@@ -23,7 +25,7 @@ const cardStyle: React.CSSProperties = {
 
 // -- Shell -----------------------------------------------------------------
 
-export function DocumentDetailShell({ backLabel, onBack, backTo, docNumber, isMobile = false, children }: {
+export function DocumentDetailShell({ backLabel, onBack, backTo, docNumber, isMobile, children }: {
   backLabel: string;
   onBack?: () => void;
   backTo?: string;
@@ -31,6 +33,8 @@ export function DocumentDetailShell({ backLabel, onBack, backTo, docNumber, isMo
   isMobile?: boolean;
   children: React.ReactNode;
 }) {
+  const detectedMobile=useIsMobile();
+  const mobile=isMobile ?? detectedMobile;
   const backStyle: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, padding: 0, textDecoration: 'none' };
   return (
     <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
@@ -43,7 +47,8 @@ export function DocumentDetailShell({ backLabel, onBack, backTo, docNumber, isMo
           <span style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>{docNumber}</span>
         </>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: 20, alignItems: 'start' }}>
+      {typeof docNumber==='string' && <PageHeader crumbs={[]} titleEm={docNumber} subtitle={backLabel}/>}
+      <div style={{ display: 'grid', minWidth:0, gridTemplateColumns: mobile ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) 300px', gap: 20, alignItems: 'start' }}>
         {children}
       </div>
     </div>

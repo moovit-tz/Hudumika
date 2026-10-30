@@ -8,7 +8,9 @@
  * does for WEB and MANUAL sessions.
  */
 import { withTenant } from '../db/client.js';
-import { syncAttendanceFromSessions } from '../routes/hr.routes.js';
+import { syncAttendanceFromSessions } from './attendance-recording.service.js';
+import { lockEmployeeTime } from './timesheet-integrity.service.js';
+import { MAX_SHIFT_MINUTES } from './time-entry.service.js';
 import type { RawPunch } from '../lib/device-providers/index.js';
 
 /** YYYY-MM-DD in the punch's own local time (device sends device-local
@@ -57,14 +59,17 @@ export async function recordDevicePunches(
         user_id: userId, punched_at: punch.punchedAt, raw_status: punch.rawStatus,
         processed: false,
       }).execute();
-      if (userId) affected.set(`${userId}|${dateKey(punch.punchedAt)}`, { userId, date: dateKey(punch.punchedAt) });
+      if (userId && !duplicate) {
+        const previous = new Date(punch.punchedAt); previous.setDate(previous.getDate() - 1);
+        for (const date of [dateKey(previous), dateKey(punch.punchedAt)]) affected.set(`${userId}|${date}`, { userId, date });
+      }
     }
 
     await trx.updateTable('attendance_devices')
       .set({ last_heartbeat_at: new Date(), last_sync_at: new Date(), status: 'online', updated_at: new Date() })
       .where('id', '=', deviceId).where('tenant_id', '=', tenantId).execute();
 
-    for (const { userId, date } of affected.values()) {
+    for (const { userId, date } of [...affected.values()].sort((a, b) => `${a.userId}|${a.date}`.localeCompare(`${b.userId}|${b.date}`))) {
       await reconcileDevicePunchesForUserDate(trx, tenantId, deviceId, userId, date);
     }
 
@@ -88,14 +93,19 @@ export async function reconcileDevicePunchesForUserDate(
   userId: string,
   dateStr: string,
 ): Promise<void> {
+  await lockEmployeeTime(trx, tenantId, userId);
+  // Include the neighbouring dates so a night shift belongs to its start
+  // date, and a later out-punch can finish yesterday's open session.
+  const from = new Date(dateStr + 'T00:00:00'); from.setDate(from.getDate() - 1);
+  const to = new Date(dateStr + 'T00:00:00'); to.setDate(to.getDate() + 2);
   const events = await trx.selectFrom('attendance_device_events')
     .select(['id', 'punched_at', 'raw_status'])
     .where('tenant_id', '=', tenantId).where('device_id', '=', deviceId).where('user_id', '=', userId)
+    .where('punched_at', '>=', from).where('punched_at', '<', to)
     .execute();
   type PunchEvent = { id: string; punched_at: Date | string; raw_status: string };
   const uniqueEvents = [...new Map<string, PunchEvent>(events.map((event: PunchEvent) => [`${new Date(event.punched_at).toISOString()}|${event.raw_status}`, event])).values()];
   const dayEvents = uniqueEvents
-    .filter((e: any) => dateKey(new Date(e.punched_at)) === dateStr)
     .sort((a: any, b: any) => new Date(a.punched_at).getTime() - new Date(b.punched_at).getTime());
   if (dayEvents.length === 0) return;
 
@@ -122,23 +132,28 @@ export async function reconcileDevicePunchesForUserDate(
         sessions.push(open);
       } else if (e.raw_status === '1') {
         if (!open) continue; // a check-out with nothing open — spurious tap, drop it
+        if ((at.getTime() - open.inAt.getTime()) / 60000 > MAX_SHIFT_MINUTES) { open = null; continue; }
         open.outAt = at;
         open = null;
       }
       // status 2/3 (break out/in) — session-level granularity only this phase, ignored.
     }
   } else {
-    for (let i = 0; i < dayEvents.length; i += 2) {
-      sessions.push({ inAt: new Date(dayEvents[i].punched_at), outAt: dayEvents[i + 1] ? new Date(dayEvents[i + 1].punched_at) : null });
+    for (let i = 0; i < dayEvents.length; i++) {
+      const inAt = new Date(dayEvents[i].punched_at);
+      const candidate = dayEvents[i + 1] ? new Date(dayEvents[i + 1].punched_at) : null;
+      const outAt = candidate && (candidate.getTime() - inAt.getTime()) / 60000 <= MAX_SHIFT_MINUTES ? candidate : null;
+      sessions.push({ inAt, outAt });
+      if (outAt) i++;
     }
   }
 
-  for (const s of sessions) {
+  for (const s of sessions.filter(s => dateKey(s.inAt) === dateStr)) {
     const workedMinutes = s.outAt ? Math.max(0, Math.round((s.outAt.getTime() - s.inAt.getTime()) / 60000)) : null;
     await trx.insertInto('hr_clock_sessions').values({
       tenant_id: tenantId, user_id: userId, date: dateStr,
       clock_in_at: s.inAt, clock_out_at: s.outAt,
-      project_name: null, status: s.outAt ? 'COMPLETED' : 'ACTIVE',
+      project_name: null, status: s.outAt || Date.now() - s.inAt.getTime() > MAX_SHIFT_MINUTES * 60000 ? 'COMPLETED' : 'ACTIVE',
       total_break_minutes: 0, worked_minutes: workedMinutes,
       source: 'DEVICE', device_id: deviceId,
     }).execute();

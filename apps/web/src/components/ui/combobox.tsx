@@ -73,7 +73,7 @@ export function Combobox({
             // nothing moves; the floor only decides when a SuperAdmin picks a
             // compact density, and a hardcoded 36 there is a number the
             // density setting cannot reach.
-            "flex min-h-(--ctl-h) w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            "flex min-h-(--ctl-h) w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50",
             triggerClassName
           )}
         >

@@ -30,6 +30,7 @@ export interface WorkflowStep {
   entryConditions: FieldCondition[];
   autoComms: AutoComm[];
   slaHours?: number;
+  stepType?: string | null;
   color: string;
 }
 

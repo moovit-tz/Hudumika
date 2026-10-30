@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Icon } from './Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
@@ -128,7 +129,7 @@ export const CheckInWidget: React.FC = () => {
         project_id: selShipment.id,
         project_ref: selShipment.ref_number,
       } : {
-        task_id: selTask?.id ?? null,
+        task_id: selTask?.id ?? undefined,
         task_name: selTask?.name ?? 'Check-in',
         is_billable: selTask ? (selTask.is_billable && billable) : false,
         entry_type: 'CHECK_IN',
@@ -161,7 +162,7 @@ export const CheckInWidget: React.FC = () => {
       saveLS(newEntry);
       ctxSetCheckedIn(true, newEntry);
       setOpen(false);
-    } catch { } finally { setSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Could not switch task. Your current timer is still active.', { variant: 'error' }); } finally { setSaving(false); }
   }, [selTask, billable, ctxSetCheckedIn]);
 
   const checkout = useCallback(async () => {
@@ -169,13 +170,13 @@ export const CheckInWidget: React.FC = () => {
     setSaving(true);
     try {
       await apiFetch(`/v1/hr/time/${entry.id}/stop`, { method: 'PATCH' });
-    } catch {
-      // Entry may not exist in DB (e.g. stale localStorage) — clear state anyway
-    } finally {
       setEntry(null);
       saveLS(null);
       ctxSetCheckedIn(false);
       setOpen(false);
+    } catch (err: any) {
+      showAlert(err.message || 'Could not clock out. Retry while your current timer remains active.', { variant: 'error' });
+    } finally {
       setSaving(false);
     }
   }, [entry, ctxSetCheckedIn]);

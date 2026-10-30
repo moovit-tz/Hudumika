@@ -12,6 +12,7 @@ import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import type { WizardStepItem } from '../components/CalcWizardShell.js';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import type { AdvancedCalcResult } from '../lib/advancedCalculators.js';
 
@@ -75,6 +76,8 @@ export const LclCalculatorPage: React.FC = () => {
         }),
       });
       setResult(r);
+      if (r.history_saved === true) showAlert('Estimate saved to history.', { variant: 'success' });
+      else if (r.history_saved === false) showAlert('Estimate calculated but could not be saved to history.', { variant: 'warning' });
       setLoading(false);
       return true;
     } catch (e: any) {

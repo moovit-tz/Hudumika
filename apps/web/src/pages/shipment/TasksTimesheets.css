@@ -1,0 +1,51 @@
+.shipment-tasks-card { overflow: hidden; }
+.shipment-task-controls { padding: 16px; display: grid; gap: 14px; }
+.shipment-task-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ── Status filter pills ── */
+.stf-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--white); color: var(--ink2);
+  font: 600 12px/1.35 var(--font); cursor: pointer;
+  transition: all 120ms ease; white-space: nowrap;
+}
+.stf-pill:hover { border-color: var(--teal-m); color: var(--ink); }
+.stf-pill.stf-active { border-color: var(--teal); background: var(--teal-l); color: var(--teal); }
+.stf-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding-inline: 4px;
+  border-radius: 9px; font-size: 10.5px; font-weight: 700;
+  background: var(--bg); color: var(--ink3);
+}
+.stf-active .stf-count { background: var(--teal); color: var(--white); }
+
+.shipment-task-table { width: 100%; min-width: 0; }
+.shipment-task-table table { width: 100%; min-width: 0; table-layout: fixed; }
+.shipment-task-table td { overflow-wrap: anywhere; white-space: normal !important; }
+.shipment-task-table td:last-child > div { flex-wrap: wrap; }
+.shipment-task-table td:last-child > div > div { max-width: 100%; }
+.shipment-task-table td:last-child { width: 250px; }
+.shipment-task-table th:last-child { width: 250px; }
+.shipment-tasks-card > div:has(form) { padding: 0 16px; }
+@media (max-width: 1400px) {
+  .shipment-task-table table, .shipment-task-table tbody { display: block; }
+  .shipment-task-table thead { display: none; }
+  .shipment-task-table tbody { padding: 0 16px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .shipment-task-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; gap: 12px; background: var(--white) !important; }
+  .shipment-task-table td { display: block; padding: 0 !important; width: auto !important; max-width: none !important; min-width: 0; }
+  .shipment-task-table td::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; color: var(--ink3); margin-bottom: 6px; }
+  .shipment-task-table td[data-label="#"] { display: none; }
+  .shipment-task-table td[data-label="Task"], .shipment-task-table td[data-label="Actions"], .shipment-task-table td[colspan] { grid-column: 1 / -1; }
+  .shipment-task-table td[data-label="Task"] > div { white-space: normal !important; }
+}
+@media (max-width: 900px) {
+  .stf-pill { flex: 1 1 calc(33% - 6px); justify-content: center; }
+  .shipment-task-table tbody { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .shipment-task-controls { padding: 12px; }
+  .stf-pill { flex: 1 1 calc(50% - 6px); justify-content: center; }
+  .shipment-task-table tbody { padding: 0 12px 12px; }
+}

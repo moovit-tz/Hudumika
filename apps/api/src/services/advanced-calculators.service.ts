@@ -30,7 +30,7 @@
 // date, not a deliberate business choice, so these calculators use the
 // platform's already-corrected 1% default like everything else, and flag the
 // discrepancy in `assumptions` rather than silently regressing to 0.6%.
-import { getHsCode, getUsdToTzs, getUsdRates, pickRate, type RateOverrides } from './customs.service.js';
+import { getHsCode, getUsdToTzs, getUsdRates, pickRate, getTaxRules, type RateOverrides } from './customs.service.js';
 import { withTenant } from '../db/client.js';
 
 // ─── Shared line-item rate card (Aleka's own figures) ──────────────────────
@@ -77,6 +77,7 @@ const AIR_HANDLING_TZS_PER_KG = 233.75;
 const AIR_EQUIPMENT_TZS = 192.72;          // per AWB
 const AIR_SECURITY_TZS_PER_KG = 68.75;
 const AIR_DATA_DISCHARGE_TANCIS_TZS = 5_500; // per AWB
+const AIR_STORAGE_TZS_PER_KG_PER_DAY = 50; // Aleka rate card — cargo storage per kg per day; not independently verified, treat as estimate
 const AIR_AGENCY_FEE_TZS = 650_000;        // per AWB
 
 /** Real corridor rate card (Aleka's own), seeded lazily per-tenant on first
@@ -143,14 +144,17 @@ export async function deleteTransitRoute(tenantId: string, id: string) {
 
 /** TZS per one unit of `currency`, via the same USD-based rates feed the
  *  rest of the platform already uses — TZS-per-USD ÷ FCY-per-USD. */
-async function getFxRateTzsPer(currency: string): Promise<number> {
+async function getFxRateTzsPer(currency: string): Promise<{ rate: number; source: string; unsupported?: boolean }> {
   const code = (currency || 'USD').toUpperCase();
-  if (code === 'USD') return getUsdToTzs();
+  if (code === 'USD') return { rate: await getUsdToTzs(), source: 'USD direct' };
+  if (code === 'TZS') return { rate: 1, source: 'TZS identity' };
   const rates = await getUsdRates();
   const tzsPerUsd = rates.TZS;
   const fcyPerUsd = rates[code];
-  if (!tzsPerUsd || !fcyPerUsd) return getUsdToTzs(); // fall back to USD if the currency isn't in the feed
-  return tzsPerUsd / fcyPerUsd;
+  if (!tzsPerUsd || !fcyPerUsd) {
+    throw new Error(`Currency "${code}" is not available in the exchange-rate feed. Provide fx_rate_override with the correct ${code}/TZS rate, or use USD.`);
+  }
+  return { rate: tzsPerUsd / fcyPerUsd, source: `${code} via cross-rate` };
 }
 
 // ─── Shared result shape ────────────────────────────────────────────────────
@@ -163,12 +167,26 @@ export interface AdvBreakdownLine {
   rate?: string;
 }
 
+interface RateCardInfo {
+  id: string;
+  name: string;
+  version: string;
+  source: string;
+}
+
+const RATE_CARDS: Record<string, RateCardInfo> = {
+  lcl: { id: 'aleka-lcl-v1', name: 'Aleka LCL', version: '1.0 (2026-08-20)', source: 'Aleka Logistics LCL rate-card spreadsheet, supplied 2026-08-20' },
+  air: { id: 'aleka-air-v1', name: 'Aleka Air Freight', version: '1.0 (2026-08-20)', source: 'Aleka Logistics Air Freight rate-card spreadsheet, supplied 2026-08-20' },
+  transit: { id: 'aleka-transit-v1', name: 'Aleka Transit', version: '1.0 (2026-08-20)', source: 'Aleka Logistics Transit rate-card spreadsheet, supplied 2026-08-20' },
+};
+
 export interface AdvancedCalcResult {
   mode: 'sea_lcl_advanced' | 'air_advanced' | 'transit';
   hs_code: string;
   description: string;
   currency: string;
   fx_rate: number; // TZS per 1 unit of `currency`
+  fx_source?: string;
   fob: number;
   freight: number;
   insurance: number;
@@ -189,27 +207,33 @@ export interface AdvancedCalcResult {
   grand_total_net_vat: number;
   grand_total_net_vat_tzs: number;
   per_unit: { qty: number; unit_label: string; cost_incl_vat: number; cost_net_vat: number } | null;
-  landed_multiplier: number; // grand_total_net_vat / fob (this rate card's own "Landed ÷ EXW multiple")
+  landed_multiplier: number;
   breakdown: AdvBreakdownLine[];
   warnings: string[];
   assumptions: string[];
   overridden_fields: string[];
+  rate_card: RateCardInfo;
+  tax_rules_id: string;
+  tax_rules_source: string;
+  tax_rules_effective_date: string;
 }
 
 /** Real HS-code-driven duty/excise/RDL/CPF/VAT rates — same lookup and same
  *  fallback defaults customs.service.ts's own calculateLandedCost uses, so a
  *  code found (or not found) in our tariff table behaves identically here. */
-async function lookupTaxRates(hsCode: string, overrides: RateOverrides | undefined, overriddenFields: string[]) {
+async function lookupTaxRates(hsCode: string, overrides: RateOverrides | undefined, overriddenFields: string[], declarationDate?: string) {
+  const rules = getTaxRules(declarationDate);
   const hsEntry = hsCode ? await getHsCode(hsCode) : null;
   const ov = overrides ?? {};
   return {
-    dutyRate: pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : 25, ov.duty_rate, 'duty_rate', overriddenFields),
-    vatRate: pickRate(hsEntry ? Number(hsEntry.vat_rate) : 18, ov.vat_rate, 'vat_rate', overriddenFields),
+    dutyRate: pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : rules.fallback_duty_rate, ov.duty_rate, 'duty_rate', overriddenFields),
+    vatRate: pickRate(hsEntry ? Number(hsEntry.vat_rate) : rules.fallback_vat_rate, ov.vat_rate, 'vat_rate', overriddenFields),
     exciseRate: hsEntry ? Number(hsEntry.excise_rate) : 0,
-    rdlRate: pickRate(hsEntry ? Number(hsEntry.rdl_rate) : 2, ov.rdl_rate, 'rdl_rate', overriddenFields),
-    cpfRate: pickRate(hsEntry ? Number(hsEntry.cpf_rate) : 1, ov.cpf_rate, 'cpf_rate', overriddenFields),
+    rdlRate: pickRate(hsEntry ? Number(hsEntry.rdl_rate) : rules.fallback_rdl_rate, ov.rdl_rate, 'rdl_rate', overriddenFields),
+    cpfRate: pickRate(hsEntry ? Number(hsEntry.cpf_rate) : rules.fallback_cpf_rate, ov.cpf_rate, 'cpf_rate', overriddenFields),
     description: hsEntry?.description ?? 'General goods',
     found: !!hsEntry,
+    rules,
   };
 }
 
@@ -340,10 +364,14 @@ export async function calculateLclAdvanced(input: LclAdvancedInput): Promise<Adv
     landed_multiplier: fob > 0 ? grandTotalNetVat / fob : 0,
     breakdown, warnings,
     assumptions: [
-      'ICD, Shipping Line, Clearance and Port Infrastructure Development figures are Aleka Logistics’ own commercial rate card, not TRA/TPA-published rates — verify against your actual invoices.',
+      `Commercial charges are from ${RATE_CARDS.lcl.source}, not TRA/TPA-published rates — verify against your actual invoices.`,
       CPF_STALE_RATE_ASSUMPTION,
     ],
     overridden_fields: overriddenFields,
+    rate_card: RATE_CARDS.lcl,
+    tax_rules_id: rates.rules.id,
+    tax_rules_source: rates.rules.source_document,
+    tax_rules_effective_date: rates.rules.effective_date,
   };
 }
 
@@ -361,6 +389,7 @@ export interface AirAdvancedInput {
   num_units?: number;
   transportation_tzs?: number; // airport → warehouse, editable, default 0
   storage_applicable?: boolean; // Storage Charges line, default off (0)
+  storage_days?: number;       // days in storage — drives the charge when applicable
   fx_rate_override?: number;   // TZS per `currency` unit
   rate_overrides?: RateOverrides;
 }
@@ -369,7 +398,16 @@ export async function calculateAirAdvanced(input: AirAdvancedInput): Promise<Adv
   const overriddenFields: string[] = [];
   const rates = await lookupTaxRates(input.hs_code, input.rate_overrides, overriddenFields);
   const currency = (input.currency || 'USD').toUpperCase();
-  const fxRate = input.fx_rate_override ?? await getFxRateTzsPer(currency);
+  let fxRate: number;
+  let fxSource: string;
+  if (input.fx_rate_override) {
+    fxRate = input.fx_rate_override;
+    fxSource = 'manual override';
+  } else {
+    const fxLookup = await getFxRateTzsPer(currency);
+    fxRate = fxLookup.rate;
+    fxSource = fxLookup.source;
+  }
 
   const fob = input.fob;
   const freight = input.freight ?? 0;
@@ -394,7 +432,8 @@ export async function calculateAirAdvanced(input: AirAdvancedInput): Promise<Adv
   const equipmentTzs = AIR_EQUIPMENT_TZS * numAwbs;
   const securityTzs = AIR_SECURITY_TZS_PER_KG * kg;
   const dataDischargeTzs = AIR_DATA_DISCHARGE_TANCIS_TZS * numAwbs;
-  const storageTzs = input.storage_applicable ? 0 : 0; // rate card's own line defaults to 0/kg; kept as an explicit line for parity with the source sheet
+  const storageDays = Math.max(0, input.storage_days ?? 0);
+  const storageTzs = input.storage_applicable ? AIR_STORAGE_TZS_PER_KG_PER_DAY * kg * storageDays : 0;
   const cargoSubtotalTzs = documentationTzs + taaTzs + notificationTzs + handlingTzs + equipmentTzs + securityTzs + dataDischargeTzs + storageTzs;
 
   const agencyFeeTzs = AIR_AGENCY_FEE_TZS * numAwbs;
@@ -426,7 +465,7 @@ export async function calculateAirAdvanced(input: AirAdvancedInput): Promise<Adv
     { section: 'Cargo Charges', label: `Equipment Charges (${numAwbs} AWB)`, amount_fcy: equipmentTzs / fxRate, amount_tzs: equipmentTzs },
     { section: 'Cargo Charges', label: `Security Surcharge (${kg} kg)`, amount_fcy: securityTzs / fxRate, amount_tzs: securityTzs },
     { section: 'Cargo Charges', label: `Data Discharge TANCIS (${numAwbs} AWB)`, amount_fcy: dataDischargeTzs / fxRate, amount_tzs: dataDischargeTzs },
-    { section: 'Cargo Charges', label: 'Storage Charges (if applicable)', amount_fcy: storageTzs / fxRate, amount_tzs: storageTzs },
+    { section: 'Cargo Charges', label: 'Storage Charges (estimate — rate not independently verified)', amount_fcy: storageTzs / fxRate, amount_tzs: storageTzs },
     { section: 'Cargo Charges', label: 'Cargo Charges Subtotal', amount_fcy: cargoSubtotalTzs / fxRate, amount_tzs: cargoSubtotalTzs },
     { section: 'Agency & Transport', label: `Agency Fees (${numAwbs} AWB)`, amount_fcy: agencyFeeTzs / fxRate, amount_tzs: agencyFeeTzs },
     { section: 'Agency & Transport', label: 'Transportation (Airport → Warehouse)', amount_fcy: transportationTzs / fxRate, amount_tzs: transportationTzs },
@@ -445,10 +484,13 @@ export async function calculateAirAdvanced(input: AirAdvancedInput): Promise<Adv
   const warnings: string[] = [];
   if (!rates.found) warnings.push(`HS code ${input.hs_code} was not found in our tariff database — rates shown use generic fallback values.`);
   if (overriddenFields.length > 0) warnings.push(`Manually overridden rate(s): ${overriddenFields.join(', ')} — figures you entered, not sourced from our tariff database.`);
+  // Unsupported currencies now throw before reaching this point; the user
+  // gets a 400 with guidance to provide fx_rate_override.
+  if (storageTzs > 0) warnings.push(`Storage rate (TZS ${AIR_STORAGE_TZS_PER_KG_PER_DAY}/kg/day) is from an Aleka commercial rate card and has not been independently verified — confirm with your actual cargo handler before relying on this figure.`);
 
   return {
     mode: 'air_advanced', hs_code: input.hs_code, description: input.description || rates.description,
-    currency, fx_rate: fxRate,
+    currency, fx_rate: fxRate, fx_source: fxSource,
     fob, freight, insurance, cif, cif_tzs: cifTzs,
     duty_rate: rates.dutyRate, excise_rate: rates.exciseRate, rdl_rate: rates.rdlRate, cpf_rate: rates.cpfRate, vat_rate: rates.vatRate,
     statutory_total: statutoryTotal, statutory_total_tzs: t(statutoryTotal),
@@ -460,10 +502,14 @@ export async function calculateAirAdvanced(input: AirAdvancedInput): Promise<Adv
     landed_multiplier: fob > 0 ? grandTotalNetVat / fob : 0,
     breakdown, warnings,
     assumptions: [
-      'Cargo Charges and Agency Fees are Aleka Logistics’ own airport tariff/commercial rate card, quoted in TZS regardless of the shipment currency — verify against your actual airline/agent invoice.',
+      `Cargo Charges and Agency Fees are from ${RATE_CARDS.air.source}, quoted in TZS regardless of the shipment currency — verify against your actual airline/agent invoice.`,
       CPF_STALE_RATE_ASSUMPTION,
     ],
     overridden_fields: overriddenFields,
+    rate_card: RATE_CARDS.air,
+    tax_rules_id: rates.rules.id,
+    tax_rules_source: rates.rules.source_document,
+    tax_rules_effective_date: rates.rules.effective_date,
   };
 }
 
@@ -588,9 +634,13 @@ export async function calculateTransit(tenantId: string, input: TransitInput): P
     breakdown, warnings,
     assumptions: [
       'Transit cargo is exempted from Import Duty, Excise, RDL, CPF and VAT — it is not entering Tanzania for consumption.',
-      'Port Charges (Wharfage, Green Port Initiatives, Port Infrastructure Development) are modelled as zero for transit, matching Aleka Logistics’ own transit rate card — confirm this against your actual TPA invoice if your cargo is assessed port charges before onward transit.',
-      'Road User Charges, Weighbridge Fees and Inland Transport are sourced from this workspace’s own editable route reference table — verify current market rates before quoting.',
+      `Port Charges are modelled as zero for transit, matching ${RATE_CARDS.transit.source} — confirm against your actual TPA invoice if your cargo is assessed port charges before onward transit.`,
+      `Road User Charges, Weighbridge Fees and Inland Transport are sourced from this workspace's own editable route reference table — verify current market rates before quoting.`,
     ],
     overridden_fields: [],
+    rate_card: RATE_CARDS.transit,
+    tax_rules_id: getTaxRules().id,
+    tax_rules_source: getTaxRules().source_document,
+    tax_rules_effective_date: getTaxRules().effective_date,
   };
 }

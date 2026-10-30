@@ -23,13 +23,13 @@ describe('zodToJsonSchema', () => {
       maybe: z.string().nullable(),
     })) as any;
     expect(schema.type).toBe('object');
-    expect(schema.properties.id).toEqual({ type: 'string', format: 'uuid' });
+    expect(schema.properties.id).toMatchObject({ type: 'string', format: 'uuid' });
     expect(schema.properties.note).toEqual({ type: 'string', minLength: 1, maxLength: 10 });
-    expect(schema.properties.qty).toEqual({ type: 'integer', minimum: 1 });
+    expect(schema.properties.qty).toMatchObject({ type: 'integer', minimum: 1 });
     expect(schema.properties.flag).toEqual({ type: 'boolean', default: true });
     expect(schema.properties.kind).toEqual({ type: 'string', enum: ['a', 'b'] });
     expect(schema.properties.tags).toEqual({ type: 'array', items: { type: 'string' } });
-    expect(schema.properties.maybe.anyOf).toEqual([{ type: 'string' }, { type: 'null' }]);
+    expect(schema.properties.maybe.type).toEqual(['string', 'null']);
     // optional and defaulted fields are not required; nullable-but-present ones are
     expect(schema.required).toEqual(['id', 'note', 'qty', 'kind', 'maybe']);
   });
@@ -58,7 +58,7 @@ describe('agent tool registry', () => {
   it("each Studio action's advertised properties and required fields match its real zod schema", () => {
     for (const action of ACTIONS) {
       const advertised = AGENT_TOOL_INPUT_SCHEMAS[action.id] as any;
-      const shape = (action.inputSchema as any)._def.shape() as Record<string, z.ZodTypeAny>;
+      const shape = (action.inputSchema as any).shape as Record<string, z.ZodTypeAny>;
       expect(Object.keys(advertised.properties).sort(), action.id).toEqual(Object.keys(shape).sort());
       const required = Object.keys(shape).filter(k => !shape[k].isOptional()).sort();
       expect([...(advertised.required ?? [])].sort(), action.id).toEqual(required);

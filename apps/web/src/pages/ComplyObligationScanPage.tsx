@@ -1,3 +1,5 @@
+import {Banner} from '../components/ui/alert.js';
+import { Input } from '../components/ui/input.js';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -74,7 +76,7 @@ export function ComplyObligationScanPage() {
             </Select>
           </WizardField>
           <WizardField label="Sub-sector (optional)">
-            <input className="input-field" value={subSector} onChange={e => setSubSector(e.target.value)} placeholder="e.g. Electronics assembly" />
+            <Input className="input-field" value={subSector} onChange={e => setSubSector(e.target.value)} placeholder="e.g. Electronics assembly" />
           </WizardField>
         </>
       )}
@@ -90,17 +92,17 @@ export function ComplyObligationScanPage() {
             </Select>
           </WizardField>
           <WizardField label="Ownership structure (optional)">
-            <input className="input-field" value={ownershipStructure} onChange={e => setOwnershipStructure(e.target.value)} placeholder="e.g. Private limited company, 100% locally owned" />
+            <Input className="input-field" value={ownershipStructure} onChange={e => setOwnershipStructure(e.target.value)} placeholder="e.g. Private limited company, 100% locally owned" />
           </WizardField>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </>
       )}
 
       {step === 2 && result && (
-        <div className="comply-note comply-note--success">
+        <Banner variant="success" icon={false} className="">
           <Icon name="check" size={16} />
           <span>Matched {result.obligations_matched} obligation{result.obligations_matched === 1 ? '' : 's'} for this sector — {result.obligations_created} new obligation{result.obligations_created === 1 ? '' : 's'} added to your compliance list.</span>
-        </div>
+        </Banner>
       )}
     </ComplyWizardPage>
   );

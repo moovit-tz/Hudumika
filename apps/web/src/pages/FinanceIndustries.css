@@ -609,11 +609,31 @@
   overflow: hidden;
 }
 
+.industry-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+.industry-toolbar > :first-child { flex: 1; min-width: 0; }
+
 .industry-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-4, 16px);
 }
+
+.industry-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-10, 48px) var(--space-4, 16px);
+  color: var(--ink3);
+}
+.industry-empty h3 { color: var(--ink); font-size: 0.9375rem; font-weight: 600; }
+.industry-empty p  { font-size: 0.8125rem; max-width: 36ch; }
 
 .industry-pagination {
   display: flex;
@@ -653,6 +673,7 @@
 }
 
 @media (max-width: 640px) {
+  .industry-toolbar { flex-direction: column; align-items: stretch; }
   .erp-overview-stats {
     grid-template-columns: minmax(0, 1fr);
   }

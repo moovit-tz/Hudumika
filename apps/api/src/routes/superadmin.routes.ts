@@ -17,12 +17,14 @@ import { getFinanceCapabilities, getFinanceConfiguration } from '../services/fin
 import { AI_PROVIDERS, AI_PROVIDER_CONFIG } from '../lib/ai-providers.js';
 import { env } from '../config/env.js';
 import { CarImagesService } from '../services/carimages.service.js';
+import { CommercialAnalyticsService } from '../services/commercial-analytics.service.js';
 import os from 'node:os';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
 // Real values — SuperAdmin.tsx's own PlanId type / packages catalog codes.
-const TENANT_PLANS = ['starter', 'growth', 'scale', 'enterprise'] as const;
+// Phase 1 (mig 635): added TZS plan codes alongside legacy USD ones.
+const TENANT_PLANS = ['starter', 'growth', 'scale', 'enterprise', 'starter-tzs', 'business-tzs', 'scale-tzs'] as const;
 const tenantCreateSchema = z.object({
   name: z.string().trim().min(1).max(300),
   slug: z.string().trim().max(100).optional(),
@@ -35,6 +37,7 @@ const tenantPatchSchema = z.object({
   name: z.string().trim().min(1).max(300).optional(),
   slug: z.string().trim().max(100).optional(),
   plan: z.enum(TENANT_PLANS).optional(),
+  billing_cycle: z.enum(['monthly', 'annual']).optional(),
   active: z.boolean().optional(),
   logo_url: z.string().max(1000).nullable().optional(),
   primary_color: z.string().max(30).nullable().optional(),
@@ -422,6 +425,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     if (body.name !== undefined) updates.name = body.name;
     if (body.slug !== undefined) updates.slug = body.slug;
     if (body.plan !== undefined) updates.plan = body.plan;
+    if ((body as any).billing_cycle !== undefined) updates.billing_cycle = (body as any).billing_cycle;
     if (body.active !== undefined) updates.active = body.active;
     if (body.logo_url !== undefined) updates.logo_url = body.logo_url;
     if (body.primary_color !== undefined) updates.primary_color = body.primary_color;
@@ -463,6 +467,19 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       if (prunedOverrides.length > 0) {
         await sql`UPDATE tenant_settings SET settings = jsonb_set(settings, '{enabled-apps}', ${JSON.stringify(nextEnabledApps)}::jsonb), updated_at = NOW() WHERE tenant_id = ${id}`.execute(dbPlatform);
       }
+    }
+
+    // Record plan change in the dedicated audit table (mig 635)
+    if (before && body.plan !== undefined && body.plan !== before.plan) {
+      await dbPlatform.insertInto('tenant_plan_changes' as any).values({
+        tenant_id: id,
+        from_plan: before.plan,
+        to_plan: body.plan,
+        from_cycle: (before as any).billing_cycle ?? 'monthly',
+        to_cycle: (body as any).billing_cycle ?? (before as any).billing_cycle ?? 'monthly',
+        reason: 'SuperAdmin plan change',
+        initiated_by: (request.user as any)?.id ?? null,
+      } as any).execute();
     }
 
     // Described by what actually changed, so the log reads as a history rather
@@ -1222,5 +1239,309 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       return reply.status(404).send({ error: err.message });
     }
+  });
+
+  // ─── Provider Rates (platform-wide ESB pricing) ──────────────────
+
+  fastify.get('/provider-rates', async () => {
+    return dbPlatform.selectFrom('provider_rates')
+      .selectAll()
+      .orderBy('service_kind', 'asc')
+      .orderBy('provider', 'asc')
+      .orderBy('effective_from', 'desc')
+      .execute();
+  });
+
+  const providerRateSchema = z.object({
+    service_kind: z.string().min(1).max(50),
+    provider: z.string().min(1).max(100),
+    rate_tzs: z.number().positive(),
+    unit_label: z.string().min(1).max(50),
+    supplier_rate: z.number().positive().nullable().optional(),
+    supplier_currency: z.string().length(3).nullable().optional(),
+    is_active: z.boolean().optional(),
+    is_published: z.boolean().optional(),
+    effective_from: z.string().optional(),
+  });
+
+  fastify.post('/provider-rates', async (request: any) => {
+    const body = providerRateSchema.parse(request.body);
+    return dbPlatform.insertInto('provider_rates').values({
+      service_kind: body.service_kind,
+      provider: body.provider,
+      rate_tzs: body.rate_tzs,
+      unit_label: body.unit_label,
+      supplier_rate: body.supplier_rate ?? null,
+      supplier_currency: body.supplier_currency ?? null,
+      is_active: body.is_active ?? true,
+      is_published: body.is_published ?? false,
+      effective_from: body.effective_from ? new Date(body.effective_from) : new Date(),
+    }).returningAll().executeTakeFirstOrThrow();
+  });
+
+  fastify.put('/provider-rates/:id', async (request: any) => {
+    const { id } = request.params;
+    const body = providerRateSchema.partial().parse(request.body);
+    const updates: Record<string, any> = {};
+    if (body.rate_tzs != null) updates.rate_tzs = body.rate_tzs;
+    if (body.unit_label != null) updates.unit_label = body.unit_label;
+    if (body.supplier_rate !== undefined) updates.supplier_rate = body.supplier_rate;
+    if (body.supplier_currency !== undefined) updates.supplier_currency = body.supplier_currency;
+    if (body.is_active != null) updates.is_active = body.is_active;
+    if (body.is_published != null) updates.is_published = body.is_published;
+    if (body.effective_from) updates.effective_from = new Date(body.effective_from);
+    return dbPlatform.updateTable('provider_rates').set(updates)
+      .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+  });
+
+  // ─── Tenant Service Config (per-tenant ESB metering flags) ───────
+
+  fastify.get('/tenants/:tenantId/service-config', async (request: any) => {
+    const { tenantId } = request.params;
+    return withTenant(tenantId, trx =>
+      trx.selectFrom('tenant_service_config')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .execute()
+    );
+  });
+
+  const serviceConfigSchema = z.object({
+    service_kind: z.string().min(1).max(50),
+    credential_owner: z.enum(['tenant', 'platform', 'hybrid']),
+    esb_metered: z.boolean(),
+    is_enabled: z.boolean().optional(),
+    rate_override: z.number().positive().nullable().optional(),
+  });
+
+  fastify.put('/tenants/:tenantId/service-config/:serviceKind', async (request: any) => {
+    const { tenantId, serviceKind } = request.params;
+    const body = serviceConfigSchema.parse({ ...request.body, service_kind: serviceKind });
+    return withTenant(tenantId, async trx => {
+      const existing = await trx.selectFrom('tenant_service_config')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('service_kind', '=', serviceKind)
+        .executeTakeFirst();
+      if (existing) {
+        return trx.updateTable('tenant_service_config').set({
+          credential_owner: body.credential_owner,
+          esb_metered: body.esb_metered,
+          is_enabled: body.is_enabled ?? true,
+          rate_override: body.rate_override ?? null,
+          updated_at: new Date(),
+        }).where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
+      }
+      return trx.insertInto('tenant_service_config').values({
+        tenant_id: tenantId,
+        service_kind: serviceKind,
+        credential_owner: body.credential_owner,
+        esb_metered: body.esb_metered,
+        is_enabled: body.is_enabled ?? true,
+        rate_override: body.rate_override ?? null,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // ─── Implementation Engagements ──────────────────────────────────
+
+  fastify.get('/tenants/:tenantId/implementations', async (request: any) => {
+    const { tenantId } = request.params;
+    return withTenant(tenantId, trx =>
+      trx.selectFrom('implementation_engagements')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .orderBy('created_at', 'desc')
+        .execute()
+    );
+  });
+
+  const implSchema = z.object({
+    engagement_type: z.enum(['included_setup', 'paid_implementation', 'migration', 'training', 'custom_config']).default('included_setup'),
+    scope_summary: z.string().max(2000).optional(),
+    scope_details: z.record(z.string(), z.unknown()).optional(),
+    deal_id: z.string().uuid().nullable().optional(),
+    project_id: z.string().uuid().nullable().optional(),
+    quoted_hours: z.number().min(0).nullable().optional(),
+    quoted_amount: z.number().min(0).nullable().optional(),
+    currency: z.string().length(3).default('TZS'),
+  });
+
+  fastify.post('/tenants/:tenantId/implementations', async (request: any) => {
+    const { tenantId } = request.params;
+    const body = implSchema.parse(request.body);
+    return withTenant(tenantId, trx =>
+      trx.insertInto('implementation_engagements').values({
+        tenant_id: tenantId,
+        engagement_type: body.engagement_type,
+        scope_summary: body.scope_summary ?? null,
+        scope_details: body.scope_details ?? {},
+        deal_id: body.deal_id ?? null,
+        project_id: body.project_id ?? null,
+        quoted_hours: body.quoted_hours ?? null,
+        quoted_amount: body.quoted_amount ?? null,
+        currency: body.currency,
+        created_by: request.user.sub,
+      }).returningAll().executeTakeFirstOrThrow()
+    );
+  });
+
+  fastify.put('/tenants/:tenantId/implementations/:id', async (request: any) => {
+    const { tenantId, id } = request.params;
+    const body = z.object({
+      status: z.enum(['planned', 'in_progress', 'completed', 'cancelled']).optional(),
+      scope_summary: z.string().max(2000).optional(),
+      actual_hours: z.number().min(0).optional(),
+      consent_at: z.string().optional(),
+      started_at: z.string().optional(),
+      completed_at: z.string().optional(),
+      invoice_id: z.string().uuid().nullable().optional(),
+      notes: z.string().max(4000).optional(),
+    }).parse(request.body);
+    const updates: Record<string, any> = { updated_at: new Date() };
+    if (body.status) updates.status = body.status;
+    if (body.scope_summary !== undefined) updates.scope_summary = body.scope_summary;
+    if (body.actual_hours !== undefined) updates.actual_hours = body.actual_hours;
+    if (body.consent_at) { updates.consent_at = new Date(body.consent_at); updates.consent_by = request.user.sub; }
+    if (body.started_at) updates.started_at = new Date(body.started_at);
+    if (body.completed_at) { updates.completed_at = new Date(body.completed_at); updates.delivered_by = request.user.sub; }
+    if (body.invoice_id !== undefined) updates.invoice_id = body.invoice_id;
+    if (body.notes !== undefined) updates.notes = body.notes;
+    return withTenant(tenantId, trx =>
+      trx.updateTable('implementation_engagements').set(updates)
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow()
+    );
+  });
+
+  // ─── Support Time ────────────────────────────────────────────────
+
+  fastify.get('/tenants/:tenantId/support-time', async (request: any) => {
+    const { SupportTimeService } = await import('../services/support-time.service.js');
+    const { tenantId } = request.params;
+    const query = request.query as { limit?: string; offset?: string; category?: string };
+    return SupportTimeService.getEntries(tenantId, {
+      limit: query.limit ? Number(query.limit) : 50,
+      offset: query.offset ? Number(query.offset) : undefined,
+      category: query.category,
+    });
+  });
+
+  fastify.get('/tenants/:tenantId/support-time/summary', async (request: any) => {
+    const { SupportTimeService } = await import('../services/support-time.service.js');
+    return SupportTimeService.getSummary(request.params.tenantId);
+  });
+
+  fastify.post('/tenants/:tenantId/support-time', async (request: any) => {
+    const { SupportTimeService } = await import('../services/support-time.service.js');
+    const body = z.object({
+      category: z.enum(['included', 'paid_support', 'implementation', 'sales_assistance', 'escalation']),
+      duration_minutes: z.number().int().min(1),
+      summary: z.string().min(1).max(2000),
+      agent_name: z.string().max(200).optional(),
+      ticket_ref: z.string().max(200).optional(),
+      engagement_id: z.string().uuid().optional(),
+    }).parse(request.body);
+    return SupportTimeService.record(request.params.tenantId, {
+      ...body,
+      agent_user_id: request.user.sub,
+    });
+  });
+
+  fastify.get('/support-cost-config', async () => {
+    const { SupportTimeService } = await import('../services/support-time.service.js');
+    return SupportTimeService.getCostConfig();
+  });
+
+  fastify.put('/support-cost-config/:category', async (request: any) => {
+    const { SupportTimeService } = await import('../services/support-time.service.js');
+    const { category } = request.params;
+    const { loaded_cost_per_hour } = z.object({ loaded_cost_per_hour: z.number().min(0) }).parse(request.body);
+    await SupportTimeService.updateCostConfig(category, loaded_cost_per_hour);
+    return { success: true };
+  });
+
+  // ─── Feature Flags (SuperAdmin management) ───────────────────────
+
+  fastify.get('/tenants/:tenantId/feature-flags', async (request: any) => {
+    const { tenantId } = request.params;
+    return withTenant(tenantId, trx =>
+      trx.selectFrom('tenant_feature_flags').selectAll()
+        .where('tenant_id', '=', tenantId)
+        .orderBy('flag_key', 'asc')
+        .execute()
+    );
+  });
+
+  fastify.put('/tenants/:tenantId/feature-flags/:flagKey', async (request: any) => {
+    const { tenantId, flagKey } = request.params;
+    const body = z.object({
+      enabled: z.boolean(),
+      config: z.record(z.string(), z.unknown()).optional(),
+      reason: z.string().max(500).optional(),
+      expires_at: z.string().nullable().optional(),
+    }).parse(request.body);
+
+    return withTenant(tenantId, async trx => {
+      const existing = await trx.selectFrom('tenant_feature_flags')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('flag_key', '=', flagKey)
+        .executeTakeFirst();
+
+      if (existing) {
+        return trx.updateTable('tenant_feature_flags').set({
+          enabled: body.enabled,
+          config: body.config ?? {},
+          set_by: request.user.sub,
+          reason: body.reason ?? null,
+          expires_at: body.expires_at ? new Date(body.expires_at) : null,
+          updated_at: new Date(),
+        }).where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
+      }
+      return trx.insertInto('tenant_feature_flags').values({
+        tenant_id: tenantId,
+        flag_key: flagKey,
+        enabled: body.enabled,
+        config: body.config ?? {},
+        set_by: request.user.sub,
+        reason: body.reason ?? null,
+        expires_at: body.expires_at ? new Date(body.expires_at) : null,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // ── Commercial Analytics (Phase 5) ──────────────────────────────
+  fastify.get('/analytics/overview', async () => {
+    const [workspaces, mrr, esb, support] = await Promise.all([
+      CommercialAnalyticsService.getPayingWorkspaces(),
+      CommercialAnalyticsService.getMrr(),
+      CommercialAnalyticsService.getEsbMargin(),
+      CommercialAnalyticsService.getSupportCostSummary(),
+    ]);
+    return { workspaces, mrr, esb, support };
+  });
+
+  fastify.get('/analytics/retention', async (request: any) => {
+    const windowDays = Number(request.query?.window_days) || 30;
+    return CommercialAnalyticsService.getRetentionCohorts(windowDays);
+  });
+
+  fastify.get('/analytics/churn', async (request: any) => {
+    const months = Number(request.query?.months) || 6;
+    return CommercialAnalyticsService.getChurnUpgrades(months);
+  });
+
+  fastify.get('/analytics/revenue-timeline', async (request: any) => {
+    const months = Number(request.query?.months) || 12;
+    return CommercialAnalyticsService.getRevenueTimeline(months);
+  });
+
+  fastify.get('/analytics/active-checkpoints', async () => {
+    return CommercialAnalyticsService.getActiveApps();
+  });
+
+  fastify.get('/analytics/provider-reliability', async () => {
+    return CommercialAnalyticsService.getProviderReliability();
   });
 }

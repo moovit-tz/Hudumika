@@ -1,3 +1,9 @@
+import {Banner} from '../components/ui/alert.js';
+import {MetricsRow} from '../components/MetricCard.js';
+import {Sheet, SheetContent, SheetTitle} from '../components/ui/sheet.js';
+import { Card } from '../components/ui/card.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -8,7 +14,6 @@ import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 import { Button } from '../components/ui/button.js';
-import { Tip } from '../components/ui/tooltip.js';
 
 /* ── Constants ─────────────────────────────────────────────────────────────── */
 
@@ -41,8 +46,8 @@ function fmtDate(iso: string | null): string {
 
 function TriggerBadge({ trigger }: { trigger: 'automatic' | 'manual' }) {
   return trigger === 'automatic'
-    ? <span className="comply-badge comply-badge--ai">Auto</span>
-    : <span className="comply-badge comply-badge--pending">Manual</span>;
+    ? <Badge variant={complyBadgeVariant("comply-badge comply-badge--ai")}>Auto</Badge>
+    : <Badge variant={complyBadgeVariant("comply-badge comply-badge--pending")}>Manual</Badge>;
 }
 
 function StatusBadge({ status }: { status: CompRenewalStatus }) {
@@ -55,7 +60,7 @@ function StatusBadge({ status }: { status: CompRenewalStatus }) {
     cancelled:      { cls: 'comply-badge--draft',    label: 'Cancelled'      },
   };
   const { cls, label } = cfg[status];
-  return <span className={`comply-badge ${cls}`}>{label}</span>;
+  return <Badge variant={complyBadgeVariant(`comply-badge ${cls}`)}>{label}</Badge>;
 }
 
 /* ── Dot stepper ─────────────────────────────────────────────────────────────── */
@@ -117,7 +122,7 @@ export function ComplyWorkflows() {
 
       {/* ── Header ── */}
       <PageHeader
-        crumbs={['ComplyOS', 'Renewal Workflows']} 
+        crumbs={['ComplyOS', 'Renewal Workflows']}
         titlePlain="Renewal"
         titleEm="workflows"
         subtitle="Certificate renewal automation — review, approve and track submissions."
@@ -132,34 +137,13 @@ export function ComplyWorkflows() {
       />
 
       {/* ── KPIs ── */}
-      <div className="comply-kpis">
-        <div className="comply-kpi">
-          <div className="wf-kpi-icon wf-kpi-icon--neutral"><Icon name="list" size={14} /></div>
-          <div className="comply-kpi-val">{renewals.length}</div>
-          <div className="comply-kpi-label">Total Workflows</div>
-        </div>
-        <div className="comply-kpi">
-          <div className="wf-kpi-icon wf-kpi-icon--warn"><Icon name="clock" size={14} /></div>
-          <div className={`comply-kpi-val${pendingCount > 0 ? ' comply-kpi-delta--warn' : ''}`}>{pendingCount}</div>
-          <div className="comply-kpi-label">Awaiting Approval</div>
-        </div>
-        <div className="comply-kpi">
-          <div className="wf-kpi-icon wf-kpi-icon--ai"><Icon name="zap" size={14} /></div>
-          <div className="comply-kpi-val">{renewals.filter(r => r.trigger === 'automatic').length}</div>
-          <div className="comply-kpi-label">Auto-Triggered</div>
-        </div>
-        <div className="comply-kpi">
-          <div className="wf-kpi-icon wf-kpi-icon--success"><Icon name="checkCircle" size={14} /></div>
-          <div className="comply-kpi-val comply-kpi-delta--up">{renewals.filter(r => r.status === 'issued').length}</div>
-          <div className="comply-kpi-label">Issued</div>
-        </div>
-      </div>
+      <MetricsRow cards={[{title:"Total Workflows",value:String(renewals.length),icon:'fileText'},{title:"Awaiting Approval",value:String(pendingCount),icon:'fileText'},{title:"Auto-Triggered",value:String(renewals.filter(r => r.trigger === 'automatic').length),icon:'fileText'},{title:"Issued",value:String(renewals.filter(r => r.status === 'issued').length),icon:'fileText'}]} />
 
       {/* ── Main card ── */}
-      <div className="comply-card">
+      <Card className="comply-card">
 
         {/* Filter tabs — the shared segmented ds-tabs */}
-        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="boxed">
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} >
           <TabsList>
             {FILTER_TABS.map(t => {
               const isActive = tab === t.key;
@@ -196,7 +180,7 @@ export function ComplyWorkflows() {
             Loading workflows…
           </div>
         )}
-        {error && <div className="comply-note comply-note--error">{error}</div>}
+        {error && <Banner variant="error" icon={false} className="">{error}</Banner>}
 
         {!loading && !error && (
           <div className="wf-rows">
@@ -218,7 +202,7 @@ export function ComplyWorkflows() {
               >
                 {/* Agency + trigger */}
                 <div className="wf-row-agency">
-                  <span className="comply-agency comply-agency--gov">{r.agency_code}</span>
+                  <Badge variant={complyBadgeVariant("comply-agency comply-agency--gov")}>{r.agency_code}</Badge>
                   <TriggerBadge trigger={r.trigger} />
                 </div>
 
@@ -263,29 +247,27 @@ export function ComplyWorkflows() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── Detail drawer ── */}
       {drawerOpen && selected && (
-        <>
-          <div className="comply-overlay comply-overlay--end" onClick={closeDrawer} aria-hidden="true" />
-          <div className="comply-drawer">
+        <Sheet open={true} onOpenChange={open => {if (!open) closeDrawer();}}>
+
+          <SheetContent aria-describedby={undefined} className="comply-detail-sheet w-full sm:max-w-xl flex flex-col p-0 gap-0">
 
             {/* Drawer header */}
             <div className="wf-drawer-hdr">
               <div className="wf-drawer-hdr-top">
                 <div className={`wf-drawer-stripe wf-drawer-stripe--${selected.status}`} />
                 <div className="wf-drawer-hdr-body">
-                  <div className="wf-drawer-title">{selected.cert_name}</div>
+                  <SheetTitle className="wf-drawer-title">{selected.cert_name}</SheetTitle>
                   <div className="wf-drawer-sub">
-                    <span className="comply-agency comply-agency--gov">{selected.agency_code}</span>
+                    <Badge variant={complyBadgeVariant("comply-agency comply-agency--gov")}>{selected.agency_code}</Badge>
                     <TriggerBadge trigger={selected.trigger} />
                     <StatusBadge status={selected.status as CompRenewalStatus} />
                   </div>
                 </div>
-                <Tip label="Close"><button type="button" className="comply-close-btn" aria-label="Close" onClick={closeDrawer} data-ui-native-button="">
-                  <Icon name="x" size={16} />
-                </button></Tip>
+
               </div>
             </div>
 
@@ -375,8 +357,8 @@ export function ComplyWorkflows() {
               </div>
             )}
 
-          </div>
-        </>
+          </SheetContent>
+        </Sheet>
       )}
 
     </div>

@@ -230,6 +230,8 @@ export class ShipmentService {
     has_declaration?: boolean; search?: string;
     checked_in?: boolean;
     pending?: boolean;
+    limit?: number;
+    offset?: number;
   }) {
     return withTenant(tenantId, async (trx) => {
       // Explicit tenant filter on every query below — RLS doesn't protect
@@ -362,7 +364,27 @@ export class ShipmentService {
         ]));
       }
 
-      const shipments = await shipmentsQuery.execute();
+      const pageLimit = Math.min(filters.limit ?? 500, 1000);
+      const pageOffset = filters.offset ?? 0;
+
+      const shipments = await shipmentsQuery
+        .orderBy('created_at', 'desc')
+        .limit(pageLimit)
+        .offset(pageOffset)
+        .execute();
+
+      let totalShipments: number;
+      if (shipments.length < pageLimit && pageOffset === 0) {
+        totalShipments = shipments.length;
+      } else {
+        // Count using the same filtered query (minus limit/offset/order) so the
+        // total reflects active filters, not the entire tenant's shipment table.
+        const countRow = await trx
+          .selectFrom(shipmentsQuery.clearOrderBy().clearLimit().clearOffset().as('filtered'))
+          .select((eb) => eb.fn.countAll<string>().as('count'))
+          .executeTakeFirstOrThrow();
+        totalShipments = Number(countRow.count);
+      }
 
       // Batch-resolve officer names (and avatars, when the officer has one on
       // file) from the users table. avatar_url used to be left off this
@@ -515,7 +537,10 @@ export class ShipmentService {
         };
       });
 
-      return grouped.filter((g) => g.shipment_count > 0);
+      return {
+        groups: grouped.filter((g) => g.shipment_count > 0),
+        pagination: { total: totalShipments, limit: pageLimit, offset: pageOffset },
+      };
     });
   }
 

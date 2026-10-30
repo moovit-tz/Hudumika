@@ -2,7 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { UserRole } from '@hudumika/types';
 import type { Kysely } from 'kysely';
 import type { Database } from '../db/client.js';
-import { withTenant } from '../db/client.js';
+import { withTenant, dbPlatform } from '../db/client.js';
 
 /**
  * Ondi M5's custom-roles permission catalog — small and code-defined, not
@@ -52,6 +52,8 @@ export const ORG_PERMISSIONS = {
   REPORTS_MANAGE: 'reports.manage',
   HR_CASES_MANAGE: 'hr.cases.manage',
   HR_DOCUMENTS_MANAGE: 'hr.documents.manage',
+  ORG_MODEL_MANAGE: 'org_model.manage',
+  ORG_MODEL_VIEW: 'org_model.view',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 
@@ -103,4 +105,80 @@ export function requireRoleOrOrgPermission(permission: OrgPermission, ...allowed
     if (await hasOrgPermission(user.tenant_id, user.sub, permission)) return;
     return reply.status(403).send({ error: `Forbidden: requires one of [${allowedRoles.join(', ')}] or the "${permission}" permission.` });
   };
+}
+
+// ── Scope-aware permission check (Phase E) ──────────────────────────────────
+
+export interface ScopeContext {
+  entityId?: string;
+  siteId?: string;
+}
+
+export async function hasScopedPermission(
+  tenantId: string, userId: string, permission: OrgPermission,
+  scope: ScopeContext, transaction?: Kysely<Database>,
+): Promise<boolean> {
+  const check = async (trx: Kysely<Database>) => {
+    const rows = await trx.selectFrom('ondi_org_role_members as m')
+      .innerJoin('ondi_org_roles as r', 'r.id', 'm.role_id')
+      .select(['r.permissions', 'm.scope_entity_id', 'm.scope_site_id'])
+      .where('m.user_id', '=', userId)
+      .where('m.tenant_id', '=', tenantId)
+      .where('r.tenant_id', '=', tenantId)
+      .where(eb => eb.or([eb('m.expires_at', 'is', null), eb('m.expires_at', '>', new Date())]))
+      .execute();
+    return rows.some(row => {
+      const perms = Array.isArray(row.permissions)
+        ? row.permissions
+        : (() => { try { return JSON.parse(row.permissions ?? '[]'); } catch { return []; } })();
+      if (!perms.includes(permission)) return false;
+      if (!row.scope_entity_id && !row.scope_site_id) return true;
+      if (row.scope_site_id && scope.siteId) return row.scope_site_id === scope.siteId;
+      if (row.scope_entity_id && scope.entityId) return row.scope_entity_id === scope.entityId;
+      return false;
+    });
+  };
+  return transaction ? check(transaction) : withTenant(tenantId, check);
+}
+
+export async function getUserEntityIds(tenantId: string, userId: string): Promise<string[]> {
+  return withTenant(tenantId, async trx => {
+    const rows = await trx.selectFrom('user_org_assignments')
+      .select('entity_id')
+      .where('tenant_id', '=', tenantId)
+      .where('user_id', '=', userId)
+      .where('entity_id', 'is not', null)
+      .execute();
+    return rows.map(r => r.entity_id!).filter(Boolean);
+  });
+}
+
+export async function getUserSiteIds(tenantId: string, userId: string): Promise<string[]> {
+  return withTenant(tenantId, async trx => {
+    const rows = await trx.selectFrom('user_org_assignments')
+      .select('site_id')
+      .where('tenant_id', '=', tenantId)
+      .where('user_id', '=', userId)
+      .where('site_id', 'is not', null)
+      .execute();
+    return rows.map(r => r.site_id!).filter(Boolean);
+  });
+}
+
+// ── Platform operator impersonation audit ───────────────────────────────────
+
+export async function logPlatformAction(
+  operatorId: string, affectedTenantId: string, action: string,
+  opts: { resourceType?: string; resourceId?: string; reason: string; metadata?: Record<string, unknown>; ipAddress?: string },
+): Promise<void> {
+  await dbPlatform.insertInto('platform_operator_audit').values({
+    operator_id: operatorId,
+    affected_tenant_id: affectedTenantId,
+    action,
+    resource_type: opts.resourceType ?? null,
+    resource_id: opts.resourceId ?? null,
+    reason: opts.reason,
+    metadata: opts.metadata ?? {},
+    ip_address: opts.ipAddress ?? null,
+  }).execute();
 }

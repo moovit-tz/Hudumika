@@ -1,3 +1,6 @@
+import { Card } from '../components/ui/card.js';
+import { Button } from '../components/ui/button.js';
+import {ButtonSpinner} from '../components/ui/spinner.js';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -32,34 +35,21 @@ export function ComplyWizardPage({
 
   return (
     <div className="comply-page">
-      <div style={{ marginBottom: 12 }}>
-        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate(backTo)} data-ui-native-button="">
-          <Icon name="chevronLeft" size={13} /> Back
-        </button>
-      </div>
-      <PageHeader crumbs={['ComplyOS', 'Wizard']} title={title} subtitle={subtitle} />
+      <PageHeader crumbs={['ComplyOS', 'Wizard']} title={title} subtitle={subtitle}
+        actions={<Button variant="outline" size="sm" onClick={() => navigate(backTo)}><Icon name="chevronLeft" size={13} /> Back to list</Button>} />
 
-      <div className="comply-card comply-wizard-card">
+      <Card className="comply-card comply-wizard-card">
         {/* Step indicator */}
-        <div className="comply-wizard-steps">
+        <ol className="comply-wizard-progress" aria-label="Form progress">
           {steps.map((label, i) => (
-            <React.Fragment key={label}>
-              {i > 0 && <div className="comply-wizard-step-connector" style={{ background: i <= step ? 'var(--comply)' : 'var(--border)' }} />}
-              <div className="comply-wizard-step">
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, flexShrink: 0,
-                  background: i < step ? 'hsl(var(--primary))' : i === step ? 'var(--teal-l)' : 'var(--bg)',
-                  color: i <= step ? (i < step ? 'hsl(var(--primary-foreground))' : 'var(--comply)') : 'var(--ink3)',
-                  border: i === step ? '1.5px solid var(--comply)' : 'none',
-                }}>
+            <li key={label} className="comply-wizard-progress-item" data-state={i < step ? 'complete' : i === step ? 'current' : 'upcoming'} aria-current={i === step ? 'step' : undefined}>
+                <span className="comply-wizard-progress-number" aria-hidden="true">
                   {i < step ? <Icon name="check" size={11} strokeWidth={3} /> : i + 1}
-                </div>
-                <span className="comply-wizard-step-label" style={{ color: i === step ? 'var(--ink)' : 'var(--ink3)' }}>{label}</span>
-              </div>
-            </React.Fragment>
+                </span>
+                <span>{label}</span>
+            </li>
           ))}
-        </div>
+        </ol>
 
         <div className="comply-wizard-body">
           {children}
@@ -68,31 +58,31 @@ export function ComplyWizardPage({
         <div className="comply-wizard-footer">
           <div className="comply-wizard-footer-back">
             {step > 0 && onBack && (
-              <button type="button" className="comply-btn-secondary" onClick={onBack} disabled={busy} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button"  onClick={onBack} disabled={busy} >
                 <Icon name="chevronLeft" size={13} /> Back
-              </button>
+              </Button>
             )}
           </div>
           <div className="comply-wizard-footer-actions">
-            <button type="button" className="comply-btn-secondary" onClick={() => navigate(backTo)} disabled={busy} data-ui-native-button="">Cancel</button>
+            <Button variant="outline" size="sm" type="button"  onClick={() => navigate(backTo)} disabled={busy} >Cancel</Button>
             {onNext && (
-              <button type="button" className="comply-btn-primary" onClick={onNext} disabled={nextDisabled || busy} data-ui-native-button="">
-                {busy ? 'Working…' : (nextLabel ?? (isLast ? 'Finish' : 'Next'))}
+              <Button variant="default" size="sm" type="button"  onClick={onNext} disabled={nextDisabled || busy} >
+                {busy && <ButtonSpinner />}{busy ? 'Working…' : (nextLabel ?? (isLast ? 'Finish' : 'Next'))}
                 {!busy && !isLast && <Icon name="chevronRight" size={13} />}
-              </button>
+              </Button>
             )}
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
 
 export function WizardField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>{label}</label>
+    <fieldset className="comply-form-field">
+      <legend>{label}</legend>
       {children}
-    </div>
+    </fieldset>
   );
 }

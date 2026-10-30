@@ -1,6 +1,8 @@
 export interface ShippingLine {
   id: string;
   rank?: number;
+  kind?: 'shipping_line' | 'container_owner' | 'legacy';
+  aliases?: string[];
   code: string;
   name: string;
   shortName: string;
@@ -28,7 +30,7 @@ export const SHIPPING_LINES: ShippingLine[] = [
     code: 'MSCU',
     name: 'Mediterranean Shipping Company S.A. (MSC)',
     shortName: 'MSC',
-    bicPrefixes: ['MSCU', 'MEDU', 'MSMU', 'TGHU', 'TCKU', 'INBU', 'GLDU'],
+    bicPrefixes: ['MSCU', 'MEDU', 'MSMU'],
     colorHex: '#1d4ed8', // MSC Marine Navy
     darkHex: '#0f2c69',
     lightHex: '#3b82f6',
@@ -46,7 +48,7 @@ export const SHIPPING_LINES: ShippingLine[] = [
     code: 'MAEU',
     name: 'A.P. Møller – Mærsk A/S',
     shortName: 'Maersk',
-    bicPrefixes: ['MAEU', 'MSKU', 'MRKU', 'SUDU', 'PONU', 'APMU', 'SEGU'],
+    bicPrefixes: ['MAEU', 'MSKU', 'MRKU', 'APMU'],
     colorHex: '#0284c7', // Maersk Sky Cyan
     darkHex: '#034a6e',
     lightHex: '#38bdf8',
@@ -60,11 +62,12 @@ export const SHIPPING_LINES: ShippingLine[] = [
   },
   {
     id: 'cma_cgm',
+    aliases: ['CMA-CGM'],
     rank: 3,
     code: 'CMAU',
     name: 'CMA CGM S.A.',
     shortName: 'CMA CGM',
-    bicPrefixes: ['CMAU', 'ANLU', 'APLU', 'CGMU', 'ECMU', 'FSCU'],
+    bicPrefixes: ['CMAU', 'ANLU', 'CGMU', 'ECMU', 'FSCU'],
     colorHex: '#1e3a8a', // CMA CGM Royal Navy
     darkHex: '#0f1f4b',
     lightHex: '#3b82f6',
@@ -78,11 +81,12 @@ export const SHIPPING_LINES: ShippingLine[] = [
   },
   {
     id: 'cosco',
+    aliases: ['COSCO', 'COSCO Shipping Lines'],
     rank: 4,
     code: 'COSU',
     name: 'COSCO SHIPPING Lines Co., Ltd.',
     shortName: 'COSCO SHIPPING',
-    bicPrefixes: ['COSU', 'CCLU', 'CSNU', 'CBHU', 'CHIU'],
+    bicPrefixes: ['COSU', 'CCLU', 'CBHU'],
     colorHex: '#1e40af', // COSCO Pacific Ultramarine
     darkHex: '#172554',
     lightHex: '#60a5fa',
@@ -100,7 +104,7 @@ export const SHIPPING_LINES: ShippingLine[] = [
     code: 'HLXU',
     name: 'Hapag-Lloyd AG',
     shortName: 'Hapag-Lloyd',
-    bicPrefixes: ['HLXU', 'HLCU', 'UASC', 'CPSU', 'HASU'],
+    bicPrefixes: ['HLXU', 'HLCU'],
     colorHex: '#ea580c', // High-Vis Orange
     darkHex: '#7c2d12',
     lightHex: '#fb923c',
@@ -114,11 +118,12 @@ export const SHIPPING_LINES: ShippingLine[] = [
   },
   {
     id: 'one',
+    aliases: ['ONE', 'ONEY', 'Ocean Network Express'],
     rank: 6,
     code: 'ONEY',
     name: 'Ocean Network Express (ONE)',
     shortName: 'ONE',
-    bicPrefixes: ['ONEY', 'KKFU', 'NYKU', 'MOLU', 'KLFU', 'TGHU'],
+    bicPrefixes: ['ONEU'],
     colorHex: '#db2777', // ONE Cherry Magenta
     darkHex: '#831843',
     lightHex: '#f472b6',
@@ -459,7 +464,7 @@ export const SHIPPING_LINES: ShippingLine[] = [
     code: 'CORTEN',
     name: 'Shipper Owned Container (SOC) / Corten Steel',
     shortName: 'SOC Corten',
-    bicPrefixes: ['SOC', 'PRIV', 'XYZU', 'TOLU', 'TEXT'],
+    bicPrefixes: [],
     colorHex: '#c2410c', // Corten Oxide Rust
     darkHex: '#7c2d12',
     lightHex: '#fb923c',
@@ -471,67 +476,44 @@ export const SHIPPING_LINES: ShippingLine[] = [
   },
 ];
 
-/**
- * Detect shipping line carrier from container number, BIC prefix, or carrier string
- */
+// Prefixes identify equipment ownership, not the carrier on a particular voyage.
+export const EQUIPMENT_COMPANIES: ShippingLine[] = [
+  ['triton','TRIU','Triton International',['TRIU','TRLU','TCLU','TCNU','TCKU','TTNU'],'container_owner'],
+  ['textainer','TGHU','Textainer',['TGHU','TGBU','TEXU','TEMU'],'container_owner'],
+  ['cai','CAIU','CAI International',['CAIU','CAXU'],'container_owner'],
+  ['seaco','SEGU','Seaco',['SEGU','GESU'],'container_owner'],
+  ['k_line','KKFU','K Line',['KKFU','KLFU'],'legacy'],
+  ['mol','MOLU','MOL',['MOLU'],'legacy'],
+  ['nyk','NYKU','NYK Line',['NYKU'],'legacy'],
+  ['apl','APLU','APL',['APLU'],'shipping_line'],
+  ['hanjin','HJCU','Hanjin Shipping',['HJCU','HJSU'],'legacy'],
+  ['china_shipping','CSNU','China Shipping',['CSNU'],'legacy'],
+  ['uasc','UACU','UASC',['UACU'],'legacy'],
+  ['nedlloyd','PONU','P&O Nedlloyd',['PONU'],'legacy'],
+  ['hamburg_sud','SUDU','Hamburg Süd',['SUDU','HASU'],'legacy'],
+  ['royal_arctic','RALU','Royal Arctic Line',['RALU'],'shipping_line'],
+  ['sea_box','SBIU','Sea Box',[],'container_owner'],
+  ['linfox','LFOX','Linfox',[],'container_owner'],
+].map(([id,code,name,bicPrefixes,kind]) => ({
+  id: id as string, code: code as string, name: name as string, shortName: name as string,
+  bicPrefixes: bicPrefixes as string[], kind: kind as ShippingLine['kind'],
+  colorHex:'#64748b', darkHex:'#334155', lightHex:'#cbd5e1', textColor:'#ffffff', accentBadge:'#ffffff',country:'',
+}));
+SHIPPING_LINES.push(...EQUIPMENT_COMPANIES);
+
+const normalize = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+/** A local prefix match is an equipment-owner hint, never a live carrier lookup. */
 export function detectShippingLine(input?: string): ShippingLine | null {
-  if (!input) return null;
-  const raw = input.toUpperCase().trim().replace(/\s/g, '');
-
-  // 1. Direct BIC Prefix check on 4-letter container prefix
-  const prefix4 = raw.slice(0, 4);
-  const prefix3 = raw.slice(0, 3);
-
-  for (const line of SHIPPING_LINES) {
-    if (line.bicPrefixes.some((p) => prefix4 === p || prefix4.startsWith(p) || raw.startsWith(p))) {
-      return line;
-    }
+  if (!input?.trim()) return null;
+  const raw = normalize(input);
+  if (raw.length < 3) return null;
+  // Container-like input must never fall through to substring/name guessing.
+  if (/^[A-Z]{4}[0-9]*$/.test(raw)) {
+    return SHIPPING_LINES.find(line => line.bicPrefixes.includes(raw.slice(0,4))) ?? (raw.length === 4 ? SHIPPING_LINES.find(line => [line.code,...(line.aliases ?? [])].some(name => normalize(name) === raw)) ?? null : null);
   }
-
-  // 2. Carrier Name / Code fuzzy substring check
-  for (const line of SHIPPING_LINES) {
-    const cleanShort = line.shortName.toUpperCase().replace(/[\s\-_.]/g, '');
-    const cleanName = line.name.toUpperCase().replace(/[\s\-_.]/g, '');
-    const cleanCode = line.code.replace(/[\s\-_.]/g, '');
-    const cleanId = line.id.toUpperCase().replace(/[\s\-_.]/g, '');
-
-    if (
-      raw.includes(cleanShort) ||
-      raw.includes(cleanCode) ||
-      raw.includes(cleanId) ||
-      raw.includes(cleanName)
-    ) {
-      return line;
-    }
-  }
-
-  // 3. Fallback prefix rules
-  if (prefix3 === 'MSC' || prefix3 === 'MED' || prefix3 === 'TGH') return SHIPPING_LINES[0]; // MSC
-  if (prefix3 === 'MAE' || prefix3 === 'MSK' || prefix3 === 'MRK' || prefix3 === 'SUD') return SHIPPING_LINES[1]; // Maersk
-  if (prefix3 === 'CMA' || prefix3 === 'ANL' || prefix3 === 'APL' || prefix3 === 'CGM') return SHIPPING_LINES[2]; // CMA CGM
-  if (prefix3 === 'COS' || prefix3 === 'CCL' || prefix3 === 'CSN') return SHIPPING_LINES[3]; // COSCO
-  if (prefix3 === 'HLX' || prefix3 === 'HLC' || prefix3 === 'UAS') return SHIPPING_LINES[4]; // Hapag-Lloyd
-  if (prefix3 === 'ONE' || prefix3 === 'KKF' || prefix3 === 'NYK' || prefix3 === 'MOL') return SHIPPING_LINES[5]; // ONE
-  if (prefix3 === 'EGL' || prefix3 === 'EMC' || prefix3 === 'EIS') return SHIPPING_LINES[6]; // Evergreen
-  if (prefix3 === 'HMM' || prefix3 === 'HDM') return SHIPPING_LINES[7]; // HMM
-  if (prefix3 === 'YML' || prefix3 === 'YMM') return SHIPPING_LINES[8]; // Yang Ming
-  if (prefix3 === 'ZIM' || prefix3 === 'ZCS') return SHIPPING_LINES[9]; // ZIM
-  if (prefix3 === 'WHL' || prefix3 === 'WHP') return SHIPPING_LINES[10]; // Wan Hai
-  if (prefix3 === 'PIL' || prefix3 === 'PCI') return SHIPPING_LINES[11]; // PIL
-  if (prefix3 === 'OOL' || prefix3 === 'OOC') return SHIPPING_LINES[12]; // OOCL
-  if (prefix3 === 'KMT') return SHIPPING_LINES[13]; // KMTC
-  if (prefix3 === 'SIT' || prefix3 === 'SNT') return SHIPPING_LINES[14]; // SITC
-  if (prefix3 === 'MAT' || prefix3 === 'MLI') return SHIPPING_LINES[15]; // Matson
-  if (prefix3 === 'MSF' || prefix3 === 'LNX') return SHIPPING_LINES[16]; // Messina
-  if (prefix3 === 'GMN' || prefix3 === 'ACL') return SHIPPING_LINES[17]; // Grimaldi
-  if (prefix3 === 'ARK') return SHIPPING_LINES[18]; // Arkas
-  if (prefix3 === 'SWI' || prefix3 === 'CHN') return SHIPPING_LINES[19]; // Swire
-  if (prefix3 === 'SKL' || prefix3 === 'SNK') return SHIPPING_LINES[20]; // Sinokor
-  if (prefix3 === 'TSL' || prefix3 === 'TSX') return SHIPPING_LINES[21]; // TS Lines
-
-  return null;
+  return SHIPPING_LINES.find(line => [line.id,line.code,line.name,line.shortName,...(line.aliases ?? [])]
+    .some(name => normalize(name) === raw)) ?? null;
 }
 
-export function getAllShippingLines(): ShippingLine[] {
-  return SHIPPING_LINES;
-}
+export function getAllShippingLines(): ShippingLine[] { return SHIPPING_LINES; }

@@ -32,7 +32,7 @@ const itinerarySchema = z.object({
   cost: z.number().min(0).max(999999999).optional(),
   currency: z.string().max(10).optional(),
   status: z.enum(['planned', 'confirmed', 'cancelled']).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const bookingSchema = z.object({
@@ -46,8 +46,8 @@ const bookingSchema = z.object({
   end_date: z.string().optional(),
   cost: z.number().min(0).max(999999999).optional(),
   currency: z.string().max(10).optional(),
-  passengers: z.array(z.record(z.unknown())).optional(),
-  details: z.record(z.unknown()).optional(),
+  passengers: z.array(z.record(z.string(), z.unknown())).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 const expenseSchema = z.object({

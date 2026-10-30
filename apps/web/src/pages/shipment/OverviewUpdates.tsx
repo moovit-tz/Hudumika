@@ -33,8 +33,6 @@ import {
 } from '../clearanceData.js';
 import { ChBadge } from '../../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../../data/staffData.js';
-import type { Employee } from '../../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -275,7 +273,7 @@ export function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: Clearan
           { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: 'var(--purple)', icon: 'folder' as IconName },
           { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : '—', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: 'var(--red)', icon: 'receipt' as IconName },
         ].map(c => (
-          <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
+          <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow, none)', padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Icon name={c.icon} size={12} color={c.color} />
               <span style={{ fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</span>

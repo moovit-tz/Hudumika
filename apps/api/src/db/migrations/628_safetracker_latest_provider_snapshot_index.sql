@@ -1,0 +1,1 @@
+CREATE INDEX tracking_snapshots_latest_provider_idx ON tracking_snapshots(tenant_id,source,tracking_type,tracking_number,fetched_at DESC,created_at DESC);

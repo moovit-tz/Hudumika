@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-27",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "checks": [
+    {
+      "screen": "Air calculator details + shipment step",
+      "pageWidth": 390,
+      "horizontalPageOverflow": false,
+      "note": "Continue prevented with no chargeable weight; no calculation submitted."
+    },
+    {
+      "screen": "LCL calculator details",
+      "pageWidth": 390,
+      "horizontalPageOverflow": false
+    },
+    {
+      "screen": "Transit calculator details",
+      "pageWidth": 390,
+      "horizontalPageOverflow": false
+    },
+    {
+      "screen": "Main landed-cost calculator entry",
+      "pageWidth": 390,
+      "horizontalPageOverflow": false,
+      "domNodes": 704
+    },
+    {
+      "screen": "Penalty estimator entry",
+      "pageWidth": 390,
+      "horizontalPageOverflow": false
+    }
+  ],
+  "limits": "Entry-screen checks only; full result/PDF/keyboard flows were not certified. Browser heap was not measured."
+}

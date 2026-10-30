@@ -1,0 +1,11 @@
+{
+  "scope": "Local Fastify injection + real database; not a production capacity or soak certification",
+  "staff": 1000,
+  "customers": 200,
+  "concurrent_reads": 20,
+  "p50_ms": 3035,
+  "p95_ms": 3046,
+  "max_ms": 3048,
+  "heap_delta_bytes": -38964136,
+  "rss_delta_bytes": 56676352
+}

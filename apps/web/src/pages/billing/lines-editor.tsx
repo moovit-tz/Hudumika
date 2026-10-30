@@ -7,9 +7,10 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { apiFetch } from '../../lib/api.js';
 import { formatAmount } from '../../lib/currency.js';
 import type { EditItem } from './shared.js';
+import { Textarea } from '../../components/ui/textarea.js';
 
 export function InvoiceLinesEditor({items,onChange,currency,customerId}:{items:EditItem[];onChange:(items:EditItem[])=>void;currency:string;customerId?:string}) {
- const products=useRef(new Map<string,{name:string;unit:string;currency:string;sale_price:number;tax_rate:number}>());
+ const products=useRef(new Map<string,{name:string;unit:string;currency:string;sale_price:number;tax_rate:number;billing_description?:string}>());
  async function search(query:string):Promise<PickerItem[]> {
   const params=new URLSearchParams({status:'active',search:query,page:'1',page_size:'25'});if(customerId)params.set('customer_id',customerId);
   const response=await apiFetch(`/v1/products?${params}`);const rows=Array.isArray(response)?response:response.items ?? response.data ?? [];
@@ -18,9 +19,9 @@ export function InvoiceLinesEditor({items,onChange,currency,customerId}:{items:E
  }
  const update=(id:string,patch:Partial<EditItem>)=>onChange(items.map(item=>item.uid===id?{...item,...patch}:item));
  return <div className="min-w-0 space-y-4">
-  <EntityPicker label="Add from products and services" value={null} search={search} onChange={selection=>{if(!selection)return;const product=products.current.get(selection.id);if(product)onChange([...items,{uid:crypto.randomUUID(),name:product.name,unit:product.unit || 'UNIT',rate:Number(product.sale_price)||0,qty:1,taxPct:Number(product.tax_rate)||0,group:'other',currency:product.currency || currency}]);}} placeholder="Search your catalog…" />
+  <EntityPicker label="Add from products and services" value={null} search={search} onChange={selection=>{if(!selection)return;const product=products.current.get(selection.id);if(product)onChange([...items,{uid:crypto.randomUUID(),name:product.name,description:product.billing_description || '',unit:product.unit || 'UNIT',rate:Number(product.sale_price)||0,qty:1,taxPct:Number(product.tax_rate)||0,group:'other',currency:product.currency || currency}]);}} placeholder="Search your catalog…" />
   <Table className="max-sm:[&_thead]:hidden max-sm:[&_tr]:grid max-sm:[&_tr]:grid-cols-2 max-sm:[&_td]:min-w-0 max-sm:[&_td]:static"><TableHeader><TableRow>{['Item','Qty','Unit','Currency','Rate','Tax %','Amount',''].map((label,index)=><TableHead key={index}>{label}</TableHead>)}</TableRow></TableHeader><TableBody>{items.map((item,index)=><TableRow key={item.uid}>
-   <TableCell className="min-w-56 max-sm:col-span-2"><span className="mb-2 block text-xs font-medium text-muted-foreground sm:hidden">Item</span><Input aria-label={`Item ${index+1} name`} value={item.name} onChange={event=>update(item.uid,{name:event.target.value})} placeholder="Product or service" /></TableCell>
+   <TableCell className="min-w-56 max-sm:col-span-2"><span className="mb-2 block text-xs font-medium text-muted-foreground sm:hidden">Item</span><Input aria-label={`Item ${index+1} name`} value={item.name} onChange={event=>update(item.uid,{name:event.target.value})} placeholder="Product or service" /><Textarea className="mt-2" aria-label={`Item ${index+1} specification`} maxLength={5000} value={item.description || ''} onChange={event=>update(item.uid,{description:event.target.value})} placeholder="Specification / deliverables (printed on invoice)" /></TableCell>
    <TableCell className="min-w-24"><span className="mb-2 block text-xs font-medium text-muted-foreground sm:hidden">Quantity</span><Input aria-label={`Item ${index+1} quantity`} type="number" min="0.001" step="any" value={item.qty} onChange={event=>update(item.uid,{qty:Number(event.target.value)})}/></TableCell>
    <TableCell className="min-w-28"><span className="mb-2 block text-xs font-medium text-muted-foreground sm:hidden">Unit</span><Input aria-label={`Item ${index+1} unit`} value={item.unit} onChange={event=>update(item.uid,{unit:event.target.value})}/></TableCell>
    <TableCell className="min-w-28"><span className="mb-2 block text-xs font-medium text-muted-foreground sm:hidden">Currency</span><Select value={item.currency} onValueChange={value=>update(item.uid,{currency:value})}><SelectTrigger aria-label={`Item ${index+1} currency`}><SelectValue/></SelectTrigger><SelectContent>{Array.from(new Set([currency,item.currency,'TZS','USD','EUR','GBP','KES','ZAR','AED'])).map(value=><SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></TableCell>

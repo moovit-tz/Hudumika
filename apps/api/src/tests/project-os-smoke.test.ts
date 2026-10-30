@@ -626,11 +626,13 @@ describe('Project OS API — create-one-of-everything smoke', () => {
 
   it('industry records persist canonical data and restrict edits to project editors', async () => {
     const app = await getApp();
-    const created = await app.inject({ method: 'POST', url: `${P}/projects/${projA}/industry-data`, headers: authHeaders(A.token), payload: { industry: 'general', data_type: 'REVIEW', record_data: { title: 'Site review', description: 'Saved review content', question: 'Foundation depth?' } } });
+    const invalidType = await app.inject({ method: 'POST', url: `${P}/projects/${projA}/industry-data`, headers: authHeaders(A.token), payload: { industry: 'general', data_type: 'REVIEW', record_data: { title: 'Unsupported type' } } });
+    expect(invalidType.statusCode).toBe(400);
+    const created = await app.inject({ method: 'POST', url: `${P}/projects/${projA}/industry-data`, headers: authHeaders(A.token), payload: { industry: 'general', data_type: 'report', record_data: { title: 'Site review', description: 'Saved review content', question: 'Foundation depth?' } } });
     expect(created.statusCode).toBe(201);
-    expect(created.json()).toMatchObject({ title: 'Site review', data_type: 'REVIEW', record_data: { question: 'Foundation depth?' } });
+    expect(created.json()).toMatchObject({ title: 'Site review', data_type: 'report', record_data: { question: 'Foundation depth?' } });
     const id = created.json().id;
-    const list = await app.inject({ method: 'GET', url: `${P}/projects/${projA}/industry-data?dataType=REVIEW`, headers: authHeaders(A.token) });
+    const list = await app.inject({ method: 'GET', url: `${P}/projects/${projA}/industry-data?dataType=report`, headers: authHeaders(A.token) });
     expect(list.statusCode).toBe(200);
     expect(list.json().some((row: any) => row.id === id)).toBe(true);
     const edit = (token: string) => app.inject({ method: 'PUT', url: `${P}/industry-data/${id}`, headers: authHeaders(token), payload: { record_data: { title: 'Updated review', description: 'Updated content' } } });

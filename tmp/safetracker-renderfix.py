@@ -1,0 +1,3 @@
+from pathlib import Path
+p=Path('apps/web/src/pages/TrackingShared.tsx');s=p.read_text(encoding='utf-8').replace("<p style={{ color: 'var(--ink3)', fontSize: 12 }}>Source:", "{snap && <p style={{ color: 'var(--ink3)', fontSize: 12 }}>Source:").replace('Snapshot, not a live feed</p>', 'Snapshot, not a live feed</p>}');p.write_text(s,encoding='utf-8')
+p=Path('apps/web/src/pages/Tracker.tsx');s=p.read_text(encoding='utf-8').replace('catch { setFleetContainers([]); }', "catch (error: any) { showAlert(error.message || 'Could not load containers'); }").replace('catch { setSnapshots([]); }', "catch (error: any) { showAlert(error.message || 'Could not load saved tracking'); }");p.write_text(s,encoding='utf-8')

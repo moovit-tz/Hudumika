@@ -44,6 +44,8 @@ const MODES = [
 export function CarrierContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [nextCursor,setNextCursor] = useState<string>();
+  const [hasMore,setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,13 +60,13 @@ export function CarrierContractsPage() {
   const [shopResults, setShopResults] = useState<ShoppingResult[] | null>(null);
   const [shopping, setShopping] = useState(false);
 
-  function load() {
+  function load(cursor?: string) {
     setLoading(true);
     setLoadError(null);
     Promise.all([
-      apiFetch('/v1/freight-booking/rate-contracts'),
+      apiFetch(`/v1/freight-booking/rate-contracts?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`),
       apiFetch('/v1/freight-booking/carriers'),
-    ]).then(([c, cr]) => { setContracts(c); setCarriers(cr); }).catch(() => {
+    ]).then(([c, cr]) => { setContracts(prev=>cursor?[...prev,...c.data]:c.data);setNextCursor(c.cursor);setHasMore(c.has_more); setCarriers(cr); }).catch(() => {
       setContracts([]);
       setCarriers([]);
       setLoadError('Could not load carrier contracts.');
@@ -253,6 +255,7 @@ export function CarrierContractsPage() {
           />
         </SectionCard>
       </div>
+      {hasMore&&<Button type="button" variant="outline" disabled={loading} onClick={()=>load(nextCursor)}>Load more rate contracts</Button>}
     </div>
   );
 }

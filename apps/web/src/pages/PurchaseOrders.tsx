@@ -1,3 +1,9 @@
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { Link } from 'react-router-dom';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
+import { downloadDocument } from '../lib/financeDocuments.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
@@ -8,7 +14,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
-import { apiFetch, apiViewBlob } from '../lib/api.js';
+import { apiFetch } from '../lib/api.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -34,6 +40,8 @@ const fromApiStatus = (s: string): POStatus => {
 };
 
 interface POItem {
+  description?: string;
+  taxRate?: number;
   productId: string;
   qty: number;
   unitPrice: number;
@@ -87,7 +95,7 @@ function mapApiProduct(p: any): Product {
     id: p.id,
     name: p.name,
     sku: p.code || '',
-    description: p.description || '',
+    description: p.billing_description || p.description || '',
     unitPrice: Number(p.purchase_price) || 0,
     taxRates: Number(p.tax_rate) > 0 ? [{ name: 'Tax', rate: Number(p.tax_rate) }] : [],
   };
@@ -106,6 +114,8 @@ function apiLineToItem(line: any, products: Product[]): POItem {
   const prod = products.find(p => p.sku === line.category);
   return {
     productId: prod?.id || '',
+    description: line.description || '',
+    taxRate: Number(line.tax_rate) || 0,
     qty: Number(line.qty) || 1,
     unitPrice: Number(line.unit_price) || 0,
     discountPct: 0, // discount is baked into unit_price before it's sent to the backend
@@ -114,9 +124,9 @@ function apiLineToItem(line: any, products: Product[]): POItem {
 
 function itemToApiLine(item: POItem, products: Product[]) {
   const prod = products.find(p => p.id === item.productId);
-  const taxRate = prod ? prod.taxRates.reduce((sum, t) => sum + t.rate, 0) : 0;
+  const taxRate = item.taxRate ?? (prod ? prod.taxRates.reduce((sum, t) => sum + t.rate, 0) : 0);
   return {
-    description: prod?.name || 'Item',
+    description: item.description ?? ([prod?.name,prod?.description].filter(Boolean).join('\n') || 'Item'),
     category: prod?.sku || null,
     qty: item.qty,
     unit_price: item.unitPrice * (1 - (item.discountPct || 0) / 100),
@@ -158,9 +168,10 @@ const formatUSD = (amount: number) => {
 };
 
 export const PurchaseOrders: React.FC = () => {
+  const documentRoute=useFinanceDocumentRoute("purchase-orders");
   const co = useCompany();
   const isDark = useIsDarkMode();
-  const docLogoSrc = isDark ? (co.logoUrlDark || co.logoUrl) : co.logoUrl;
+  const docLogoSrc = co.logoUrl || co.logoVerticalLight;
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
   const readOnly = useFinanceReadOnly();
@@ -213,13 +224,13 @@ export const PurchaseOrders: React.FC = () => {
   useEffect(() => { loadPOs(); fetchStats(); }, [loadPOs, fetchStats]);
   useEffect(() => {
     function handler(e: Event) {
-      if (!readOnly && (e as CustomEvent).detail?.section === 'purchase-orders') setViewMode('CREATE');
+      if (!readOnly && (e as CustomEvent).detail?.section === 'purchase-orders') documentRoute.open('new');
     }
     window.addEventListener('fin:new-doc', handler);
     return () => window.removeEventListener('fin:new-doc', handler);
   }, [readOnly]);
   useEffect(() => {
-    if (readOnly && (viewMode === 'CREATE' || viewMode === 'EDIT')) setViewMode('LIST');
+    if (readOnly && (viewMode === 'CREATE' || viewMode === 'EDIT')) documentRoute.open('list');
   }, [readOnly, viewMode]);
 
   // List View Filter/Display State
@@ -275,15 +286,16 @@ export const PurchaseOrders: React.FC = () => {
   }
 
   // Form State (for Create/Edit)
-  const [formVendor, setFormVendor] = useState('');
-  const [formVendorItem, setFormVendorItem] = useState<PickerItem | null>(null);
-  const [formWarehouse, setFormWarehouse] = useState('');
-  const [formBusinessLine, setFormBusinessLine] = useState('');
-  const [formOrderDate, setFormOrderDate] = useState('2026-06-15');
-  const [formDueDate, setFormDueDate] = useState('');
-  const [formPaymentTerms, setFormPaymentTerms] = useState('');
-  const [formNotes, setFormNotes] = useState('');
-  const [formItems, setFormItems] = useState<POItem[]>([]);
+  const [restoredPoDraft]=useState(()=>hasFinanceDraft('formVendor'));
+  const [formVendor, setFormVendor] = useFinanceDraft('formVendor','');
+  const [formVendorItem, setFormVendorItem] = useFinanceDraft<PickerItem | null>('formVendorItem',null);
+  const [formWarehouse, setFormWarehouse] = useFinanceDraft('formWarehouse','');
+  const [formBusinessLine, setFormBusinessLine] = useFinanceDraft('formBusinessLine','');
+  const [formOrderDate, setFormOrderDate] = useFinanceDraft('formOrderDate',new Date().toISOString().slice(0,10));
+  const [formDueDate, setFormDueDate] = useFinanceDraft('formDueDate','');
+  const [formPaymentTerms, setFormPaymentTerms] = useFinanceDraft('formPaymentTerms','');
+  const [formNotes, setFormNotes] = useFinanceDraft('formNotes','');
+  const [formItems, setFormItems] = useFinanceDraft<POItem[]>('formItems',[]);
 
   // Reference date for Overdue checking
   const REF_DATE = new Date();
@@ -428,7 +440,17 @@ export const PurchaseOrders: React.FC = () => {
     setFormNotes(po.notes);
     setFormItems(po.items.map(item => ({ ...item })));
     setViewMode('EDIT');
+    if(documentRoute.path!==`/finance/purchase-orders/${id}/edit`)documentRoute.open('edit',id);
   };
+
+  const loadedRoute=React.useRef('');
+  useEffect(()=>{
+    if(documentRoute.mode==='list'){setViewMode('LIST');loadedRoute.current='';return;}
+    if(documentRoute.mode==='new'){setViewMode('CREATE');return;}
+    if(!documentRoute.id || !pos.some(p=>p.id===documentRoute.id) || loadedRoute.current===documentRoute.path)return;
+    loadedRoute.current=documentRoute.path;setSelectedPoId(documentRoute.id);
+    if(documentRoute.mode==='edit'){if(restoredPoDraft)setViewMode('EDIT');else handleEditInit(documentRoute.id);}else setViewMode('DETAILS');
+  },[documentRoute.path,pos]);
 
   // Load Init Create Mode
   const handleCreateInit = () => {
@@ -445,7 +467,7 @@ export const PurchaseOrders: React.FC = () => {
     setFormPaymentTerms('Net 30');
     setFormNotes('');
     setFormItems([{ productId: products[0]?.id || '', qty: 1, unitPrice: products[0]?.unitPrice || 0, discountPct: 0 }]);
-    setViewMode('CREATE');
+    documentRoute.open('new');
   };
 
   // Form Handlers
@@ -475,6 +497,8 @@ export const PurchaseOrders: React.FC = () => {
         const prod = products.find(p => p.id === value);
         if (prod) {
           updated.unitPrice = prod.unitPrice;
+          updated.description = [prod.name,prod.description].filter(Boolean).join('\n');
+          updated.taxRate = prod.taxRates.reduce((sum,tax)=>sum+tax.rate,0);
         }
       }
 
@@ -524,9 +548,11 @@ export const PurchaseOrders: React.FC = () => {
     };
 
     try {
+      let savedId = selectedPoId;
       if (viewMode === 'CREATE') {
         payload.po_number = nextPoNumber();
         const created: any = await apiFetch('/v1/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
+        savedId = created.id;
         await loadPOs(); fetchStats();
         showToast(`Purchase Order ${created.po_number} created successfully!`, 'success');
       } else {
@@ -534,7 +560,7 @@ export const PurchaseOrders: React.FC = () => {
         await loadPOs(); fetchStats();
         showToast(`Purchase Order updated successfully!`, 'success');
       }
-      setViewMode('LIST');
+      clearFinanceDrafts();documentRoute.open('detail',savedId);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to save purchase order', 'error');
     }
@@ -546,7 +572,7 @@ export const PurchaseOrders: React.FC = () => {
     try {
       await apiFetch(`/v1/purchase-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: toApiStatus('Sent') }) });
       setPOs(prev => prev.map(po => po.id === id ? { ...po, status: 'Sent' } : po));
-      showToast(`Purchase Order sent to vendor!`, 'success');
+      showToast(`Purchase order marked as sent. No email was sent.`, 'success');
     } catch {
       showToast('Failed to update purchase order status', 'error');
     }
@@ -599,7 +625,7 @@ export const PurchaseOrders: React.FC = () => {
         await apiFetch(`/v1/purchase-orders/${id}`, { method: 'DELETE' });
         setPOs(prev => prev.filter(p => p.id !== id)); fetchStats();
         showToast(`Deleted ${po.po_number}`, 'success');
-        if (viewMode === 'DETAILS') setViewMode('LIST');
+        if (viewMode === 'DETAILS') documentRoute.open('list');
       } catch {
         showToast('Failed to delete purchase order', 'error');
       }
@@ -612,7 +638,7 @@ export const PurchaseOrders: React.FC = () => {
     const po = pos.find(p => p.id === id);
     if (!po) return;
     setDownloading(po.po_number);
-    try { await apiViewBlob(`/v1/purchase-orders/${id}/pdf`); }
+    try { await downloadDocument('purchase_order', id, po.po_number); }
     catch (error) { showToast(error instanceof Error ? error.message : 'Could not open the purchase order PDF.', 'error'); }
     finally { setDownloading(null); }
   };
@@ -637,7 +663,7 @@ export const PurchaseOrders: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', fontFamily: 'var(--font)' }}>
-      
+
       {/* Toast Notifications */}
       <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {toasts.map(t => (
@@ -677,21 +703,11 @@ export const PurchaseOrders: React.FC = () => {
       {/* HEADER: compact bar for the detail view only. Create/Edit carry the
           shared FormPage chrome (back button + title) instead, so every finance
           document opens the same way. */}
-      {viewMode === 'DETAILS' && (
-        <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--ink)' }}>
-            {currentDetailsPo && `PO #${currentDetailsPo.po_number}`}
-          </div>
-          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-            <Icon name="arrowLeft" size={13} /> Back
-          </button>
-        </div>
-      )}
-
+      {viewMode==='DETAILS' && currentDetailsPo && <PageHeader crumbs={[{label:'Finance',to:'/finance'},{label:'Purchase orders',to:'/finance/purchase-orders'}]} titleEm={currentDetailsPo.po_number} subtitle="Purchase order"/>}
 
       {/* CORE WORKSPACE */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
-        
+
         {/* PAGE HEADER — list mode */}
         {viewMode === 'LIST' && (
           <PageHeader
@@ -699,6 +715,7 @@ export const PurchaseOrders: React.FC = () => {
             titlePlain="Purchase "
             titleEm="orders"
             subtitle="Request goods and services, manage approvals and track delivery."
+            actions={<FinanceDocumentListExport kind="purchase_order"/>}
           />
         )}
 
@@ -736,7 +753,7 @@ export const PurchaseOrders: React.FC = () => {
             <SectionCard collapsible={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                
+
                 {/* Search field */}
                 <SearchToolbar layout="register"
                   search={searchQuery}
@@ -747,7 +764,7 @@ export const PurchaseOrders: React.FC = () => {
 
                 {/* View toggles and filters */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  
+
                   {/* Grid / List toggle */}
                   <div style={{ display: 'flex', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', overflow: 'hidden', padding: 2 }}>
                     <button
@@ -821,7 +838,7 @@ export const PurchaseOrders: React.FC = () => {
 
                   {!readOnly && <button type="button" onClick={handleCreateInit}
                     style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-                    <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Purchase Order
+                    <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New purchase order
                   </button>}
                 </div>
               </div>
@@ -829,7 +846,7 @@ export const PurchaseOrders: React.FC = () => {
               {/* Collapsible Filters Sub-Panel */}
               {showFiltersPanel && (
                 <div style={{ display: 'flex', gap: 12, padding: '12px 0 0 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                  
+
                   {/* Status Filter */}
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Status</label>
@@ -929,8 +946,8 @@ export const PurchaseOrders: React.FC = () => {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <button
-                          onClick={() => { setSelectedPoId(po.id); setViewMode('DETAILS'); }}
+                        <Link
+                          to={`/finance/purchase-orders/${po.id}`}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -943,7 +960,7 @@ export const PurchaseOrders: React.FC = () => {
                           }}
                          data-ui-native-button="">
                           {po.po_number}
-                        </button>
+                        </Link>
                         <span style={{ fontSize: 10, fontWeight: 700, background: badge.bg, color: badge.color, borderRadius: 'var(--r-sm)', padding: '2px 8px' }}>
                           {po.status}
                         </span>
@@ -1005,8 +1022,8 @@ export const PurchaseOrders: React.FC = () => {
                          data-ui-native-button="">
                           <Icon name="download" size={13} />
                         </button>
-                        <button
-                          onClick={() => { setSelectedPoId(po.id); setViewMode('DETAILS'); }}
+                        <Link
+                          to={`/finance/purchase-orders/${po.id}`}
                           style={{
                             width: 28,
                             height: 28,
@@ -1022,7 +1039,7 @@ export const PurchaseOrders: React.FC = () => {
                           title="View Details"
                          data-ui-native-button="">
                           <Icon name="eye" size={13} />
-                        </button>
+                        </Link>
                         {!readOnly && po.status === 'Draft' && (
                           <>
                             <button
@@ -1096,7 +1113,7 @@ export const PurchaseOrders: React.FC = () => {
                         {[
                           { key: 'po_number', label: 'Invoice Number' },
                           { key: 'vendorId', label: 'Vendor' },
-                          { key: 'orderDate', label: 'Invoice Date' },
+                          { key: 'orderDate', label: 'Order Date' },
                           { key: 'dueDate', label: 'Due Date' },
                           { key: 'subtotal', label: 'Subtotal' },
                           { key: 'tax', label: 'Tax' },
@@ -1146,8 +1163,8 @@ export const PurchaseOrders: React.FC = () => {
                           >
                             {/* Invoice number link */}
                             <td className="po-col-po_number" style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                              <button
-                                onClick={() => { setSelectedPoId(po.id); setViewMode('DETAILS'); }}
+                              <Link
+                                to={`/finance/purchase-orders/${po.id}`}
                                 style={{
                                   background: 'none',
                                   border: 'none',
@@ -1161,7 +1178,7 @@ export const PurchaseOrders: React.FC = () => {
                                 }}
                                data-ui-native-button="">
                                 {po.po_number}
-                              </button>
+                              </Link>
                             </td>
 
                             <td className="po-col-vendorId" style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--ink)', overflow: 'hidden' }}>
@@ -1244,8 +1261,8 @@ export const PurchaseOrders: React.FC = () => {
                                 </button>
                                 </Tip>
                                 <Tip label="View purchase order details">
-                                <button
-                                  onClick={() => { setSelectedPoId(po.id); setViewMode('DETAILS'); }}
+                                <Link
+                                  to={`/finance/purchase-orders/${po.id}`}
                                   style={{
                                     width: 26,
                                     height: 26,
@@ -1260,7 +1277,7 @@ export const PurchaseOrders: React.FC = () => {
                                   }}
                                  data-ui-native-button="">
                                   <Icon name="eye" size={12.5} />
-                                </button>
+                                </Link>
                                 </Tip>
                                 {!readOnly && (po.status === 'Draft' ? (
                                   <>
@@ -1400,10 +1417,10 @@ export const PurchaseOrders: React.FC = () => {
         {/* VIEW MODE: PURCHASE ORDER DETAILS */}
         {viewMode === 'DETAILS' && currentDetailsPo && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            
+
             {/* Details Shell Card */}
             <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
+
               {/* Header summary inside details card */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
                 <div>
@@ -1446,7 +1463,7 @@ export const PurchaseOrders: React.FC = () => {
 
               {/* Grid with 3 columns: VENDOR, SHIPPING, DETAILS */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24, fontSize: 13 }}>
-                
+
                 {/* Vendor billing details */}
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
@@ -1454,7 +1471,7 @@ export const PurchaseOrders: React.FC = () => {
                   </div>
                   <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{currentDetailsPo.vendor?.name}</div>
                   <div style={{ color: 'var(--ink2)', margin: '4px 0 12px 0' }}>{currentDetailsPo.vendor?.email}</div>
-                  
+
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                     Billing Address
                   </div>
@@ -1481,7 +1498,7 @@ export const PurchaseOrders: React.FC = () => {
                   <div className="rtbl-wrap"><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <tbody>
                       <tr>
-                        <td style={{ padding: '4px 0', color: 'var(--ink3)' }}>Invoice Date</td>
+                        <td style={{ padding: '4px 0', color: 'var(--ink3)' }}>Order Date</td>
                         <td style={{ padding: '4px 0', textAlign: 'right', fontWeight: 600, color: 'var(--ink)' }}>{currentDetailsPo.orderDate}</td>
                       </tr>
                       <tr>
@@ -1530,25 +1547,7 @@ export const PurchaseOrders: React.FC = () => {
                 }}
               >
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => handleDownloadPDF(currentDetailsPo.id)}
-                    disabled={downloading === currentDetailsPo.po_number}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: 'var(--ds-btn-py) 16px',
-                      borderRadius: 'var(--r)',
-                      border: '1px solid var(--border)',
-                      background: 'var(--white)',
-                      color: 'var(--ink)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                   data-ui-native-button="">
-                    <Icon name="download" size={13} />
-                    Download PDF
-                  </button>
+                  <FinanceDocumentActions kind="purchase_order" id={currentDetailsPo.id} label={currentDetailsPo.po_number}/>
 
                   {!readOnly && currentDetailsPo.status === 'Draft' && (
                     <button
@@ -1567,7 +1566,7 @@ export const PurchaseOrders: React.FC = () => {
                         cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                      data-ui-native-button="">
                       <Icon name="checkCircle" size={13} />
-                      Send to Vendor
+                      Mark as sent
                     </button>
                   )}
                 </div>
@@ -1592,7 +1591,7 @@ export const PurchaseOrders: React.FC = () => {
             </div>
 
             {/* Items Table Card */}
-            <SectionCard title="Invoice Items" padded={false}>
+            <SectionCard title="Order Items" padded={false}>
               <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
                 <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
@@ -1664,28 +1663,28 @@ export const PurchaseOrders: React.FC = () => {
         {/* VIEW MODE: CREATE / EDIT PURCHASE ORDER FORM */}
         {!readOnly && (viewMode === 'CREATE' || viewMode === 'EDIT') && (
           <FormPage
-            title={viewMode === 'CREATE' ? 'New Purchase Order' : `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
+            title={viewMode === 'CREATE' ? 'New purchase order' : `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
             subtitle="Request goods and services from a vendor — dates, items and terms."
-            onCancel={() => setViewMode('LIST')}
+            onCancel={() => documentRoute.open('list')}
             actions={
               <>
-                <button type="button" onClick={() => setViewMode('LIST')} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+                <button type="button" onClick={() => documentRoute.open('list')} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
                 <button type="submit" form="po-form" className="btn btn-primary" data-ui-native-button="">{viewMode === 'CREATE' ? 'Create' : 'Save Changes'}</button>
               </>
             }
           >
           <form id="po-form" onSubmit={handleSavePO} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            
-            {/* Purchase Invoice Details Card */}
-            <SectionCard title="Purchase Invoice Details">
+
+            {/* Purchase Order Details Card */}
+            <SectionCard title="Purchase Order Details">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
               {/* Grid 4 columns details */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-                
+
                 {/* Order Date */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Invoice Date *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Order Date *</label>
                   <DatePicker date={parseDateOnly(formOrderDate)} onChange={d => setFormOrderDate(toDateOnlyString(d))} />
                 </div>
 
@@ -1760,9 +1759,9 @@ export const PurchaseOrders: React.FC = () => {
               </div>
             </SectionCard>
 
-            {/* Purchase Invoice Items Card */}
+            {/* Purchase Order Items Card */}
             <SectionCard
-              title="Purchase Invoice Items"
+              title="Purchase Order Items"
               action={
                 <button
                   type="button"
@@ -1822,7 +1821,7 @@ export const PurchaseOrders: React.FC = () => {
 
                       return (
                         <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                          
+
                           {/* Product select */}
                           <td style={{ padding: '12px 12px' }}>
                             <Combobox
@@ -1915,7 +1914,7 @@ export const PurchaseOrders: React.FC = () => {
 
               {/* Summary Bottom Layout */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 24, marginTop: 12 }}>
-                
+
                 {/* Total count details */}
                 <div style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>
                   {formItems.length} {formItems.length === 1 ? 'item' : 'items'} added
@@ -1926,7 +1925,7 @@ export const PurchaseOrders: React.FC = () => {
                   const totals = getPOTotals(formItems);
                   return (
                     <div style={{ width: 280, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, fontSize: 13 }}>
-                      <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px 0' }}>Invoice Summary</h4>
+                      <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px 0' }}>Order Summary</h4>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <tbody>
                           <tr>

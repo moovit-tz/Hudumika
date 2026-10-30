@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-10-27T16:22:54.208Z",
+  "server_timezone": "Africa/Dar_es_Salaam",
+  "workspaces_checked": 65,
+  "workspaces_with_flags": 2,
+  "findings": [
+    {
+      "tenant_id": "d4389cf1-4cca-465a-8607-467019d22a14",
+      "duplicate_running_timers": 0,
+      "overlapping_known_sessions": 0,
+      "unknown_sessions": 0,
+      "stale_approved_snapshots": 0,
+      "unlinked_shipment_entries": 2
+    },
+    {
+      "tenant_id": "15b7d313-5ab9-47d1-b9b3-eaa90cd90bdf",
+      "duplicate_running_timers": 0,
+      "overlapping_known_sessions": 0,
+      "unknown_sessions": 0,
+      "stale_approved_snapshots": 0,
+      "unlinked_shipment_entries": 6
+    }
+  ]
+}

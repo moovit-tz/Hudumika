@@ -1,0 +1,21 @@
+{
+  "checks": [
+    "Three responsive viewports without overflow, no metric grid, status/search/agency filters, fulfilment persisted to database, deep-link focus, add-obligation wizard"
+  ],
+  "errors": [],
+  "viewports": [
+    {
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "width": 768,
+      "scroll": 768
+    },
+    {
+      "width": 390,
+      "scroll": 390
+    }
+  ],
+  "cleaned": true
+}

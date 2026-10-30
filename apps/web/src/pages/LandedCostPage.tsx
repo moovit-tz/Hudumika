@@ -12,6 +12,7 @@ import { CustomerLeadPicker, type CustomerLeadDetails } from '../components/Cust
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
 import { Tip } from '../components/ui/tooltip.js';
 
@@ -393,6 +394,8 @@ export const LandedCostPage: React.FC = () => {
       setAiError('');
       setExtraItems([]);
       setExtraPicker(null);
+      if (r.history_saved === true) showAlert('Estimate saved to history.', { variant: 'success' });
+      else if (r.history_saved === false) showAlert('Estimate calculated but could not be saved to history.', { variant: 'warning' });
     } catch (e: any) {
       setError(e.message ?? 'Calculation failed');
     }
@@ -455,6 +458,8 @@ export const LandedCostPage: React.FC = () => {
       });
       setMultiResult(r);
       calcSigRef.current = calcSignature;
+      if (r.history_saved === true) showAlert('Multi-item estimate saved to history.', { variant: 'success' });
+      else if (r.history_saved === false) showAlert('Estimate calculated but could not be saved to history.', { variant: 'warning' });
     } catch (e: any) {
       setMultiError(e.message ?? 'Calculation failed');
     }

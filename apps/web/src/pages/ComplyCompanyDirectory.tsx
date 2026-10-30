@@ -1,3 +1,10 @@
+import {Banner} from '../components/ui/alert.js';
+import {MetricsRow} from '../components/MetricCard.js';
+import {Table, TableHeader, TableRow, TableHead, TableBody, TableCell} from '../components/ui/table.js';
+import { Input } from '../components/ui/input.js';
+import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { Badge } from '../components/ui/badge.js';
+import { Card } from '../components/ui/card.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -142,33 +149,18 @@ export function ComplyCompanyDirectory() {
       />
 
       {error && (
-        <div className="comply-note comply-note--error comply-note--icon comply-mb-24">
+        <Banner variant="error" icon={false} className="comply-note--icon comply-mb-24">
           <Icon name="alertTriangle" size={15} />
           <span>{error}</span>
-        </div>
+        </Banner>
       )}
 
       {view === 'list' && (
-        <div className="comply-kpis comply-mb-24">
-          <div className="comply-kpi">
-            <div className="comply-kpi-val">{loading ? '—' : companies.length}</div>
-            <div className="comply-kpi-label">Total Imported</div>
-          </div>
-          <div className="comply-kpi">
-            <div className={`comply-kpi-val${companies.filter(c => !c.active).length > 0 ? ' comply-kpi-delta--warn' : ''}`}>
-              {loading ? '—' : companies.filter(c => !c.active).length}
-            </div>
-            <div className="comply-kpi-label">Draft — Holding Layer</div>
-          </div>
-          <div className="comply-kpi">
-            <div className="comply-kpi-val comply-kpi-delta--up">{loading ? '—' : companies.filter(c => c.active).length}</div>
-            <div className="comply-kpi-label">In CRM</div>
-          </div>
-        </div>
+        <MetricsRow cards={[{title:"Total Imported",value:String(loading ? '—' : companies.length),icon:'fileText'},{title:"Draft — Holding Layer",value:String(loading ? '—' : companies.filter(c => !c.active).length),icon:'fileText'},{title:"In CRM",value:String(loading ? '—' : companies.filter(c => c.active).length),icon:'fileText'}]} />
       )}
 
       {view === 'list' && (
-        <div className="comply-card">
+        <Card className="comply-card">
           <div className="comply-card-hdr">
             <h3 className="comply-card-title">
               <span className="comply-card-title-row"><Icon name="briefcase" size={15} color="var(--comply)" /> Companies</span>
@@ -176,71 +168,71 @@ export function ComplyCompanyDirectory() {
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{companies.length} imported</span>
           </div>
           <div className="comply-card-body">
-            <table className="comply-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 200 }}>Name</th>
-                  <th style={{ width: 130 }}>TIN Number</th>
-                  <th style={{ width: 160 }}>Entity Type</th>
-                  <th style={{ width: 100 }}>CRM Status</th>
-                  <th>Registered Address</th>
-                  <th style={{ width: 130, textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="comply-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead style={{ width: 200 }}>Name</TableHead>
+                  <TableHead style={{ width: 130 }}>TIN Number</TableHead>
+                  <TableHead style={{ width: 160 }}>Entity Type</TableHead>
+                  <TableHead style={{ width: 100 }}>CRM Status</TableHead>
+                  <TableHead>Registered Address</TableHead>
+                  <TableHead style={{ width: 130, textAlign: 'right' }}>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {loading ? (
-                  <tr><td colSpan={6}><SectionLoading /></td></tr>
+                  <TableRow><TableCell colSpan={6}><SectionLoading /></TableCell></TableRow>
                 ) : companies.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="comply-empty-hint" style={{ textAlign: 'center' }}>
+                  <TableRow>
+                    <TableCell colSpan={6} className="comply-empty-hint" style={{ textAlign: 'center' }}>
                       No companies imported yet. Use <strong>BRELA Search</strong> to find and import one.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   companies.map(c => (
-                    <tr key={c.id} onClick={() => openProfile(c)} style={{ cursor: 'pointer' }}>
-                      <td className="comply-table-name">
+                    <TableRow tabIndex={0} onKeyDown={event => {if(event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')){event.preventDefault();event.currentTarget.click();}}} key={c.id} onClick={() => openProfile(c)} style={{ cursor: 'pointer' }}>
+                      <TableCell data-label="Name" className="comply-table-name">
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                           <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={26} shape="square" />
                           {c.name}
                         </span>
-                      </td>
-                      <td className="comply-td-mono">{formatDashedDigits9(c.tax_id)}</td>
-                      <td style={{ fontSize: 12.5 }}>{c.entity_type || '—'}</td>
-                      <td>
-                        <span className={`comply-badge comply-badge--${c.active ? 'active' : 'pending'}`}>
+                      </TableCell>
+                      <TableCell data-label="TIN Number" className="comply-td-mono">{formatDashedDigits9(c.tax_id)}</TableCell>
+                      <TableCell data-label="Entity Type" style={{ fontSize: 12.5 }}>{c.entity_type || '—'}</TableCell>
+                      <TableCell data-label="CRM Status">
+                        <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${c.active ? 'active' : 'pending'}`)}>
                           {c.active ? 'In CRM' : 'Draft'}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: 12.5, lineHeight: 1.4 }}>{c.registered_address || '—'}</td>
-                      <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                        </Badge>
+                      </TableCell>
+                      <TableCell data-label="Registered Address" style={{ fontSize: 12.5, lineHeight: 1.4 }}>{c.registered_address || '—'}</TableCell>
+                      <TableCell data-label="Actions" style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                         {!c.active && (
-                          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleMarkComplete(c)} title="Mark Complete — move to CRM" data-ui-native-button="">
+                          <Button aria-label="Mark Complete — move to CRM" variant="ghost" size="icon" type="button"  onClick={() => handleMarkComplete(c)} title="Mark Complete — move to CRM" >
                             <Icon name="checkCircle" size={13} />
-                          </button>
+                          </Button>
                         )}
-                        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handleDelete(c)} title="Delete" style={{ marginLeft: 6 }} data-ui-native-button="">
+                        <Button aria-label="Delete" variant="ghost" size="icon" type="button"  onClick={() => handleDelete(c)} title="Delete" style={{marginLeft: 6}} >
                           <Icon name="trash" size={13} />
-                        </button>
-                      </td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {view === 'profile' && selected && (
-        <div className="comply-card">
+        <Card className="comply-card">
           <div className="comply-card-hdr">
             <h3 className="comply-card-title">
               <span className="comply-card-title-row">
                 <CompanyAvatar name={selected.name} logoUrl={selected.logo_url} size={28} shape="square" style={{ marginRight: 4 }} /> {selected.name}
-                <span className={`comply-badge comply-badge--${selected.active ? 'active' : 'pending'} comply-badge-ml`}>
+                <Badge variant={complyBadgeVariant(`comply-badge comply-badge--${selected.active ? 'active' : 'pending'} comply-badge-ml`)}>
                   {selected.active ? 'In CRM' : 'Draft'}
-                </span>
+                </Badge>
               </span>
             </h3>
             <div className="comply-action-row">
@@ -270,7 +262,7 @@ export function ComplyCompanyDirectory() {
                       <span>Mark Complete — Move to CRM</span>
                     </Button>
                   )}
-                  <Button type="button" variant="outline" size="sm" style={{ color: 'var(--red)', borderColor: 'var(--red)' }} onClick={() => handleDelete(selected)}>
+                  <Button type="button" variant="outline" size="sm" style={{color: 'var(--red)', borderColor: 'var(--red)'}} onClick={() => handleDelete(selected)}>
                     <Icon name="trash" size={13} />
                     <span>Delete</span>
                   </Button>
@@ -291,7 +283,7 @@ export function ComplyCompanyDirectory() {
                         onChange={d => setForm(prev => ({ ...prev, [f.key]: d ? toDateOnlyString(d) : '' }))}
                       />
                     ) : (
-                      <input
+                      <Input
                         type="text"
                         className="input-field"
                         value={form[f.key] ?? ''}
@@ -341,7 +333,7 @@ export function ComplyCompanyDirectory() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -16,6 +16,11 @@ export interface Package {
   storage_limit_bytes: number | null; // Cloud storage quota — null = unlimited
   monthly_ai_credits: number;         // platform-billed AI calls/month included in this tier — 0 = none
   byok_ai_allowed: boolean;           // may this tier override the platform AI key with its own?
+  currency: string;                    // 'USD' or 'TZS'
+  included_seats: number | null;       // flat-price model: users included before overage — null = pure per-seat
+  max_locations: number | null;        // max branches/warehouses — null = unlimited
+  price_flat_monthly: number | null;   // flat monthly price (vs per-seat) — null = use price_per_seat
+  price_flat_annual: number | null;    // flat annual price — null = use price_per_seat annual logic
   features: string[];
   color: string;
   popular: boolean;
@@ -92,6 +97,9 @@ export interface OnboardingCompleteInput {
    *  URL. Silently ignored if it doesn't match a real, active tenant —
    *  never surfaced as a signup error over a stale/mistyped link. */
   referral_code?: string;
+  /** Phase 4 — industry journey selected during signup. Drives which apps
+   *  are surfaced first and which activation checkpoints are tracked. */
+  onboarding_journey?: string;
 }
 
 export interface OnboardingCompleteResponse {

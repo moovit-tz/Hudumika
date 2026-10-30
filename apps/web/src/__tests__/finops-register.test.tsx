@@ -25,6 +25,6 @@ describe('POS print preferences', () => {
   });
   test('validates untrusted stored option types and limits footer length', () => {
     vi.stubGlobal('localStorage', {getItem: () => JSON.stringify({paper:'unknown', autoPrint:'true', showCustomer:false, footer:'x'.repeat(250)})});
-    expect(loadPosPrintSettings('key')).toEqual({paper:'80mm',autoPrint:false,showCustomer:false,footer:'x'.repeat(200)});
+    expect(loadPosPrintSettings('key')).toEqual({...DEFAULT_POS_PRINT,paper:'80mm',autoPrint:false,showCustomer:false,footer:'x'.repeat(200)});
   });
 });

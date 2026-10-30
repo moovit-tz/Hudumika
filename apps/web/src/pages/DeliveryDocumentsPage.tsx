@@ -1,3 +1,8 @@
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
+import { FormPage, FormPageActions } from '../components/FormPage.js';
+import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 ﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
@@ -100,7 +105,7 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
 
   const actionGroups: DocumentAction[][] = [
     [
-      { key: 'pdf', label: 'View / Print PDF', icon: 'printer', onClick: onOpenPdf },
+
     ],
     [
       { key: 'issue', label: 'Issue', icon: 'send', loading: busy, loadingLabel: 'Issuing…', hidden: !(isRelease && doc.status === 'draft'), onClick: onIssue },
@@ -113,6 +118,7 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
   return (
     <DocumentDetailShell backLabel="Delivery Documents" onBack={onBack} docNumber={doc.doc_number ?? 'DRAFT'}>
       <DocumentDetailMain>
+        <FinanceDocumentActions kind="delivery_note" id={doc.id} label={doc.doc_number || doc.id}/>
         {loading && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Refreshing…</div>}
         <DocumentHeaderCard
           eyebrow={DOC_TYPE_LABEL[doc.doc_type]}
@@ -200,6 +206,7 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
 }
 
 export function DeliveryDocumentsPage() {
+  const documentRoute=useFinanceDocumentRoute("delivery-documents");
   usePageSEO('Delivery Documents', "Release orders, delivery orders and delivery notes — one combined document, container list or goods table, real PDF, linked to the shipment they're for.");
   const [urlParams] = useSearchParams();
   const shipmentFilter = urlParams.get('shipment');
@@ -209,10 +216,10 @@ export function DeliveryDocumentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [containers, setContainers] = useState<ContainerLine[]>([emptyContainer()]);
-  const [lines, setLines] = useState<DocLine[]>([emptyLine()]);
-  const [selectedJobId, setSelectedJobId] = useState(shipmentFilter || '');
+  const [form, setForm] = useFinanceDraft('form',emptyForm);
+  const [containers, setContainers] = useFinanceDraft<ContainerLine[]>('containers',[emptyContainer()]);
+  const [lines, setLines] = useFinanceDraft<DocLine[]>('lines',[emptyLine()]);
+  const [selectedJobId, setSelectedJobId] = useFinanceDraft('selectedJobId',shipmentFilter || '');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selected, setSelected] = useState<DeliveryDocument | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -257,7 +264,7 @@ export function DeliveryDocumentsPage() {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch('/v1/delivery-documents', {
+      const created = await apiFetch('/v1/delivery-documents', {
         method: 'POST',
         body: JSON.stringify({
           docType: form.docType,
@@ -287,9 +294,9 @@ export function DeliveryDocumentsPage() {
           }),
         }),
       });
-      resetForm();
+      clearFinanceDrafts();resetForm();
       setShowForm(false);
-      load();
+      load();documentRoute.open('detail',created.id);
     } catch (err: any) {
       setError(err.message || 'Failed to save document');
     } finally {
@@ -297,13 +304,15 @@ export function DeliveryDocumentsPage() {
     }
   };
 
-  const openDetail = (id: string) => {
+  const openDetail = (id: string, syncRoute=true) => {
+    if(syncRoute)documentRoute.open('detail',id);
     setDetailLoading(true);
     apiFetch(`/v1/delivery-documents/${id}`)
       .then((doc: any) => setSelected(doc))
       .catch(() => showAlert('Could not open this document.', { variant: 'error' }))
       .finally(() => setDetailLoading(false));
   };
+  useEffect(()=>{if(documentRoute.mode==='new'){setSelected(null);setShowForm(true);}else if(documentRoute.id){setShowForm(false);openDetail(documentRoute.id,false);}else{setSelected(null);setShowForm(false);}},[documentRoute.path]);
   const refreshDetail = (id: string) => { if (selected?.id === id) openDetail(id); };
 
   const issue = async (id: string) => {
@@ -327,73 +336,12 @@ export function DeliveryDocumentsPage() {
     finally { setBusyId(null); }
   };
   const openPdf = (id: string) => {
-    apiViewBlob(`/v1/delivery-documents/${id}/pdf`).catch(() => showAlert('Could not open the document.', { variant: 'error' }));
+    const tab=window.open(`/finance/documents/delivery_note/${id}/preview`,'_blank');if(tab)tab.opener=null;else showAlert('Open the delivery document and select Preview PDF, or allow pop-ups.',{variant:'error'});
   };
 
-  if (selected) {
-    return (
-      <DeliveryDocumentDetailView
-        doc={selected}
-        loading={detailLoading}
-        busy={busyId === selected.id}
-        shipmentLabel={shipmentLabel}
-        onBack={() => setSelected(null)}
-        onIssue={() => issue(selected.id)}
-        onMarkUsed={() => markUsed(selected.id)}
-        onSetStatus={(s) => setStatus(selected.id, s)}
-        onOpenPdf={() => openPdf(selected.id)}
-      />
-    );
-  }
-
-  return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
-      <PageHeader
-        crumbs={['FINANCE', 'DELIVERY NOTES']}
-        titlePlain="Delivery"
-        titleEm="documents"
-        subtitle="Release orders, delivery orders and delivery notes — linked to shipments and logistics cases."
-      />
-
-      <MetricsRow cards={[
-        {
-          title: 'TOTAL DOCUMENTS', value: String(ddStats?.total ?? rows.length), loading: !ddStats,
-          barHighlight: 'var(--teal)',
-        },
-        {
-          title: 'IN PROGRESS', value: String(ddStats?.inProgress ?? rows.filter(r => ['draft', 'issued', 'dispatched'].includes(r.status)).length), loading: !ddStats,
-          barHighlight: 'var(--gold)',
-        },
-        {
-          title: 'COMPLETED', value: String(ddStats?.completed ?? rows.filter(r => ['delivered', 'used'].includes(r.status)).length), loading: !ddStats,
-          barHighlight: 'var(--green)',
-        },
-        {
-          title: 'SHIPMENT LINKED', value: `${ddStats?.shipmentLinkedPct ?? 0}%`, loading: !ddStats,
-          sub1Label: 'LINKED', sub1Value: String(ddStats?.shipmentLinked ?? 0),
-          sub2Label: 'TOTAL', sub2Value: String(ddStats?.total ?? rows.length), barHighlight: 'var(--blue)',
-        },
-      ]} />
-
-      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => setShowForm(s => !s)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-          <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New Document'}
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {shipmentFilter && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)' }}>
-            <Icon name="package" size={14} color="var(--teal)" />
-            <span>Showing documents for shipment <strong>{shipmentLabel(shipmentFilter) ?? shipmentFilter}</strong>.</span>
-            <Link to="/finance/delivery-documents" style={{ marginLeft: 'auto', color: 'var(--teal)', fontWeight: 600, fontSize: 12 }}>View all documents</Link>
-          </div>
-        )}
-
-        {showForm && (
+  const formContent=(
           <SectionCard title="New document" collapsible={false}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Document type *</label>
                 <Select value={form.docType} onValueChange={v => setForm(p => ({ ...p, docType: v as DocType }))}>
@@ -414,32 +362,32 @@ export function DeliveryDocumentsPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Customer / Consignee *</label>
-                <Input value={form.customerName} onChange={e => setForm(p => ({ ...p, customerName: e.target.value }))} />
+                <Input aria-label="Customer / Consignee" value={form.customerName} onChange={e => setForm(p => ({ ...p, customerName: e.target.value }))} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Address</label>
-                <Input value={form.customerAddress} onChange={e => setForm(p => ({ ...p, customerAddress: e.target.value }))} />
+                <Input aria-label="Address" value={form.customerAddress} onChange={e => setForm(p => ({ ...p, customerAddress: e.target.value }))} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Contact person</label>
-                <Input value={form.contactPerson} onChange={e => setForm(p => ({ ...p, contactPerson: e.target.value }))} />
+                <Input aria-label="Contact person" value={form.contactPerson} onChange={e => setForm(p => ({ ...p, contactPerson: e.target.value }))} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Contact phone</label>
-                <Input value={form.contactPhone} onChange={e => setForm(p => ({ ...p, contactPhone: e.target.value }))} />
+                <Input aria-label="Contact phone" value={form.contactPhone} onChange={e => setForm(p => ({ ...p, contactPhone: e.target.value }))} />
               </div>
             </div>
 
             {isReleaseType ? (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 16, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Carrier</label>
-                    <Input value={form.carrierName} onChange={e => setForm(p => ({ ...p, carrierName: e.target.value }))} />
+                    <Input aria-label="Carrier" value={form.carrierName} onChange={e => setForm(p => ({ ...p, carrierName: e.target.value }))} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Vessel / Voyage</label>
-                    <Input value={form.vesselVoyage} onChange={e => setForm(p => ({ ...p, vesselVoyage: e.target.value }))} />
+                    <Input aria-label="Vessel / Voyage" value={form.vesselVoyage} onChange={e => setForm(p => ({ ...p, vesselVoyage: e.target.value }))} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Valid from</label>
@@ -484,7 +432,7 @@ export function DeliveryDocumentsPage() {
               </>
             ) : (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 16, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Delivery address</label>
                     <Input value={form.deliveryAddress} onChange={e => setForm(p => ({ ...p, deliveryAddress: e.target.value }))} />
@@ -512,6 +460,7 @@ export function DeliveryDocumentsPage() {
                     <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>Goods</label>
                     <Button size="xs" variant="outline" onClick={() => setLines(p => [...p, emptyLine()])}>Add line</Button>
                   </div>
+                  <div className="mb-3"><FinanceCatalogPicker onSelect={product=>setLines(previous=>[...previous.filter(line=>line.description?.trim()),{description:[`${product.name} (${product.unit})`,product.billing_description].filter(Boolean).join('\n'),qty_ordered:1}])}/></div>
                   {lines.map((l, i) => (
                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 8, marginBottom: 8 }}>
                       <Input placeholder="Description" value={l.description || ''} onChange={e => setLines(p => p.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
@@ -533,8 +482,75 @@ export function DeliveryDocumentsPage() {
             )}
 
             {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-            <Button disabled={saving} onClick={submit}>{saving ? 'Saving…' : 'Save document'}</Button>
+
           </SectionCard>
+  );
+  if(showForm)return <FormPage title="New delivery document" subtitle="Create a delivery note, release order or delivery order." onCancel={()=>documentRoute.open('list')} actions={<FormPageActions onCancel={()=>documentRoute.open('list')} onSave={submit} saving={saving} saveLabel="Save draft"/>}>{formContent}</FormPage>;
+
+  if (selected) {
+    return (
+      <DeliveryDocumentDetailView
+        doc={selected}
+        loading={detailLoading}
+        busy={busyId === selected.id}
+        shipmentLabel={shipmentLabel}
+        onBack={() => documentRoute.open('list')}
+        onIssue={() => issue(selected.id)}
+        onMarkUsed={() => markUsed(selected.id)}
+        onSetStatus={(s) => setStatus(selected.id, s)}
+        onOpenPdf={() => openPdf(selected.id)}
+      />
+    );
+  }
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto' }}>
+      <FinanceDocumentListExport kind="delivery_note"/>
+      <PageHeader
+        crumbs={['FINANCE', 'DELIVERY DOCUMENTS']}
+        titlePlain="Delivery"
+        titleEm="documents"
+        subtitle="Release orders, delivery orders and delivery notes — linked to shipments and logistics cases."
+      />
+
+      <MetricsRow cards={[
+        {
+          title: 'TOTAL DOCUMENTS', value: String(ddStats?.total ?? rows.length), loading: !ddStats,
+          barHighlight: 'var(--teal)',
+        },
+        {
+          title: 'IN PROGRESS', value: String(ddStats?.inProgress ?? rows.filter(r => ['draft', 'issued', 'dispatched'].includes(r.status)).length), loading: !ddStats,
+          barHighlight: 'var(--gold)',
+        },
+        {
+          title: 'COMPLETED', value: String(ddStats?.completed ?? rows.filter(r => ['delivered', 'used'].includes(r.status)).length), loading: !ddStats,
+          barHighlight: 'var(--green)',
+        },
+        {
+          title: 'SHIPMENT LINKED', value: `${ddStats?.shipmentLinkedPct ?? 0}%`, loading: !ddStats,
+          sub1Label: 'LINKED', sub1Value: String(ddStats?.shipmentLinked ?? 0),
+          sub2Label: 'TOTAL', sub2Value: String(ddStats?.total ?? rows.length), barHighlight: 'var(--blue)',
+        },
+      ]} />
+
+      <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={() => {resetForm();documentRoute.open('new');}}
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+          <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New Document'}
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {shipmentFilter && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)' }}>
+            <Icon name="package" size={14} color="var(--teal)" />
+            <span>Showing documents for shipment <strong>{shipmentLabel(shipmentFilter) ?? shipmentFilter}</strong>.</span>
+            <Link to="/finance/delivery-documents" style={{ marginLeft: 'auto', color: 'var(--teal)', fontWeight: 600, fontSize: 12 }}>View all documents</Link>
+          </div>
+        )}
+
+        {showForm && (
+          {formContent}
         )}
 
         <SectionCard title="Documents" padded={false} collapsible={false}>
@@ -556,12 +572,12 @@ export function DeliveryDocumentsPage() {
                   const cs = parseContainers(row.containers);
                   const isRelease = row.doc_type !== 'DELIVERY_NOTE';
                   return (
-                    <tr key={row.id} onClick={() => openDetail(row.id)} tabIndex={0} role="button"
+                    <tr key={row.id} onClick={() => documentRoute.open('detail',row.id)} tabIndex={0} role="button"
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(row.id); } }}
                       style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
                         {DOC_TYPE_LABEL[row.doc_type]}
-                        {row.doc_number && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{row.doc_number}</div>}
+                        {row.doc_number && <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}><Link to={`/finance/delivery-documents/${row.id}`} onClick={e=>e.stopPropagation()}>{row.doc_number}</Link></div>}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>{row.customer_name || '—'}</td>
                       <td style={{ padding: '12px 16px', fontSize: 12.5 }} onClick={e => e.stopPropagation()}>
@@ -595,3 +611,4 @@ export function DeliveryDocumentsPage() {
     </div>
   );
 }
+import { FinanceCatalogPicker } from '../components/FinanceCatalogPicker.js';

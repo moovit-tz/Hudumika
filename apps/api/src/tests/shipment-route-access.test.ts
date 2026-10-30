@@ -60,4 +60,40 @@ describe('ClearOS shipment sub-resource access', () => {
     });
     expect(response.statusCode).toBe(404);
   });
+
+  it('persists status, locks signed-off tasks, and reopens them', async () => {
+    const app = await getApp();
+    const url = `/v1/shipments/${otherShipmentId}/tasks/${otherTaskId}`;
+    const headers = authHeaders(tenant.token);
+    const changed = await app.inject({ method: 'PATCH', url, headers, payload: { status: 'testing' } });
+    expect(changed.statusCode).toBe(200);
+    expect(changed.json().status).toBe('testing');
+    const closed = await app.inject({ method: 'POST', url: `${url}/close`, headers, payload: {} });
+    expect(closed.statusCode).toBe(200);
+    expect(closed.json().closed_at).toBeTruthy();
+    const locked = await app.inject({ method: 'PATCH', url, headers, payload: { status: 'open' } });
+    expect(locked.statusCode).toBe(409);
+    const reopened = await app.inject({ method: 'POST', url: `${url}/reopen`, headers, payload: {} });
+    expect(reopened.statusCode).toBe(200);
+    const saved = await app.inject({ method: 'GET', url: `/v1/shipments/${otherShipmentId}/tasks`, headers });
+    const task = saved.json().data.find((row: { id: string }) => row.id === otherTaskId);
+    expect(task.status).toBe('in_progress');
+    expect(task.closed_at).toBeNull();
+  });
+
+  it('creates a task with its assignee and due date and returns it on reload', async () => {
+    const app = await getApp();
+    const url = `/v1/shipments/${ownShipmentId}/tasks`;
+    const headers = authHeaders(tenant.token);
+    const created = await app.inject({ method: 'POST', url, headers, payload: {
+      title: 'Verify customs documents', priority: 'high', assigned_to: tenant.userId, due_date: '2026-11-10',
+    } });
+    expect(created.statusCode).toBe(200);
+    const saved = await app.inject({ method: 'GET', url, headers });
+    const task = saved.json().data.find((row: { id: string }) => row.id === created.json().id);
+    expect(task.title).toBe('Verify customs documents');
+    expect(task.assigned_to).toBe(tenant.userId);
+    expect(task.priority).toBe('high');
+    expect(task.due_date).toContain('2026-11-10');
+  });
 });

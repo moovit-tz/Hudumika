@@ -9,7 +9,7 @@
 //
 import PDFDocument from 'pdfkit';
 import { FINANCE_INDUSTRIES } from '@hudumika/types';
-import { documentBranding, drawDocumentHeader } from './document-branding.service.js';
+import { documentBranding, documentCompanyIdentity, drawDocumentPageNumbers, drawDocumentHeader } from './document-branding.service.js';
 import { invoiceGrandTotal, invoiceNetAndTax } from './invoice-totals.js';
 import { withTenant } from '../db/client.js';
 
@@ -54,7 +54,7 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
     const brand = await documentBranding(settings, 'invoice');
 
     return new Promise<Buffer>((resolve, reject) => {
-      const doc = new PDFDocument({ size: 'A4', margin: 40 });
+      const doc = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
       const chunks: Buffer[] = [];
       doc.on('data', b => chunks.push(b));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -64,7 +64,7 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
       const W = 595.28 - M * 2;
       let y = M;
 
-      y = drawDocumentHeader(doc, brand, {name: companyName, address: [company.address, company.city, company.country, company.email, company.phone].filter(Boolean).join(' · ')}, 'INVOICE', inv.invoice_number, M, y, W);
+      y = drawDocumentHeader(doc, brand, documentCompanyIdentity(company,companyName), 'INVOICE', inv.invoice_number, M, y, W);
 
       doc.moveTo(M, y).lineTo(M + W, y).strokeColor(BORDER).lineWidth(1).stroke();
       y += 16;
@@ -135,14 +135,15 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
         const lineCurrency = l.currency || currency;
         const rateText = `${lineCurrency} ${money(Number(l.rate))}`;
         const amountText = `${lineCurrency} ${money(lineAmount)}`;
-        const cells = [l.name, quantity, rateText, `${Number(l.tax_pct)}%`, amountText];
+        const itemText = [l.name, l.description].filter(Boolean).join('\n');
+        const cells = [itemText, quantity, rateText, `${Number(l.tax_pct)}%`, amountText];
         const rowH = Math.max(24, ...cells.map((text, index) =>
           doc.font(index === 4 ? 'Document-Bold' : 'Document-Regular').fontSize(9)
             .heightOfString(text, { width: cols[index].w - 8 }) + 12));
         if (y + rowH > 780) { doc.addPage(); y = M; }
         cx = M;
         doc.fillColor(INK);
-        fitText(l.name, cx + 8, y + 5, cols[0].w - 8, { font: 'Document-Regular', maxFs: 9 }); cx += cols[0].w;
+        fitText(itemText, cx + 8, y + 5, cols[0].w - 8, { font: 'Document-Regular', maxFs: 9 }); cx += cols[0].w;
         fitText(quantity, cx, y + 5, cols[1].w - 8, { font: 'Document-Regular', maxFs: 9, align: 'right' }); cx += cols[1].w;
         fitText(rateText, cx, y + 5, cols[2].w - 8, { font: 'Document-Regular', maxFs: 9, align: 'right' }); cx += cols[2].w;
         fitText(`${Number(l.tax_pct)}%`, cx, y + 5, cols[3].w - 8, { font: 'Document-Regular', maxFs: 9, align: 'right' }); cx += cols[3].w;
@@ -196,6 +197,7 @@ export async function renderInvoicePdf(tenantId: string, invoiceId: string): Pro
         doc.font('Document-Regular').fontSize(9).fillColor(INK).text(inv.notes, M, doc.y + 4, { width: W });
       }
 
+      drawDocumentPageNumbers(doc,inv.invoice_number);
       doc.end();
     });
   });

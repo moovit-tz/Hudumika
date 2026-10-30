@@ -1,3 +1,4 @@
+import { ContainerIdentity } from '../components/container/ContainerIdentity.js';
 ﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useSessionDraft, clearSessionDrafts } from '../hooks/useSessionDraft.js';
@@ -898,6 +899,7 @@ export function CreateShipmentPage() {
                     {fld('Container No.', createForm.container_number,
                       v => setCreateForm(p => ({ ...p, container_number: v.toUpperCase() })),
                       { placeholder: 'e.g. MSKU1234565' })}
+                    <ContainerIdentity number={createForm.container_number} />
                     {containerHint && (
                       <div style={{ marginTop: 5, fontSize: 11.5, lineHeight: 1.45, display: 'flex', gap: 6, alignItems: 'flex-start', color: containerHint.ok ? 'var(--green)' : 'var(--gold)' }}>
                         <Icon name={containerHint.ok ? 'checkCircle' : 'alertCircle'} size={12} color={containerHint.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />

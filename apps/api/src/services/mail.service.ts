@@ -7,6 +7,8 @@ import { EmailIntegration } from '../integrations/email.js';
 import { MinioIntegration } from '../integrations/minio.js';
 
 interface EnqueueInput {
+  /** Internal deterministic UUID for a caller-managed idempotency transaction. */
+  outboxId?: string;
   to: string;
   subject: string;
   bodyHtml: string;
@@ -97,6 +99,7 @@ export const MailService = {
   /** Used when a scheduled message and its durable delivery must commit together. */
   async enqueueInTransaction(trx: Transaction<Database>, tenantId: string, input: EnqueueInput, claimToken?: string): Promise<string> {
       const row = await trx.insertInto('email_outbox').values({
+        id: input.outboxId,
         tenant_id: tenantId,
         status: claimToken ? 'sending' : 'pending',
         claim_token: claimToken ?? null,

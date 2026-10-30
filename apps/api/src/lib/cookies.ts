@@ -53,8 +53,14 @@ export function setSessionCookies(reply: FastifyReply, tokens: IssuedTokens, opt
   // echoes it back as X-CSRF-Token (double-submit pattern). One shared
   // cookie for both the main and org flows: its only job is proving "this
   // JS could read a cookie we set," not identifying which session is active.
+  // maxAge matches the refresh token, not the access token — the CSRF cookie
+  // must survive past the access token's expiry so that POST /auth/refresh
+  // (which checks CSRF) can still pass the double-submit check. When it was
+  // tied to expires_in (1h), every session whose access token expired
+  // naturally also lost its CSRF cookie, making the refresh 403 and bouncing
+  // the user to login even though their 30-day refresh token was still valid.
   reply.setCookie(COOKIE_NAMES.csrf, crypto.randomBytes(32).toString('hex'), {
-    ...baseOpts(tokens.expires_in),
+    ...baseOpts(durationSeconds(env.JWT_REFRESH_EXPIRES_IN)),
     httpOnly: false,
   });
 }

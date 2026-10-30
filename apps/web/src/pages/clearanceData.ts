@@ -17,7 +17,7 @@ export type DocType = 'invoice' | 'bl' | 'assessment' | 'release_order'
   | 'delivery_order' | 'icd_invoice' | 'tphpa' | 'receipt'
   | 'permit' | 'packing_list' | 'other';
 
-export type TransportMode = 'SEA FCL' | 'SEA LCL' | 'AIR' | 'ROAD';
+export type TransportMode = 'SEA FCL' | 'SEA LCL' | 'AIR' | 'ROAD' | 'RAIL' | 'BULK';
 
 export interface Listener {
   id: string;
@@ -417,14 +417,12 @@ export function toStage(s: string): Stage {
   return STAGES.find(x => x.id === n) ? n : 'docs_received';
 }
 
-// The frontend's TransportMode union predates RAIL/BULK (see CommandCenter.tsx,
-// CreateShipmentPage.tsx) so those two normalize to the closest represented
-// mode rather than widening the type here — same fallback shape as before for
-// a row with no real type at all.
 function normalizeMode(raw: string | undefined | null): TransportMode {
   const t = (raw || '').toUpperCase();
   if (t.includes('AIR')) return 'AIR';
-  if (t.includes('ROAD') || t.includes('RAIL')) return 'ROAD';
+  if (t === 'RAIL') return 'RAIL';
+  if (t === 'BULK') return 'BULK';
+  if (t.includes('ROAD')) return 'ROAD';
   if (t.includes('LCL')) return 'SEA LCL';
   return 'SEA FCL';
 }
@@ -566,22 +564,35 @@ const _subs = new Set<() => void>();
 
 let _loaded = false;
 let _inflight: Promise<void> | null = null;
+let _fetchError: string | null = null;
+let _generation = 0;
 
 function notify() { _subs.forEach(fn => fn()); }
 
 export function loadJobs(force = false): Promise<void> {
   if (_inflight) return _inflight;
   if (_loaded && !force) return Promise.resolve();
+  _fetchError = null;
+  const gen = ++_generation;
   _inflight = apiFetch('/v1/shipments')
     .then((rows: any) => {
+      if (gen !== _generation) return;
       _jobs = (Array.isArray(rows) ? rows : rows?.data ?? []).map(apiToJob);
       _loaded = true;
+      _fetchError = null;
       notify();
     })
-    .catch(() => { /* leave the list empty rather than show invented rows */ })
-    .finally(() => { _inflight = null; });
+    .catch((err: any) => {
+      if (gen !== _generation) return;
+      _fetchError = err?.message || 'Failed to load shipments';
+      notify();
+    })
+    .finally(() => { if (gen === _generation) _inflight = null; });
   return _inflight;
 }
+
+/** The last fetch error, or null if the load succeeded / hasn't run. */
+export function getShipmentFetchError(): string | null { return _fetchError; }
 
 // Any read primes the load, not just subscribe(): several consumers call
 // getJobs() once in a useState initialiser and never subscribe, so keying the
@@ -615,4 +626,14 @@ export function subscribe(fn: () => void): () => void {
   _subs.add(fn);
   void loadJobs();
   return () => _subs.delete(fn);
+}
+
+/** Call on logout / account-switch / impersonate so the next session doesn't see stale data. */
+export function clearShipmentCache(): void {
+  _generation++;
+  _jobs = [];
+  _loaded = false;
+  _inflight = null;
+  _fetchError = null;
+  notify();
 }

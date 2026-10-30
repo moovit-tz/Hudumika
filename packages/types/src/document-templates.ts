@@ -4,6 +4,10 @@ export const DOCUMENT_KINDS = [
   { id: 'purchase_order', label: 'Purchase orders' },
   { id: 'quotation', label: 'Quotations' },
   { id: 'delivery_note', label: 'Delivery notes' },
+  { id: 'bill', label: 'Supplier bills' },
+  { id: 'expense', label: 'Expense vouchers' },
+  { id: 'expense_report', label: 'Expense claims' },
+  { id: 'vendor_statement', label: 'Vendor statements' },
 ] as const;
 export type DocumentKind = typeof DOCUMENT_KINDS[number]['id'];
 export const DOCUMENT_TEMPLATES = [

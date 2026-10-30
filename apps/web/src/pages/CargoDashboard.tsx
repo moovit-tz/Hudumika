@@ -128,7 +128,7 @@ export function CargoDashboard() {
   const carrierColumns: TableColumn<CarrierRow>[] = [
     { key: 'carrier', header: 'Carrier', accessor: 'carrier', sortable: true },
     { key: 'shipments', header: 'Shipments', accessor: 'shipments', sortable: true, width: 120 },
-    { key: 'onTime', header: 'On-time', render: row => <ReliabilityBadge pct={row.on_time_pct} />, width: 160 },
+    { key: 'onTime', header: 'ETA unchanged/earlier', render: row => <ReliabilityBadge pct={row.on_time_pct} />, width: 160 },
     { key: 'deviation', header: 'Avg deviation', render: row => row.avg_deviation_days === null ? '—' : <span style={{ color: row.avg_deviation_days > 0 ? 'var(--red)' : 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{row.avg_deviation_days > 0 ? '+' : ''}{row.avg_deviation_days}d</span>, width: 150 },
     { key: 'transit', header: 'Avg transit', render: row => row.avg_transit_days === null ? '—' : `${row.avg_transit_days}d`, width: 140 },
   ];
@@ -143,7 +143,7 @@ export function CargoDashboard() {
         crumbs={['CargoTracker', 'Dashboard']}
         titlePlain="Cargo"
         titleEm="overview"
-        subtitle="Shipments, containers, carrier reliability and demurrage — across every lane you track."
+        subtitle="Shipments, containers, carrier ETA changes and demurrage — across every lane you track."
         actions={
           <Button size="sm" onClick={() => navigate('/cargotracker/track')}>
             <Icon name="search" size={14} color="hsl(var(--primary-foreground))" /> Track a shipment
@@ -188,7 +188,7 @@ export function CargoDashboard() {
 
       {/* Carrier reliability */}
       <SectionCard title="Carrier Analysis">
-        <div style={panelSubStyle}>On-time %, ETA deviation and transit time, computed from your own tracked shipments</div>
+        <div style={panelSubStyle}>ETA unchanged/earlier %, ETA revisions and observed event span; these are not verified delivery punctuality metrics</div>
         <DataTable
           columns={carrierColumns}
           rows={carriers}
@@ -199,7 +199,7 @@ export function CargoDashboard() {
           empty={carriers.length === 0}
           emptyIcon="ship"
           emptyTitle="No carrier data yet"
-          emptyMessage="Save a few tracked shipments to see reliability by carrier."
+          emptyMessage="Save a few tracked shipments to see ETA changes by carrier."
         />
       </SectionCard>
 
@@ -274,7 +274,7 @@ export function CargoDashboard() {
                   <div key={carrier}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
                       <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{carrier}</span>
-                      <span style={{ color: 'var(--ink3)', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(v.cost)} · {v.count} box{v.count === 1 ? '' : 'es'}</span>
+                      <span style={{ color: 'var(--ink3)', fontVariantNumeric: 'tabular-nums' }}>{`${v.cost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`} · {v.count} box{v.count === 1 ? '' : 'es'}</span>
                     </div>
                     <RankedBar value={v.cost} max={maxCarrierCost} color="var(--gold)" />
                   </div>
@@ -290,7 +290,7 @@ export function CargoDashboard() {
                   {demurrage.monthly_trend.slice(-6).map(m => (
                     <div key={m.month} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                       <span style={{ color: 'var(--ink2)' }}>{m.month}</span>
-                      <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ink)' }}>{formatCurrency(m.cost)}</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--ink)' }}>{`${m.cost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}</span>
                     </div>
                   ))}
                 </div>

@@ -94,6 +94,11 @@ it('distinct concurrent payments retain both amounts and reject draft documents'
  expect(Number(row.received)).toBe(250);
  const draft=await invoice(); await withTenant(tenant.tenantId,trx=>trx.updateTable('sales_invoices').set({status:'Draft'}).where('id','=',draft).where('tenant_id','=',tenant.tenantId).execute());
  expect((await pay(draft,crypto.randomUUID())).statusCode).toBe(409);
+ expect((await app.inject({method:'POST',url:`/v1/invoices/${draft}/payment-link`,headers:authHeaders(tenant.token)})).statusCode).toBe(409);
+ const credit = await app.inject({method:'POST',url:'/v1/credit-notes',headers:authHeaders(tenant.token),payload:{original_invoice_id:draft,currency:'TZS',items:[{name:'Draft correction',rate:100,qty:1,tax_pct:0}]}});
+ expect(credit.statusCode,credit.body).toBe(400);
+ expect(credit.json().error).toMatch(/draft invoice/i);
+ expect(await withTenant(tenant.tenantId,trx=>trx.selectFrom('invoice_payments').select('id').where('tenant_id','=',tenant.tenantId).where('invoice_id','=',draft).execute())).toHaveLength(0);
  const other=await createTestTenant('FINANCE');
  try {
   await withTenant(other.tenantId,trx=>trx.insertInto('tenant_settings').values({tenant_id:other.tenantId,settings:JSON.stringify({'enabled-apps':{finops:true}})}).execute());

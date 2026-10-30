@@ -94,6 +94,7 @@ export function LockScreen() {
             userId={(user as any)?.id}
             name={user?.name ?? 'User'}
             size={80}
+            hideStatus
             style={{
               border: '2.5px solid color-mix(in srgb, var(--teal) 35%, var(--border))',
               boxShadow: '0 8px 24px -4px color-mix(in srgb, var(--teal) 25%, rgba(0, 0, 0, 0.2))',
@@ -136,6 +137,12 @@ export function LockScreen() {
               onBlur={() => setIsFocused(false)}
               autoComplete="current-password"
               autoFocus
+              // Suppress password-manager extension icon injections (1Password, Bitwarden,
+              // LastPass, Dashlane, etc.) — the field has its own custom eye toggle.
+              data-1p-ignore=""
+              data-lpignore="true"
+              data-bwignore=""
+              data-form-type="other"
               style={{
                 color: showPass ? undefined : 'transparent',
                 caretColor: showPass ? 'var(--teal, #3b82f6)' : 'transparent',

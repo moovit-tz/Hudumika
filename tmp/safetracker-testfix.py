@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('apps/api/src/tests/safetracker-integrity.test.ts');s=p.read_text(encoding='utf-8').replace("goods_desc:'Test cargo',assigned_to", "goods_desc:'Test cargo',vessel:'Test vessel',origin_port:'TZDAR',dest_port:'KEMBA',containers:'[]',assigned_to");s=s.replace("req('POST',`/v1/freight-booking/bookings/${id}/quote`", "req('PATCH',`/v1/freight-booking/bookings/${id}/quote`").replace("req('POST',`/v1/freight-booking/bookings/${id}/confirm`", "req('PATCH',`/v1/freight-booking/bookings/${id}/confirm`");p.write_text(s,encoding='utf-8')

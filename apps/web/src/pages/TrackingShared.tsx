@@ -15,6 +15,9 @@ interface TrackingEvent {
 }
 
 interface SharedSnap {
+  source: 'live' | 'manual' | 'unknown';
+  provider?: string;
+  fetched_at?: string;
   tracking_type: 'AWB' | 'BL';
   tracking_number: string;
   carrier: string | null;
@@ -77,6 +80,7 @@ export const TrackingShared: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
 
+      {snap && <p style={{ color: 'var(--ink3)', fontSize: 12 }}>Source: {snap.source === 'live' ? snap.provider || 'Tracking provider' : snap.source === 'manual' ? 'Manually entered' : 'Unverified'} · Last fetched: {fmtDate(snap.fetched_at)} · Snapshot, not a live feed</p>}
       {/* Header */}
       <div style={{ background: NAVY, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

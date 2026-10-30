@@ -6,15 +6,37 @@ import { recordRun } from './workflow-runs.service.js';
 import { emitDomainEventStandalone } from './domain-events.service.js';
 
 /**
- * The semantic role of a step, so linked apps can react to what a step MEANS
- * rather than to a tenant-specific name or uuid. Derived from the step name +
- * terminality — good enough to auto-wire the platform defaults and any workflow
- * that names its steps conventionally; a step that matches nothing is 'other'
- * and simply triggers no cross-app automation.
+ * Explicit role map for legacy ClearanceStage IDs — deterministic, no regex.
+ * Only the stages that actually trigger cross-app automation need an entry;
+ * everything else falls through to 'other'.
  */
-function stepRole(name: string, isTerminal: boolean): 'invoicing' | 'payment' | 'closed' | 'other' {
-  const n = (name || '').toLowerCase();
+const LEGACY_STAGE_ROLE: Record<string, 'invoicing' | 'payment' | 'closed'> = {
+  INVOICING: 'invoicing',
+  TAX_PAYMENT: 'payment',
+  ICD_PAYMENT: 'payment',
+  CLOSED: 'closed',
+};
+
+type StepRoleValue = 'invoicing' | 'payment' | 'closed' | 'other';
+
+const VALID_STEP_TYPES: Record<string, StepRoleValue> = {
+  invoicing: 'invoicing', payment: 'payment', closed: 'closed',
+};
+
+/**
+ * The semantic role of a step, so linked apps can react to what a step MEANS
+ * rather than to a tenant-specific name or uuid.
+ *
+ * Priority: isTerminal → stepType (migration 629) → legacy stage map → name heuristic.
+ * stepType is the column a tenant sets once and never has to rename when they
+ * localise the step's display name — the whole point of W04.
+ */
+function stepRole(stepId: string, name: string, isTerminal: boolean, stepType?: string | null): StepRoleValue {
   if (isTerminal) return 'closed';
+  if (stepType && VALID_STEP_TYPES[stepType]) return VALID_STEP_TYPES[stepType];
+  const legacyRole = LEGACY_STAGE_ROLE[stepId];
+  if (legacyRole) return legacyRole;
+  const n = (name || '').toLowerCase();
   if (/invoic/.test(n)) return 'invoicing';
   if (/payment|collect|receipt/.test(n)) return 'payment';
   return 'other';
@@ -62,11 +84,13 @@ export class WorkflowService {
     let result: any;
     try {
       result = await withTenant(tenantId, async (trx) => {
-        // 1. Get current shipment case
+        // 1. Get current shipment case, locked FOR UPDATE to prevent concurrent
+        //    transitions from inserting duplicate history rows (audit W02).
         const shipment = await trx
           .selectFrom('shipment_cases')
           .select(['id', 'stage', 'workflow_id', 'workflow_step_id', 'created_at', 'resolved_at', 'type', 'origin_port', 'dest_port', 'gross_weight_kg', 'customer_id', 'ref_number', 'bl_number'])
           .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
+          .forUpdate()
           .executeTakeFirst();
 
         if (!shipment) {
@@ -83,7 +107,7 @@ export class WorkflowService {
 
         // 2. Resolve the shipment's governing workflow (legacy or custom) and
         // find the current + target step within it.
-        const resolved = await loadResolvedWorkflow(trx, tenantId, shipment.workflow_id);
+        const resolved = await loadResolvedWorkflow(trx, tenantId, shipment.workflow_id, shipment.type);
         const currentStep = resolved.steps.find((s) => s.id === (shipment.workflow_step_id ?? shipment.stage));
         const nextStep = resolved.steps.find((s) => s.id === nextStage);
 
@@ -204,7 +228,7 @@ export class WorkflowService {
           commsBox.current = { stepId: nextStep.id, stepName: nextStep.name, comms: nextStep.autoComms };
         }
         stepEnteredBox.current = {
-          stepId: nextStep.id, stepName: nextStep.name, role: stepRole(nextStep.name, nextStep.isTerminal),
+          stepId: nextStep.id, stepName: nextStep.name, role: stepRole(nextStep.id, nextStep.name, nextStep.isTerminal, nextStep.stepType),
           isTerminal: nextStep.isTerminal, customerId: shipment.customer_id ?? null,
           shipmentRef: shipment.ref_number ?? null, blNumber: shipment.bl_number ?? null, workflowKind: resolved.kind,
         };

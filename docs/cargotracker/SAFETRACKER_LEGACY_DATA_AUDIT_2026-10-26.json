@@ -1,0 +1,12 @@
+{
+  "review_date": "2026-10-26",
+  "scope": "Aggregate platform counts only; no tenant identities or business identifiers exported",
+  "containers": 1,
+  "invalid_container_numbers": 1,
+  "snapshots": 3,
+  "unverified_snapshots": 3,
+  "legacy_shares_requiring_recreation": 3,
+  "foreign_customer_links_in_containers": 0,
+  "foreign_customer_links_in_bookings": 0,
+  "data_mutated": false
+}

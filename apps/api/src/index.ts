@@ -1,3 +1,4 @@
+import { financeDocumentsRoutes } from './routes/finance-documents.routes.js';
 import fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
@@ -17,6 +18,7 @@ import { getPlatformApiSettings } from './lib/platform-settings.js';
 import { extractToken } from './lib/cookies.js';
 import { bootstrapJobs } from './jobs/index.js';
 import { bootstrapSubscribers } from './subscribers/index.js';
+import { replayAllUndeliveredEvents } from './services/domain-events.service.js';
 import { workflowEngineRoutes } from './routes/workflow-engine.routes.js';
 import { registerBuiltInEntityProviders } from './services/entity-providers.js';
 import { initAisTracker, stopAisTracker } from './jobs/ais-tracker.js';
@@ -203,6 +205,15 @@ import { filesRoutes, filesPublicRoutes } from './routes/files.routes.js';
 import { cloudComplianceRoutes } from './routes/cloud-compliance.routes.js';
 import { drivesRoutes } from './routes/drives.routes.js';
 import { orgRoutes } from './routes/org.routes.js';
+import { orgModelRoutes, industryRegistryRoutes, platformAuditRoutes } from './routes/org-model.routes.js';
+import { requirementDefRoutes, lifecycleRoutes, jurisdictionPackRoutes } from './routes/permit-engine.routes.js';
+import { permitCaptureRoutes, permitCheckRoutes, appCoverageRoutes } from './routes/permit-check.routes.js';
+import { renewalFinanceRoutes } from './routes/renewal-finance.routes.js';
+import { workflowDefRoutes, matrixRoutes, workflowInstanceRoutes } from './routes/industry-workflow.routes.js';
+import { launchPlannerRoutes } from './routes/launch-planner.routes.js';
+import { portfolioRoutes, mandateRoutes, engagementRoutes } from './routes/consultant-delegation.routes.js';
+import { listingRoutes, enquiryRoutes, quotationRoutes, assignmentRoutes, disputeRoutes } from './routes/marketplace.routes.js';
+import { platformMetricsRoutes, tenantMetricsRoutes, resourceLimitRoutes, jobRoutes, bulkOperationRoutes } from './routes/enterprise-metrics.routes.js';
 import { organizationsRoutes } from './routes/organizations.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import { platformRoutes } from './routes/platform.routes.js';
@@ -262,7 +273,7 @@ const server = fastify({
     level: env.LOG_LEVEL,
     redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-api-key"]', 'req.headers["x-csrf-token"]', 'res.headers["set-cookie"]'],
     serializers: {
-      req: request => ({ method: request.method, url: request.url?.split('?')[0], remoteAddress: request.ip }),
+      req: request => ({ method: request.method, url: request.url?.split('?')[0].replace(/(\/v1\/tracker\/shared\/)[^/]+/, '$1[redacted]'), remoteAddress: request.ip }),
     },
   },
   // Default (1 MiB) is too small for base64-encoded image payloads (branding
@@ -278,7 +289,7 @@ const server = fastify({
   // when the immediate connection is from localhost — i.e. only when it
   // actually came through nginx — so it can't be spoofed by a request that
   // reaches the app directly from the public internet.
-  trustProxy: 'loopback',
+  trustProxy: env.TRUST_PROXY === '1' ? (_address: string, hop: number) => hop < 1 : 'loopback',
 });
 
 // Bootstrap fastify server setup.
@@ -540,6 +551,7 @@ export async function registerApp() {
     await server.register(documentRoutes, { prefix: '/v1/shipments' }); // alias: frontend uses /v1/shipments/:id/documents/...
     await server.register(financeRoutes, { prefix: '/v1/finance' });
     await server.register(financeRoutes, { prefix: '/v1/shipments' }); // alias: frontend uses /v1/shipments/:id/expenses etc.
+    await server.register(financeDocumentsRoutes, { prefix: '/v1/finance/documents' });
     await server.register(financeExpensesRoutes, { prefix: '/v1/finance' });
     await server.register(financeExpenseReportRoutes, { prefix: '/v1/finance/expense-reports' });
     await server.register(financeCapabilitiesRoutes, { prefix: '/v1/finance/capabilities' });
@@ -786,7 +798,38 @@ export async function registerApp() {
     await server.register(developerRoutes, { prefix: '/v1/developer' });
     await server.register(projectOsRoutes, { prefix: '/v1/project-os' });
     await server.register(fieldPolicyRoutes, { prefix: '/v1/field-policies' });
+    await server.register(orgModelRoutes, { prefix: '/v1/org-model' });
+    await server.register(industryRegistryRoutes, { prefix: '/v1/industry-registry' });
+    await server.register(platformAuditRoutes, { prefix: '/v1/platform/audit' });
+    await server.register(requirementDefRoutes, { prefix: '/v1/permit-engine/requirements' });
+    await server.register(lifecycleRoutes, { prefix: '/v1/permit-engine/cycles' });
+    await server.register(jurisdictionPackRoutes, { prefix: '/v1/permit-engine/jurisdictions' });
+    await server.register(permitCaptureRoutes, { prefix: '/v1/permit-capture' });
+    await server.register(permitCheckRoutes, { prefix: '/v1/permit-checks' });
+    await server.register(appCoverageRoutes, { prefix: '/v1/permit-coverage' });
+    await server.register(renewalFinanceRoutes, { prefix: '/v1/renewal-finance' });
 
+    await server.register(workflowDefRoutes, { prefix: '/v1/industry-workflows/definitions' });
+    await server.register(matrixRoutes, { prefix: '/v1/industry-workflows/matrix' });
+    await server.register(workflowInstanceRoutes, { prefix: '/v1/industry-workflows/instances' });
+
+    await server.register(launchPlannerRoutes, { prefix: '/v1/launch-planner' });
+
+    await server.register(portfolioRoutes, { prefix: '/v1/delegation/portfolios' });
+    await server.register(mandateRoutes, { prefix: '/v1/delegation/mandates' });
+    await server.register(engagementRoutes, { prefix: '/v1/delegation/engagements' });
+
+    await server.register(listingRoutes, { prefix: '/v1/marketplace/listings' });
+    await server.register(enquiryRoutes, { prefix: '/v1/marketplace/enquiries' });
+    await server.register(quotationRoutes, { prefix: '/v1/marketplace/quotations' });
+    await server.register(assignmentRoutes, { prefix: '/v1/marketplace/assignments' });
+    await server.register(disputeRoutes, { prefix: '/v1/marketplace/disputes' });
+
+    await server.register(platformMetricsRoutes, { prefix: '/v1/metrics/platform' });
+    await server.register(tenantMetricsRoutes, { prefix: '/v1/metrics/tenant' });
+    await server.register(resourceLimitRoutes, { prefix: '/v1/resource-limits' });
+    await server.register(jobRoutes, { prefix: '/v1/jobs' });
+    await server.register(bulkOperationRoutes, { prefix: '/v1/bulk-operations' });
 
     // Health check
     server.get('/health', async () => {
@@ -820,6 +863,7 @@ async function main() {
     // A second process that cannot bind the API port must not run jobs.
     await bootstrapJobs();
     await initAisTracker();
+    replayAllUndeliveredEvents().catch(err => server.log.error(err, 'Startup event recovery failed'));
     server.log.info(`🚀 Hudumika API Server running on ${address}`);
   } catch (err) {
     server.log.error(err);

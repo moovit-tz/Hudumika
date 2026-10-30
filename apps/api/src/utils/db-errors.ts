@@ -18,6 +18,12 @@ export function isDriverError(err: unknown): err is { code: string } {
  * accurate 4xx rather than an opaque 500 — with no driver text in the body.
  */
 export function driverErrorResponse(err: { code: string; column?: string; constraint?: string; detail?: string }): { status: number; error: string } {
+  const timeConflicts: Record<string, string> = {
+    hr_approved_period_locked: 'This period is approved. Ask HR to resolve the approval before changing recorded time.',
+    hr_sessions_overlap: 'This session overlaps existing recorded or running work.',
+    hr_one_open_time_entry: 'A timer is already running. Refresh before switching tasks.',
+  };
+  if (err.constraint && timeConflicts[err.constraint]) return { status: 409, error: timeConflicts[err.constraint] };
   const code = err.code;
   switch (code) {
     case '22P02': // invalid_text_representation — e.g. a malformed uuid/number

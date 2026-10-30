@@ -34,6 +34,8 @@ const MODES = [
 export function FreightRateCardsPage() {
   const [cards, setCards] = useState<RateCard[]>([]);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [nextCursor,setNextCursor] = useState<string>();
+  const [hasMore,setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -41,16 +43,16 @@ export function FreightRateCardsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [form, setForm] = useState({ carrier_id: '', mode: 'FCL_20', origin_port: '', destination_port: '', cost_rate: '', sell_rate: '', currency: 'USD' });
 
-  function load() {
+  function load(cursor?: string) {
     setLoading(true);
     setLoadError(null);
     Promise.all([
-      apiFetch('/v1/freight-booking/rate-cards'),
+      apiFetch(`/v1/freight-booking/rate-cards?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`),
       // Unfiltered — an inactive carrier still needs to be distinguishable
       // from "no carrier exists at all" for the empty-state message below;
       // the picker itself filters to active ones.
       apiFetch('/v1/freight-booking/carriers'),
-    ]).then(([rc, c]) => { setCards(rc); setCarriers(c); }).catch(() => {
+    ]).then(([rc, c]) => { setCards(prev=>cursor?[...prev,...rc.data]:rc.data);setNextCursor(rc.cursor);setHasMore(rc.has_more); setCarriers(c); }).catch(() => {
       setCards([]);
       setCarriers([]);
       setLoadError('Could not load freight rate cards.');
@@ -174,6 +176,7 @@ export function FreightRateCardsPage() {
         emptyMessage="Add a carrier lane and its buy and sell rates to start quoting consistently."
         defaultSortKey="carrier"
       />
+      {hasMore&&<Button type="button" variant="outline" disabled={loading} onClick={()=>load(nextCursor)}>Load more rate cards</Button>}
     </div>
   );
 }

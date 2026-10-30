@@ -1,0 +1,103 @@
+{
+  "{\"mode\":\"road\"}": {
+    "status": 400
+  },
+  "{\"mode\":\"rail\"}": {
+    "status": 400
+  },
+  "{\"cif_usd\":\"10000junk\"}": {
+    "status": 400
+  },
+  "pagination": {
+    "expectedFilteredTotal": 501,
+    "total": 501,
+    "limit": 500,
+    "offset": 0,
+    "returned": 500
+  },
+  "multiItemContract": {
+    "status": 200,
+    "body": {
+      "fx_rate": 2500,
+      "fx_source": "manual override",
+      "mode": "sea_fcl",
+      "destination_charge_label": "ICD / Port Charges (1× 20ft)",
+      "chargeable_weight_kg": null,
+      "items": [
+        {
+          "line_no": 1,
+          "description": "Laptop",
+          "hs_code": "84713000",
+          "qty": 10,
+          "unit_price_usd": 100,
+          "fob_usd": 1000,
+          "fob_tzs": 2500000,
+          "allocated_freight_tzs": 250000,
+          "allocated_insurance_tzs": 25000,
+          "cif_tzs": 2775000,
+          "duty_rate": 0,
+          "vat_rate": 18,
+          "excise_rate": 0,
+          "rdl_rate": 2,
+          "cpf_rate": 1,
+          "duty": 0,
+          "excise": 0,
+          "rdl": 55500,
+          "cpf": 25000,
+          "vat": 513990,
+          "allocated_destination_tzs": 450000,
+          "wharfage": 44400,
+          "allocated_consignment_tzs": 552102,
+          "statutory_total": 594490,
+          "landed_total": 4415992,
+          "landed_total_ex_vat": 3902002,
+          "pvoc_required": true,
+          "di_required": true,
+          "permits": [],
+          "hs_found": true,
+          "overridden_fields": []
+        }
+      ],
+      "totals": {
+        "fob_usd": 1000,
+        "fob_tzs": 2500000,
+        "freight_tzs": 250000,
+        "insurance_tzs": 25000,
+        "cif_tzs": 2775000,
+        "duty": 0,
+        "excise": 0,
+        "rdl": 55500,
+        "cpf": 25000,
+        "vat": 513990,
+        "destination": 450000,
+        "wharfage": 44400,
+        "statutory_total": 594490,
+        "pid": 26752.05,
+        "green_port_initiative": 125000,
+        "green_port_label": "Green Port Initiatives (1× 20ft containerized)",
+        "tbs_charge": 180000,
+        "shipping_do_fee": 95350,
+        "shipping_handling_fee": 125000,
+        "shipping_line_charge": 220350,
+        "total": 4415992,
+        "total_ex_vat": 3902002,
+        "effective_statutory_rate_pct": 21.423063063063065,
+        "landed_multiplier": 1.5913484684684684
+      },
+      "warnings": [
+        "Line 1 (Laptop): PVoC/CoC certificate required.",
+        "Line 1 (Laptop): Destination Inspection required."
+      ],
+      "assumptions": [
+        "Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET tariff database, governed by rule set TZ-2026-FA (Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates, effective 2026-07-01), per line item — verify current rates with TRA before final declaration.",
+        "Freight, insurance and destination charges are apportioned across line items by FOB value share (largest-remainder rounding), the standard WTO valuation basis.",
+        "ICD/port charges are a default per-container estimate; confirm your actual container handling agreement.",
+        "CPF fallback is 1% per Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates — verify with TRA if your declaration uses a different schedule."
+      ],
+      "tax_rules_id": "TZ-2026-FA",
+      "tax_rules_source": "Finance Act 2026 (effective 1 Jul 2026); TRA \"Key Changes\" circular Jul 2026; TPA Tariff Book (Sea Ports) Jan 2026 Clause 15.1(b); EAC CET 2022 base rates",
+      "tax_rules_effective_date": "2026-07-01",
+      "history_saved": null
+    }
+  }
+}

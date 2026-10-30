@@ -38,7 +38,7 @@
 .agent-composer-wrap { width: min(880px, 100%); margin: 0 auto; }
 .agent-composer-wrap.is-compact { width: 100%; }
 .agent-composer { display: flex; align-items: flex-end; gap: 10px; padding: 10px; border: var(--border-width, 1px) solid var(--border2, var(--border)); border-radius: var(--r); background: var(--white); box-shadow: var(--elev-sm); }
-.agent-composer:focus-within { border-color: var(--teal-m); box-shadow: 0 0 0 3px var(--teal-l); }
+.agent-composer:focus-within { border-color: var(--ink3); box-shadow: none; }
 .agent-composer textarea { min-height: var(--ctl-h); max-height: 160px; resize: none; border: 0; box-shadow: none; padding: 9px 2px; line-height: 1.5; }
 .agent-composer textarea:focus-visible { box-shadow: none; outline: 0; }
 .agent-attach { width: var(--ctl-h); min-height: var(--ctl-h); border: 0; background: transparent; color: var(--ink3); display: grid; place-items: center; border-radius: var(--r-sm); }

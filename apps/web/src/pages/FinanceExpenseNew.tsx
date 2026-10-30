@@ -1,3 +1,5 @@
+import { FormPage } from '../components/FormPage.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
@@ -16,6 +18,7 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { cn } from '../lib/utils.js';
+import { financeCatalogOptions, financeCatalogProfile, financeIndustryName, type FinanceIndustryKey } from '@hudumika/types';
 import './FinanceExpenseNew.css';
 
 const CATS: Record<string, string> = {
@@ -50,6 +53,15 @@ export const FinanceExpenseNew: React.FC = () => {
 
   const { currency, fmt } = useCurrency();
   const financeConfiguration = useFinanceConfiguration();
+  const [industry, setIndustry] = useFinanceDraft<FinanceIndustryKey | ''>('expenseIndustry','');
+  const [industryWork, setIndustryWork] = useFinanceDraft<PickerItem | null>('expenseIndustryWork',null);
+  const industries = financeConfiguration.data?.industries ?? [];
+  const expenseCategories = financeCatalogOptions(industry ? [industry] : industries).expenses;
+  async function searchIndustryWork(search: string): Promise<PickerItem[]> {
+    if (!industry) return [];
+    const result = await apiFetch(`/v1/finance/industries?industry=${encodeURIComponent(industry)}&search=${encodeURIComponent(search)}&limit=25`);
+    return (result.items ?? []).map((work: {id:string;reference:string;name:string})=>({id:work.id,label:`${work.reference} · ${work.name}`}));
+  }
   const financeCapabilities = useFinanceCapabilities();
   const canUseBusinessLines = financeCapabilities.isEnabled('finance.accounting.advanced');
 
@@ -57,17 +69,18 @@ export const FinanceExpenseNew: React.FC = () => {
   const [customers, setCustomers] = useState<CustomerOpt[]>([]);
   const [customCats, setCustomCats] = useState<{ id: string; name: string }[]>([]);
 
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [category, setCategory] = useState('__none__');
-  const [shipmentId, setShipmentId] = useState('');
-  const [clientId, setClientId] = useState('');
-  const [supplierItem, setSupplierItem] = useState<PickerItem | null>(null);
-  const [businessLineId, setBusinessLineId] = useState('');
-  const [paymentMode, setPaymentMode] = useState('Bank Transfer');
-  const [reference, setReference] = useState('');
-  const [note, setNote] = useState('');
+  const [name, setName] = useFinanceDraft('name','');
+  const [amount, setAmount] = useFinanceDraft('amount','');
+  const [date, setDate] = useFinanceDraft('date',new Date().toISOString().split('T')[0]);
+  const [category, setCategory] = useFinanceDraft('category','__none__');
+  const [shipmentId, setShipmentId] = useFinanceDraft('shipmentId','');
+  const showShipment = industries.includes('logistics') || !!shipmentId;
+  const [clientId, setClientId] = useFinanceDraft('clientId','');
+  const [supplierItem, setSupplierItem] = useFinanceDraft<PickerItem | null>('supplierItem',null);
+  const [businessLineId, setBusinessLineId] = useFinanceDraft('businessLineId','');
+  const [paymentMode, setPaymentMode] = useFinanceDraft('paymentMode','Bank Transfer');
+  const [reference, setReference] = useFinanceDraft('reference','');
+  const [note, setNote] = useFinanceDraft('note','');
   const [attachment, setAttachment] = useState<string | undefined>();
   const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -172,6 +185,8 @@ export const FinanceExpenseNew: React.FC = () => {
           amount: numAmount,
           expense_date: date,
           category: catValue,
+          industry_key: industry || undefined,
+          industry_work_id: industryWork?.id || undefined,
           shipment_id: shipmentId || undefined,
           customer_id: clientId || undefined,
           supplier_id: supplierItem?.id || undefined,
@@ -183,7 +198,7 @@ export const FinanceExpenseNew: React.FC = () => {
           attachment_data: attachment,
         }),
       });
-      navigate('/finance/expenses');
+      clearFinanceDrafts();navigate('/finance/expenses');
     } catch (err: any) {
       setError(err.message || 'Failed to save expense');
     } finally {
@@ -196,16 +211,7 @@ export const FinanceExpenseNew: React.FC = () => {
   const categoryLabel = category === '__none__' ? 'Uncategorised' : (CATS[category] || customCats.find(c => c.name === category)?.name || category);
 
   return (
-    <div className="expense-new-page">
-      <BackButton to="/finance/expenses" label="Expenses" />
-
-      <PageHeader
-        crumbs={['Finance', 'Expenses']}
-        titlePlain="New"
-        titleEm="expense"
-        subtitle="Operational cost with optional job, client, and supplier allocation."
-      />
-
+    <FormPage title="New expense" subtitle="Operational cost with optional job, client and supplier allocation." onCancel={()=>navigate('/finance/expenses')} actions={<><Button variant="outline" disabled={saving} onClick={()=>navigate('/finance/expenses')}>Cancel</Button><Button form="finance-expense-form" type="submit" disabled={saving}>{saving?'Saving…':'Save expense'}</Button></>}>
       {/* Hero Live Snapshot */}
       <div className="expense-hero-card">
         <div className="expense-hero-left">
@@ -250,7 +256,7 @@ export const FinanceExpenseNew: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={submit} className="expense-form">
+      <form id="finance-expense-form" onSubmit={submit} className="expense-form">
         {/* ── What & how much ── */}
         <div className="expense-section-card">
           <div className="expense-section-header">
@@ -291,10 +297,10 @@ export const FinanceExpenseNew: React.FC = () => {
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Uncategorised</SelectItem>
-                  {Object.entries(CATS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  {[...new Set([...expenseCategories,...(category !== '__none__' ? [category] : [])])].map(k => (
+                    <SelectItem key={k} value={k}>{CATS[k] ?? k}</SelectItem>
                   ))}
-                  {customCats.filter(c => !(c.name in CATS)).map(c => (
+                  {customCats.filter(c => !expenseCategories.includes(c.name) && c.name !== category).map(c => (
                     <SelectItem key={`custom-${c.id}`} value={c.name}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -311,7 +317,9 @@ export const FinanceExpenseNew: React.FC = () => {
           </div>
 
           <div className="expense-form-grid">
-            <div className="expense-field">
+            <div className="expense-field"><label className="expense-field-label">Industry</label><Select value={industry || '__shared__'} onValueChange={value=>{setIndustry(value === '__shared__' ? '' : value as FinanceIndustryKey);setIndustryWork(null);setCategory('__none__');}}><SelectTrigger aria-label="Expense industry"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="__shared__">Shared company overhead</SelectItem>{industries.map(key=><SelectItem key={key} value={key}>{financeIndustryName(key)}</SelectItem>)}</SelectContent></Select></div>
+            {industry && <div className="expense-field"><EntityPicker label="Project / engagement / industry work" value={industryWork} search={searchIndustryWork} onChange={setIndustryWork} placeholder="Search industry work…"/><p className="mt-2 text-xs text-muted-foreground">{financeCatalogProfile(industry).billingHint}</p></div>}
+            {showShipment && <div className="expense-field">
               <label className="expense-field-label">Shipment (Job)</label>
               <Combobox
                 options={[
@@ -325,7 +333,7 @@ export const FinanceExpenseNew: React.FC = () => {
                 value={shipmentId} onChange={setShipmentId}
                 placeholder="None" searchPlaceholder="Search jobs…"
               />
-            </div>
+            </div>}
             <div className="expense-field">
               <label className="expense-field-label">Client</label>
               <Combobox
@@ -437,16 +445,7 @@ export const FinanceExpenseNew: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Actions ── */}
-        <div className="expense-actions-bar">
-          <Button asChild variant="outline" type="button" disabled={saving}>
-            <Link to="/finance/expenses">Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={saving} style={{ minWidth: 130 }}>
-            {saving ? <><ButtonSpinner /><span>Saving…</span></> : <><Icon name="check" size={15} /><span>Save expense</span></>}
-          </Button>
-        </div>
       </form>
-    </div>
+    </FormPage>
   );
 };

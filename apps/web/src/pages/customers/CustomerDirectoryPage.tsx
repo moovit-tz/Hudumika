@@ -24,6 +24,7 @@ import {
 } from '../../components/ui/dialog.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { SkeletonPage } from '../../components/ui/skeleton.js';
+import { useFieldPolicy } from '../../hooks/useFieldPolicy.js';
 import type { Customer } from './customer-types.js';
 import { fmtDate, maskTin, STATUS_VARIANT, PAGE_SIZE } from './customer-types.js';
 
@@ -98,6 +99,7 @@ function Avatar({ name }: { name: string }) {
 export const CustomerDirectoryPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { canSee } = useFieldPolicy('customers');
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,12 +133,21 @@ export const CustomerDirectoryPage: React.FC = () => {
     email: true, phone: true, contact: true, tin: true, trade: true, joined: true,
   });
 
+  const canContact = canSee('contact');
+  const canFinancial = canSee('financial');
+
+  const [error, setError] = useState<string | null>(null);
+
   const loadCustomers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await apiFetch('/v1/customers');
       setCustomers(res.data ?? res ?? []);
-    } catch { /* empty */ } finally { setLoading(false); }
+    } catch (err: any) {
+      console.error('[Customers] fetch failed:', err);
+      setError(err.message || 'Failed to load customers');
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
@@ -291,6 +302,16 @@ export const CustomerDirectoryPage: React.FC = () => {
 
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+        {error && (
+          <div style={{ padding: '12px 16px', background: 'var(--red-l, #fef2f2)', border: '1px solid var(--red, #ef4444)', borderRadius: 'var(--r-sm, 6px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--red, #ef4444)' }}>
+              <Icon name="alertTriangle" size={16} />
+              <span><strong>Failed to load customers:</strong> {error}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadCustomers}>Retry</Button>
+          </div>
+        )}
+
         {/* KPI ribbon */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14 }}>
           {[
@@ -388,13 +409,15 @@ export const CustomerDirectoryPage: React.FC = () => {
                 <DropdownMenuContent align="end" className="w-48">
                   <div style={{ padding: '6px 10px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Visible Columns</div>
                   {([
-                    { key: 'email',   label: 'Email' },
-                    { key: 'phone',   label: 'Phone / WhatsApp' },
-                    { key: 'contact', label: 'Primary Contact' },
-                    { key: 'tin',     label: 'TIN Number' },
-                    { key: 'trade',   label: 'Trade Volume' },
-                    { key: 'joined',  label: 'Joined Date' },
-                  ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
+                    { key: 'email',   label: 'Email',            group: 'contact' as const },
+                    { key: 'phone',   label: 'Phone / WhatsApp', group: 'contact' as const },
+                    { key: 'contact', label: 'Primary Contact',  group: 'contact' as const },
+                    { key: 'tin',     label: 'TIN Number',       group: 'financial' as const },
+                    { key: 'trade',   label: 'Trade Volume',     group: null },
+                    { key: 'joined',  label: 'Joined Date',      group: null },
+                  ] as { key: keyof typeof visibleCols; label: string; group: 'contact' | 'financial' | null }[])
+                    .filter(col => !col.group || canSee(col.group))
+                    .map(col => (
                     <DropdownMenuCheckboxItem
                       key={col.key}
                       checked={visibleCols[col.key]}
@@ -417,10 +440,10 @@ export const CustomerDirectoryPage: React.FC = () => {
                   <tr>
                     <Th width={42}><Checkbox checked={allChecked ? true : someChecked ? 'indeterminate' : false} onCheckedChange={toggleAll} /></Th>
                     <Th className="crm-col-company" width={360} {...sortProps('name')}>Customer / Company</Th>
-                    {visibleCols.contact && <Th className="crm-col-contact">Primary Contact</Th>}
-                    {visibleCols.email   && <Th className="crm-col-email">Email Address</Th>}
-                    {visibleCols.phone   && <Th className="crm-col-phone">Phone / WhatsApp</Th>}
-                    {visibleCols.tin     && <Th className="crm-col-tin">TIN & Compliance</Th>}
+                    {visibleCols.contact && canContact && <Th className="crm-col-contact">Primary Contact</Th>}
+                    {visibleCols.email   && canContact && <Th className="crm-col-email">Email Address</Th>}
+                    {visibleCols.phone   && canContact && <Th className="crm-col-phone">Phone / WhatsApp</Th>}
+                    {visibleCols.tin     && canFinancial && <Th className="crm-col-tin">TIN & Compliance</Th>}
                     {visibleCols.trade   && <Th className="crm-col-trade" {...sortProps('shipments')}>Trade Volume</Th>}
                     {visibleCols.joined  && <Th className="crm-col-joined" {...sortProps('joined')}>Joined</Th>}
                     <Th {...sortProps('status')}>Status</Th>
@@ -429,7 +452,13 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {(() => {
-                    const colCount = 4 + Object.values(visibleCols).filter(Boolean).length;
+                    const colCount = 4
+                      + (visibleCols.email && canContact ? 1 : 0)
+                      + (visibleCols.phone && canContact ? 1 : 0)
+                      + (visibleCols.contact && canContact ? 1 : 0)
+                      + (visibleCols.tin && canFinancial ? 1 : 0)
+                      + (visibleCols.trade ? 1 : 0)
+                      + (visibleCols.joined ? 1 : 0);
                     if (paginated.length === 0) {
                       return (
                         <tr>
@@ -474,7 +503,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          {visibleCols.contact && (
+                          {visibleCols.contact && canContact && (
                             <td className="crm-col-contact">
                               {c.contact_name ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -484,7 +513,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                               ) : <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>}
                             </td>
                           )}
-                          {visibleCols.email && (
+                          {visibleCols.email && canContact && (
                             <td className="crm-col-email">
                               {c.email ? (
                                 <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()}
@@ -495,7 +524,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                               ) : <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>}
                             </td>
                           )}
-                          {visibleCols.phone && (
+                          {visibleCols.phone && canContact && (
                             <td className="crm-col-phone">
                               {c.phone_wa ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -509,7 +538,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                               ) : <span style={{ color: 'var(--ink3)', fontSize: 12.5 }}>—</span>}
                             </td>
                           )}
-                          {visibleCols.tin && <td className="crm-col-tin"><TinChip tin={c.tax_id} /></td>}
+                          {visibleCols.tin && canFinancial && <td className="crm-col-tin"><TinChip tin={c.tax_id} /></td>}
                           {visibleCols.trade && (
                             <td className="crm-col-trade">
                               {(c.shipment_count ?? 0) > 0 ? (
@@ -573,16 +602,26 @@ export const CustomerDirectoryPage: React.FC = () => {
                       <StatusBadge status={status} />
                     </div>
                     <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
-                      {c.contact_name && (
+                      {canContact && c.contact_name && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ color: 'var(--ink3)' }}>Contact:</span>
                           <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{c.contact_name}</span>
                         </div>
                       )}
-                      {c.tax_id && (
+                      {canFinancial && c.tax_id && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ color: 'var(--ink3)' }}>TIN:</span>
                           <span style={{ fontFamily: 'var(--font)', fontWeight: 600 }}>{maskTin(c.tax_id)}</span>
+                        </div>
+                      )}
+                      {!canContact && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink3)', fontSize: 11 }}>
+                          <Icon name="lock" size={12} /> Contact details restricted
+                        </div>
+                      )}
+                      {!canFinancial && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink3)', fontSize: 11 }}>
+                          <Icon name="lock" size={12} /> Financial details restricted
                         </div>
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -592,14 +631,14 @@ export const CustomerDirectoryPage: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {c.email && (
+                        {canContact && c.email && (
                           <Tip label={`Email — ${c.email}`} side="top">
                             <a href={`mailto:${c.email}`} onClick={e => e.stopPropagation()} style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)', background: 'hsl(var(--card))' }}>
                               <Icon name="mail" size={13} />
                             </a>
                           </Tip>
                         )}
-                        {c.phone_wa && (
+                        {canContact && c.phone_wa && (
                           <Tip label={`WhatsApp — ${c.phone_wa}`} side="top">
                             <a href={`https://wa.me/${c.phone_wa.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)', background: 'hsl(var(--card))' }}>
                               <Icon name="phone" size={13} />

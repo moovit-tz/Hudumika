@@ -1,0 +1,35 @@
+.comply-renewal-finance { display:flex; flex-direction:column; gap:var(--space-lg); }
+.comply-renewal-finance .page-header { margin-bottom:0; }
+.renewal-finance-actions { display:flex; align-items:center; gap:var(--space-sm); }
+.renewal-finance-actions > :last-child { width:7rem; }
+.renewal-finance-brief { padding:var(--space-md); }
+.renewal-finance-brief-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-sm); }
+.renewal-finance-brief-heading > span:first-child { font-size:10px; font-weight:700; color:var(--teal); letter-spacing:.08em; }
+.renewal-finance-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-lg); margin:var(--space-md) 0; }
+.renewal-finance-summary > div { min-width:0; }
+.renewal-finance-summary dt { font-size:12px; color:var(--ink3); }
+.renewal-finance-summary dd { margin:var(--space-xs) 0; font-size:22px; line-height:1.4; font-weight:600; color:var(--ink); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.renewal-finance-summary small { color:var(--ink3); font-size:11px; }
+.renewal-finance-more { border-top:var(--border-width) solid var(--border); padding-top:var(--space-sm); font-size:12px; }
+.renewal-finance-more summary { color:var(--teal); cursor:pointer; padding:var(--space-xs) 0; }
+.renewal-finance-more dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:var(--space-md); margin:var(--space-md) 0; }
+.renewal-finance-more dt,.renewal-finance-more p { color:var(--ink3); line-height:1.6; }
+.renewal-finance-more dd { margin:var(--space-xs) 0 0; color:var(--ink); font-variant-numeric:tabular-nums; }
+.renewal-finance-register { gap:0; }
+.renewal-finance-register-header { display:flex; flex-direction:row; justify-content:space-between; align-items:center; gap:var(--space-md); padding:var(--space-md); border-bottom:var(--border-width) solid var(--border); }
+.renewal-finance-register-header [data-ui-card-title] { font-size:15px; }
+.renewal-finance-register-header [data-ui-card-description] { font-size:12px; margin-top:var(--space-xs); }
+.renewal-finance-register-body { padding:0; }
+.renewal-finance-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-sm); padding:var(--space-md); }
+.renewal-finance-toolbar > :first-child { flex:1 1 16rem; min-width:0; }
+.renewal-finance-toolbar > :last-child { flex:0 1 12rem; }
+.renewal-finance-register .comply-finance-table-wrap { border:0; border-radius:0 0 var(--card-radius) var(--card-radius); }
+.renewal-finance-record-meta { display:block; font-size:11px; color:var(--ink3); line-height:1.6; margin-top:var(--space-xs); }
+@media(max-width:700px) {
+  .renewal-finance-summary { grid-template-columns:minmax(0,1fr); gap:var(--space-md); }
+  .renewal-finance-summary > div + div { border-top:var(--border-width) solid var(--border); padding-top:var(--space-sm); }
+  .renewal-finance-summary dd { font-size:20px; }
+  .renewal-finance-toolbar > :last-child { flex:1 1 100%; }
+  .renewal-finance-register-header { align-items:flex-start; flex-wrap:wrap; }
+  .renewal-finance-register .comply-finance-table tr > td:first-child { grid-column:1 / -1; }
+}

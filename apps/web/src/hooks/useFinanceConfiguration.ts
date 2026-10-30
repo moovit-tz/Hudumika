@@ -2,19 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import type { FinanceConfiguration, FinanceIndustryKey } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
 
-export function useFinanceConfiguration() {
+export function useFinanceConfiguration(enabled = true) {
   const [data, setData] = useState<FinanceConfiguration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) { setLoading(false); return; }
     let alive = true;
     apiFetch('/v1/finance/capabilities/configuration')
       .then((result: FinanceConfiguration) => { if (alive) setData(result); })
       .catch(err => { if (alive) setError(err?.message ?? 'Failed to load Finance configuration'); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, []);
+  }, [enabled]);
 
   const saveIndustries = useCallback(async (industries: FinanceIndustryKey[]) => {
     const result: FinanceConfiguration = await apiFetch('/v1/finance/capabilities/configuration/industries', { method: 'PUT', body: JSON.stringify({ industries }) });

@@ -33,8 +33,6 @@ import {
 } from '../clearanceData.js';
 import { ChBadge } from '../../components/ClearanceChips.js';
 import { VesselLiveStatus } from '../../components/VesselLiveStatus.js';
-import { EMPLOYEES, empInitials, empAvatarColor } from '../../data/staffData.js';
-import type { Employee } from '../../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
@@ -391,33 +389,32 @@ export function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
 // ─── Customer clearing-agent contact card ──────────────────────────────────────
 
 export function CustomerAgentCard({ job }: { job: ClearanceJob }) {
-  // assignees[0] is the assigned user's id. Showing it rendered the customer's
-  // clearing agent as "1e996956-431d-42c0-8bc9-164d9797d31a"; the name the
-  // server sends is assigneeName.
   const agentName = job.assigneeName || job.assignees[0];
   if (agentName && isUUID(agentName)) return null;
   if (!agentName) return null;
-  const agent = EMPLOYEES.find(e => e.name === agentName);
+  const userId = job.assignees[0] && isUUID(job.assignees[0]) ? job.assignees[0] : undefined;
 
   return (
     <SectionCard title="Your Clearing Agent">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 38, height: 38, borderRadius: '50%', background: empAvatarColor(agentName), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-          {empInitials(agentName)}
-        </div>
+        <PersonAvatar userId={userId} name={agentName} size={38} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{agentName}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{agent?.designation ?? 'Clearing Agent'}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Clearing Agent</div>
         </div>
       </div>
-      {agent && (
+      {(job.assigneePhone || job.assigneeEmail) && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <a href={`tel:${agent.phone}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
-            <Icon name="phone" size={13} color="#fff" /> Call
-          </a>
-          <a href={`mailto:${agent.email}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
-            <Icon name="mail" size={13} /> Email
-          </a>
+          {job.assigneePhone && (
+            <a href={`tel:${job.assigneePhone}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+              <Icon name="phone" size={13} /> Call
+            </a>
+          )}
+          {job.assigneeEmail && (
+            <a href={`mailto:${job.assigneeEmail}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+              <Icon name="mail" size={13} /> Email
+            </a>
+          )}
         </div>
       )}
     </SectionCard>
@@ -554,7 +551,7 @@ export function DocPreview({ shipmentId, doc }: { shipmentId: string; doc: ShipD
         {state === 'error' && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Preview unavailable</span>}
         {state === 'ready' && url && (isImg
           ? <img src={url} alt={doc.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-          : <iframe title={doc.name} src={url} style={{ width: '100%', height: '100%', border: 'none' }} />)}
+          : <iframe title={doc.name} src={url} sandbox="allow-same-origin" style={{ width: '100%', height: '100%', border: 'none' }} />)}
       </div>
     </div>
   );

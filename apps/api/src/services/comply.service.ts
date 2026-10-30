@@ -5,6 +5,8 @@ import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from './cloud-sync.service.js';
 import { toISODate, toEpochMs, toDateParam } from '../utils/dates.js';
 import type {
+  SaveTausiLicensesInput,
+  SaveTausiLicensesResult,
   CompDashboardStats,
   CompCertificate,
   CompApplication,
@@ -40,7 +42,8 @@ function daysUntil(date: unknown): number {
   return t === null ? 9999 : Math.ceil((t - Date.now()) / 86400000);
 }
 
-function certStatus(expiry: unknown): 'active' | 'expiring' | 'expired' {
+function certStatus(expiry: unknown): 'active' | 'expiring' | 'expired' | 'unknown' {
+  if (expiry === null || expiry === undefined) return 'unknown';
   const d = daysUntil(expiry);
   if (d <= 0)  return 'expired';
   if (d <= 30) return 'expiring';
@@ -68,69 +71,39 @@ export class ComplyService {
 
   static async getDashboardStats(tenantId: string): Promise<CompDashboardStats> {
     return withTenant(tenantId, async (trx) => {
-      const certs = await trx
-        .selectFrom('comply_certificates')
-        .selectAll()
-        .where('tenant_id', '=', tenantId)
-        .where('status', '!=', 'revoked')
-        .execute();
-
-      const apps = await trx
-        .selectFrom('comply_applications')
-        .select(['status'])
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      const renewals = await trx
-        .selectFrom('comply_renewals')
-        .select(['status'])
-        .where('tenant_id', '=', tenantId)
-        .where('status', '=', 'pending_review')
-        .execute();
-
-      const recentSyncs = await trx
-        .selectFrom('comply_agency_syncs')
-        .select(['agency_code', 'synced_at', 'status'])
-        .where('tenant_id', '=', tenantId)
-        .orderBy('synced_at', 'desc')
-        .limit(5)
-        .execute();
-
-      // Recompute live statuses
-      const activeCerts   = certs.filter(c => certStatus(c.expiry_date) === 'active').length;
-      const expiringSoon  = certs.filter(c => certStatus(c.expiry_date) === 'expiring').length;
-      const expiredCerts  = certs.filter(c => certStatus(c.expiry_date) === 'expired').length;
-      const pendingApps   = apps.filter(a => ['submitted', 'review', 'pending'].includes(a.status)).length;
-      const totalRequired = certs.length + expiredCerts;
-      const healthScore   = totalRequired === 0 ? 100 : Math.round((activeCerts / Math.max(totalRequired, 1)) * 100);
-
-      const upcomingDeadlines = certs
-        .filter(c => c.expiry_date !== null)
-        .map(c => ({
-          cert_id:     c.id,
-          cert_name:   c.name,
-          agency_code: c.agency_code,
-          // Non-null by the filter directly above.
-          expiry_date: toISODate(c.expiry_date)!,
-          days_left:   daysUntil(c.expiry_date),
-        }))
-        .filter(d => d.days_left <= 90)
-        .sort((a, b) => a.days_left - b.days_left)
-        .slice(0, 8);
-
+      const counts = await trx.selectFrom('comply_certificates')
+        .select([
+          sql<number>`count(*)`.as('tracked'),
+          sql<number>`count(*) filter (where expiry_date > current_date + 30)`.as('active'),
+          sql<number>`count(*) filter (where expiry_date > current_date and expiry_date <= current_date + 30)`.as('expiring'),
+          sql<number>`count(*) filter (where expiry_date <= current_date)`.as('expired'),
+          sql<number>`count(*) filter (where expiry_date is null)`.as('unknown'),
+        ]).where('tenant_id', '=', tenantId).where('status', '!=', 'revoked').executeTakeFirstOrThrow();
+      const pending = await trx.selectFrom('comply_applications').select(sql<number>`count(*)`.as('total'))
+        .where('tenant_id', '=', tenantId).where('status', 'in', ['submitted', 'review', 'pending']).executeTakeFirstOrThrow();
+      const renewals = await trx.selectFrom('comply_renewals').select(sql<number>`count(*)`.as('total'))
+        .where('tenant_id', '=', tenantId).where('status', '=', 'pending_review').executeTakeFirstOrThrow();
+      const recentSyncs = await trx.selectFrom('comply_agency_syncs').select(['agency_code', 'synced_at', 'status'])
+        .where('tenant_id', '=', tenantId).orderBy('synced_at', 'desc').limit(5).execute();
+      // Do not load document payloads or the full certificate register for a dashboard.
+      const deadlines = await trx.selectFrom('comply_certificates').select(['id', 'name', 'agency_code', 'expiry_date'])
+        .where('tenant_id', '=', tenantId).where('status', '!=', 'revoked').where('expiry_date', 'is not', null)
+        .where('expiry_date', '<=', sql<string>`current_date + 90`).orderBy('expiry_date', 'asc').orderBy('id', 'asc').limit(8).execute();
+      const tracked = Number(counts.tracked);
+      const active = Number(counts.active);
+      const expiring = Number(counts.expiring);
       return {
-        active_certs:     activeCerts,
-        expiring_soon:    expiringSoon,
-        pending_apps:     pendingApps,
-        overdue:          expiredCerts,
-        health_score:     Math.min(100, Math.max(0, healthScore)),
-        pending_renewals: renewals.length,
-        upcoming_deadlines: upcomingDeadlines,
-        recent_syncs: recentSyncs.map(s => ({
-          agency_code: s.agency_code,
-          synced_at:   (s.synced_at as Date).toISOString(),
-          status:      s.status as 'success' | 'failed' | 'partial',
-        })),
+        tracked_certs: tracked,
+        unknown_validity_certs: Number(counts.unknown),
+        active_certs: active,
+        expiring_soon: expiring,
+        pending_apps: Number(pending.total),
+        overdue: Number(counts.expired),
+        health_score: tracked ? Math.round((active + expiring) / tracked * 100) : -1,
+        pending_renewals: Number(renewals.total),
+        upcoming_deadlines: deadlines.map(c => ({cert_id:c.id, cert_name:c.name, agency_code:c.agency_code,
+          expiry_date:toISODate(c.expiry_date)!, days_left:daysUntil(c.expiry_date)})),
+        recent_syncs: recentSyncs.map(s => ({agency_code:s.agency_code, synced_at:(s.synced_at as Date).toISOString(), status:s.status as 'success'|'failed'|'partial'})),
       };
     });
   }
@@ -329,7 +302,14 @@ export class ComplyService {
       };
       if (input.agency_ref) update['agency_ref'] = input.agency_ref;
       if (input.notes)      update['notes']      = input.notes;
-      if (input.customer_id !== undefined) update['customer_id'] = input.customer_id;
+      if (input.customer_id !== undefined) {
+        if (input.customer_id) {
+          await trx.selectFrom('customers').select('id')
+            .where('id', '=', input.customer_id).where('tenant_id', '=', tenantId)
+            .executeTakeFirstOrThrow();
+        }
+        update['customer_id'] = input.customer_id;
+      }
 
       // On submission, route through the agency's adapter so `agency_ref`
       // reflects a real (or manual-tracking) submission reference instead of
@@ -456,7 +436,14 @@ export class ComplyService {
       if (input.status !== undefined) update['status'] = input.status;
       if (input.due_date !== undefined) update['due_date'] = input.due_date ? new Date(input.due_date) : null;
       if (input.last_fulfilled_date !== undefined) update['last_fulfilled_date'] = input.last_fulfilled_date ? new Date(input.last_fulfilled_date) : null;
-      if (input.customer_id !== undefined) update['customer_id'] = input.customer_id;
+      if (input.customer_id !== undefined) {
+        if (input.customer_id) {
+          await trx.selectFrom('customers').select('id')
+            .where('id', '=', input.customer_id).where('tenant_id', '=', tenantId)
+            .executeTakeFirstOrThrow();
+        }
+        update['customer_id'] = input.customer_id;
+      }
 
       await trx
         .updateTable('comply_obligations')
@@ -550,15 +537,19 @@ export class ComplyService {
     });
   }
 
-  static async approveRenewal(tenantId: string, renewalId: string, userId: string): Promise<void> {
-    await withTenant(tenantId, async (trx) => {
-      await trx
+  static async approveRenewal(tenantId: string, renewalId: string, userId: string): Promise<{ updated: boolean }> {
+    return withTenant(tenantId, async (trx) => {
+      const result = await trx
         .updateTable('comply_renewals')
         .set({ status: 'approved', approved_by: userId, approved_at: new Date() })
         .where('id', '=', renewalId)
         .where('tenant_id', '=', tenantId)
         .where('status', '=', 'pending_review')
-        .execute();
+        .executeTakeFirst();
+      if (Number(result.numUpdatedRows) === 0) {
+        throw new Error('Renewal not found or not in pending_review state.');
+      }
+      return { updated: true };
     });
   }
 
@@ -856,6 +847,27 @@ export class ComplyService {
     };
   }
 
+  static async saveTausiLicenses(tenantId:string,userId:string,input:SaveTausiLicensesInput):Promise<SaveTausiLicensesResult> {
+    return withTenant(tenantId,async trx=>{
+      // Serialise retries within the tenant before checking certificate numbers.
+      await sql`select pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`.execute(trx);
+      if(input.customer_id)await trx.selectFrom('customers').select('id').where('tenant_id','=',tenantId).where('id','=',input.customer_id).executeTakeFirstOrThrow();
+      const result:SaveTausiLicensesResult={created:0,skipped:0,certificate_ids:[]};
+      for(const license of input.licenses){
+        const existing=await trx.selectFrom('comply_certificates').select('id').where('tenant_id','=',tenantId).where('cert_number','=',license.license_number).executeTakeFirst();
+        if(existing){result.skipped++;result.certificate_ids.push(existing.id);continue;}
+        const row=await this.insertCertificateRow(trx,tenantId,{
+          cert_number:license.license_number,name:license.name,agency_code:'TAMISEMI',agency_name:license.lga||'TAMISEMI',
+          issued_date:license.issued_date,expiry_date:license.expiry_date,customer_id:input.customer_id??null,
+          external_ref:license.license_number,
+          metadata:{source:'tausi_reviewed_import',capture_method:input.source,source_url:'https://tausi.tamisemi.go.tz/',reviewed_by:userId,reviewed_at:new Date().toISOString(),taxpayer:input.taxpayer??{},reported_status:license.status,reported_cost:license.cost,currency:'TZS',authority_verified:false},
+        });
+        result.created++;result.certificate_ids.push(row.id);
+      }
+      return result;
+    });
+  }
+
   static async createCertificate(tenantId: string, input: CreateCertificateInput): Promise<CompCertificate> {
     return withTenant(tenantId, (trx) => this.insertCertificateRow(trx, tenantId, input));
   }
@@ -974,22 +986,41 @@ export class ComplyService {
     auto_renew?: boolean; status?: string; customer_id?: string | null; non_renewal_risk?: string | null;
   }): Promise<void> {
     await withTenant(tenantId, async (trx) => {
+      const certificate = await trx.selectFrom('comply_certificates').select(['id','expiry_date'])
+        .where('tenant_id', '=', tenantId).where('id', '=', certId).forUpdate().executeTakeFirst();
+      if (!certificate) throw Object.assign(new Error('Certificate not found'), {statusCode:404});
       const update: Record<string, unknown> = { updated_at: new Date() };
       if (input.name !== undefined) update['name'] = input.name;
       if (input.issued_date !== undefined) update['issued_date'] = input.issued_date ? new Date(input.issued_date) : null;
-      if (input.expiry_date !== undefined) {
-        update['expiry_date'] = input.expiry_date ? new Date(input.expiry_date) : null;
-        // A renewed/changed expiry date needs fresh reminder stages — clear
-        // the sent-at markers so the 90d/30d reminders fire again for the
-        // new date instead of staying silenced from the old one.
-        update['reminder_90d_sent_at'] = null;
-        update['reminder_30d_sent_at'] = null;
+      if (input.customer_id !== undefined) {
+        if (input.customer_id) {
+          await trx.selectFrom('customers').select('id')
+            .where('id', '=', input.customer_id).where('tenant_id', '=', tenantId)
+            .executeTakeFirstOrThrow();
+        }
+        update['customer_id'] = input.customer_id;
       }
       if (input.document_url !== undefined) update['document_url'] = input.document_url;
       if (input.auto_renew !== undefined) update['auto_renew'] = input.auto_renew;
       if (input.status !== undefined) update['status'] = input.status;
-      if (input.customer_id !== undefined) update['customer_id'] = input.customer_id;
       if (input.non_renewal_risk !== undefined) update['non_renewal_risk'] = input.non_renewal_risk;
+
+      // C01 fix: only treat an expiry_date change as a renewal signal when
+      // the date actually changed. Re-submitting the same date is a metadata
+      // correction, not evidence of renewal — it must not mark an active
+      // renewal as issued or reset the reminder stages.
+      let expiryActuallyChanged = false;
+      if (input.expiry_date !== undefined) {
+        const currentStr = certificate.expiry_date ? toISODate(certificate.expiry_date) : null;
+        const newStr = input.expiry_date ?? null;
+        expiryActuallyChanged = currentStr !== newStr;
+
+        update['expiry_date'] = input.expiry_date ? new Date(input.expiry_date) : null;
+        if (expiryActuallyChanged) {
+          update['reminder_90d_sent_at'] = null;
+          update['reminder_30d_sent_at'] = null;
+        }
+      }
 
       await trx
         .updateTable('comply_certificates')
@@ -998,30 +1029,18 @@ export class ComplyService {
         .where('tenant_id', '=', tenantId)
         .execute();
 
-      // HUD-0055: a changed expiry date is this codebase's own established
-      // signal that a real-world renewal happened (see the reminder-stage
-      // reset just above, and comply-renewal.job.ts's identical comment) —
-      // but nothing ever moved the matching comply_renewals row out of
-      // pending_review/approved/submitted, so startRenewal's "already
-      // active" guard blocked every subsequent renewal cycle for that
-      // certificate forever. Closing the loop here, at the one place that
-      // actually observes "the renewal is done," rather than adding a
-      // separate submit/complete endpoint nothing calls yet.
-      //
-      // Status is 'issued', not a separate 'completed' value — CompRenewalStatus
-      // (packages/types/src/comply.ts) never declared 'completed', so a first
-      // version of this fix wrote a status the UI's FILTER_TABS/StatusBadge
-      // couldn't match against anything: a renewal closed this way vanished
-      // from every tab on the Workflows page, permanently. 'issued' is
-      // already the terminal status the workflow stepper and the "Completed"
-      // filter tab both mean by it; this reuses that, it doesn't invent one.
-      if (input.expiry_date !== undefined) {
+      // An expiry-date edit is a record correction, not authority-confirmed
+      // renewal.  Only auto-issue renewals that are (a) approved AND
+      // (b) submitted to authority (submitted_at IS NOT NULL).  Internal
+      // approval alone is not evidence of authority issuance.
+      if (expiryActuallyChanged) {
         await trx
           .updateTable('comply_renewals')
           .set({ status: 'issued', completed_at: new Date() })
           .where('cert_id', '=', certId)
           .where('tenant_id', '=', tenantId)
-          .where('status', 'in', ['pending_review', 'approved', 'submitted'])
+          .where('status', '=', 'approved')
+          .where('submitted_at', 'is not', null)
           .execute();
       }
     });
@@ -1029,18 +1048,30 @@ export class ComplyService {
 
   /** Certificates are revoked, not hard-deleted — they're part of the compliance audit trail (renewals/applications may reference them). */
   static async revokeCertificate(tenantId: string, certId: string): Promise<void> {
-    await withTenant(tenantId, (trx) =>
-      trx.updateTable('comply_certificates')
+    await withTenant(tenantId, async (trx) => {
+      const revoked = await trx.updateTable('comply_certificates')
         .set({ status: 'revoked', updated_at: new Date() })
         .where('id', '=', certId)
         .where('tenant_id', '=', tenantId)
-        .execute(),
-    );
+        .returning('id').executeTakeFirst();
+      if (!revoked) throw Object.assign(new Error('Certificate not found'), {statusCode:404});
+    });
   }
 
   // ── AI Obligation Scan ──────────────────────────────────────────────────────
 
+  private static readonly SUPPORTED_JURISDICTIONS = ['TZ'] as const;
+
   static async scanObligations(tenantId: string, input: ObligationScanInput): Promise<ObligationScanResult> {
+    const jurisdiction = (input as any).jurisdiction ?? (input as any).country ?? 'TZ';
+    if (!ComplyService.SUPPORTED_JURISDICTIONS.includes(jurisdiction as any)) {
+      throw new Error(
+        `Jurisdiction "${jurisdiction}" is not yet supported. ` +
+        `Supported: ${ComplyService.SUPPORTED_JURISDICTIONS.join(', ')}. ` +
+        `ComplyOS does not substitute another country's rules.`,
+      );
+    }
+
     return withTenant(tenantId, async (trx) => {
       await trx
         .insertInto('comply_profiles')
@@ -1063,7 +1094,7 @@ export class ComplyService {
       const rules = await trx
         .selectFrom('comply_obligation_rules')
         .selectAll()
-        .where('jurisdiction', '=', 'TZ')
+        .where('jurisdiction', '=', jurisdiction)
         .where((eb) => eb.or([eb('sector', 'is', null), eb('sector', '=', input.sector)]))
         .execute();
 
@@ -1095,7 +1126,7 @@ export class ComplyService {
         profile: {
           sector: input.sector, sub_sector: input.sub_sector ?? null,
           ownership_structure: input.ownership_structure ?? null,
-          employee_band: input.employee_band ?? null, jurisdiction: 'TZ',
+          employee_band: input.employee_band ?? null, jurisdiction,
         },
         obligations_created: created,
         obligations_matched: rules.length,

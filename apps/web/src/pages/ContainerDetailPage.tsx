@@ -20,6 +20,7 @@ import { showConfirm } from '../lib/confirm.js';
 import '../components/container/ContainerTracker.css';
 
 export type LifecycleStage =
+  | 'AVAILABLE_AT_DEPOT'
   | 'DEPOT_ALLOCATED'     // 1. Depot (Origin Depot Allocation) — Auto API
   | 'GATE_IN_ORIGIN'      // 2. Gate In (Origin Port Terminal Gate In) — Auto API
   | 'VESSEL_LOADED'       // 3. Loaded (Loaded on Ocean Vessel) — Auto API
@@ -62,8 +63,8 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     label: 'Origin Depot Allocation',
     short: 'Depot',
     actionLabel: 'Depot Allocation',
-    mode: 'AUTO_API',
-    modeBadge: 'API Auto',
+    mode: 'MANUAL_ONLAND',
+    modeBadge: 'Manual record',
     icon: 'package',
     description: 'Container allocated & surveyed at origin container depot (Carrier EDI / Booking)',
   },
@@ -73,8 +74,8 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     label: 'Gate In at Origin Port',
     short: 'Gate In',
     actionLabel: 'Gate In (EIR)',
-    mode: 'AUTO_API',
-    modeBadge: 'API Auto',
+    mode: 'MANUAL_ONLAND',
+    modeBadge: 'Manual record',
     icon: 'truck',
     description: 'Container gated in at origin container terminal; Equipment Interchange Receipt issued',
   },
@@ -84,8 +85,8 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     label: 'Loaded onto Vessel',
     short: 'Loaded',
     actionLabel: 'Vessel Stowed',
-    mode: 'AUTO_API',
-    modeBadge: 'API Auto',
+    mode: 'MANUAL_ONLAND',
+    modeBadge: 'Manual record',
     icon: 'anchor',
     description: 'Container loaded & stowed aboard vessel (confirmed via terminal crane bay plan)',
   },
@@ -95,8 +96,8 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     label: 'Ocean Sea Transit',
     short: 'Sea Transit',
     actionLabel: 'Ocean Transit',
-    mode: 'AUTO_API',
-    modeBadge: 'AIS Live',
+    mode: 'MANUAL_ONLAND',
+    modeBadge: 'Manual record',
     icon: 'globe',
     description: 'Vessel sailing along international maritime corridor (live satellite AIS positioning)',
   },
@@ -106,8 +107,8 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     label: 'Discharged at Destination',
     short: 'Discharged',
     actionLabel: 'Port Discharge',
-    mode: 'AUTO_API',
-    modeBadge: 'API Auto',
+    mode: 'MANUAL_ONLAND',
+    modeBadge: 'Manual record',
     icon: 'ship',
     description: 'Container discharged onto destination quay / container yard (TICTS / Dar Port)',
   },
@@ -117,8 +118,8 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     label: 'Customs & Port Release',
     short: 'Cleared',
     actionLabel: 'Customs Release',
-    mode: 'AUTO_API',
-    modeBadge: 'TANCIS API',
+    mode: 'MANUAL_ONLAND',
+    modeBadge: 'Manual record',
     icon: 'checkCircle',
     description: 'Customs assessment cleared in TANCIS, shipping line Delivery Order (DO) issued',
   },
@@ -129,7 +130,7 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     short: 'Gate Out',
     actionLabel: 'Gate Out Truck',
     mode: 'MANUAL_ONLAND',
-    modeBadge: 'Onland',
+    modeBadge: 'Manual record',
     icon: 'truck',
     description: 'Mounted on prime mover / semi-trailer chassis and gated out from port terminal / ICD',
   },
@@ -140,7 +141,7 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     short: 'Onland',
     actionLabel: 'Start Onland Transit',
     mode: 'MANUAL_ONLAND',
-    modeBadge: 'Onland',
+    modeBadge: 'Manual record',
     icon: 'compass',
     description: 'Haulage in transit to customer premises / dry port via road corridor or SGR freight rail',
   },
@@ -151,7 +152,7 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     short: 'At Dest',
     actionLabel: 'Arrive Consignee',
     mode: 'MANUAL_ONLAND',
-    modeBadge: 'Onland',
+    modeBadge: 'Manual record',
     icon: 'mapPin',
     description: 'Truck arrived at consignee warehouse / offloading bay; seal verified intact',
   },
@@ -162,7 +163,7 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     short: 'Devanned',
     actionLabel: 'Devan Cargo',
     mode: 'MANUAL_ONLAND',
-    modeBadge: 'Onland',
+    modeBadge: 'Manual record',
     icon: 'layers',
     description: 'Cargo unpacked & destuffed from container; interior inspection completed',
   },
@@ -173,14 +174,14 @@ export const LIFECYCLE_STAGES: ContainerMovementStageDef[] = [
     short: 'Returned',
     actionLabel: 'Return Empty',
     mode: 'MANUAL_ONLAND',
-    modeBadge: 'Onland',
+    modeBadge: 'Manual record',
     icon: 'checkCircle',
     description: 'Empty container returned to shipping line depot; in-gate EIR signed & demurrage stopped',
   },
 ];
 
 export function normalizeLifecycleStage(rawStage?: string | null): LifecycleStage {
-  if (!rawStage) return 'GATE_OUT_PORT';
+  if (!rawStage || rawStage === 'AVAILABLE_AT_DEPOT') return 'AVAILABLE_AT_DEPOT';
   const s = rawStage.toUpperCase().trim();
   const matched = LIFECYCLE_STAGES.find(st => st.key === s);
   if (matched) return matched.key;
@@ -196,7 +197,7 @@ export function normalizeLifecycleStage(rawStage?: string | null): LifecycleStag
   if (s === 'AT_CONSIGNEE' || s === 'ARRIVED') return 'AT_CONSIGNEE';
   if (s === 'DEVANNED') return 'DEVANNED';
   if (s === 'COMPLETED' || s === 'EMPTY_RETURNED' || s === 'RETURNED' || s === 'DONE') return 'EMPTY_RETURNED';
-  return 'GATE_OUT_PORT';
+  return 'AVAILABLE_AT_DEPOT';
 }
 
 export const ContainerDetailPage: React.FC = () => {
@@ -212,7 +213,7 @@ export const ContainerDetailView: React.FC<{
 
   const [container, setContainer] = useState<ContainerDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentStage, setCurrentStage] = useState<LifecycleStage>('GATE_OUT_PORT');
+  const [currentStage, setCurrentStage] = useState<LifecycleStage>('AVAILABLE_AT_DEPOT');
   const [stageHistory, setStageHistory] = useState<LifecycleEvent[]>([]);
   const [customColorHex, setCustomColorHex] = useState<string | null>(null);
   const [dbId, setDbId] = useState<string | null>(null);
@@ -248,21 +249,13 @@ export const ContainerDetailView: React.FC<{
             notes: h.notes,
           })));
         } else {
-          setStageHistory([
-            { stage: 'GATE_OUT_PORT', label: 'Gate Out at Destination Port Terminal (ICD)', timestamp: '08 Oct 2026, 09:15 AM', location: 'Dar es Salaam Port (TICTS Gate 3)', actor: 'Terminal Dispatch Officer', notes: 'Mounted on prime mover T 412 DXE / Chassis semi-trailer. Gate pass GP-TZ-88410 stamped.' },
-            { stage: 'CUSTOMS_RELEASE', label: 'Customs & Port Delivery Order (DO) Released', timestamp: '07 Oct 2026, 04:30 PM', location: 'TRA Customs & Shipping Line Desk', actor: 'Customs Declarant & Line Officer', notes: 'TANSAD assessment cleared in TANCIS; DO-2026-9941 validated with zero outstanding demurrage.' },
-            { stage: 'PORT_DISCHARGED', label: 'Container Discharged from Vessel', timestamp: '05 Oct 2026, 11:20 AM', location: 'Dar es Salaam Berth 4 Quay', actor: 'Port Gantry Crane Operator', notes: 'Discharged from MV Safmarine Meru (Voyage 264S) to yard block C-04.' },
-            { stage: 'OCEAN_TRANSIT', label: 'Ocean Transit — High Seas Corridor', timestamp: '28 Sep 2026, 06:00 PM', location: 'Indian Ocean Maritime Corridor', actor: 'Vessel AIS Navigation Tracking', notes: 'Vessel departed transshipment port (Jebel Ali / Salalah); speed 16.4 kts.' },
-            { stage: 'VESSEL_LOADED', label: 'Loaded aboard Ocean Vessel', timestamp: '23 Sep 2026, 02:40 PM', location: 'Kobe Port (Berth 2)', actor: 'Terminal Stevedoring Team', notes: 'Stowed at Bay 18, Row 04, Tier 82. Seal #TZ-SEAL-88910 verified intact.' },
-            { stage: 'GATE_IN_ORIGIN', label: 'Gate In at Origin Port Terminal', timestamp: '18 Sep 2026, 10:15 AM', location: 'Kobe Container Terminal (JPHKT)', actor: 'Terminal Yard Master', notes: 'Equipment Interchange Receipt (EIR-991204) generated. Gross weight 24,180 kg verified.' },
-            { stage: 'DEPOT_ALLOCATED', label: 'Origin Container Depot Allocation', timestamp: '14 Sep 2026, 08:30 AM', location: 'Yokohama Central Depot', actor: 'Depot Logistics Surveyor', notes: 'Grade A Cargo Worthy ISO container allocated for booking BKG-2026-8812.' },
-          ]);
+          setStageHistory([]);
         }
       } else {
-        setContainer(getContainerDetails(number) as any);
+        setContainer(null);
       }
     } catch {
-      setContainer(getContainerDetails(number) as any);
+      setContainer(null);
     } finally {
       setLoading(false);
     }
@@ -270,55 +263,30 @@ export const ContainerDetailView: React.FC<{
 
   useEffect(() => { loadContainer(); }, [loadContainer]);
 
-  const handleAdvanceStage = async (nextStage: LifecycleStage, label: string) => {
-    if (!(await showConfirm(`Advance container ${container?.container_number} lifecycle to "${label}"?`))) return;
-    setCurrentStage(nextStage);
-    const newEvent: LifecycleEvent = {
-      stage: nextStage,
-      label,
-      timestamp: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      location: (container as any)?.voyage?.current_location || 'Current Depot',
-      actor: 'Logistics Operations Officer',
-      notes: `Container status transitioned to ${label}.`,
-    };
-    setStageHistory((prev) => [newEvent, ...prev]);
-
-    try {
-      await apiFetch(`/v1/tracker/containers/${container?.container_number}/stage`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          stage: nextStage,
-          location: (container as any)?.voyage?.current_location || 'Current Depot',
-          notes: `Container status transitioned to ${label}.`,
-        }),
-      });
-    } catch {
-      // Local state already updated
-    }
-    showAlert(`Container lifecycle updated to ${label}.`);
+  const handleAdvanceStage = async (nextStage: LifecycleStage, _label: string) => {
+    navigate(`/cargotracker/containers/${container?.container_number}/evidence/stage?next=${nextStage}`);
   };
 
   const handleColorUpdate = async (colorHex: string) => {
-    setCustomColorHex(colorHex);
     try {
       await apiFetch('/v1/tracker/containers', {
         method: 'POST',
         body: JSON.stringify({ container_number: container?.container_number, color_hex: colorHex }),
       });
-    } catch {
-      // ignore
+      setCustomColorHex(colorHex);
+    } catch (error: any) {
+      showAlert(error.message || 'Could not save colour');
     }
   };
 
   const handleLinkCustomer = async (customerId: string, customerName: string) => {
     setLinkingCustomer(false);
-    setLinkedCustomerId(customerId);
-    setLinkedCustomerName(customerName);
     try {
       await apiFetch(`/v1/tracker/containers/${container?.container_number}/link`, {
         method: 'PATCH',
         body: JSON.stringify({ customer_id: customerId }),
       });
+      setLinkedCustomerId(customerId); setLinkedCustomerName(customerName);
     } catch {
       showAlert('Could not save customer link.');
     }
@@ -326,12 +294,12 @@ export const ContainerDetailView: React.FC<{
 
   const handleLinkShipment = async (shipmentId: string) => {
     setLinkingShipment(false);
-    setLinkedShipmentId(shipmentId);
     try {
       await apiFetch(`/v1/tracker/containers/${container?.container_number}/link`, {
         method: 'PATCH',
         body: JSON.stringify({ shipment_id: shipmentId }),
       });
+      setLinkedShipmentId(shipmentId);
     } catch {
       showAlert('Could not save shipment link.');
     }
@@ -354,15 +322,13 @@ export const ContainerDetailView: React.FC<{
   }
 
   const palette = getContainerColor(container.container_number, container.voyage?.vessel_name, customColorHex || undefined);
-  const currentStageIndex = Math.max(0, LIFECYCLE_STAGES.findIndex((stage) => stage.key === currentStage));
-  const currentStageDef = LIFECYCLE_STAGES[currentStageIndex] || LIFECYCLE_STAGES[0];
+  const currentStageIndex = LIFECYCLE_STAGES.findIndex((stage) => stage.key === currentStage);
+  const currentStageDef = LIFECYCLE_STAGES[currentStageIndex] || { ...LIFECYCLE_STAGES[0], label: 'Available at depot', short: 'Available' };
   const lifecycleProgress = Math.round(((currentStageIndex + 1) / LIFECYCLE_STAGES.length) * 100);
   const nextStage = LIFECYCLE_STAGES[currentStageIndex + 1];
 
   const handleRefreshApiStatus = async () => {
-    showAlert(`Polling carrier EDI & port terminal API feeds for ${container.container_number}…`);
     await loadContainer();
-    showAlert(`Container movement data synchronized with port & carrier systems.`);
   };
 
   return (
@@ -379,6 +345,8 @@ export const ContainerDetailView: React.FC<{
               <Icon name="edit" size={13} color="var(--teal)" />
               Edit Specs
             </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/cargotracker/containers/${container.container_number}/evidence/survey`)}>Record survey</Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/cargotracker/containers/${container.container_number}/evidence/repair`)}>Record repair</Button>
             <Button size="sm" onClick={() => navigate('/cargotracker/track')}>
               <Icon name="compass" size={13} color="hsl(var(--primary-foreground))" />
               Live Fleet View
@@ -387,10 +355,11 @@ export const ContainerDetailView: React.FC<{
         }
       />
 
+      <p className="text-sm text-(--ink3)">Specifications and movements are recorded by workspace users. Missing inspection evidence is unassessed; this screen does not independently certify safety or customs release.</p>
       {/* ── Carrier Color & Signature Strip ── */}
       <div className="cnt-carrier-strip">
         <div className="flex items-center gap-3">
-          <CarrierLogo carrier={palette.id} size={32} variant="mark" />
+          <CarrierLogo containerNumber={container.container_number} size={32} variant="mark" />
           <div>
             <div className="text-xs font-bold text-[var(--ink)] flex items-center gap-2">
               <span>{palette.name}</span>
@@ -398,7 +367,7 @@ export const ContainerDetailView: React.FC<{
                 {palette.primary}
               </span>
             </div>
-            <div className="text-[11px] text-[var(--ink3)]">{palette.carrier} · 3D Model Painted via API Carrier Detection</div>
+            <div className="text-[11px] text-[var(--ink3)]">{palette.carrier} · Illustrative paint selection; not a carrier API response</div>
           </div>
         </div>
 
@@ -435,7 +404,7 @@ export const ContainerDetailView: React.FC<{
             </div>
           </div>
           <div className="cnt-progress" aria-label={`${lifecycleProgress}% of movement complete`}>
-            <span style={{ width: `${lifecycleProgress}%`, background: '#e05822' }} />
+            <span style={{ width: `${lifecycleProgress}%` }} />
           </div>
           <div className="flex items-center justify-between gap-3 text-[11px] text-(--ink3)">
             <span>{lifecycleProgress}% complete</span>
@@ -566,14 +535,14 @@ export const ContainerDetailView: React.FC<{
         action={
           <div className="flex items-center gap-2">
             {currentStageDef.mode === 'AUTO_API' ? (
-              <Badge variant="brand" style={{ background: 'rgba(13, 148, 136, 0.12)', color: 'var(--teal)', border: '1px solid rgba(13, 148, 136, 0.25)' }}>
+              <Badge variant="brand">
                 <span className="w-2 h-2 rounded-full bg-(--teal) animate-pulse mr-1.5" />
-                {currentStageDef.label} (Step {currentStageIndex + 1} of 11) · Live API Auto-Sync
+                {currentStageDef.label} (Step {currentStageIndex + 1} of 11) · Manually recorded
               </Badge>
             ) : (
-              <Badge variant="warning" style={{ background: 'rgba(224, 88, 34, 0.12)', color: '#e05822', border: '1px solid rgba(224, 88, 34, 0.25)' }}>
-                <span className="w-2 h-2 rounded-full bg-[#e05822] animate-pulse mr-1.5" />
-                {currentStageDef.label} (Step {currentStageIndex + 1} of 11) · Onland Transport
+              <Badge variant="warning">
+                <span className="w-2 h-2 rounded-full bg-(--gold) animate-pulse mr-1.5" />
+                {currentStageDef.label} (Step {currentStageIndex + 1} of 11) · Manually recorded
               </Badge>
             )}
           </div>
@@ -593,6 +562,7 @@ export const ContainerDetailView: React.FC<{
                     <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: 56 }}>
                       <button
                         type="button"
+                        disabled={idx !== currentStageIndex + 1}
                         onClick={() => handleAdvanceStage(s.key, s.label)}
                         aria-current={isCurrent ? 'step' : undefined}
                         aria-label={`${s.label}${isCurrent ? ', current stage' : isDone ? ', completed' : ', upcoming'}`}
@@ -606,9 +576,9 @@ export const ContainerDetailView: React.FC<{
                           maxWidth: '36px',
                           maxHeight: '36px',
                           borderRadius: '9999px',
-                          background: isDone || isCurrent ? '#e05822' : '#cbd5e1',
+                          background: isDone || isCurrent ? 'var(--teal)' : 'var(--border)',
                           color: '#ffffff',
-                          boxShadow: isCurrent ? '0 0 0 6px rgba(224, 88, 34, 0.22), 0 2px 8px rgba(224, 88, 34, 0.35)' : 'none',
+                          boxShadow: isCurrent ? '0 0 0 6px color-mix(in srgb, var(--teal) 22%, transparent), 0 2px 8px color-mix(in srgb, var(--teal) 35%, transparent)' : 'none',
                           border: 'none',
                           cursor: 'pointer',
                           fontSize: 12.5,
@@ -626,7 +596,7 @@ export const ContainerDetailView: React.FC<{
                         style={{
                           fontSize: 11,
                           fontWeight: isCurrent ? 800 : isDone ? 600 : 500,
-                          color: isCurrent ? '#e05822' : isDone ? 'var(--ink)' : 'var(--ink3)',
+                          color: isCurrent ? 'var(--teal)' : isDone ? 'var(--ink)' : 'var(--ink3)',
                           marginTop: 6,
                           whiteSpace: 'nowrap',
                           textAlign: 'center',
@@ -643,7 +613,7 @@ export const ContainerDetailView: React.FC<{
                         style={{
                           flex: 1,
                           height: isDone ? 2.5 : 2,
-                          background: isDone ? '#e05822' : '#cbd5e1',
+                          background: isDone ? 'var(--teal)' : 'var(--border)',
                           marginBottom: 20,
                           marginLeft: 4,
                           marginRight: 4,
@@ -671,24 +641,24 @@ export const ContainerDetailView: React.FC<{
                 onClick={() => handleAdvanceStage(nextStage.key, nextStage.label)}
                 className="shrink-0"
                 style={{
-                  background: nextStage.mode === 'MANUAL_ONLAND' ? '#e05822' : 'var(--teal)',
-                  color: '#fff',
+                  background: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
                   border: 'none',
                   whiteSpace: 'nowrap',
                 }}
               >
-                <Icon name={nextStage.mode === 'MANUAL_ONLAND' ? 'truck' : 'arrowRight'} size={13} color="#fff" />
+                <Icon name={nextStage.mode === 'MANUAL_ONLAND' ? 'truck' : 'arrowRight'} size={13} color="hsl(var(--primary-foreground))" />
                 Next: {nextStage.short} ({nextStage.actionLabel})
               </Button>
             )}
 
             {/* Tracking Mode Pill */}
             {currentStageDef.mode === 'AUTO_API' ? (
-              <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                <Icon name="activity" size={11} /> Port/Ocean Auto-Sync
+              <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold" style={{ background: 'var(--teal-l)', color: 'var(--teal)', border: '1px solid var(--teal-m)' }}>
+                <Icon name="activity" size={11} /> Manual movement records
               </span>
             ) : (
-              <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+              <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold" style={{ background: 'var(--gold-l)', color: 'var(--gold)', border: '1px solid color-mix(in srgb, var(--gold) 25%, var(--border))' }}>
                 <Icon name="truck" size={11} /> Manual Onland Mode
               </span>
             )}
@@ -698,7 +668,7 @@ export const ContainerDetailView: React.FC<{
               variant="outline"
               size="sm"
               className="shrink-0"
-              onClick={() => handleAdvanceStage('GATE_OUT_PORT', 'Gate Out (Truck Loaded)')}
+              disabled={nextStage?.key !== 'GATE_OUT_PORT'} onClick={() => handleAdvanceStage('GATE_OUT_PORT', 'Gate Out (Truck Loaded)')}
             >
               <Icon name="truck" size={13} color="var(--ink3)" /> Gate Out
             </Button>
@@ -706,7 +676,7 @@ export const ContainerDetailView: React.FC<{
               variant="outline"
               size="sm"
               className="shrink-0"
-              onClick={() => handleAdvanceStage('ONLAND_TRANSIT', 'Onland Transit (Road/Rail)')}
+              disabled={nextStage?.key !== 'ONLAND_TRANSIT'} onClick={() => handleAdvanceStage('ONLAND_TRANSIT', 'Onland Transit (Road/Rail)')}
             >
               <Icon name="compass" size={13} color="var(--ink3)" /> Onland Transit
             </Button>
@@ -714,7 +684,7 @@ export const ContainerDetailView: React.FC<{
               variant="outline"
               size="sm"
               className="shrink-0"
-              onClick={() => handleAdvanceStage('AT_CONSIGNEE', 'Arrived at Consignee')}
+              disabled={nextStage?.key !== 'AT_CONSIGNEE'} onClick={() => handleAdvanceStage('AT_CONSIGNEE', 'Arrived at Consignee')}
             >
               <Icon name="mapPin" size={13} color="var(--ink3)" /> Arrive Consignee
             </Button>
@@ -722,7 +692,7 @@ export const ContainerDetailView: React.FC<{
               variant="outline"
               size="sm"
               className="shrink-0"
-              onClick={() => handleAdvanceStage('DEVANNED', 'Devanned & Destuffed')}
+              disabled={nextStage?.key !== 'DEVANNED'} onClick={() => handleAdvanceStage('DEVANNED', 'Devanned & Destuffed')}
             >
               <Icon name="layers" size={13} color="var(--ink3)" /> Devan Cargo
             </Button>
@@ -730,20 +700,20 @@ export const ContainerDetailView: React.FC<{
               variant="outline"
               size="sm"
               className="shrink-0 border-(--green) text-(--green) bg-(--green-l) hover:bg-(--green-l)"
-              onClick={() => handleAdvanceStage('EMPTY_RETURNED', 'Empty Returned to Depot')}
+              disabled={nextStage?.key !== 'EMPTY_RETURNED'} onClick={() => handleAdvanceStage('EMPTY_RETURNED', 'Empty Returned to Depot')}
             >
               <Icon name="checkCircle" size={13} color="var(--green)" /> Return Empty
             </Button>
 
-            {/* API Sync Refresh */}
+            {/* Reload record Refresh */}
             <Button
               variant="outline"
               size="sm"
               className="shrink-0"
-              title="Poll latest carrier and port terminal tracking data"
+              title="Reload the persisted container record"
               onClick={handleRefreshApiStatus}
             >
-              <Icon name="refresh" size={12} color="var(--ink3)" /> Sync API
+              <Icon name="refresh" size={12} color="var(--ink3)" /> Reload record
             </Button>
           </div>
         </div>

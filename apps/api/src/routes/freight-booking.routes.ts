@@ -1,3 +1,5 @@
+import { parseTrackerPage } from '../services/tracker-pagination.js';
+import { requireTrackerAccess } from '../services/tracker-integrity.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireEntitlement } from '../middleware/entitlement.js';
@@ -105,16 +107,13 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   // HUD-0024 continuation: no role check anywhere in this file — rate cards/
   // contracts carry both cost_rate and sell_rate (real margin data), and
   // bookings are tenant-wide. Not customer-portal data.
-  fastify.addHook('preHandler', async (request: any, reply) => {
-    if (request.user.role === 'CUSTOMER') {
-      return reply.status(403).send({ error: 'Not available for this account type.' });
-    }
-  });
+  fastify.addHook('preHandler', requireTrackerAccess);
+  fastify.addHook('preHandler', async req => {const params=req.params as any;for(const key of ['id','shipmentId'])if(params?.[key])z.string().uuid().parse(params[key]);});
 
   // ── Carriers ─────────────────────────────────────────────────────────────
   fastify.get('/carriers', async (request) => {
     const { active_only } = request.query as { active_only?: string };
-    return freightBookingService.listCarriers(request.user.tenant_id, active_only === 'true');
+    return freightBookingService.listCarriers(request.user.tenant_id, active_only === 'true', parseTrackerPage(request.query));
   });
 
   fastify.post('/carriers', async (request, reply) => {
@@ -132,7 +131,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   // ── Rate cards ───────────────────────────────────────────────────────────
   fastify.get('/rate-cards', async (request) => {
     const q = request.query as { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string };
-    return freightBookingService.listRateCards(request.user.tenant_id, q);
+    return freightBookingService.listRateCards(request.user.tenant_id, q, parseTrackerPage(request.query));
   });
 
   fastify.post('/rate-cards', async (request, reply) => {
@@ -150,7 +149,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   // ── Carrier rate contracts (buy-side, M7) ───────────────────────────────
   fastify.get('/rate-contracts', async (request) => {
     const q = request.query as { carrier_id?: string; mode?: string; origin_port?: string; destination_port?: string };
-    return freightBookingService.listRateContracts(request.user.tenant_id, q);
+    return freightBookingService.listRateContracts(request.user.tenant_id, q, parseTrackerPage(request.query));
   });
 
   fastify.post('/rate-contracts', async (request, reply) => {
@@ -181,7 +180,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   // ── Bookings ─────────────────────────────────────────────────────────────
   fastify.get('/bookings', async (request) => {
     const q = request.query as { status?: string; customer_id?: string };
-    return freightBookingService.listBookings(request.user.tenant_id, q);
+    return freightBookingService.listBookings(request.user.tenant_id, q, parseTrackerPage(request.query));
   });
 
   fastify.get('/bookings/:id', async (request) => {
@@ -207,7 +206,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
     try {
       return await freightBookingService.quoteBooking(request.user.tenant_id, id, body);
     } catch (err: any) {
-      return reply.status(400).send({ error: err?.message || 'Failed to quote booking' });
+      return reply.status(err?.statusCode ?? 400).send({ error: err?.message || 'Failed to quote booking' });
     }
   });
 
@@ -218,7 +217,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
       const result = await freightBookingService.confirmBooking(request.user.tenant_id, id, request.user.sub, body);
       return result;
     } catch (err: any) {
-      return reply.status(400).send({ error: err?.message || 'Failed to confirm booking' });
+      return reply.status(err?.statusCode ?? 400).send({ error: err?.message || 'Failed to confirm booking' });
     }
   });
 
@@ -227,7 +226,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
     try {
       return await freightBookingService.cancelBooking(request.user.tenant_id, id);
     } catch (err: any) {
-      return reply.status(400).send({ error: err?.message || 'Failed to cancel booking' });
+      return reply.status(err?.statusCode ?? 400).send({ error: err?.message || 'Failed to cancel booking' });
     }
   });
 }

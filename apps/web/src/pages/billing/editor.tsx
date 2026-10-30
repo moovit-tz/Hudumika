@@ -1,3 +1,4 @@
+import { useFinanceDraft } from '../../hooks/useFinanceDraft.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
@@ -358,21 +359,21 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   // afterwards doesn't keep re-applying a stale draft.
   const [draft] = useState<InvoiceDraft | null>(() => (initial ? null : takeInvoiceDraft()));
   const tenantCurrency = getCompany().currency || 'TZS';
-  const [documentCurrency,setDocumentCurrency] = useState(initial?.documentCurrency || draft?.documentCurrency || tenantCurrency);
-  const [includeShipment,setIncludeShipment] = useState(Boolean(initial?.shipmentRef || initial?.blNumber || presetShipment || draft?.blNo));
-  const [client, setClient]       = useState(initial?.client ?? draft?.client ?? presetCustomer?.label ?? '');
-  const [addr, setAddr]           = useState(draft?.addr ?? initial?.clientAddress.join('\n') ?? '');
-  const [billDate, setBillDate]   = useState(draft?.billDate ?? initial?.billDate ?? today);
-  const [dueDate, setDueDate]     = useState(draft?.dueDate ?? initial?.dueDate ?? '');
-  const [agent, setAgent]         = useState(draft?.agent ?? initial?.saleAgent ?? '');
-  const [agentPick, setAgentPick] = useState<PickerItem | null>(
+  const [documentCurrency,setDocumentCurrency] = useFinanceDraft('documentCurrency',initial?.documentCurrency || draft?.documentCurrency || tenantCurrency);
+  const [includeShipment,setIncludeShipment] = useFinanceDraft('includeShipment',Boolean(initial?.shipmentRef || initial?.blNumber || presetShipment || draft?.blNo));
+  const [client, setClient]       = useFinanceDraft('client',initial?.client ?? draft?.client ?? presetCustomer?.label ?? '');
+  const [addr, setAddr]           = useFinanceDraft('addr',draft?.addr ?? initial?.clientAddress.join('\n') ?? '');
+  const [billDate, setBillDate]   = useFinanceDraft('billDate',draft?.billDate ?? initial?.billDate ?? today);
+  const [dueDate, setDueDate]     = useFinanceDraft('dueDate',draft?.dueDate ?? initial?.dueDate ?? '');
+  const [agent, setAgent]         = useFinanceDraft('agent',draft?.agent ?? initial?.saleAgent ?? '');
+  const [agentPick, setAgentPick] = useFinanceDraft<PickerItem | null>('agentPick',
     agent ? { id: '', label: agent } : null,
   );
-  const [blNo, setBlNo]           = useState(draft?.blNo ?? initial?.blNumber ?? '');
-  const [origin, setOrigin]       = useState(draft?.origin ?? initial?.origin ?? '');
-  const [dest, setDest]           = useState(draft?.dest ?? initial?.destination ?? '');
-  const [mode, setMode]           = useState<Invoice['mode']>((draft?.mode as Invoice['mode']) ?? initial?.mode ?? 'SEA');
-  const [exRate, setExRate]       = useState(draft?.exRate ?? (initial ? String(initial.exchangeRate) : ''));
+  const [blNo, setBlNo]           = useFinanceDraft('blNo',draft?.blNo ?? initial?.blNumber ?? '');
+  const [origin, setOrigin]       = useFinanceDraft('origin',draft?.origin ?? initial?.origin ?? '');
+  const [dest, setDest]           = useFinanceDraft('dest',draft?.dest ?? initial?.destination ?? '');
+  const [mode, setMode]           = useFinanceDraft<Invoice['mode']>('mode',(draft?.mode as Invoice['mode']) ?? initial?.mode ?? 'SEA');
+  const [exRate, setExRate]       = useFinanceDraft('exRate',draft?.exRate ?? (initial ? String(initial.exchangeRate) : ''));
   // Never auto-applied – a fetched rate only fills the field when the user
   // clicks "Use this", same provenance rule editable duty/VAT/FX overrides
   // already follow elsewhere: a typed figure must never look system-sourced,
@@ -381,13 +382,13 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   useEffect(() => {
     if (tenantCurrency && tenantCurrency !== 'USD') apiFetch(`/v1/fx-rates/latest?base=USD&quote=${tenantCurrency}`).then(setTodayFxRate).catch(() => setTodayFxRate(null));
   }, []);
-  const [terms, setTerms]         = useState(draft?.terms ?? initial?.terms ?? '');
-  const [businessLineId, setBusinessLineId] = useState(draft?.businessLineId ?? initial?.businessLineId ?? '');
+  const [terms, setTerms]         = useFinanceDraft('terms',draft?.terms ?? initial?.terms ?? '');
+  const [businessLineId, setBusinessLineId] = useFinanceDraft('businessLineId',draft?.businessLineId ?? initial?.businessLineId ?? '');
 
-  const [customer, setCustomer] = useState<PickerItem | null>(
+  const [customer, setCustomer] = useFinanceDraft<PickerItem | null>('customer',
     initial?.customerId ? { id: initial.customerId, label: initial.client } : presetCustomer,
   );
-  const [shipment, setShipment] = useState<PickerItem | null>(
+  const [shipment, setShipment] = useFinanceDraft<PickerItem | null>('shipment',
     initial?.shipmentRef ? { id: initial.shipmentRef, label: initial.shipmentRef }
       : presetShipment ? { id: presetShipment.ref_number, label: presetShipment.ref_number } : null,
   );
@@ -540,9 +541,9 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const toEditItems = (g: ChargeGroup) =>
     (initial?.items.filter(i => i.group === g) ?? []).map((it, i) => ({ ...it, uid: `${g}-${i}` }));
 
-  const [clearing, setClearing] = useState<EditItem[]>(draft?.clearing ?? toEditItems('clearing'));
-  const [shipping, setShipping] = useState<EditItem[]>(draft?.shipping ?? toEditItems('shipping'));
-  const [other, setOther]       = useState<EditItem[]>(draft?.other ?? toEditItems('other'));
+  const [clearing, setClearing] = useFinanceDraft<EditItem[]>('clearing',draft?.clearing ?? toEditItems('clearing'));
+  const [shipping, setShipping] = useFinanceDraft<EditItem[]>('shipping',draft?.shipping ?? toEditItems('shipping'));
+  const [other, setOther]       = useFinanceDraft<EditItem[]>('other',draft?.other ?? toEditItems('other'));
 
   const [showTimesheets, setShowTimesheets] = useState(false);
 
@@ -628,7 +629,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
             <p className="text-sm text-muted-foreground sm:col-span-2">All foreign lines use this recorded conversion rate. Use one foreign currency per invoice.</p>
           </CardContent></Card>
         </div>
-        <div className="flex items-center gap-3"><Checkbox id="invoice-shipment" checked={includeShipment} onCheckedChange={value=>setIncludeShipment(value===true)} /><label htmlFor="invoice-shipment" className="text-sm font-medium">Include shipment details</label></div>
+        {(financeConfiguration.data?.industries.includes('logistics') || includeShipment) && <div className="flex items-center gap-3"><Checkbox id="invoice-shipment" checked={includeShipment} onCheckedChange={value=>setIncludeShipment(value===true)} /><label htmlFor="invoice-shipment" className="text-sm font-medium">Include shipment details</label></div>}
         {includeShipment && <Card><CardHeader><CardTitle>Shipment</CardTitle></CardHeader><CardContent className="space-y-4">
           <EntityPicker label="Linked shipment" value={shipment} onChange={handleShipmentChange} search={searchShipments} onCreate={createShipment} createLabel={()=>'Create shipment'} placeholder="Search shipment reference…" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><FormField label="BL or AWB" value={blNo} onChange={setBlNo}/><FormField label="Origin" value={origin} onChange={setOrigin}/><FormField label="Destination" value={dest} onChange={setDest}/><div><label className="mb-2 block text-sm font-medium">Mode</label><Select value={mode} onValueChange={value=>setMode(value as Invoice['mode'])}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{['SEA','AIR','ROAD'].map(value=><SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div></div>

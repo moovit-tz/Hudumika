@@ -1,4 +1,4 @@
-import { DOCUMENT_KINDS, DOCUMENT_TEMPLATES } from '@hudumika/types';
+import { DOCUMENT_KINDS, DOCUMENT_TEMPLATES, POS_RECEIPT_TEMPLATES, POS_RECEIPT_FIELDS } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant, dbPlatform } from '../db/client.js';
@@ -217,6 +217,11 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   fastify.patch('/', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.SETTINGS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
     const { $replace, ...updates } = settingsPatchSchema.parse(request.body);
+    if (updates.posReceipt !== undefined) {
+      const profile = z.object({template:z.enum(POS_RECEIPT_TEMPLATES.map(t=>t.id) as [string,...string[]]),heading:z.string().max(80).optional(),footerTitle:z.string().max(100).optional(),code:z.enum(['none','qr']).optional(),typography:z.enum(['brand','mono']).optional(),header:z.string().max(500),footer:z.string().max(500),visibility:z.object(Object.fromEntries(POS_RECEIPT_FIELDS.map(field=>[field,z.boolean()]))).strict()}).strict().safeParse(updates.posReceipt);
+      if (!profile.success) return reply.status(400).send({error:'Choose a supported receipt template and valid visibility settings (text up to 500 characters).'});
+      updates.posReceipt = profile.data;
+    }
     if (updates.documentTemplates !== undefined) {
       const choices = updates.documentTemplates;
       if (!choices || typeof choices !== 'object' || Array.isArray(choices) ||

@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { clearFinanceDrafts, hasAnyFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from './PageHeader.js';
 import { BackButton } from './ui/BackButton.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -31,9 +33,19 @@ export interface FormPageProps {
 
 export function FormPage({ title, subtitle, onCancel, actions, children }: FormPageProps) {
   const isMobile = useIsMobile();
+  const dirty=useRef(hasAnyFinanceDraft());
+  const root=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    const mark=()=>{dirty.current=true;};
+    const before=(event:BeforeUnloadEvent)=>{if(dirty.current){event.preventDefault();event.returnValue='';}};
+    const node=root.current;node?.addEventListener('input',mark);node?.addEventListener('change',mark);window.addEventListener('beforeunload',before);
+    return()=>{node?.removeEventListener('input',mark);node?.removeEventListener('change',mark);window.removeEventListener('beforeunload',before);};
+  },[]);
+  async function cancel(){if(!dirty.current || await showConfirm('Discard the unsaved changes in this form?',{confirmLabel:'Discard changes'})){dirty.current=false;clearFinanceDrafts();onCancel();}}
+
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <BackButton onClick={onCancel} label="Back" color="var(--ink2)" />
+    <div ref={root} onClickCapture={event=>{const control=(event.target as HTMLElement).closest('button,a');if(control?.textContent?.trim()==='Cancel'){event.preventDefault();event.stopPropagation();void cancel();}}} style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
+      <BackButton onClick={cancel} label="Back" color="var(--ink2)" />
       <PageHeader crumbs={[]} titlePlain={title.split(' ').slice(0,-1).join(' ')} titleEm={title.split(' ').slice(-1)[0]} subtitle={subtitle} actions={actions}/>
       {children}
     </div>

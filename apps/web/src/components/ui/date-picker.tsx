@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const triggerClass = cn(
-  "flex min-h-(--ctl-h) w-full items-center gap-2 rounded-(--radius) border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-left text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-(--ctl-h) w-full items-center gap-2 rounded-(--radius) border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-left text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
 )
 
 function ClearDateButton({ onClear, label, disabled }: { onClear: () => void; label: string; disabled?: boolean }) {
@@ -20,7 +20,7 @@ function ClearDateButton({ onClear, label, disabled }: { onClear: () => void; la
       aria-label={label}
       disabled={disabled}
       onClick={(event) => { event.stopPropagation(); onClear() }}
-      className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full p-1 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
     >
       <X className="h-3.5 w-3.5" />
     </button>

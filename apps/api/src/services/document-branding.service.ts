@@ -59,3 +59,19 @@ export function drawDocumentHeader(doc: PDFKit.PDFDocument, brand: DocumentBrand
   doc.font('Document-Regular').fontSize(9).fillColor('#5b6472').text(number, metaX, doc.y + 4, {width: width - companyWidth - 16, align: 'right'});
   return Math.max(y + height, doc.y) + (brand.layout === 'modern' ? 24 : 12);
 }
+
+export function drawDocumentPageNumbers(doc: PDFKit.PDFDocument, number: string) {
+  const range=doc.bufferedPageRange();
+  for(let page=range.start;page<range.start+range.count;page++){
+    doc.switchToPage(page);
+    const bottom=doc.page.margins.bottom;
+    // Footer text lies below the content margin and must not create a new page.
+    doc.page.margins.bottom=0;
+    doc.font('Document-Regular').fontSize(7).fillColor('#5b6472').text(`${number}  |  Page ${page-range.start+1} of ${range.count}`,40,doc.page.height-25,{width:doc.page.width-80,align:'right',lineBreak:false});
+    doc.page.margins.bottom=bottom;
+  }
+}
+
+export function documentCompanyIdentity(company: {name?:string;address?:string;city?:string;country?:string;email?:string;phone?:string;taxId?:string;tax_id?:string}, fallback: string) {
+ return {name:company.name || fallback,address:[company.address,[company.city,company.country].filter(Boolean).join(', '),company.email,company.phone,(company.taxId || company.tax_id)?`Tax ID: ${company.taxId || company.tax_id}`:''].filter(Boolean).join(' · ')};
+}

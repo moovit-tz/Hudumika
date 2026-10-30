@@ -1,0 +1,292 @@
+{
+  "msc": {
+    "file": "msc.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Mediterranean_Shipping_Company_logo.svg",
+    "reference": "https://en.wikipedia.org/wiki/Mediterranean_Shipping_Company",
+    "bytes": 3331,
+    "sha256": "dd837bdfea68be3ea570b3ea34bee6d78b3c09ef26ccc92bb77f26e66447b18f"
+  },
+  "maersk": {
+    "file": "maersk.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Maersk_Group_Logo.svg",
+    "reference": "https://en.wikipedia.org/wiki/Maersk",
+    "bytes": 4364,
+    "sha256": "1dc7f51b1ad696dfb56b353df5503b6273bf7719633b966c65eb84d7cc1ab655"
+  },
+  "cma_cgm": {
+    "file": "cma_cgm.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d1/CMA_CGM_logo.svg",
+    "reference": "https://en.wikipedia.org/wiki/CMA_CGM",
+    "bytes": 3642,
+    "sha256": "678c071769e1615dd9e8cca3e179c4ecce430205e9d0d4814226bbdb8295effc"
+  },
+  "cosco": {
+    "file": "cosco.webp",
+    "source": "https://iconlogovector.com/uploads/images/2024/11/lg-6732afccd1f15-COSCO-SHIPPING.webp",
+    "reference": "https://iconlogovector.com/logo/cosco-shipping",
+    "bytes": 29680,
+    "sha256": "817646d97bdd86fa286e0965514e7fb10209da31031f97d6e7f76cdbe1568d14",
+    "dimensions": [
+      750,
+      750
+    ]
+  },
+  "hapag_lloyd": {
+    "file": "hapag_lloyd.webp",
+    "source": "https://iconlogovector.com/uploads/images/2024/11/lg-6732afe2c32a3-Hapag-Lloyd.webp",
+    "reference": "https://iconlogovector.com/logo/hapag-lloyd",
+    "bytes": 8054,
+    "sha256": "468ed29eae4438d66651a7f641ba9050b0d740c6a0f76de10bfb91ae79dd7912",
+    "dimensions": [
+      750,
+      750
+    ]
+  },
+  "one": {
+    "file": "one.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/4/45/Ocean_Network_Express_logo.svg",
+    "reference": "https://en.wikipedia.org/wiki/Ocean_Network_Express",
+    "bytes": 5048,
+    "sha256": "322ea76eb57b0490263cf9cb6b82bead7bcb5b6a31669bc7d9c36e205673d1d1"
+  },
+  "evergreen": {
+    "file": "evergreen.svg",
+    "source": "https://www.evergreen-marine.com/emc/common/images/logo/emc_logo.svg",
+    "reference": "https://www.evergreen-marine.com",
+    "bytes": 15039,
+    "sha256": "ef31931dc1ad3c303be7e5765dcf4580408db53f594c55068beb8e39c0871d3d"
+  },
+  "hmm": {
+    "file": "hmm.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/5/56/HMM_Logo_Basic_Form.svg",
+    "reference": "https://en.wikipedia.org/wiki/HMM_(company)",
+    "bytes": 1928,
+    "sha256": "75c4a5ff17895eb55686f3fd73bd4eebc0fd659c43f6bc1299ecf5c2bb9ec582"
+  },
+  "yang_ming": {
+    "file": "yang_ming.svg",
+    "source": "https://companieslogo.com/img/orig/2609.TW_BIG-133819e4.svg?t=1746286847&download=true",
+    "reference": "https://companieslogo.com/yang-ming/logo/",
+    "bytes": 1611,
+    "sha256": "18e8700f5c3cf953a71caba70d53443b98ab82a61e7fb812d5f01f55fcfa8ca6"
+  },
+  "zim": {
+    "file": "zim.webp",
+    "source": "https://iconlogovector.com/uploads/images/2024/11/lg-673306257ba36-ZIM.webp",
+    "reference": "https://iconlogovector.com/logo/zim",
+    "bytes": 18562,
+    "sha256": "5b2028be3b784842e1bad361068dd5e898258b8ebf6c04245b5182de713e9127",
+    "dimensions": [
+      750,
+      750
+    ]
+  },
+  "wan_hai": {
+    "file": "wan_hai.svg",
+    "source": "https://companieslogo.com/img/orig/2615.TW_BIG-d9a6ec47.svg?t=1730742803&download=true",
+    "reference": "https://companieslogo.com/wan-hai-lines/logo",
+    "bytes": 5790,
+    "sha256": "f296d73808113b86e48380355928653a1c953e49bc57f228459830e78faf3204"
+  },
+  "oocl": {
+    "file": "oocl.webp",
+    "source": "https://iconlogovector.com/uploads/images/2024/11/lg-6732b01955fbf-OOCL.webp",
+    "reference": "https://iconlogovector.com/logo/oocl",
+    "bytes": 21622,
+    "sha256": "19c42860c8388cab58a7938a64c88e8150a233f380176cadbe18864d66ac4fd1",
+    "dimensions": [
+      750,
+      750
+    ]
+  },
+  "matson": {
+    "file": "matson.png",
+    "source": "https://www.matson.com/wp-content/themes/matson_2021/public/images/matson_logo.png",
+    "reference": "https://www.matson.com",
+    "bytes": 15662,
+    "sha256": "dee820896cc89d64243aaca778b5e9c0199b9cd56f641b687502411aee0e22a0",
+    "dimensions": [
+      280,
+      82
+    ]
+  },
+  "k_line": {
+    "file": "k_line.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/9/9e/K_line_logo.svg",
+    "bytes": 30714,
+    "sha256": "ed2b07c4ef2b485098a029b8ec81c0c1991c083234cbcf602a6d02716350c9a6"
+  },
+  "mol": {
+    "file": "mol.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/22/Mitsui_O.S.K._Lines_logo.svg",
+    "bytes": 5783,
+    "sha256": "cb08321dcdb32166c0b63ba21ffe9528cb4b45c53bc72d469628ab31975acdd6"
+  },
+  "nyk": {
+    "file": "nyk.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Nippon_Yusen_company_logo.svg",
+    "bytes": 16980,
+    "sha256": "2e93a1b7ee85c424a1cf497731ad03cd24043d207022258091e7928f296f5db7"
+  },
+  "apl": {
+    "file": "apl.png",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/8c/American_President_Lines_%28container_shipping_company%29_logo.png",
+    "bytes": 17432,
+    "sha256": "7f41bc686175d2f32f8d59dcbc28e56f612a21aa5b7bfcfc41510503ec84c77f",
+    "dimensions": [
+      397,
+      250
+    ]
+  },
+  "hanjin": {
+    "file": "hanjin.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/8/81/Hanjin_Shipping_Logo.svg",
+    "bytes": 18356,
+    "sha256": "a92aab3abc9ff937ed6950a2d873660c8649d34a0ec1ae303ec50da24f08066d"
+  },
+  "china_shipping": {
+    "file": "china_shipping.svg",
+    "source": "https://static.cdnlogo.com/logos/c/58/china-shipping.svg",
+    "reference": "https://cdnlogo.com/logo/china-shipping_123956.html",
+    "bytes": 572,
+    "sha256": "205b8a11a9b897db5bdc44626c6c4013d418e0b09784703e7010bbf20476c607"
+  },
+  "uasc": {
+    "file": "uasc.png",
+    "source": "https://images.seeklogo.com/logo-png/17/1/united-arab-shipping-company-s-a-g-logo-png_seeklogo-176647.png",
+    "reference": "https://seeklogo.com/vector-logo/176647/united-arab-shipping-company-s-a-g",
+    "bytes": 24197,
+    "sha256": "922c142efc7345d332485499a07df46d1e560e82f7f8f5faff84aabb5460b562",
+    "dimensions": [
+      600,
+      600
+    ]
+  },
+  "nedlloyd": {
+    "file": "nedlloyd.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Royal_P%26O_Nedlloyd_logo.svg",
+    "bytes": 15352,
+    "sha256": "d75bda4bba00e5622e3f3d97369097a8f24066b675d1cbb12b1529f36eb19dae"
+  },
+  "hamburg_sud": {
+    "file": "hamburg_sud.jpg",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Hamburg_S%C3%BCd_logo.jpg",
+    "bytes": 10156,
+    "sha256": "6ff99e192b898769c782d4f47aa3624a4dedbc24d7c0e882e6ff52ca3d7f1e93",
+    "dimensions": [
+      480,
+      89
+    ]
+  },
+  "triton": {
+    "file": "triton.png",
+    "source": "https://www.tritoninternational.com/media/yjikv14m/triton-website-logo.png",
+    "reference": "https://www.tritoninternational.com",
+    "bytes": 8615,
+    "sha256": "27537ed8b0e5ea2a01737d83dba038471eac48f1db8eba55062e27015e804e6f",
+    "dimensions": [
+      230,
+      65
+    ]
+  },
+  "textainer": {
+    "file": "textainer.png",
+    "source": "https://www.textainer.com/application/files/7114/8702/9418/header-logo.png",
+    "reference": "https://www.textainer.com",
+    "bytes": 5144,
+    "sha256": "50895e75fbc326588e8e858bff7256d5fcd5cb1cc9eac693779ddb8265fb3a43",
+    "dimensions": [
+      87,
+      350
+    ]
+  },
+  "cai": {
+    "file": "cai.png",
+    "source": "https://cai.capps.com/wp-content/uploads/2026/06/CAI-with-MHC-revised-white-font.png",
+    "reference": "https://www.capps.com",
+    "bytes": 19247,
+    "sha256": "3cc35877d225474af289a323c96ad51485e93b19f91ad10f7ae6ea2f5bb29ec3",
+    "dimensions": [
+      580,
+      404
+    ]
+  },
+  "seaco": {
+    "file": "seaco.png",
+    "source": "https://seacoglobal.com/wp-content/uploads/2025/05/Lockup-60th.png",
+    "reference": "https://seacoglobal.com",
+    "bytes": 5089,
+    "sha256": "e6370a7894150d931f6e5763aba66b9031d034c7f15befe7a4527b4aa76e6eef",
+    "dimensions": [
+      418,
+      128
+    ]
+  },
+  "royal_arctic": {
+    "file": "royal_arctic.svg",
+    "source": "https://www.ral.gl/wp-content/uploads/2025/03/royal-artic-logo-white.svg",
+    "reference": "https://www.ral.gl",
+    "bytes": 5223,
+    "sha256": "c9fcaf77b650ea9148234192c8f96c7c21a036939ae5e8aabc2630f6126acc19"
+  },
+  "sea_box": {
+    "file": "sea_box.png",
+    "source": "https://www.seabox.com/files/SBI-Logo_Est1983.png",
+    "reference": "https://www.seabox.com",
+    "bytes": 18830,
+    "sha256": "9efa19d7855a9e3850949d7b99c2bac7556bf4ec16bd599081c1392aa1b597e2",
+    "dimensions": [
+      270,
+      99
+    ]
+  },
+  "linfox": {
+    "file": "linfox.svg",
+    "source": "https://www.linfox.com/wp-content/themes/linfox/dist/images/logo.svg",
+    "reference": "https://www.linfox.com",
+    "bytes": 11157,
+    "sha256": "eafeefdbaf8b7ccaa087606e46e26b67567c8a4daa119408ac1e626ff8856de2"
+  },
+  "pil": {
+    "file": "pil.svg",
+    "source": "https://upload.wikimedia.org/wikipedia/en/8/8f/Pacific_International_Lines_logo.svg",
+    "bytes": 1329,
+    "sha256": "17ae5a1bb3e8270a9bc83070fc0c006b7fb3945768daf250b9209076b463227c"
+  },
+  "sitc": {
+    "file": "sitc.jpg",
+    "source": "https://www.sitc.com/logo3.jpg",
+    "reference": "https://www.sitc.com",
+    "bytes": 31906,
+    "sha256": "0a1059374588fcb2e96e1ae5684657d60baf072825f13a9ce50cc9b466b09099",
+    "dimensions": [
+      1170,
+      60
+    ]
+  },
+  "messina": {
+    "file": "messina.svg",
+    "source": "https://messinaline.it/wp-content/uploads/sites/6/2025/12/messina-line.svg",
+    "reference": "https://www.messinaline.it",
+    "bytes": 13696,
+    "sha256": "13d0aadbe6b42defdd2a54e50cc0a4569bcf04f29dc3ca300e4ddefd41823bc6"
+  },
+  "arkas": {
+    "file": "arkas.png",
+    "source": "https://arkasline.com.tr/wp-content/uploads/2021/05/Logo.png",
+    "reference": "https://www.arkasline.com.tr",
+    "bytes": 94669,
+    "sha256": "3ae555bf1e144f4e42d560b44e846052fd75a6393d37281ffce7d6e360fbe718",
+    "dimensions": [
+      1920,
+      500
+    ]
+  },
+  "ts_lines": {
+    "file": "ts_lines.svg",
+    "source": "https://www.tslines.com/images/logo.svg",
+    "reference": "https://www.tslines.com",
+    "bytes": 5232,
+    "sha256": "e8d88c7f02de7c15b3746ab8939897ab81fc0dc55ced154086aece75cc99063f"
+  }
+}

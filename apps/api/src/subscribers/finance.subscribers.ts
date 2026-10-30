@@ -30,28 +30,17 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
     const amount = Number(notice.paid_amount ?? notice.total_tax_amount);
     if (!amount || amount <= 0) return;
 
-    const already = await trx.selectFrom('expenses')
-      .select('id')
-      .where('tenant_id', '=', tenantId)
-      .where('shipment_id', '=', shipmentId)
-      .where('category', '=', 'DUTY')
-      .executeTakeFirst();
-    if (already) return; // don't double-record if this fires more than once
-
     await trx.insertInto('expenses').values({
       tenant_id: tenantId,
       shipment_id: shipmentId,
       category: 'DUTY',
-      // The landed-cost card this actual belongs under. Without it the row is
-      // invisible to the estimate-vs-actual comparison, which is the one place
-      // an automatically-recorded duty figure is most worth having: it is the
-      // real TRA assessment against what the calculator predicted.
       charge_head: 'DUTY_TAXES',
       label: `Customs duty — declaration ${event.payload.tancisRef ?? declarationId}${notice.bill_number ? ` (bill ${notice.bill_number})` : ''}`,
       amount_tzs: amount,
       is_revenue: false,
       recorded_by: null,
-    }).execute();
+      source_event_id: event.id ?? null,
+    } as any).onConflict(oc => oc.doNothing()).execute();
   });
 });
 
@@ -67,17 +56,11 @@ registerSubscriber('clearance.workflow_step_entered', async (tenantId, event) =>
   if (!customerId || !shipmentRef) return;
 
   await withTenant(tenantId, async (trx) => {
-    // Don't double-draft if this fires again (redelivery, or a re-entry).
-    const existing = await trx.selectFrom('sales_invoices').select('id')
-      .where('tenant_id', '=', tenantId).where('shipment_ref', '=', shipmentRef)
-      .executeTakeFirst();
-    if (existing) return;
-
     const customer = await trx.selectFrom('customers').select(['name'])
       .where('id', '=', customerId).where('tenant_id', '=', tenantId).executeTakeFirst();
 
     const invoiceNumber = await getNextDocNumber(trx, tenantId, 'invoice');
-    const [inv] = await trx.insertInto('sales_invoices').values({
+    const result = await trx.insertInto('sales_invoices').values({
       tenant_id: tenantId,
       invoice_number: invoiceNumber,
       shipment_ref: shipmentRef,
@@ -91,7 +74,11 @@ registerSubscriber('clearance.workflow_step_entered', async (tenantId, event) =>
       exchange_rate: 1,
       notes: `Auto-drafted when clearance for ${shipmentRef} reached the Invoicing step. Complete the lines to issue.`,
       created_by: null,
-    }).returningAll().execute();
+      source_event_id: event.id ?? null,
+    } as any).onConflict(oc => oc.doNothing()).returningAll().execute();
+
+    const inv = result[0];
+    if (!inv) return;
 
     await trx.insertInto('invoice_activity_log').values({
       tenant_id: tenantId, invoice_id: inv.id, actor_id: null, actor_name: 'ClearOS workflow',

@@ -1,0 +1,19 @@
+from pathlib import Path
+p=Path('apps/web/src/pages/Tracker.tsx');s=p.read_text(encoding='utf-8');a=s.index('    // A container has one canonical');b=s.index('    const requestId',a);s=s[:a]+s[b:];s=s.replace('type: targetType })', "type: targetType === 'CONTAINER' ? 'BL' : targetType })");s=s.replace('ClearOS powered by Hudumika','Safetracker powered by Hudumika').replace('Hudumika ClearOS','Hudumika Safetracker');p.write_text(s,encoding='utf-8')
+p=Path('apps/web/src/components/container/ContainerTrackerCard.tsx');s=p.read_text(encoding='utf-8').replace('Container Survey Certificate','Container Survey Record');p.write_text(s,encoding='utf-8')
+p=Path('apps/api/src/routes/tracker.routes.ts');s=p.read_text(encoding='utf-8');a=s.index("    const row = await withTenant(req.user.tenant_id, trx => trx.updateTable('tracking_snapshots')",s.index("fastify.post('/snapshots/:id/share'"));b=s.index("    if (!row)",a);s=s[:a]+'''    const row = await withTenant(req.user.tenant_id, async trx => {
+      const row = await trx.updateTable('tracking_snapshots')
+        .set({ share_revoked: revoke, share_token: randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, ''), share_expires_at: new Date(Date.now() + 7 * 86400000) })
+        .where('tenant_id', '=', req.user.tenant_id).where('id', '=', z.string().uuid().parse((req.params as any).id)).returning(['share_token','share_expires_at','share_revoked']).executeTakeFirst();
+      if (row) await trx.insertInto('platform_activity_log').values({ tenant_id: req.user.tenant_id, actor_user_id: req.user.sub, actor_name: req.user.name, action: revoke ? 'safetracker.share_revoked' : 'safetracker.share_rotated', category: 'system', target_type: 'tracking_snapshot', target_id: (req.params as any).id, target_name: null, metadata: JSON.stringify({ expires_at: row.share_expires_at }) }).execute();
+      return row;
+    });
+''' +s[b:];p.write_text(s,encoding='utf-8')
+p=Path('apps/api/src/services/cost-posting.service.ts');s=p.read_text(encoding='utf-8');s="import { demurrageService } from './demurrage.service.js';\nimport { getLatestFxRate } from './fx-rate.service.js';\n"+s;s=s.replace("  ): Promise<CostPostingResult> {\n    return withTenant", "  ): Promise<CostPostingResult> {\n    if (!dryRun) await demurrageService.refreshCharges(tenantId);\n    return withTenant");s=s.replace("'liable_party', 'liability_reason',", "'liable_party', 'liability_reason', 'demurrage_currency',");a=s.index('const containers = await trx');b=s.index('// One query',a);t=s[a:b].replace('.execute();', '.forUpdate().execute();');s=s[:a]+t+s[b:];s=s.replace("const entryDate = String(c.return_date ?? c.gate_out_date ?? new Date().toISOString()).slice(0, 10);", '''const entryDate = new Date(c.return_date ?? c.gate_out_date ?? new Date()).toISOString().slice(0, 10);
+        let fx = await getLatestFxRate(c.demurrage_currency, 'TZS', entryDate);
+        if (!fx && c.demurrage_currency !== 'USD') {
+          const [usd, base] = await Promise.all([getLatestFxRate(c.demurrage_currency,'USD',entryDate),getLatestFxRate('USD','TZS',entryDate)]);
+          if (usd && base) fx = { rate: usd.rate * base.rate, date: entryDate };
+        }
+        if (!fx || !Number.isFinite(fx.rate) || fx.rate <= 0) throw Object.assign(new Error(`No published ${c.demurrage_currency}/TZS exchange rate for ${entryDate}; charge not posted`), { statusCode: 409 });
+        const ledgerAmount = Math.round(amount * fx.rate * 100) / 100;''');s=s.replace('accountCode: debitAccount, debit: amount, credit: 0,', "accountCode: debitAccount, debit: ledgerAmount, credit: 0, currency: c.demurrage_currency, exchangeRate: fx.rate,").replace('accountCode: ACCOUNTS_PAYABLE_ACCOUNT, debit: 0, credit: amount,', "accountCode: ACCOUNTS_PAYABLE_ACCOUNT, debit: 0, credit: ledgerAmount, currency: c.demurrage_currency, exchangeRate: fx.rate,");s=s.replace('        } as any);', '        }, trx);');p.write_text(s,encoding='utf-8')

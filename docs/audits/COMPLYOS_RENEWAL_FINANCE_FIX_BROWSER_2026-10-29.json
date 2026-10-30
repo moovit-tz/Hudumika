@@ -1,0 +1,456 @@
+{
+  "checks": [
+    "Cost line created through UI",
+    "Requester cannot self-approve in UI",
+    "Second administrator approved budget through UI",
+    "Posted bill and partial payment linked through UI",
+    {
+      "page": "overview",
+      "width": 1440,
+      "document": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nFinance\nRenewal finance.\nTZS\n\nTrack spending, budgets, commitments and forecasts across all permit renewals.\n\nNET PAID YTD\nTSh 40,000\nFUNDING NEXT 30 DAYS\nTSh 0\nFUNDING NEXT 90 DAYS\nTSh 0\nFUNDING NEXT 365 DAYS\nTSh 0\nAPPROVED BUDGET\nTSh 120,000\nOPEN COMMITMENTS\nTSh 60,000\nDUE PAYABLES\nTSh 0\nBUDGET VARIANCE\nTSh 20,000\nUNPRICED RENEWALS\n0\nPERMIT\tENTITY / SITE\tSTATUS\tEXPIRY\tESTIMATED\tBUDGET\tCOMMITTED\tNET PAID\tREMAINING\tVARIANCE\t\n\nUnnamed\n·\n\t\n—\n\tdraft\t—\tTSh 100,000\tTSh 120,000\tTSh 100,000\tTSh 40,000\tTSh 60,000\t+TSh 20,000\tView costs\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "page": "overview",
+      "width": 390,
+      "document": 390,
+      "text": "TT\nComplyOS\n/\nFinance\nRenewal finance.\nTZS\n\nTrack spending, budgets, commitments and forecasts across all permit renewals.\n\nNET PAID YTD\nTSh 40,000\nFUNDING NEXT 30 DAYS\nTSh 0\nFUNDING NEXT 90 DAYS\nTSh 0\nFUNDING NEXT 365 DAYS\nTSh 0\nAPPROVED BUDGET\nTSh 120,000\nOPEN COMMITMENTS\nTSh 60,000\nDUE PAYABLES\nTSh 0\nBUDGET VARIANCE\nTSh 20,000\nUNPRICED RENEWALS\n0\nUnnamed\n·\n—\ndraft\n—\nTSh 100,000\nTSh 120,000\nTSh 100,000\nTSh 40,000\nTSh 60,000\n+TSh 20,000\nView costs\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "page": "detail",
+      "width": 1440,
+      "document": 1440,
+      "text": "ComplyOS\nCompliance tracking\nDashboard\nCOMPLIANCE\nCore Compliance\nRenewal Finance\nAutomation\nREGISTRY SEARCH\nCompany Research\nRegulatory\nHudu Advanced Plan\nAgentic View\nTT\nComplyOS\n/\nFinance\n/\nCycle Detail\nCosts & payments.\nBack to register\n\nLine-item budget, authority assessments, invoices, payments and receipts for this renewal cycle.\n\nTZS\nAdd cost line\nRequest budget\nLink Finance record\nESTIMATED COST\nTSh 100,000\nAPPROVED BUDGET\nTSh 120,000\nNET PAID\nTSh 40,000\nREMAINING\nTSh 60,000\nCost Lines\nCATEGORY\tDESCRIPTION\tPAYEE\tSOURCE\tQTY\tUNIT PRICE\tTAX\tTOTAL\tDUE\nAuthority Renewal\tBrowser renewal charge\t—\tmanual_estimate\t1\tTSh 100,000\t—\tTSh 100,000\t—\nTotal\tTSh 100,000\t\nBudget Versions\nVERSION\tSTATUS\tAPPROVED AMOUNT\tREASON\tREQUESTED\tAPPROVED\tREVIEW\nv1\tapproved\tTSh 120,000\tBrowser approval request\t29/10/2026\t29/10/2026\t\nFinance Allocations\nTYPE\tFINANCE RECORD\tAMOUNT\tDATE\tRECONCILED\tNOTES\nBill\tsupplier bill · 91495138-6eb8-4930-a5e4-8fa39a07903e\tTSh 100,000\t29/10/2026\tVerified against Finance\t\nPayment\tbill payment · 115045e8-9ff3-4749-9cb9-faba53f08023\tTSh 40,000\t29/10/2026\tVerified against Finance\t\nNet paid\tTSh 40,000\t\nAudit Trail\nACTION\tTARGET\tDETAILS\tWHEN\ncreate_allocation\tallocation · af9d9065…\t{\"type\":\"payment\",\"amount\":40000,\"finance_record\":\"bill_payment:115045e8-9ff3-47\t29/10/2026, 18:53:59\ncreate_allocation\tallocation · aa8a644c…\t{\"type\":\"bill\",\"amount\":100000,\"finance_record\":\"supplier_bill:91495138-6eb8-493\t29/10/2026, 18:53:55\napprove_budget\tbudget · 61e35d44…\t{\"status\":\"approved\"}\t29/10/2026, 18:53:30\ncreate_budget\tbudget · 61e35d44…\t{\"amount\":120000,\"version\":1,\"currency\":\"TZS\"}\t29/10/2026, 18:53:13\ncreate_cost_line\tcost_line · ef25588b…\t{\"total\":100000,\"category\":\"authority_renewal\",\"currency\":\"TZS\"}\t29/10/2026, 18:53:10\nHudumika Workspace © 2026 Moovit Mobility Limited. All rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    {
+      "page": "detail",
+      "width": 390,
+      "document": 390,
+      "text": "TT\nComplyOS\n/\nFinance\n/\nCycle Detail\nCosts & payments.\nBack to register\n\nLine-item budget, authority assessments, invoices, payments and receipts for this renewal cycle.\n\nTZS\nAdd cost line\nRequest budget\nLink Finance record\nESTIMATED COST\nTSh 100,000\nAPPROVED BUDGET\nTSh 120,000\nNET PAID\nTSh 40,000\nREMAINING\nTSh 60,000\nCost Lines\nAuthority Renewal\nBrowser renewal charge\n—\nmanual_estimate\n1\nTSh 100,000\n—\nTSh 100,000\n—\nTotal\nTSh 100,000\nBudget Versions\nv1\napproved\nTSh 120,000\nBrowser approval request\n29/10/2026\n29/10/2026\nFinance Allocations\nBill\nsupplier bill · 91495138-6eb8-4930-a5e4-8fa39a07903e\nTSh 100,000\n29/10/2026\nVerified against Finance\nPayment\nbill payment · 115045e8-9ff3-4749-9cb9-faba53f08023\nTSh 40,000\n29/10/2026\nVerified against Finance\nNet paid\nTSh 40,000\nAudit Trail\ncreate_allocation\nallocation · af9d9065…\n{\"type\":\"payment\",\"amount\":40000,\"finance_record\":\"bill_payment:115045e8-9ff3-47\n29/10/2026, 18:53:59\ncreate_allocation\nallocation · aa8a644c…\n{\"type\":\"bill\",\"amount\":100000,\"finance_record\":\"supplier_bill:91495138-6eb8-493\n29/10/2026, 18:53:55\napprove_budget\nbudget · 61e35d44…\n{\"status\":\"approved\"}\n29/10/2026, 18:53:30\ncreate_budget\nbudget · 61e35d44…\n{\"amount\":120000,\"version\":1,\"currency\":\"TZS\"}\n29/10/2026, 18:53:13\ncreate_cost_line\ncost_line · ef25588b…\n{\"total\":100000,\"category\":\"authority_renewal\",\"currency\":\"TZS\"}\n29/10/2026, 18:53:10\nHudumika Workspace © 2026 Moovit Mobility Limited.\nAll rights reserved.\nTerms\n·\nPrivacy\n·\nSupport\nApps\nClearOS\nFinOps\nNexusHR\nBliss\nComplyOS\nCRM\nCloud\nEmail\nContacts\nStore\nOndi\nHuduFreight\nAdmin\nCalendar\nTasks\nSafetracker\nSEAL\nStudio\nNotes\nCMS\nOnsite\nPetti\neSign\nSMS\nProjects\nDeveloper\nhudumika.tz\nAll modules"
+    },
+    "API error shown explicitly",
+    "Retry restores overview"
+  ],
+  "errors": [],
+  "responses": [
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/budgets/61e35d44-610d-4276-b64b-2c5f0f3bdf93/approve",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/finance-records",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/finance-records",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/budgets",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/cost-lines",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/audit",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/cycles/06dfe097-61ac-4573-a28e-8e80039e4350/allocations",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 403,
+      "body": "{\"error\":\"Fixture access denied\"}"
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 403,
+      "body": "{\"error\":\"Fixture access denied\"}"
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/register",
+      "status": 200
+    },
+    {
+      "path": "/v1/renewal-finance/overview",
+      "status": 200
+    }
+  ],
+  "cleaned": true
+}

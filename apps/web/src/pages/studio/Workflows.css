@@ -22,7 +22,7 @@
 
 /* form atoms */
 .wfb-input, .wfb-textarea { width:100%; padding:10px 13px; border:1.5px solid var(--border); border-radius:var(--r); font-size:14px; font-family:inherit; color:var(--ink); background:var(--card-bg, var(--white)); outline:none; transition:border-color 0.15s,box-shadow 0.15s,background-color 0.15s; box-sizing:border-box; }
-.wfb-input:focus, .wfb-textarea:focus { border-color:var(--teal); background:var(--teal-l); box-shadow:0 0 0 3px var(--teal-l); }
+.wfb-input:focus, .wfb-textarea:focus { border-color:var(--ink3); background:var(--white); box-shadow:none; }
 .wfb-textarea { min-height:72px; resize:vertical; line-height:1.55; }
 .wfb-label { font-size:11.5px; font-weight:700; color:var(--ink2); display:block; margin-bottom:5px; }
 .wfb-field { display:flex; flex-direction:column; }

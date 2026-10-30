@@ -6,11 +6,15 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { isTaxCodeUserError, resolveLineTax } from '../services/tax-code.service.js';
 import crypto from 'crypto';
+import { catalogBillingDescription } from '@hudumika/types';
+import { catalogIndustrySchema, catalogAttributesSchema, validateCatalogIndustry } from '../services/finance-catalog.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 
 // Real values — ProductsServices.tsx's own Product type / StatusPill toggle.
 const productCreateSchema = z.object({
+  industry_key: catalogIndustrySchema,
+  industry_attributes: catalogAttributesSchema.optional(),
   id: z.string().max(50).optional(),
   code: z.string().max(50).optional(),
   name: z.string().trim().min(1).max(300),
@@ -18,12 +22,12 @@ const productCreateSchema = z.object({
   description: z.string().max(2000).optional(),
   category: z.string().max(100).optional(),
   unit: z.string().max(30).optional(),
-  sale_price: z.number().optional(),
-  purchase_price: z.number().optional(),
+  sale_price: z.number().finite().min(0).optional(),
+  purchase_price: z.number().finite().min(0).optional(),
   compare_at_price: z.number().nullable().optional(),
   currency: z.string().max(10).optional(),
   status: z.enum(['active', 'inactive']).optional(),
-  tax_code_id: z.string().optional(),
+  tax_code_id: z.string().uuid().nullable().optional(),
   tax_rate: z.number().optional(),
   notes: z.string().max(5000).optional(),
   // Retail/POS expansion (migration 547)
@@ -44,6 +48,14 @@ const productCreateSchema = z.object({
   channels: z.array(z.string()).optional(),
 });
 const productPatchSchema = productCreateSchema.partial();
+function productExtendedFields(body: z.infer<typeof productPatchSchema>) {
+  const result: Record<string, unknown> = {};
+  const jsonFields = new Set(['image_urls', 'dimensions_cm', 'variants', 'channels']);
+  for (const key of ['notes', 'image_urls', 'brand', 'vendor_name', 'stock_quantity', 'low_stock_threshold', 'track_inventory', 'weight_kg', 'dimensions_cm', 'shipping_class', 'variants', 'meta_title', 'meta_description', 'url_handle', 'visibility', 'channels'] as const) {
+    if (body[key] !== undefined) result[key] = jsonFields.has(key) && body[key] !== null ? JSON.stringify(body[key]) : body[key];
+  }
+  return result;
+}
 const customerPricesSchema = z.object({
   prices: z.array(z.object({
     customer_id: z.string().min(1),
@@ -82,12 +94,14 @@ export async function productRoutes(fastify: FastifyInstance) {
       page:z.coerce.number().int().min(1).optional(), page_size:z.coerce.number().int().min(1).max(100).default(25),
       search:z.string().max(300).optional(), status:z.enum(['active','inactive']).optional(),
       category:z.string().max(100).optional(), customer_id:z.string().uuid().optional(),
+      industry: catalogIndustrySchema,
       sort:z.enum(['name','price','category','created']).default('created'), direction:z.enum(['asc','desc']).default('desc'),
     }).parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('products').where('products.tenant_id', '=', user.tenant_id);
       if (params.status) q=q.where('status','=',params.status);
       if (params.category) q=q.where('category','=',params.category);
+      if (params.industry) q=q.where('industry_key','=',params.industry);
       if (params.search?.trim()) {
         const term=`%${params.search.trim().replace(/[\\%_]/g, '\\$&')}%`;
         q=q.where(eb=>eb.or(['name','code','category','description'].map(column=>eb(column as 'name','ilike',term))));
@@ -105,6 +119,7 @@ export async function productRoutes(fastify: FastifyInstance) {
         const byProduct=new Map(overrides.map(override=>[override.product_id,override]));
         rows=rows.map(row=>{const override=byProduct.get(row.id);return override?{...row,list_price:row.sale_price,sale_price:Number(override.price),currency:override.currency,has_agreed_price:true}:row;});
       }
+      rows = rows.map(row => ({...row, billing_description: catalogBillingDescription(row)}));
       return params.page ? {items:rows,total,page:params.page,page_size:params.page_size} : rows;
     });
   });
@@ -134,7 +149,7 @@ export async function productRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('products').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Product not found' });
-      return row;
+      return {...row, billing_description: catalogBillingDescription(row)};
     });
   });
 
@@ -143,6 +158,7 @@ export async function productRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = productCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      await validateCatalogIndustry(trx, user.tenant_id, body.industry_key, body.industry_attributes);
       // A tax code, when given, decides the rate — so the two can never
       // disagree on the same row.
       let tax: { tax_code_id: string | null; rate: number };
@@ -154,6 +170,8 @@ export async function productRoutes(fastify: FastifyInstance) {
         throw e;
       }
       const row = await trx.insertInto('products').values({
+        industry_key: body.industry_key ?? null,
+        industry_attributes: JSON.stringify(body.industry_attributes ?? {}) as any,
         id: body.id || `PRD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
         tenant_id: user.tenant_id,
         code: body.code || '',
@@ -168,6 +186,7 @@ export async function productRoutes(fastify: FastifyInstance) {
         tax_rate: tax.rate,
         tax_code_id: tax.tax_code_id,
         status: body.status || 'active',
+        ...productExtendedFields(body),
       }).returningAll().executeTakeFirstOrThrow();
       return reply.status(201).send(row);
     });
@@ -180,10 +199,16 @@ export async function productRoutes(fastify: FastifyInstance) {
     const body = productPatchSchema.parse(request.body);
     const b = body as Record<string, unknown>;
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('products').select(['id', 'tax_rate', 'tax_code_id'])
+      const existing = await trx.selectFrom('products').select(['id', 'tax_rate', 'tax_code_id', 'industry_key', 'industry_attributes'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Product not found' });
+      const industry = body.industry_key === undefined ? existing.industry_key : body.industry_key;
+      const attributes = body.industry_attributes ?? (industry === existing.industry_key ? existing.industry_attributes : {});
+      await validateCatalogIndustry(trx, user.tenant_id, industry, attributes, existing.industry_key);
       const updates: any = { updated_at: new Date() };
+      if (body.industry_key !== undefined) updates.industry_key = industry;
+      if (body.industry_attributes !== undefined || industry !== existing.industry_key) updates.industry_attributes = JSON.stringify(attributes);
+      Object.assign(updates, productExtendedFields(body));
       const fields = ['code', 'name', 'type', 'description', 'category', 'unit', 'sale_price', 'purchase_price', 'currency', 'status'];
       for (const f of fields) if (b[f] !== undefined) updates[f] = b[f];
 

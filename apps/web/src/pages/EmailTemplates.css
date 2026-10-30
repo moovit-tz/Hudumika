@@ -1190,7 +1190,7 @@
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r-sm); outline: none; transition: border-color 0.12s;
 }
-.etab-mkt-search:focus { border-color: var(--teal); background: var(--white); }
+.etab-mkt-search:focus { border-color: var(--ink3); background: var(--white); }
 
 /* Source filter */
 .etab-mkt-source-btns { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; flex-shrink: 0; }
@@ -1257,7 +1257,7 @@
   text-align: left;
 }
 .etab-mkt-row:hover { box-shadow: var(--elev); border-color: var(--teal-m); background: var(--hover-bg); }
-.etab-mkt-row:focus-visible { box-shadow: 0 0 0 2px var(--teal-l); border-color: var(--teal); }
+.etab-mkt-row:focus-visible { box-shadow: none; border-color: var(--ink3); }
 .etab-mkt-row--imported { border-color: var(--teal-m); background: color-mix(in srgb, var(--teal-l) 40%, var(--surface)); }
 
 .etab-mkt-row-top { display: flex; flex-direction: column; gap: 4px; }

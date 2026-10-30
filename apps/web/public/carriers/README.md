@@ -1,0 +1,1 @@
+Local carrier identification artwork. See sources.json for provenance, SHA-256 checksums and raster dimensions. SVGs are served as image resources, never inserted as untrusted HTML. Trademarks belong to their owners. See docs/cargotracker/CARRIER_LOGOS_2026-10-25.md for behavior and verification.

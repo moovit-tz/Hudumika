@@ -1,3 +1,5 @@
+import { ContainerEvidencePage } from '../pages/ContainerEvidencePage.js';
+import { DemurrageTariffPage } from '../pages/DemurrageTariffPage.js';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -16,6 +18,7 @@ import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
 import { FreightRateCardsPage } from '../pages/FreightRateCardsPage.js';
 import { CarrierContractsPage } from '../pages/CarrierContractsPage.js';
 import { ContainerDetailPage } from '../pages/ContainerDetailPage.js';
+import { ContainerListPage } from '../pages/ContainerListPage.js';
 import { RecordContainerPage } from '../pages/RecordContainerPage.js';
 
 const NAV: SidebarSection[] = [
@@ -23,7 +26,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Dashboard',            icon: 'activity',      path: '/cargotracker',            exact: true },
       { label: 'Track',                icon: 'map',           path: '/cargotracker/track' },
-      { label: 'Containers & Fleet',   icon: 'container',     path: '/cargotracker/containers/MSCU1234567' },
+      { label: 'Containers & Fleet',   icon: 'container',     path: '/cargotracker/containers' },
       { label: 'Demurrage & Detention', icon: 'alertTriangle', path: '/cargotracker/demurrage' },
     ],
   },
@@ -55,8 +58,12 @@ export function CargoTrackerShell() {
               <Route element={<PageLayout />}>
                 <Route index element={<CargoDashboard />} />
                 <Route path="track" element={<Tracker />} />
+                <Route path="containers" element={<ContainerListPage />} />
                 <Route path="containers/new" element={<RecordContainerPage />} />
                 <Route path="containers/:number" element={<ContainerDetailPage />} />
+                <Route path="containers/:number/evidence/:kind" element={<RequireRoles roles={OPS_ROLES}><ContainerEvidencePage /></RequireRoles>} />
+                <Route path="demurrage/tariffs/new" element={<RequireRoles roles={OPS_ROLES}><DemurrageTariffPage /></RequireRoles>} />
+                <Route path="demurrage/tariffs/:id/edit" element={<RequireRoles roles={OPS_ROLES}><DemurrageTariffPage /></RequireRoles>} />
                 <Route path="containers/:number/edit" element={<RecordContainerPage />} />
                 <Route path="demurrage" element={<Demurrage />} />
                 <Route path="carriers" element={<CarriersPage />} />

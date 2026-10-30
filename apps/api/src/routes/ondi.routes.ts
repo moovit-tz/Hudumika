@@ -186,6 +186,12 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     if (body.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return reply.status(403).send({ error: 'Only a SUPER_ADMIN can invite a SUPER_ADMIN' });
     }
+    // Seat-limit enforcement (migration 635) — portal users don't count against seats
+    if ((body.role as string) !== 'CUSTOMER') {
+      const { checkSeatLimit } = await import('../lib/plan-limits.js');
+      const check = await checkSeatLimit(user.tenant_id);
+      if (!check.allowed) return reply.status(403).send({ error: check.message });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const token = crypto.randomBytes(24).toString('hex');
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

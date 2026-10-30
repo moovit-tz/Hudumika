@@ -1,5 +1,8 @@
+import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
+import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
+import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -66,7 +69,7 @@ const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
 function VendorForm({ vendor, onSave, onClose }: {
   vendor: Vendor | null; onSave: (v: Vendor) => void | Promise<void>; onClose: () => void;
 }) {
-  const [form, setForm] = useState<Vendor>(vendor ?? { ...EMPTY_VENDOR });
+  const [form, setForm] = useFinanceDraft<Vendor>('form',vendor ?? { ...EMPTY_VENDOR });
   const [saving, setSaving] = useState(false);
 
   function set(k: keyof Vendor, v: string | number) { setForm(f => ({ ...f, [k]: v })); }
@@ -87,7 +90,7 @@ function VendorForm({ vendor, onSave, onClose }: {
 
   return (
     <FormPage
-      title={vendor ? `Edit ${vendor.name}` : 'New Vendor'}
+      title={vendor ? `Edit ${vendor.name}` : 'New vendor'}
       subtitle="Contact, payment terms and tax details for a supplier you buy from."
       onCancel={onClose}
       actions={
@@ -181,6 +184,8 @@ function VendorForm({ vendor, onSave, onClose }: {
 
 /* ── Main Page ──────────────────────────────────────────────────────────────── */
 export function FinanceVendors() {
+  const documentRoute=useFinanceDocumentRoute("vendors");
+  useEffect(()=>{setShowForm(documentRoute.mode==='new');},[documentRoute.path]);
   const navigate = useNavigate();
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
@@ -244,7 +249,7 @@ export function FinanceVendors() {
   /* fin:new-doc listener */
   useEffect(() => {
     function handler(e: Event) {
-      if ((e as CustomEvent).detail?.section === 'vendors') { setEditVendor(null); setShowForm(true); }
+      if ((e as CustomEvent).detail?.section === 'vendors') { setEditVendor(null); documentRoute.open('new'); }
     }
     window.addEventListener('fin:new-doc', handler);
     return () => window.removeEventListener('fin:new-doc', handler);
@@ -299,7 +304,7 @@ export function FinanceVendors() {
     try {
       if (v.id) await apiFetch(`/v1/suppliers/${v.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
       else await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify(payload) });
-      setShowForm(false);
+      clearFinanceDrafts();setShowForm(false);documentRoute.open('list');
       setEditVendor(null);
       await loadVendors();
     } catch (err) {
@@ -322,21 +327,22 @@ export function FinanceVendors() {
       <VendorForm
         vendor={editVendor}
         onSave={handleSave}
-        onClose={() => { setShowForm(false); setEditVendor(null); }}
+        onClose={() => {setEditVendor(null);documentRoute.open('list');}}
       />
     );
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <FinanceDocumentListExport kind="vendor_statement"/>
       <PageHeader
         crumbs={['Finance', 'Vendors']}
         titlePlain="Vendor"
         titleEm="directory"
         subtitle="Manage supplier relationships, payment terms and outstanding balances."
         actions={
-          <Button onClick={() => { setEditVendor(null); setShowForm(true); }}>
-            <Icon name="plus" size={14} /> New Vendor
+          <Button onClick={() => { setEditVendor(null); documentRoute.open('new'); }}>
+            <Icon name="plus" size={14} /> New vendor
           </Button>
         }
       />
@@ -407,7 +413,7 @@ export function FinanceVendors() {
             emptyTitle="No vendors yet" emptyMessage="Add a supplier to manage its profile and payables."
             onRowClick={vendor => navigate(`/finance/vendors/${vendor.id}`)}
             columns={[
-              { key: 'name', header: 'Vendor', accessor: 'name', sortable: true, render: vendor => <div className="ds-record-cell"><PersonAvatar kind="suppliers" userId={vendor.id} name={vendor.name} size={32} /><div><strong>{vendor.name}</strong><small>{vendor.refCode || vendor.email || 'No reference'}</small></div></div> },
+              { key: 'name', header: 'Vendor', accessor: 'name', sortable: true, render: vendor => <div className="ds-record-cell"><PersonAvatar kind="suppliers" userId={vendor.id} name={vendor.name} size={32} /><div><Link to={`/finance/vendors/${vendor.id}`} onClick={e=>e.stopPropagation()}><strong>{vendor.name}</strong></Link><small>{vendor.refCode || vendor.email || 'No reference'}</small></div></div> },
               { key: 'category', header: 'Category', accessor: 'category', sortable: true, render: vendor => VENDOR_CATEGORY_LABEL[vendor.category] },
               { key: 'contact', header: 'Contact', accessor: 'contactPerson', sortable: true, render: vendor => <div className="ds-record-cell"><div><strong>{vendor.contactPerson || '—'}</strong><small>{vendor.phone || 'No phone recorded'}</small></div></div> },
               { key: 'balance', header: 'Outstanding', accessor: 'balance', sortable: true, align: 'right', render: vendor => fmt(vendor.balance, vendor.currency) },
@@ -415,7 +421,7 @@ export function FinanceVendors() {
             ]}
             rowActions={vendor => [
               { label: 'View profile', icon: 'user', onClick: () => navigate(`/finance/vendors/${vendor.id}`) },
-              { label: 'Edit vendor', icon: 'edit', onClick: () => { setEditVendor(vendor); setShowForm(true); } },
+              { label: 'Edit vendor', icon: 'edit', onClick: () => { setEditVendor(vendor); documentRoute.open('new'); } },
                 { label: 'Delete vendor', icon: 'trash', variant: 'danger', separator: true, onClick: () => handleDelete(vendor.id) },
             ]}
           />
