@@ -1,6 +1,6 @@
 import { Card } from '../components/ui/card.js';
 import { Button } from '../components/ui/button.js';
-import {ButtonSpinner} from '../components/ui/spinner.js';
+import { ButtonSpinner } from '../components/ui/spinner.js';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -35,8 +35,13 @@ export function ComplyWizardPage({
 
   return (
     <div className="comply-page">
-      <PageHeader crumbs={['ComplyOS', 'Wizard']} title={title} subtitle={subtitle}
-        actions={<Button variant="outline" size="sm" onClick={() => navigate(backTo)}><Icon name="chevronLeft" size={13} /> Back to list</Button>} />
+      <PageHeader
+        crumbs={['ComplyOS', 'Wizard']}
+        title={title}
+        subtitle={subtitle}
+        backTo={backTo}
+        backLabel="Back to list"
+      />
 
       <Card className="comply-card comply-wizard-card">
         {/* Step indicator */}

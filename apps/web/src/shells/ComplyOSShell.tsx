@@ -16,7 +16,7 @@ import { ComplyVault, AddCertificatePage }        from '../pages/ComplyVault.js'
 import { ComplyCalendar, AddReminderPage }        from '../pages/ComplyCalendar.js';
 import { ComplyLegal, EngageFirmPage }            from '../pages/ComplyLegal.js';
 import { ComplyAgencies }     from '../pages/ComplyAgencies.js';
-import { ComplyWorkflows }    from '../pages/ComplyWorkflows.js';
+import { ComplyWorkflows, ComplyRenewalPage, NewRenewalWorkflowWizardPage }    from '../pages/ComplyWorkflows.js';
 import { ComplyBrelaSearch }  from '../pages/ComplyBrelaSearch.js';
 import { ComplyBrelaHistory } from '../pages/ComplyBrelaHistory.js';
 import { ComplyCompanyDirectory } from '../pages/ComplyCompanyDirectory.js';
@@ -103,6 +103,8 @@ export function ComplyOSShell() {
               <Route path="legal/engage/:firmId"  element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><EngageFirmPage /></RequireRoles>}          />
               <Route path="agencies"              element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyAgencies /></RequireRoles>}          />
               <Route path="workflows"             element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyWorkflows /></RequireRoles>}         />
+              <Route path="workflows/new"         element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><NewRenewalWorkflowWizardPage /></RequireRoles>} />
+              <Route path="workflows/:renewalId" element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyRenewalPage /></RequireRoles>} />
               <Route path="brela-search"          element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyBrelaSearch /></RequireRoles>}       />
               <Route path="brela-search/history"  element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyBrelaHistory /></RequireRoles>}      />
               <Route path="companies"             element={<RequireRoles roles={MGMT_ROLES} permissions={['comply.manage']}><ComplyCompanyDirectory /></RequireRoles>}  />

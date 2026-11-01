@@ -1,0 +1,847 @@
+/* ProjectCreatePage.css — Hudumika Design System & Dynamic App Color Config */
+
+.pcp-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  padding-bottom: 32px;
+}
+
+/* ── Top Intake Switcher / Hero Banner ── */
+.pcp-intake-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 768px) {
+  .pcp-intake-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pcp-intake-mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+  min-width: 0;
+  width: 100%;
+}
+
+.pcp-intake-mode-card:hover {
+  border-color: var(--teal-m);
+  box-shadow: var(--elev);
+  transform: translateY(-1px);
+}
+
+.pcp-intake-mode-card.is-active {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  box-shadow: var(--elev-sm);
+}
+
+.pcp-intake-mode-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pcp-intake-mode-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pcp-intake-mode-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.pcp-intake-mode-desc {
+  font-size: 12.5px;
+  color: var(--ink2);
+  line-height: 1.45;
+}
+
+/* ── AI Document Intake Panel ── */
+.pcp-doc-panel {
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  overflow: hidden;
+}
+
+.pcp-doc-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  flex-wrap: wrap;
+}
+
+.pcp-doc-panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pcp-doc-panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.pcp-doc-panel-sub {
+  font-size: 12.5px;
+  color: var(--ink3);
+  margin: 2px 0 0;
+}
+
+.pcp-doc-panel-body {
+  padding: 20px;
+  background: var(--card-sunken, var(--bg));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pcp-dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 24px 18px;
+  border-radius: var(--r);
+  border: 1.5px dashed var(--teal-m);
+  background: var(--surface, var(--white));
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.pcp-dropzone:hover,
+.pcp-dropzone.is-dragover {
+  border-color: var(--teal);
+  background: var(--teal-l);
+}
+
+.pcp-dropzone-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.pcp-dropzone-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pcp-dropzone-title span {
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pcp-dropzone-hint {
+  font-size: 12px;
+  color: var(--ink3);
+  max-width: 540px;
+  line-height: 1.45;
+}
+
+.pcp-dropzone-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ── Uploaded File Queue ── */
+.pcp-file-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pcp-file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  min-width: 0;
+}
+
+.pcp-file-chip-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pcp-file-chip-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pcp-file-chip-meta {
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.pcp-doc-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── AI Candidate Cards ── */
+.pcp-candidates-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--r);
+  border: 1px solid var(--teal-m);
+  background: var(--surface, var(--white));
+}
+
+.pcp-candidates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 10px;
+}
+
+.pcp-candidate-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  min-width: 0;
+}
+
+.pcp-candidate-btn:hover {
+  border-color: var(--teal);
+}
+
+.pcp-candidate-btn.is-selected {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  box-shadow: var(--elev-sm);
+}
+
+/* ── Quick Blueprint Starter Strip ── */
+.pcp-blueprints-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+}
+
+.pcp-blueprints-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+}
+
+.pcp-blueprint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ctl-h-xs, 28px);
+  padding: 4px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--card-sunken, var(--bg));
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.pcp-blueprint-pill:hover {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.pcp-blueprint-pill.is-active {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+/* ── Main 2-Column Workspace Layout (Form + Live Charter Preview) ── */
+.pcp-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .pcp-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pcp-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.pcp-side-col {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1080px) {
+  .pcp-side-col {
+    position: static;
+  }
+}
+
+/* ── Stepper Navigation Ribbon ── */
+.pcp-stepper-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  flex-wrap: wrap;
+}
+
+.pcp-stepper-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.pcp-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--card-sunken, var(--bg));
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pcp-step-pill:hover {
+  border-color: var(--teal-m);
+  color: var(--ink);
+}
+
+.pcp-step-pill.is-active {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  color: var(--ink);
+}
+
+.pcp-step-pill.is-done .pcp-step-num {
+  background: var(--green-l);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.pcp-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border2);
+  color: var(--ink2);
+  flex-shrink: 0;
+}
+
+.pcp-step-pill.is-active .pcp-step-num {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+/* ── Form Section Cards ── */
+.pcp-section-card {
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  overflow: hidden;
+  transition: border-color 0.16s ease;
+}
+
+.pcp-section-card.is-focused {
+  border-color: var(--teal-m);
+}
+
+.pcp-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  flex-wrap: wrap;
+}
+
+.pcp-section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pcp-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.pcp-section-subtitle {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 2px 0 0;
+}
+
+.pcp-section-body {
+  padding: 20px;
+  background: var(--card-sunken, var(--bg));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pcp-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 14px;
+}
+
+.pcp-field-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .pcp-field-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .pcp-section-header,
+  .pcp-section-body,
+  .pcp-doc-panel-header,
+  .pcp-doc-panel-body {
+    padding: 14px;
+  }
+}
+
+.pcp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pcp-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pcp-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pcp-label-req {
+  color: var(--teal);
+}
+
+.pcp-field-hint {
+  font-size: 11.5px;
+  color: var(--ink3);
+}
+
+/* ── Client Preview Strip & Financial Callout ── */
+.pcp-context-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--teal-m);
+  background: var(--teal-l);
+  flex-wrap: wrap;
+}
+
+.pcp-fin-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+}
+
+.pcp-fin-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pcp-fin-metric-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+}
+
+.pcp-fin-metric-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ── Quick Tag Suggestions ── */
+.pcp-tag-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.pcp-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  color: var(--ink2);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.pcp-tag-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.pcp-tag-btn.is-selected {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+/* ── Right Column: Live Project Charter Summary Card ── */
+.pcp-charter-card {
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pcp-charter-banner {
+  padding: 16px 18px;
+  background: var(--teal-l);
+  border-bottom: 1px solid var(--teal-m);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pcp-charter-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--teal);
+}
+
+.pcp-charter-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.pcp-charter-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pcp-readiness-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pcp-readiness-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink2);
+}
+
+.pcp-readiness-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--card-sunken, var(--bg));
+  overflow: hidden;
+}
+
+.pcp-readiness-fill {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.pcp-charter-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.pcp-charter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.pcp-charter-row-label {
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+.pcp-charter-row-val {
+  color: var(--ink);
+  font-weight: 700;
+  text-align: right;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pcp-charter-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--card-sunken, var(--bg));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Document Review Card ── */
+.pcp-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+
+.pcp-review-block {
+  padding: 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface, var(--white));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pcp-evidence-quote {
+  padding: 10px 14px;
+  border-left: 3px solid var(--teal);
+  background: var(--surface, var(--white));
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+.pcp-evidence-text { margin: 0; font-size: 13px; color: var(--ink); word-break: break-word; }
+.pcp-evidence-source { margin: 0; font-size: 11.5px; color: var(--ink3); }
+.pcp-evidence-trigger { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ── Sources ── */
+.pcp-sources-wrap { display: flex; flex-direction: column; gap: 8px; }
+.pcp-sources-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Review grid helpers ── */
+.pcp-review-grid { margin: 0; }
+.pcp-label--muted { color: var(--ink2); }
+.pcp-review-dd { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+.pcp-review-block-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pcp-review-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  list-style: disc;
+  font-size: 13px;
+  color: var(--ink2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pcp-review-list li { word-break: break-word; }
+
+/* ── Doc panel header actions ── */
+.pcp-doc-panel-actions { display: flex; align-items: center; gap: 8px; }
+.pcp-doc-actions-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ── Candidates ── */
+.pcp-candidates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pcp-candidates-intro { margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+.pcp-candidates-footnote { margin: 0; font-size: 11.5px; color: var(--ink3); }
+.pcp-candidate-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+}
+.pcp-candidate-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.pcp-candidate-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ── Success card ── */
+.pcp-success-header { display: flex; align-items: center; gap: 12px; }
+.pcp-success-body { display: flex; flex-direction: column; gap: 16px; }
+.pcp-success-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Charter sidebar helpers ── */
+.pcp-charter-kicker-label { display: inline-flex; align-items: center; gap: 5px; }
+.pcp-charter-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.pcp-readiness-pct { color: var(--teal); }
+.pcp-charter-lead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
