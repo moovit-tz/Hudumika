@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '../../components/Icon.js';
+import { apiFetch } from '../../lib/api.js';
 import type { StepProps } from './types.js';
 import type { Package } from '@hudumika/types';
+
+interface StandaloneProduct {
+  product_key: string;
+  name: string;
+  description: string | null;
+  pricing: { currency: string; price_flat_monthly: string | number | null; price_flat_annual: string | number | null } | null;
+}
 
 // Cards still clear fine here, but GPay/PayPal/Apple Pay have close to no
 // real reach in Tanzania -- mobile money is how this region actually pays.
@@ -48,17 +56,50 @@ function storageLabel(pkg: Package): string {
 export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages }) => {
   const [err, setErr] = useState<string | null>(null);
   const [showMatrix, setShowMatrix] = useState(false);
+  // "product" mode: a standalone-product signup (e.g. SEAL-only) — no
+  // Hudumika Business tier at all, package_code is forced to the $0
+  // workspace-free row (migration 692) and initial_products carries what
+  // was actually picked. Starts in "product" mode if a previous visit to
+  // this step already picked one (e.g. the user went Back from a later step).
+  const [mode, setMode] = useState<'plan' | 'product'>(draft.initial_products.length ? 'product' : 'plan');
+  const [products, setProducts] = useState<StandaloneProduct[] | null>(null);
 
   useEffect(() => {
-    if (!draft.package_code && packages.length) {
+    apiFetch('/v1/onboarding/products').then(res => setProducts(res.data)).catch(() => setProducts([]));
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'plan' && !draft.package_code && packages.length) {
       const popular = packages.find((p: Package) => p.popular) ?? packages[0];
       update({ package_code: popular.code });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packages]);
+  }, [packages, mode]);
+
+  function switchMode(next: 'plan' | 'product') {
+    setErr(null);
+    setMode(next);
+    if (next === 'product') {
+      update({ package_code: 'workspace-free' });
+    } else {
+      update({ package_code: '', initial_products: [] });
+    }
+  }
+
+  function toggleProduct(key: string) {
+    const selected = draft.initial_products.includes(key)
+      ? draft.initial_products.filter(k => k !== key)
+      : [...draft.initial_products, key];
+    update({ initial_products: selected });
+  }
 
   const handleSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
+    if (mode === 'product') {
+      if (draft.initial_products.length === 0) { setErr('Please select at least one product'); return; }
+      onNext();
+      return;
+    }
     if (!draft.package_code) { setErr('Please select a plan'); return; }
     onNext();
   };
@@ -87,10 +128,58 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             Annually <span className="ob-billing-save">Save 30%</span>
           </button>
         </div>
+
+        {/* Standalone-product signup — no Hudumika Business tier at all,
+            just one or more independent products (SEAL, ClearOS, etc.) on
+            the free Workspace substrate. */}
+        <div className="ob-billing-toggle" style={{ marginTop: 10 }}>
+          <button type="button" className={`ob-billing-opt${mode === 'plan' ? ' ob-billing-opt--active' : ''}`} onClick={() => switchMode('plan')} data-ui-native-button="">
+            Full plan
+          </button>
+          <button type="button" className={`ob-billing-opt${mode === 'product' ? ' ob-billing-opt--active' : ''}`} onClick={() => switchMode('product')} data-ui-native-button="">
+            Just one product
+          </button>
+        </div>
       </div>
 
-      {packages.length === 0 && <div className="ob-loading">Loading packages...</div>}
       {err && <span className="login-field-err" style={{ display: 'block', textAlign: 'center', marginBottom: 12 }}>{err}</span>}
+
+      {mode === 'product' ? (
+        <div className="ob-pkg-grid">
+          {products === null && <div className="ob-loading">Loading products...</div>}
+          {products?.length === 0 && <div className="ob-loading">No standalone products are available right now.</div>}
+          {products?.map(p => {
+            const selected = draft.initial_products.includes(p.product_key);
+            const monthly = p.pricing?.price_flat_monthly != null ? Number(p.pricing.price_flat_monthly) : null;
+            const curr = p.pricing?.currency === 'TZS' ? 'TZS ' : '$';
+            return (
+              <div
+                key={p.product_key}
+                onClick={() => toggleProduct(p.product_key)}
+                className={`ob-pkg-card${selected ? ' ob-pkg-card--selected' : ''}`}
+              >
+                <div className="ob-pkg-header-row">
+                  <div className="ob-pkg-name">{p.name}</div>
+                </div>
+                <div className="ob-pkg-price">
+                  {monthly != null ? `${curr}${monthly.toLocaleString()}` : 'Custom'}
+                  {monthly != null && <span>/mo</span>}
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 12px' }}>{p.description}</p>
+                <button
+                  type="button"
+                  className={`ob-pkg-btn ${selected ? 'ob-pkg-btn--solid' : 'ob-pkg-btn--outline'}`}
+                  onClick={(e) => { e.stopPropagation(); toggleProduct(p.product_key); }}
+                 data-ui-native-button="">
+                  {selected ? 'Selected ✓' : 'Add'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+      <>
+      {packages.length === 0 && <div className="ob-loading">Loading packages...</div>}
 
       {/* 3-Column Pricing Grid (Imitating Sample Image) */}
       <div className="ob-pkg-grid">
@@ -280,11 +369,17 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Form Action Controls */}
       <div className="login-form-actions" style={{ marginTop: 28 }}>
         <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
-        <button type="submit" className="login-submit-btn" disabled={packages.length === 0} data-ui-native-button="">
+        <button
+          type="submit"
+          className="login-submit-btn"
+          disabled={mode === 'plan' ? packages.length === 0 : !products || products.length === 0}
+         data-ui-native-button="">
           Continue to Step 4
         </button>
       </div>

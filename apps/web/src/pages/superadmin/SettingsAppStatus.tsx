@@ -1635,6 +1635,18 @@ const APP_ICONS: Record<string, IconName> = {
 
 interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; message: string | null; is_beta: boolean; updated_at: string; }
 
+type ReadinessState = 'internal' | 'pilot' | 'sellable' | 'limited_availability' | 'general_availability' | 'suspended' | 'retired';
+interface CommercialProductRow { product_key: string; name: string; standalone_purchasable: boolean; readiness_state: ReadinessState; }
+const READINESS_OPTIONS: { value: ReadinessState; label: string }[] = [
+  { value: 'internal', label: 'Internal' },
+  { value: 'pilot', label: 'Pilot' },
+  { value: 'sellable', label: 'Sellable' },
+  { value: 'limited_availability', label: 'Limited availability' },
+  { value: 'general_availability', label: 'General availability' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'retired', label: 'Retired' },
+];
+
 type AppStatusSort = 'name' | 'status' | 'updated';
 
 export function AppStatusView() {
@@ -1649,6 +1661,27 @@ export function AppStatusView() {
   const [sortBy, setSortBy] = useState<AppStatusSort>('name');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() =>
     (localStorage.getItem('hudumika_appstatus_view_mode') as 'list' | 'grid') || 'list');
+  const [products, setProducts] = useState<CommercialProductRow[]>([]);
+  const [productSavingKey, setProductSavingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/superadmin/commercial-products').then(res => setProducts(res.commercialProducts || [])).catch(() => {});
+  }, []);
+
+  async function updateReadiness(productKey: string, readiness_state: ReadinessState) {
+    setProductSavingKey(productKey);
+    try {
+      const res = await apiFetch(`/v1/superadmin/commercial-products/${productKey}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ readiness_state }),
+      });
+      setProducts(prev => prev.map(p => p.product_key === productKey ? res.commercialProduct : p));
+    } catch (err: any) {
+      showAlert(`Failed to update ${productKey}: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setProductSavingKey(null);
+    }
+  }
 
   const handleViewChange = (mode: 'list' | 'grid') => {
     setViewMode(mode);
@@ -1807,6 +1840,30 @@ export function AppStatusView() {
           </button>
         </div>
       </div>
+
+      {products.length > 0 && (
+        <SectionCard title="Commercial Product Readiness">
+          <p style={{ margin: '10px 18px 0', fontSize: 12, color: 'var(--ink3)' }}>
+            Where each independently-subscribable product sits in internal → pilot → sellable → general availability. Separate from the maintenance switch below — this never changes entitlements or billing by itself.
+          </p>
+          {products.map(p => (
+            <div key={p.product_key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 18px', borderBottom:'1px solid var(--border)', opacity: productSavingKey === p.product_key ? 0.6 : 1 }}>
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                <span style={{ fontSize:13.5, fontWeight:600 }}>{p.name}</span>
+                <span style={{ fontSize:12, color:'var(--ink3)' }}>{p.product_key}{p.standalone_purchasable ? ' · standalone purchasable' : ''}</span>
+              </div>
+              <Select value={p.readiness_state} onValueChange={v => updateReadiness(p.product_key, v as ReadinessState)}>
+                <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:180, height:34 }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {READINESS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+        </SectionCard>
+      )}
 
       {visibleRows.length === 0 ? (
         <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>No apps match your search.</div>

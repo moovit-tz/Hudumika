@@ -65,6 +65,10 @@ export interface TenantsTable {
    *  existed — never a confirmation either way for older rows. */
   founder_personal_email_domain: string | null;
   billing_cycle: Generated<'monthly' | 'annual'>;
+  /** Migration 683 — day-of-month (1-28) every tenant_product_subscriptions
+   *  row bills against, so adding a second product never creates a second
+   *  renewal date. Backfilled from created_at; stable once set. */
+  billing_anniversary_day: number | null;
   onboarding_journey: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -4874,6 +4878,46 @@ export interface AppStatusTable {
   updated_at: Generated<Date>;
 }
 
+/** Migration 682 — platform-global catalog of independently-subscribable
+ *  commercial products. Generalizes app_status's status/is_beta into the
+ *  fuller readiness lifecycle a product moves through before it's sellable.
+ *  No tenant_id — same shape as packages/app_status, read via dbPlatform. */
+export interface CommercialProductsTable {
+  id: Generated<string>;
+  product_key: string;
+  name: string;
+  description: string | null;
+  standalone_purchasable: Generated<boolean>;
+  readiness_state: Generated<'internal' | 'pilot' | 'sellable' | 'limited_availability' | 'general_availability' | 'suspended' | 'retired'>;
+  default_billing_method: Generated<'flat_tier' | 'usage_metered' | 'hybrid'>;
+  /** Migration 690 — the package carrying this product's standard sellable
+   *  price, so a client can discover what to pass as package_code to
+   *  POST /v1/billing/products/:key/subscribe without hardcoding naming
+   *  conventions. Null for usage-metered products with no flat tier. */
+  default_package_code: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 683 — one row per tenant per subscribed commercial product.
+ *  Generalizes tenants.plan (a single string) into N independent,
+ *  separately-billed, separately-cancellable subscriptions. The
+ *  hudumika_business row is kept write-through in sync with tenants.plan —
+ *  every existing reader of that column keeps working unmodified. */
+export interface TenantProductSubscriptionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  commercial_product_id: string;
+  package_code: string | null;
+  status: Generated<'active' | 'trial' | 'grace' | 'suspended' | 'cancelled' | 'scheduled_cancellation' | 'expired'>;
+  started_at: Generated<Date>;
+  cancel_at: Date | null;
+  cancelled_at: Date | null;
+  price_snapshot: string | null; // JSONB — auto-parsed to native by the pg driver when selected
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface PlatformTransactionsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -6393,6 +6437,7 @@ export interface Database {
   payment_methods: PaymentMethodsTable;
   subscription_invoices: SubscriptionInvoicesTable;
   billing_webhook_events: BillingWebhookEventsTable;
+  pending_signups: PendingSignupsTable;
   cloud_retention_policies: CloudRetentionPoliciesTable;
   invoice_sequences: InvoiceSequencesTable;
   customer_invoice_sequences: CustomerInvoiceSequencesTable;
@@ -6643,6 +6688,8 @@ export interface Database {
   // Entitlements (package-gated features + per-app maintenance status)
   package_features: PackageFeaturesTable;
   app_status: AppStatusTable;
+  commercial_products: CommercialProductsTable;
+  tenant_product_subscriptions: TenantProductSubscriptionsTable;
   // Public/partner API layer
   api_keys: ApiKeysTable;
   api_usage_events: ApiUsageEventsTable;
@@ -9675,6 +9722,19 @@ export interface BillingWebhookEventsTable {
   payload: Generated<unknown>;
   outcome: string | null;
   received_at: Generated<Date>;
+}
+
+/** Migration 693 — hosted-checkout onboarding's pre-tenant staging row. */
+export interface PendingSignupsTable {
+  id: Generated<string>;
+  tx_ref: string;
+  payload: unknown;
+  amount: number;
+  currency: string;
+  status: Generated<'pending' | 'completed' | 'failed' | 'expired'>;
+  completed_tenant_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface CloudRetentionPoliciesTable {

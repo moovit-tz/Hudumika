@@ -37,6 +37,7 @@ function toCompleteInput(draft: OnboardingDraft, referralCode: string | null, lo
     company: { name: draft.companyName, industry: draft.industry || undefined, country: draft.country || undefined },
     package_code: draft.package_code,
     billing_cycle: draft.billing_cycle,
+    initial_products: draft.initial_products.length ? draft.initial_products : undefined,
     subdomain: draft.subdomain,
     payment: {
       method: draft.payment.method,
@@ -75,6 +76,10 @@ export const OnboardingWizard: React.FC = () => {
   const [step, setStep]     = useState(1);
   const [draft, setDraft]   = useState<OnboardingDraft>(EMPTY_DRAFT);
   const [packages, setPackages] = useState<Package[]>([]);
+  // Whether a real payment gateway is configured — decides whether the
+  // final step collects card/mobile details itself (simulated path,
+  // unchanged) or sends the customer to hosted checkout instead.
+  const [gatewayConfigured, setGatewayConfigured] = useState(false);
   const [journeys, setJourneys] = useState<OnboardingJourney[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -140,8 +145,14 @@ export const OnboardingWizard: React.FC = () => {
   }, [isDark, isBgDark, pageBg, accent]);
 
   useEffect(() => {
-    apiFetch('/v1/packages').then(res => setPackages(res.data)).catch(() => {});
+    // workspace-free (migration 692) is deliberately excluded from the normal
+    // tier grid — it's a $0 catalog row the server needs to exist so a
+    // standalone-product signup has a valid package_code, not a plan a
+    // customer picks alongside Starter/Business/Scale. StepPackage's new
+    // "single product" tab sets it directly instead.
+    apiFetch('/v1/packages').then(res => setPackages((res.data as Package[]).filter(p => p.code !== 'workspace-free'))).catch(() => {});
     apiFetch('/v1/onboarding/journeys').then(res => setJourneys(Array.isArray(res) ? res : [])).catch(() => {});
+    apiFetch('/v1/onboarding/payment-status').then(res => setGatewayConfigured(!!res.gateway_configured)).catch(() => {});
     apiFetch('/v1/privacy-policy/current')
       .then((policy: any) => setDraft(prev => ({ ...prev, privacy_policy_version_id: policy.id })))
       .catch(() => setSubmitError('The Privacy Policy is temporarily unavailable. Please try again shortly.'));
@@ -174,9 +185,23 @@ export const OnboardingWizard: React.FC = () => {
     setSubmitting(true);
     setSubmitError(null);
     try {
+      const input = toCompleteInput(draft, referralCodeRef.current, language);
+      const pkg = packages.find(p => p.code === draft.package_code);
+      const amount = draft.package_code === 'workspace-free' ? 0
+        : pkg ? (draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price) : 0;
+
+      if (amount > 0 && gatewayConfigured) {
+        // Hosted checkout: nothing is created yet. Navigate away to
+        // Flutterwave's own page — completion happens on the far side of
+        // the redirect (OnboardingFinalizing), once its webhook confirms.
+        const { checkout_url } = await apiFetch('/v1/onboarding/checkout', { method: 'POST', body: JSON.stringify(input) });
+        window.location.href = checkout_url;
+        return;
+      }
+
       const res: OnboardingCompleteResponse = await apiFetch('/v1/onboarding/complete', {
         method: 'POST',
-        body: JSON.stringify(toCompleteInput(draft, referralCodeRef.current, language)),
+        body: JSON.stringify(input),
       });
       setSuccess(res);
     } catch (err: any) {
@@ -204,7 +229,7 @@ export const OnboardingWizard: React.FC = () => {
 
   const stepProps = {
     draft, update, onNext: handleNext, onBack: handleBack, packages, journeys, submitting, submitError,
-    onRequestJoin: handleRequestJoin, joinRequestSubmitting, joinRequestError,
+    onRequestJoin: handleRequestJoin, joinRequestSubmitting, joinRequestError, gatewayConfigured,
   };
 
   return (

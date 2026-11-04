@@ -70,7 +70,7 @@ async function tryAutoCharge(inv: { id: string; tenant_id: string; invoice_numbe
 }
 
 /** `onlyTenantId` scopes the whole run to one tenant — used by tests so they never touch other tenants' invoices. */
-export async function runSubscriptionBillingJob(now = new Date(), onlyTenantId?: string): Promise<{ generated: number; escalated: number; autoPaid: number }> {
+export async function runSubscriptionBillingJob(now = new Date(), onlyTenantId?: string): Promise<{ generated: number; escalated: number; autoPaid: number; productsCancelled: number }> {
   let generated = 0, escalated = 0, autoPaid = 0;
 
   // 1. Scheduled invoices.
@@ -126,6 +126,19 @@ export async function runSubscriptionBillingJob(now = new Date(), onlyTenantId?:
     }
   }
 
-  if (generated || escalated) console.log(`💳 Subscription billing — invoices generated: ${generated}, dunning steps: ${escalated}, auto-paid: ${autoPaid}`);
-  return { generated, escalated, autoPaid };
+  // 4. Product-subscription cancellation sweep (migration 683/685): a
+  // cancelProductSubscription(atPeriodEnd: true) call sets
+  // 'scheduled_cancellation' immediately but access/billing is meant to
+  // continue through cancel_at (current period end) — entitlement.ts's
+  // additionalProductGrant() already treats that status as still-entitled.
+  // This is what actually closes it out once the period has passed.
+  let cancelSweep = dbPlatform.updateTable('tenant_product_subscriptions')
+    .set({ status: 'cancelled', cancelled_at: now, updated_at: now })
+    .where('status', '=', 'scheduled_cancellation').where('cancel_at', '<=', now);
+  if (onlyTenantId) cancelSweep = cancelSweep.where('tenant_id', '=', onlyTenantId);
+  const cancelResult = await cancelSweep.executeTakeFirst();
+  const productsCancelled = Number(cancelResult.numUpdatedRows ?? 0);
+
+  if (generated || escalated || productsCancelled) console.log(`💳 Subscription billing — invoices generated: ${generated}, dunning steps: ${escalated}, auto-paid: ${autoPaid}, product subscriptions cancelled: ${productsCancelled}`);
+  return { generated, escalated, autoPaid, productsCancelled };
 }

@@ -53,6 +53,39 @@ export async function agencyManagedOnsiteGrant(tenantId: string, featureKey: str
  * so a deactivated add-on (package_addons.is_active=false) stops granting
  * access even if a tenant's own tenant_addons row is still 'active'.
  */
+/**
+ * Does this tenant hold an active ADDITIONAL product subscription (migration
+ * 683 — beyond the base hudumika_business plan, which is already checked
+ * via tenants.plan/package_features above) whose package grants this
+ * feature key? Scoped to product_key != 'hudumika_business' so this never
+ * duplicates the primary check.
+ *
+ * 'scheduled_cancellation' counts as entitled: cancelProductSubscription's
+ * atPeriodEnd path (the default) sets that status immediately but access is
+ * only supposed to end at cancel_at (current period end) — per the Oct-28
+ * decisions ledger's D7 ("downgrade takes effect at period end") and the
+ * master prompt's "never delete data/cut access on cancellation" rule.
+ * The daily subscription-billing.job.ts sweep (step 4) flips
+ * 'scheduled_cancellation' to 'cancelled' once cancel_at passes — but this
+ * check does NOT rely on that job having run on schedule: the explicit
+ * cancel_at comparison below is the actual enforcement, so a job outage
+ * (server down, cron misconfigured) never leaves access open past the
+ * period a tenant actually paid for.
+ */
+export async function additionalProductGrant(tenantId: string, featureKey: string): Promise<boolean> {
+  const grant = await dbPlatform.selectFrom('tenant_product_subscriptions as tps')
+    .innerJoin('commercial_products as cp', 'cp.id', 'tps.commercial_product_id')
+    .innerJoin('package_features as pf', 'pf.package_code', 'tps.package_code')
+    .select('tps.id')
+    .where('tps.tenant_id', '=', tenantId)
+    .where('tps.status', 'in', ['active', 'grace', 'scheduled_cancellation'])
+    .where(eb => eb.or([eb('tps.cancel_at', 'is', null), eb('tps.cancel_at', '>', new Date())]))
+    .where('cp.product_key', '!=', 'hudumika_business')
+    .where('pf.feature_key', '=', featureKey)
+    .executeTakeFirst();
+  return !!grant;
+}
+
 export async function hasActiveAddonGrant(tenantId: string, featureKey: string): Promise<boolean> {
   const grant = await dbPlatform.selectFrom('tenant_addons')
     .innerJoin('package_addons', 'package_addons.code', 'tenant_addons.addon_code')
@@ -141,8 +174,9 @@ async function checkEntitlement(
   // same real entitlement a base package's own feature list would,
   // independent of which package the tenant is actually on.
   const addonGrant = grant ? null : await hasActiveAddonGrant(user.tenant_id, featureKey);
+  const productGrant = grant || addonGrant ? null : await additionalProductGrant(user.tenant_id, featureKey);
 
-  if (!grant && !addonGrant) {
+  if (!grant && !addonGrant && !productGrant) {
     return { status: 403, body: { error: 'Your current plan does not include this feature.', code: 'PLAN_UPGRADE_REQUIRED' } };
   }
 
@@ -220,7 +254,8 @@ export async function tenantHasEntitlement(tenantId: string, featureKey: string)
     .executeTakeFirst();
   if (grant) return true;
 
-  return hasActiveAddonGrant(tenantId, featureKey);
+  if (await hasActiveAddonGrant(tenantId, featureKey)) return true;
+  return additionalProductGrant(tenantId, featureKey);
 }
 
 export function requireEntitlement(featureKey: string) {

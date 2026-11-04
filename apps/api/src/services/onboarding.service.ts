@@ -5,6 +5,7 @@ import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { GLService } from './gl.service.js';
+import { addProductSubscription } from './subscription-billing.service.js';
 import { DefaultWorkflowService } from './default-workflow.service.js';
 import { computeAndRecordCommission } from './referral.service.js';
 import { NotificationService } from './notification.service.js';
@@ -12,6 +13,8 @@ import { MailService } from './mail.service.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { enforcePasswordPolicy } from '../lib/password-policy.js';
 import { PrivacyPolicyService } from './privacy-policy.service.js';
+import { IndustryRegistryService } from './industry-registry.service.js';
+import { OrgModelService } from './org-model.service.js';
 import { PERSONAL_EMAIL_DOMAINS, type MatchedTenant, type JoinRequestInput, type JoinRequestSubmitResponse } from '@hudumika/types';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
@@ -226,7 +229,14 @@ async function submitJoinRequest(
 export class OnboardingService {
   static async completeOnboarding(
     fastify: FastifyInstance,
-    input: OnboardingCompleteInput
+    input: OnboardingCompleteInput,
+    // Hosted-checkout onboarding (billing-webhooks.routes.ts's pending_signups
+    // finalization): by the time this runs, payment has already been
+    // verified directly with the gateway, and the password was already
+    // hashed when the pending_signups row was written (never store a
+    // plaintext password, even transiently) — skipPaymentGate bypasses the
+    // 501/simulateCharge block entirely rather than re-deciding anything.
+    opts: { skipPaymentGate?: boolean; passwordAlreadyHashed?: boolean; realTxRef?: string } = {},
   ): Promise<OnboardingCompleteResponse> {
     const email = input.account.email.trim().toLowerCase();
 
@@ -257,17 +267,24 @@ export class OnboardingService {
 
     const amount = input.billing_cycle === 'annual' ? Number(pkg.annual_price) : Number(pkg.monthly_price);
 
-    // When a real Flutterwave gateway is configured (production), the signup
-    // flow must go through hosted checkout — there is no direct-charge API
-    // wired into the onboarding path. simulateCharge() must never run
-    // against a live key or it would create a successful "paid" tenant
-    // without any real money moving.
-    if (PaymentGateway.isConfigured()) {
-      throw new OnboardingError(501, 'Online payment during signup is not yet available. Please contact the platform administrator.');
-    }
-    const charge = PaymentsIntegration.simulateCharge(amount, input.payment);
-    if (!charge.success) {
-      throw new OnboardingError(402, charge.error || 'Payment was declined');
+    // opts.realTxRef: the actual Flutterwave transaction reference, already
+    // verified directly with the gateway before this function was ever
+    // called (billing-webhooks.routes.ts's pending_signups finalization) —
+    // stands in for the simulator's tx_ref below on that path.
+    let charge: { success: boolean; tx_ref: string; error?: string } = { success: true, tx_ref: opts.realTxRef ?? '' };
+    if (!opts.skipPaymentGate) {
+      // When a real Flutterwave gateway is configured and there's actually
+      // something to charge, the signup must go through hosted checkout
+      // (onboarding.routes.ts's POST /checkout) instead of this direct path.
+      // amount === 0 (e.g. workspace-free) always skips this — there's
+      // nothing to pay regardless of whether a gateway is configured.
+      if (amount > 0 && PaymentGateway.isConfigured()) {
+        throw new OnboardingError(501, 'This signup requires hosted checkout. Use POST /v1/onboarding/checkout instead.');
+      }
+      charge = PaymentsIntegration.simulateCharge(amount, input.payment);
+      if (!charge.success) {
+        throw new OnboardingError(402, charge.error || 'Payment was declined');
+      }
     }
 
     // A stale or mistyped ?ref= link is never a signup error — it's just
@@ -296,18 +313,55 @@ export class OnboardingService {
         referred_by_tenant_id: referredByTenantId,
         founder_personal_email_domain: founderDomain && PERSONAL_EMAIL_DOMAIN_SET.has(founderDomain) ? founderDomain : null,
         onboarding_journey: input.onboarding_journey ?? null,
+        // Was never set here at all — every signup silently got the column's
+        // 'monthly' default regardless of what was picked on the Package
+        // step, so an "annual" signup was actually billed monthly forever
+        // (computePlanAmount reads tenants.billing_cycle, not the one-time
+        // platform_transactions row from the signup payment).
+        billing_cycle: input.billing_cycle,
+        billing_anniversary_day: Math.min(now.getUTCDate(), 28),
         created_at: now,
         updated_at: now,
       }).returningAll().executeTakeFirstOrThrow();
 
       await sql`SELECT set_config('app.tenant_id', ${tenant.id}, true)`.execute(trx);
 
+      // Give the new tenant the same tenant_product_subscriptions row that
+      // migration 683 backfilled for every pre-existing tenant, so a tenant
+      // created today is never missing the record a tenant created
+      // yesterday has. hudumika_business is always seeded (migration 682);
+      // if it's ever missing, skip rather than fail signup over it.
+      const businessProduct = await trx.selectFrom('commercial_products')
+        .select('id').where('product_key', '=', 'hudumika_business').executeTakeFirst();
+      if (businessProduct) {
+        await trx.insertInto('tenant_product_subscriptions').values({
+          tenant_id: tenant.id,
+          commercial_product_id: businessProduct.id,
+          package_code: pkg.code,
+          status: 'active',
+          started_at: now,
+          created_at: now,
+          updated_at: now,
+        }).execute();
+      }
+
+      // Standalone-product signup ("just SEAL, no Hudumika Business"):
+      // package_code is 'workspace-free' (migration 692) and these are the
+      // products to subscribe to immediately. Reuses addProductSubscription
+      // as-is — same server-resolved pricing, same standalone_purchasable/
+      // readiness_state enforcement as any other product purchase. A bad
+      // product key fails the whole signup (same all-or-nothing guarantee
+      // as every other step in this transaction), not a partial signup.
+      for (const productKey of input.initial_products ?? []) {
+        await addProductSubscription(trx, tenant.id, productKey, undefined, now);
+      }
+
       await GLService.seedChartOfAccounts(trx, tenant.id);
 
       const admin = await trx.insertInto('users').values({
         tenant_id: tenant.id,
         email,
-        password_hash: hashPassword(input.account.password),
+        password_hash: opts.passwordAlreadyHashed ? input.account.password : hashPassword(input.account.password),
         role: 'TENANT_ADMIN',
         name: input.account.name,
         active: true,
@@ -374,6 +428,15 @@ export class OnboardingService {
       // a reason to fail the account creation that already happened.
       computeAndRecordCommission(tenant.id, amount, 'USD', charge.tx_ref, input.payment.mobile_number ?? null)
         .catch(err => fastify.log.error(err, 'Failed to record referral commission'));
+    }
+
+    if (input.company.industry) {
+      // Auto-activate the industry for the new tenant so the admin panel
+      // shows relevant app capabilities from day one. Non-blocking — a
+      // missing/invalid industry key must never fail signup.
+      IndustryRegistryService.resolveKey(input.company.industry)
+        .then(key => key ? OrgModelService.activateTenantIndustry(tenant.id, admin.id, key, true) : null)
+        .catch(err => fastify.log.error(err, 'Failed to activate industry for new tenant'));
     }
 
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {

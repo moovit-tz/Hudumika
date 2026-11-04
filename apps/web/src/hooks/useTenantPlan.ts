@@ -12,6 +12,7 @@ const PLAN_LEVELS: Record<TenantPlan, number> = {
   'onsite-standalone': 0,
   starter: 1, operations: 2, growth: 2, professional: 3, finance: 3, scale: 3, enterprise: 4,
   'starter-tzs': 1, 'business-tzs': 2, 'scale-tzs': 3,
+  'workspace-free': 0,
 };
 
 // packages (GET /v1/packages, the same source Subscription.tsx and the

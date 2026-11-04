@@ -107,13 +107,21 @@ export function computePlanAmount(
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Share of the month left, counting today: 1.0 on the 1st, 1/daysInMonth on the last day. */
-export function prorationFactor(now: Date): number {
-  const { start, end } = periodBounds(now);
-  const daysInMonth = end.getUTCDate();
-  const dayOfMonth = now.getUTCDate();
-  void start;
-  return (daysInMonth - dayOfMonth + 1) / daysInMonth;
+/** Share of the current period left, counting today: 1.0 on day 1, 1/totalDays
+ *  on the last day. Defaults to the calendar-month behavior every existing
+ *  caller (add-ons) relies on — passing cycle='annual' (addProductSubscription
+ *  does, for an annual tenant) instead measures against the tenant's actual
+ *  12-month period, so an annual tenant adding a product mid-year prorates
+ *  against days left in their year, not days left in the calendar month.
+ *  Provably identical to the old day-of-month-only arithmetic for the
+ *  monthly case: both reduce to the same day count once dates are
+ *  normalized to UTC midnight, which removes any now's-time-of-day risk. */
+export function prorationFactor(now: Date, cycle: BillingCycle = 'monthly', anniversaryMonth?: number): number {
+  const { start, end } = periodBounds(now, cycle, anniversaryMonth);
+  const midnight = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const totalDays = Math.round((midnight(end) - midnight(start)) / 86_400_000) + 1;
+  const daysElapsed = Math.round((midnight(now) - midnight(start)) / 86_400_000);
+  return (totalDays - daysElapsed) / totalDays;
 }
 
 async function nextInvoiceNumber(trx: Trx, tenantId: string, periodKey: string): Promise<string> {
@@ -192,13 +200,51 @@ export async function generatePeriodInvoice(trx: Trx, tenantId: string, now = ne
     .execute();
 
   const periodLabel = cycle === 'annual' ? 'year' : 'month';
-  const lines: InvoiceLine[] = [{ description: `${tenant.plan} plan — ${seats} seat${seats === 1 ? '' : 's'} / ${periodLabel}`, quantity: 1, unit_price: planAmount, amount: planAmount, kind: 'plan' }];
+  // workspace-free (migration 692) is the free substrate a standalone-product
+  // customer (e.g. SEAL-only) signs up with instead of a paid base tier —
+  // show it plainly as what it is rather than exposing the internal package
+  // code, even though the line is always 0.00. Shown, not suppressed: an
+  // invoice that silently drops a line is harder to reason about than one
+  // that shows 0.00.
+  const planLabel = tenant.plan === 'workspace-free'
+    ? 'Hudumika Workspace — included'
+    : `${tenant.plan} plan — ${seats} seat${seats === 1 ? '' : 's'} / ${periodLabel}`;
+  const lines: InvoiceLine[] = [{ description: planLabel, quantity: 1, unit_price: planAmount, amount: planAmount, kind: 'plan' }];
   for (const a of addonRows) {
     const unit = cycle === 'annual' ? Number(a.annual_price ?? 0) : Number(a.monthly_price);
     lines.push({ description: `${a.name}${a.quantity > 1 ? ` × ${a.quantity}` : ''}`, quantity: a.quantity, unit_price: unit, amount: round2(unit * a.quantity), kind: 'addon' });
   }
+
+  // Additional product subscriptions (migration 683) beyond the tenant's
+  // base hudumika_business plan above. 'package_code IS NOT NULL' excludes
+  // usage_metered products, which aren't priced through `packages` at all.
+  const extraSubs = await trx.selectFrom('tenant_product_subscriptions as tps')
+    .innerJoin('commercial_products as cp', 'cp.id', 'tps.commercial_product_id')
+    .select(['tps.package_code', 'tps.price_snapshot', 'cp.name as product_name'])
+    .where('tps.tenant_id', '=', tenantId)
+    .where('tps.status', 'in', ['active', 'grace'])
+    .where('cp.product_key', '!=', 'hudumika_business')
+    .where('tps.package_code', 'is not', null)
+    .where('tps.started_at', '<', start)
+    .execute();
+  for (const sub of extraSubs) {
+    // Renew at the price snapshotted when the tenant subscribed, never
+    // today's live catalog price — a SuperAdmin raising seal-addon's price
+    // must not silently re-price every existing SEAL subscriber's next
+    // invoice with no grandfathering. Only a row with no snapshot at all
+    // (shouldn't happen for a priced product going forward) falls back to
+    // the live catalog rather than fail the whole invoice.
+    const snap: any = sub.price_snapshot ? (typeof sub.price_snapshot === 'string' ? JSON.parse(sub.price_snapshot) : sub.price_snapshot) : null;
+    const subPkgLike = snap ?? await trx.selectFrom('packages').selectAll().where('code', '=', sub.package_code!).executeTakeFirst();
+    if (!subPkgLike) continue; // no pricing configured for this product's tier at all — skip rather than fail the whole invoice
+    const pkgName = (await trx.selectFrom('packages').select('name').where('code', '=', sub.package_code!).executeTakeFirst())?.name ?? sub.package_code;
+    const subAmount = round2(computePlanAmount(subPkgLike, seats, cycle));
+    if (subAmount > 0) lines.push({ description: `${sub.product_name} — ${pkgName}`, quantity: 1, unit_price: subAmount, amount: subAmount, kind: 'plan' });
+  }
+
   const addonsAmount = round2(lines.filter(l => l.kind === 'addon').reduce((s, l) => s + l.amount, 0));
-  const amount = round2(planAmount + addonsAmount);
+  const productsAmount = round2(lines.filter(l => l.kind === 'plan').reduce((s, l) => s + l.amount, 0) - planAmount);
+  const amount = round2(planAmount + productsAmount + addonsAmount);
 
   const snapshot = buildPriceSnapshot(pkg, cycle);
 
@@ -238,6 +284,135 @@ export async function createProrationInvoice(trx: Trx, tenantId: string, addonCo
     period_start: iso(start), period_end: iso(end), due_date: iso(now),
     status: 'due', kind: 'proration', line_items: JSON.stringify([line]),
   } as any).returningAll().executeTakeFirstOrThrow();
+}
+
+// ── Product subscriptions (migration 683) ──────────────────────────────
+//
+// A tenant's hudumika_business subscription is kept write-through with
+// tenants.plan — these two functions never touch it; they exist for
+// ADDITIONAL products only. Adding/cancelling hudumika_business itself
+// still goes through the existing plan-change path (tenant_plan_changes,
+// migration 635), unchanged by this file.
+
+/** Prorated line item for a product added mid-period. The package/price is
+ *  always resolved server-side from the catalog (see packageCode note
+ *  below), and the proration always uses the TENANT's own billing_cycle —
+ *  never a hardcoded 'monthly' — so an annual tenant prorates against days
+ *  left in their annual period, not days left in the calendar month.
+ *  Returns null when there's nothing to charge (free/unpriced product). */
+export async function addProductSubscription(trx: Trx, tenantId: string, productKey: string, packageCode?: string, now = new Date()) {
+  if (productKey === 'hudumika_business') throw new Error('hudumika_business is managed via tenants.plan, not addProductSubscription');
+
+  const product = await trx.selectFrom('commercial_products').selectAll().where('product_key', '=', productKey).executeTakeFirst();
+  if (!product) throw new Error(`Unknown commercial product: ${productKey}`);
+  // standalone_purchasable/readiness_state gate the PUBLIC catalog
+  // (GET /v1/billing/products already filters on this), but that's a
+  // client-side convenience, not a security boundary — this is the actual
+  // enforcement point. Without it, anyone who knows a product_key could
+  // POST .../subscribe directly for a product not yet meant to be sold
+  // (e.g. a future product still 'internal'), bypassing the UI entirely.
+  if (!product.standalone_purchasable) throw new Error(`${productKey} is not available for standalone subscription`);
+  if (!['pilot', 'sellable', 'limited_availability', 'general_availability'].includes(product.readiness_state)) {
+    throw new Error(`${productKey} is not currently purchasable (readiness: ${product.readiness_state})`);
+  }
+
+  // packageCode is never trusted from a public caller's input. The route
+  // handler no longer accepts it from the request body at all — this
+  // parameter exists only for a future trusted/admin caller (e.g. a
+  // negotiated-price override), and even then it must match the catalog's
+  // own sanctioned price for this product. Without this check, a caller
+  // could buy a 69,000/mo product at a 0-cost or 29,900/mo package's price
+  // just by naming a different, valid-but-wrong packages.code.
+  if (packageCode && packageCode !== product.default_package_code) {
+    throw new Error(`${packageCode} is not the sanctioned package for ${productKey}`);
+  }
+  const resolvedPackageCode = packageCode ?? product.default_package_code ?? undefined;
+
+  const existing = await trx.selectFrom('tenant_product_subscriptions')
+    .selectAll().where('tenant_id', '=', tenantId).where('commercial_product_id', '=', product.id).executeTakeFirst();
+  if (existing && existing.status === 'active') return { subscription: existing, invoice: null };
+
+  const tenant = await trx.selectFrom('tenants').select(['billing_cycle', 'created_at']).where('id', '=', tenantId).executeTakeFirst();
+  if (!tenant) throw new Error('Tenant not found');
+  const cycle = (tenant.billing_cycle ?? 'monthly') as BillingCycle;
+  const anniversaryMonth = cycle === 'annual' && tenant.created_at ? new Date(tenant.created_at as any).getUTCMonth() : undefined;
+
+  let snapshot: PriceSnapshot | null = null;
+  let pkg: any = null;
+  if (resolvedPackageCode) {
+    pkg = await trx.selectFrom('packages').selectAll().where('code', '=', resolvedPackageCode).executeTakeFirst();
+    if (!pkg) throw new Error(`Unknown package code: ${resolvedPackageCode}`);
+    snapshot = buildPriceSnapshot(pkg, cycle);
+  }
+
+  const subscription = existing
+    ? await trx.updateTable('tenant_product_subscriptions')
+        .set({ status: 'active', package_code: resolvedPackageCode ?? null, price_snapshot: snapshot ? JSON.stringify(snapshot) : null, cancel_at: null, cancelled_at: null, updated_at: now })
+        .where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow()
+    : await trx.insertInto('tenant_product_subscriptions')
+        .values({ tenant_id: tenantId, commercial_product_id: product.id, package_code: resolvedPackageCode ?? null, status: 'active', started_at: now, price_snapshot: snapshot ? JSON.stringify(snapshot) : null } as any)
+        .returningAll().executeTakeFirstOrThrow();
+
+  // Mid-cycle: prorate against days remaining in the tenant's CURRENT period
+  // (their own billing_cycle — monthly calendar-month, or their annual
+  // anniversary — never a new/different anniversary), same factor
+  // createProrationInvoice uses for add-ons. This subscription then joins
+  // the regular period invoice from the next cycle onward via
+  // generatePeriodInvoice's started_at < period-start filter.
+  let invoice = null;
+  if (pkg) {
+    const seats = await billableSeats(trx, tenantId);
+    const fullAmount = round2(computePlanAmount(pkg, seats, cycle));
+    const factor = prorationFactor(now, cycle, anniversaryMonth);
+    const amount = round2(fullAmount * factor);
+    if (amount > 0) {
+      const { start, end, key } = periodBounds(now, cycle, anniversaryMonth);
+      const midnight = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      const totalDays = Math.round((midnight(end) - midnight(start)) / 86_400_000) + 1;
+      const daysLeft = Math.round(factor * totalDays);
+      const line: InvoiceLine = {
+        description: `${product.name} — ${pkg.name}, prorated ${daysLeft} day${daysLeft === 1 ? '' : 's'} (${iso(now)} to ${iso(end)})`,
+        quantity: 1, unit_price: amount, amount, kind: 'proration',
+      };
+      const seatRow = await trx.selectFrom('users').select(({ fn }) => fn.countAll<number>().as('c'))
+        .where('tenant_id', '=', tenantId).where('active', '=', true).executeTakeFirst();
+      invoice = await trx.insertInto('subscription_invoices').values({
+        tenant_id: tenantId, invoice_number: await nextInvoiceNumber(trx, tenantId, key), plan_code: resolvedPackageCode ?? productKey,
+        seats: Number(seatRow?.c ?? 1), currency: pkg.currency ?? 'USD', amount, addons_amount: amount,
+        period_start: iso(start), period_end: iso(end), due_date: iso(now),
+        status: 'due', kind: 'proration', line_items: JSON.stringify([line]),
+      } as any).returningAll().executeTakeFirstOrThrow();
+    }
+  }
+
+  return { subscription, invoice };
+}
+
+/** Cancels one product subscription. Never touches any other product's
+ *  subscription row, and never deletes the cancelled product's historical
+ *  data — only stops future billing. */
+export async function cancelProductSubscription(trx: Trx, tenantId: string, productKey: string, opts: { atPeriodEnd: boolean } = { atPeriodEnd: true }, now = new Date()) {
+  if (productKey === 'hudumika_business') throw new Error('hudumika_business cancellation is a tenant-lifecycle decision, not addProductSubscription');
+
+  const product = await trx.selectFrom('commercial_products').select('id').where('product_key', '=', productKey).executeTakeFirst();
+  if (!product) throw new Error(`Unknown commercial product: ${productKey}`);
+
+  const existing = await trx.selectFrom('tenant_product_subscriptions')
+    .selectAll().where('tenant_id', '=', tenantId).where('commercial_product_id', '=', product.id).executeTakeFirst();
+  if (!existing || !['active', 'trial', 'grace'].includes(existing.status)) return existing ?? null;
+
+  // "At period end" means the TENANT's own period end — an annual tenant
+  // keeps access through their actual annual renewal date, not the end of
+  // whatever calendar month they happened to click cancel in.
+  const tenant = await trx.selectFrom('tenants').select(['billing_cycle', 'created_at']).where('id', '=', tenantId).executeTakeFirst();
+  const cycle = (tenant?.billing_cycle ?? 'monthly') as BillingCycle;
+  const anniversaryMonth = cycle === 'annual' && tenant?.created_at ? new Date(tenant.created_at as any).getUTCMonth() : undefined;
+  const { end } = periodBounds(now, cycle, anniversaryMonth);
+  return trx.updateTable('tenant_product_subscriptions')
+    .set(opts.atPeriodEnd
+      ? { status: 'scheduled_cancellation', cancel_at: end, updated_at: now }
+      : { status: 'cancelled', cancelled_at: now, updated_at: now })
+    .where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
 }
 
 // ── Settlement ──────────────────────────────────────────────────────────

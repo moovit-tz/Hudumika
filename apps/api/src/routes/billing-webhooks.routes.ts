@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { dbPlatform } from '../db/client.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { settleInvoiceFromGateway } from '../services/subscription-billing.service.js';
+import { OnboardingService } from '../services/onboarding.service.js';
+import type { OnboardingCompleteInput } from '@hudumika/types';
 
 /**
  * Inbound payment-gateway webhooks (public — no session; authenticated by the
@@ -43,11 +45,34 @@ export async function billingWebhookRoutes(fastify: FastifyInstance) {
       if (eventType === 'charge.completed' && data.tx_ref) {
         const invoice = await dbPlatform.selectFrom('subscription_invoices').select(['id', 'tenant_id'])
           .where('gateway_ref', '=', String(data.tx_ref)).executeTakeFirst();
-        if (!invoice) {
-          outcome = 'unknown_reference';
-        } else {
+        if (invoice) {
           const verification = await PaymentGateway.verifyById(data.id);
           outcome = await settleInvoiceFromGateway(invoice.tenant_id, invoice.id, 'flutterwave', verification);
+        } else {
+          // Not an existing tenant's invoice — maybe a hosted-checkout
+          // signup instead (onboarding.routes.ts's POST /checkout), which
+          // has no invoice or tenant yet. Same "never trust the webhook
+          // body alone" rule: verify directly with the gateway and check
+          // amount/currency against what was staged, same as
+          // settleInvoiceFromGateway does for an existing invoice.
+          const pending = await dbPlatform.selectFrom('pending_signups').selectAll()
+            .where('tx_ref', '=', String(data.tx_ref)).where('status', '=', 'pending').executeTakeFirst();
+          if (!pending) {
+            outcome = 'unknown_reference';
+          } else {
+            const verification = await PaymentGateway.verifyById(data.id);
+            if (!verification.ok || Number(verification.amount) !== Number(pending.amount) || verification.currency !== pending.currency) {
+              await dbPlatform.updateTable('pending_signups').set({ status: 'failed', updated_at: new Date() }).where('id', '=', pending.id).execute();
+              outcome = 'signup_verification_failed';
+            } else {
+              const input = (typeof pending.payload === 'string' ? JSON.parse(pending.payload) : pending.payload) as OnboardingCompleteInput;
+              const result = await OnboardingService.completeOnboarding(fastify, input, { skipPaymentGate: true, passwordAlreadyHashed: true, realTxRef: String(data.tx_ref) });
+              await dbPlatform.updateTable('pending_signups')
+                .set({ status: 'completed', completed_tenant_id: result.tenant.id, updated_at: new Date() })
+                .where('id', '=', pending.id).execute();
+              outcome = 'signup_completed';
+            }
+          }
         }
       }
     } catch (err: any) {

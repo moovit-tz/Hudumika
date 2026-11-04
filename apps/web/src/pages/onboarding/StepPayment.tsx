@@ -26,13 +26,24 @@ function formatExpiry(value: string): string {
 
 const MOBILE_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa'];
 
-export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack }) => {
+export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages, gatewayConfigured }) => {
   const [err, setErr] = useState<Record<string, string | undefined>>({});
   const p = draft.payment;
 
   const setPayment = (patch: Partial<typeof p>) => update({ payment: { ...p, ...patch } });
 
+  // Hosted checkout: Flutterwave collects card/mobile details on its own
+  // page, never ours, so there's nothing for this step to validate or
+  // submit — it becomes a plain confirmation, and the wizard's own final
+  // action (OnboardingWizard.tsx's handleNext) calls POST /checkout and
+  // navigates away instead of /complete.
+  const pkg = packages.find(pk => pk.code === draft.package_code);
+  const amount = draft.package_code === 'workspace-free' ? 0
+    : pkg ? (draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price) : 0;
+  const isHostedCheckout = !!gatewayConfigured && amount > 0;
+
   const validate = () => {
+    if (isHostedCheckout) return true;
     const e: Record<string, string | undefined> = {};
     if (p.method === 'card') {
       const digits = p.card_number.replace(/\s/g, '');
@@ -53,6 +64,24 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
     if (!validate()) return;
     onNext();
   };
+
+  if (isHostedCheckout) {
+    return (
+      <form onSubmit={handleSubmit} noValidate className="login-form ob-payment-form">
+        <p className="ob-payment-note">
+          You'll be redirected to Flutterwave's secure page to pay {pkg?.currency === 'TZS' ? 'TZS ' : '$'}{amount.toLocaleString()}. Hudumika never sees your card or mobile money details.
+        </p>
+        <div className="ob-payment-security" aria-label="Secured by Hudumika">
+          <Icon name="lock" size={13} />
+          <span>Secured by <strong>Flutterwave</strong></span>
+        </div>
+        <div className="login-form-actions">
+          <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
+          <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue to Payment</button>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="login-form ob-payment-form">

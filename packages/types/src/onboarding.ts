@@ -100,6 +100,10 @@ export interface OnboardingCompleteInput {
   /** Phase 4 — industry journey selected during signup. Drives which apps
    *  are surfaced first and which activation checkpoints are tracked. */
   onboarding_journey?: string;
+  /** Standalone-product signup ("just SEAL, no Hudumika Business"):
+   *  commercial_products.product_key values to subscribe to immediately at
+   *  signup, alongside package_code: 'workspace-free'. */
+  initial_products?: string[];
 }
 
 export interface OnboardingCompleteResponse {

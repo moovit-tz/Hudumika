@@ -1191,6 +1191,111 @@ function useAddons() {
   return { addons, reload };
 }
 
+interface CommercialProductRow {
+  id: string;
+  product_key: string;
+  name: string;
+  description: string | null;
+  default_package_code: string | null;
+  pricing: { code: string; currency: string; price_flat_monthly: string | number | null; price_flat_annual: string | number | null } | null;
+  subscription: { status: string; cancel_at: string | null } | null;
+}
+
+function useCommercialProducts() {
+  const [products, setProducts] = useState<CommercialProductRow[] | null>(null);
+  const reload = useCallback(async () => {
+    try { setProducts((await apiFetch('/v1/billing/products')).data); } catch { setProducts([]); }
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+  return { products, reload };
+}
+
+// Standalone products (ClearOS, HuduFreight, SEAL, CargoTracker as of
+// migrations 685/687/688/689) — separate from the add-ons above: an add-on
+// tweaks the base plan, these are independently-subscribed, independently-
+// cancellable products that still join the same one consolidated invoice
+// (migration 683's tenant_product_subscriptions). Cancelling keeps access
+// through the current period end, same wording as the confirm below.
+function ProductsSection() {
+  const { products, reload } = useCommercialProducts();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  useFxReady();
+
+  async function subscribe(p: CommercialProductRow) {
+    if (!p.default_package_code) return; // nothing priced to show/disable for — the server resolves price itself either way
+    setBusyKey(p.product_key);
+    try {
+      await apiFetch(`/v1/billing/products/${p.product_key}/subscribe`, { method: 'POST', body: JSON.stringify({}) });
+      await reload();
+      showAlert(`${p.name} added. It's prorated for the rest of this billing period, then joins your regular invoice from next period onward.`, { variant: 'success', title: 'Product added' });
+    } catch (err: any) {
+      showAlert(`Failed to add: ${err.message}`);
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function cancel(p: CommercialProductRow) {
+    if (!(await showConfirm(`Cancel ${p.name}? You'll keep access until the end of the current billing period, then it stops — no data is deleted.`, { variant: 'warning', confirmLabel: 'Cancel Product' }))) return;
+    setBusyKey(p.product_key);
+    try {
+      await apiFetch(`/v1/billing/products/${p.product_key}/cancel`, { method: 'POST', body: JSON.stringify({ at_period_end: true }) });
+      await reload();
+    } catch (err: any) {
+      showAlert(`Failed to cancel: ${err.message}`);
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  if (!products || products.length === 0) return null;
+
+  return (
+    <Card style={{ marginTop: 20 }}>
+      <CardHead title="Add products" sub="Standalone Hudumika products, billed separately from your base plan and independently cancellable — each one joins your single consolidated invoice." />
+      <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+        {products.map(p => {
+          const status = p.subscription?.status;
+          const active = status === 'active' || status === 'grace' || status === 'scheduled_cancellation';
+          const scheduled = status === 'scheduled_cancellation';
+          const price = p.pricing?.price_flat_monthly != null ? Number(p.pricing.price_flat_monthly) : null;
+          const busy = busyKey === p.product_key;
+          return (
+            <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="package" size={16} strokeWidth={1.75} style={{ color: 'var(--teal)' } as React.CSSProperties} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{p.name}</span>
+                    {active && <Badge variant={scheduled ? 'warning' : 'success'}>{scheduled ? 'Cancelling' : 'Active'}</Badge>}
+                  </div>
+                  {price != null && (
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>
+                      {p.pricing!.currency} {price.toLocaleString()}<span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)' }}>/mo</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5, flex: 1 }}>{p.description}</p>
+              {scheduled ? (
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                  Access continues until {p.subscription?.cancel_at ? new Date(p.subscription.cancel_at).toLocaleDateString() : 'the end of this period'}.
+                </div>
+              ) : active ? (
+                <Btn label={busy ? 'Cancelling…' : 'Cancel'} variant="danger" onClick={() => cancel(p)} disabled={busy} />
+              ) : (
+                <Btn label={busy ? 'Adding…' : 'Add Product'} icon="plus" variant="primary" onClick={() => subscribe(p)} disabled={busy || !p.default_package_code} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 // ─── Finance edition breakdown ─────────────────────────────────────────────────
 // Shows which Finance capabilities are in Basic (all plans) vs Advanced
 // (Growth and Enterprise), so users on the plans tab can see exactly what
@@ -1510,6 +1615,8 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
       <FinanceEditionSection />
 
       <AddonsSection />
+
+      <ProductsSection />
 
       {/* Feature comparison table — 3 rows only, each backed by a real
           per-package column (packages.routes.ts), not the fixed 3-plan,

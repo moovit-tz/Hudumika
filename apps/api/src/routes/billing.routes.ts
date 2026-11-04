@@ -4,7 +4,7 @@ import type { PackagesTable } from '../db/client.js';
 import { requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { PettiService } from '../services/petti.service.js';
-import { generatePeriodInvoice, settleInvoiceFromGateway } from '../services/subscription-billing.service.js';
+import { generatePeriodInvoice, settleInvoiceFromGateway, addProductSubscription, cancelProductSubscription } from '../services/subscription-billing.service.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { env } from '../config/env.js';
 import { changePlan, getPlanChangeHistory } from '../services/plan-change.service.js';
@@ -411,6 +411,73 @@ export default async function billingRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const history = await getPlanChangeHistory(request.user.tenant_id);
     return { data: history };
+  });
+
+  // ── Additional product subscriptions (migration 683/685) ────────
+  //
+  // Independent of the tenant's base hudumika_business plan above — these
+  // cover standalone commercial products (ClearOS today; SEAL/HuduFreight/
+  // CargoTracker once each has its own readiness work done). A tenant can
+  // hold any number of these at once, each separately priced, billed on the
+  // tenant's existing billing_anniversary_day, and independently cancellable.
+
+  fastify.get('/products', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const products = await trx.selectFrom('commercial_products').selectAll()
+        .where('standalone_purchasable', '=', true)
+        .where('product_key', '!=', 'hudumika_business')
+        .execute();
+      const subs = await trx.selectFrom('tenant_product_subscriptions').selectAll()
+        .where('tenant_id', '=', user.tenant_id).execute();
+      const pkgCodes = products.map(p => p.default_package_code).filter((c): c is string => !!c);
+      const pkgs = pkgCodes.length
+        ? await trx.selectFrom('packages').select(['code', 'currency', 'price_flat_monthly', 'price_flat_annual']).where('code', 'in', pkgCodes).execute()
+        : [];
+      return {
+        data: products.map(p => ({
+          ...p,
+          pricing: pkgs.find(pkg => pkg.code === p.default_package_code) ?? null,
+          subscription: subs.find(s => s.commercial_product_id === p.id) ?? null,
+        })),
+      };
+    });
+  });
+
+  fastify.post('/products/:productKey/subscribe', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const user = request.user;
+    const { productKey } = request.params as { productKey: string };
+    // No package_code accepted from the request at all — the price a
+    // tenant pays is never client-supplied. addProductSubscription resolves
+    // it itself from commercial_products.default_package_code.
+    try {
+      const result = await withTenant(user.tenant_id, (trx) =>
+        addProductSubscription(trx, user.tenant_id, productKey)
+      );
+      return result;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/products/:productKey/cancel', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const user = request.user;
+    const { productKey } = request.params as { productKey: string };
+    const body = z.object({ at_period_end: z.boolean().optional() }).parse(request.body ?? {});
+    try {
+      const result = await withTenant(user.tenant_id, (trx) =>
+        cancelProductSubscription(trx, user.tenant_id, productKey, { atPeriodEnd: body.at_period_end ?? true })
+      );
+      return result;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
   });
 
   // -----------------------------------------------------------------------

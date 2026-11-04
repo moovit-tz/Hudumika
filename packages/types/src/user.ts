@@ -39,6 +39,10 @@ export type AppId =
   | 'projects'   // Enterprise project management app: boards, milestones, Gantt, timesheets, contracts
   | 'developer'  // Hudumika Developer Platform — API Gateway, Credentials, Metering, Marketplace
   | 'travel'     // Travel workspace — trip planning, itineraries, bookings, expenses
+  | 'tuma'       // Tuma — parcel logistics: booking, dispatch, delivery, tracking, agents, floats
+  | 'lexcore'    // LexCore — ERP for law firms: matters, time/billing, trust accounts, conflicts
+  | 'ngao'       // Ngao — PDPC privacy/data-protection compliance: assessments, registers, incidents
+  | 'gereji'     // Gereji — automotive workshop: vehicle records, job cards, estimates, labour, parts
   | 'lens';        // Internal developer record — SuperAdmin only, never customer-facing
 
 export const ALL_APP_IDS: AppId[] = [
@@ -46,6 +50,7 @@ export const ALL_APP_IDS: AppId[] = [
   'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks', 'notes', 'sign', 'sms',
   'demurrage', 'cargotracker', 'seal', 'studio', 'hudubi', 'petti', 'projects', 'developer', 'travel',
+  'tuma', 'lexcore', 'ngao', 'gereji',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and
   // both its route and its endpoints require that role.
@@ -197,7 +202,13 @@ export type TenantPlan =
   // Coexist with USD plans during transition; new TZ signups get these.
   | 'starter-tzs'
   | 'business-tzs'
-  | 'scale-tzs';
+  | 'scale-tzs'
+  // Migration 692 — the $0 substrate a standalone-product signup (e.g.
+  // SEAL-only, no Hudumika Business) uses instead of a paid tier. Grants
+  // no tier-gated feature on its own, same shape as 'agency-managed'/
+  // 'onsite-standalone' above — real access comes from the tenant's
+  // separate tenant_product_subscriptions rows, not this plan.
+  | 'workspace-free';
 
 export const PLAN_LEVELS: Record<TenantPlan, number> = {
   free:         0,
@@ -213,6 +224,7 @@ export const PLAN_LEVELS: Record<TenantPlan, number> = {
   'starter-tzs': 1,
   'business-tzs': 2,
   'scale-tzs':   3,
+  'workspace-free': 0,
 };
 
 /** Returns true when the tenant's current plan includes the required tier. */
@@ -238,6 +250,7 @@ export const PLAN_ROLES: Record<TenantPlan, UserRole[]> = {
   'starter-tzs': ['ADMIN', 'SALES', 'CUSTOMER'],
   'business-tzs': ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
   'scale-tzs':   ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
+  'workspace-free': ['ADMIN', 'CUSTOMER'],
 };
 
 export interface Tenant {

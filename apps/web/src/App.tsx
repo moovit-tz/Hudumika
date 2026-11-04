@@ -45,6 +45,7 @@ import { VerifyEmail }          from './pages/VerifyEmail.js';
 
 // Lazy loaded pages & hub modules
 const OnboardingWizard = React.lazy(() => import('./pages/onboarding/OnboardingWizard.js').then(m => ({ default: m.OnboardingWizard })));
+const OnboardingFinalizing = React.lazy(() => import('./pages/onboarding/OnboardingFinalizing.js').then(m => ({ default: m.OnboardingFinalizing })));
 const OrgLogin = React.lazy(() => import('./pages/OrgLogin.js').then(m => ({ default: m.OrgLogin })));
 const OrgShell = React.lazy(() => import('./pages/OrgShell.js').then(m => ({ default: m.OrgShell })));
 const WorkspaceHome = React.lazy(() => import('./pages/WorkspaceHome.js').then(m => ({ default: m.WorkspaceHome })));
@@ -118,6 +119,10 @@ const HuduBIShell = React.lazy(() => import('./shells/HuduBIShell.js').then(m =>
 const SignShell = React.lazy(() => import('./shells/SignShell.js').then(m => ({ default: m.SignShell })));
 const DeveloperShell = React.lazy(() => import('./shells/DeveloperShell.js').then(m => ({ default: m.DeveloperShell })));
 const TravelShell = React.lazy(() => import('./shells/TravelShell.js').then(m => ({ default: m.TravelShell })));
+const TumaShell = React.lazy(() => import('./shells/TumaShell.js').then(m => ({ default: m.TumaShell })));
+const LexCoreShell = React.lazy(() => import('./shells/LexCoreShell.js').then(m => ({ default: m.LexCoreShell })));
+const NgaoShell = React.lazy(() => import('./shells/NgaoShell.js').then(m => ({ default: m.NgaoShell })));
+const GerejiShell = React.lazy(() => import('./shells/GerejiShell.js').then(m => ({ default: m.GerejiShell })));
 
 /* ── Hub page — shares search state between header and workspace.
    Branches between the Advanced hub (WorkspaceHome, under the shared
@@ -332,7 +337,7 @@ const PageStateRestorer: React.FC = () => {
 const AppContentBody: React.FC = () => {
   const { user, loading } = useAuth();
   const { orgUser, orgLoading } = useOrgAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const isHub = pathname === '/';
 
   // M7 SSO cutover — dark-launched, SuperAdmin-controlled (Platform Settings
@@ -379,8 +384,10 @@ const AppContentBody: React.FC = () => {
   if (!user) return (
     <Suspense fallback={<SkeletonPage />}>
       <Routes>
+        <Route path="/ondi/authorize" element={<Navigate replace to={`/login?${new URLSearchParams({ returnTo: pathname + search })}`} />} />
         <Route path="/maintenance"          element={<MaintenancePage />} />
         <Route path="/signup"               element={<OnboardingWizard />} />
+        <Route path="/signup/finalizing"     element={<OnboardingFinalizing />} />
         <Route path="/auth/register"        element={<Navigate to="/signup" replace />} />
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/reset-password"  element={<ResetPassword />} />
@@ -518,6 +525,7 @@ const AppContentBody: React.FC = () => {
             <Route path="/inventory/items"       element={<Navigate to="/seal/items" replace />} />
             <Route path="/inventory/warehouses"  element={<Navigate to="/seal/compartments" replace />} />
             <Route path="/inventory/stock"       element={<Navigate to="/seal/stock" replace />} />
+            <Route path="/inventory/counts/:id" element={<LegacyInventoryCountRedirect />} />
             <Route path="/inventory/counts"      element={<Navigate to="/seal/counts" replace />} />
             <Route path="/inventory/tasks"       element={<Navigate to="/seal/activities" replace />} />
             <Route path="/inventory/*"           element={<Navigate to="/seal" replace />} />
@@ -539,6 +547,10 @@ const AppContentBody: React.FC = () => {
             <Route path="/sms/*"       element={<SmsShell />} />
             <Route path="/developer/*" element={<DeveloperShell />} />
             <Route path="/travel/*"    element={<TravelShell />} />
+            <Route path="/tuma/*"      element={<TumaShell />} />
+            <Route path="/lexcore/*"   element={<LexCoreShell />} />
+            <Route path="/ngao/*"      element={<NgaoShell />} />
+            <Route path="/gereji/*"    element={<GerejiShell />} />
             <Route path="/dev/*"       element={<Navigate to="/developer" replace />} />
 
             {/* Legacy redirects for old routes */}
@@ -696,3 +708,8 @@ const App: React.FC = () => (
 );
 
 export default App;
+
+function LegacyInventoryCountRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/seal/counts/${id}`} replace />;
+}

@@ -1107,6 +1107,46 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // 10c. GET/PATCH /v1/superadmin/commercial-products — the 7-state product
+  // readiness lifecycle (migration 682), separate from app_status's
+  // maintenance kill switch above. Marking a product past 'internal' is a
+  // product decision this route only records — it does not itself wire the
+  // product into entitlements/billing (see tenant_product_subscriptions).
+  fastify.get('/commercial-products', async (request, reply) => {
+    const rows = await dbPlatform.selectFrom('commercial_products').selectAll().orderBy('product_key').execute();
+    return { commercialProducts: rows };
+  });
+
+  fastify.patch<{ Params: { productKey: string }; Body: { readiness_state: string } }>(
+    '/commercial-products/:productKey',
+    async (request, reply) => {
+      const { productKey } = request.params;
+      const { readiness_state } = request.body;
+      const user = request.user;
+      const valid = ['internal', 'pilot', 'sellable', 'limited_availability', 'general_availability', 'suspended', 'retired'];
+      if (!valid.includes(readiness_state)) {
+        return reply.status(400).send({ error: `readiness_state must be one of: ${valid.join(', ')}` });
+      }
+
+      const existing = await dbPlatform.selectFrom('commercial_products').select('id').where('product_key', '=', productKey).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: `Unknown commercial product: ${productKey}` });
+
+      await dbPlatform.updateTable('commercial_products')
+        .set({ readiness_state: readiness_state as any, updated_at: new Date() })
+        .where('product_key', '=', productKey)
+        .execute();
+
+      const row = await dbPlatform.selectFrom('commercial_products').selectAll().where('product_key', '=', productKey).executeTakeFirstOrThrow();
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Set ${productKey} readiness to ${readiness_state}`,
+        targetType: 'commercial_product', targetId: null, targetName: productKey, tenantId: null,
+        metadata: { readiness_state },
+      });
+      return { commercialProduct: row };
+    }
+  );
+
   // 11. GET /v1/superadmin/packages/:code/features — which feature keys a package grants
   fastify.get<{ Params: { code: string } }>('/packages/:code/features', async (request, reply) => {
     const { code } = request.params;
